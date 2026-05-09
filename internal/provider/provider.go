@@ -1,4 +1,4 @@
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate -provider-name coolify
+//go:generate tfplugindocs generate --provider-name coolify --provider-dir ../.. --rendered-provider-name coolify
 package provider
 
 import (
