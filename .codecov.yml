@@ -1,0 +1,18 @@
+coverage:
+  status:
+    project:
+      default:
+        threshold: 2%
+    patch:
+      default:
+        enabled: false
+
+ignore:
+  - "docs/**"
+  - "examples/**"
+  - "templates/**"
+  - "tools/**"
+
+comment:
+  layout: "reach, diff, files"
+  require_changes: true
