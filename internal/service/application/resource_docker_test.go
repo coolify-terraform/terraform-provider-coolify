@@ -11,6 +11,7 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // ---------------------------------------------------------------------------
@@ -204,6 +205,80 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"environment_name"},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerImageApplicationResource_Disappears
+// ---------------------------------------------------------------------------
+
+func TestDockerImageApplicationResource_Disappears(t *testing.T) {
+	mu := sync.Mutex{}
+	deleted := false
+	appUUID := "docker-disappear-uuid"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(client.Application{
+			UUID:                    appUUID,
+			Name:                    "disappearing-docker",
+			DockerRegistryImageName: "nginx:latest",
+			PortsExposes:            "80",
+			ProjectUUID:             "proj-uuid",
+			ServerUUID:              "srv-uuid",
+		})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					project_uuid  = "proj-uuid"
+					server_uuid   = "srv-uuid"
+					docker_image  = "nginx:latest"
+					ports_exposes = "80"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_docker_image_application.test", "uuid"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_docker_image_application.test"]
+						if !ok {
+							return fmt.Errorf("resource not found in state")
+						}
+						req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/applications/"+rs.Primary.Attributes["uuid"], nil)
+						resp, err := http.DefaultClient.Do(req)
+						if err != nil {
+							return err
+						}
+						resp.Body.Close()
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})

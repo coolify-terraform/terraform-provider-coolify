@@ -11,6 +11,7 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 type mockKeydbState struct {
@@ -163,6 +164,73 @@ resource "coolify_keydb_database" "test" {
 				ImportStateId:                        "keydb-test-uuid-001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+			},
+		},
+	})
+}
+
+func TestKeydbDatabaseResource_Disappears(t *testing.T) {
+	mu := sync.Mutex{}
+	deleted := false
+	dbUUID := "keydb-disappear-uuid-001"
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/keydb":
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": dbUUID})
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dbUUID):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid": dbUUID, "name": "disappearing-keydb",
+				"project_uuid": "proj-uuid-1", "server_uuid": "srv-uuid-1",
+				"environment_name": "production", "image": "eqalpha/keydb:latest", "is_public": false,
+			})
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dbUUID):
+			deleted = true
+			w.WriteHeader(http.StatusOK)
+		case strings.HasSuffix(r.URL.Path, "/start"), strings.HasSuffix(r.URL.Path, "/stop"):
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_keydb_database" "test" {
+  project_uuid = "proj-uuid-1"
+  server_uuid  = "srv-uuid-1"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_keydb_database.test", "uuid"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_keydb_database.test"]
+						if !ok {
+							return fmt.Errorf("resource not found in state")
+						}
+						req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/databases/"+rs.Primary.Attributes["uuid"], nil)
+						resp, err := http.DefaultClient.Do(req)
+						if err != nil {
+							return err
+						}
+						resp.Body.Close()
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})

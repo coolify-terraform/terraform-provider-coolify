@@ -1897,6 +1897,58 @@ func TestClient_CreateDockerComposeApplication(t *testing.T) {
 	assert.Equal(t, "dockercompose", got.BuildPack)
 }
 
+func TestClient_CreateKeydbDatabase(t *testing.T) {
+	expected := Database{UUID: "keydb-1", Name: "cache", Type: "keydb"}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/keydb", r.URL.Path)
+
+		body, _ := io.ReadAll(r.Body)
+		var input CreateKeydbInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(expected)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.CreateKeydbDatabase(context.Background(), CreateKeydbInput{
+		ProjectUUID: "proj-1", ServerUUID: "srv-1", EnvironmentName: "production",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "keydb-1", got.UUID)
+	assert.Equal(t, "keydb", got.Type)
+}
+
+func TestClient_CreateDragonflyDatabase(t *testing.T) {
+	expected := Database{UUID: "df-1", Name: "sessions", Type: "dragonfly"}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/dragonfly", r.URL.Path)
+
+		body, _ := io.ReadAll(r.Body)
+		var input CreateDragonflyInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(expected)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.CreateDragonflyDatabase(context.Background(), CreateDragonflyInput{
+		ProjectUUID: "proj-1", ServerUUID: "srv-1", EnvironmentName: "production",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "df-1", got.UUID)
+	assert.Equal(t, "dragonfly", got.Type)
+}
+
 func TestClient_CreateClickhouseDatabase(t *testing.T) {
 	expected := Database{UUID: "ch-1", Name: "analytics", Type: "clickhouse"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
