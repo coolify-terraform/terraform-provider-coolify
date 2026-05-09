@@ -18,6 +18,7 @@ type Client struct {
 	BaseURL    string
 	APIToken   string
 	HTTPClient *http.Client
+	UserAgent  string
 }
 
 // New creates a new Coolify API client.
@@ -41,7 +42,17 @@ func New(baseURL, apiToken string) *Client {
 		BaseURL:    baseURL,
 		APIToken:   apiToken,
 		HTTPClient: httpClient,
+		UserAgent:  "terraform-provider-coolify",
 	}
+}
+
+// GetVersion returns the Coolify instance version string.
+func (c *Client) GetVersion(ctx context.Context) (string, error) {
+	var v string
+	if err := c.do(ctx, http.MethodGet, "/api/v1/version", nil, &v); err != nil {
+		return "", fmt.Errorf("getting version: %w", err)
+	}
+	return v, nil
 }
 
 // NotFoundError is returned when the API responds with 404.
@@ -80,7 +91,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	}
 	req.Header.Set("Authorization", "Bearer "+c.APIToken)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "terraform-provider-coolify")
+	req.Header.Set("User-Agent", c.UserAgent)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_database` / `coolify_databases` - Read database(s)
   - `coolify_service` / `coolify_services` - Read service(s)
   - `coolify_team` - Read team info and members
+  - `coolify_version` - Read the Coolify instance version
 - All resources support `terraform import`
 - Retryable HTTP client with automatic retry on 429/5xx (3 retries, 30s timeout)
 - Input validators: `build_pack` OneOf, port range (1-65535)

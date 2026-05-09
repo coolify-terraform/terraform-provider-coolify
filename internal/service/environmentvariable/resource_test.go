@@ -3,6 +3,8 @@ package environmentvariable_test
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -242,6 +244,194 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "true"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "true"),
 				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_ServiceUpdate
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
+	mu := sync.Mutex{}
+	currentEnvVar := client.EnvironmentVariable{
+		UUID: "env-svc-upd-uuid", Key: "LOG_LEVEL", Value: "info", IsPreview: false, IsBuild: false,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentEnvVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{currentEnvVar})
+	})
+	mux.HandleFunc("PATCH /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["value"].(string); ok {
+			currentEnvVar.Value = v
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					service_uuid = "svc-uuid-1"
+					key          = "LOG_LEVEL"
+					value        = "info"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "info"),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					service_uuid = "svc-uuid-1"
+					key          = "LOG_LEVEL"
+					value        = "debug"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "debug"),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_ServiceImport
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
+	envVar := client.EnvironmentVariable{
+		UUID: "env-svc-imp-uuid", Key: "SVC_VAR", Value: "svc-value", IsPreview: false, IsBuild: false,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					service_uuid = "svc-uuid-1"
+					key          = "SVC_VAR"
+					value        = "svc-value"
+				`),
+			},
+			{
+				ResourceName:                         "coolify_environment_variable.test",
+				ImportState:                          true,
+				ImportStateId:                        "service:svc-uuid-1:env-svc-imp-uuid",
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateVerifyIgnore:              []string{"value"},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_ImportBadFormat
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_ImportBadFormat(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": "env-err-uuid"})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{{UUID: "env-err-uuid", Key: "K", Value: "V"}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "app-uuid-1"
+					key              = "K"
+					value            = "V"
+				`),
+			},
+			{
+				ResourceName:  "coolify_environment_variable.test",
+				ImportState:   true,
+				ImportStateId: "bad-format",
+				ExpectError:   regexp.MustCompile(`Invalid import ID format`),
+			},
+		},
+	})
+}
+
+func TestEnvironmentVariableResource_ImportBadType(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": "env-err2-uuid"})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{{UUID: "env-err2-uuid", Key: "K", Value: "V"}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "app-uuid-1"
+					key              = "K"
+					value            = "V"
+				`),
+			},
+			{
+				ResourceName:  "coolify_environment_variable.test",
+				ImportState:   true,
+				ImportStateId: "database:uuid:env-uuid",
+				ExpectError:   regexp.MustCompile(`Invalid import ID type`),
 			},
 		},
 	})

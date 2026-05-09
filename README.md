@@ -41,6 +41,7 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_database` / `coolify_databases` | Read database(s) |
 | `coolify_service` / `coolify_services` | Read service(s) |
 | `coolify_team` | Read team info and members |
+| `coolify_version` | Read the Coolify instance version |
 
 ## Requirements
 
