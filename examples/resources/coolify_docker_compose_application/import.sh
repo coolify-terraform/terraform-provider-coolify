@@ -1,0 +1,1 @@
+terraform import coolify_docker_compose_application.example <application-uuid>

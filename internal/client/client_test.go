@@ -1664,3 +1664,141 @@ func TestClient_CreatePrivateGitApplication(t *testing.T) {
 	assert.Equal(t, "pgit-app-new", app.UUID)
 	assert.Equal(t, "my-api", app.Name)
 }
+
+// --- Database Backups ---
+
+func TestClient_ListDatabaseBackups(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		retain := int64(7)
+		json.NewEncoder(w).Encode([]DatabaseBackup{
+			{ID: 1, UUID: "bk-1", DatabaseUUID: "db-uuid-1", Frequency: "0 * * * *", Enabled: true, RetainDays: &retain},
+			{ID: 2, UUID: "bk-2", DatabaseUUID: "db-uuid-1", Frequency: "0 0 * * *", Enabled: false},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	backups, err := c.ListDatabaseBackups(context.Background(), "db-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, backups, 2)
+	assert.Equal(t, 1, backups[0].ID)
+	assert.Equal(t, "bk-1", backups[0].UUID)
+	assert.Equal(t, "db-uuid-1", backups[0].DatabaseUUID)
+	assert.Equal(t, "0 * * * *", backups[0].Frequency)
+	assert.True(t, backups[0].Enabled)
+	require.NotNil(t, backups[0].RetainDays)
+	assert.Equal(t, int64(7), *backups[0].RetainDays)
+	assert.Equal(t, 2, backups[1].ID)
+	assert.Equal(t, "bk-2", backups[1].UUID)
+	assert.False(t, backups[1].Enabled)
+}
+
+func TestClient_GetDatabaseBackup(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/42", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(DatabaseBackup{
+			ID:           42,
+			UUID:         "bk-42",
+			DatabaseUUID: "db-uuid-1",
+			Frequency:    "0 0 * * *",
+			Enabled:      true,
+			DatabaseType: "postgresql",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	b, err := c.GetDatabaseBackup(context.Background(), "db-uuid-1", 42)
+	require.NoError(t, err)
+	assert.Equal(t, 42, b.ID)
+	assert.Equal(t, "bk-42", b.UUID)
+	assert.Equal(t, "db-uuid-1", b.DatabaseUUID)
+	assert.Equal(t, "0 0 * * *", b.Frequency)
+	assert.True(t, b.Enabled)
+	assert.Equal(t, "postgresql", b.DatabaseType)
+}
+
+func TestClient_CreateDatabaseBackup(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateDatabaseBackupInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "0 * * * *", input.Frequency)
+		assert.True(t, input.Enabled)
+		assert.Equal(t, "s3-storage-1", input.S3StorageID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(DatabaseBackup{ID: 99, UUID: "bk-new", DatabaseUUID: "db-uuid-1", Frequency: "0 * * * *", Enabled: true})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	b, err := c.CreateDatabaseBackup(context.Background(), "db-uuid-1", CreateDatabaseBackupInput{
+		Frequency:   "0 * * * *",
+		Enabled:     true,
+		S3StorageID: "s3-storage-1",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 99, b.ID)
+	assert.Equal(t, "bk-new", b.UUID)
+	assert.Equal(t, "db-uuid-1", b.DatabaseUUID)
+	assert.Equal(t, "0 * * * *", b.Frequency)
+	assert.True(t, b.Enabled)
+}
+
+func TestClient_UpdateDatabaseBackup(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/10", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateDatabaseBackupInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Frequency)
+		assert.Equal(t, "0 0 * * *", *input.Frequency)
+		require.NotNil(t, input.Enabled)
+		assert.False(t, *input.Enabled)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(DatabaseBackup{ID: 10, UUID: "bk-10", DatabaseUUID: "db-uuid-1", Frequency: "0 0 * * *", Enabled: false})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	freq := "0 0 * * *"
+	enabled := false
+	b, err := c.UpdateDatabaseBackup(context.Background(), "db-uuid-1", 10, UpdateDatabaseBackupInput{
+		Frequency: &freq,
+		Enabled:   &enabled,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 10, b.ID)
+	assert.Equal(t, "bk-10", b.UUID)
+	assert.Equal(t, "0 0 * * *", b.Frequency)
+	assert.False(t, b.Enabled)
+}
+
+func TestClient_DeleteDatabaseBackup(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/5", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteDatabaseBackup(context.Background(), "db-uuid-1", 5)
+	require.NoError(t, err)
+}

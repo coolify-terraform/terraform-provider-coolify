@@ -68,3 +68,42 @@ func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServ
 func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
 	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/servers/%s", uuid), nil, nil)
 }
+
+// ValidateServer triggers a connectivity check on the server.
+// Coolify uses GET for this endpoint.
+func (c *Client) ValidateServer(ctx context.Context, uuid string) (*Server, error) {
+	var s Server
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/validate", uuid), nil, &s); err != nil {
+		return nil, fmt.Errorf("validating server %s: %w", uuid, err)
+	}
+	return &s, nil
+}
+
+type ServerResource struct {
+	UUID string `json:"uuid"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+// ListServerResources returns all resources (apps, databases, services) deployed on a server.
+func (c *Client) ListServerResources(ctx context.Context, uuid string) ([]ServerResource, error) {
+	var r []ServerResource
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/resources", uuid), nil, &r); err != nil {
+		return nil, fmt.Errorf("listing server resources %s: %w", uuid, err)
+	}
+	return r, nil
+}
+
+type ServerDomain struct {
+	Domain string `json:"domain"`
+	IP     string `json:"ip"`
+}
+
+// ListServerDomains returns all domains configured on a server.
+func (c *Client) ListServerDomains(ctx context.Context, uuid string) ([]ServerDomain, error) {
+	var d []ServerDomain
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/domains", uuid), nil, &d); err != nil {
+		return nil, fmt.Errorf("listing server domains %s: %w", uuid, err)
+	}
+	return d, nil
+}

@@ -31,6 +31,8 @@ type Database struct {
 	MongoInitdbRootUsername string `json:"mongo_initdb_root_username,omitempty"`
 	MongoInitdbRootPassword string `json:"mongo_initdb_root_password,omitempty"`
 	MongoInitdbDatabase     string `json:"mongo_initdb_database,omitempty"`
+	ClickhouseAdminUser     string `json:"clickhouse_admin_user,omitempty"`
+	ClickhouseAdminPassword string `json:"clickhouse_admin_password,omitempty"`
 }
 type CreatePostgresqlInput struct {
 	ServerUUID       string `json:"server_uuid"`
@@ -96,6 +98,17 @@ type CreateMongodbInput struct {
 	IsPublic                *bool  `json:"is_public,omitempty"`
 	PublicPort              *int64 `json:"public_port,omitempty"`
 }
+type CreateClickhouseInput struct {
+	ProjectUUID     string `json:"project_uuid"`
+	ServerUUID      string `json:"server_uuid"`
+	EnvironmentName string `json:"environment_name,omitempty"`
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	Image           string `json:"image,omitempty"`
+	IsPublic        *bool  `json:"is_public,omitempty"`
+	PublicPort      *int64 `json:"public_port,omitempty"`
+}
+
 type UpdateDatabaseInput struct {
 	Name                    *string `json:"name,omitempty"`
 	Description             *string `json:"description,omitempty"`
@@ -116,6 +129,8 @@ type UpdateDatabaseInput struct {
 	MongoInitdbRootUsername *string `json:"mongo_initdb_root_username,omitempty"`
 	MongoInitdbRootPassword *string `json:"mongo_initdb_root_password,omitempty"`
 	MongoInitdbDatabase     *string `json:"mongo_initdb_database,omitempty"`
+	ClickhouseAdminUser     *string `json:"clickhouse_admin_user,omitempty"`
+	ClickhouseAdminPassword *string `json:"clickhouse_admin_password,omitempty"`
 }
 
 func (c *Client) ListDatabases(ctx context.Context) ([]Database, error) {
@@ -164,6 +179,13 @@ func (c *Client) CreateMongodbDatabase(ctx context.Context, input CreateMongodbI
 	var d Database
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mongodb", input, &d, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating mongodb database: %w", err)
+	}
+	return &d, nil
+}
+func (c *Client) CreateClickhouseDatabase(ctx context.Context, input CreateClickhouseInput) (*Database, error) {
+	var d Database
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/clickhouse", input, &d, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating clickhouse database: %w", err)
 	}
 	return &d, nil
 }

@@ -22,6 +22,7 @@ type Application struct {
 	ServerUUID              string `json:"server_uuid,omitempty"`
 	ProjectUUID             string `json:"project_uuid,omitempty"`
 	DockerRegistryImageName string `json:"docker_registry_image_name,omitempty"`
+	DockerComposeRaw        string `json:"docker_compose_raw,omitempty"`
 	Status                  string `json:"status,omitempty"`
 }
 type CreatePublicAppInput struct {
@@ -53,6 +54,7 @@ type UpdateApplicationInput struct {
 	StartCommand            *string `json:"start_command,omitempty"`
 	PortsExposes            *string `json:"ports_exposes,omitempty"`
 	DockerRegistryImageName *string `json:"docker_registry_image_name,omitempty"`
+	DockerComposeRaw        *string `json:"docker_compose_raw,omitempty"`
 }
 
 func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {
@@ -125,6 +127,25 @@ func (c *Client) CreatePrivateGitApplication(ctx context.Context, input CreatePr
 	var a Application
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-github-app", input, &a, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating private git application: %w", err)
+	}
+	return &a, nil
+}
+
+type CreateDockerComposeAppInput struct {
+	ProjectUUID      string `json:"project_uuid"`
+	ServerUUID       string `json:"server_uuid"`
+	EnvironmentName  string `json:"environment_name"`
+	DockerComposeRaw string `json:"docker_compose_raw"`
+	Name             string `json:"name,omitempty"`
+	Description      string `json:"description,omitempty"`
+	FQDN             string `json:"fqdn,omitempty"`
+	InstallCommand   string `json:"instant_deploy,omitempty"`
+}
+
+func (c *Client) CreateDockerComposeApplication(ctx context.Context, input CreateDockerComposeAppInput) (*Application, error) {
+	var a Application
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockercompose", input, &a, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating docker compose application: %w", err)
 	}
 	return &a, nil
 }
