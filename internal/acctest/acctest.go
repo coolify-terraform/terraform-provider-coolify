@@ -34,7 +34,8 @@ func TestProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer,
 	}
 }
 
-// ConfigProviderBlock returns a Terraform HCL provider configuration block.
+// ConfigProviderBlock returns a Terraform HCL provider configuration block
+// using environment variables.
 func ConfigProviderBlock() string {
 	return fmt.Sprintf(`
 provider "coolify" {
@@ -42,4 +43,25 @@ provider "coolify" {
   token     = %q
 }
 `, os.Getenv("COOLIFY_ENDPOINT"), os.Getenv("COOLIFY_TOKEN"))
+}
+
+// ProviderBlockForURL returns a provider block configured for a mock server URL.
+func ProviderBlockForURL(serverURL string) string {
+	return fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+`, serverURL)
+}
+
+// RequireEnv skips the test if the given environment variable is not set.
+// Returns the value if set.
+func RequireEnv(t *testing.T, key string) string {
+	t.Helper()
+	v := os.Getenv(key)
+	if v == "" {
+		t.Skipf("Environment variable %s not set, skipping", key)
+	}
+	return v
 }

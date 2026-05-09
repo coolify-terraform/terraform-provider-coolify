@@ -7,21 +7,22 @@ import (
 )
 
 type Application struct {
-	UUID               string `json:"uuid"`
-	Name               string `json:"name"`
-	Description        string `json:"description,omitempty"`
-	FQDN               string `json:"fqdn,omitempty"`
-	GitRepository      string `json:"git_repository,omitempty"`
-	GitBranch          string `json:"git_branch,omitempty"`
-	BuildPack          string `json:"build_pack,omitempty"`
-	DockerfileLocation string `json:"dockerfile_location,omitempty"`
-	InstallCommand     string `json:"install_command,omitempty"`
-	BuildCommand       string `json:"build_command,omitempty"`
-	StartCommand       string `json:"start_command,omitempty"`
-	PortsExposes       string `json:"ports_exposes,omitempty"`
-	ServerUUID         string `json:"server_uuid,omitempty"`
-	ProjectUUID        string `json:"project_uuid,omitempty"`
-	Status             string `json:"status,omitempty"`
+	UUID                    string `json:"uuid"`
+	Name                    string `json:"name"`
+	Description             string `json:"description,omitempty"`
+	FQDN                    string `json:"fqdn,omitempty"`
+	GitRepository           string `json:"git_repository,omitempty"`
+	GitBranch               string `json:"git_branch,omitempty"`
+	BuildPack               string `json:"build_pack,omitempty"`
+	DockerfileLocation      string `json:"dockerfile_location,omitempty"`
+	InstallCommand          string `json:"install_command,omitempty"`
+	BuildCommand            string `json:"build_command,omitempty"`
+	StartCommand            string `json:"start_command,omitempty"`
+	PortsExposes            string `json:"ports_exposes,omitempty"`
+	ServerUUID              string `json:"server_uuid,omitempty"`
+	ProjectUUID             string `json:"project_uuid,omitempty"`
+	DockerRegistryImageName string `json:"docker_registry_image_name,omitempty"`
+	Status                  string `json:"status,omitempty"`
 }
 type CreatePublicAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
@@ -40,17 +41,18 @@ type CreatePublicAppInput struct {
 	StartCommand       string `json:"start_command,omitempty"`
 }
 type UpdateApplicationInput struct {
-	Name               *string `json:"name,omitempty"`
-	Description        *string `json:"description,omitempty"`
-	FQDN               *string `json:"fqdn,omitempty"`
-	GitRepository      *string `json:"git_repository,omitempty"`
-	GitBranch          *string `json:"git_branch,omitempty"`
-	BuildPack          *string `json:"build_pack,omitempty"`
-	DockerfileLocation *string `json:"dockerfile_location,omitempty"`
-	InstallCommand     *string `json:"install_command,omitempty"`
-	BuildCommand       *string `json:"build_command,omitempty"`
-	StartCommand       *string `json:"start_command,omitempty"`
-	PortsExposes       *string `json:"ports_exposes,omitempty"`
+	Name                    *string `json:"name,omitempty"`
+	Description             *string `json:"description,omitempty"`
+	FQDN                    *string `json:"fqdn,omitempty"`
+	GitRepository           *string `json:"git_repository,omitempty"`
+	GitBranch               *string `json:"git_branch,omitempty"`
+	BuildPack               *string `json:"build_pack,omitempty"`
+	DockerfileLocation      *string `json:"dockerfile_location,omitempty"`
+	InstallCommand          *string `json:"install_command,omitempty"`
+	BuildCommand            *string `json:"build_command,omitempty"`
+	StartCommand            *string `json:"start_command,omitempty"`
+	PortsExposes            *string `json:"ports_exposes,omitempty"`
+	DockerRegistryImageName *string `json:"docker_registry_image_name,omitempty"`
 }
 
 func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {
@@ -99,4 +101,25 @@ func (c *Client) DeleteApplication(ctx context.Context, uuid string) error {
 		return fmt.Errorf("deleting application %s: %w", uuid, err)
 	}
 	return nil
+}
+
+type CreateDockerImageAppInput struct {
+	ProjectUUID     string `json:"project_uuid"`
+	ServerUUID      string `json:"server_uuid"`
+	EnvironmentName string `json:"environment_name"`
+	DockerImage     string `json:"docker_registry_image_name"`
+	PortsExposes    string `json:"ports_exposes"`
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	FQDN            string `json:"fqdn,omitempty"`
+	InstallCommand  string `json:"install_command,omitempty"`
+	StartCommand    string `json:"start_command,omitempty"`
+}
+
+func (c *Client) CreateDockerImageApplication(ctx context.Context, input CreateDockerImageAppInput) (*Application, error) {
+	var a Application
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockerimage", input, &a, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating docker image application: %w", err)
+	}
+	return &a, nil
 }

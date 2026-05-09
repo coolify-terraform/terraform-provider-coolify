@@ -1081,3 +1081,343 @@ func TestClient_DeployByTag(t *testing.T) {
 	err := c.DeployByTag(context.Background(), "v1.2.3", DeployByTagInput{ForceRebuild: true})
 	require.NoError(t, err)
 }
+
+// --- Applications (remaining) ---
+
+func TestClient_ListApplications(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/applications", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Application{
+			{UUID: "app-1", Name: "App One", GitRepository: "https://github.com/org/one", GitBranch: "main"},
+			{UUID: "app-2", Name: "App Two", GitRepository: "https://github.com/org/two", GitBranch: "develop"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	apps, err := c.ListApplications(context.Background())
+	require.NoError(t, err)
+	require.Len(t, apps, 2)
+	assert.Equal(t, "app-1", apps[0].UUID)
+	assert.Equal(t, "App One", apps[0].Name)
+	assert.Equal(t, "https://github.com/org/one", apps[0].GitRepository)
+	assert.Equal(t, "app-2", apps[1].UUID)
+	assert.Equal(t, "App Two", apps[1].Name)
+	assert.Equal(t, "develop", apps[1].GitBranch)
+}
+
+func TestClient_RestartApplication(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-restart-1/restart", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(RestartApplicationResponse{
+			DeploymentUUID: "dep-uuid-99",
+			Message:        "Restarting",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	resp, err := c.RestartApplication(context.Background(), "app-restart-1")
+	require.NoError(t, err)
+	assert.Equal(t, "dep-uuid-99", resp.DeploymentUUID)
+	assert.Equal(t, "Restarting", resp.Message)
+}
+
+func TestClient_GetApplication(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-get-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Application{
+			UUID:               "app-get-1",
+			Name:               "My App",
+			Description:        "A test app",
+			FQDN:               "https://app.example.com",
+			GitRepository:      "https://github.com/org/repo",
+			GitBranch:          "main",
+			BuildPack:          "nixpacks",
+			DockerfileLocation: "/Dockerfile",
+			InstallCommand:     "npm install",
+			BuildCommand:       "npm run build",
+			StartCommand:       "npm start",
+			PortsExposes:       "3000",
+			ServerUUID:         "srv-1",
+			ProjectUUID:        "proj-1",
+			Status:             "running",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.GetApplication(context.Background(), "app-get-1")
+	require.NoError(t, err)
+	assert.Equal(t, "app-get-1", app.UUID)
+	assert.Equal(t, "My App", app.Name)
+	assert.Equal(t, "A test app", app.Description)
+	assert.Equal(t, "https://app.example.com", app.FQDN)
+	assert.Equal(t, "https://github.com/org/repo", app.GitRepository)
+	assert.Equal(t, "main", app.GitBranch)
+	assert.Equal(t, "nixpacks", app.BuildPack)
+	assert.Equal(t, "/Dockerfile", app.DockerfileLocation)
+	assert.Equal(t, "npm install", app.InstallCommand)
+	assert.Equal(t, "npm run build", app.BuildCommand)
+	assert.Equal(t, "npm start", app.StartCommand)
+	assert.Equal(t, "3000", app.PortsExposes)
+	assert.Equal(t, "srv-1", app.ServerUUID)
+	assert.Equal(t, "proj-1", app.ProjectUUID)
+	assert.Equal(t, "running", app.Status)
+}
+
+func TestClient_UpdateApplication(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-upd-1", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateApplicationInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "Updated App", *input.Name)
+		require.NotNil(t, input.Description)
+		assert.Equal(t, "New description", *input.Description)
+		assert.Nil(t, input.GitRepository)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Application{UUID: "app-upd-1", Name: "Updated App", Description: "New description"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "Updated App"
+	desc := "New description"
+	app, err := c.UpdateApplication(context.Background(), "app-upd-1", UpdateApplicationInput{
+		Name:        &name,
+		Description: &desc,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "app-upd-1", app.UUID)
+	assert.Equal(t, "Updated App", app.Name)
+	assert.Equal(t, "New description", app.Description)
+}
+
+func TestClient_DeleteApplication(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-del-1", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteApplication(context.Background(), "app-del-1")
+	require.NoError(t, err)
+}
+
+// --- Databases (remaining) ---
+
+func TestClient_ListDatabases(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/databases", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Database{
+			{UUID: "db-1", Name: "postgres-main", Type: "postgresql"},
+			{UUID: "db-2", Name: "redis-cache", Type: "redis"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	dbs, err := c.ListDatabases(context.Background())
+	require.NoError(t, err)
+	require.Len(t, dbs, 2)
+	assert.Equal(t, "db-1", dbs[0].UUID)
+	assert.Equal(t, "postgres-main", dbs[0].Name)
+	assert.Equal(t, "postgresql", dbs[0].Type)
+	assert.Equal(t, "db-2", dbs[1].UUID)
+	assert.Equal(t, "redis-cache", dbs[1].Name)
+	assert.Equal(t, "redis", dbs[1].Type)
+}
+
+func TestClient_CreateMariadbDatabase(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/mariadb", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateMariadbInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "srv-1", input.ServerUUID)
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "production", input.EnvironmentName)
+		assert.Equal(t, "mdbuser", input.MariadbUser)
+		assert.Equal(t, "mdbname", input.MariadbDatabase)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Database{UUID: "db-mariadb-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	db, err := c.CreateMariadbDatabase(context.Background(), CreateMariadbInput{
+		ServerUUID:      "srv-1",
+		ProjectUUID:     "proj-1",
+		EnvironmentName: "production",
+		MariadbUser:     "mdbuser",
+		MariadbDatabase: "mdbname",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "db-mariadb-new", db.UUID)
+}
+
+func TestClient_CreateRedisDatabase(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/redis", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateRedisInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "srv-1", input.ServerUUID)
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "production", input.EnvironmentName)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Database{UUID: "db-redis-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	db, err := c.CreateRedisDatabase(context.Background(), CreateRedisInput{
+		ServerUUID:      "srv-1",
+		ProjectUUID:     "proj-1",
+		EnvironmentName: "production",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "db-redis-new", db.UUID)
+}
+
+func TestClient_CreateMongodbDatabase(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/mongodb", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateMongodbInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "srv-1", input.ServerUUID)
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "production", input.EnvironmentName)
+		assert.Equal(t, "mongoroot", input.MongoInitdbRootUsername)
+		assert.Equal(t, "appdb", input.MongoInitdbDatabase)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Database{UUID: "db-mongo-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	db, err := c.CreateMongodbDatabase(context.Background(), CreateMongodbInput{
+		ServerUUID:              "srv-1",
+		ProjectUUID:             "proj-1",
+		EnvironmentName:         "production",
+		MongoInitdbRootUsername: "mongoroot",
+		MongoInitdbDatabase:     "appdb",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "db-mongo-new", db.UUID)
+}
+
+func TestClient_GetDeployment(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/deployments/dep-get-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Deployment{
+			UUID:       "dep-get-1",
+			ID:         200,
+			Status:     "finished",
+			ServerUUID: "srv-1",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	dep, err := c.GetDeployment(context.Background(), "dep-get-1")
+	require.NoError(t, err)
+	assert.Equal(t, "dep-get-1", dep.UUID)
+	assert.Equal(t, 200, dep.ID)
+	assert.Equal(t, "finished", dep.Status)
+	assert.Equal(t, "srv-1", dep.ServerUUID)
+}
+
+func TestClient_UpdateApplicationEnvVar(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-env-1/envs", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var ev EnvironmentVariable
+		require.NoError(t, json.Unmarshal(body, &ev))
+		assert.Equal(t, "DATABASE_URL", ev.Key)
+		assert.Equal(t, "postgres://new-host/db", ev.Value)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.UpdateApplicationEnvVar(context.Background(), "app-env-1", EnvironmentVariable{
+		Key:   "DATABASE_URL",
+		Value: "postgres://new-host/db",
+	})
+	require.NoError(t, err)
+}
+
+func TestClient_CreateDockerImageApplication(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/dockerimage", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateDockerImageAppInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "srv-1", input.ServerUUID)
+		assert.Equal(t, "production", input.EnvironmentName)
+		assert.Equal(t, "nginx:latest", input.DockerImage)
+		assert.Equal(t, "80", input.PortsExposes)
+		assert.Equal(t, "my-nginx", input.Name)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "docker-app-new", Name: "my-nginx"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.CreateDockerImageApplication(context.Background(), CreateDockerImageAppInput{
+		ProjectUUID:     "proj-1",
+		ServerUUID:      "srv-1",
+		EnvironmentName: "production",
+		DockerImage:     "nginx:latest",
+		PortsExposes:    "80",
+		Name:            "my-nginx",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "docker-app-new", app.UUID)
+	assert.Equal(t, "my-nginx", app.Name)
+}

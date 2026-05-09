@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_mongodb_database` - Provision MongoDB databases
   - `coolify_service` - Deploy one-click services from the Coolify catalog
   - `coolify_deployment` - Trigger application deployments (with `triggers` map for force-redeploy)
+  - `coolify_docker_image_application` - Deploy applications from Docker images (Docker Hub, GHCR, etc.)
 - **Data Sources:**
   - `coolify_project` / `coolify_projects` - Read project(s)
   - `coolify_server` / `coolify_servers` - Read server(s)
