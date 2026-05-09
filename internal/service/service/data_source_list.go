@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -103,11 +104,7 @@ func (d *serviceListDataSource) Read(ctx context.Context, _ datasource.ReadReque
 			Name: types.StringValue(s.Name),
 			Type: types.StringValue(s.Type),
 		}
-		if s.Description != "" {
-			item.Description = types.StringValue(s.Description)
-		} else {
-			item.Description = types.StringNull()
-		}
+		item.Description = flex.StringToFramework(s.Description)
 		state.Services = append(state.Services, item)
 	}
 

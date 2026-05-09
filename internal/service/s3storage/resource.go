@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -232,11 +233,7 @@ func (r *s3StorageResource) ImportState(ctx context.Context, req resource.Import
 func mapS3StorageToModel(s *client.S3Storage, model *s3StorageResourceModel) {
 	model.UUID = types.StringValue(s.UUID)
 	model.Name = types.StringValue(s.Name)
-	if s.Description != "" {
-		model.Description = types.StringValue(s.Description)
-	} else {
-		model.Description = types.StringNull()
-	}
+	model.Description = flex.StringToFramework(s.Description)
 	model.Endpoint = types.StringValue(s.Endpoint)
 	model.Bucket = types.StringValue(s.Bucket)
 	model.Region = types.StringValue(s.Region)

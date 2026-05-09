@@ -273,11 +273,7 @@ func mapComposeAppToState(app *client.Application, state *DockerComposeApplicati
 	state.DockerComposeRaw = flex.StringToFramework(app.DockerComposeRaw)
 	state.FQDN = flex.StringToFramework(app.FQDN)
 
-	if app.ProjectUUID != "" {
-		state.ProjectUUID = types.StringValue(app.ProjectUUID)
-	}
-	if app.ServerUUID != "" {
-		state.ServerUUID = types.StringValue(app.ServerUUID)
-	}
+	state.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
+	state.ServerUUID = flex.StringToFramework(app.ServerUUID)
 	state.Status = flex.StringToFramework(app.Status)
 }

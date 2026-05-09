@@ -116,6 +116,22 @@ resource "coolify_clickhouse_database" "test" {
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "clickhouse_admin_user", "default"),
 				),
 			},
+			// Plan idempotency
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+resource "coolify_clickhouse_database" "test" {
+  project_uuid = "proj-uuid-1"
+  server_uuid  = "srv-uuid-1"
+}
+`, srv.URL),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Update
 			{
 				Config: fmt.Sprintf(`

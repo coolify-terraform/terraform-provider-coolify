@@ -122,6 +122,22 @@ resource "coolify_mysql_database" "test" {
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_public", "false"),
 				),
 			},
+			// Plan idempotency
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+resource "coolify_mysql_database" "test" {
+  project_uuid = "proj-uuid-1"
+  server_uuid  = "srv-uuid-1"
+}
+`, srv.URL),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Update
 			{
 				Config: fmt.Sprintf(`

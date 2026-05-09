@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -254,11 +255,7 @@ func (r *serverResource) ImportState(ctx context.Context, req resource.ImportSta
 func mapServerToModel(srv *client.Server, model *serverResourceModel) {
 	model.UUID = types.StringValue(srv.UUID)
 	model.Name = types.StringValue(srv.Name)
-	if srv.Description != "" {
-		model.Description = types.StringValue(srv.Description)
-	} else {
-		model.Description = types.StringNull()
-	}
+	model.Description = flex.StringToFramework(srv.Description)
 	model.IP = types.StringValue(srv.IP)
 	model.Port = types.Int64Value(int64(srv.Port))
 	model.User = types.StringValue(srv.User)

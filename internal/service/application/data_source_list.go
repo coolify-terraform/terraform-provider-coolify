@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -116,36 +117,12 @@ func (d *applicationListDataSource) Read(ctx context.Context, _ datasource.ReadR
 		item := applicationItemModel{
 			UUID: types.StringValue(a.UUID),
 		}
-		if a.Name != "" {
-			item.Name = types.StringValue(a.Name)
-		} else {
-			item.Name = types.StringNull()
-		}
-		if a.FQDN != "" {
-			item.FQDN = types.StringValue(a.FQDN)
-		} else {
-			item.FQDN = types.StringNull()
-		}
-		if a.GitRepository != "" {
-			item.GitRepository = types.StringValue(a.GitRepository)
-		} else {
-			item.GitRepository = types.StringNull()
-		}
-		if a.GitBranch != "" {
-			item.GitBranch = types.StringValue(a.GitBranch)
-		} else {
-			item.GitBranch = types.StringNull()
-		}
-		if a.BuildPack != "" {
-			item.BuildPack = types.StringValue(a.BuildPack)
-		} else {
-			item.BuildPack = types.StringNull()
-		}
-		if a.Status != "" {
-			item.Status = types.StringValue(a.Status)
-		} else {
-			item.Status = types.StringNull()
-		}
+		item.Name = flex.StringToFramework(a.Name)
+		item.FQDN = flex.StringToFramework(a.FQDN)
+		item.GitRepository = flex.StringToFramework(a.GitRepository)
+		item.GitBranch = flex.StringToFramework(a.GitBranch)
+		item.BuildPack = flex.StringToFramework(a.BuildPack)
+		item.Status = flex.StringToFramework(a.Status)
 		state.Applications = append(state.Applications, item)
 	}
 

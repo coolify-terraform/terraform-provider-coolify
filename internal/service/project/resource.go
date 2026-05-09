@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -132,11 +133,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	state.UUID = types.StringValue(project.UUID)
 	state.Name = types.StringValue(project.Name)
-	if project.Description != "" {
-		state.Description = types.StringValue(project.Description)
-	} else {
-		state.Description = types.StringNull()
-	}
+	state.Description = flex.StringToFramework(project.Description)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -217,11 +214,7 @@ func (r *projectResource) readProject(ctx context.Context, uuid string, model *p
 
 	model.UUID = types.StringValue(project.UUID)
 	model.Name = types.StringValue(project.Name)
-	if project.Description != "" {
-		model.Description = types.StringValue(project.Description)
-	} else {
-		model.Description = types.StringNull()
-	}
+	model.Description = flex.StringToFramework(project.Description)
 
 	return diags
 }

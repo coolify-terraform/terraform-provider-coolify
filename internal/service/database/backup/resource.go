@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -254,11 +255,7 @@ func mapBackupToModel(b *client.DatabaseBackup, m *databaseBackupResourceModel) 
 	m.DatabaseUUID = types.StringValue(b.DatabaseUUID)
 	m.Frequency = types.StringValue(b.Frequency)
 	m.Enabled = types.BoolValue(b.Enabled)
-	if b.S3StorageID != "" {
-		m.S3StorageID = types.StringValue(b.S3StorageID)
-	} else {
-		m.S3StorageID = types.StringNull()
-	}
+	m.S3StorageID = flex.StringToFramework(b.S3StorageID)
 	if b.RetainDays != nil {
 		m.RetainDays = types.Int64Value(*b.RetainDays)
 	} else {

@@ -127,6 +127,22 @@ resource "coolify_postgresql_database" "test" {
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_public", "false"),
 				),
 			},
+			// Plan idempotency: re-apply same config, expect empty plan
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "proj-uuid-1"
+  server_uuid  = "srv-uuid-1"
+}
+`, srv.URL),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Update name and description
 			{
 				PreConfig: func() {

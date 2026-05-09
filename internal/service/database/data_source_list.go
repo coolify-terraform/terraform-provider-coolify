@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -114,16 +115,8 @@ func (d *databaseListDataSource) Read(ctx context.Context, _ datasource.ReadRequ
 			Type:     types.StringValue(db.Type),
 			IsPublic: types.BoolValue(db.IsPublic),
 		}
-		if db.Description != "" {
-			item.Description = types.StringValue(db.Description)
-		} else {
-			item.Description = types.StringNull()
-		}
-		if db.Image != "" {
-			item.Image = types.StringValue(db.Image)
-		} else {
-			item.Image = types.StringNull()
-		}
+		item.Description = flex.StringToFramework(db.Description)
+		item.Image = flex.StringToFramework(db.Image)
 		state.Databases = append(state.Databases, item)
 	}
 

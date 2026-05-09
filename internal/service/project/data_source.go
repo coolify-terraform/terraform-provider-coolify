@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -86,11 +87,7 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	config.UUID = types.StringValue(project.UUID)
 	config.Name = types.StringValue(project.Name)
-	if project.Description != "" {
-		config.Description = types.StringValue(project.Description)
-	} else {
-		config.Description = types.StringNull()
-	}
+	config.Description = flex.StringToFramework(project.Description)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

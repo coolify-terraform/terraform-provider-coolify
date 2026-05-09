@@ -302,10 +302,6 @@ func mapDockerAppToState(app *client.Application, state *DockerImageApplicationR
 	state.StartCommand = flex.StringToFramework(app.StartCommand)
 	state.Status = flex.StringToFramework(app.Status)
 
-	if app.ProjectUUID != "" {
-		state.ProjectUUID = types.StringValue(app.ProjectUUID)
-	}
-	if app.ServerUUID != "" {
-		state.ServerUUID = types.StringValue(app.ServerUUID)
-	}
+	state.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
+	state.ServerUUID = flex.StringToFramework(app.ServerUUID)
 }

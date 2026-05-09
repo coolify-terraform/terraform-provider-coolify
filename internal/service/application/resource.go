@@ -344,11 +344,7 @@ func mapApplicationToState(app *client.Application, state *ApplicationResourceMo
 	state.BuildCommand = flex.StringToFramework(app.BuildCommand)
 	state.StartCommand = flex.StringToFramework(app.StartCommand)
 
-	if app.ProjectUUID != "" {
-		state.ProjectUUID = types.StringValue(app.ProjectUUID)
-	}
-	if app.ServerUUID != "" {
-		state.ServerUUID = types.StringValue(app.ServerUUID)
-	}
+	state.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
+	state.ServerUUID = flex.StringToFramework(app.ServerUUID)
 	state.Status = flex.StringToFramework(app.Status)
 }

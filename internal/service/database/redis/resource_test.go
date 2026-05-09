@@ -109,6 +109,22 @@ resource "coolify_redis_database" "test" {
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "environment_name", "production"),
 				),
 			},
+			// Plan idempotency
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+resource "coolify_redis_database" "test" {
+  project_uuid = "proj-uuid-1"
+  server_uuid  = "srv-uuid-1"
+}
+`, srv.URL),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Update
 			{
 				Config: fmt.Sprintf(`

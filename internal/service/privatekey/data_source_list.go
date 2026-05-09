@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -103,11 +104,7 @@ func (d *privateKeyListDataSource) Read(ctx context.Context, _ datasource.ReadRe
 			Name:         types.StringValue(k.Name),
 			IsGitRelated: types.BoolValue(k.IsGitRelated),
 		}
-		if k.Description != "" {
-			item.Description = types.StringValue(k.Description)
-		} else {
-			item.Description = types.StringNull()
-		}
+		item.Description = flex.StringToFramework(k.Description)
 		state.PrivateKeys = append(state.PrivateKeys, item)
 	}
 

@@ -117,6 +117,16 @@ resource "coolify_private_key" "test" {
 					resource.TestCheckResourceAttr("coolify_private_key.test", "is_git_related", "false"),
 				),
 			},
+			// Plan idempotency
+			{
+				Config: testProviderBlock(srv.URL) + `
+resource "coolify_private_key" "test" {
+  name        = "my-ssh-key"
+  private_key = "ssh-ed25519 AAAA-test-key"
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
