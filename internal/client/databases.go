@@ -192,3 +192,69 @@ func (c *Client) StopDatabase(ctx context.Context, uuid string) error {
 	}
 	return nil
 }
+
+// --- Database Backup types ---
+
+type DatabaseBackup struct {
+	ID           int    `json:"id"`
+	UUID         string `json:"uuid"`
+	DatabaseUUID string `json:"database_uuid"`
+	Frequency    string `json:"frequency"`
+	Enabled      bool   `json:"enabled"`
+	S3StorageID  string `json:"s3_storage_id,omitempty"`
+	DatabaseType string `json:"database_type,omitempty"`
+	RetainDays   *int64 `json:"number_of_backups_locally,omitempty"`
+}
+
+type CreateDatabaseBackupInput struct {
+	Frequency   string `json:"frequency"`
+	Enabled     bool   `json:"enabled"`
+	S3StorageID string `json:"s3_storage_id,omitempty"`
+	RetainDays  *int64 `json:"number_of_backups_locally,omitempty"`
+}
+
+type UpdateDatabaseBackupInput struct {
+	Frequency   *string `json:"frequency,omitempty"`
+	Enabled     *bool   `json:"enabled,omitempty"`
+	S3StorageID *string `json:"s3_storage_id,omitempty"`
+	RetainDays  *int64  `json:"number_of_backups_locally,omitempty"`
+}
+
+func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]DatabaseBackup, error) {
+	var backups []DatabaseBackup
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID), nil, &backups); err != nil {
+		return nil, fmt.Errorf("listing backups for database %s: %w", dbUUID, err)
+	}
+	return backups, nil
+}
+
+func (c *Client) GetDatabaseBackup(ctx context.Context, dbUUID string, backupID int) (*DatabaseBackup, error) {
+	var b DatabaseBackup
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID), nil, &b); err != nil {
+		return nil, fmt.Errorf("getting backup %d for database %s: %w", backupID, dbUUID, err)
+	}
+	return &b, nil
+}
+
+func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input CreateDatabaseBackupInput) (*DatabaseBackup, error) {
+	var b DatabaseBackup
+	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID), input, &b, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating backup for database %s: %w", dbUUID, err)
+	}
+	return &b, nil
+}
+
+func (c *Client) UpdateDatabaseBackup(ctx context.Context, dbUUID string, backupID int, input UpdateDatabaseBackupInput) (*DatabaseBackup, error) {
+	var b DatabaseBackup
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID), input, &b); err != nil {
+		return nil, fmt.Errorf("updating backup %d for database %s: %w", backupID, dbUUID, err)
+	}
+	return &b, nil
+}
+
+func (c *Client) DeleteDatabaseBackup(ctx context.Context, dbUUID string, backupID int) error {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID), nil, nil); err != nil {
+		return fmt.Errorf("deleting backup %d for database %s: %w", backupID, dbUUID, err)
+	}
+	return nil
+}

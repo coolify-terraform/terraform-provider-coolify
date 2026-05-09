@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_deployment` - Trigger application deployments (with `triggers` map for force-redeploy)
   - `coolify_docker_image_application` - Deploy applications from Docker images (Docker Hub, GHCR, etc.)
   - `coolify_private_git_application` - Deploy applications from private Git repositories (with SSH deploy key)
+  - `coolify_database_backup` - Schedule automated database backups with S3 storage and retention policies
 - **Data Sources:**
   - `coolify_project` / `coolify_projects` - Read project(s)
   - `coolify_server` / `coolify_servers` - Read server(s)

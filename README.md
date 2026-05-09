@@ -4,16 +4,37 @@
 
 A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service.
 
-## Features
+## Resources
 
-- **Projects**: Create and manage Coolify projects
-- **Servers**: Register and configure servers
-- **Private Keys**: Manage SSH keys for server access
-- **Applications**: Deploy applications from public Git repositories
-- **Environment Variables**: Manage env vars for applications and services
-- **Databases**: Provision PostgreSQL, MySQL, MariaDB, Redis, and MongoDB databases
-- **Services**: Deploy one-click services from the Coolify catalog
-- **Teams**: Read team information and membership
+| Resource | Description |
+|----------|-------------|
+| `coolify_project` | Manage projects (logical grouping for resources) |
+| `coolify_server` | Register and configure servers |
+| `coolify_private_key` | Manage SSH keys for server access |
+| `coolify_application` | Deploy apps from public Git repositories |
+| `coolify_private_git_application` | Deploy apps from private Git repos (with SSH deploy key) |
+| `coolify_docker_image_application` | Deploy apps from Docker images (Docker Hub, GHCR, etc.) |
+| `coolify_environment_variable` | Manage env vars for applications and services |
+| `coolify_postgresql_database` | Provision PostgreSQL databases |
+| `coolify_mysql_database` | Provision MySQL databases |
+| `coolify_mariadb_database` | Provision MariaDB databases |
+| `coolify_redis_database` | Provision Redis instances |
+| `coolify_mongodb_database` | Provision MongoDB databases |
+| `coolify_service` | Deploy one-click services from the Coolify catalog |
+| `coolify_deployment` | Trigger application deployments |
+| `coolify_database_backup` | Schedule automated database backups |
+
+## Data Sources
+
+| Data Source | Description |
+|-------------|-------------|
+| `coolify_project` / `coolify_projects` | Read project(s) |
+| `coolify_server` / `coolify_servers` | Read server(s) |
+| `coolify_private_key` / `coolify_private_keys` | Read SSH key(s) |
+| `coolify_application` / `coolify_applications` | Read application(s) |
+| `coolify_databases` | List all databases |
+| `coolify_services` | List all services |
+| `coolify_team` | Read team info and members |
 
 ## Requirements
 

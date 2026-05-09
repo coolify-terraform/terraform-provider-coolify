@@ -6,6 +6,7 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/application"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/database"
+	"github.com/SebTardif/terraform-provider-coolify/internal/service/database/backup"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/database/mariadb"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/database/mongodb"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/database/mysql"
@@ -75,7 +76,7 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	resp.ResourceData = c
 }
 func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{application.NewResource, application.NewDockerResource, application.NewPrivateGitResource, deployment.NewResource, environmentvariable.NewResource, postgresql.NewResource, mysql.NewResource, mariadb.NewResource, redis.NewResource, mongodb.NewResource, privatekey.NewResource, project.NewResource, server.NewResource, service.NewResource}
+	return []func() resource.Resource{application.NewResource, application.NewDockerResource, application.NewPrivateGitResource, backup.NewResource, deployment.NewResource, environmentvariable.NewResource, postgresql.NewResource, mysql.NewResource, mariadb.NewResource, redis.NewResource, mongodb.NewResource, privatekey.NewResource, project.NewResource, server.NewResource, service.NewResource}
 }
 func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{application.NewDataSource, application.NewListDataSource, database.NewListDataSource, project.NewDataSource, project.NewListDataSource, server.NewDataSource, server.NewListDataSource, service.NewListDataSource, privatekey.NewDataSource, privatekey.NewListDataSource, team.NewDataSource}
