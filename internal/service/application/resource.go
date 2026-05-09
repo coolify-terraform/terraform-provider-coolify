@@ -45,6 +45,7 @@ type ApplicationResourceModel struct {
 	InstallCommand     types.String `tfsdk:"install_command"`
 	BuildCommand       types.String `tfsdk:"build_command"`
 	StartCommand       types.String `tfsdk:"start_command"`
+	Status             types.String `tfsdk:"status"`
 }
 
 // NewResource returns a new ApplicationResource instance.
@@ -142,6 +143,10 @@ func (r *ApplicationResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"start_command": schema.StringAttribute{
 				MarkdownDescription: "The command to run to start the application.",
 				Optional:            true,
+			},
+			"status": schema.StringAttribute{
+				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
+				Computed:            true,
 			},
 		},
 	}
@@ -324,4 +329,5 @@ func mapApplicationToState(app *client.Application, state *ApplicationResourceMo
 	if app.ServerUUID != "" {
 		state.ServerUUID = types.StringValue(app.ServerUUID)
 	}
+	state.Status = flex.StringToFramework(app.Status)
 }

@@ -37,6 +37,7 @@ type ApplicationDataSourceModel struct {
 	PortsExposes       types.String `tfsdk:"ports_exposes"`
 	ProjectUUID        types.String `tfsdk:"project_uuid"`
 	ServerUUID         types.String `tfsdk:"server_uuid"`
+	Status             types.String `tfsdk:"status"`
 }
 
 // NewDataSource returns a new ApplicationDataSource instance.
@@ -108,6 +109,10 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				MarkdownDescription: "The UUID of the server the application is deployed on.",
 				Computed:            true,
 			},
+			"status": schema.StringAttribute{
+				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited).",
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -154,6 +159,7 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	config.PortsExposes = flex.StringToFramework(app.PortsExposes)
 	config.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
 	config.ServerUUID = flex.StringToFramework(app.ServerUUID)
+	config.Status = flex.StringToFramework(app.Status)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }
