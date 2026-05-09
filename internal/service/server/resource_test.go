@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func testProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer, error) {
@@ -224,6 +225,47 @@ resource "coolify_server" "test" {
 				ImportStateId:                        "srv-test-uuid-1",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+			},
+		},
+	})
+}
+
+func TestServerResource_Disappears(t *testing.T) {
+	srv := newServerMockServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testProviderBlock(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "disappearing-server"
+  ip               = "10.0.0.1"
+  private_key_uuid = "pk-uuid-1"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_server.test", "uuid"),
+					// Delete the server out-of-band via the mock API.
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_server.test"]
+						if !ok {
+							return fmt.Errorf("resource not found in state")
+						}
+						uuid := rs.Primary.Attributes["uuid"]
+						req, err := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/servers/"+uuid, nil)
+						if err != nil {
+							return err
+						}
+						resp, err := http.DefaultClient.Do(req)
+						if err != nil {
+							return err
+						}
+						resp.Body.Close()
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})

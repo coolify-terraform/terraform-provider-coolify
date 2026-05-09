@@ -195,6 +195,59 @@ func TestEnvironmentVariableResource_Import(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_CreateWithServiceUUID
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
+	envVar := client.EnvironmentVariable{
+		UUID:      "env-svc-uuid",
+		Key:       "REDIS_URL",
+		Value:     "redis://localhost:6379",
+		IsPreview: true,
+		IsBuild:   true,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					service_uuid = "svc-uuid-1"
+					key          = "REDIS_URL"
+					value        = "redis://localhost:6379"
+					is_preview   = true
+					is_build     = true
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "uuid", "env-svc-uuid"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "key", "REDIS_URL"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "redis://localhost:6379"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "true"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "true"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

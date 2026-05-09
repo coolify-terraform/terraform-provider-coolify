@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -206,6 +207,31 @@ func TestApplicationResource_Import(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"environment_name"},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestApplicationResource_InvalidBuildPack
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_InvalidBuildPack(t *testing.T) {
+	srv := httptest.NewServer(http.NotFoundHandler())
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "proj-uuid"
+					server_uuid    = "srv-uuid"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "invalid"
+					ports_exposes  = "3000"
+				`),
+				ExpectError: regexp.MustCompile(`nixpacks`),
 			},
 		},
 	})
