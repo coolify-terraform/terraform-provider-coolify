@@ -516,6 +516,76 @@ func TestEnvironmentVariableResource_Disappears(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_ServiceDisappears
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
+	envVar := client.EnvironmentVariable{
+		UUID: "env-svc-disappear-uuid", Key: "SVC_GONE", Value: "val", IsPreview: false, IsBuild: false,
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if deleted {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{})
+		} else {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+		}
+	})
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		deleted = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					service_uuid = "svc-uuid-1"
+					key          = "SVC_GONE"
+					value        = "val"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_environment_variable.test", "uuid"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_environment_variable.test"]
+						if !ok {
+							return fmt.Errorf("resource not found in state")
+						}
+						uuid := rs.Primary.Attributes["uuid"]
+						req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/services/svc-uuid-1/envs/"+uuid, nil)
+						resp, err := http.DefaultClient.Do(req)
+						if err != nil {
+							return err
+						}
+						resp.Body.Close()
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

@@ -19,6 +19,7 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/environmentvariable"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/privatekey"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/project"
+	"github.com/SebTardif/terraform-provider-coolify/internal/service/s3storage"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/server"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/service"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/team"
@@ -83,8 +84,8 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	resp.ResourceData = c
 }
 func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{application.NewResource, application.NewDockerResource, application.NewDockerComposeResource, application.NewPrivateGitResource, backup.NewResource, deployment.NewResource, environmentvariable.NewResource, postgresql.NewResource, mysql.NewResource, mariadb.NewResource, redis.NewResource, mongodb.NewResource, clickhouse.NewResource, keydb.NewResource, dragonfly.NewResource, privatekey.NewResource, project.NewResource, server.NewResource, service.NewResource}
+	return []func() resource.Resource{application.NewResource, application.NewDockerResource, application.NewDockerComposeResource, application.NewPrivateGitResource, backup.NewResource, deployment.NewResource, environmentvariable.NewResource, postgresql.NewResource, mysql.NewResource, mariadb.NewResource, redis.NewResource, mongodb.NewResource, clickhouse.NewResource, keydb.NewResource, dragonfly.NewResource, privatekey.NewResource, project.NewResource, s3storage.NewResource, server.NewResource, service.NewResource}
 }
 func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{application.NewDataSource, application.NewListDataSource, database.NewListDataSource, database.NewDataSource, project.NewDataSource, project.NewListDataSource, server.NewDataSource, server.NewListDataSource, server.NewResourcesDataSource, server.NewDomainsDataSource, service.NewListDataSource, service.NewDataSource, privatekey.NewDataSource, privatekey.NewListDataSource, team.NewDataSource, version.NewDataSource}
+	return []func() datasource.DataSource{application.NewDataSource, application.NewListDataSource, database.NewListDataSource, database.NewDataSource, project.NewDataSource, project.NewListDataSource, s3storage.NewDataSource, s3storage.NewListDataSource, server.NewDataSource, server.NewListDataSource, server.NewResourcesDataSource, server.NewDomainsDataSource, service.NewListDataSource, service.NewDataSource, privatekey.NewDataSource, privatekey.NewListDataSource, team.NewDataSource, version.NewDataSource}
 }

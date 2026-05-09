@@ -2018,3 +2018,137 @@ func TestClient_StopApplication(t *testing.T) {
 	err := c.StopApplication(context.Background(), "app-1")
 	require.NoError(t, err)
 }
+
+// --- S3 Storages ---
+
+func TestClient_ListS3Storages(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/storages", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]S3Storage{
+			{ID: 1, UUID: "s3-1", Name: "backup-s3", Endpoint: "https://s3.amazonaws.com", Bucket: "backups", Region: "us-east-1", AccessKey: "AK1", SecretKey: "SK1"},
+			{ID: 2, UUID: "s3-2", Name: "archive-s3", Endpoint: "https://s3.eu-west-1.amazonaws.com", Bucket: "archives", Region: "eu-west-1", AccessKey: "AK2", SecretKey: "SK2"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	storages, err := c.ListS3Storages(context.Background())
+	require.NoError(t, err)
+	require.Len(t, storages, 2)
+	assert.Equal(t, "s3-1", storages[0].UUID)
+	assert.Equal(t, "backup-s3", storages[0].Name)
+	assert.Equal(t, "https://s3.amazonaws.com", storages[0].Endpoint)
+	assert.Equal(t, "backups", storages[0].Bucket)
+	assert.Equal(t, "us-east-1", storages[0].Region)
+	assert.Equal(t, "s3-2", storages[1].UUID)
+	assert.Equal(t, "archive-s3", storages[1].Name)
+	assert.Equal(t, "eu-west-1", storages[1].Region)
+}
+
+func TestClient_GetS3Storage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/storages/s3-uuid-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(S3Storage{
+			ID:          1,
+			UUID:        "s3-uuid-1",
+			Name:        "my-s3",
+			Description: "Primary S3",
+			Endpoint:    "https://s3.amazonaws.com",
+			Bucket:      "my-bucket",
+			Region:      "us-east-1",
+			AccessKey:   "AKIAIOSFODNN7EXAMPLE",
+			SecretKey:   "wJalrXUtnFEMI/EXAMPLE",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	s, err := c.GetS3Storage(context.Background(), "s3-uuid-1")
+	require.NoError(t, err)
+	assert.Equal(t, "s3-uuid-1", s.UUID)
+	assert.Equal(t, "my-s3", s.Name)
+	assert.Equal(t, "Primary S3", s.Description)
+	assert.Equal(t, "https://s3.amazonaws.com", s.Endpoint)
+	assert.Equal(t, "my-bucket", s.Bucket)
+	assert.Equal(t, "us-east-1", s.Region)
+	assert.Equal(t, "AKIAIOSFODNN7EXAMPLE", s.AccessKey)
+	assert.Equal(t, "wJalrXUtnFEMI/EXAMPLE", s.SecretKey)
+}
+
+func TestClient_CreateS3Storage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/storages", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateS3StorageInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "new-s3", input.Name)
+		assert.Equal(t, "https://s3.amazonaws.com", input.Endpoint)
+		assert.Equal(t, "new-bucket", input.Bucket)
+		assert.Equal(t, "us-west-2", input.Region)
+		assert.Equal(t, "AKID", input.AccessKey)
+		assert.Equal(t, "SKEY", input.SecretKey)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(S3Storage{UUID: "s3-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	s, err := c.CreateS3Storage(context.Background(), CreateS3StorageInput{
+		Name:      "new-s3",
+		Endpoint:  "https://s3.amazonaws.com",
+		Bucket:    "new-bucket",
+		Region:    "us-west-2",
+		AccessKey: "AKID",
+		SecretKey: "SKEY",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "s3-new", s.UUID)
+}
+
+func TestClient_UpdateS3Storage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/storages/s3-upd", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateS3StorageInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "renamed-s3", *input.Name)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(S3Storage{UUID: "s3-upd", Name: "renamed-s3"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "renamed-s3"
+	s, err := c.UpdateS3Storage(context.Background(), "s3-upd", UpdateS3StorageInput{Name: &name})
+	require.NoError(t, err)
+	assert.Equal(t, "s3-upd", s.UUID)
+	assert.Equal(t, "renamed-s3", s.Name)
+}
+
+func TestClient_DeleteS3Storage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/storages/s3-del", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteS3Storage(context.Background(), "s3-del")
+	require.NoError(t, err)
+}

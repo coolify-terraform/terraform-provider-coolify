@@ -27,6 +27,7 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_clickhouse_database` | Provision ClickHouse databases |
 | `coolify_keydb_database` | Provision KeyDB databases (Redis-compatible) |
 | `coolify_dragonfly_database` | Provision DragonFly databases (Redis-compatible) |
+| `coolify_s3_storage` | Manage S3 storage destinations for backups |
 
 ## Data Sources
 
@@ -39,6 +40,7 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_private_key` / `coolify_private_keys` | Read SSH key(s) |
 | `coolify_application` / `coolify_applications` | Read application(s) |
 | `coolify_database` / `coolify_databases` | Read database(s) |
+| `coolify_s3_storage` / `coolify_s3_storages` | Read S3 storage destination(s) |
 | `coolify_service` / `coolify_services` | Read service(s) |
 | `coolify_team` | Read team info and members |
 | `coolify_version` | Read the Coolify instance version |
