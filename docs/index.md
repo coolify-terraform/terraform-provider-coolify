@@ -31,57 +31,8 @@ export COOLIFY_TOKEN="your-api-token"
 
 ```terraform
 provider "coolify" {
-  endpoint = "https://coolify.example.com"
-  token    = var.coolify_token
-}
-```
-
-## Example Usage
-
-```terraform
-terraform {
-  required_providers {
-    coolify = {
-      source = "SebTardif/coolify"
-    }
-  }
-}
-
-provider "coolify" {}
-
-# Create a project
-resource "coolify_project" "main" {
-  name        = "my-project"
-  description = "Managed by Terraform"
-}
-
-# Deploy a PostgreSQL database
-resource "coolify_postgresql_database" "db" {
-  name             = "app-db"
-  project_uuid     = coolify_project.main.uuid
-  server_uuid      = "your-server-uuid"
-  postgres_user    = "app"
-  postgres_db      = "myapp"
-  image            = "postgres:16"
-}
-
-# Deploy an application
-resource "coolify_application" "web" {
-  name             = "web-app"
-  project_uuid     = coolify_project.main.uuid
-  server_uuid      = "your-server-uuid"
-  git_repository   = "https://github.com/example/app"
-  git_branch       = "main"
-  build_pack       = "nixpacks"
-  ports_exposes    = "3000"
-  fqdn             = "https://app.example.com"
-}
-
-# Connect them with an environment variable
-resource "coolify_environment_variable" "database_url" {
-  application_uuid = coolify_application.web.uuid
-  key              = "DATABASE_URL"
-  value            = "postgresql://app:secret@${coolify_postgresql_database.db.name}:5432/myapp"
+  endpoint = "http://coolify.example.com:8000"
+  token    = "your-api-token" # Or set COOLIFY_TOKEN env var
 }
 ```
 

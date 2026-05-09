@@ -7,19 +7,39 @@ description: |-
 
 # Coolify Provider
 
-The Coolify provider allows you to manage resources in a [Coolify](https://coolify.io/) instance, the open-source, self-hosted Platform-as-a-Service.
+The Coolify provider allows you to manage resources in a [Coolify](https://coolify.io/) instance, the open-source, self-hosted Platform-as-a-Service. It supports the full lifecycle of projects, servers, applications, databases, services, environment variables, backups, and more.
+
+## Requirements
+
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
+- A running [Coolify](https://coolify.io/) instance (v4.x)
 
 ## Authentication
 
 The provider requires a Coolify API token. Generate one in the Coolify UI under **Keys & Tokens > API tokens**.
 
-You can configure credentials via provider attributes or environment variables:
+You can configure credentials in two ways:
 
-- `COOLIFY_ENDPOINT` for the API base URL
-- `COOLIFY_TOKEN` for the API token
+### Environment variables (recommended for CI/CD)
 
-## Example Usage
+```bash
+export COOLIFY_ENDPOINT="https://coolify.example.com"
+export COOLIFY_TOKEN="your-api-token"
+```
+
+### Provider block
 
 {{ tffile "examples/provider/provider.tf" }}
+
+## Resource Overview
+
+| Category | Resources |
+|----------|-----------|
+| Infrastructure | `coolify_project`, `coolify_server`, `coolify_private_key` |
+| Applications | `coolify_application`, `coolify_docker_image_application`, `coolify_docker_compose_application`, `coolify_private_git_application` |
+| Databases | `coolify_postgresql_database`, `coolify_mysql_database`, `coolify_mariadb_database`, `coolify_redis_database`, `coolify_mongodb_database`, `coolify_clickhouse_database`, `coolify_keydb_database`, `coolify_dragonfly_database` |
+| Operations | `coolify_environment_variable`, `coolify_deployment`, `coolify_database_backup`, `coolify_s3_storage`, `coolify_service` |
+
+All resources support `terraform import`.
 
 {{ .SchemaMarkdown | trimspace }}
