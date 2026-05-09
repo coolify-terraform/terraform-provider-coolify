@@ -31,12 +31,12 @@ resource "coolify_project" "containers" {
 }
 
 resource "coolify_docker_image_application" "nginx" {
-  name           = "nginx-proxy"
-  project_uuid   = coolify_project.containers.uuid
-  server_uuid    = var.server_uuid
-  docker_image   = "nginx:alpine"
-  ports_exposes  = "80"
-  fqdn           = "https://proxy.example.com"
+  name          = "nginx-proxy"
+  project_uuid  = coolify_project.containers.uuid
+  server_uuid   = var.server_uuid
+  docker_image  = "nginx:alpine"
+  ports_exposes = "80"
+  fqdn          = "https://proxy.example.com"
 
   timeouts = {
     create = "10m"
