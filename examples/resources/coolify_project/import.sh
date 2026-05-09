@@ -1,0 +1,1 @@
+terraform import coolify_project.example <project-uuid>

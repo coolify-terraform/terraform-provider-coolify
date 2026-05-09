@@ -1,0 +1,25 @@
+---
+page_title: "Coolify Provider"
+subcategory: ""
+description: |-
+  The Coolify provider manages resources in a Coolify instance.
+---
+
+# Coolify Provider
+
+The Coolify provider allows you to manage resources in a [Coolify](https://coolify.io/) instance, the open-source, self-hosted Platform-as-a-Service.
+
+## Authentication
+
+The provider requires a Coolify API token. Generate one in the Coolify UI under **Keys & Tokens > API tokens**.
+
+You can configure credentials via provider attributes or environment variables:
+
+- `COOLIFY_ENDPOINT` for the API base URL
+- `COOLIFY_TOKEN` for the API token
+
+## Example Usage
+
+{{ tffile "examples/provider/provider.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

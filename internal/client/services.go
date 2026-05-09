@@ -1,0 +1,9 @@
+package client
+import ("context";"fmt";"net/http")
+type Service struct { UUID string `json:"uuid"`; Name string `json:"name"`; Description string `json:"description,omitempty"`; Type string `json:"type"`; ServerUUID string `json:"server_uuid,omitempty"`; ProjectUUID string `json:"project_uuid,omitempty"`; EnvironmentName string `json:"environment_name,omitempty"` }
+type CreateServiceInput struct { Type string `json:"type"`; Name string `json:"name,omitempty"`; Description string `json:"description,omitempty"`; ServerUUID string `json:"server_uuid"`; ProjectUUID string `json:"project_uuid"`; EnvironmentName string `json:"environment_name"` }
+func (c *Client) GetService(ctx context.Context, uuid string) (*Service, error) { var s Service; if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s", uuid), nil, &s); err != nil { return nil, err }; return &s, nil }
+func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*Service, error) { var s Service; if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/services", input, &s, http.StatusCreated); err != nil { return nil, err }; return &s, nil }
+func (c *Client) DeleteService(ctx context.Context, uuid string) error { return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/services/%s", uuid), nil, nil) }
+func (c *Client) StartService(ctx context.Context, uuid string) error { return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/start", uuid), nil, nil) }
+func (c *Client) StopService(ctx context.Context, uuid string) error { return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/stop", uuid), nil, nil) }
