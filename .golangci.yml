@@ -6,17 +6,24 @@ run:
 linters:
   enable:
     - errcheck
+    - errorlint
     - govet
     - ineffassign
     - staticcheck
     - unused
     - misspell
+    - bodyclose
+    - nilerr
+    - unconvert
+    - wastedassign
+    - whitespace
 
   exclusions:
     rules:
       - path: _test\.go
         linters:
           - errcheck
+          - bodyclose
 
 formatters:
   enable:
