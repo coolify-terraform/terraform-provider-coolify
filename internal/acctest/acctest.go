@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
@@ -25,9 +24,7 @@ func TestAccPreCheck(t *testing.T) {
 
 // RandomWithPrefix generates a random string with the given prefix.
 func RandomWithPrefix(prefix string) string {
-	//nolint:gosec // math/rand is fine for test resource names.
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return fmt.Sprintf("%s-%d", prefix, rng.Intn(999999))
+	return fmt.Sprintf("%s-%d", prefix, rand.Intn(999999))
 }
 
 // TestProtoV6ProviderFactories returns provider factories for unit tests.

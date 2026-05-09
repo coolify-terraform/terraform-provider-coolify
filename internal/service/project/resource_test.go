@@ -191,6 +191,16 @@ resource "coolify_project" "test" {
 					resource.TestCheckResourceAttr("coolify_project.test", "description", "A test project"),
 				),
 			},
+			{
+				Config: providerConfig(server.URL) + `
+resource "coolify_project" "test" {
+  name        = "my-project"
+  description = "A test project"
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }

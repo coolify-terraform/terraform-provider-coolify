@@ -128,5 +128,9 @@ func (d *serversDataSource) Read(ctx context.Context, _ datasource.ReadRequest, 
 		})
 	}
 
+	if state.Servers == nil {
+		state.Servers = []serverDataSourceModel{}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

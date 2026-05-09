@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -217,7 +219,9 @@ func CommonDatabaseAttrs(extra map[string]schema.Attribute) map[string]schema.At
 		"environment_name": schema.StringAttribute{MarkdownDescription: "The environment name. Defaults to `production`.", Optional: true, Computed: true, Default: stringdefault.StaticString("production")},
 		"image":            schema.StringAttribute{MarkdownDescription: "The Docker image to use.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"is_public":        schema.BoolAttribute{MarkdownDescription: "Whether the database is publicly accessible.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
-		"public_port":      schema.Int64Attribute{MarkdownDescription: "The public port for the database, if publicly accessible.", Optional: true},
+		"public_port": schema.Int64Attribute{MarkdownDescription: "The public port for the database, if publicly accessible.", Optional: true, Validators: []validator.Int64{
+			int64validator.Between(1, 65535),
+		}},
 	}
 	for k, v := range extra {
 		attrs[k] = v

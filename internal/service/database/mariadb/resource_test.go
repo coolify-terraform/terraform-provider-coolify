@@ -9,17 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
-
-func testProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer, error) {
-	return map[string]func() (tfprotov6.ProviderServer, error){
-		"coolify": providerserver.NewProtocol6WithError(provider.New("test")()),
-	}
-}
 
 type mockMariadbState struct {
 	mu              sync.Mutex
@@ -105,7 +97,7 @@ func TestMariadbDatabaseResource_CreateUpdateImport(t *testing.T) {
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			// Create
 			{

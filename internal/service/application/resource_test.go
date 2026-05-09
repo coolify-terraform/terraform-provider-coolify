@@ -12,6 +12,7 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // ---------------------------------------------------------------------------
@@ -67,6 +68,17 @@ func TestApplicationResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_application.test", "ports_exposes", "3000"),
 					resource.TestCheckResourceAttr("coolify_application.test", "environment_name", "production"),
 				),
+			},
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "proj-uuid"
+					server_uuid    = "srv-uuid"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -232,6 +244,89 @@ func TestApplicationResource_InvalidBuildPack(t *testing.T) {
 					ports_exposes  = "3000"
 				`),
 				ExpectError: regexp.MustCompile(`nixpacks`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestApplicationResource_Disappears
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_Disappears(t *testing.T) {
+	app := client.Application{
+		UUID:          "disappear-app-uuid",
+		Name:          "disappearing-app",
+		GitRepository: "https://github.com/example/repo",
+		GitBranch:     "main",
+		BuildPack:     "nixpacks",
+		PortsExposes:  "3000",
+		ProjectUUID:   "proj-uuid",
+		ServerUUID:    "srv-uuid",
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		deleted = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "proj-uuid"
+					server_uuid    = "srv-uuid"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_application.test", "uuid"),
+					// Delete the application out-of-band via the mock API.
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_application.test"]
+						if !ok {
+							return fmt.Errorf("resource not found in state")
+						}
+						uuid := rs.Primary.Attributes["uuid"]
+						req, err := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/applications/"+uuid, nil)
+						if err != nil {
+							return err
+						}
+						resp, err := http.DefaultClient.Do(req)
+						if err != nil {
+							return err
+						}
+						resp.Body.Close()
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})

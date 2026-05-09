@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -40,7 +41,7 @@ func TestServerDataSource(t *testing.T) {
 	defer mockSrv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(mockSrv.URL) + `

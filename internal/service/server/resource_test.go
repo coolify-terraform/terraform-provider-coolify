@@ -9,19 +9,11 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
-	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
-
-func testProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer, error) {
-	return map[string]func() (tfprotov6.ProviderServer, error){
-		"coolify": providerserver.NewProtocol6WithError(provider.New("test")()),
-	}
-}
 
 func testProviderBlock(serverURL string) string {
 	return `
@@ -131,7 +123,7 @@ func TestServerResource_Create(t *testing.T) {
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(srv.URL) + `
@@ -152,6 +144,16 @@ resource "coolify_server" "test" {
 					resource.TestCheckResourceAttr("coolify_server.test", "is_usable", "true"),
 				),
 			},
+			{
+				Config: testProviderBlock(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "my-server"
+  ip               = "10.0.0.1"
+  private_key_uuid = "pk-uuid-1"
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
@@ -161,7 +163,7 @@ func TestServerResource_Update(t *testing.T) {
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(srv.URL) + `
@@ -206,7 +208,7 @@ func TestServerResource_Import(t *testing.T) {
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(srv.URL) + `
@@ -235,7 +237,7 @@ func TestServerResource_Disappears(t *testing.T) {
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(srv.URL) + `

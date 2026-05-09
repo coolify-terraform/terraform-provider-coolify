@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -77,6 +79,9 @@ func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Optional:            true,
 				Computed:            true,
 				Default:             int64default.StaticInt64(22),
+				Validators: []validator.Int64{
+					int64validator.Between(1, 65535),
+				},
 			},
 			"user": schema.StringAttribute{
 				MarkdownDescription: "The SSH user for connecting to the server.",
@@ -249,7 +254,11 @@ func (r *serverResource) ImportState(ctx context.Context, req resource.ImportSta
 func mapServerToModel(srv *client.Server, model *serverResourceModel) {
 	model.UUID = types.StringValue(srv.UUID)
 	model.Name = types.StringValue(srv.Name)
-	model.Description = types.StringValue(srv.Description)
+	if srv.Description != "" {
+		model.Description = types.StringValue(srv.Description)
+	} else {
+		model.Description = types.StringNull()
+	}
 	model.IP = types.StringValue(srv.IP)
 	model.Port = types.Int64Value(int64(srv.Port))
 	model.User = types.StringValue(srv.User)

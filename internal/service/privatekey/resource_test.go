@@ -2,24 +2,18 @@ package privatekey_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
-	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
-
-func testProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer, error) {
-	return map[string]func() (tfprotov6.ProviderServer, error){
-		"coolify": providerserver.NewProtocol6WithError(provider.New("test")()),
-	}
-}
 
 func testProviderBlock(serverURL string) string {
 	return `
@@ -108,7 +102,7 @@ func TestPrivateKeyResource_Create(t *testing.T) {
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(srv.URL) + `
@@ -132,7 +126,7 @@ func TestPrivateKeyResource_Update(t *testing.T) {
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(srv.URL) + `
@@ -169,7 +163,7 @@ func TestPrivateKeyResource_Import(t *testing.T) {
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProtoV6ProviderFactories(),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(srv.URL) + `
@@ -187,6 +181,46 @@ resource "coolify_private_key" "test" {
 				ImportStateId:                        "pk-test-uuid-1",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+			},
+		},
+	})
+}
+
+func TestPrivateKeyResource_Disappears(t *testing.T) {
+	srv := newPrivateKeyMockServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testProviderBlock(srv.URL) + `
+resource "coolify_private_key" "test" {
+  name        = "disappearing-key"
+  private_key = "ssh-ed25519 AAAA-test-key"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_private_key.test", "uuid"),
+					// Delete the key out-of-band via the mock API.
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_private_key.test"]
+						if !ok {
+							return fmt.Errorf("resource not found in state")
+						}
+						uuid := rs.Primary.Attributes["uuid"]
+						req, err := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/security/keys/"+uuid, nil)
+						if err != nil {
+							return err
+						}
+						resp, err := http.DefaultClient.Do(req)
+						if err != nil {
+							return err
+						}
+						resp.Body.Close()
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
