@@ -40,6 +40,7 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_private_key` / `coolify_private_keys` | Read SSH key(s) |
 | `coolify_application` / `coolify_applications` | Read application(s) |
 | `coolify_database` / `coolify_databases` | Read database(s) |
+| `coolify_environment_variables` | List env vars for an application or service |
 | `coolify_s3_storage` / `coolify_s3_storages` | Read S3 storage destination(s) |
 | `coolify_service` / `coolify_services` | Read service(s) |
 | `coolify_team` | Read team info and members |

@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_database` / `coolify_databases` - Read database(s)
   - `coolify_service` / `coolify_services` - Read service(s)
   - `coolify_team` - Read team info and members
+  - `coolify_environment_variables` - List environment variables for an application or service
   - `coolify_s3_storage` / `coolify_s3_storages` - Read S3 storage destination(s)
   - `coolify_version` - Read the Coolify instance version
 - All resources support `terraform import`

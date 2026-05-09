@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
@@ -125,8 +126,11 @@ func (r *ApplicationResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Required:            true,
 			},
 			"fqdn": schema.StringAttribute{
-				MarkdownDescription: "The fully qualified domain name for the application.",
+				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
 				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`^https?://`), "must start with http:// or https://"),
+				},
 			},
 			"dockerfile_location": schema.StringAttribute{
 				MarkdownDescription: "The path to the Dockerfile, relative to the repository root.",

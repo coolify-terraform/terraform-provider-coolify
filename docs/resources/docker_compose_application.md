@@ -42,7 +42,7 @@ resource "coolify_docker_compose_application" "example" {
 
 - `description` (String) A description of the application.
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
-- `fqdn` (String) The fully qualified domain name for the application.
+- `fqdn` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `name` (String) The name of the application.
 
 ### Read-Only

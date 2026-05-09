@@ -42,7 +42,7 @@ resource "coolify_application" "example" {
 - `description` (String) A description of the application.
 - `dockerfile_location` (String) The path to the Dockerfile, relative to the repository root.
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
-- `fqdn` (String) The fully qualified domain name for the application.
+- `fqdn` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `git_branch` (String) The Git branch to deploy (defaults to `main`).
 - `install_command` (String) The command to run during the install phase.
 - `name` (String) The name of the application.

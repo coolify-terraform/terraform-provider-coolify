@@ -3,10 +3,12 @@ package backup
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -14,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -71,6 +74,12 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 			"frequency": schema.StringAttribute{
 				MarkdownDescription: "Cron expression for backup schedule (e.g. \"0 2 * * *\" for daily at 2 AM).",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^(\S+\s+){4}\S+$`),
+						"must be a valid cron expression with 5 fields (e.g. \"0 2 * * *\")",
+					),
+				},
 			},
 			"enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether the backup schedule is active.",

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -268,6 +269,56 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 					},
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestDatabaseBackupResource_ImportBadFormat(t *testing.T) {
+	srv, _ := newMockBackupServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "db-uuid-001"
+					frequency     = "0 2 * * *"
+					enabled       = true
+					retain_days   = 7
+				`),
+			},
+			{
+				ResourceName:  "coolify_database_backup.test",
+				ImportState:   true,
+				ImportStateId: "missing-colon",
+				ExpectError:   regexp.MustCompile(`Invalid import ID format`),
+			},
+		},
+	})
+}
+
+func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
+	srv, _ := newMockBackupServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "db-uuid-001"
+					frequency     = "0 2 * * *"
+					enabled       = true
+					retain_days   = 7
+				`),
+			},
+			{
+				ResourceName:  "coolify_database_backup.test",
+				ImportState:   true,
+				ImportStateId: "db-uuid:not-a-number",
+				ExpectError:   regexp.MustCompile(`backup_id must be an integer`),
 			},
 		},
 	})

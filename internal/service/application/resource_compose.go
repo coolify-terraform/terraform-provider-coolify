@@ -3,15 +3,18 @@ package application
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -99,8 +102,11 @@ func (r *DockerComposeApplicationResource) Schema(_ context.Context, _ resource.
 				Required:            true,
 			},
 			"fqdn": schema.StringAttribute{
-				MarkdownDescription: "The fully qualified domain name for the application.",
+				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
 				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`^https?://`), "must start with http:// or https://"),
+				},
 			},
 			"status": schema.StringAttribute{
 				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",

@@ -37,7 +37,7 @@ resource "coolify_docker_image_application" "nginx" {
 
 - `description` (String) A description of the application.
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
-- `fqdn` (String) The fully qualified domain name for the application.
+- `fqdn` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `install_command` (String) The command to run during the install phase.
 - `name` (String) The name of the application.
 - `start_command` (String) The command to run to start the application.
