@@ -1,0 +1,1 @@
+terraform import coolify_mysql_database.example <database-uuid>

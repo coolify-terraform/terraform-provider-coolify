@@ -40,3 +40,17 @@ resource "coolify_environment_variable" "database_url" {
 ### Read-Only
 
 - `uuid` (String) The unique identifier of the environment variable.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Import an environment variable on an application:
+terraform import coolify_environment_variable.example application:<application-uuid>:<env-var-uuid>
+
+# Import an environment variable on a service:
+terraform import coolify_environment_variable.example service:<service-uuid>:<env-var-uuid>
+```

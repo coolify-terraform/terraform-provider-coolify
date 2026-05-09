@@ -1,5 +1,7 @@
 # Terraform Provider for Coolify
 
+[![CI](https://github.com/SebTardif/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/SebTardif/terraform-provider-coolify/actions/workflows/ci.yml)
+
 A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service.
 
 ## Features

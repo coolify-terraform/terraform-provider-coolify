@@ -41,3 +41,13 @@ resource "coolify_redis_database" "example" {
 ### Read-Only
 
 - `uuid` (String) The UUID of the database.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import coolify_redis_database.example <database-uuid>
+```

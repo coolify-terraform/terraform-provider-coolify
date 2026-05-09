@@ -1,0 +1,1 @@
+terraform import coolify_mongodb_database.example <database-uuid>

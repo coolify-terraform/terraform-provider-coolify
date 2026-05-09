@@ -44,3 +44,13 @@ resource "coolify_server" "example" {
 - `is_reachable` (Boolean) Whether the server is currently reachable.
 - `is_usable` (Boolean) Whether the server is currently usable for deployments.
 - `uuid` (String) The unique identifier of the server.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import coolify_server.example <server-uuid>
+```

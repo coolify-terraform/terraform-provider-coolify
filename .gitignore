@@ -5,3 +5,5 @@ terraform-provider-coolify
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+cover.out
+.env

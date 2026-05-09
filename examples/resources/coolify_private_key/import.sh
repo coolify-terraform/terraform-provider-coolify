@@ -1,0 +1,1 @@
+terraform import coolify_private_key.example <private-key-uuid>
