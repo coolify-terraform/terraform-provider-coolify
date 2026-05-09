@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -31,15 +33,16 @@ type DockerComposeApplicationResource struct {
 
 // DockerComposeApplicationResourceModel maps the resource schema to Go types.
 type DockerComposeApplicationResourceModel struct {
-	UUID             types.String `tfsdk:"uuid"`
-	Name             types.String `tfsdk:"name"`
-	Description      types.String `tfsdk:"description"`
-	ProjectUUID      types.String `tfsdk:"project_uuid"`
-	ServerUUID       types.String `tfsdk:"server_uuid"`
-	EnvironmentName  types.String `tfsdk:"environment_name"`
-	DockerComposeRaw types.String `tfsdk:"docker_compose_raw"`
-	FQDN             types.String `tfsdk:"fqdn"`
-	Status           types.String `tfsdk:"status"`
+	UUID             types.String   `tfsdk:"uuid"`
+	Name             types.String   `tfsdk:"name"`
+	Description      types.String   `tfsdk:"description"`
+	ProjectUUID      types.String   `tfsdk:"project_uuid"`
+	ServerUUID       types.String   `tfsdk:"server_uuid"`
+	EnvironmentName  types.String   `tfsdk:"environment_name"`
+	DockerComposeRaw types.String   `tfsdk:"docker_compose_raw"`
+	FQDN             types.String   `tfsdk:"fqdn"`
+	Status           types.String   `tfsdk:"status"`
+	Timeouts         timeouts.Value `tfsdk:"timeouts"`
 }
 
 // NewDockerComposeResource returns a new DockerComposeApplicationResource instance.
@@ -51,10 +54,16 @@ func (r *DockerComposeApplicationResource) Metadata(_ context.Context, req resou
 	resp.TypeName = req.ProviderTypeName + "_docker_compose_application"
 }
 
-func (r *DockerComposeApplicationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *DockerComposeApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed from a Docker Compose file.",
 		Attributes: map[string]schema.Attribute{
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			}),
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the application.",
 				Computed:            true,
@@ -137,6 +146,14 @@ func (r *DockerComposeApplicationResource) Create(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
 
 	input := client.CreateDockerComposeAppInput{
 		ProjectUUID:      plan.ProjectUUID.ValueString(),

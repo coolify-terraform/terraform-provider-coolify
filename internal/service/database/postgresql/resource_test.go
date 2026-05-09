@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -159,6 +160,32 @@ resource "coolify_postgresql_database" "test" {
 				ImportStateId:     "pg-test-uuid-001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"postgres_password"},
+			},
+		},
+	})
+}
+
+func TestPostgresqlDatabaseResource_InvalidPort(t *testing.T) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "proj-uuid-1"
+  server_uuid  = "srv-uuid-1"
+  public_port  = 99999
+}
+`, srv.URL),
+				ExpectError: regexp.MustCompile(`must be between 1 and 65535`),
 			},
 		},
 	})

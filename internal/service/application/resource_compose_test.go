@@ -273,6 +273,57 @@ func TestDockerComposeApplicationResource_Disappears(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestDockerComposeApplicationResource_Timeouts
+// ---------------------------------------------------------------------------
+
+func TestDockerComposeApplicationResource_Timeouts(t *testing.T) {
+	app := client.Application{
+		UUID:             "compose-timeout-uuid",
+		Name:             "timeout-compose",
+		DockerComposeRaw: "version: '3'\nservices:\n  web:\n    image: nginx",
+		ProjectUUID:      "proj-uuid",
+		ServerUUID:       "srv-uuid",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockercompose", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerComposeResourceConfig(srv.URL, `
+					name               = "timeout-compose"
+					project_uuid       = "proj-uuid"
+					server_uuid        = "srv-uuid"
+					docker_compose_raw = "version: '3'\nservices:\n  web:\n    image: nginx"
+					timeouts = {
+						create = "30m"
+					}
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_docker_compose_application.test", "uuid", "compose-timeout-uuid"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

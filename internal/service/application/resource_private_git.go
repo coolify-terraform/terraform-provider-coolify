@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -31,22 +33,23 @@ type PrivateGitApplicationResource struct {
 
 // PrivateGitApplicationResourceModel maps the resource schema to Go types.
 type PrivateGitApplicationResourceModel struct {
-	UUID               types.String `tfsdk:"uuid"`
-	Name               types.String `tfsdk:"name"`
-	Description        types.String `tfsdk:"description"`
-	ProjectUUID        types.String `tfsdk:"project_uuid"`
-	ServerUUID         types.String `tfsdk:"server_uuid"`
-	EnvironmentName    types.String `tfsdk:"environment_name"`
-	GitRepository      types.String `tfsdk:"git_repository"`
-	GitBranch          types.String `tfsdk:"git_branch"`
-	PrivateKeyUUID     types.String `tfsdk:"private_key_uuid"`
-	BuildPack          types.String `tfsdk:"build_pack"`
-	PortsExposes       types.String `tfsdk:"ports_exposes"`
-	FQDN               types.String `tfsdk:"fqdn"`
-	DockerfileLocation types.String `tfsdk:"dockerfile_location"`
-	InstallCommand     types.String `tfsdk:"install_command"`
-	BuildCommand       types.String `tfsdk:"build_command"`
-	StartCommand       types.String `tfsdk:"start_command"`
+	UUID               types.String   `tfsdk:"uuid"`
+	Name               types.String   `tfsdk:"name"`
+	Description        types.String   `tfsdk:"description"`
+	ProjectUUID        types.String   `tfsdk:"project_uuid"`
+	ServerUUID         types.String   `tfsdk:"server_uuid"`
+	EnvironmentName    types.String   `tfsdk:"environment_name"`
+	GitRepository      types.String   `tfsdk:"git_repository"`
+	GitBranch          types.String   `tfsdk:"git_branch"`
+	PrivateKeyUUID     types.String   `tfsdk:"private_key_uuid"`
+	BuildPack          types.String   `tfsdk:"build_pack"`
+	PortsExposes       types.String   `tfsdk:"ports_exposes"`
+	FQDN               types.String   `tfsdk:"fqdn"`
+	DockerfileLocation types.String   `tfsdk:"dockerfile_location"`
+	InstallCommand     types.String   `tfsdk:"install_command"`
+	BuildCommand       types.String   `tfsdk:"build_command"`
+	StartCommand       types.String   `tfsdk:"start_command"`
+	Timeouts           timeouts.Value `tfsdk:"timeouts"`
 }
 
 // NewPrivateGitResource returns a new PrivateGitApplicationResource instance.
@@ -58,10 +61,16 @@ func (r *PrivateGitApplicationResource) Metadata(_ context.Context, req resource
 	resp.TypeName = req.ProviderTypeName + "_private_git_application"
 }
 
-func (r *PrivateGitApplicationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *PrivateGitApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed from a private Git repository using a deploy key.",
 		Attributes: map[string]schema.Attribute{
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
+				Create: true,
+				Read:   true,
+				Update: true,
+				Delete: true,
+			}),
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the application.",
 				Computed:            true,
@@ -177,6 +186,14 @@ func (r *PrivateGitApplicationResource) Create(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
 
 	input := client.CreatePrivateGitAppInput{
 		ProjectUUID:    plan.ProjectUUID.ValueString(),

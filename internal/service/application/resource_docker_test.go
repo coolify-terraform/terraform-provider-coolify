@@ -285,6 +285,59 @@ func TestDockerImageApplicationResource_Disappears(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestDockerImageApplicationResource_Timeouts
+// ---------------------------------------------------------------------------
+
+func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
+	app := client.Application{
+		UUID:                    "docker-timeout-uuid",
+		Name:                    "timeout-app",
+		DockerRegistryImageName: "nginx:latest",
+		PortsExposes:            "80",
+		ProjectUUID:             "proj-uuid",
+		ServerUUID:              "srv-uuid",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "timeout-app"
+					project_uuid   = "proj-uuid"
+					server_uuid    = "srv-uuid"
+					docker_image   = "nginx:latest"
+					ports_exposes  = "80"
+					timeouts = {
+						create = "30m"
+					}
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "uuid", "docker-timeout-uuid"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

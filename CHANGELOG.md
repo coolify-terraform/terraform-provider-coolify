@@ -46,9 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_version` - Read the Coolify instance version
 - All resources support `terraform import`
 - Retryable HTTP client with automatic retry on 429/5xx (3 retries, 30s timeout)
-- Input validators: `build_pack` OneOf, port range (1-65535)
+- Input validators: `build_pack` OneOf, FQDN format, cron syntax, port range (1-65535)
+- Configurable `timeouts` block on all four application resources (public git, docker image, docker compose, private git)
 - Graceful handling of out-of-band resource deletion (404 in Read removes from state)
-- 101 unit tests with 74% overall coverage
+- 205 unit tests with ~77% overall coverage
 - CI pipeline: test, lint, format, docs generation
 - GoReleaser config for GPG-signed releases
 - Full-stack deployment example

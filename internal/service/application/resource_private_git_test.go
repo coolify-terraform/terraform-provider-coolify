@@ -313,6 +313,63 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestPrivateGitApplicationResource_Timeouts
+// ---------------------------------------------------------------------------
+
+func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
+	app := client.Application{
+		UUID:          "privgit-timeout-uuid",
+		Name:          "timeout-privgit",
+		GitRepository: "git@github.com:org/repo.git",
+		GitBranch:     "main",
+		BuildPack:     "nixpacks",
+		PortsExposes:  "3000",
+		ProjectUUID:   "proj-uuid",
+		ServerUUID:    "srv-uuid",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					name             = "timeout-privgit"
+					project_uuid     = "proj-uuid"
+					server_uuid      = "srv-uuid"
+					git_repository   = "git@github.com:org/repo.git"
+					private_key_uuid = "key-uuid"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					timeouts = {
+						create = "30m"
+					}
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "uuid", "privgit-timeout-uuid"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
