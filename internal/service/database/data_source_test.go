@@ -16,7 +16,7 @@ func TestDatabaseDataSource(t *testing.T) {
 	dbUUID := "db-ds-uuid-1"
 	var publicPort int64 = 5432
 
-	mockSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/"+dbUUID) {
@@ -35,7 +35,7 @@ func TestDatabaseDataSource(t *testing.T) {
 			return
 		}
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
-	}))
+	})))
 	defer mockSrv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

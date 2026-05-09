@@ -80,6 +80,18 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	if p.version != "" {
 		c.UserAgent = "terraform-provider-coolify/" + p.version
 	}
+
+	// Validate the connection by fetching the Coolify version.
+	if _, err := c.GetVersion(ctx); err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to connect to Coolify",
+			"The provider could not reach the Coolify API at "+endpoint+". "+
+				"Verify that the endpoint is correct, the server is running, "+
+				"and the API token is valid.\n\nError: "+err.Error(),
+		)
+		return
+	}
+
 	resp.DataSourceData = c
 	resp.ResourceData = c
 }

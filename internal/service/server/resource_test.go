@@ -27,7 +27,7 @@ func newServerMockServer() *httptest.Server {
 	servers := make(map[string]*client.Server)
 	var mu sync.Mutex
 
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
 
@@ -115,7 +115,7 @@ func newServerMockServer() *httptest.Server {
 		default:
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 		}
-	}))
+	})))
 }
 
 func TestServerResource_Create(t *testing.T) {

@@ -41,7 +41,7 @@ func TestDockerComposeApplicationResource_Create(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -115,7 +115,7 @@ func TestDockerComposeApplicationResource_Update(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -174,7 +174,7 @@ func TestDockerComposeApplicationResource_Import(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -238,7 +238,7 @@ func TestDockerComposeApplicationResource_Disappears(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

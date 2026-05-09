@@ -21,7 +21,7 @@ func TestPrivateKeyDataSource(t *testing.T) {
 		IsGitRelated: true,
 	}
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/") {
@@ -32,7 +32,7 @@ func TestPrivateKeyDataSource(t *testing.T) {
 			}
 		}
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
-	}))
+	})))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

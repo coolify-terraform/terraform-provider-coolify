@@ -3,6 +3,7 @@ package acctest
 import (
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"testing"
 
@@ -10,6 +11,20 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 )
+
+// WithVersionEndpoint wraps an http.Handler to also respond to
+// GET /api/v1/version, which the provider calls during Configure
+// to validate the connection.
+func WithVersionEndpoint(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/version" {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`"4.0.0-test"`))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 // TestAccPreCheck validates that required environment variables are set.
 func TestAccPreCheck(t *testing.T) {

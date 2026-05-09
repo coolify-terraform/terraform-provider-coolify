@@ -35,7 +35,7 @@ func newMockPostgresServer() (*httptest.Server, *mockPostgresState) {
 		pgDB:       "defaultdb",
 	}
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		state.mu.Lock()
 		defer state.mu.Unlock()
@@ -92,7 +92,7 @@ func newMockPostgresServer() (*httptest.Server, *mockPostgresState) {
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
 		}
-	}))
+	})))
 	return srv, state
 }
 
@@ -169,7 +169,7 @@ func TestPostgresqlDatabaseResource_Disappears(t *testing.T) {
 	deleted := false
 	pgUUID := "pg-disappear-uuid-001"
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		mu.Lock()
 		defer mu.Unlock()
@@ -211,7 +211,7 @@ func TestPostgresqlDatabaseResource_Disappears(t *testing.T) {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

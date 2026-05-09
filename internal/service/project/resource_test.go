@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -91,7 +92,7 @@ func newMockCoolifyServer() (*httptest.Server, *mockProjectStore) {
 		json.NewEncoder(w).Encode(projects)
 	})
 
-	server := httptest.NewServer(mux)
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	return server, store
 }
 
@@ -349,7 +350,7 @@ func TestProjectResource_ReadNotFound(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 	})
 
-	server := httptest.NewServer(mux)
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{

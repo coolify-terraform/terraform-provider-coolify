@@ -12,7 +12,7 @@ import (
 )
 
 func newMockTeamServer() *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch {
@@ -40,7 +40,7 @@ func newMockTeamServer() *httptest.Server {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})))
 }
 
 func TestTeamDataSource_Read(t *testing.T) {

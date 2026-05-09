@@ -39,7 +39,7 @@ func TestServersDataSource(t *testing.T) {
 		},
 	}
 
-	mockSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/servers" {
@@ -47,7 +47,7 @@ func TestServersDataSource(t *testing.T) {
 			return
 		}
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
-	}))
+	})))
 	defer mockSrv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

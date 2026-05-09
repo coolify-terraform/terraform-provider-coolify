@@ -34,7 +34,7 @@ func TestDeploymentResource_Create(t *testing.T) {
 		})
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -90,7 +90,7 @@ func TestDeploymentResource_TriggersForceNew(t *testing.T) {
 		})
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -167,7 +167,7 @@ func TestDeploymentResource_Disappears(t *testing.T) {
 		})
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

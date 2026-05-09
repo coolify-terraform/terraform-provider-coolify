@@ -27,7 +27,7 @@ func newPrivateKeyMockServer() *httptest.Server {
 	keys := make(map[string]*client.PrivateKey)
 	var mu sync.Mutex
 
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
 
@@ -94,7 +94,7 @@ func newPrivateKeyMockServer() *httptest.Server {
 		default:
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 		}
-	}))
+	})))
 }
 
 func TestPrivateKeyResource_Create(t *testing.T) {

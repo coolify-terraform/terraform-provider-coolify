@@ -36,7 +36,7 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 		retainDays: &retain,
 	}
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		state.mu.Lock()
 		defer state.mu.Unlock()
@@ -84,7 +84,7 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
 		}
-	}))
+	})))
 	return srv, state
 }
 
@@ -213,7 +213,7 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 	dbUUID := "db-uuid-disappear"
 	backupID := 99
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		mu.Lock()
 		defer mu.Unlock()
@@ -242,7 +242,7 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

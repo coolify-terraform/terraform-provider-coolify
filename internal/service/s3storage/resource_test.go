@@ -19,7 +19,7 @@ func newS3StorageMockServer() *httptest.Server {
 	storages := make(map[string]*client.S3Storage)
 	var mu sync.Mutex
 
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
 
@@ -106,7 +106,7 @@ func newS3StorageMockServer() *httptest.Server {
 		default:
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 		}
-	}))
+	})))
 }
 
 func TestS3StorageResource_Create(t *testing.T) {

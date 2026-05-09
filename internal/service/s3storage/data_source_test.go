@@ -25,7 +25,7 @@ func TestS3StorageDataSource(t *testing.T) {
 		SecretKey:   "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 	}
 
-	mockSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/storages/") {
@@ -36,7 +36,7 @@ func TestS3StorageDataSource(t *testing.T) {
 			}
 		}
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
-	}))
+	})))
 	defer mockSrv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

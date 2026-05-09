@@ -28,7 +28,7 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 		name: "plausible-svc",
 	}
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		state.mu.Lock()
 		defer state.mu.Unlock()
@@ -66,7 +66,7 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})))
 	return srv, state
 }
 
@@ -115,7 +115,7 @@ func TestServiceResource_Disappears(t *testing.T) {
 	deleted := false
 	svcUUID := "svc-disappear-uuid-001"
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		mu.Lock()
 		defer mu.Unlock()
@@ -149,7 +149,7 @@ func TestServiceResource_Disappears(t *testing.T) {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

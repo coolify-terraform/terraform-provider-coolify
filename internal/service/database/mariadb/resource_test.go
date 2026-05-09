@@ -37,7 +37,7 @@ func newMockMariadbServer() (*httptest.Server, *mockMariadbState) {
 		mariadbRootPwd:  "rootpwd",
 	}
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		state.mu.Lock()
 		defer state.mu.Unlock()
@@ -89,7 +89,7 @@ func newMockMariadbServer() (*httptest.Server, *mockMariadbState) {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})))
 	return srv, state
 }
 
@@ -158,7 +158,7 @@ func TestMariadbDatabaseResource_Disappears(t *testing.T) {
 	deleted := false
 	mdbUUID := "mdb-disappear-uuid-001"
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		mu.Lock()
 		defer mu.Unlock()
@@ -201,7 +201,7 @@ func TestMariadbDatabaseResource_Disappears(t *testing.T) {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

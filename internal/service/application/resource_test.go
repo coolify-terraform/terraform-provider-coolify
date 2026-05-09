@@ -45,7 +45,7 @@ func TestApplicationResource_Create(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -129,7 +129,7 @@ func TestApplicationResource_Update(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -195,7 +195,7 @@ func TestApplicationResource_Import(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -229,7 +229,7 @@ func TestApplicationResource_Import(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestApplicationResource_InvalidBuildPack(t *testing.T) {
-	srv := httptest.NewServer(http.NotFoundHandler())
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -291,7 +291,7 @@ func TestApplicationResource_Disappears(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -350,7 +350,7 @@ resource "coolify_application" "test" {
 }
 
 func TestApplicationResource_InvalidFQDN(t *testing.T) {
-	srv := httptest.NewServer(http.NotFoundHandler())
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

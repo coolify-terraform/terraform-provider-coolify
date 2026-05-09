@@ -22,7 +22,7 @@ func TestEnvironmentVariablesDataSource_Application(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(envVars)
 	})
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -56,7 +56,7 @@ func TestEnvironmentVariablesDataSource_Service(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(envVars)
 	})
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

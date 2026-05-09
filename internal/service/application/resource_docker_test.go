@@ -42,7 +42,7 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -121,7 +121,7 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -183,7 +183,7 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -249,7 +249,7 @@ func TestDockerImageApplicationResource_Disappears(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

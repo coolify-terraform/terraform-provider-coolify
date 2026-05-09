@@ -31,7 +31,7 @@ func TestApplicationDataSource_Read(t *testing.T) {
 		json.NewEncoder(w).Encode(app)
 	})
 
-	srv := httptest.NewServer(mux)
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

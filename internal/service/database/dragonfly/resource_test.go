@@ -29,7 +29,7 @@ func newMockDragonflyServer() (*httptest.Server, *mockDragonflyState) {
 		image: "docker.dragonflydb.io/dragonflydb/dragonfly:latest",
 	}
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		state.mu.Lock()
 		defer state.mu.Unlock()
@@ -77,7 +77,7 @@ func newMockDragonflyServer() (*httptest.Server, *mockDragonflyState) {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})))
 	return srv, state
 }
 
@@ -174,7 +174,7 @@ func TestDragonflyDatabaseResource_Disappears(t *testing.T) {
 	deleted := false
 	dbUUID := "dragonfly-disappear-uuid-001"
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		mu.Lock()
 		defer mu.Unlock()
@@ -201,7 +201,7 @@ func TestDragonflyDatabaseResource_Disappears(t *testing.T) {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
