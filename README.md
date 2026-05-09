@@ -20,9 +20,13 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_mariadb_database` | Provision MariaDB databases |
 | `coolify_redis_database` | Provision Redis instances |
 | `coolify_mongodb_database` | Provision MongoDB databases |
+| `coolify_docker_compose_application` | Deploy apps from Docker Compose files |
 | `coolify_service` | Deploy one-click services from the Coolify catalog |
 | `coolify_deployment` | Trigger application deployments |
 | `coolify_database_backup` | Schedule automated database backups |
+| `coolify_clickhouse_database` | Provision ClickHouse databases |
+| `coolify_keydb_database` | Provision KeyDB databases (Redis-compatible) |
+| `coolify_dragonfly_database` | Provision DragonFly databases (Redis-compatible) |
 
 ## Data Sources
 
@@ -30,10 +34,12 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 |-------------|-------------|
 | `coolify_project` / `coolify_projects` | Read project(s) |
 | `coolify_server` / `coolify_servers` | Read server(s) |
+| `coolify_server_resources` | List resources deployed on a server |
+| `coolify_server_domains` | List domains configured on a server |
 | `coolify_private_key` / `coolify_private_keys` | Read SSH key(s) |
 | `coolify_application` / `coolify_applications` | Read application(s) |
-| `coolify_databases` | List all databases |
-| `coolify_services` | List all services |
+| `coolify_database` / `coolify_databases` | Read database(s) |
+| `coolify_service` / `coolify_services` | Read service(s) |
 | `coolify_team` | Read team info and members |
 
 ## Requirements

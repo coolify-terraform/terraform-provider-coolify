@@ -1802,3 +1802,126 @@ func TestClient_DeleteDatabaseBackup(t *testing.T) {
 	err := c.DeleteDatabaseBackup(context.Background(), "db-uuid-1", 5)
 	require.NoError(t, err)
 }
+
+func TestClient_ValidateServer(t *testing.T) {
+	expected := Server{UUID: "srv-1", Name: "prod", IsReachable: true, IsUsable: true}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/servers/srv-1/validate", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(expected)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.ValidateServer(context.Background(), "srv-1")
+	require.NoError(t, err)
+	assert.Equal(t, "srv-1", got.UUID)
+	assert.True(t, got.IsReachable)
+	assert.True(t, got.IsUsable)
+}
+
+func TestClient_ListServerResources(t *testing.T) {
+	expected := []ServerResource{
+		{UUID: "app-1", Name: "my-app", Type: "application"},
+		{UUID: "db-1", Name: "my-db", Type: "database"},
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/servers/srv-1/resources", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(expected)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.ListServerResources(context.Background(), "srv-1")
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, "app-1", got[0].UUID)
+	assert.Equal(t, "application", got[0].Type)
+	assert.Equal(t, "db-1", got[1].UUID)
+	assert.Equal(t, "database", got[1].Type)
+}
+
+func TestClient_ListServerDomains(t *testing.T) {
+	expected := []ServerDomain{
+		{Domain: "app.example.com", IP: "10.0.0.1"},
+		{Domain: "api.example.com", IP: "10.0.0.2"},
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/servers/srv-1/domains", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(expected)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.ListServerDomains(context.Background(), "srv-1")
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, "app.example.com", got[0].Domain)
+	assert.Equal(t, "10.0.0.1", got[0].IP)
+	assert.Equal(t, "api.example.com", got[1].Domain)
+}
+
+func TestClient_CreateDockerComposeApplication(t *testing.T) {
+	expected := Application{UUID: "compose-1", Name: "my-compose-app", BuildPack: "dockercompose"}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/dockercompose", r.URL.Path)
+
+		body, _ := io.ReadAll(r.Body)
+		var input CreateDockerComposeAppInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "srv-1", input.ServerUUID)
+		assert.Contains(t, input.DockerComposeRaw, "version:")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(expected)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.CreateDockerComposeApplication(context.Background(), CreateDockerComposeAppInput{
+		ProjectUUID:      "proj-1",
+		ServerUUID:       "srv-1",
+		EnvironmentName:  "production",
+		DockerComposeRaw: "version: '3'\nservices:\n  web:\n    image: nginx",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "compose-1", got.UUID)
+	assert.Equal(t, "dockercompose", got.BuildPack)
+}
+
+func TestClient_CreateClickhouseDatabase(t *testing.T) {
+	expected := Database{UUID: "ch-1", Name: "analytics", Type: "clickhouse"}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/clickhouse", r.URL.Path)
+
+		body, _ := io.ReadAll(r.Body)
+		var input CreateClickhouseInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "srv-1", input.ServerUUID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(expected)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.CreateClickhouseDatabase(context.Background(), CreateClickhouseInput{
+		ProjectUUID:     "proj-1",
+		ServerUUID:      "srv-1",
+		EnvironmentName: "production",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "ch-1", got.UUID)
+	assert.Equal(t, "clickhouse", got.Type)
+}

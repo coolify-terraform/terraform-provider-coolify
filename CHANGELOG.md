@@ -28,13 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_database_backup` - Schedule automated database backups with S3 storage and retention policies
   - `coolify_docker_compose_application` - Deploy applications from Docker Compose files
   - `coolify_clickhouse_database` - Provision ClickHouse databases
+  - `coolify_keydb_database` - Provision KeyDB databases (high-performance Redis-compatible)
+  - `coolify_dragonfly_database` - Provision DragonFly databases (modern Redis-compatible in-memory store)
 - **Data Sources:**
   - `coolify_project` / `coolify_projects` - Read project(s)
   - `coolify_server` / `coolify_servers` - Read server(s)
+  - `coolify_server_resources` - List all resources deployed on a server
+  - `coolify_server_domains` - List all domains configured on a server
   - `coolify_private_key` / `coolify_private_keys` - Read SSH key(s)
   - `coolify_application` / `coolify_applications` - Read application(s)
-  - `coolify_databases` - List all databases
-  - `coolify_services` - List all services
+  - `coolify_database` / `coolify_databases` - Read database(s)
+  - `coolify_service` / `coolify_services` - Read service(s)
   - `coolify_team` - Read team info and members
 - All resources support `terraform import`
 - Retryable HTTP client with automatic retry on 429/5xx (3 retries, 30s timeout)

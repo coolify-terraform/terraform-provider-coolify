@@ -109,6 +109,27 @@ type CreateClickhouseInput struct {
 	PublicPort      *int64 `json:"public_port,omitempty"`
 }
 
+type CreateKeydbInput struct {
+	ProjectUUID     string `json:"project_uuid"`
+	ServerUUID      string `json:"server_uuid"`
+	EnvironmentName string `json:"environment_name,omitempty"`
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	Image           string `json:"image,omitempty"`
+	IsPublic        *bool  `json:"is_public,omitempty"`
+	PublicPort      *int64 `json:"public_port,omitempty"`
+}
+type CreateDragonflyInput struct {
+	ProjectUUID     string `json:"project_uuid"`
+	ServerUUID      string `json:"server_uuid"`
+	EnvironmentName string `json:"environment_name,omitempty"`
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	Image           string `json:"image,omitempty"`
+	IsPublic        *bool  `json:"is_public,omitempty"`
+	PublicPort      *int64 `json:"public_port,omitempty"`
+}
+
 type UpdateDatabaseInput struct {
 	Name                    *string `json:"name,omitempty"`
 	Description             *string `json:"description,omitempty"`
@@ -186,6 +207,20 @@ func (c *Client) CreateClickhouseDatabase(ctx context.Context, input CreateClick
 	var d Database
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/clickhouse", input, &d, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating clickhouse database: %w", err)
+	}
+	return &d, nil
+}
+func (c *Client) CreateKeydbDatabase(ctx context.Context, input CreateKeydbInput) (*Database, error) {
+	var d Database
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/keydb", input, &d, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating keydb database: %w", err)
+	}
+	return &d, nil
+}
+func (c *Client) CreateDragonflyDatabase(ctx context.Context, input CreateDragonflyInput) (*Database, error) {
+	var d Database
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/dragonfly", input, &d, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating dragonfly database: %w", err)
 	}
 	return &d, nil
 }
