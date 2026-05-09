@@ -50,6 +50,17 @@ jobs:
           test ! -s fmt_output.txt
       - run: go mod tidy && git diff --exit-code
 
+  validate-examples:
+    name: Validate Examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Check HCL formatting
+        run: terraform fmt -check -recursive examples/
+
   docs:
     name: Docs
     runs-on: ubuntu-latest
