@@ -21,6 +21,7 @@ type Application struct {
 	PortsExposes       string `json:"ports_exposes,omitempty"`
 	ServerUUID         string `json:"server_uuid,omitempty"`
 	ProjectUUID        string `json:"project_uuid,omitempty"`
+	Status             string `json:"status,omitempty"`
 }
 type CreatePublicAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
@@ -52,6 +53,26 @@ type UpdateApplicationInput struct {
 	PortsExposes       *string `json:"ports_exposes,omitempty"`
 }
 
+func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {
+	var a []Application
+	if err := c.do(ctx, http.MethodGet, "/api/v1/applications", nil, &a); err != nil {
+		return nil, fmt.Errorf("listing applications: %w", err)
+	}
+	return a, nil
+}
+
+type RestartApplicationResponse struct {
+	DeploymentUUID string `json:"deployment_uuid"`
+	Message        string `json:"message"`
+}
+
+func (c *Client) RestartApplication(ctx context.Context, uuid string) (*RestartApplicationResponse, error) {
+	var r RestartApplicationResponse
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/applications/%s/restart", uuid), nil, &r); err != nil {
+		return nil, fmt.Errorf("restarting application %s: %w", uuid, err)
+	}
+	return &r, nil
+}
 func (c *Client) GetApplication(ctx context.Context, uuid string) (*Application, error) {
 	var a Application
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s", uuid), nil, &a); err != nil {

@@ -24,6 +24,13 @@ type CreateServiceInput struct {
 	EnvironmentName string `json:"environment_name"`
 }
 
+func (c *Client) ListServices(ctx context.Context) ([]Service, error) {
+	var s []Service
+	if err := c.do(ctx, http.MethodGet, "/api/v1/services", nil, &s); err != nil {
+		return nil, fmt.Errorf("listing services: %w", err)
+	}
+	return s, nil
+}
 func (c *Client) GetService(ctx context.Context, uuid string) (*Service, error) {
 	var s Service
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s", uuid), nil, &s); err != nil {

@@ -1,0 +1,24 @@
+# Local Coolify instance for acceptance testing.
+#
+# Usage:
+#   docker compose up -d
+#   # Wait for Coolify to start, then get the API token from the UI
+#   export COOLIFY_ENDPOINT="http://localhost:8000"
+#   export COOLIFY_TOKEN="<your-token>"
+#   make testacc
+
+services:
+  coolify:
+    image: ghcr.io/coollabsio/coolify:latest
+    ports:
+      - "8000:80"
+    volumes:
+      - coolify-data:/data/coolify
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    restart: unless-stopped
+
+volumes:
+  coolify-data:

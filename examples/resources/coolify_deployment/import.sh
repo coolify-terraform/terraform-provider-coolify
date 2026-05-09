@@ -1,0 +1,1 @@
+terraform import coolify_deployment.web <deployment-uuid>

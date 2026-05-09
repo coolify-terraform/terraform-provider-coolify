@@ -118,6 +118,13 @@ type UpdateDatabaseInput struct {
 	MongoInitdbDatabase     *string `json:"mongo_initdb_database,omitempty"`
 }
 
+func (c *Client) ListDatabases(ctx context.Context) ([]Database, error) {
+	var d []Database
+	if err := c.do(ctx, http.MethodGet, "/api/v1/databases", nil, &d); err != nil {
+		return nil, fmt.Errorf("listing databases: %w", err)
+	}
+	return d, nil
+}
 func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error) {
 	var d Database
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, &d); err != nil {

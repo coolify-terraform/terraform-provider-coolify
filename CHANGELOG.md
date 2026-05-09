@@ -22,11 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_redis_database` - Provision Redis databases
   - `coolify_mongodb_database` - Provision MongoDB databases
   - `coolify_service` - Deploy one-click services from the Coolify catalog
+  - `coolify_deployment` - Trigger application deployments (with `triggers` map for force-redeploy)
 - **Data Sources:**
   - `coolify_project` / `coolify_projects` - Read project(s)
   - `coolify_server` / `coolify_servers` - Read server(s)
-  - `coolify_private_key` - Read SSH key
-  - `coolify_application` - Read application
+  - `coolify_private_key` / `coolify_private_keys` - Read SSH key(s)
+  - `coolify_application` / `coolify_applications` - Read application(s)
+  - `coolify_databases` - List all databases
+  - `coolify_services` - List all services
   - `coolify_team` - Read team info and members
 - All resources support `terraform import`
 - Retryable HTTP client with automatic retry on 429/5xx (3 retries, 30s timeout)
