@@ -76,6 +76,40 @@ internal/
 - Use `MarkdownDescription` on all schema attributes
 - Implement `ImportState` for all resources
 
+## Local Provider Testing (dev_overrides)
+
+To test the provider against a real Coolify instance without publishing:
+
+1. Build and install locally:
+   ```bash
+   go install .
+   ```
+
+2. Create or edit `~/.terraformrc`:
+   ```hcl
+   provider_installation {
+     dev_overrides {
+       "SebTardif/coolify" = "/home/YOUR_USER/go/bin"
+     }
+     direct {}
+   }
+   ```
+   Replace `/home/YOUR_USER/go/bin` with your `$GOPATH/bin` (run `go env GOPATH` to find it).
+
+3. Run Terraform without `terraform init` (dev_overrides skip the registry):
+   ```bash
+   export COOLIFY_ENDPOINT="http://localhost:8000"
+   export COOLIFY_TOKEN="your-token"
+   terraform plan
+   terraform apply
+   ```
+
+4. Start a local Coolify instance for testing:
+   ```bash
+   docker compose up -d
+   # Wait for startup, then create an API token in the Coolify UI
+   ```
+
 ## Pull Requests
 
 - Run `make test` and `make lint` before submitting
