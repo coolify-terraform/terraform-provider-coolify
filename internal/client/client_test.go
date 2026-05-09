@@ -9,6 +9,9 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClient_RetryOn429(t *testing.T) {
@@ -508,4 +511,573 @@ func contains(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// --- Servers ---
+
+func TestClient_GetServer(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/servers/srv-uuid-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Server{
+			UUID:           "srv-uuid-1",
+			Name:           "Main Server",
+			Description:    "Primary",
+			IP:             "192.168.1.1",
+			Port:           22,
+			User:           "root",
+			PrivateKeyUUID: "pk-abc",
+			IsBuildServer:  true,
+			IsReachable:    true,
+			IsUsable:       true,
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	s, err := c.GetServer(context.Background(), "srv-uuid-1")
+	require.NoError(t, err)
+	assert.Equal(t, "srv-uuid-1", s.UUID)
+	assert.Equal(t, "Main Server", s.Name)
+	assert.Equal(t, "Primary", s.Description)
+	assert.Equal(t, "192.168.1.1", s.IP)
+	assert.Equal(t, 22, s.Port)
+	assert.Equal(t, "root", s.User)
+	assert.Equal(t, "pk-abc", s.PrivateKeyUUID)
+	assert.True(t, s.IsBuildServer)
+	assert.True(t, s.IsReachable)
+	assert.True(t, s.IsUsable)
+}
+
+func TestClient_CreateServer(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/servers", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateServerInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "New Server", input.Name)
+		assert.Equal(t, "10.0.0.5", input.IP)
+		assert.Equal(t, 2222, input.Port)
+		assert.Equal(t, "deploy", input.User)
+		assert.Equal(t, "pk-99", input.PrivateKeyUUID)
+		assert.True(t, input.IsBuildServer)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Server{UUID: "srv-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	s, err := c.CreateServer(context.Background(), CreateServerInput{
+		Name:           "New Server",
+		IP:             "10.0.0.5",
+		Port:           2222,
+		User:           "deploy",
+		PrivateKeyUUID: "pk-99",
+		IsBuildServer:  true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "srv-new", s.UUID)
+}
+
+func TestClient_UpdateServer(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/servers/srv-upd", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateServerInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "Updated", *input.Name)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Server{UUID: "srv-upd", Name: "Updated"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "Updated"
+	s, err := c.UpdateServer(context.Background(), "srv-upd", UpdateServerInput{Name: &name})
+	require.NoError(t, err)
+	assert.Equal(t, "srv-upd", s.UUID)
+	assert.Equal(t, "Updated", s.Name)
+}
+
+func TestClient_DeleteServer(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/servers/srv-del", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteServer(context.Background(), "srv-del")
+	require.NoError(t, err)
+}
+
+// --- Private Keys ---
+
+func TestClient_ListPrivateKeys(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/security/keys", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]PrivateKey{
+			{UUID: "pk-1", Name: "key-one", PrivateKey: "ssh-rsa AAA", IsGitRelated: true},
+			{UUID: "pk-2", Name: "key-two", PrivateKey: "ssh-ed25519 BBB", IsGitRelated: false},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	keys, err := c.ListPrivateKeys(context.Background())
+	require.NoError(t, err)
+	require.Len(t, keys, 2)
+	assert.Equal(t, "pk-1", keys[0].UUID)
+	assert.Equal(t, "key-one", keys[0].Name)
+	assert.True(t, keys[0].IsGitRelated)
+	assert.Equal(t, "pk-2", keys[1].UUID)
+	assert.False(t, keys[1].IsGitRelated)
+}
+
+func TestClient_GetPrivateKey(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/security/keys/pk-uuid-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(PrivateKey{
+			UUID:         "pk-uuid-1",
+			Name:         "my-key",
+			Description:  "Test key",
+			PrivateKey:   "ssh-rsa AAAA",
+			IsGitRelated: true,
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	k, err := c.GetPrivateKey(context.Background(), "pk-uuid-1")
+	require.NoError(t, err)
+	assert.Equal(t, "pk-uuid-1", k.UUID)
+	assert.Equal(t, "my-key", k.Name)
+	assert.Equal(t, "Test key", k.Description)
+	assert.Equal(t, "ssh-rsa AAAA", k.PrivateKey)
+	assert.True(t, k.IsGitRelated)
+}
+
+func TestClient_CreatePrivateKey(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/security/keys", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreatePrivateKeyInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "deploy-key", input.Name)
+		assert.Equal(t, "ssh-ed25519 NEWKEY", input.PrivateKey)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(PrivateKey{UUID: "pk-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	k, err := c.CreatePrivateKey(context.Background(), CreatePrivateKeyInput{
+		Name:       "deploy-key",
+		PrivateKey: "ssh-ed25519 NEWKEY",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "pk-new", k.UUID)
+}
+
+func TestClient_DeletePrivateKey(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/security/keys/pk-del", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeletePrivateKey(context.Background(), "pk-del")
+	require.NoError(t, err)
+}
+
+// --- Databases ---
+
+func TestClient_GetDatabase(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		port := int64(5432)
+		json.NewEncoder(w).Encode(Database{
+			UUID:         "db-uuid-1",
+			Name:         "my-pg",
+			Type:         "postgresql",
+			IsPublic:     true,
+			PublicPort:   &port,
+			PostgresUser: "admin",
+			PostgresDB:   "appdb",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	db, err := c.GetDatabase(context.Background(), "db-uuid-1")
+	require.NoError(t, err)
+	assert.Equal(t, "db-uuid-1", db.UUID)
+	assert.Equal(t, "my-pg", db.Name)
+	assert.Equal(t, "postgresql", db.Type)
+	assert.True(t, db.IsPublic)
+	require.NotNil(t, db.PublicPort)
+	assert.Equal(t, int64(5432), *db.PublicPort)
+	assert.Equal(t, "admin", db.PostgresUser)
+	assert.Equal(t, "appdb", db.PostgresDB)
+}
+
+func TestClient_CreateMysqlDatabase(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/mysql", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateMysqlInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "srv-1", input.ServerUUID)
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "production", input.EnvironmentName)
+		assert.Equal(t, "myuser", input.MysqlUser)
+		assert.Equal(t, "mydb", input.MysqlDatabase)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Database{UUID: "db-mysql-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	db, err := c.CreateMysqlDatabase(context.Background(), CreateMysqlInput{
+		ServerUUID:      "srv-1",
+		ProjectUUID:     "proj-1",
+		EnvironmentName: "production",
+		MysqlUser:       "myuser",
+		MysqlDatabase:   "mydb",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "db-mysql-new", db.UUID)
+}
+
+func TestClient_UpdateDatabase(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-upd", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateDatabaseInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "renamed-db", *input.Name)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Database{UUID: "db-upd", Name: "renamed-db"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "renamed-db"
+	db, err := c.UpdateDatabase(context.Background(), "db-upd", UpdateDatabaseInput{Name: &name})
+	require.NoError(t, err)
+	assert.Equal(t, "db-upd", db.UUID)
+	assert.Equal(t, "renamed-db", db.Name)
+}
+
+func TestClient_DeleteDatabase(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-del", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteDatabase(context.Background(), "db-del")
+	require.NoError(t, err)
+}
+
+func TestClient_StartDatabase(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-start/start", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.StartDatabase(context.Background(), "db-start")
+	require.NoError(t, err)
+}
+
+func TestClient_StopDatabase(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-stop/stop", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.StopDatabase(context.Background(), "db-stop")
+	require.NoError(t, err)
+}
+
+// --- Environment Variables ---
+
+func TestClient_CreateApplicationEnvVar(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-1/envs", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var ev EnvironmentVariable
+		require.NoError(t, json.Unmarshal(body, &ev))
+		assert.Equal(t, "DATABASE_URL", ev.Key)
+		assert.Equal(t, "postgres://localhost/db", ev.Value)
+		assert.True(t, ev.IsBuild)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CreateEnvVarResponse{UUID: "env-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	resp, err := c.CreateApplicationEnvVar(context.Background(), "app-1", EnvironmentVariable{
+		Key:     "DATABASE_URL",
+		Value:   "postgres://localhost/db",
+		IsBuild: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "env-new", resp.UUID)
+}
+
+func TestClient_ListApplicationEnvVars(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-1/envs", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]EnvironmentVariable{
+			{UUID: "ev-1", Key: "PORT", Value: "3000", IsPreview: false, IsBuild: false},
+			{UUID: "ev-2", Key: "SECRET", Value: "abc", IsPreview: true, IsBuild: true},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	vars, err := c.ListApplicationEnvVars(context.Background(), "app-1")
+	require.NoError(t, err)
+	require.Len(t, vars, 2)
+	assert.Equal(t, "PORT", vars[0].Key)
+	assert.Equal(t, "3000", vars[0].Value)
+	assert.False(t, vars[0].IsPreview)
+	assert.Equal(t, "SECRET", vars[1].Key)
+	assert.True(t, vars[1].IsPreview)
+	assert.True(t, vars[1].IsBuild)
+}
+
+func TestClient_DeleteApplicationEnvVar(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-1/envs/env-del", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteApplicationEnvVar(context.Background(), "app-1", "env-del")
+	require.NoError(t, err)
+}
+
+// --- Services ---
+
+func TestClient_GetService(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-uuid-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Service{
+			UUID:            "svc-uuid-1",
+			Name:            "my-service",
+			Description:     "A test service",
+			Type:            "wordpress",
+			ServerUUID:      "srv-1",
+			ProjectUUID:     "proj-1",
+			EnvironmentName: "production",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	svc, err := c.GetService(context.Background(), "svc-uuid-1")
+	require.NoError(t, err)
+	assert.Equal(t, "svc-uuid-1", svc.UUID)
+	assert.Equal(t, "my-service", svc.Name)
+	assert.Equal(t, "A test service", svc.Description)
+	assert.Equal(t, "wordpress", svc.Type)
+	assert.Equal(t, "srv-1", svc.ServerUUID)
+	assert.Equal(t, "proj-1", svc.ProjectUUID)
+	assert.Equal(t, "production", svc.EnvironmentName)
+}
+
+func TestClient_CreateService(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/services", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateServiceInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "wordpress", input.Type)
+		assert.Equal(t, "blog", input.Name)
+		assert.Equal(t, "srv-1", input.ServerUUID)
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "production", input.EnvironmentName)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Service{UUID: "svc-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	svc, err := c.CreateService(context.Background(), CreateServiceInput{
+		Type:            "wordpress",
+		Name:            "blog",
+		ServerUUID:      "srv-1",
+		ProjectUUID:     "proj-1",
+		EnvironmentName: "production",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "svc-new", svc.UUID)
+}
+
+func TestClient_DeleteService(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-del", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteService(context.Background(), "svc-del")
+	require.NoError(t, err)
+}
+
+// --- Teams ---
+
+func TestClient_GetTeam(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/teams/42", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Team{
+			ID:          42,
+			Name:        "backend-team",
+			Description: "Backend engineers",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	team, err := c.GetTeam(context.Background(), 42)
+	require.NoError(t, err)
+	assert.Equal(t, 42, team.ID)
+	assert.Equal(t, "backend-team", team.Name)
+	assert.Equal(t, "Backend engineers", team.Description)
+}
+
+func TestClient_ListTeamMembers(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/teams/7/members", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]TeamMember{
+			{ID: 1, Name: "Alice", Email: "alice@example.com"},
+			{ID: 2, Name: "Bob", Email: "bob@example.com"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	members, err := c.ListTeamMembers(context.Background(), 7)
+	require.NoError(t, err)
+	require.Len(t, members, 2)
+	assert.Equal(t, "Alice", members[0].Name)
+	assert.Equal(t, "alice@example.com", members[0].Email)
+	assert.Equal(t, "Bob", members[1].Name)
+	assert.Equal(t, "bob@example.com", members[1].Email)
+}
+
+// --- Deployments ---
+
+func TestClient_ListDeployments(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/deployments", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Deployment{
+			{UUID: "dep-1", ID: 100, Status: "finished", ServerUUID: "srv-1"},
+			{UUID: "dep-2", ID: 101, Status: "in_progress", ServerUUID: "srv-2"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	deps, err := c.ListDeployments(context.Background())
+	require.NoError(t, err)
+	require.Len(t, deps, 2)
+	assert.Equal(t, "dep-1", deps[0].UUID)
+	assert.Equal(t, 100, deps[0].ID)
+	assert.Equal(t, "finished", deps[0].Status)
+	assert.Equal(t, "dep-2", deps[1].UUID)
+	assert.Equal(t, "in_progress", deps[1].Status)
+}
+
+func TestClient_DeployByTag(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/deploy", r.URL.Path)
+		assert.Equal(t, "v1.2.3", r.URL.Query().Get("tag"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input DeployByTagInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.True(t, input.ForceRebuild)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeployByTag(context.Background(), "v1.2.3", DeployByTagInput{ForceRebuild: true})
+	require.NoError(t, err)
 }

@@ -21,7 +21,9 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
-      - run: go test -v -cover -timeout=2m -parallel=10 ./...
+      - run: go test -v -cover -coverprofile=coverage.out -timeout=5m -parallel=10 ./...
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1
 
   lint:
     name: Lint

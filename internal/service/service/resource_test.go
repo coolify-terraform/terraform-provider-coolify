@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -189,6 +190,43 @@ resource "coolify_service" "test" {
 					},
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestServiceResource_UpdateReturnsError(t *testing.T) {
+	srv, _ := newMockServiceServer()
+	defer srv.Close()
+
+	baseConfig := func(desc string) string {
+		return fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_service" "test" {
+  project_uuid = "proj-uuid-1"
+  server_uuid  = "srv-uuid-1"
+  type         = "plausible"
+  description  = %q
+}
+`, srv.URL, desc)
+	}
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: baseConfig("initial description"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_service.test", "uuid"),
+				),
+			},
+			{
+				Config:      baseConfig("updated description"),
+				ExpectError: regexp.MustCompile(`Update not supported`),
 			},
 		},
 	})

@@ -1,0 +1,445 @@
+package flex_test
+
+import (
+	"testing"
+
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// ---------------------------------------------------------------------------
+// StringValue
+// ---------------------------------------------------------------------------
+
+func TestStringValue(t *testing.T) {
+	got := flex.StringValue(types.StringValue("hello"))
+	if got != "hello" {
+		t.Fatalf("expected %q, got %q", "hello", got)
+	}
+}
+
+func TestStringValue_Null(t *testing.T) {
+	got := flex.StringValue(types.StringNull())
+	if got != "" {
+		t.Fatalf("expected empty string, got %q", got)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// StringValueOrNull
+// ---------------------------------------------------------------------------
+
+func TestStringValueOrNull(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  types.String
+		wantNl bool
+		want   string
+	}{
+		{"non-null value", types.StringValue("abc"), false, "abc"},
+		{"null value", types.StringNull(), true, ""},
+		{"unknown value", types.StringUnknown(), true, ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.StringValueOrNull(tc.input)
+			if tc.wantNl {
+				if got != nil {
+					t.Fatalf("expected nil, got %q", *got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("expected non-nil pointer, got nil")
+			}
+			if *got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, *got)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Int64Value / Int64ValueOrNull
+// ---------------------------------------------------------------------------
+
+func TestInt64Value(t *testing.T) {
+	tests := []struct {
+		name  string
+		input types.Int64
+		want  int64
+	}{
+		{"positive", types.Int64Value(42), 42},
+		{"zero", types.Int64Value(0), 0},
+		{"negative", types.Int64Value(-7), -7},
+		{"null", types.Int64Null(), 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.Int64Value(tc.input)
+			if got != tc.want {
+				t.Fatalf("expected %d, got %d", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestInt64ValueOrNull(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  types.Int64
+		wantNl bool
+		want   int64
+	}{
+		{"non-null", types.Int64Value(99), false, 99},
+		{"null", types.Int64Null(), true, 0},
+		{"unknown", types.Int64Unknown(), true, 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.Int64ValueOrNull(tc.input)
+			if tc.wantNl {
+				if got != nil {
+					t.Fatalf("expected nil, got %d", *got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("expected non-nil pointer, got nil")
+			}
+			if *got != tc.want {
+				t.Fatalf("expected %d, got %d", tc.want, *got)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// BoolValue / BoolValueOrNull
+// ---------------------------------------------------------------------------
+
+func TestBoolValue(t *testing.T) {
+	tests := []struct {
+		name  string
+		input types.Bool
+		want  bool
+	}{
+		{"true", types.BoolValue(true), true},
+		{"false", types.BoolValue(false), false},
+		{"null", types.BoolNull(), false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.BoolValue(tc.input)
+			if got != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestBoolValueOrNull(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  types.Bool
+		wantNl bool
+		want   bool
+	}{
+		{"true value", types.BoolValue(true), false, true},
+		{"false value", types.BoolValue(false), false, false},
+		{"null", types.BoolNull(), true, false},
+		{"unknown", types.BoolUnknown(), true, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.BoolValueOrNull(tc.input)
+			if tc.wantNl {
+				if got != nil {
+					t.Fatalf("expected nil, got %v", *got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("expected non-nil pointer, got nil")
+			}
+			if *got != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, *got)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// StringToFramework
+// ---------------------------------------------------------------------------
+
+func TestStringToFramework(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantNull bool
+		want     string
+	}{
+		{"empty becomes null", "", true, ""},
+		{"non-empty becomes value", "foo", false, "foo"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.StringToFramework(tc.input)
+			if tc.wantNull {
+				if !got.IsNull() {
+					t.Fatalf("expected null, got %q", got.ValueString())
+				}
+				return
+			}
+			if got.IsNull() {
+				t.Fatal("expected non-null, got null")
+			}
+			if got.ValueString() != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got.ValueString())
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// StringValueToFramework
+// ---------------------------------------------------------------------------
+
+func TestStringValueToFramework(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"empty preserved", "", ""},
+		{"non-empty", "bar", "bar"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.StringValueToFramework(tc.input)
+			if got.IsNull() {
+				t.Fatal("expected non-null, got null")
+			}
+			if got.ValueString() != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got.ValueString())
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// StringPtrToFramework
+// ---------------------------------------------------------------------------
+
+func TestStringPtrToFramework(t *testing.T) {
+	s := "hello"
+	tests := []struct {
+		name     string
+		input    *string
+		wantNull bool
+		want     string
+	}{
+		{"nil becomes null", nil, true, ""},
+		{"non-nil becomes value", &s, false, "hello"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.StringPtrToFramework(tc.input)
+			if tc.wantNull {
+				if !got.IsNull() {
+					t.Fatalf("expected null, got %q", got.ValueString())
+				}
+				return
+			}
+			if got.IsNull() {
+				t.Fatal("expected non-null, got null")
+			}
+			if got.ValueString() != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got.ValueString())
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Int64ToFramework / Int64PtrToFramework
+// ---------------------------------------------------------------------------
+
+func TestInt64ToFramework(t *testing.T) {
+	tests := []struct {
+		name  string
+		input int64
+		want  int64
+	}{
+		{"positive", 10, 10},
+		{"zero", 0, 0},
+		{"negative", -3, -3},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.Int64ToFramework(tc.input)
+			if got.ValueInt64() != tc.want {
+				t.Fatalf("expected %d, got %d", tc.want, got.ValueInt64())
+			}
+		})
+	}
+}
+
+func TestInt64PtrToFramework(t *testing.T) {
+	v := int64(42)
+	tests := []struct {
+		name     string
+		input    *int64
+		wantNull bool
+		want     int64
+	}{
+		{"nil becomes null", nil, true, 0},
+		{"non-nil becomes value", &v, false, 42},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.Int64PtrToFramework(tc.input)
+			if tc.wantNull {
+				if !got.IsNull() {
+					t.Fatalf("expected null, got %d", got.ValueInt64())
+				}
+				return
+			}
+			if got.IsNull() {
+				t.Fatal("expected non-null, got null")
+			}
+			if got.ValueInt64() != tc.want {
+				t.Fatalf("expected %d, got %d", tc.want, got.ValueInt64())
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// BoolToFramework / BoolPtrToFramework
+// ---------------------------------------------------------------------------
+
+func TestBoolToFramework(t *testing.T) {
+	tests := []struct {
+		name  string
+		input bool
+		want  bool
+	}{
+		{"true", true, true},
+		{"false", false, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.BoolToFramework(tc.input)
+			if got.ValueBool() != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, got.ValueBool())
+			}
+		})
+	}
+}
+
+func TestBoolPtrToFramework(t *testing.T) {
+	b := true
+	tests := []struct {
+		name     string
+		input    *bool
+		wantNull bool
+		want     bool
+	}{
+		{"nil becomes null", nil, true, false},
+		{"non-nil becomes value", &b, false, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.BoolPtrToFramework(tc.input)
+			if tc.wantNull {
+				if !got.IsNull() {
+					t.Fatalf("expected null, got %v", got.ValueBool())
+				}
+				return
+			}
+			if got.IsNull() {
+				t.Fatal("expected non-null, got null")
+			}
+			if got.ValueBool() != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, got.ValueBool())
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// StringFromFramework / BoolFromFramework / Int64PtrFromFramework
+// ---------------------------------------------------------------------------
+
+func TestStringFromFramework(t *testing.T) {
+	tests := []struct {
+		name  string
+		input types.String
+		want  string
+	}{
+		{"normal value", types.StringValue("test"), "test"},
+		{"null returns empty", types.StringNull(), ""},
+		{"unknown returns empty", types.StringUnknown(), ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.StringFromFramework(tc.input)
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestBoolFromFramework(t *testing.T) {
+	tests := []struct {
+		name  string
+		input types.Bool
+		want  bool
+	}{
+		{"true", types.BoolValue(true), true},
+		{"false", types.BoolValue(false), false},
+		{"null returns false", types.BoolNull(), false},
+		{"unknown returns false", types.BoolUnknown(), false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.BoolFromFramework(tc.input)
+			if got != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestInt64PtrFromFramework(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  types.Int64
+		wantNl bool
+		want   int64
+	}{
+		{"non-null", types.Int64Value(55), false, 55},
+		{"null", types.Int64Null(), true, 0},
+		{"unknown", types.Int64Unknown(), true, 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.Int64PtrFromFramework(tc.input)
+			if tc.wantNl {
+				if got != nil {
+					t.Fatalf("expected nil, got %d", *got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("expected non-nil pointer, got nil")
+			}
+			if *got != tc.want {
+				t.Fatalf("expected %d, got %d", tc.want, *got)
+			}
+		})
+	}
+}
