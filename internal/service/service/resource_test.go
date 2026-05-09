@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -48,9 +47,13 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":        state.uuid,
-				"name":        state.name,
-				"description": state.description,
+				"uuid":             state.uuid,
+				"name":             state.name,
+				"description":      state.description,
+				"project_uuid":     "proj-uuid-1",
+				"server_uuid":      "srv-uuid-1",
+				"environment_name": "production",
+				"type":             "plausible",
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
@@ -131,8 +134,12 @@ func TestServiceResource_Disappears(t *testing.T) {
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid": svcUUID,
-				"name": "disappearing-svc",
+				"uuid":             svcUUID,
+				"name":             "disappearing-svc",
+				"project_uuid":     "proj-uuid-1",
+				"server_uuid":      "srv-uuid-1",
+				"environment_name": "production",
+				"type":             "plausible",
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", svcUUID):
@@ -195,8 +202,51 @@ resource "coolify_service" "test" {
 	})
 }
 
-func TestServiceResource_UpdateReturnsError(t *testing.T) {
-	srv, _ := newMockServiceServer()
+func TestServiceResource_DescriptionRequiresReplace(t *testing.T) {
+	mu := sync.Mutex{}
+	createCount := 0
+	services := map[string]string{} // uuid -> description
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			createCount++
+			uuid := fmt.Sprintf("svc-uuid-%d", createCount)
+			var body map[string]interface{}
+			json.NewDecoder(r.Body).Decode(&body)
+			desc := ""
+			if v, ok := body["description"].(string); ok {
+				desc = v
+			}
+			services[uuid] = desc
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": uuid})
+
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/services/svc-uuid-"):
+			uuid := r.URL.Path[len("/api/v1/services/"):]
+			desc := services[uuid]
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":             uuid,
+				"name":             "plausible-svc",
+				"description":      desc,
+				"type":             "plausible",
+				"project_uuid":     "proj-uuid-1",
+				"server_uuid":      "srv-uuid-1",
+				"environment_name": "production",
+			})
+
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
 	defer srv.Close()
 
 	baseConfig := func(desc string) string {
@@ -221,12 +271,15 @@ resource "coolify_service" "test" {
 			{
 				Config: baseConfig("initial description"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_service.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-uuid-1"),
 				),
 			},
 			{
-				Config:      baseConfig("updated description"),
-				ExpectError: regexp.MustCompile(`Update not supported`),
+				Config: baseConfig("updated description"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// A second Create was called (destroy+recreate), proving RequiresReplace works.
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-uuid-2"),
+				),
 			},
 		},
 	})

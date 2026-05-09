@@ -192,18 +192,10 @@ func mapDBToModel(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	m.PostgresUser = StringOrNull(db.PostgresUser)
 	m.PostgresPassword = StringOrNull(db.PostgresPassword)
 	m.PostgresDB = StringOrNull(db.PostgresDB)
-	if db.Description != "" {
-		m.Description = types.StringValue(db.Description)
-	}
-	if db.ProjectUUID != "" {
-		m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	}
-	if db.ServerUUID != "" {
-		m.ServerUUID = types.StringValue(db.ServerUUID)
-	}
-	if db.EnvironmentName != "" {
-		m.EnvironmentName = types.StringValue(db.EnvironmentName)
-	}
+	m.Description = StringOrNull(db.Description)
+	m.ProjectUUID = StringOrNull(db.ProjectUUID)
+	m.ServerUUID = StringOrNull(db.ServerUUID)
+	m.EnvironmentName = StringOrNull(db.EnvironmentName)
 }
 
 // --- shared helpers ---
@@ -216,7 +208,7 @@ func CommonDatabaseAttrs(extra map[string]schema.Attribute) map[string]schema.At
 		"description":      schema.StringAttribute{MarkdownDescription: "A description of the database.", Optional: true},
 		"project_uuid":     schema.StringAttribute{MarkdownDescription: "The UUID of the project this database belongs to.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 		"server_uuid":      schema.StringAttribute{MarkdownDescription: "The UUID of the server to deploy the database on.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-		"environment_name": schema.StringAttribute{MarkdownDescription: "The environment name. Defaults to `production`.", Optional: true, Computed: true, Default: stringdefault.StaticString("production")},
+		"environment_name": schema.StringAttribute{MarkdownDescription: "The environment name. Defaults to `production`. Changing this forces a new resource.", Optional: true, Computed: true, Default: stringdefault.StaticString("production"), PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 		"image":            schema.StringAttribute{MarkdownDescription: "The Docker image to use.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"is_public":        schema.BoolAttribute{MarkdownDescription: "Whether the database is publicly accessible.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"public_port": schema.Int64Attribute{MarkdownDescription: "The public port for the database, if publicly accessible.", Optional: true, Validators: []validator.Int64{

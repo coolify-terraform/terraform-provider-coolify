@@ -99,14 +99,16 @@ type CreateMongodbInput struct {
 	PublicPort              *int64 `json:"public_port,omitempty"`
 }
 type CreateClickhouseInput struct {
-	ProjectUUID     string `json:"project_uuid"`
-	ServerUUID      string `json:"server_uuid"`
-	EnvironmentName string `json:"environment_name,omitempty"`
-	Name            string `json:"name,omitempty"`
-	Description     string `json:"description,omitempty"`
-	Image           string `json:"image,omitempty"`
-	IsPublic        *bool  `json:"is_public,omitempty"`
-	PublicPort      *int64 `json:"public_port,omitempty"`
+	ProjectUUID             string `json:"project_uuid"`
+	ServerUUID              string `json:"server_uuid"`
+	EnvironmentName         string `json:"environment_name,omitempty"`
+	Name                    string `json:"name,omitempty"`
+	Description             string `json:"description,omitempty"`
+	Image                   string `json:"image,omitempty"`
+	IsPublic                *bool  `json:"is_public,omitempty"`
+	PublicPort              *int64 `json:"public_port,omitempty"`
+	ClickhouseAdminUser     string `json:"clickhouse_admin_user,omitempty"`
+	ClickhouseAdminPassword string `json:"clickhouse_admin_password,omitempty"`
 }
 
 type CreateKeydbInput struct {

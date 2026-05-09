@@ -148,6 +148,84 @@ resource "coolify_clickhouse_database" "test" {
 	})
 }
 
+func TestClickhouseDatabaseResource_CreateWithCredentials(t *testing.T) {
+	var capturedBody map[string]interface{}
+	mu := sync.Mutex{}
+	chUUID := "ch-creds-uuid-001"
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/clickhouse":
+			json.NewDecoder(r.Body).Decode(&capturedBody)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": chUUID})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", chUUID):
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":                      chUUID,
+				"name":                      "ch-creds-db",
+				"project_uuid":              "proj-uuid-1",
+				"server_uuid":               "srv-uuid-1",
+				"environment_name":          "production",
+				"image":                     "clickhouse/clickhouse-server:latest",
+				"is_public":                 false,
+				"clickhouse_admin_user":     "myadmin",
+				"clickhouse_admin_password": "mypass123",
+			})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", chUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+resource "coolify_clickhouse_database" "test" {
+  project_uuid              = "proj-uuid-1"
+  server_uuid               = "srv-uuid-1"
+  clickhouse_admin_user     = "myadmin"
+  clickhouse_admin_password = "mypass123"
+}
+`, srv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "clickhouse_admin_user", "myadmin"),
+					func(s *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if capturedBody == nil {
+							return fmt.Errorf("Create request body was not captured")
+						}
+						if v, ok := capturedBody["clickhouse_admin_user"].(string); !ok || v != "myadmin" {
+							return fmt.Errorf("expected clickhouse_admin_user=myadmin in Create body, got %v", capturedBody["clickhouse_admin_user"])
+						}
+						if v, ok := capturedBody["clickhouse_admin_password"].(string); !ok || v != "mypass123" {
+							return fmt.Errorf("expected clickhouse_admin_password=mypass123 in Create body, got %v", capturedBody["clickhouse_admin_password"])
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestClickhouseDatabaseResource_Disappears(t *testing.T) {
 	mu := sync.Mutex{}
 	deleted := false

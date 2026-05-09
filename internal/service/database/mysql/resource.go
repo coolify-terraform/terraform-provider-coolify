@@ -179,16 +179,8 @@ func mapToModel(db *client.Database, m *mysqlDatabaseResourceModel) {
 	m.MysqlPassword = postgresql.StringOrNull(db.MysqlPassword)
 	m.MysqlDatabase = postgresql.StringOrNull(db.MysqlDatabase)
 	m.MysqlRootPassword = postgresql.StringOrNull(db.MysqlRootPassword)
-	if db.Description != "" {
-		m.Description = types.StringValue(db.Description)
-	}
-	if db.ProjectUUID != "" {
-		m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	}
-	if db.ServerUUID != "" {
-		m.ServerUUID = types.StringValue(db.ServerUUID)
-	}
-	if db.EnvironmentName != "" {
-		m.EnvironmentName = types.StringValue(db.EnvironmentName)
-	}
+	m.Description = postgresql.StringOrNull(db.Description)
+	m.ProjectUUID = postgresql.StringOrNull(db.ProjectUUID)
+	m.ServerUUID = postgresql.StringOrNull(db.ServerUUID)
+	m.EnvironmentName = postgresql.StringOrNull(db.EnvironmentName)
 }

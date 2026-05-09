@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -40,11 +41,11 @@ func (r *serviceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 		MarkdownDescription: "Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g. plausible, uptime-kuma, minio).",
 		Attributes: map[string]schema.Attribute{
 			"uuid":             schema.StringAttribute{MarkdownDescription: "The UUID of the service.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"name":             schema.StringAttribute{MarkdownDescription: "The name of the service.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"description":      schema.StringAttribute{MarkdownDescription: "A description of the service.", Optional: true},
+			"name":             schema.StringAttribute{MarkdownDescription: "The name of the service. Changing this forces a new resource.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown(), stringplanmodifier.RequiresReplace()}},
+			"description":      schema.StringAttribute{MarkdownDescription: "A description of the service. Changing this forces a new resource.", Optional: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"project_uuid":     schema.StringAttribute{MarkdownDescription: "The UUID of the project this service belongs to.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"server_uuid":      schema.StringAttribute{MarkdownDescription: "The UUID of the server to deploy the service on.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"environment_name": schema.StringAttribute{MarkdownDescription: "The environment name. Defaults to `production`.", Optional: true, Computed: true, Default: stringdefault.StaticString("production")},
+			"environment_name": schema.StringAttribute{MarkdownDescription: "The environment name. Defaults to `production`. Changing this forces a new resource.", Optional: true, Computed: true, Default: stringdefault.StaticString("production"), PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"type":             schema.StringAttribute{MarkdownDescription: "The service type from the Coolify service catalog (e.g. `plausible`, `uptime-kuma`, `minio`).", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 		},
 	}
@@ -83,25 +84,7 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Error reading service after creation", err.Error())
 		return
 	}
-	plan.UUID = types.StringValue(svc.UUID)
-	if svc.Name != "" {
-		plan.Name = types.StringValue(svc.Name)
-	}
-	if svc.Description != "" {
-		plan.Description = types.StringValue(svc.Description)
-	}
-	if svc.Type != "" {
-		plan.Type = types.StringValue(svc.Type)
-	}
-	if svc.ProjectUUID != "" {
-		plan.ProjectUUID = types.StringValue(svc.ProjectUUID)
-	}
-	if svc.ServerUUID != "" {
-		plan.ServerUUID = types.StringValue(svc.ServerUUID)
-	}
-	if svc.EnvironmentName != "" {
-		plan.EnvironmentName = types.StringValue(svc.EnvironmentName)
-	}
+	mapServiceToModel(svc, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -119,25 +102,7 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 		resp.Diagnostics.AddError("Error reading service", err.Error())
 		return
 	}
-	state.UUID = types.StringValue(svc.UUID)
-	if svc.Name != "" {
-		state.Name = types.StringValue(svc.Name)
-	}
-	if svc.Description != "" {
-		state.Description = types.StringValue(svc.Description)
-	}
-	if svc.Type != "" {
-		state.Type = types.StringValue(svc.Type)
-	}
-	if svc.ProjectUUID != "" {
-		state.ProjectUUID = types.StringValue(svc.ProjectUUID)
-	}
-	if svc.ServerUUID != "" {
-		state.ServerUUID = types.StringValue(svc.ServerUUID)
-	}
-	if svc.EnvironmentName != "" {
-		state.EnvironmentName = types.StringValue(svc.EnvironmentName)
-	}
+	mapServiceToModel(svc, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 func (r *serviceResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -164,4 +129,14 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 }
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+}
+
+func mapServiceToModel(svc *client.Service, m *serviceResourceModel) {
+	m.UUID = types.StringValue(svc.UUID)
+	m.Name = flex.StringToFramework(svc.Name)
+	m.Description = flex.StringToFramework(svc.Description)
+	m.Type = flex.StringToFramework(svc.Type)
+	m.ProjectUUID = flex.StringToFramework(svc.ProjectUUID)
+	m.ServerUUID = flex.StringToFramework(svc.ServerUUID)
+	m.EnvironmentName = flex.StringToFramework(svc.EnvironmentName)
 }

@@ -49,6 +49,7 @@ type PrivateGitApplicationResourceModel struct {
 	InstallCommand     types.String   `tfsdk:"install_command"`
 	BuildCommand       types.String   `tfsdk:"build_command"`
 	StartCommand       types.String   `tfsdk:"start_command"`
+	Status             types.String   `tfsdk:"status"`
 	Timeouts           timeouts.Value `tfsdk:"timeouts"`
 }
 
@@ -160,6 +161,10 @@ func (r *PrivateGitApplicationResource) Schema(ctx context.Context, _ resource.S
 			"start_command": schema.StringAttribute{
 				MarkdownDescription: "The command to run to start the application.",
 				Optional:            true,
+			},
+			"status": schema.StringAttribute{
+				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
+				Computed:            true,
 			},
 		},
 	}
@@ -344,6 +349,7 @@ func mapPrivateGitAppToState(app *client.Application, state *PrivateGitApplicati
 	state.InstallCommand = flex.StringToFramework(app.InstallCommand)
 	state.BuildCommand = flex.StringToFramework(app.BuildCommand)
 	state.StartCommand = flex.StringToFramework(app.StartCommand)
+	state.Status = flex.StringToFramework(app.Status)
 
 	if app.ProjectUUID != "" {
 		state.ProjectUUID = types.StringValue(app.ProjectUUID)

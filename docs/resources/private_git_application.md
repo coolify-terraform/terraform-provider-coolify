@@ -53,6 +53,7 @@ resource "coolify_private_git_application" "api" {
 
 ### Read-Only
 
+- `status` (String) The current status of the application (e.g. running, stopped, exited). Read-only.
 - `uuid` (String) The unique identifier of the application.
 
 <a id="nestedatt--timeouts"></a>

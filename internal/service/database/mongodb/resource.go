@@ -160,16 +160,8 @@ func toModel(db *client.Database, m *model) {
 	m.MongoInitdbRootUsername = pg.StringOrNull(db.MongoInitdbRootUsername)
 	m.MongoInitdbRootPassword = pg.StringOrNull(db.MongoInitdbRootPassword)
 	m.MongoInitdbDatabase = pg.StringOrNull(db.MongoInitdbDatabase)
-	if db.Description != "" {
-		m.Description = types.StringValue(db.Description)
-	}
-	if db.ProjectUUID != "" {
-		m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	}
-	if db.ServerUUID != "" {
-		m.ServerUUID = types.StringValue(db.ServerUUID)
-	}
-	if db.EnvironmentName != "" {
-		m.EnvironmentName = types.StringValue(db.EnvironmentName)
-	}
+	m.Description = pg.StringOrNull(db.Description)
+	m.ProjectUUID = pg.StringOrNull(db.ProjectUUID)
+	m.ServerUUID = pg.StringOrNull(db.ServerUUID)
+	m.EnvironmentName = pg.StringOrNull(db.EnvironmentName)
 }

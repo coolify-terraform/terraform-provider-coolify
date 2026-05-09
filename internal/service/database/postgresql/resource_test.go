@@ -165,6 +165,102 @@ resource "coolify_postgresql_database" "test" {
 	})
 }
 
+func TestPostgresqlDatabaseResource_DescriptionNullHandling(t *testing.T) {
+	mu := sync.Mutex{}
+	description := "initial"
+	pgUUID := "pg-desc-uuid-001"
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/postgresql":
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": pgUUID})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", pgUUID):
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":              pgUUID,
+				"name":              "pg-desc-db",
+				"description":       description,
+				"project_uuid":      "proj-uuid-1",
+				"server_uuid":       "srv-uuid-1",
+				"environment_name":  "production",
+				"image":             "postgres:16",
+				"is_public":         false,
+				"postgres_user":     "postgres",
+				"postgres_password": "secret",
+				"postgres_db":       "mydb",
+			})
+
+		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", pgUUID):
+			var body map[string]interface{}
+			json.NewDecoder(r.Body).Decode(&body)
+			if v, ok := body["description"]; ok {
+				if s, ok := v.(string); ok {
+					description = s
+				}
+			}
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+
+		case r.Method == http.MethodDelete:
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "proj-uuid-1"
+  server_uuid  = "srv-uuid-1"
+  description  = "initial"
+}
+`, srv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "initial"),
+				),
+			},
+			{
+				PreConfig: func() {
+					mu.Lock()
+					description = ""
+					mu.Unlock()
+				},
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "proj-uuid-1"
+  server_uuid  = "srv-uuid-1"
+}
+`, srv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr("coolify_postgresql_database.test", "description"),
+				),
+			},
+		},
+	})
+}
+
 func TestPostgresqlDatabaseResource_InvalidPort(t *testing.T) {
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()

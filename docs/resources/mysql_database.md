@@ -36,7 +36,7 @@ resource "coolify_mysql_database" "example" {
 ### Optional
 
 - `description` (String) A description of the database.
-- `environment_name` (String) The environment name. Defaults to `production`.
+- `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
 - `image` (String) The Docker image to use.
 - `is_public` (Boolean) Whether the database is publicly accessible.
 - `mysql_database` (String) The MySQL database name.

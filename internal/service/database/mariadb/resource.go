@@ -165,16 +165,8 @@ func toModel(db *client.Database, m *model) {
 	m.MariadbPassword = pg.StringOrNull(db.MariadbPassword)
 	m.MariadbDatabase = pg.StringOrNull(db.MariadbDatabase)
 	m.MariadbRootPassword = pg.StringOrNull(db.MariadbRootPassword)
-	if db.Description != "" {
-		m.Description = types.StringValue(db.Description)
-	}
-	if db.ProjectUUID != "" {
-		m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	}
-	if db.ServerUUID != "" {
-		m.ServerUUID = types.StringValue(db.ServerUUID)
-	}
-	if db.EnvironmentName != "" {
-		m.EnvironmentName = types.StringValue(db.EnvironmentName)
-	}
+	m.Description = pg.StringOrNull(db.Description)
+	m.ProjectUUID = pg.StringOrNull(db.ProjectUUID)
+	m.ServerUUID = pg.StringOrNull(db.ServerUUID)
+	m.EnvironmentName = pg.StringOrNull(db.EnvironmentName)
 }

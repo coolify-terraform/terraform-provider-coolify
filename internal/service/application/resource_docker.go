@@ -44,6 +44,7 @@ type DockerImageApplicationResourceModel struct {
 	FQDN            types.String   `tfsdk:"fqdn"`
 	InstallCommand  types.String   `tfsdk:"install_command"`
 	StartCommand    types.String   `tfsdk:"start_command"`
+	Status          types.String   `tfsdk:"status"`
 	Timeouts        timeouts.Value `tfsdk:"timeouts"`
 }
 
@@ -130,6 +131,10 @@ func (r *DockerImageApplicationResource) Schema(ctx context.Context, _ resource.
 			"start_command": schema.StringAttribute{
 				MarkdownDescription: "The command to run to start the application.",
 				Optional:            true,
+			},
+			"status": schema.StringAttribute{
+				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
+				Computed:            true,
 			},
 		},
 	}
@@ -295,6 +300,7 @@ func mapDockerAppToState(app *client.Application, state *DockerImageApplicationR
 	state.FQDN = flex.StringToFramework(app.FQDN)
 	state.InstallCommand = flex.StringToFramework(app.InstallCommand)
 	state.StartCommand = flex.StringToFramework(app.StartCommand)
+	state.Status = flex.StringToFramework(app.Status)
 
 	if app.ProjectUUID != "" {
 		state.ProjectUUID = types.StringValue(app.ProjectUUID)

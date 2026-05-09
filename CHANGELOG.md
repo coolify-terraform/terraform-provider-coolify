@@ -49,7 +49,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input validators: `build_pack` OneOf, FQDN format, cron syntax, port range (1-65535)
 - Configurable `timeouts` block on all four application resources (public git, docker image, docker compose, private git)
 - Graceful handling of out-of-band resource deletion (404 in Read removes from state)
-- 205 unit tests with ~77% overall coverage
+- 204 unit tests (240 including subtests) with ~77% overall coverage
 - CI pipeline: test, lint, format, docs generation
 - GoReleaser config for GPG-signed releases
+- Computed `status` field on `coolify_docker_image_application` and `coolify_private_git_application` resources
 - Full-stack deployment example
+
+### Fixed
+
+- `coolify_service` resource: changing `name`, `description`, or `environment_name` now triggers destroy/recreate (previously produced an "Update not supported" error during apply)
+- `coolify_clickhouse_database`: `clickhouse_admin_user` and `clickhouse_admin_password` are now sent during resource creation (previously silently ignored, only applied on update)
+- All 8 database resources: removing `description` from config no longer leaves stale values in state (now correctly sets null when API returns empty)
+- All 8 database resources: `environment_name` now has `RequiresReplace` (changing it forces a new resource, matching the API's actual behavior)

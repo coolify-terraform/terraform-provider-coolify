@@ -66,6 +66,8 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	pg.SetIfKnown(&in.Name, p.Name)
 	pg.SetIfKnown(&in.Description, p.Description)
 	pg.SetIfKnown(&in.Image, p.Image)
+	pg.SetIfKnown(&in.ClickhouseAdminUser, p.ClickhouseAdminUser)
+	pg.SetIfKnown(&in.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
 	c, err := r.client.CreateClickhouseDatabase(ctx, in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating ClickHouse database", err.Error())
@@ -153,16 +155,8 @@ func toModel(db *client.Database, m *model) {
 	m.PublicPort = pg.Int64PtrToFW(db.PublicPort)
 	m.ClickhouseAdminUser = pg.StringOrNull(db.ClickhouseAdminUser)
 	m.ClickhouseAdminPassword = pg.StringOrNull(db.ClickhouseAdminPassword)
-	if db.Description != "" {
-		m.Description = types.StringValue(db.Description)
-	}
-	if db.ProjectUUID != "" {
-		m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	}
-	if db.ServerUUID != "" {
-		m.ServerUUID = types.StringValue(db.ServerUUID)
-	}
-	if db.EnvironmentName != "" {
-		m.EnvironmentName = types.StringValue(db.EnvironmentName)
-	}
+	m.Description = pg.StringOrNull(db.Description)
+	m.ProjectUUID = pg.StringOrNull(db.ProjectUUID)
+	m.ServerUUID = pg.StringOrNull(db.ServerUUID)
+	m.EnvironmentName = pg.StringOrNull(db.EnvironmentName)
 }
