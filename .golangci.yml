@@ -11,11 +11,13 @@ linters:
     - staticcheck
     - unused
     - misspell
-    - gofmt
-    - revive
 
-linters-settings:
-  revive:
+  exclusions:
     rules:
-      - name: exported
-        disabled: true
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt

@@ -101,9 +101,9 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	input := client.CreatePrivateKeyInput{
-		Name:         plan.Name.ValueString(),
-		Description:  plan.Description.ValueString(),
-		PrivateKey:   plan.PrivateKey.ValueString(),
+		Name:        plan.Name.ValueString(),
+		Description: plan.Description.ValueString(),
+		PrivateKey:  plan.PrivateKey.ValueString(),
 	}
 
 	created, err := r.client.CreatePrivateKey(ctx, input)

@@ -106,9 +106,9 @@ resource "coolify_service" "test" {
 			},
 			// Import
 			{
-				ResourceName:            "coolify_service.test",
-				ImportState:             true,
-				ImportStateId:           "svc-test-uuid-001",
+				ResourceName:      "coolify_service.test",
+				ImportState:       true,
+				ImportStateId:     "svc-test-uuid-001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"project_uuid", "server_uuid", "environment_name", "type"},
 			},

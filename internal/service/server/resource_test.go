@@ -219,7 +219,7 @@ resource "coolify_server" "test" {
 				),
 			},
 			{
-				ResourceName:      "coolify_server.test",
+				ResourceName:                         "coolify_server.test",
 				ImportState:                          true,
 				ImportStateId:                        "srv-test-uuid-1",
 				ImportStateVerify:                    true,

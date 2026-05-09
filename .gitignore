@@ -1,0 +1,7 @@
+dist/
+terraform-provider-coolify
+*.exe
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl

@@ -22,15 +22,15 @@ func testProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer,
 }
 
 type mockMysqlState struct {
-	mu              sync.Mutex
-	uuid            string
-	name            string
-	description     string
-	image           string
-	mysqlUser       string
-	mysqlPassword   string
-	mysqlDatabase   string
-	mysqlRootPwd    string
+	mu            sync.Mutex
+	uuid          string
+	name          string
+	description   string
+	image         string
+	mysqlUser     string
+	mysqlPassword string
+	mysqlDatabase string
+	mysqlRootPwd  string
 }
 
 func newMockMysqlServer() (*httptest.Server, *mockMysqlState) {
@@ -151,9 +151,9 @@ resource "coolify_mysql_database" "test" {
 			},
 			// Import
 			{
-				ResourceName:            "coolify_mysql_database.test",
-				ImportState:             true,
-				ImportStateId:           "mysql-test-uuid-001",
+				ResourceName:      "coolify_mysql_database.test",
+				ImportState:       true,
+				ImportStateId:     "mysql-test-uuid-001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"mysql_password", "mysql_root_password"},
 			},

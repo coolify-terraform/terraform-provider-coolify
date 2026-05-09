@@ -68,7 +68,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	if err != nil {
 		return fmt.Errorf("executing request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -118,7 +118,7 @@ type DatabaseResponse struct {
 	ProjectUUID             string `json:"project_uuid,omitempty"`
 	ServerUUID              string `json:"server_uuid,omitempty"`
 	EnvironmentName         string `json:"environment_name,omitempty"`
-	MongoInitdbRootUsername  string `json:"mongo_initdb_root_username,omitempty"`
+	MongoInitdbRootUsername string `json:"mongo_initdb_root_username,omitempty"`
 	MongoInitdbRootPassword string `json:"mongo_initdb_root_password,omitempty"`
 	MongoInitdbDatabase     string `json:"mongo_initdb_database,omitempty"`
 }

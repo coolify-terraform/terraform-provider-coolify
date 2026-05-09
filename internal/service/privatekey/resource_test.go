@@ -182,7 +182,7 @@ resource "coolify_private_key" "test" {
 				),
 			},
 			{
-				ResourceName:      "coolify_private_key.test",
+				ResourceName:                         "coolify_private_key.test",
 				ImportState:                          true,
 				ImportStateId:                        "pk-test-uuid-1",
 				ImportStateVerify:                    true,

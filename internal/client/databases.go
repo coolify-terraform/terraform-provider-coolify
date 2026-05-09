@@ -1,27 +1,178 @@
 package client
-import ("context";"fmt";"net/http")
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+)
+
 type Database struct {
-	UUID string `json:"uuid"`; Name string `json:"name"`; Description string `json:"description,omitempty"`; Type string `json:"type"`
-	Image string `json:"image,omitempty"`; IsPublic bool `json:"is_public"`; PublicPort *int64 `json:"public_port,omitempty"`
-	ServerUUID string `json:"server_uuid,omitempty"`; ProjectUUID string `json:"project_uuid,omitempty"`; EnvironmentName string `json:"environment_name,omitempty"`
-	PostgresUser string `json:"postgres_user,omitempty"`; PostgresPassword string `json:"postgres_password,omitempty"`; PostgresDB string `json:"postgres_db,omitempty"`
-	MysqlUser string `json:"mysql_user,omitempty"`; MysqlPassword string `json:"mysql_password,omitempty"`; MysqlDatabase string `json:"mysql_database,omitempty"`; MysqlRootPassword string `json:"mysql_root_password,omitempty"`
-	MariadbUser string `json:"mariadb_user,omitempty"`; MariadbPassword string `json:"mariadb_password,omitempty"`; MariadbDatabase string `json:"mariadb_database,omitempty"`; MariadbRootPassword string `json:"mariadb_root_password,omitempty"`
-	MongoInitdbRootUsername string `json:"mongo_initdb_root_username,omitempty"`; MongoInitdbRootPassword string `json:"mongo_initdb_root_password,omitempty"`; MongoInitdbDatabase string `json:"mongo_initdb_database,omitempty"`
+	UUID                    string `json:"uuid"`
+	Name                    string `json:"name"`
+	Description             string `json:"description,omitempty"`
+	Type                    string `json:"type"`
+	Image                   string `json:"image,omitempty"`
+	IsPublic                bool   `json:"is_public"`
+	PublicPort              *int64 `json:"public_port,omitempty"`
+	ServerUUID              string `json:"server_uuid,omitempty"`
+	ProjectUUID             string `json:"project_uuid,omitempty"`
+	EnvironmentName         string `json:"environment_name,omitempty"`
+	PostgresUser            string `json:"postgres_user,omitempty"`
+	PostgresPassword        string `json:"postgres_password,omitempty"`
+	PostgresDB              string `json:"postgres_db,omitempty"`
+	MysqlUser               string `json:"mysql_user,omitempty"`
+	MysqlPassword           string `json:"mysql_password,omitempty"`
+	MysqlDatabase           string `json:"mysql_database,omitempty"`
+	MysqlRootPassword       string `json:"mysql_root_password,omitempty"`
+	MariadbUser             string `json:"mariadb_user,omitempty"`
+	MariadbPassword         string `json:"mariadb_password,omitempty"`
+	MariadbDatabase         string `json:"mariadb_database,omitempty"`
+	MariadbRootPassword     string `json:"mariadb_root_password,omitempty"`
+	MongoInitdbRootUsername string `json:"mongo_initdb_root_username,omitempty"`
+	MongoInitdbRootPassword string `json:"mongo_initdb_root_password,omitempty"`
+	MongoInitdbDatabase     string `json:"mongo_initdb_database,omitempty"`
 }
-type CreatePostgresqlInput struct { ServerUUID string `json:"server_uuid"`; ProjectUUID string `json:"project_uuid"`; EnvironmentName string `json:"environment_name"`; Name string `json:"name,omitempty"`; Description string `json:"description,omitempty"`; Image string `json:"image,omitempty"`; PostgresUser string `json:"postgres_user,omitempty"`; PostgresPassword string `json:"postgres_password,omitempty"`; PostgresDB string `json:"postgres_db,omitempty"`; IsPublic *bool `json:"is_public,omitempty"`; PublicPort *int `json:"public_port,omitempty"` }
-type CreateMysqlInput struct { ServerUUID string `json:"server_uuid"`; ProjectUUID string `json:"project_uuid"`; EnvironmentName string `json:"environment_name"`; Name string `json:"name,omitempty"`; Description string `json:"description,omitempty"`; Image string `json:"image,omitempty"`; MysqlRootPassword string `json:"mysql_root_password,omitempty"`; MysqlUser string `json:"mysql_user,omitempty"`; MysqlPassword string `json:"mysql_password,omitempty"`; MysqlDatabase string `json:"mysql_database,omitempty"`; IsPublic *bool `json:"is_public,omitempty"`; PublicPort *int `json:"public_port,omitempty"` }
-type CreateMariadbInput struct { ServerUUID string `json:"server_uuid"`; ProjectUUID string `json:"project_uuid"`; EnvironmentName string `json:"environment_name"`; Name string `json:"name,omitempty"`; Description string `json:"description,omitempty"`; Image string `json:"image,omitempty"`; MariadbRootPassword string `json:"mariadb_root_password,omitempty"`; MariadbUser string `json:"mariadb_user,omitempty"`; MariadbPassword string `json:"mariadb_password,omitempty"`; MariadbDatabase string `json:"mariadb_database,omitempty"`; IsPublic *bool `json:"is_public,omitempty"`; PublicPort *int `json:"public_port,omitempty"` }
-type CreateRedisInput struct { ServerUUID string `json:"server_uuid"`; ProjectUUID string `json:"project_uuid"`; EnvironmentName string `json:"environment_name"`; Name string `json:"name,omitempty"`; Description string `json:"description,omitempty"`; Image string `json:"image,omitempty"`; IsPublic *bool `json:"is_public,omitempty"`; PublicPort *int `json:"public_port,omitempty"` }
-type CreateMongodbInput struct { ServerUUID string `json:"server_uuid"`; ProjectUUID string `json:"project_uuid"`; EnvironmentName string `json:"environment_name"`; Name string `json:"name,omitempty"`; Description string `json:"description,omitempty"`; Image string `json:"image,omitempty"`; MongoInitdbRootUsername string `json:"mongo_initdb_root_username,omitempty"`; MongoInitdbRootPassword string `json:"mongo_initdb_root_password,omitempty"`; MongoInitdbDatabase string `json:"mongo_initdb_database,omitempty"`; IsPublic *bool `json:"is_public,omitempty"`; PublicPort *int `json:"public_port,omitempty"` }
-type UpdateDatabaseInput struct { Name *string `json:"name,omitempty"`; Description *string `json:"description,omitempty"`; Image *string `json:"image,omitempty"`; IsPublic *bool `json:"is_public,omitempty"`; PublicPort *int64 `json:"public_port,omitempty"`; PostgresUser *string `json:"postgres_user,omitempty"`; PostgresPassword *string `json:"postgres_password,omitempty"`; PostgresDB *string `json:"postgres_db,omitempty"`; MysqlUser *string `json:"mysql_user,omitempty"`; MysqlPassword *string `json:"mysql_password,omitempty"`; MysqlDatabase *string `json:"mysql_database,omitempty"`; MysqlRootPassword *string `json:"mysql_root_password,omitempty"`; MariadbUser *string `json:"mariadb_user,omitempty"`; MariadbPassword *string `json:"mariadb_password,omitempty"`; MariadbDatabase *string `json:"mariadb_database,omitempty"`; MariadbRootPassword *string `json:"mariadb_root_password,omitempty"`; MongoInitdbRootUsername *string `json:"mongo_initdb_root_username,omitempty"`; MongoInitdbRootPassword *string `json:"mongo_initdb_root_password,omitempty"`; MongoInitdbDatabase *string `json:"mongo_initdb_database,omitempty"` }
-func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error) { var d Database; if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, &d); err != nil { return nil, err }; return &d, nil }
-func (c *Client) CreatePostgresqlDatabase(ctx context.Context, input CreatePostgresqlInput) (*Database, error) { var d Database; if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/postgresql", input, &d, http.StatusCreated); err != nil { return nil, err }; return &d, nil }
-func (c *Client) CreateMysqlDatabase(ctx context.Context, input CreateMysqlInput) (*Database, error) { var d Database; if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mysql", input, &d, http.StatusCreated); err != nil { return nil, err }; return &d, nil }
-func (c *Client) CreateMariadbDatabase(ctx context.Context, input CreateMariadbInput) (*Database, error) { var d Database; if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mariadb", input, &d, http.StatusCreated); err != nil { return nil, err }; return &d, nil }
-func (c *Client) CreateRedisDatabase(ctx context.Context, input CreateRedisInput) (*Database, error) { var d Database; if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/redis", input, &d, http.StatusCreated); err != nil { return nil, err }; return &d, nil }
-func (c *Client) CreateMongodbDatabase(ctx context.Context, input CreateMongodbInput) (*Database, error) { var d Database; if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mongodb", input, &d, http.StatusCreated); err != nil { return nil, err }; return &d, nil }
-func (c *Client) UpdateDatabase(ctx context.Context, uuid string, input UpdateDatabaseInput) (*Database, error) { var d Database; if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s", uuid), input, &d); err != nil { return nil, err }; return &d, nil }
-func (c *Client) DeleteDatabase(ctx context.Context, uuid string) error { return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, nil) }
-func (c *Client) StartDatabase(ctx context.Context, uuid string) error { return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/start", uuid), nil, nil) }
-func (c *Client) StopDatabase(ctx context.Context, uuid string) error { return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/stop", uuid), nil, nil) }
+type CreatePostgresqlInput struct {
+	ServerUUID       string `json:"server_uuid"`
+	ProjectUUID      string `json:"project_uuid"`
+	EnvironmentName  string `json:"environment_name"`
+	Name             string `json:"name,omitempty"`
+	Description      string `json:"description,omitempty"`
+	Image            string `json:"image,omitempty"`
+	PostgresUser     string `json:"postgres_user,omitempty"`
+	PostgresPassword string `json:"postgres_password,omitempty"`
+	PostgresDB       string `json:"postgres_db,omitempty"`
+	IsPublic         *bool  `json:"is_public,omitempty"`
+	PublicPort       *int   `json:"public_port,omitempty"`
+}
+type CreateMysqlInput struct {
+	ServerUUID        string `json:"server_uuid"`
+	ProjectUUID       string `json:"project_uuid"`
+	EnvironmentName   string `json:"environment_name"`
+	Name              string `json:"name,omitempty"`
+	Description       string `json:"description,omitempty"`
+	Image             string `json:"image,omitempty"`
+	MysqlRootPassword string `json:"mysql_root_password,omitempty"`
+	MysqlUser         string `json:"mysql_user,omitempty"`
+	MysqlPassword     string `json:"mysql_password,omitempty"`
+	MysqlDatabase     string `json:"mysql_database,omitempty"`
+	IsPublic          *bool  `json:"is_public,omitempty"`
+	PublicPort        *int   `json:"public_port,omitempty"`
+}
+type CreateMariadbInput struct {
+	ServerUUID          string `json:"server_uuid"`
+	ProjectUUID         string `json:"project_uuid"`
+	EnvironmentName     string `json:"environment_name"`
+	Name                string `json:"name,omitempty"`
+	Description         string `json:"description,omitempty"`
+	Image               string `json:"image,omitempty"`
+	MariadbRootPassword string `json:"mariadb_root_password,omitempty"`
+	MariadbUser         string `json:"mariadb_user,omitempty"`
+	MariadbPassword     string `json:"mariadb_password,omitempty"`
+	MariadbDatabase     string `json:"mariadb_database,omitempty"`
+	IsPublic            *bool  `json:"is_public,omitempty"`
+	PublicPort          *int   `json:"public_port,omitempty"`
+}
+type CreateRedisInput struct {
+	ServerUUID      string `json:"server_uuid"`
+	ProjectUUID     string `json:"project_uuid"`
+	EnvironmentName string `json:"environment_name"`
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	Image           string `json:"image,omitempty"`
+	IsPublic        *bool  `json:"is_public,omitempty"`
+	PublicPort      *int   `json:"public_port,omitempty"`
+}
+type CreateMongodbInput struct {
+	ServerUUID              string `json:"server_uuid"`
+	ProjectUUID             string `json:"project_uuid"`
+	EnvironmentName         string `json:"environment_name"`
+	Name                    string `json:"name,omitempty"`
+	Description             string `json:"description,omitempty"`
+	Image                   string `json:"image,omitempty"`
+	MongoInitdbRootUsername string `json:"mongo_initdb_root_username,omitempty"`
+	MongoInitdbRootPassword string `json:"mongo_initdb_root_password,omitempty"`
+	MongoInitdbDatabase     string `json:"mongo_initdb_database,omitempty"`
+	IsPublic                *bool  `json:"is_public,omitempty"`
+	PublicPort              *int   `json:"public_port,omitempty"`
+}
+type UpdateDatabaseInput struct {
+	Name                    *string `json:"name,omitempty"`
+	Description             *string `json:"description,omitempty"`
+	Image                   *string `json:"image,omitempty"`
+	IsPublic                *bool   `json:"is_public,omitempty"`
+	PublicPort              *int64  `json:"public_port,omitempty"`
+	PostgresUser            *string `json:"postgres_user,omitempty"`
+	PostgresPassword        *string `json:"postgres_password,omitempty"`
+	PostgresDB              *string `json:"postgres_db,omitempty"`
+	MysqlUser               *string `json:"mysql_user,omitempty"`
+	MysqlPassword           *string `json:"mysql_password,omitempty"`
+	MysqlDatabase           *string `json:"mysql_database,omitempty"`
+	MysqlRootPassword       *string `json:"mysql_root_password,omitempty"`
+	MariadbUser             *string `json:"mariadb_user,omitempty"`
+	MariadbPassword         *string `json:"mariadb_password,omitempty"`
+	MariadbDatabase         *string `json:"mariadb_database,omitempty"`
+	MariadbRootPassword     *string `json:"mariadb_root_password,omitempty"`
+	MongoInitdbRootUsername *string `json:"mongo_initdb_root_username,omitempty"`
+	MongoInitdbRootPassword *string `json:"mongo_initdb_root_password,omitempty"`
+	MongoInitdbDatabase     *string `json:"mongo_initdb_database,omitempty"`
+}
+
+func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error) {
+	var d Database
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, &d); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+func (c *Client) CreatePostgresqlDatabase(ctx context.Context, input CreatePostgresqlInput) (*Database, error) {
+	var d Database
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/postgresql", input, &d, http.StatusCreated); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+func (c *Client) CreateMysqlDatabase(ctx context.Context, input CreateMysqlInput) (*Database, error) {
+	var d Database
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mysql", input, &d, http.StatusCreated); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+func (c *Client) CreateMariadbDatabase(ctx context.Context, input CreateMariadbInput) (*Database, error) {
+	var d Database
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mariadb", input, &d, http.StatusCreated); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+func (c *Client) CreateRedisDatabase(ctx context.Context, input CreateRedisInput) (*Database, error) {
+	var d Database
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/redis", input, &d, http.StatusCreated); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+func (c *Client) CreateMongodbDatabase(ctx context.Context, input CreateMongodbInput) (*Database, error) {
+	var d Database
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mongodb", input, &d, http.StatusCreated); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+func (c *Client) UpdateDatabase(ctx context.Context, uuid string, input UpdateDatabaseInput) (*Database, error) {
+	var d Database
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s", uuid), input, &d); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+func (c *Client) DeleteDatabase(ctx context.Context, uuid string) error {
+	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, nil)
+}
+func (c *Client) StartDatabase(ctx context.Context, uuid string) error {
+	return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/start", uuid), nil, nil)
+}
+func (c *Client) StopDatabase(ctx context.Context, uuid string) error {
+	return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/stop", uuid), nil, nil)
+}

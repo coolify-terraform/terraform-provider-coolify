@@ -22,14 +22,14 @@ func testProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer,
 }
 
 type mockMongodbState struct {
-	mu           sync.Mutex
-	uuid         string
-	name         string
-	description  string
-	image        string
-	mongoUser    string
-	mongoPass    string
-	mongoDB      string
+	mu          sync.Mutex
+	uuid        string
+	name        string
+	description string
+	image       string
+	mongoUser   string
+	mongoPass   string
+	mongoDB     string
 }
 
 func newMockMongodbServer() (*httptest.Server, *mockMongodbState) {
@@ -147,9 +147,9 @@ resource "coolify_mongodb_database" "test" {
 			},
 			// Import
 			{
-				ResourceName:            "coolify_mongodb_database.test",
-				ImportState:             true,
-				ImportStateId:           "mongo-test-uuid-001",
+				ResourceName:      "coolify_mongodb_database.test",
+				ImportState:       true,
+				ImportStateId:     "mongo-test-uuid-001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"mongo_initdb_root_password"},
 			},

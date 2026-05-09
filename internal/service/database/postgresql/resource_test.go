@@ -161,9 +161,9 @@ resource "coolify_postgresql_database" "test" {
 			},
 			// Import
 			{
-				ResourceName:            "coolify_postgresql_database.test",
-				ImportState:             true,
-				ImportStateId:           "pg-test-uuid-001",
+				ResourceName:      "coolify_postgresql_database.test",
+				ImportState:       true,
+				ImportStateId:     "pg-test-uuid-001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"postgres_password"},
 			},

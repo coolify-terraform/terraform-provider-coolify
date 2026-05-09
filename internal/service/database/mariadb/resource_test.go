@@ -22,15 +22,15 @@ func testProtoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer,
 }
 
 type mockMariadbState struct {
-	mu                sync.Mutex
-	uuid              string
-	name              string
-	description       string
-	image             string
-	mariadbUser       string
-	mariadbPassword   string
-	mariadbDatabase   string
-	mariadbRootPwd    string
+	mu              sync.Mutex
+	uuid            string
+	name            string
+	description     string
+	image           string
+	mariadbUser     string
+	mariadbPassword string
+	mariadbDatabase string
+	mariadbRootPwd  string
 }
 
 func newMockMariadbServer() (*httptest.Server, *mockMariadbState) {
@@ -150,9 +150,9 @@ resource "coolify_mariadb_database" "test" {
 			},
 			// Import
 			{
-				ResourceName:            "coolify_mariadb_database.test",
-				ImportState:             true,
-				ImportStateId:           "mdb-test-uuid-001",
+				ResourceName:      "coolify_mariadb_database.test",
+				ImportState:       true,
+				ImportStateId:     "mdb-test-uuid-001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"mariadb_password", "mariadb_root_password"},
 			},

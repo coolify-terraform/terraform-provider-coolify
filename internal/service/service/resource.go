@@ -14,7 +14,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var ( _ resource.Resource = &serviceResource{}; _ resource.ResourceWithConfigure = &serviceResource{}; _ resource.ResourceWithImportState = &serviceResource{} )
+var (
+	_ resource.Resource                = &serviceResource{}
+	_ resource.ResourceWithConfigure   = &serviceResource{}
+	_ resource.ResourceWithImportState = &serviceResource{}
+)
 
 type serviceResource struct{ client *client.Client }
 type serviceResourceModel struct {
@@ -28,7 +32,9 @@ type serviceResourceModel struct {
 }
 
 func NewResource() resource.Resource { return &serviceResource{} }
-func (r *serviceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) { resp.TypeName = req.ProviderTypeName + "_service" }
+func (r *serviceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_service"
+}
 func (r *serviceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g. plausible, uptime-kuma, minio).",
@@ -44,34 +50,86 @@ func (r *serviceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 	}
 }
 func (r *serviceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil { return }; c, ok := req.ProviderData.(*client.Client); if !ok { resp.Diagnostics.AddError("Unexpected type", fmt.Sprintf("got %T", req.ProviderData)); return }; r.client = c
+	if req.ProviderData == nil {
+		return
+	}
+	c, ok := req.ProviderData.(*client.Client)
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected type", fmt.Sprintf("got %T", req.ProviderData))
+		return
+	}
+	r.client = c
 }
 func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan serviceResourceModel; resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...); if resp.Diagnostics.HasError() { return }
+	var plan serviceResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	input := client.CreateServiceInput{ServerUUID: plan.ServerUUID.ValueString(), ProjectUUID: plan.ProjectUUID.ValueString(), EnvironmentName: plan.EnvironmentName.ValueString(), Type: plan.Type.ValueString()}
-	if !plan.Name.IsNull() && !plan.Name.IsUnknown() { input.Name = plan.Name.ValueString() }
-	if !plan.Description.IsNull() { input.Description = plan.Description.ValueString() }
-	created, err := r.client.CreateService(ctx, input); if err != nil { resp.Diagnostics.AddError("Error creating service", err.Error()); return }
-	svc, err := r.client.GetService(ctx, created.UUID); if err != nil { resp.Diagnostics.AddError("Error reading service after creation", err.Error()); return }
+	if !plan.Name.IsNull() && !plan.Name.IsUnknown() {
+		input.Name = plan.Name.ValueString()
+	}
+	if !plan.Description.IsNull() {
+		input.Description = plan.Description.ValueString()
+	}
+	created, err := r.client.CreateService(ctx, input)
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating service", err.Error())
+		return
+	}
+	svc, err := r.client.GetService(ctx, created.UUID)
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading service after creation", err.Error())
+		return
+	}
 	plan.UUID = types.StringValue(svc.UUID)
-	if svc.Name != "" { plan.Name = types.StringValue(svc.Name) }
-	if svc.Description != "" { plan.Description = types.StringValue(svc.Description) }
+	if svc.Name != "" {
+		plan.Name = types.StringValue(svc.Name)
+	}
+	if svc.Description != "" {
+		plan.Description = types.StringValue(svc.Description)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state serviceResourceModel; resp.Diagnostics.Append(req.State.Get(ctx, &state)...); if resp.Diagnostics.HasError() { return }
-	svc, err := r.client.GetService(ctx, state.UUID.ValueString()); if err != nil { resp.Diagnostics.AddError("Error reading service", err.Error()); return }
+	var state serviceResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	svc, err := r.client.GetService(ctx, state.UUID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading service", err.Error())
+		return
+	}
 	state.UUID = types.StringValue(svc.UUID)
-	if svc.Name != "" { state.Name = types.StringValue(svc.Name) }
-	if svc.Description != "" { state.Description = types.StringValue(svc.Description) }
+	if svc.Name != "" {
+		state.Name = types.StringValue(svc.Name)
+	}
+	if svc.Description != "" {
+		state.Description = types.StringValue(svc.Description)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan serviceResourceModel; resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...); if resp.Diagnostics.HasError() { return }
+	var plan serviceResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state serviceResourceModel; resp.Diagnostics.Append(req.State.Get(ctx, &state)...); if resp.Diagnostics.HasError() { return }
-	if err := r.client.DeleteService(ctx, state.UUID.ValueString()); err != nil { resp.Diagnostics.AddError("Error deleting service", err.Error()) }
+	var state serviceResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if err := r.client.DeleteService(ctx, state.UUID.ValueString()); err != nil {
+		resp.Diagnostics.AddError("Error deleting service", err.Error())
+	}
 }
-func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp) }
+func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+}
