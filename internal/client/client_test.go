@@ -1977,3 +1977,29 @@ func TestClient_CreateClickhouseDatabase(t *testing.T) {
 	assert.Equal(t, "ch-1", got.UUID)
 	assert.Equal(t, "clickhouse", got.Type)
 }
+
+func TestClient_StartApplication(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-1/start", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.StartApplication(context.Background(), "app-1")
+	require.NoError(t, err)
+}
+
+func TestClient_StopApplication(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-1/stop", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.StopApplication(context.Background(), "app-1")
+	require.NoError(t, err)
+}

@@ -105,6 +105,20 @@ func (c *Client) DeleteApplication(ctx context.Context, uuid string) error {
 	return nil
 }
 
+func (c *Client) StartApplication(ctx context.Context, uuid string) error {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/start", uuid), nil, nil); err != nil {
+		return fmt.Errorf("starting application %s: %w", uuid, err)
+	}
+	return nil
+}
+
+func (c *Client) StopApplication(ctx context.Context, uuid string) error {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/stop", uuid), nil, nil); err != nil {
+		return fmt.Errorf("stopping application %s: %w", uuid, err)
+	}
+	return nil
+}
+
 type CreatePrivateGitAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
 	ServerUUID         string `json:"server_uuid"`

@@ -4,7 +4,7 @@ build:
 	go build -v ./...
 
 test:
-	go test -v -cover -timeout=2m -parallel=10 ./...
+	go test -race -cover -count=1 -timeout=10m ./...
 
 testacc:
 	TF_ACC=1 go test -v -cover -timeout=120m ./...
@@ -14,13 +14,15 @@ lint:
 
 fmt:
 	gofmt -s -w .
-	goimports -w -local github.com/SebTardif/terraform-provider-coolify .
 	go mod tidy
 
 docs:
 	go generate ./...
 
+validate:
+	terraform fmt -check -recursive examples/
+
 install:
 	go install .
 
-.PHONY: build test testacc lint fmt docs install
+.PHONY: build test testacc lint fmt docs validate install
