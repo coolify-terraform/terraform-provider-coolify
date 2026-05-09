@@ -9,6 +9,7 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -95,6 +96,9 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 			"retain_days": schema.Int64Attribute{
 				MarkdownDescription: "Number of backups to keep locally.",
 				Optional:            true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(0),
+				},
 			},
 		},
 	}

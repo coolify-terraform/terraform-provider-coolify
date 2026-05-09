@@ -27,7 +27,7 @@ resource "coolify_environment_variable" "database_url" {
 
 ### Required
 
-- `key` (String) The name of the environment variable.
+- `key` (String) The name of the environment variable (must be a valid shell variable name).
 - `value` (String, Sensitive) The value of the environment variable.
 
 ### Optional

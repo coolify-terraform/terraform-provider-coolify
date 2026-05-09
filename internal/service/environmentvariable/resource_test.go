@@ -589,6 +589,25 @@ func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
 // Helpers
 // ---------------------------------------------------------------------------
 
+func TestEnvironmentVariableResource_InvalidKey(t *testing.T) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "app-uuid-1"
+					key              = "1INVALID"
+					value            = "test"
+				`),
+				ExpectError: regexp.MustCompile(`valid environment variable name`),
+			},
+		},
+	})
+}
+
 func testEnvVarResourceConfig(endpoint, attrs string) string {
 	return fmt.Sprintf(`
 provider "coolify" {

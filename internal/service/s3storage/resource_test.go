@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -268,6 +269,35 @@ resource "coolify_s3_storage" "test" {
 					},
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestS3StorageResource_InvalidEndpoint(t *testing.T) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_s3_storage" "test" {
+  name       = "my-s3"
+  endpoint   = "not-a-url"
+  bucket     = "my-bucket"
+  region     = "us-east-1"
+  access_key = "AKIA123"
+  secret_key = "secret"
+}
+`, srv.URL),
+				ExpectError: regexp.MustCompile(`must start with http:// or https://`),
 			},
 		},
 	})

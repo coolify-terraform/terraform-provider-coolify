@@ -31,7 +31,7 @@ resource "coolify_s3_storage" "example" {
 
 - `access_key` (String, Sensitive) The S3 access key.
 - `bucket` (String) The S3 bucket name.
-- `endpoint` (String) The S3 endpoint URL.
+- `endpoint` (String) The S3 endpoint URL (must start with `http://` or `https://`).
 - `name` (String) The name of the S3 storage.
 - `region` (String) The S3 region.
 - `secret_key` (String, Sensitive) The S3 secret key.

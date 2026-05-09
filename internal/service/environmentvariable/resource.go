@@ -3,6 +3,7 @@ package environmentvariable
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
@@ -80,8 +81,11 @@ func (r *EnvironmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				},
 			},
 			"key": schema.StringAttribute{
-				MarkdownDescription: "The name of the environment variable.",
+				MarkdownDescription: "The name of the environment variable (must be a valid shell variable name).",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`), "must be a valid environment variable name (letters, digits, underscores; cannot start with a digit)"),
+				},
 			},
 			"value": schema.StringAttribute{
 				MarkdownDescription: "The value of the environment variable.",

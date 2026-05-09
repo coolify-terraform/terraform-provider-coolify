@@ -136,8 +136,11 @@ func (r *PrivateGitApplicationResource) Schema(ctx context.Context, _ resource.S
 				},
 			},
 			"ports_exposes": schema.StringAttribute{
-				MarkdownDescription: "The ports to expose (for example `3000`).",
+				MarkdownDescription: "The ports to expose, as a comma-separated list (e.g. `3000` or `3000,8080`).",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`^\d+(,\d+)*$`), "must be a comma-separated list of port numbers (e.g. \"3000\" or \"3000,8080\")"),
+				},
 			},
 			"fqdn": schema.StringAttribute{
 				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",

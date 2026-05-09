@@ -114,8 +114,11 @@ func (r *DockerImageApplicationResource) Schema(ctx context.Context, _ resource.
 				Required:            true,
 			},
 			"ports_exposes": schema.StringAttribute{
-				MarkdownDescription: "The ports to expose (for example `80`).",
+				MarkdownDescription: "The ports to expose, as a comma-separated list (e.g. `80` or `80,443`).",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`^\d+(,\d+)*$`), "must be a comma-separated list of port numbers (e.g. \"80\" or \"80,443\")"),
+				},
 			},
 			"fqdn": schema.StringAttribute{
 				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",

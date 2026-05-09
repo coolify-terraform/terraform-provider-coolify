@@ -324,6 +324,26 @@ func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
 	})
 }
 
+func TestDatabaseBackupResource_InvalidRetainDays(t *testing.T) {
+	srv, _ := newMockBackupServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "db-uuid-001"
+					frequency     = "0 2 * * *"
+					enabled       = true
+					retain_days   = -1
+				`),
+				ExpectError: regexp.MustCompile(`must be at least 0`),
+			},
+		},
+	})
+}
+
 func TestDatabaseBackupResource_InvalidCron(t *testing.T) {
 	srv, _ := newMockBackupServer()
 	defer srv.Close()
