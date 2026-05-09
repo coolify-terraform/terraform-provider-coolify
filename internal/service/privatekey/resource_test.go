@@ -98,6 +98,7 @@ func newPrivateKeyMockServer() *httptest.Server {
 }
 
 func TestPrivateKeyResource_Create(t *testing.T) {
+	t.Parallel()
 	srv := newPrivateKeyMockServer()
 	defer srv.Close()
 
@@ -132,6 +133,7 @@ resource "coolify_private_key" "test" {
 }
 
 func TestPrivateKeyResource_Update(t *testing.T) {
+	t.Parallel()
 	srv := newPrivateKeyMockServer()
 	defer srv.Close()
 
@@ -169,6 +171,7 @@ resource "coolify_private_key" "test" {
 }
 
 func TestPrivateKeyResource_Import(t *testing.T) {
+	t.Parallel()
 	srv := newPrivateKeyMockServer()
 	defer srv.Close()
 
@@ -197,6 +200,7 @@ resource "coolify_private_key" "test" {
 }
 
 func TestPrivateKeyResource_Disappears(t *testing.T) {
+	t.Parallel()
 	srv := newPrivateKeyMockServer()
 	defer srv.Close()
 

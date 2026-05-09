@@ -91,6 +91,7 @@ func newMockMongodbServer() (*httptest.Server, *mockMongodbState) {
 }
 
 func TestMongodbDatabaseResource_CreateUpdateImport(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockMongodbServer()
 	defer srv.Close()
 
@@ -167,6 +168,7 @@ resource "coolify_mongodb_database" "test" {
 }
 
 func TestMongodbDatabaseResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	mongoUUID := "mongo-disappear-uuid-001"

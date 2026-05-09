@@ -107,7 +107,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 		resp.Diagnostics.AddError("Error reading PostgreSQL database after creation", err.Error())
 		return
 	}
-	mapDBToModel(db, &plan)
+	flattenDatabase(db, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -126,7 +126,7 @@ func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.Read
 		resp.Diagnostics.AddError("Error reading PostgreSQL database", err.Error())
 		return
 	}
-	mapDBToModel(db, &state)
+	flattenDatabase(db, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -160,7 +160,7 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 		resp.Diagnostics.AddError("Error reading PostgreSQL database after update", err.Error())
 		return
 	}
-	mapDBToModel(db, &plan)
+	flattenDatabase(db, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -183,7 +183,7 @@ func (r *postgresqlDatabaseResource) ImportState(ctx context.Context, req resour
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 
-func mapDBToModel(db *client.Database, m *postgresqlDatabaseResourceModel) {
+func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	m.UUID = types.StringValue(db.UUID)
 	m.Name = types.StringValue(db.Name)
 	m.Image = StringOrNull(db.Image)

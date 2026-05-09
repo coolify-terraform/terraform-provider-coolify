@@ -10,6 +10,7 @@ import (
 )
 
 func TestVersionDataSource(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/version" {
 			w.Header().Set("Content-Type", "application/json")

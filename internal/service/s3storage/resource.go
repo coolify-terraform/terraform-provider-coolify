@@ -143,7 +143,7 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	mapS3StorageToModel(s, &plan)
+	flattenS3Storage(s, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -164,7 +164,7 @@ func (r *s3StorageResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	mapS3StorageToModel(s, &state)
+	flattenS3Storage(s, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -212,7 +212,7 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	mapS3StorageToModel(s, &plan)
+	flattenS3Storage(s, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -236,7 +236,7 @@ func (r *s3StorageResource) ImportState(ctx context.Context, req resource.Import
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 
-func mapS3StorageToModel(s *client.S3Storage, model *s3StorageResourceModel) {
+func flattenS3Storage(s *client.S3Storage, model *s3StorageResourceModel) {
 	model.UUID = types.StringValue(s.UUID)
 	model.Name = types.StringValue(s.Name)
 	model.Description = flex.StringToFramework(s.Description)

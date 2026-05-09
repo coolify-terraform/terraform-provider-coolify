@@ -187,7 +187,7 @@ func (r *DockerComposeApplicationResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	mapComposeAppToState(app, &plan)
+	flattenDockerComposeApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -208,7 +208,7 @@ func (r *DockerComposeApplicationResource) Read(ctx context.Context, req resourc
 		return
 	}
 
-	mapComposeAppToState(app, &state)
+	flattenDockerComposeApplication(app, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -240,7 +240,7 @@ func (r *DockerComposeApplicationResource) Update(ctx context.Context, req resou
 		return
 	}
 
-	mapComposeAppToState(app, &plan)
+	flattenDockerComposeApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -265,8 +265,8 @@ func (r *DockerComposeApplicationResource) ImportState(ctx context.Context, req 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 }
 
-// mapComposeAppToState copies API fields into the Terraform state model.
-func mapComposeAppToState(app *client.Application, state *DockerComposeApplicationResourceModel) {
+// flattenDockerComposeApplication copies API fields into the Terraform state model.
+func flattenDockerComposeApplication(app *client.Application, state *DockerComposeApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)

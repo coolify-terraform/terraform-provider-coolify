@@ -12,6 +12,7 @@ import (
 )
 
 func TestS3StoragesDataSource(t *testing.T) {
+	t.Parallel()
 	storages := []client.S3Storage{
 		{
 			ID:          1,

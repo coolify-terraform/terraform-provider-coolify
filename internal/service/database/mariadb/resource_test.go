@@ -94,6 +94,7 @@ func newMockMariadbServer() (*httptest.Server, *mockMariadbState) {
 }
 
 func TestMariadbDatabaseResource_CreateUpdateImport(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockMariadbServer()
 	defer srv.Close()
 
@@ -170,6 +171,7 @@ resource "coolify_mariadb_database" "test" {
 }
 
 func TestMariadbDatabaseResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	mdbUUID := "mdb-disappear-uuid-001"

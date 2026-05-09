@@ -13,6 +13,7 @@ import (
 )
 
 func TestDatabasesListDataSource(t *testing.T) {
+	t.Parallel()
 	databases := []client.Database{
 		{
 			UUID:        "db-list-uuid-1",

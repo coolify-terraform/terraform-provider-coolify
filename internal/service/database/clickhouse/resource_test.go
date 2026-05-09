@@ -88,6 +88,7 @@ func newMockClickhouseServer() (*httptest.Server, *mockClickhouseState) {
 }
 
 func TestClickhouseDatabaseResource_CreateUpdateImport(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockClickhouseServer()
 	defer srv.Close()
 
@@ -165,6 +166,7 @@ resource "coolify_clickhouse_database" "test" {
 }
 
 func TestClickhouseDatabaseResource_CreateWithCredentials(t *testing.T) {
+	t.Parallel()
 	var capturedBody map[string]interface{}
 	mu := sync.Mutex{}
 	chUUID := "ch-creds-uuid-001"
@@ -243,6 +245,7 @@ resource "coolify_clickhouse_database" "test" {
 }
 
 func TestClickhouseDatabaseResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	chUUID := "ch-disappear-uuid-001"

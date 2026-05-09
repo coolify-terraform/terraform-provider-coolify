@@ -13,6 +13,7 @@ import (
 )
 
 func TestServerResourcesDataSource(t *testing.T) {
+	t.Parallel()
 	resources := []client.ServerResource{
 		{
 			UUID: "res-uuid-1",

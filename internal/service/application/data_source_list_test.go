@@ -13,6 +13,7 @@ import (
 )
 
 func TestApplicationsListDataSource(t *testing.T) {
+	t.Parallel()
 	apps := []client.Application{
 		{
 			UUID:          "app-list-uuid-1",

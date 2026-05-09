@@ -120,7 +120,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	mapPrivateKeyToModel(key, &plan)
+	flattenPrivateKey(key, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -141,7 +141,7 @@ func (r *privateKeyResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	mapPrivateKeyToModel(key, &state)
+	flattenPrivateKey(key, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -184,7 +184,7 @@ func (r *privateKeyResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	mapPrivateKeyToModel(key, &plan)
+	flattenPrivateKey(key, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -208,7 +208,7 @@ func (r *privateKeyResource) ImportState(ctx context.Context, req resource.Impor
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 
-func mapPrivateKeyToModel(key *client.PrivateKey, model *privateKeyResourceModel) {
+func flattenPrivateKey(key *client.PrivateKey, model *privateKeyResourceModel) {
 	model.UUID = types.StringValue(key.UUID)
 	model.Name = types.StringValue(key.Name)
 	model.Description = types.StringValue(key.Description)

@@ -247,7 +247,7 @@ func (r *ApplicationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	mapApplicationToState(app, &plan)
+	flattenApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -268,7 +268,7 @@ func (r *ApplicationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	mapApplicationToState(app, &state)
+	flattenApplication(app, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -307,7 +307,7 @@ func (r *ApplicationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	mapApplicationToState(app, &plan)
+	flattenApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -332,8 +332,8 @@ func (r *ApplicationResource) ImportState(ctx context.Context, req resource.Impo
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 }
 
-// mapApplicationToState copies API fields into the Terraform state model.
-func mapApplicationToState(app *client.Application, state *ApplicationResourceModel) {
+// flattenApplication copies API fields into the Terraform state model.
+func flattenApplication(app *client.Application, state *ApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)

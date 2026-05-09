@@ -13,6 +13,7 @@ import (
 )
 
 func TestPrivateKeyDataSource(t *testing.T) {
+	t.Parallel()
 	key := &client.PrivateKey{
 		UUID:         "pk-ds-uuid-1",
 		Name:         "data-source-key",

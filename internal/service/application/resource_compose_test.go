@@ -19,6 +19,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestDockerComposeApplicationResource_Create(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:             "compose-app-uuid",
 		Name:             "my-compose-app",
@@ -79,6 +80,7 @@ func TestDockerComposeApplicationResource_Create(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDockerComposeApplicationResource_Update(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	currentApp := client.Application{
 		UUID:             "compose-upd-uuid",
@@ -152,6 +154,7 @@ func TestDockerComposeApplicationResource_Update(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDockerComposeApplicationResource_Import(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:             "compose-imp-uuid",
 		Name:             "imported-compose-app",
@@ -205,6 +208,7 @@ func TestDockerComposeApplicationResource_Import(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDockerComposeApplicationResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	appUUID := "compose-disappear-uuid"
@@ -277,6 +281,7 @@ func TestDockerComposeApplicationResource_Disappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDockerComposeApplicationResource_Timeouts(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:             "compose-timeout-uuid",
 		Name:             "timeout-compose",

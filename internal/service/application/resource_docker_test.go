@@ -19,6 +19,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestDockerImageApplicationResource_Create(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:                    "docker-app-uuid",
 		Name:                    "nginx-proxy",
@@ -84,6 +85,7 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDockerImageApplicationResource_Update(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	currentApp := client.Application{
 		UUID:                    "docker-upd-uuid",
@@ -160,6 +162,7 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDockerImageApplicationResource_Import(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:                    "docker-imp-uuid",
 		Name:                    "imported-docker-app",
@@ -215,6 +218,7 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDockerImageApplicationResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	appUUID := "docker-disappear-uuid"
@@ -289,6 +293,7 @@ func TestDockerImageApplicationResource_Disappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDockerImageApplicationResource_Status(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:                    "docker-status-uuid",
 		Name:                    "status-app",
@@ -340,6 +345,7 @@ func TestDockerImageApplicationResource_Status(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:                    "docker-timeout-uuid",
 		Name:                    "timeout-app",

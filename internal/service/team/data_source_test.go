@@ -44,6 +44,7 @@ func newMockTeamServer() *httptest.Server {
 }
 
 func TestTeamDataSource_Read(t *testing.T) {
+	t.Parallel()
 	srv := newMockTeamServer()
 	defer srv.Close()
 

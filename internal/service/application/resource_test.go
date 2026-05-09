@@ -20,6 +20,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestApplicationResource_Create(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:          "create-app-uuid",
 		Name:          "my-app",
@@ -89,6 +90,7 @@ func TestApplicationResource_Create(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestApplicationResource_Update(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	currentApp := client.Application{
 		UUID:          "update-app-uuid",
@@ -170,6 +172,7 @@ func TestApplicationResource_Update(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestApplicationResource_Import(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:          "import-app-uuid",
 		Name:          "imported-app",
@@ -229,6 +232,7 @@ func TestApplicationResource_Import(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestApplicationResource_InvalidBuildPack(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
 
@@ -254,6 +258,7 @@ func TestApplicationResource_InvalidBuildPack(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestApplicationResource_Disappears(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:          "disappear-app-uuid",
 		Name:          "disappearing-app",
@@ -350,6 +355,7 @@ resource "coolify_application" "test" {
 }
 
 func TestApplicationResource_InvalidPortsExposes(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
 
@@ -371,6 +377,7 @@ func TestApplicationResource_InvalidPortsExposes(t *testing.T) {
 }
 
 func TestApplicationResource_InvalidFQDN(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
 

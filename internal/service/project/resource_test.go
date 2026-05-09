@@ -173,6 +173,7 @@ provider "coolify" {
 }
 
 func TestProjectResource_Create(t *testing.T) {
+	t.Parallel()
 	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
@@ -207,6 +208,7 @@ resource "coolify_project" "test" {
 }
 
 func TestProjectResource_Update(t *testing.T) {
+	t.Parallel()
 	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
@@ -242,6 +244,7 @@ resource "coolify_project" "test" {
 }
 
 func TestProjectResource_Import(t *testing.T) {
+	t.Parallel()
 	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
@@ -274,6 +277,7 @@ resource "coolify_project" "test" {
 }
 
 func TestProjectResource_Disappears(t *testing.T) {
+	t.Parallel()
 	server, store := newMockCoolifyServer()
 	defer server.Close()
 
@@ -306,6 +310,7 @@ resource "coolify_project" "test" {
 }
 
 func TestProjectResource_ReadNotFound(t *testing.T) {
+	t.Parallel()
 	store := &mockProjectStore{
 		projects: make(map[string]*mockProject),
 		counter:  0,

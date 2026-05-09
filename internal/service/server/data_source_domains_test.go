@@ -13,6 +13,7 @@ import (
 )
 
 func TestServerDomainsDataSource(t *testing.T) {
+	t.Parallel()
 	domains := []client.ServerDomain{
 		{
 			Domain: "app.example.com",

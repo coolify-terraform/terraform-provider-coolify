@@ -119,6 +119,7 @@ func newServerMockServer() *httptest.Server {
 }
 
 func TestServerResource_Create(t *testing.T) {
+	t.Parallel()
 	srv := newServerMockServer()
 	defer srv.Close()
 
@@ -159,6 +160,7 @@ resource "coolify_server" "test" {
 }
 
 func TestServerResource_Update(t *testing.T) {
+	t.Parallel()
 	srv := newServerMockServer()
 	defer srv.Close()
 
@@ -204,6 +206,7 @@ resource "coolify_server" "test" {
 }
 
 func TestServerResource_Import(t *testing.T) {
+	t.Parallel()
 	srv := newServerMockServer()
 	defer srv.Close()
 
@@ -233,6 +236,7 @@ resource "coolify_server" "test" {
 }
 
 func TestServerResource_Disappears(t *testing.T) {
+	t.Parallel()
 	srv := newServerMockServer()
 	defer srv.Close()
 

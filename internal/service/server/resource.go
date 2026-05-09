@@ -159,7 +159,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	mapServerToModel(srv, &plan)
+	flattenServer(srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -180,7 +180,7 @@ func (r *serverResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	mapServerToModel(srv, &state)
+	flattenServer(srv, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -228,7 +228,7 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	mapServerToModel(srv, &plan)
+	flattenServer(srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -252,7 +252,7 @@ func (r *serverResource) ImportState(ctx context.Context, req resource.ImportSta
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 
-func mapServerToModel(srv *client.Server, model *serverResourceModel) {
+func flattenServer(srv *client.Server, model *serverResourceModel) {
 	model.UUID = types.StringValue(srv.UUID)
 	model.Name = types.StringValue(srv.Name)
 	model.Description = flex.StringToFramework(srv.Description)

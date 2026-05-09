@@ -111,6 +111,7 @@ func newS3StorageMockServer() *httptest.Server {
 }
 
 func TestS3StorageResource_Create(t *testing.T) {
+	t.Parallel()
 	srv := newS3StorageMockServer()
 	defer srv.Close()
 
@@ -156,6 +157,7 @@ resource "coolify_s3_storage" "test" {
 }
 
 func TestS3StorageResource_Update(t *testing.T) {
+	t.Parallel()
 	srv := newS3StorageMockServer()
 	defer srv.Close()
 
@@ -199,6 +201,7 @@ resource "coolify_s3_storage" "test" {
 }
 
 func TestS3StorageResource_Import(t *testing.T) {
+	t.Parallel()
 	srv := newS3StorageMockServer()
 	defer srv.Close()
 
@@ -231,6 +234,7 @@ resource "coolify_s3_storage" "test" {
 }
 
 func TestS3StorageResource_Disappears(t *testing.T) {
+	t.Parallel()
 	srv := newS3StorageMockServer()
 	defer srv.Close()
 
@@ -275,6 +279,7 @@ resource "coolify_s3_storage" "test" {
 }
 
 func TestS3StorageResource_InvalidEndpoint(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
 

@@ -19,6 +19,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestPrivateGitApplicationResource_Create(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:          "pgit-app-uuid",
 		Name:          "api-server",
@@ -94,6 +95,7 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPrivateGitApplicationResource_Update(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	currentApp := client.Application{
 		UUID:          "pgit-upd-uuid",
@@ -179,6 +181,7 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPrivateGitApplicationResource_Import(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:          "pgit-imp-uuid",
 		Name:          "imported-pgit-app",
@@ -238,6 +241,7 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	appUUID := "pgit-disappear-uuid"
@@ -317,6 +321,7 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:          "privgit-timeout-uuid",
 		Name:          "timeout-privgit",

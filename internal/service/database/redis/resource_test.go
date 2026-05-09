@@ -82,6 +82,7 @@ func newMockRedisServer() (*httptest.Server, *mockRedisState) {
 }
 
 func TestRedisDatabaseResource_CreateUpdateImport(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockRedisServer()
 	defer srv.Close()
 
@@ -157,6 +158,7 @@ resource "coolify_redis_database" "test" {
 }
 
 func TestRedisDatabaseResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	redisUUID := "redis-disappear-uuid-001"

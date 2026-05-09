@@ -13,6 +13,7 @@ import (
 )
 
 func TestServerDataSource(t *testing.T) {
+	t.Parallel()
 	srv := &client.Server{
 		UUID:           "srv-ds-uuid-1",
 		Name:           "data-source-server",

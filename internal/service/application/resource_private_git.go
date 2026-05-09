@@ -253,7 +253,7 @@ func (r *PrivateGitApplicationResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	mapPrivateGitAppToState(app, &plan)
+	flattenPrivateGitApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -274,7 +274,7 @@ func (r *PrivateGitApplicationResource) Read(ctx context.Context, req resource.R
 		return
 	}
 
-	mapPrivateGitAppToState(app, &state)
+	flattenPrivateGitApplication(app, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -313,7 +313,7 @@ func (r *PrivateGitApplicationResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	mapPrivateGitAppToState(app, &plan)
+	flattenPrivateGitApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -338,8 +338,8 @@ func (r *PrivateGitApplicationResource) ImportState(ctx context.Context, req res
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 }
 
-// mapPrivateGitAppToState copies API fields into the Terraform state model.
-func mapPrivateGitAppToState(app *client.Application, state *PrivateGitApplicationResourceModel) {
+// flattenPrivateGitApplication copies API fields into the Terraform state model.
+func flattenPrivateGitApplication(app *client.Application, state *PrivateGitApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)

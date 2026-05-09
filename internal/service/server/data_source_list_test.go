@@ -12,6 +12,7 @@ import (
 )
 
 func TestServersDataSource(t *testing.T) {
+	t.Parallel()
 	servers := []client.Server{
 		{
 			UUID:           "srv-list-uuid-1",

@@ -7,6 +7,7 @@ import (
 )
 
 func TestProjectDataSource(t *testing.T) {
+	t.Parallel()
 	server, _ := newMockCoolifyServer()
 	defer server.Close()
 

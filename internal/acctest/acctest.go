@@ -70,6 +70,30 @@ provider "coolify" {
 `, serverURL)
 }
 
+// TestResourceConfig returns a Terraform config with a provider block and a single resource.
+// This is the standard bootstrap helper for unit tests:
+//
+//	acctest.TestResourceConfig(srv.URL, "coolify_postgresql_database", "test", `
+//	  project_uuid = "proj-uuid-1"
+//	  server_uuid  = "srv-uuid-1"
+//	`)
+func TestResourceConfig(endpoint, resourceType, resourceName, attrs string) string {
+	return fmt.Sprintf(`%s
+resource "%s" "%s" {
+  %s
+}
+`, ProviderBlockForURL(endpoint), resourceType, resourceName, attrs)
+}
+
+// TestDataSourceConfig returns a Terraform config with a provider block and a single data source.
+func TestDataSourceConfig(endpoint, dataSourceType, dataSourceName, attrs string) string {
+	return fmt.Sprintf(`%s
+data "%s" "%s" {
+  %s
+}
+`, ProviderBlockForURL(endpoint), dataSourceType, dataSourceName, attrs)
+}
+
 // RequireEnv skips the test if the given environment variable is not set.
 // Returns the value if set.
 func RequireEnv(t *testing.T, key string) string {

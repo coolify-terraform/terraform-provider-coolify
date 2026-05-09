@@ -14,6 +14,7 @@ import (
 )
 
 func TestDeploymentResource_Create(t *testing.T) {
+	t.Parallel()
 	deploymentUUID := "dep-test-uuid-001"
 	appUUID := "app-deploy-uuid"
 
@@ -66,6 +67,7 @@ resource "coolify_deployment" "test" {
 }
 
 func TestDeploymentResource_TriggersForceNew(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deploymentCount := 0
 
@@ -139,6 +141,7 @@ resource "coolify_deployment" "test" {
 }
 
 func TestDeploymentResource_Disappears(t *testing.T) {
+	t.Parallel()
 	deploymentUUID := "dep-disappear-uuid"
 
 	mu := sync.Mutex{}

@@ -82,6 +82,7 @@ func newMockDragonflyServer() (*httptest.Server, *mockDragonflyState) {
 }
 
 func TestDragonflyDatabaseResource_Create(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockDragonflyServer()
 	defer srv.Close()
 
@@ -108,6 +109,7 @@ resource "coolify_dragonfly_database" "test" {
 }
 
 func TestDragonflyDatabaseResource_Update(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockDragonflyServer()
 	defer srv.Close()
 
@@ -144,6 +146,7 @@ resource "coolify_dragonfly_database" "test" {
 }
 
 func TestDragonflyDatabaseResource_Import(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockDragonflyServer()
 	defer srv.Close()
 
@@ -170,6 +173,7 @@ resource "coolify_dragonfly_database" "test" {
 }
 
 func TestDragonflyDatabaseResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	dbUUID := "dragonfly-disappear-uuid-001"

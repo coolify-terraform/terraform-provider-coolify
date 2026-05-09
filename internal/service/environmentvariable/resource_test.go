@@ -20,6 +20,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_Create(t *testing.T) {
+	t.Parallel()
 	envVar := client.EnvironmentVariable{
 		UUID:      "env-create-uuid",
 		Key:       "DATABASE_URL",
@@ -71,6 +72,7 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_Update(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	currentEnvVar := client.EnvironmentVariable{
 		UUID:      "env-update-uuid",
@@ -147,6 +149,7 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_Import(t *testing.T) {
+	t.Parallel()
 	envVar := client.EnvironmentVariable{
 		UUID:      "env-import-uuid",
 		Key:       "IMPORT_VAR",
@@ -201,6 +204,7 @@ func TestEnvironmentVariableResource_Import(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
+	t.Parallel()
 	envVar := client.EnvironmentVariable{
 		UUID:      "env-svc-uuid",
 		Key:       "REDIS_URL",
@@ -254,6 +258,7 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	currentEnvVar := client.EnvironmentVariable{
 		UUID: "env-svc-upd-uuid", Key: "LOG_LEVEL", Value: "info", IsPreview: false, IsBuild: false,
@@ -316,6 +321,7 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
+	t.Parallel()
 	envVar := client.EnvironmentVariable{
 		UUID: "env-svc-imp-uuid", Key: "SVC_VAR", Value: "svc-value", IsPreview: false, IsBuild: false,
 	}
@@ -364,6 +370,7 @@ func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_ImportBadFormat(t *testing.T) {
+	t.Parallel()
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -401,6 +408,7 @@ func TestEnvironmentVariableResource_ImportBadFormat(t *testing.T) {
 }
 
 func TestEnvironmentVariableResource_ImportBadType(t *testing.T) {
+	t.Parallel()
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -442,6 +450,7 @@ func TestEnvironmentVariableResource_ImportBadType(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_Disappears(t *testing.T) {
+	t.Parallel()
 	envVar := client.EnvironmentVariable{
 		UUID:      "env-disappear-uuid",
 		Key:       "DISAPPEAR_VAR",
@@ -520,6 +529,7 @@ func TestEnvironmentVariableResource_Disappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
+	t.Parallel()
 	envVar := client.EnvironmentVariable{
 		UUID: "env-svc-disappear-uuid", Key: "SVC_GONE", Value: "val", IsPreview: false, IsBuild: false,
 	}
@@ -590,6 +600,7 @@ func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_InvalidKey(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
 

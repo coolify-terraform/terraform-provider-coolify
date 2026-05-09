@@ -14,6 +14,7 @@ import (
 )
 
 func TestServiceDataSource(t *testing.T) {
+	t.Parallel()
 	svc := &client.Service{
 		UUID:            "svc-ds-uuid-1",
 		Name:            "my-plausible",

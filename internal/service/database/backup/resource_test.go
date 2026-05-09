@@ -119,6 +119,7 @@ resource "coolify_database_backup" "test" {
 }
 
 func TestDatabaseBackupResource_Create(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockBackupServer()
 	defer srv.Close()
 
@@ -146,6 +147,7 @@ func TestDatabaseBackupResource_Create(t *testing.T) {
 }
 
 func TestDatabaseBackupResource_Update(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockBackupServer()
 	defer srv.Close()
 
@@ -182,6 +184,7 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 }
 
 func TestDatabaseBackupResource_Import(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockBackupServer()
 	defer srv.Close()
 
@@ -208,6 +211,7 @@ func TestDatabaseBackupResource_Import(t *testing.T) {
 }
 
 func TestDatabaseBackupResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	dbUUID := "db-uuid-disappear"
@@ -275,6 +279,7 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 }
 
 func TestDatabaseBackupResource_ImportBadFormat(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockBackupServer()
 	defer srv.Close()
 
@@ -300,6 +305,7 @@ func TestDatabaseBackupResource_ImportBadFormat(t *testing.T) {
 }
 
 func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockBackupServer()
 	defer srv.Close()
 
@@ -325,6 +331,7 @@ func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
 }
 
 func TestDatabaseBackupResource_InvalidRetainDays(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockBackupServer()
 	defer srv.Close()
 
@@ -345,6 +352,7 @@ func TestDatabaseBackupResource_InvalidRetainDays(t *testing.T) {
 }
 
 func TestDatabaseBackupResource_InvalidCron(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockBackupServer()
 	defer srv.Close()
 

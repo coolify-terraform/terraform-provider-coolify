@@ -13,6 +13,7 @@ import (
 )
 
 func TestApplicationDataSource_Read(t *testing.T) {
+	t.Parallel()
 	app := client.Application{
 		UUID:          "ds-app-uuid",
 		Name:          "data-source-app",

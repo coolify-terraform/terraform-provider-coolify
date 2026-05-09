@@ -12,6 +12,7 @@ import (
 )
 
 func TestEnvironmentVariablesDataSource_Application(t *testing.T) {
+	t.Parallel()
 	envVars := []client.EnvironmentVariable{
 		{UUID: "ev-1", Key: "DB_HOST", Value: "localhost", IsPreview: false, IsBuild: false},
 		{UUID: "ev-2", Key: "DB_PORT", Value: "5432", IsPreview: false, IsBuild: true},
@@ -47,6 +48,7 @@ data "coolify_environment_variables" "test" {
 }
 
 func TestEnvironmentVariablesDataSource_Service(t *testing.T) {
+	t.Parallel()
 	envVars := []client.EnvironmentVariable{
 		{UUID: "ev-s1", Key: "REDIS_URL", Value: "redis://localhost", IsPreview: true, IsBuild: false},
 	}

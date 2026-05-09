@@ -15,6 +15,7 @@ import (
 )
 
 func TestClient_RetryOn429(t *testing.T) {
+	t.Parallel()
 	var attempts int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		n := atomic.AddInt32(&attempts, 1)
@@ -37,6 +38,7 @@ func TestClient_RetryOn429(t *testing.T) {
 }
 
 func TestClient_NotFoundError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 	}))
@@ -53,6 +55,7 @@ func TestClient_NotFoundError(t *testing.T) {
 }
 
 func TestClient_Timeout(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Block longer than the client timeout; stop when the client disconnects
 		// so the test server shuts down quickly.
@@ -80,6 +83,7 @@ func TestClient_Timeout(t *testing.T) {
 }
 
 func TestClient_AuthHeader(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got := r.Header.Get("Authorization")
 		if got != "Bearer my-secret-token" {
@@ -98,6 +102,7 @@ func TestClient_AuthHeader(t *testing.T) {
 }
 
 func TestClient_UserAgent(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got := r.Header.Get("User-Agent")
 		if got != "terraform-provider-coolify" {
@@ -116,6 +121,7 @@ func TestClient_UserAgent(t *testing.T) {
 }
 
 func TestClient_ListProjects(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -151,6 +157,7 @@ func TestClient_ListProjects(t *testing.T) {
 }
 
 func TestClient_GetProject(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -184,6 +191,7 @@ func TestClient_GetProject(t *testing.T) {
 }
 
 func TestClient_CreateProject(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -230,6 +238,7 @@ func TestClient_CreateProject(t *testing.T) {
 }
 
 func TestClient_DeleteProject(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -249,6 +258,7 @@ func TestClient_DeleteProject(t *testing.T) {
 }
 
 func TestClient_GetProject_NotFound(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 	}))
@@ -265,6 +275,7 @@ func TestClient_GetProject_NotFound(t *testing.T) {
 }
 
 func TestClient_CreateProject_ServerError(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
 	}))
@@ -287,6 +298,7 @@ func TestClient_CreateProject_ServerError(t *testing.T) {
 }
 
 func TestClient_ListServers(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -370,6 +382,7 @@ func TestClient_ListServers(t *testing.T) {
 }
 
 func TestClient_CreateApplication(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -435,6 +448,7 @@ func TestClient_CreateApplication(t *testing.T) {
 }
 
 func TestClient_CreatePostgresqlDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -487,6 +501,7 @@ func TestClient_CreatePostgresqlDatabase(t *testing.T) {
 }
 
 func TestClient_ContextCancellation(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Should never reach here if context is cancelled.
 		w.WriteHeader(http.StatusOK)
@@ -516,6 +531,7 @@ func contains(s, substr string) bool {
 // --- Servers ---
 
 func TestClient_GetServer(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/servers/srv-uuid-1", r.URL.Path)
@@ -551,6 +567,7 @@ func TestClient_GetServer(t *testing.T) {
 }
 
 func TestClient_CreateServer(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/servers", r.URL.Path)
@@ -587,6 +604,7 @@ func TestClient_CreateServer(t *testing.T) {
 }
 
 func TestClient_UpdateServer(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
 		assert.Equal(t, "/api/v1/servers/srv-upd", r.URL.Path)
@@ -612,6 +630,7 @@ func TestClient_UpdateServer(t *testing.T) {
 }
 
 func TestClient_DeleteServer(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/servers/srv-del", r.URL.Path)
@@ -627,6 +646,7 @@ func TestClient_DeleteServer(t *testing.T) {
 // --- Private Keys ---
 
 func TestClient_ListPrivateKeys(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/security/keys", r.URL.Path)
@@ -650,6 +670,7 @@ func TestClient_ListPrivateKeys(t *testing.T) {
 }
 
 func TestClient_GetPrivateKey(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/security/keys/pk-uuid-1", r.URL.Path)
@@ -675,6 +696,7 @@ func TestClient_GetPrivateKey(t *testing.T) {
 }
 
 func TestClient_CreatePrivateKey(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/security/keys", r.URL.Path)
@@ -703,6 +725,7 @@ func TestClient_CreatePrivateKey(t *testing.T) {
 }
 
 func TestClient_DeletePrivateKey(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/security/keys/pk-del", r.URL.Path)
@@ -718,6 +741,7 @@ func TestClient_DeletePrivateKey(t *testing.T) {
 // --- Databases ---
 
 func TestClient_GetDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-uuid-1", r.URL.Path)
@@ -749,6 +773,7 @@ func TestClient_GetDatabase(t *testing.T) {
 }
 
 func TestClient_CreateMysqlDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/databases/mysql", r.URL.Path)
@@ -782,6 +807,7 @@ func TestClient_CreateMysqlDatabase(t *testing.T) {
 }
 
 func TestClient_UpdateDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-upd", r.URL.Path)
@@ -807,6 +833,7 @@ func TestClient_UpdateDatabase(t *testing.T) {
 }
 
 func TestClient_DeleteDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-del", r.URL.Path)
@@ -820,6 +847,7 @@ func TestClient_DeleteDatabase(t *testing.T) {
 }
 
 func TestClient_StartDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-start/start", r.URL.Path)
@@ -833,6 +861,7 @@ func TestClient_StartDatabase(t *testing.T) {
 }
 
 func TestClient_StopDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-stop/stop", r.URL.Path)
@@ -848,6 +877,7 @@ func TestClient_StopDatabase(t *testing.T) {
 // --- Environment Variables ---
 
 func TestClient_CreateApplicationEnvVar(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-1/envs", r.URL.Path)
@@ -877,6 +907,7 @@ func TestClient_CreateApplicationEnvVar(t *testing.T) {
 }
 
 func TestClient_ListApplicationEnvVars(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-1/envs", r.URL.Path)
@@ -901,6 +932,7 @@ func TestClient_ListApplicationEnvVars(t *testing.T) {
 }
 
 func TestClient_DeleteApplicationEnvVar(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-1/envs/env-del", r.URL.Path)
@@ -916,6 +948,7 @@ func TestClient_DeleteApplicationEnvVar(t *testing.T) {
 // --- Services ---
 
 func TestClient_GetService(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-uuid-1", r.URL.Path)
@@ -945,6 +978,7 @@ func TestClient_GetService(t *testing.T) {
 }
 
 func TestClient_CreateService(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/services", r.URL.Path)
@@ -979,6 +1013,7 @@ func TestClient_CreateService(t *testing.T) {
 }
 
 func TestClient_DeleteService(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-del", r.URL.Path)
@@ -994,6 +1029,7 @@ func TestClient_DeleteService(t *testing.T) {
 // --- Teams ---
 
 func TestClient_GetTeam(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/teams/42", r.URL.Path)
@@ -1015,6 +1051,7 @@ func TestClient_GetTeam(t *testing.T) {
 }
 
 func TestClient_ListTeamMembers(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/teams/7/members", r.URL.Path)
@@ -1039,6 +1076,7 @@ func TestClient_ListTeamMembers(t *testing.T) {
 // --- Deployments ---
 
 func TestClient_ListDeployments(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/deployments", r.URL.Path)
@@ -1062,6 +1100,7 @@ func TestClient_ListDeployments(t *testing.T) {
 }
 
 func TestClient_DeployByTag(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/deploy", r.URL.Path)
@@ -1085,6 +1124,7 @@ func TestClient_DeployByTag(t *testing.T) {
 // --- Applications (remaining) ---
 
 func TestClient_ListApplications(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/applications", r.URL.Path)
@@ -1109,6 +1149,7 @@ func TestClient_ListApplications(t *testing.T) {
 }
 
 func TestClient_RestartApplication(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-restart-1/restart", r.URL.Path)
@@ -1128,6 +1169,7 @@ func TestClient_RestartApplication(t *testing.T) {
 }
 
 func TestClient_GetApplication(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-get-1", r.URL.Path)
@@ -1173,6 +1215,7 @@ func TestClient_GetApplication(t *testing.T) {
 }
 
 func TestClient_UpdateApplication(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-upd-1", r.URL.Path)
@@ -1206,6 +1249,7 @@ func TestClient_UpdateApplication(t *testing.T) {
 }
 
 func TestClient_DeleteApplication(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-del-1", r.URL.Path)
@@ -1221,6 +1265,7 @@ func TestClient_DeleteApplication(t *testing.T) {
 // --- Databases (remaining) ---
 
 func TestClient_ListDatabases(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/databases", r.URL.Path)
@@ -1245,6 +1290,7 @@ func TestClient_ListDatabases(t *testing.T) {
 }
 
 func TestClient_CreateMariadbDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/databases/mariadb", r.URL.Path)
@@ -1278,6 +1324,7 @@ func TestClient_CreateMariadbDatabase(t *testing.T) {
 }
 
 func TestClient_CreateRedisDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/databases/redis", r.URL.Path)
@@ -1307,6 +1354,7 @@ func TestClient_CreateRedisDatabase(t *testing.T) {
 }
 
 func TestClient_CreateMongodbDatabase(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/databases/mongodb", r.URL.Path)
@@ -1340,6 +1388,7 @@ func TestClient_CreateMongodbDatabase(t *testing.T) {
 }
 
 func TestClient_GetDeployment(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/deployments/dep-get-1", r.URL.Path)
@@ -1363,6 +1412,7 @@ func TestClient_GetDeployment(t *testing.T) {
 }
 
 func TestClient_UpdateApplicationEnvVar(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-env-1/envs", r.URL.Path)
@@ -1387,6 +1437,7 @@ func TestClient_UpdateApplicationEnvVar(t *testing.T) {
 }
 
 func TestClient_CreateDockerImageApplication(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/applications/dockerimage", r.URL.Path)
@@ -1425,6 +1476,7 @@ func TestClient_CreateDockerImageApplication(t *testing.T) {
 // --- Service Environment Variables ---
 
 func TestClient_CreateServiceEnvVar(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-1/envs", r.URL.Path)
@@ -1454,6 +1506,7 @@ func TestClient_CreateServiceEnvVar(t *testing.T) {
 }
 
 func TestClient_ListServiceEnvVars(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-1/envs", r.URL.Path)
@@ -1478,6 +1531,7 @@ func TestClient_ListServiceEnvVars(t *testing.T) {
 }
 
 func TestClient_UpdateServiceEnvVar(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-env-1/envs", r.URL.Path)
@@ -1502,6 +1556,7 @@ func TestClient_UpdateServiceEnvVar(t *testing.T) {
 }
 
 func TestClient_DeleteServiceEnvVar(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-1/envs/sev-del", r.URL.Path)
@@ -1517,6 +1572,7 @@ func TestClient_DeleteServiceEnvVar(t *testing.T) {
 // --- Private Keys (remaining) ---
 
 func TestClient_UpdatePrivateKey(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
 		assert.Equal(t, "/api/v1/security/keys/pk-upd", r.URL.Path)
@@ -1544,6 +1600,7 @@ func TestClient_UpdatePrivateKey(t *testing.T) {
 // --- Projects (remaining) ---
 
 func TestClient_UpdateProject(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
 		assert.Equal(t, "/api/v1/projects/proj-upd", r.URL.Path)
@@ -1571,6 +1628,7 @@ func TestClient_UpdateProject(t *testing.T) {
 // --- Services (remaining) ---
 
 func TestClient_ListServices(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/services", r.URL.Path)
@@ -1596,6 +1654,7 @@ func TestClient_ListServices(t *testing.T) {
 }
 
 func TestClient_StartService(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-start/start", r.URL.Path)
@@ -1609,6 +1668,7 @@ func TestClient_StartService(t *testing.T) {
 }
 
 func TestClient_StopService(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-stop/stop", r.URL.Path)
@@ -1624,6 +1684,7 @@ func TestClient_StopService(t *testing.T) {
 // --- Private Git Application ---
 
 func TestClient_CreatePrivateGitApplication(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/applications/private-github-app", r.URL.Path)
@@ -1668,6 +1729,7 @@ func TestClient_CreatePrivateGitApplication(t *testing.T) {
 // --- Database Backups ---
 
 func TestClient_ListDatabaseBackups(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups", r.URL.Path)
@@ -1697,6 +1759,7 @@ func TestClient_ListDatabaseBackups(t *testing.T) {
 }
 
 func TestClient_GetDatabaseBackup(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/42", r.URL.Path)
@@ -1724,6 +1787,7 @@ func TestClient_GetDatabaseBackup(t *testing.T) {
 }
 
 func TestClient_CreateDatabaseBackup(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups", r.URL.Path)
@@ -1758,6 +1822,7 @@ func TestClient_CreateDatabaseBackup(t *testing.T) {
 }
 
 func TestClient_UpdateDatabaseBackup(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/10", r.URL.Path)
@@ -1791,6 +1856,7 @@ func TestClient_UpdateDatabaseBackup(t *testing.T) {
 }
 
 func TestClient_DeleteDatabaseBackup(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/5", r.URL.Path)
@@ -1804,6 +1870,7 @@ func TestClient_DeleteDatabaseBackup(t *testing.T) {
 }
 
 func TestClient_ValidateServer(t *testing.T) {
+	t.Parallel()
 	expected := Server{UUID: "srv-1", Name: "prod", IsReachable: true, IsUsable: true}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
@@ -1822,6 +1889,7 @@ func TestClient_ValidateServer(t *testing.T) {
 }
 
 func TestClient_ListServerResources(t *testing.T) {
+	t.Parallel()
 	expected := []ServerResource{
 		{UUID: "app-1", Name: "my-app", Type: "application"},
 		{UUID: "db-1", Name: "my-db", Type: "database"},
@@ -1845,6 +1913,7 @@ func TestClient_ListServerResources(t *testing.T) {
 }
 
 func TestClient_ListServerDomains(t *testing.T) {
+	t.Parallel()
 	expected := []ServerDomain{
 		{Domain: "app.example.com", IP: "10.0.0.1"},
 		{Domain: "api.example.com", IP: "10.0.0.2"},
@@ -1867,6 +1936,7 @@ func TestClient_ListServerDomains(t *testing.T) {
 }
 
 func TestClient_CreateDockerComposeApplication(t *testing.T) {
+	t.Parallel()
 	expected := Application{UUID: "compose-1", Name: "my-compose-app", BuildPack: "dockercompose"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -1898,6 +1968,7 @@ func TestClient_CreateDockerComposeApplication(t *testing.T) {
 }
 
 func TestClient_CreateKeydbDatabase(t *testing.T) {
+	t.Parallel()
 	expected := Database{UUID: "keydb-1", Name: "cache", Type: "keydb"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -1924,6 +1995,7 @@ func TestClient_CreateKeydbDatabase(t *testing.T) {
 }
 
 func TestClient_CreateDragonflyDatabase(t *testing.T) {
+	t.Parallel()
 	expected := Database{UUID: "df-1", Name: "sessions", Type: "dragonfly"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -1950,6 +2022,7 @@ func TestClient_CreateDragonflyDatabase(t *testing.T) {
 }
 
 func TestClient_CreateClickhouseDatabase(t *testing.T) {
+	t.Parallel()
 	expected := Database{UUID: "ch-1", Name: "analytics", Type: "clickhouse"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -1979,6 +2052,7 @@ func TestClient_CreateClickhouseDatabase(t *testing.T) {
 }
 
 func TestClient_GetVersion(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/version", r.URL.Path)
@@ -1994,6 +2068,7 @@ func TestClient_GetVersion(t *testing.T) {
 }
 
 func TestClient_StartApplication(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-1/start", r.URL.Path)
@@ -2007,6 +2082,7 @@ func TestClient_StartApplication(t *testing.T) {
 }
 
 func TestClient_StopApplication(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-1/stop", r.URL.Path)
@@ -2022,6 +2098,7 @@ func TestClient_StopApplication(t *testing.T) {
 // --- S3 Storages ---
 
 func TestClient_ListS3Storages(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/storages", r.URL.Path)
@@ -2048,6 +2125,7 @@ func TestClient_ListS3Storages(t *testing.T) {
 }
 
 func TestClient_GetS3Storage(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/storages/s3-uuid-1", r.URL.Path)
@@ -2080,6 +2158,7 @@ func TestClient_GetS3Storage(t *testing.T) {
 }
 
 func TestClient_CreateS3Storage(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/storages", r.URL.Path)
@@ -2116,6 +2195,7 @@ func TestClient_CreateS3Storage(t *testing.T) {
 }
 
 func TestClient_UpdateS3Storage(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
 		assert.Equal(t, "/api/v1/storages/s3-upd", r.URL.Path)
@@ -2141,6 +2221,7 @@ func TestClient_UpdateS3Storage(t *testing.T) {
 }
 
 func TestClient_DeleteS3Storage(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/storages/s3-del", r.URL.Path)

@@ -13,6 +13,7 @@ import (
 )
 
 func TestS3StorageDataSource(t *testing.T) {
+	t.Parallel()
 	s := &client.S3Storage{
 		ID:          1,
 		UUID:        "s3-ds-uuid-1",

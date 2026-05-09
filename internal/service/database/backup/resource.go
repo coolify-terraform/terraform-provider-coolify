@@ -141,7 +141,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	mapBackupToModel(created, &plan)
+	flattenDatabaseBackup(created, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -162,7 +162,7 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	mapBackupToModel(b, &state)
+	flattenDatabaseBackup(b, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -210,7 +210,7 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	mapBackupToModel(b, &plan)
+	flattenDatabaseBackup(b, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -253,7 +253,7 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), int64(backupID))...)
 }
 
-func mapBackupToModel(b *client.DatabaseBackup, m *databaseBackupResourceModel) {
+func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceModel) {
 	m.ID = types.Int64Value(int64(b.ID))
 	m.UUID = types.StringValue(b.UUID)
 	m.DatabaseUUID = types.StringValue(b.DatabaseUUID)

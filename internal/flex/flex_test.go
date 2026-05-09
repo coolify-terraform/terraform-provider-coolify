@@ -12,6 +12,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestStringValue(t *testing.T) {
+	t.Parallel()
 	got := flex.StringValue(types.StringValue("hello"))
 	if got != "hello" {
 		t.Fatalf("expected %q, got %q", "hello", got)
@@ -19,6 +20,7 @@ func TestStringValue(t *testing.T) {
 }
 
 func TestStringValue_Null(t *testing.T) {
+	t.Parallel()
 	got := flex.StringValue(types.StringNull())
 	if got != "" {
 		t.Fatalf("expected empty string, got %q", got)
@@ -30,6 +32,7 @@ func TestStringValue_Null(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestStringValueOrNull(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		input  types.String
@@ -64,6 +67,7 @@ func TestStringValueOrNull(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestInt64Value(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input types.Int64
@@ -85,6 +89,7 @@ func TestInt64Value(t *testing.T) {
 }
 
 func TestInt64ValueOrNull(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		input  types.Int64
@@ -119,6 +124,7 @@ func TestInt64ValueOrNull(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestBoolValue(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input types.Bool
@@ -139,6 +145,7 @@ func TestBoolValue(t *testing.T) {
 }
 
 func TestBoolValueOrNull(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		input  types.Bool
@@ -174,6 +181,7 @@ func TestBoolValueOrNull(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestStringToFramework(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    string
@@ -207,6 +215,7 @@ func TestStringToFramework(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestStringValueToFramework(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input string
@@ -233,6 +242,7 @@ func TestStringValueToFramework(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestStringPtrToFramework(t *testing.T) {
+	t.Parallel()
 	s := "hello"
 	tests := []struct {
 		name     string
@@ -267,6 +277,7 @@ func TestStringPtrToFramework(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestInt64ToFramework(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input int64
@@ -287,6 +298,7 @@ func TestInt64ToFramework(t *testing.T) {
 }
 
 func TestInt64PtrToFramework(t *testing.T) {
+	t.Parallel()
 	v := int64(42)
 	tests := []struct {
 		name     string
@@ -321,6 +333,7 @@ func TestInt64PtrToFramework(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestBoolToFramework(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input bool
@@ -340,6 +353,7 @@ func TestBoolToFramework(t *testing.T) {
 }
 
 func TestBoolPtrToFramework(t *testing.T) {
+	t.Parallel()
 	b := true
 	tests := []struct {
 		name     string
@@ -374,6 +388,7 @@ func TestBoolPtrToFramework(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestStringFromFramework(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input types.String
@@ -394,6 +409,7 @@ func TestStringFromFramework(t *testing.T) {
 }
 
 func TestBoolFromFramework(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input types.Bool
@@ -415,6 +431,7 @@ func TestBoolFromFramework(t *testing.T) {
 }
 
 func TestInt64PtrFromFramework(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		input  types.Int64

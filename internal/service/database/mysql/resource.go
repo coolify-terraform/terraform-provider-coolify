@@ -92,7 +92,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 		resp.Diagnostics.AddError("Error reading MySQL database after creation", err.Error())
 		return
 	}
-	mapToModel(db, &plan)
+	flattenDatabase(db, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -111,7 +111,7 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 		resp.Diagnostics.AddError("Error reading MySQL database", err.Error())
 		return
 	}
-	mapToModel(db, &state)
+	flattenDatabase(db, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -146,7 +146,7 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 		resp.Diagnostics.AddError("Error reading MySQL database after update", err.Error())
 		return
 	}
-	mapToModel(db, &plan)
+	flattenDatabase(db, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -169,7 +169,7 @@ func (r *mysqlDatabaseResource) ImportState(ctx context.Context, req resource.Im
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 
-func mapToModel(db *client.Database, m *mysqlDatabaseResourceModel) {
+func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
 	m.UUID = types.StringValue(db.UUID)
 	m.Name = types.StringValue(db.Name)
 	m.Image = postgresql.StringOrNull(db.Image)

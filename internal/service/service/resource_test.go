@@ -74,6 +74,7 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 }
 
 func TestServiceResource_CreateImport(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockServiceServer()
 	defer srv.Close()
 
@@ -114,6 +115,7 @@ resource "coolify_service" "test" {
 }
 
 func TestServiceResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	svcUUID := "svc-disappear-uuid-001"
@@ -203,6 +205,7 @@ resource "coolify_service" "test" {
 }
 
 func TestServiceResource_DescriptionRequiresReplace(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	createCount := 0
 	services := map[string]string{} // uuid -> description

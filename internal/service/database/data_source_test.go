@@ -13,6 +13,7 @@ import (
 )
 
 func TestDatabaseDataSource(t *testing.T) {
+	t.Parallel()
 	dbUUID := "db-ds-uuid-1"
 	var publicPort int64 = 5432
 

@@ -98,6 +98,7 @@ func newMockPostgresServer() (*httptest.Server, *mockPostgresState) {
 }
 
 func TestPostgresqlDatabaseResource_CreateUpdateImport(t *testing.T) {
+	t.Parallel()
 	srv, state := newMockPostgresServer()
 	defer srv.Close()
 
@@ -182,6 +183,7 @@ resource "coolify_postgresql_database" "test" {
 }
 
 func TestPostgresqlDatabaseResource_DescriptionNullHandling(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	description := "initial"
 	pgUUID := "pg-desc-uuid-001"
@@ -278,6 +280,7 @@ resource "coolify_postgresql_database" "test" {
 }
 
 func TestPostgresqlDatabaseResource_InvalidPort(t *testing.T) {
+	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
 
@@ -304,6 +307,7 @@ resource "coolify_postgresql_database" "test" {
 }
 
 func TestPostgresqlDatabaseResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	pgUUID := "pg-disappear-uuid-001"

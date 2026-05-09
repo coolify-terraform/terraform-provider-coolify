@@ -82,6 +82,7 @@ func newMockKeydbServer() (*httptest.Server, *mockKeydbState) {
 }
 
 func TestKeydbDatabaseResource_Create(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockKeydbServer()
 	defer srv.Close()
 
@@ -108,6 +109,7 @@ resource "coolify_keydb_database" "test" {
 }
 
 func TestKeydbDatabaseResource_Update(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockKeydbServer()
 	defer srv.Close()
 
@@ -144,6 +146,7 @@ resource "coolify_keydb_database" "test" {
 }
 
 func TestKeydbDatabaseResource_Import(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockKeydbServer()
 	defer srv.Close()
 
@@ -170,6 +173,7 @@ resource "coolify_keydb_database" "test" {
 }
 
 func TestKeydbDatabaseResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	dbUUID := "keydb-disappear-uuid-001"

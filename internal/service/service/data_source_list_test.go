@@ -13,6 +13,7 @@ import (
 )
 
 func TestServicesListDataSource(t *testing.T) {
+	t.Parallel()
 	services := []client.Service{
 		{
 			UUID:        "svc-list-uuid-1",

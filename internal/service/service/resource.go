@@ -84,7 +84,7 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Error reading service after creation", err.Error())
 		return
 	}
-	mapServiceToModel(svc, &plan)
+	flattenService(svc, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -102,7 +102,7 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 		resp.Diagnostics.AddError("Error reading service", err.Error())
 		return
 	}
-	mapServiceToModel(svc, &state)
+	flattenService(svc, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 func (r *serviceResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -131,7 +131,7 @@ func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportSt
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 
-func mapServiceToModel(svc *client.Service, m *serviceResourceModel) {
+func flattenService(svc *client.Service, m *serviceResourceModel) {
 	m.UUID = types.StringValue(svc.UUID)
 	m.Name = flex.StringToFramework(svc.Name)
 	m.Description = flex.StringToFramework(svc.Description)

@@ -94,6 +94,7 @@ func newMockMysqlServer() (*httptest.Server, *mockMysqlState) {
 }
 
 func TestMysqlDatabaseResource_CreateUpdateImport(t *testing.T) {
+	t.Parallel()
 	srv, _ := newMockMysqlServer()
 	defer srv.Close()
 
@@ -171,6 +172,7 @@ resource "coolify_mysql_database" "test" {
 }
 
 func TestMysqlDatabaseResource_Disappears(t *testing.T) {
+	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
 	mysqlUUID := "mysql-disappear-uuid-001"

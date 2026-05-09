@@ -212,7 +212,7 @@ func (r *DockerImageApplicationResource) Create(ctx context.Context, req resourc
 		return
 	}
 
-	mapDockerAppToState(app, &plan)
+	flattenDockerImageApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -233,7 +233,7 @@ func (r *DockerImageApplicationResource) Read(ctx context.Context, req resource.
 		return
 	}
 
-	mapDockerAppToState(app, &state)
+	flattenDockerImageApplication(app, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -268,7 +268,7 @@ func (r *DockerImageApplicationResource) Update(ctx context.Context, req resourc
 		return
 	}
 
-	mapDockerAppToState(app, &plan)
+	flattenDockerImageApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -293,8 +293,8 @@ func (r *DockerImageApplicationResource) ImportState(ctx context.Context, req re
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 }
 
-// mapDockerAppToState copies API fields into the Terraform state model.
-func mapDockerAppToState(app *client.Application, state *DockerImageApplicationResourceModel) {
+// flattenDockerImageApplication copies API fields into the Terraform state model.
+func flattenDockerImageApplication(app *client.Application, state *DockerImageApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)

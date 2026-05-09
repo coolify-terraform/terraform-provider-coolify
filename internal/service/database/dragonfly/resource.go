@@ -69,7 +69,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		resp.Diagnostics.AddError("Error reading Dragonfly database", err.Error())
 		return
 	}
-	toModel(db, &p)
+	flattenDatabase(db, &p)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 }
 func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -87,7 +87,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 		resp.Diagnostics.AddError("Error reading Dragonfly database", err.Error())
 		return
 	}
-	toModel(db, &s)
+	flattenDatabase(db, &s)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &s)...)
 }
 func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -116,7 +116,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		resp.Diagnostics.AddError("Error reading Dragonfly database", err.Error())
 		return
 	}
-	toModel(db, &p)
+	flattenDatabase(db, &p)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 }
 func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -136,7 +136,7 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
-func toModel(db *client.Database, m *model) {
+func flattenDatabase(db *client.Database, m *model) {
 	m.UUID = types.StringValue(db.UUID)
 	m.Name = types.StringValue(db.Name)
 	m.Image = pg.StringOrNull(db.Image)
