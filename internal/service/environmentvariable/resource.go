@@ -137,9 +137,9 @@ func (r *EnvironmentVariableResource) Create(ctx context.Context, req resource.C
 	var err error
 
 	if !plan.ApplicationUUID.IsNull() && !plan.ApplicationUUID.IsUnknown() {
-		createResp, err = r.client.CreateApplicationEnvVar(plan.ApplicationUUID.ValueString(), ev)
+		createResp, err = r.client.CreateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev)
 	} else if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
-		createResp, err = r.client.CreateServiceEnvVar(plan.ServiceUUID.ValueString(), ev)
+		createResp, err = r.client.CreateServiceEnvVar(ctx, plan.ServiceUUID.ValueString(), ev)
 	} else {
 		resp.Diagnostics.AddError("Configuration Error", "Either application_uuid or service_uuid must be set")
 		return
@@ -165,9 +165,9 @@ func (r *EnvironmentVariableResource) Read(ctx context.Context, req resource.Rea
 	var err error
 
 	if !state.ApplicationUUID.IsNull() && !state.ApplicationUUID.IsUnknown() {
-		envVars, err = r.client.ListApplicationEnvVars(state.ApplicationUUID.ValueString())
+		envVars, err = r.client.ListApplicationEnvVars(ctx, state.ApplicationUUID.ValueString())
 	} else if !state.ServiceUUID.IsNull() && !state.ServiceUUID.IsUnknown() {
-		envVars, err = r.client.ListServiceEnvVars(state.ServiceUUID.ValueString())
+		envVars, err = r.client.ListServiceEnvVars(ctx, state.ServiceUUID.ValueString())
 	} else {
 		resp.Diagnostics.AddError("Configuration Error", "Either application_uuid or service_uuid must be set")
 		return
@@ -216,9 +216,9 @@ func (r *EnvironmentVariableResource) Update(ctx context.Context, req resource.U
 	var err error
 
 	if !plan.ApplicationUUID.IsNull() && !plan.ApplicationUUID.IsUnknown() {
-		err = r.client.UpdateApplicationEnvVar(plan.ApplicationUUID.ValueString(), ev)
+		err = r.client.UpdateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev)
 	} else if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
-		err = r.client.UpdateServiceEnvVar(plan.ServiceUUID.ValueString(), ev)
+		err = r.client.UpdateServiceEnvVar(ctx, plan.ServiceUUID.ValueString(), ev)
 	} else {
 		resp.Diagnostics.AddError("Configuration Error", "Either application_uuid or service_uuid must be set")
 		return
@@ -242,16 +242,20 @@ func (r *EnvironmentVariableResource) Delete(ctx context.Context, req resource.D
 	var err error
 
 	if !state.ApplicationUUID.IsNull() && !state.ApplicationUUID.IsUnknown() {
-		err = r.client.DeleteApplicationEnvVar(state.ApplicationUUID.ValueString(), state.UUID.ValueString())
+		err = r.client.DeleteApplicationEnvVar(ctx, state.ApplicationUUID.ValueString(), state.UUID.ValueString())
 	} else if !state.ServiceUUID.IsNull() && !state.ServiceUUID.IsUnknown() {
-		err = r.client.DeleteServiceEnvVar(state.ServiceUUID.ValueString(), state.UUID.ValueString())
+		err = r.client.DeleteServiceEnvVar(ctx, state.ServiceUUID.ValueString(), state.UUID.ValueString())
 	} else {
 		resp.Diagnostics.AddError("Configuration Error", "Either application_uuid or service_uuid must be set")
 		return
 	}
 
 	if err != nil {
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting environment variable", err.Error())
+		return
 	}
 }
 

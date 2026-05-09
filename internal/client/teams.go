@@ -20,14 +20,14 @@ type TeamMember struct {
 func (c *Client) GetTeam(ctx context.Context, id int) (*Team, error) {
 	var t Team
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/teams/%d", id), nil, &t); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting team %d: %w", id, err)
 	}
 	return &t, nil
 }
 func (c *Client) ListTeamMembers(ctx context.Context, id int) ([]TeamMember, error) {
 	var m []TeamMember
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/teams/%d/members", id), nil, &m); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing team %d members: %w", id, err)
 	}
 	return m, nil
 }

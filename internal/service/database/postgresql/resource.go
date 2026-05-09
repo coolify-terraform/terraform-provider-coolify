@@ -117,6 +117,10 @@ func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.Read
 	}
 	db, err := r.client.GetDatabase(ctx, state.UUID.ValueString())
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading PostgreSQL database", err.Error())
 		return
 	}
@@ -140,6 +144,8 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 	SetStrPtr(&input.Name, plan.Name)
 	SetStrPtr(&input.Description, plan.Description)
 	SetStrPtr(&input.Image, plan.Image)
+	SetBoolPtr(&input.IsPublic, plan.IsPublic)
+	SetInt64Ptr(&input.PublicPort, plan.PublicPort)
 	SetStrPtr(&input.PostgresUser, plan.PostgresUser)
 	SetStrPtr(&input.PostgresPassword, plan.PostgresPassword)
 	SetStrPtr(&input.PostgresDB, plan.PostgresDB)
@@ -163,7 +169,11 @@ func (r *postgresqlDatabaseResource) Delete(ctx context.Context, req resource.De
 		return
 	}
 	if err := r.client.DeleteDatabase(ctx, state.UUID.ValueString()); err != nil {
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting PostgreSQL database", err.Error())
+		return
 	}
 }
 
@@ -227,6 +237,22 @@ func SetStrPtr(dst **string, v types.String) {
 	if !v.IsNull() && !v.IsUnknown() {
 		s := v.ValueString()
 		*dst = &s
+	}
+}
+
+// SetBoolPtr sets dst to a pointer to the bool value if v is known and non-null.
+func SetBoolPtr(dst **bool, v types.Bool) {
+	if !v.IsNull() && !v.IsUnknown() {
+		b := v.ValueBool()
+		*dst = &b
+	}
+}
+
+// SetInt64Ptr sets dst to a pointer to the int64 value if v is known and non-null.
+func SetInt64Ptr(dst **int64, v types.Int64) {
+	if !v.IsNull() && !v.IsUnknown() {
+		i := v.ValueInt64()
+		*dst = &i
 	}
 }
 

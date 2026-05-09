@@ -233,8 +233,10 @@ func (r *serverResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	err := r.client.DeleteServer(ctx, state.UUID.ValueString())
-	if err != nil {
+	if err := r.client.DeleteServer(ctx, state.UUID.ValueString()); err != nil {
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting server", err.Error())
 		return
 	}

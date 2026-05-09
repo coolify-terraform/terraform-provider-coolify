@@ -101,9 +101,10 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	input := client.CreatePrivateKeyInput{
-		Name:        plan.Name.ValueString(),
-		Description: plan.Description.ValueString(),
-		PrivateKey:  plan.PrivateKey.ValueString(),
+		Name:         plan.Name.ValueString(),
+		Description:  plan.Description.ValueString(),
+		PrivateKey:   plan.PrivateKey.ValueString(),
+		IsGitRelated: plan.IsGitRelated.ValueBool(),
 	}
 
 	created, err := r.client.CreatePrivateKey(ctx, input)
@@ -194,8 +195,10 @@ func (r *privateKeyResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	err := r.client.DeletePrivateKey(ctx, state.UUID.ValueString())
-	if err != nil {
+	if err := r.client.DeletePrivateKey(ctx, state.UUID.ValueString()); err != nil {
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting private key", err.Error())
 		return
 	}

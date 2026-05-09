@@ -80,6 +80,10 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 	}
 	db, err := r.client.GetDatabase(ctx, s.UUID.ValueString())
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading Redis database", err.Error())
 		return
 	}
@@ -101,6 +105,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	pg.SetStrPtr(&u.Name, p.Name)
 	pg.SetStrPtr(&u.Description, p.Description)
 	pg.SetStrPtr(&u.Image, p.Image)
+	pg.SetBoolPtr(&u.IsPublic, p.IsPublic)
+	pg.SetInt64Ptr(&u.PublicPort, p.PublicPort)
 	if _, err := r.client.UpdateDatabase(ctx, s.UUID.ValueString(), u); err != nil {
 		resp.Diagnostics.AddError("Error updating Redis database", err.Error())
 		return
@@ -120,7 +126,11 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 		return
 	}
 	if err := r.client.DeleteDatabase(ctx, s.UUID.ValueString()); err != nil {
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting Redis database", err.Error())
+		return
 	}
 }
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

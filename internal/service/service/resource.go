@@ -90,6 +90,18 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	if svc.Description != "" {
 		plan.Description = types.StringValue(svc.Description)
 	}
+	if svc.Type != "" {
+		plan.Type = types.StringValue(svc.Type)
+	}
+	if svc.ProjectUUID != "" {
+		plan.ProjectUUID = types.StringValue(svc.ProjectUUID)
+	}
+	if svc.ServerUUID != "" {
+		plan.ServerUUID = types.StringValue(svc.ServerUUID)
+	}
+	if svc.EnvironmentName != "" {
+		plan.EnvironmentName = types.StringValue(svc.EnvironmentName)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -100,6 +112,10 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 	svc, err := r.client.GetService(ctx, state.UUID.ValueString())
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading service", err.Error())
 		return
 	}
@@ -110,15 +126,27 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if svc.Description != "" {
 		state.Description = types.StringValue(svc.Description)
 	}
+	if svc.Type != "" {
+		state.Type = types.StringValue(svc.Type)
+	}
+	if svc.ProjectUUID != "" {
+		state.ProjectUUID = types.StringValue(svc.ProjectUUID)
+	}
+	if svc.ServerUUID != "" {
+		state.ServerUUID = types.StringValue(svc.ServerUUID)
+	}
+	if svc.EnvironmentName != "" {
+		state.EnvironmentName = types.StringValue(svc.EnvironmentName)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
-func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan serviceResourceModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+func (r *serviceResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
+	resp.Diagnostics.AddError(
+		"Update not supported",
+		"The Coolify API does not support updating services in place. "+
+			"To change a service, destroy and recreate it. "+
+			"Mark mutable attributes with RequiresReplace() in the schema.",
+	)
 }
 func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state serviceResourceModel
@@ -127,7 +155,11 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 	if err := r.client.DeleteService(ctx, state.UUID.ValueString()); err != nil {
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting service", err.Error())
+		return
 	}
 }
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

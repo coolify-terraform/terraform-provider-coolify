@@ -104,6 +104,10 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 	}
 	db, err := r.client.GetDatabase(ctx, state.UUID.ValueString())
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading MySQL database", err.Error())
 		return
 	}
@@ -127,6 +131,8 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 	postgresql.SetStrPtr(&input.Name, plan.Name)
 	postgresql.SetStrPtr(&input.Description, plan.Description)
 	postgresql.SetStrPtr(&input.Image, plan.Image)
+	postgresql.SetBoolPtr(&input.IsPublic, plan.IsPublic)
+	postgresql.SetInt64Ptr(&input.PublicPort, plan.PublicPort)
 	postgresql.SetStrPtr(&input.MysqlUser, plan.MysqlUser)
 	postgresql.SetStrPtr(&input.MysqlPassword, plan.MysqlPassword)
 	postgresql.SetStrPtr(&input.MysqlDatabase, plan.MysqlDatabase)
@@ -151,7 +157,11 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 	if err := r.client.DeleteDatabase(ctx, state.UUID.ValueString()); err != nil {
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting MySQL database", err.Error())
+		return
 	}
 }
 

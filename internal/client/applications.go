@@ -55,24 +55,27 @@ type UpdateApplicationInput struct {
 func (c *Client) GetApplication(ctx context.Context, uuid string) (*Application, error) {
 	var a Application
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s", uuid), nil, &a); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting application %s: %w", uuid, err)
 	}
 	return &a, nil
 }
 func (c *Client) CreatePublicApplication(ctx context.Context, input CreatePublicAppInput) (*Application, error) {
 	var a Application
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/public", input, &a, http.StatusCreated); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating public application: %w", err)
 	}
 	return &a, nil
 }
 func (c *Client) UpdateApplication(ctx context.Context, uuid string, input UpdateApplicationInput) (*Application, error) {
 	var a Application
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s", uuid), input, &a); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("updating application %s: %w", uuid, err)
 	}
 	return &a, nil
 }
 func (c *Client) DeleteApplication(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s", uuid), nil, nil); err != nil {
+		return fmt.Errorf("deleting application %s: %w", uuid, err)
+	}
+	return nil
 }

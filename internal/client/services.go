@@ -27,23 +27,32 @@ type CreateServiceInput struct {
 func (c *Client) GetService(ctx context.Context, uuid string) (*Service, error) {
 	var s Service
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s", uuid), nil, &s); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting service %s: %w", uuid, err)
 	}
 	return &s, nil
 }
 func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*Service, error) {
 	var s Service
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/services", input, &s, http.StatusCreated); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating service: %w", err)
 	}
 	return &s, nil
 }
 func (c *Client) DeleteService(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/services/%s", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/services/%s", uuid), nil, nil); err != nil {
+		return fmt.Errorf("deleting service %s: %w", uuid, err)
+	}
+	return nil
 }
 func (c *Client) StartService(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/start", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/start", uuid), nil, nil); err != nil {
+		return fmt.Errorf("starting service %s: %w", uuid, err)
+	}
+	return nil
 }
 func (c *Client) StopService(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/stop", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/stop", uuid), nil, nil); err != nil {
+		return fmt.Errorf("stopping service %s: %w", uuid, err)
+	}
+	return nil
 }

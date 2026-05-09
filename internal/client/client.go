@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 // Client is the Coolify API client.
@@ -19,10 +22,25 @@ type Client struct {
 
 // New creates a new Coolify API client.
 func New(baseURL, apiToken string) *Client {
+	rc := retryablehttp.NewClient()
+	rc.RetryMax = 3
+	rc.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if err != nil {
+			return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+		}
+		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+			return true, nil
+		}
+		return false, nil
+	}
+	rc.Logger = nil
+	httpClient := rc.StandardClient()
+	httpClient.Timeout = 30 * time.Second
+
 	return &Client{
 		BaseURL:    baseURL,
 		APIToken:   apiToken,
-		HTTPClient: &http.Client{},
+		HTTPClient: httpClient,
 	}
 }
 
@@ -61,8 +79,11 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.APIToken)
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "terraform-provider-coolify")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -75,17 +96,15 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		return fmt.Errorf("reading response: %w", err)
 	}
 
-	if expectedStatus != 0 {
-		if resp.StatusCode != expectedStatus {
-			return fmt.Errorf("expected status %d, got %d: %s", expectedStatus, resp.StatusCode, string(respBody))
-		}
-	} else {
-		if resp.StatusCode == http.StatusNotFound {
-			return &NotFoundError{Message: fmt.Sprintf("resource not found: %s", string(respBody))}
-		}
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
-		}
+	// Check 404 first, regardless of expectedStatus.
+	if resp.StatusCode == http.StatusNotFound {
+		return &NotFoundError{Message: fmt.Sprintf("resource not found: %s", string(respBody))}
+	}
+	if expectedStatus != 0 && resp.StatusCode != expectedStatus {
+		return fmt.Errorf("expected status %d, got %d: %s", expectedStatus, resp.StatusCode, string(respBody))
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	if result != nil && len(respBody) > 0 {
@@ -95,54 +114,4 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	}
 
 	return nil
-}
-
-// -------------------------------------------------------------------------
-// MongoDB legacy helpers (used by the mongodb resource)
-// -------------------------------------------------------------------------
-
-// CreateDatabaseRequest is a freeform map used by the MongoDB legacy API.
-type CreateDatabaseRequest map[string]interface{}
-
-// UpdateDatabaseRequest is a freeform map used by the MongoDB legacy API.
-type UpdateDatabaseRequest map[string]interface{}
-
-// DatabaseResponse is the shape returned by the legacy database endpoints.
-type DatabaseResponse struct {
-	UUID                    string `json:"uuid"`
-	Name                    string `json:"name"`
-	Description             string `json:"description,omitempty"`
-	Image                   string `json:"image,omitempty"`
-	IsPublic                bool   `json:"is_public"`
-	PublicPort              *int64 `json:"public_port,omitempty"`
-	ProjectUUID             string `json:"project_uuid,omitempty"`
-	ServerUUID              string `json:"server_uuid,omitempty"`
-	EnvironmentName         string `json:"environment_name,omitempty"`
-	MongoInitdbRootUsername string `json:"mongo_initdb_root_username,omitempty"`
-	MongoInitdbRootPassword string `json:"mongo_initdb_root_password,omitempty"`
-	MongoInitdbDatabase     string `json:"mongo_initdb_database,omitempty"`
-}
-
-func (c *Client) CreateMongodbDatabaseLegacy(body CreateDatabaseRequest) (*DatabaseResponse, error) {
-	var resp DatabaseResponse
-	if err := c.doWithStatus(context.Background(), http.MethodPost, "/api/v1/databases/mongodb", body, &resp, http.StatusCreated); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-func (c *Client) GetDatabaseLegacy(uuid string) (*DatabaseResponse, error) {
-	var resp DatabaseResponse
-	if err := c.do(context.Background(), http.MethodGet, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
-func (c *Client) UpdateDatabaseLegacy(uuid string, body UpdateDatabaseRequest) error {
-	return c.do(context.Background(), http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s", uuid), body, nil)
-}
-
-func (c *Client) DeleteDatabaseLegacy(uuid string) error {
-	return c.do(context.Background(), http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, nil)
 }

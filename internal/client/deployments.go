@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type Deployment struct {
@@ -19,17 +20,22 @@ type DeployByTagInput struct {
 func (c *Client) ListDeployments(ctx context.Context) ([]Deployment, error) {
 	var r []Deployment
 	if err := c.do(ctx, http.MethodGet, "/api/v1/deployments", nil, &r); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing deployments: %w", err)
 	}
 	return r, nil
 }
 func (c *Client) GetDeployment(ctx context.Context, uuid string) (*Deployment, error) {
 	var r Deployment
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/deployments/%s", uuid), nil, &r); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting deployment %s: %w", uuid, err)
 	}
 	return &r, nil
 }
 func (c *Client) DeployByTag(ctx context.Context, tag string, input DeployByTagInput) error {
-	return c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/deploy?tag=%s", tag), input, nil)
+	q := url.Values{}
+	q.Set("tag", tag)
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/deploy?%s", q.Encode()), input, nil); err != nil {
+		return fmt.Errorf("deploying by tag %s: %w", tag, err)
+	}
+	return nil
 }

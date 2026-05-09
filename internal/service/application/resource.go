@@ -6,12 +6,14 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -113,6 +115,9 @@ func (r *ApplicationResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"build_pack": schema.StringAttribute{
 				MarkdownDescription: "The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("nixpacks", "dockerfile", "dockercompose", "static"),
+				},
 			},
 			"ports_exposes": schema.StringAttribute{
 				MarkdownDescription: "The ports to expose (for example `3000`).",
@@ -285,7 +290,11 @@ func (r *ApplicationResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 
 	if err := r.client.DeleteApplication(ctx, state.UUID.ValueString()); err != nil {
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError("Error deleting application", err.Error())
+		return
 	}
 }
 

@@ -42,7 +42,7 @@ func ConfigProviderBlock() string {
 	return fmt.Sprintf(`
 provider "coolify" {
   endpoint  = %q
-  api_token = %q
+  token     = %q
 }
 `, os.Getenv("COOLIFY_ENDPOINT"), os.Getenv("COOLIFY_TOKEN"))
 }

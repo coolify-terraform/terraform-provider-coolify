@@ -43,7 +43,7 @@ type CreatePostgresqlInput struct {
 	PostgresPassword string `json:"postgres_password,omitempty"`
 	PostgresDB       string `json:"postgres_db,omitempty"`
 	IsPublic         *bool  `json:"is_public,omitempty"`
-	PublicPort       *int   `json:"public_port,omitempty"`
+	PublicPort       *int64 `json:"public_port,omitempty"`
 }
 type CreateMysqlInput struct {
 	ServerUUID        string `json:"server_uuid"`
@@ -57,7 +57,7 @@ type CreateMysqlInput struct {
 	MysqlPassword     string `json:"mysql_password,omitempty"`
 	MysqlDatabase     string `json:"mysql_database,omitempty"`
 	IsPublic          *bool  `json:"is_public,omitempty"`
-	PublicPort        *int   `json:"public_port,omitempty"`
+	PublicPort        *int64 `json:"public_port,omitempty"`
 }
 type CreateMariadbInput struct {
 	ServerUUID          string `json:"server_uuid"`
@@ -71,7 +71,7 @@ type CreateMariadbInput struct {
 	MariadbPassword     string `json:"mariadb_password,omitempty"`
 	MariadbDatabase     string `json:"mariadb_database,omitempty"`
 	IsPublic            *bool  `json:"is_public,omitempty"`
-	PublicPort          *int   `json:"public_port,omitempty"`
+	PublicPort          *int64 `json:"public_port,omitempty"`
 }
 type CreateRedisInput struct {
 	ServerUUID      string `json:"server_uuid"`
@@ -81,7 +81,7 @@ type CreateRedisInput struct {
 	Description     string `json:"description,omitempty"`
 	Image           string `json:"image,omitempty"`
 	IsPublic        *bool  `json:"is_public,omitempty"`
-	PublicPort      *int   `json:"public_port,omitempty"`
+	PublicPort      *int64 `json:"public_port,omitempty"`
 }
 type CreateMongodbInput struct {
 	ServerUUID              string `json:"server_uuid"`
@@ -94,7 +94,7 @@ type CreateMongodbInput struct {
 	MongoInitdbRootPassword string `json:"mongo_initdb_root_password,omitempty"`
 	MongoInitdbDatabase     string `json:"mongo_initdb_database,omitempty"`
 	IsPublic                *bool  `json:"is_public,omitempty"`
-	PublicPort              *int   `json:"public_port,omitempty"`
+	PublicPort              *int64 `json:"public_port,omitempty"`
 }
 type UpdateDatabaseInput struct {
 	Name                    *string `json:"name,omitempty"`
@@ -121,58 +121,67 @@ type UpdateDatabaseInput struct {
 func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error) {
 	var d Database
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, &d); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting database %s: %w", uuid, err)
 	}
 	return &d, nil
 }
 func (c *Client) CreatePostgresqlDatabase(ctx context.Context, input CreatePostgresqlInput) (*Database, error) {
 	var d Database
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/postgresql", input, &d, http.StatusCreated); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating postgresql database: %w", err)
 	}
 	return &d, nil
 }
 func (c *Client) CreateMysqlDatabase(ctx context.Context, input CreateMysqlInput) (*Database, error) {
 	var d Database
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mysql", input, &d, http.StatusCreated); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating mysql database: %w", err)
 	}
 	return &d, nil
 }
 func (c *Client) CreateMariadbDatabase(ctx context.Context, input CreateMariadbInput) (*Database, error) {
 	var d Database
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mariadb", input, &d, http.StatusCreated); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating mariadb database: %w", err)
 	}
 	return &d, nil
 }
 func (c *Client) CreateRedisDatabase(ctx context.Context, input CreateRedisInput) (*Database, error) {
 	var d Database
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/redis", input, &d, http.StatusCreated); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating redis database: %w", err)
 	}
 	return &d, nil
 }
 func (c *Client) CreateMongodbDatabase(ctx context.Context, input CreateMongodbInput) (*Database, error) {
 	var d Database
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mongodb", input, &d, http.StatusCreated); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating mongodb database: %w", err)
 	}
 	return &d, nil
 }
 func (c *Client) UpdateDatabase(ctx context.Context, uuid string, input UpdateDatabaseInput) (*Database, error) {
 	var d Database
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s", uuid), input, &d); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("updating database %s: %w", uuid, err)
 	}
 	return &d, nil
 }
 func (c *Client) DeleteDatabase(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, nil); err != nil {
+		return fmt.Errorf("deleting database %s: %w", uuid, err)
+	}
+	return nil
 }
 func (c *Client) StartDatabase(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/start", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/start", uuid), nil, nil); err != nil {
+		return fmt.Errorf("starting database %s: %w", uuid, err)
+	}
+	return nil
 }
 func (c *Client) StopDatabase(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/stop", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/stop", uuid), nil, nil); err != nil {
+		return fmt.Errorf("stopping database %s: %w", uuid, err)
+	}
+	return nil
 }
