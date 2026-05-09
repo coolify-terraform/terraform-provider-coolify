@@ -1,0 +1,250 @@
+package application_test
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"sync"
+	"testing"
+
+	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
+	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+)
+
+// ---------------------------------------------------------------------------
+// TestPrivateGitApplicationResource_Create
+// ---------------------------------------------------------------------------
+
+func TestPrivateGitApplicationResource_Create(t *testing.T) {
+	app := client.Application{
+		UUID:          "pgit-app-uuid",
+		Name:          "api-server",
+		GitRepository: "git@github.com:myorg/api-server.git",
+		GitBranch:     "main",
+		BuildPack:     "dockerfile",
+		PortsExposes:  "8080",
+		ProjectUUID:   "proj-uuid",
+		ServerUUID:    "srv-uuid",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					name             = "api-server"
+					project_uuid     = "proj-uuid"
+					server_uuid      = "srv-uuid"
+					git_repository   = "git@github.com:myorg/api-server.git"
+					git_branch       = "main"
+					private_key_uuid = "pk-deploy-uuid"
+					build_pack       = "dockerfile"
+					ports_exposes    = "8080"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "uuid", "pgit-app-uuid"),
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "name", "api-server"),
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "git_repository", "git@github.com:myorg/api-server.git"),
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "git_branch", "main"),
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "build_pack", "dockerfile"),
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "ports_exposes", "8080"),
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "environment_name", "production"),
+				),
+			},
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					name             = "api-server"
+					project_uuid     = "proj-uuid"
+					server_uuid      = "srv-uuid"
+					git_repository   = "git@github.com:myorg/api-server.git"
+					git_branch       = "main"
+					private_key_uuid = "pk-deploy-uuid"
+					build_pack       = "dockerfile"
+					ports_exposes    = "8080"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestPrivateGitApplicationResource_Update
+// ---------------------------------------------------------------------------
+
+func TestPrivateGitApplicationResource_Update(t *testing.T) {
+	mu := sync.Mutex{}
+	currentApp := client.Application{
+		UUID:          "pgit-upd-uuid",
+		Name:          "api-server",
+		Description:   "initial desc",
+		GitRepository: "git@github.com:myorg/api-server.git",
+		GitBranch:     "main",
+		BuildPack:     "dockerfile",
+		PortsExposes:  "8080",
+		ProjectUUID:   "proj-uuid",
+		ServerUUID:    "srv-uuid",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["description"].(string); ok {
+			currentApp.Description = v
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					name             = "api-server"
+					project_uuid     = "proj-uuid"
+					server_uuid      = "srv-uuid"
+					git_repository   = "git@github.com:myorg/api-server.git"
+					private_key_uuid = "pk-deploy-uuid"
+					build_pack       = "dockerfile"
+					ports_exposes    = "8080"
+					description      = "initial desc"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "description", "initial desc"),
+				),
+			},
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					name             = "api-server"
+					project_uuid     = "proj-uuid"
+					server_uuid      = "srv-uuid"
+					git_repository   = "git@github.com:myorg/api-server.git"
+					private_key_uuid = "pk-deploy-uuid"
+					build_pack       = "dockerfile"
+					ports_exposes    = "8080"
+					description      = "updated desc"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_private_git_application.test", "description", "updated desc"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestPrivateGitApplicationResource_Import
+// ---------------------------------------------------------------------------
+
+func TestPrivateGitApplicationResource_Import(t *testing.T) {
+	app := client.Application{
+		UUID:          "pgit-imp-uuid",
+		Name:          "imported-pgit-app",
+		GitRepository: "git@github.com:myorg/api-server.git",
+		GitBranch:     "main",
+		BuildPack:     "dockerfile",
+		PortsExposes:  "8080",
+		ProjectUUID:   "proj-uuid",
+		ServerUUID:    "srv-uuid",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					name             = "imported-pgit-app"
+					project_uuid     = "proj-uuid"
+					server_uuid      = "srv-uuid"
+					git_repository   = "git@github.com:myorg/api-server.git"
+					private_key_uuid = "pk-deploy-uuid"
+					build_pack       = "dockerfile"
+					ports_exposes    = "8080"
+				`),
+			},
+			{
+				ResourceName:                         "coolify_private_git_application.test",
+				ImportState:                          true,
+				ImportStateId:                        "pgit-imp-uuid",
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateVerifyIgnore:              []string{"environment_name", "private_key_uuid"},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+func testPrivateGitResourceConfig(endpoint, attrs string) string {
+	return fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+resource "coolify_private_git_application" "test" {
+  %s
+}
+`, endpoint, attrs)
+}

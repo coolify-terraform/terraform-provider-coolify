@@ -1421,3 +1421,246 @@ func TestClient_CreateDockerImageApplication(t *testing.T) {
 	assert.Equal(t, "docker-app-new", app.UUID)
 	assert.Equal(t, "my-nginx", app.Name)
 }
+
+// --- Service Environment Variables ---
+
+func TestClient_CreateServiceEnvVar(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-1/envs", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var ev EnvironmentVariable
+		require.NoError(t, json.Unmarshal(body, &ev))
+		assert.Equal(t, "REDIS_URL", ev.Key)
+		assert.Equal(t, "redis://localhost:6379", ev.Value)
+		assert.True(t, ev.IsBuild)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CreateEnvVarResponse{UUID: "svc-env-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	resp, err := c.CreateServiceEnvVar(context.Background(), "svc-1", EnvironmentVariable{
+		Key:     "REDIS_URL",
+		Value:   "redis://localhost:6379",
+		IsBuild: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "svc-env-new", resp.UUID)
+}
+
+func TestClient_ListServiceEnvVars(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-1/envs", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]EnvironmentVariable{
+			{UUID: "sev-1", Key: "PORT", Value: "5000", IsPreview: false, IsBuild: false},
+			{UUID: "sev-2", Key: "SECRET", Value: "xyz", IsPreview: true, IsBuild: true},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	vars, err := c.ListServiceEnvVars(context.Background(), "svc-1")
+	require.NoError(t, err)
+	require.Len(t, vars, 2)
+	assert.Equal(t, "PORT", vars[0].Key)
+	assert.Equal(t, "5000", vars[0].Value)
+	assert.False(t, vars[0].IsPreview)
+	assert.Equal(t, "SECRET", vars[1].Key)
+	assert.True(t, vars[1].IsPreview)
+	assert.True(t, vars[1].IsBuild)
+}
+
+func TestClient_UpdateServiceEnvVar(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-env-1/envs", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var ev EnvironmentVariable
+		require.NoError(t, json.Unmarshal(body, &ev))
+		assert.Equal(t, "REDIS_URL", ev.Key)
+		assert.Equal(t, "redis://new-host:6379", ev.Value)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.UpdateServiceEnvVar(context.Background(), "svc-env-1", EnvironmentVariable{
+		Key:   "REDIS_URL",
+		Value: "redis://new-host:6379",
+	})
+	require.NoError(t, err)
+}
+
+func TestClient_DeleteServiceEnvVar(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-1/envs/sev-del", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteServiceEnvVar(context.Background(), "svc-1", "sev-del")
+	require.NoError(t, err)
+}
+
+// --- Private Keys (remaining) ---
+
+func TestClient_UpdatePrivateKey(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/security/keys/pk-upd", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdatePrivateKeyInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "renamed-key", *input.Name)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(PrivateKey{UUID: "pk-upd", Name: "renamed-key"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "renamed-key"
+	k, err := c.UpdatePrivateKey(context.Background(), "pk-upd", UpdatePrivateKeyInput{Name: &name})
+	require.NoError(t, err)
+	assert.Equal(t, "pk-upd", k.UUID)
+	assert.Equal(t, "renamed-key", k.Name)
+}
+
+// --- Projects (remaining) ---
+
+func TestClient_UpdateProject(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/projects/proj-upd", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateProjectInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "Renamed Project", *input.Name)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Project{UUID: "proj-upd", Name: "Renamed Project"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "Renamed Project"
+	proj, err := c.UpdateProject(context.Background(), "proj-upd", UpdateProjectInput{Name: &name})
+	require.NoError(t, err)
+	assert.Equal(t, "proj-upd", proj.UUID)
+	assert.Equal(t, "Renamed Project", proj.Name)
+}
+
+// --- Services (remaining) ---
+
+func TestClient_ListServices(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/services", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Service{
+			{UUID: "svc-1", Name: "wordpress", Type: "wordpress", ServerUUID: "srv-1", ProjectUUID: "proj-1", EnvironmentName: "production"},
+			{UUID: "svc-2", Name: "plausible", Type: "plausible", ServerUUID: "srv-2", ProjectUUID: "proj-2", EnvironmentName: "staging"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	svcs, err := c.ListServices(context.Background())
+	require.NoError(t, err)
+	require.Len(t, svcs, 2)
+	assert.Equal(t, "svc-1", svcs[0].UUID)
+	assert.Equal(t, "wordpress", svcs[0].Name)
+	assert.Equal(t, "wordpress", svcs[0].Type)
+	assert.Equal(t, "srv-1", svcs[0].ServerUUID)
+	assert.Equal(t, "svc-2", svcs[1].UUID)
+	assert.Equal(t, "plausible", svcs[1].Name)
+	assert.Equal(t, "staging", svcs[1].EnvironmentName)
+}
+
+func TestClient_StartService(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-start/start", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.StartService(context.Background(), "svc-start")
+	require.NoError(t, err)
+}
+
+func TestClient_StopService(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-stop/stop", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.StopService(context.Background(), "svc-stop")
+	require.NoError(t, err)
+}
+
+// --- Private Git Application ---
+
+func TestClient_CreatePrivateGitApplication(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/private-github-app", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreatePrivateGitAppInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "srv-1", input.ServerUUID)
+		assert.Equal(t, "production", input.EnvironmentName)
+		assert.Equal(t, "git@github.com:org/repo.git", input.GitRepository)
+		assert.Equal(t, "main", input.GitBranch)
+		assert.Equal(t, "dockerfile", input.BuildPack)
+		assert.Equal(t, "8080", input.PortsExposes)
+		assert.Equal(t, "pk-deploy", input.PrivateKeyUUID)
+		assert.Equal(t, "my-api", input.Name)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "pgit-app-new", Name: "my-api"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.CreatePrivateGitApplication(context.Background(), CreatePrivateGitAppInput{
+		ProjectUUID:     "proj-1",
+		ServerUUID:      "srv-1",
+		EnvironmentName: "production",
+		GitRepository:   "git@github.com:org/repo.git",
+		GitBranch:       "main",
+		BuildPack:       "dockerfile",
+		PortsExposes:    "8080",
+		PrivateKeyUUID:  "pk-deploy",
+		Name:            "my-api",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "pgit-app-new", app.UUID)
+	assert.Equal(t, "my-api", app.Name)
+}
