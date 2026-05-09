@@ -348,3 +348,25 @@ resource "coolify_application" "test" {
 }
 `, endpoint, attrs)
 }
+
+func TestApplicationResource_InvalidFQDN(t *testing.T) {
+	srv := httptest.NewServer(http.NotFoundHandler())
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "proj-uuid"
+					server_uuid    = "srv-uuid"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+					fqdn           = "app.example.com"
+				`),
+				ExpectError: regexp.MustCompile(`must start with http:// or https://`),
+			},
+		},
+	})
+}

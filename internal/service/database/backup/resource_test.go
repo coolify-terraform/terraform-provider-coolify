@@ -323,3 +323,22 @@ func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
 		},
 	})
 }
+
+func TestDatabaseBackupResource_InvalidCron(t *testing.T) {
+	srv, _ := newMockBackupServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "db-uuid-001"
+					frequency     = "not a cron"
+					enabled       = true
+				`),
+				ExpectError: regexp.MustCompile(`must be a valid cron expression`),
+			},
+		},
+	})
+}
