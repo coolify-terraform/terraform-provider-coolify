@@ -64,7 +64,7 @@ func (r *deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "The current status of the deployment.",
+				MarkdownDescription: "The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `error`. The deployment may still be `in_progress` when `terraform apply` completes.",
 				Computed:            true,
 			},
 			"triggers": schema.MapAttribute{

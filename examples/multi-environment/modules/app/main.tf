@@ -49,6 +49,7 @@ resource "coolify_application" "app" {
   fqdn             = "https://${var.domain}"
 }
 
+# The database 'name' is the Docker container name, used as internal hostname.
 resource "coolify_environment_variable" "db_url" {
   application_uuid = coolify_application.app.uuid
   key              = "DATABASE_URL"

@@ -36,6 +36,13 @@ provider "coolify" {
 }
 ```
 
+## Getting Started
+
+- **[Quick Start](guides/quickstart)** - Deploy your first application in under 5 minutes
+- **[Installation](guides/installation)** - Detailed setup and configuration options
+- **[Concepts](guides/concepts)** - How Coolify resources map to Terraform
+- **[Import Guide](guides/import)** - Bring existing Coolify resources under Terraform management
+
 ## Resource Overview
 
 | Category | Resources |

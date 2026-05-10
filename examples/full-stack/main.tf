@@ -104,6 +104,8 @@ resource "coolify_application" "web" {
 }
 
 # --- Environment Variables ---
+# In Coolify, the resource 'name' is also the Docker container name,
+# which serves as the internal hostname for service-to-service communication.
 
 resource "coolify_environment_variable" "database_url" {
   application_uuid = coolify_application.web.uuid

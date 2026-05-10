@@ -33,9 +33,9 @@ resource "coolify_service" "monitoring" {
 
 ### Optional
 
-- `description` (String) A description of the service. Changing this forces a new resource.
+- `description` (String) A description of the service.
 - `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
-- `name` (String) The name of the service. Changing this forces a new resource.
+- `name` (String) The name of the service.
 
 ### Read-Only
 

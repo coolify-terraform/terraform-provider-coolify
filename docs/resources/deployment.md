@@ -35,7 +35,7 @@ resource "coolify_deployment" "web" {
 
 ### Read-Only
 
-- `status` (String) The current status of the deployment.
+- `status` (String) The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `error`. The deployment may still be `in_progress` when `terraform apply` completes.
 - `uuid` (String) The UUID of the deployment.
 
 ## Import
