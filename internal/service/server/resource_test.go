@@ -12,7 +12,6 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func testProviderBlock(serverURL string) string {
@@ -252,24 +251,7 @@ resource "coolify_server" "test" {
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_server.test", "uuid"),
-					// Delete the server out-of-band via the mock API.
-					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["coolify_server.test"]
-						if !ok {
-							return fmt.Errorf("resource not found in state")
-						}
-						uuid := rs.Primary.Attributes["uuid"]
-						req, err := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/servers/"+uuid, nil)
-						if err != nil {
-							return err
-						}
-						resp, err := http.DefaultClient.Do(req)
-						if err != nil {
-							return err
-						}
-						resp.Body.Close()
-						return nil
-					},
+					acctest.CheckResourceDisappears(srv.URL, "coolify_server.test", "/api/v1/servers/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},

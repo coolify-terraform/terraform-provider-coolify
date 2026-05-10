@@ -12,7 +12,6 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 type mockPostgresState struct {
@@ -374,24 +373,7 @@ resource "coolify_postgresql_database" "test" {
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "uuid"),
-					// Delete the database out-of-band via the mock API.
-					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["coolify_postgresql_database.test"]
-						if !ok {
-							return fmt.Errorf("resource not found in state")
-						}
-						uuid := rs.Primary.Attributes["uuid"]
-						req, err := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/databases/"+uuid, nil)
-						if err != nil {
-							return err
-						}
-						resp, err := http.DefaultClient.Do(req)
-						if err != nil {
-							return err
-						}
-						resp.Body.Close()
-						return nil
-					},
+					acctest.CheckResourceDisappears(srv.URL, "coolify_postgresql_database.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},

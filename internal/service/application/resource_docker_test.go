@@ -11,7 +11,7 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
 )
 
 // ---------------------------------------------------------------------------
@@ -268,19 +268,7 @@ func TestDockerImageApplicationResource_Disappears(t *testing.T) {
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_docker_image_application.test", "uuid"),
-					func(s *terraform.State) error {
-						rs, ok := s.RootModule().Resources["coolify_docker_image_application.test"]
-						if !ok {
-							return fmt.Errorf("resource not found in state")
-						}
-						req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/applications/"+rs.Primary.Attributes["uuid"], nil)
-						resp, err := http.DefaultClient.Do(req)
-						if err != nil {
-							return err
-						}
-						resp.Body.Close()
-						return nil
-					},
+					acctest.CheckResourceDisappears(srv.URL, "coolify_docker_image_application.test", "/api/v1/applications/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},

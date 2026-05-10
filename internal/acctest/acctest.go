@@ -10,6 +10,8 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // WithVersionEndpoint wraps an http.Handler to also respond to
@@ -92,6 +94,69 @@ data "%s" "%s" {
   %s
 }
 `, ProviderBlockForURL(endpoint), dataSourceType, dataSourceName, attrs)
+}
+
+// CheckResourceDisappears returns a TestCheckFunc that deletes a resource
+// out-of-band via the mock API. Use in Disappears tests to simulate external
+// deletion. The deletePath should be the API path prefix (e.g., "/api/v1/servers/").
+// The resource's "uuid" attribute is appended to the path.
+//
+//	Check: resource.ComposeAggregateTestCheckFunc(
+//	    resource.TestCheckResourceAttrSet("coolify_server.test", "uuid"),
+//	    acctest.CheckResourceDisappears(srv.URL, "coolify_server.test", "/api/v1/servers/"),
+//	),
+//	ExpectNonEmptyPlan: true,
+func CheckResourceDisappears(serverURL, resourceAddr, apiPathPrefix string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceAddr]
+		if !ok {
+			return fmt.Errorf("resource %s not found in state", resourceAddr)
+		}
+		uuid := rs.Primary.Attributes["uuid"]
+		if uuid == "" {
+			return fmt.Errorf("resource %s has no uuid attribute", resourceAddr)
+		}
+		req, err := http.NewRequest(http.MethodDelete, serverURL+apiPathPrefix+uuid, nil)
+		if err != nil {
+			return err
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return err
+		}
+		resp.Body.Close()
+		return nil
+	}
+}
+
+// CheckDestroy returns a TestCheckFunc that verifies a resource no longer
+// exists via the mock API after the test completes. The apiPathPrefix is the
+// GET endpoint prefix (e.g., "/api/v1/servers/").
+func CheckDestroy(serverURL, resourceType, apiPathPrefix string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != resourceType {
+				continue
+			}
+			uuid := rs.Primary.Attributes["uuid"]
+			if uuid == "" {
+				continue
+			}
+			req, err := http.NewRequest(http.MethodGet, serverURL+apiPathPrefix+uuid, nil)
+			if err != nil {
+				return err
+			}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return fmt.Errorf("error checking destroy for %s/%s: %w", resourceType, uuid, err)
+			}
+			resp.Body.Close()
+			if resp.StatusCode != http.StatusNotFound {
+				return fmt.Errorf("%s %s still exists (status %d)", resourceType, uuid, resp.StatusCode)
+			}
+		}
+		return nil
+	}
 }
 
 // RequireEnv skips the test if the given environment variable is not set.
