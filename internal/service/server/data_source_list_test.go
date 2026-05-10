@@ -55,7 +55,7 @@ func TestServersDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(mockSrv.URL) + `
+				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
 data "coolify_servers" "test" {}`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coolify_servers.test", "servers.#", "2"),

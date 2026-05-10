@@ -34,7 +34,7 @@ func TestServerValidationDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(mockSrv.URL) + `
+				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
 data "coolify_server_validation" "test" {
   uuid = "550e8400-e29b-41d4-a716-446655440000"
 }`,

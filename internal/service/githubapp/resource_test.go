@@ -201,21 +201,14 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 	return server, store
 }
 
-func testProviderBlock(serverURL string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-`, serverURL)
-}
+
 
 func TestGitHubAppResource_Create(t *testing.T) {
 	t.Parallel()
 	server, _ := newMockCoolifyServer(t)
 	defer server.Close()
 
-	config := testProviderBlock(server.URL) + `
+	config := acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_github_app" "test" {
   name            = "my-github-app"
   app_id          = 12345
@@ -259,7 +252,7 @@ func TestGitHubAppResource_Update(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_github_app" "test" {
   name            = "my-github-app"
   app_id          = 12345
@@ -277,7 +270,7 @@ resource "coolify_github_app" "test" {
 				),
 			},
 			{
-				Config: testProviderBlock(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_github_app" "test" {
   name            = "my-github-app-updated"
   app_id          = 12345
@@ -306,7 +299,7 @@ func TestGitHubAppResource_Import(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_github_app" "test" {
   name            = "import-app"
   app_id          = 11111
@@ -345,7 +338,7 @@ func TestGitHubAppResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_github_app" "test" {
   name            = "disappearing-app"
   app_id          = 99999
@@ -384,7 +377,7 @@ func TestGitHubAppsDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_github_app" "first" {
   name            = "first-app"
   app_id          = 111
@@ -424,7 +417,7 @@ func TestGitHubAppRepositoriesDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_github_app" "test" {
   name            = "repos-test-app"
   app_id          = 555
@@ -461,7 +454,7 @@ func TestGitHubAppBranchesDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_github_app" "test" {
   name            = "branches-test-app"
   app_id          = 777

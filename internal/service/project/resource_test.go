@@ -10,10 +10,7 @@ import (
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
-	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
 	"github.com/SebTardif/terraform-provider-coolify/internal/spectest"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -233,22 +230,7 @@ func (s *mockProjectStore) List() []*mockProject {
 	return result
 }
 
-// testProviderFactory returns a provider factory wired to the given server URL.
-func testProviderFactory(serverURL string) map[string]func() (tfprotov6.ProviderServer, error) {
-	return map[string]func() (tfprotov6.ProviderServer, error){
-		"coolify": providerserver.NewProtocol6WithError(provider.New("test")()),
-	}
-}
 
-// providerConfig returns the HCL provider block pointing at the mock server.
-func providerConfig(serverURL string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-`, serverURL)
-}
 
 func TestProjectResource_Create(t *testing.T) {
 	t.Parallel()
@@ -256,11 +238,11 @@ func TestProjectResource_Create(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy:             acctest.CheckDestroy(server.URL, "coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_project" "test" {
   name        = "my-project"
   description = "A test project"
@@ -273,7 +255,7 @@ resource "coolify_project" "test" {
 				),
 			},
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_project" "test" {
   name        = "my-project"
   description = "A test project"
@@ -292,10 +274,10 @@ func TestProjectResource_Update(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_project" "test" {
   name        = "original-name"
   description = "original description"
@@ -307,7 +289,7 @@ resource "coolify_project" "test" {
 				),
 			},
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_project" "test" {
   name        = "updated-name"
   description = "updated description"
@@ -328,10 +310,10 @@ func TestProjectResource_Import(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_project" "test" {
   name        = "import-project"
   description = "import test"
@@ -361,10 +343,10 @@ func TestProjectResource_Disappears(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_project" "test" {
   name = "disappearing-project"
 }
@@ -438,10 +420,10 @@ func TestProjectResource_ReadNotFound(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_project" "test" {
   name = "notfound-project"
 }
@@ -452,7 +434,7 @@ resource "coolify_project" "test" {
 				PreConfig: func() {
 					forceNotFound.Store(true)
 				},
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_project" "test" {
   name = "notfound-project"
 }
@@ -474,10 +456,10 @@ func TestProjectResource_SpecValidation(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-spec")
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + fmt.Sprintf(`
+				Config: acctest.ProviderBlockForURL(server.URL) + fmt.Sprintf(`
 resource "coolify_project" "test" {
   name        = %q
   description = "spec validation test"

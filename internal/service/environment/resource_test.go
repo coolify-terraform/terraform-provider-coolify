@@ -143,15 +143,7 @@ func newMockEnvironmentServer(auditT ...testing.TB) (*httptest.Server, *mockEnvi
 	return server, store
 }
 
-// providerConfig returns the HCL provider block pointing at the mock server.
-func providerConfig(serverURL string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-`, serverURL)
-}
+
 
 // checkEnvironmentDestroy verifies environments are deleted after test completion.
 func checkEnvironmentDestroy(serverURL string) resource.TestCheckFunc {
@@ -192,7 +184,7 @@ func TestEnvironmentResource_Create(t *testing.T) {
 		CheckDestroy:             checkEnvironmentDestroy(server.URL),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_environment" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   name         = "staging"
@@ -207,7 +199,7 @@ resource "coolify_environment" "test" {
 				),
 			},
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_environment" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   name         = "staging"
@@ -230,7 +222,7 @@ func TestEnvironmentResource_Import(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_environment" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   name         = "import-env"
@@ -257,7 +249,7 @@ func TestEnvironmentResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_environment" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   name         = "disappearing-env"

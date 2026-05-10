@@ -8,26 +8,6 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// StringValue
-// ---------------------------------------------------------------------------
-
-func TestStringValue(t *testing.T) {
-	t.Parallel()
-	got := flex.StringValue(types.StringValue("hello"))
-	if got != "hello" {
-		t.Fatalf("expected %q, got %q", "hello", got)
-	}
-}
-
-func TestStringValue_Null(t *testing.T) {
-	t.Parallel()
-	got := flex.StringValue(types.StringNull())
-	if got != "" {
-		t.Fatalf("expected empty string, got %q", got)
-	}
-}
-
-// ---------------------------------------------------------------------------
 // StringValueOrNull
 // ---------------------------------------------------------------------------
 
@@ -66,28 +46,6 @@ func TestStringValueOrNull(t *testing.T) {
 // Int64Value / Int64ValueOrNull
 // ---------------------------------------------------------------------------
 
-func TestInt64Value(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name  string
-		input types.Int64
-		want  int64
-	}{
-		{"positive", types.Int64Value(42), 42},
-		{"zero", types.Int64Value(0), 0},
-		{"negative", types.Int64Value(-7), -7},
-		{"null", types.Int64Null(), 0},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := flex.Int64Value(tc.input)
-			if got != tc.want {
-				t.Fatalf("expected %d, got %d", tc.want, got)
-			}
-		})
-	}
-}
-
 func TestInt64ValueOrNull(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -122,27 +80,6 @@ func TestInt64ValueOrNull(t *testing.T) {
 // ---------------------------------------------------------------------------
 // BoolValue / BoolValueOrNull
 // ---------------------------------------------------------------------------
-
-func TestBoolValue(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name  string
-		input types.Bool
-		want  bool
-	}{
-		{"true", types.BoolValue(true), true},
-		{"false", types.BoolValue(false), false},
-		{"null", types.BoolNull(), false},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := flex.BoolValue(tc.input)
-			if got != tc.want {
-				t.Fatalf("expected %v, got %v", tc.want, got)
-			}
-		})
-	}
-}
 
 func TestBoolValueOrNull(t *testing.T) {
 	t.Parallel()

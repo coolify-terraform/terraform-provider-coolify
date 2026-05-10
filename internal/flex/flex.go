@@ -4,11 +4,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// StringValue extracts the underlying Go string from a Terraform String value.
-func StringValue(v types.String) string {
-	return v.ValueString()
-}
-
 // StringValueOrNull extracts the underlying Go string as a pointer.
 // Returns nil if the Terraform value is null or unknown.
 func StringValueOrNull(v types.String) *string {
@@ -19,11 +14,6 @@ func StringValueOrNull(v types.String) *string {
 	return &s
 }
 
-// Int64Value extracts the underlying Go int64 from a Terraform Int64 value.
-func Int64Value(v types.Int64) int64 {
-	return v.ValueInt64()
-}
-
 // Int64ValueOrNull extracts the underlying Go int64 as a pointer.
 func Int64ValueOrNull(v types.Int64) *int64 {
 	if v.IsNull() || v.IsUnknown() {
@@ -31,11 +21,6 @@ func Int64ValueOrNull(v types.Int64) *int64 {
 	}
 	i := v.ValueInt64()
 	return &i
-}
-
-// BoolValue extracts the underlying Go bool from a Terraform Bool value.
-func BoolValue(v types.Bool) bool {
-	return v.ValueBool()
 }
 
 // BoolValueOrNull extracts the underlying Go bool as a pointer.

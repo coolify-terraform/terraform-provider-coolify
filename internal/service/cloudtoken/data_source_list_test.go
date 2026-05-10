@@ -16,7 +16,7 @@ func TestCloudTokenListDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_cloud_token" "first" {
   name           = "first-token"
   cloud_provider = "aws"

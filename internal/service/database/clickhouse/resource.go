@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	pg "github.com/SebTardif/terraform-provider-coolify/internal/service/database/postgresql"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -115,7 +116,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	pg.SetStrPtr(&u.Description, p.Description)
 	pg.SetStrPtr(&u.Image, p.Image)
 	pg.SetBoolPtr(&u.IsPublic, p.IsPublic)
-	pg.SetInt64Ptr(&u.PublicPort, p.PublicPort)
+	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	pg.SetStrPtr(&u.ClickhouseAdminUser, p.ClickhouseAdminUser)
 	pg.SetStrPtr(&u.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
 	if _, err := r.client.UpdateDatabase(ctx, s.UUID.ValueString(), u); err != nil {
@@ -150,13 +151,13 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 func flattenDatabase(db *client.Database, m *model) {
 	m.UUID = types.StringValue(db.UUID)
 	m.Name = types.StringValue(db.Name)
-	m.Image = pg.StringOrNull(db.Image)
+	m.Image = flex.StringToFramework(db.Image)
 	m.IsPublic = types.BoolValue(db.IsPublic)
-	m.PublicPort = pg.Int64PtrToFW(db.PublicPort)
-	m.ClickhouseAdminUser = pg.StringOrNull(db.ClickhouseAdminUser)
-	m.ClickhouseAdminPassword = pg.StringOrNull(db.ClickhouseAdminPassword)
-	m.Description = pg.StringOrNull(db.Description)
-	m.ProjectUUID = pg.StringOrNull(db.ProjectUUID)
-	m.ServerUUID = pg.StringOrNull(db.ServerUUID)
-	m.EnvironmentName = pg.StringOrNull(db.EnvironmentName)
+	m.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
+	m.ClickhouseAdminUser = flex.StringToFramework(db.ClickhouseAdminUser)
+	m.ClickhouseAdminPassword = flex.StringToFramework(db.ClickhouseAdminPassword)
+	m.Description = flex.StringToFramework(db.Description)
+	m.ProjectUUID = flex.StringToFramework(db.ProjectUUID)
+	m.ServerUUID = flex.StringToFramework(db.ServerUUID)
+	m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
 }

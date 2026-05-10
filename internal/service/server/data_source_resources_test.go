@@ -42,7 +42,7 @@ func TestServerResourcesDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(mockSrv.URL) + `
+				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
 data "coolify_server_resources" "test" {
   server_uuid = "bbbb0001-0001-4000-8000-000000000001"
 }`,

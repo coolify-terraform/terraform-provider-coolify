@@ -14,13 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func testProviderBlock(serverURL string) string {
-	return `
-provider "coolify" {
-  endpoint  = "` + serverURL + `"
-  token = "test-token"
-}`
-}
+
 
 func newServerMockServer() *httptest.Server {
 	servers := make(map[string]*client.Server)
@@ -127,7 +121,7 @@ func TestServerResource_Create(t *testing.T) {
 		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_server", "/api/v1/servers/"),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_server" "test" {
   name             = "my-server"
   ip               = "10.0.0.1"
@@ -146,7 +140,7 @@ resource "coolify_server" "test" {
 				),
 			},
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_server" "test" {
   name             = "my-server"
   ip               = "10.0.0.1"
@@ -168,7 +162,7 @@ func TestServerResource_Update(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_server" "test" {
   name             = "my-server"
   ip               = "10.0.0.1"
@@ -180,7 +174,7 @@ resource "coolify_server" "test" {
 				),
 			},
 			{
-				Config: testProviderBlock(srv.URL) + fmt.Sprintf(`
+				Config: acctest.ProviderBlockForURL(srv.URL) + fmt.Sprintf(`
 resource "coolify_server" "test" {
   name             = "updated-server"
   description      = "Updated desc"
@@ -214,7 +208,7 @@ func TestServerResource_Import(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_server" "test" {
   name             = "import-server"
   ip               = "10.0.0.5"
@@ -244,7 +238,7 @@ func TestServerResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_server" "test" {
   name             = "disappearing-server"
   ip               = "10.0.0.1"

@@ -174,15 +174,7 @@ func (s *mockCloudTokenStore) List() []*mockCloudToken {
 	return result
 }
 
-// providerConfig returns the HCL provider block pointing at the mock server.
-func providerConfig(serverURL string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-`, serverURL)
-}
+
 
 func TestCloudTokenResource_Create(t *testing.T) {
 	t.Parallel()
@@ -194,7 +186,7 @@ func TestCloudTokenResource_Create(t *testing.T) {
 		CheckDestroy:             acctest.CheckDestroy(server.URL, "coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_cloud_token" "test" {
   name           = "my-token"
   cloud_provider = "aws"
@@ -209,7 +201,7 @@ resource "coolify_cloud_token" "test" {
 				),
 			},
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_cloud_token" "test" {
   name           = "my-token"
   cloud_provider = "aws"
@@ -232,7 +224,7 @@ func TestCloudTokenResource_Update(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_cloud_token" "test" {
   name           = "original-name"
   cloud_provider = "aws"
@@ -246,7 +238,7 @@ resource "coolify_cloud_token" "test" {
 				),
 			},
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_cloud_token" "test" {
   name           = "updated-name"
   cloud_provider = "aws"
@@ -272,7 +264,7 @@ func TestCloudTokenResource_Import(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_cloud_token" "test" {
   name           = "import-token"
   cloud_provider = "hetzner"
@@ -306,7 +298,7 @@ func TestCloudTokenResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_cloud_token" "test" {
   name           = "disappearing-token"
   cloud_provider = "aws"

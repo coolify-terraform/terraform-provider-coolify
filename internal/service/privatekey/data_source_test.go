@@ -40,7 +40,7 @@ func TestPrivateKeyDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_private_key" "test" {
   uuid = "pk-ds-uuid-1"
 }`,

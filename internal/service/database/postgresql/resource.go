@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -148,7 +149,7 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 	SetStrPtr(&input.Description, plan.Description)
 	SetStrPtr(&input.Image, plan.Image)
 	SetBoolPtr(&input.IsPublic, plan.IsPublic)
-	SetInt64Ptr(&input.PublicPort, plan.PublicPort)
+	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
 	SetStrPtr(&input.PostgresUser, plan.PostgresUser)
 	SetStrPtr(&input.PostgresPassword, plan.PostgresPassword)
 	SetStrPtr(&input.PostgresDB, plan.PostgresDB)
@@ -187,16 +188,16 @@ func (r *postgresqlDatabaseResource) ImportState(ctx context.Context, req resour
 func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	m.UUID = types.StringValue(db.UUID)
 	m.Name = types.StringValue(db.Name)
-	m.Image = StringOrNull(db.Image)
+	m.Image = flex.StringToFramework(db.Image)
 	m.IsPublic = types.BoolValue(db.IsPublic)
-	m.PublicPort = Int64PtrToFW(db.PublicPort)
-	m.PostgresUser = StringOrNull(db.PostgresUser)
-	m.PostgresPassword = StringOrNull(db.PostgresPassword)
-	m.PostgresDB = StringOrNull(db.PostgresDB)
-	m.Description = StringOrNull(db.Description)
-	m.ProjectUUID = StringOrNull(db.ProjectUUID)
-	m.ServerUUID = StringOrNull(db.ServerUUID)
-	m.EnvironmentName = StringOrNull(db.EnvironmentName)
+	m.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
+	m.PostgresUser = flex.StringToFramework(db.PostgresUser)
+	m.PostgresPassword = flex.StringToFramework(db.PostgresPassword)
+	m.PostgresDB = flex.StringToFramework(db.PostgresDB)
+	m.Description = flex.StringToFramework(db.Description)
+	m.ProjectUUID = flex.StringToFramework(db.ProjectUUID)
+	m.ServerUUID = flex.StringToFramework(db.ServerUUID)
+	m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
 }
 
 // --- shared helpers ---
@@ -245,26 +246,3 @@ func SetBoolPtr(dst **bool, v types.Bool) {
 	}
 }
 
-// SetInt64Ptr sets dst to a pointer to the int64 value if v is known and non-null.
-func SetInt64Ptr(dst **int64, v types.Int64) {
-	if !v.IsNull() && !v.IsUnknown() {
-		i := v.ValueInt64()
-		*dst = &i
-	}
-}
-
-// StringOrNull returns a types.String that is null when s is empty.
-func StringOrNull(s string) types.String {
-	if s == "" {
-		return types.StringNull()
-	}
-	return types.StringValue(s)
-}
-
-// Int64PtrToFW converts a *int64 to a types.Int64.
-func Int64PtrToFW(v *int64) types.Int64 {
-	if v == nil {
-		return types.Int64Null()
-	}
-	return types.Int64Value(*v)
-}

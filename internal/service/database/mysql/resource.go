@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/service/database/postgresql"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -132,7 +133,7 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 	postgresql.SetStrPtr(&input.Description, plan.Description)
 	postgresql.SetStrPtr(&input.Image, plan.Image)
 	postgresql.SetBoolPtr(&input.IsPublic, plan.IsPublic)
-	postgresql.SetInt64Ptr(&input.PublicPort, plan.PublicPort)
+	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
 	postgresql.SetStrPtr(&input.MysqlUser, plan.MysqlUser)
 	postgresql.SetStrPtr(&input.MysqlPassword, plan.MysqlPassword)
 	postgresql.SetStrPtr(&input.MysqlDatabase, plan.MysqlDatabase)
@@ -172,15 +173,15 @@ func (r *mysqlDatabaseResource) ImportState(ctx context.Context, req resource.Im
 func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
 	m.UUID = types.StringValue(db.UUID)
 	m.Name = types.StringValue(db.Name)
-	m.Image = postgresql.StringOrNull(db.Image)
+	m.Image = flex.StringToFramework(db.Image)
 	m.IsPublic = types.BoolValue(db.IsPublic)
-	m.PublicPort = postgresql.Int64PtrToFW(db.PublicPort)
-	m.MysqlUser = postgresql.StringOrNull(db.MysqlUser)
-	m.MysqlPassword = postgresql.StringOrNull(db.MysqlPassword)
-	m.MysqlDatabase = postgresql.StringOrNull(db.MysqlDatabase)
-	m.MysqlRootPassword = postgresql.StringOrNull(db.MysqlRootPassword)
-	m.Description = postgresql.StringOrNull(db.Description)
-	m.ProjectUUID = postgresql.StringOrNull(db.ProjectUUID)
-	m.ServerUUID = postgresql.StringOrNull(db.ServerUUID)
-	m.EnvironmentName = postgresql.StringOrNull(db.EnvironmentName)
+	m.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
+	m.MysqlUser = flex.StringToFramework(db.MysqlUser)
+	m.MysqlPassword = flex.StringToFramework(db.MysqlPassword)
+	m.MysqlDatabase = flex.StringToFramework(db.MysqlDatabase)
+	m.MysqlRootPassword = flex.StringToFramework(db.MysqlRootPassword)
+	m.Description = flex.StringToFramework(db.Description)
+	m.ProjectUUID = flex.StringToFramework(db.ProjectUUID)
+	m.ServerUUID = flex.StringToFramework(db.ServerUUID)
+	m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
 }

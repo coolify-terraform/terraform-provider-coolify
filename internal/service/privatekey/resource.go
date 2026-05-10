@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -211,7 +212,7 @@ func (r *privateKeyResource) ImportState(ctx context.Context, req resource.Impor
 func flattenPrivateKey(key *client.PrivateKey, model *privateKeyResourceModel) {
 	model.UUID = types.StringValue(key.UUID)
 	model.Name = types.StringValue(key.Name)
-	model.Description = types.StringValue(key.Description)
+	model.Description = flex.StringToFramework(key.Description)
 	model.PrivateKey = types.StringValue(key.PrivateKey)
 	model.IsGitRelated = types.BoolValue(key.IsGitRelated)
 }

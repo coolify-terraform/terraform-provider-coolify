@@ -48,68 +48,44 @@ func New(baseURL, apiToken string) *Client {
 }
 
 // GetVersion returns the Coolify instance version string.
-// The version endpoint returns text/html (not JSON), so we read the
-// body as a plain string instead of using the JSON-decoding do() method.
 func (c *Client) GetVersion(ctx context.Context) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/api/v1/version", nil)
-	if err != nil {
-		return "", fmt.Errorf("creating version request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.APIToken)
-	req.Header.Set("User-Agent", c.UserAgent)
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("executing version request: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("reading version response: %w", err)
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("version API error (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	v := strings.TrimSpace(string(body))
-	// Handle both plain text ("v4.0.0") and JSON-encoded string ("\"v4.0.0\"")
-	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
-		v = v[1 : len(v)-1]
-	}
-	return v, nil
+	return c.doText(ctx, "/api/v1/version")
 }
 
 // GetHealth returns the Coolify instance health status string.
-// The health endpoint may return text/html (not JSON), so we read the
-// body as a plain string similar to GetVersion.
 func (c *Client) GetHealth(ctx context.Context) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/api/v1/health", nil)
+	return c.doText(ctx, "/api/v1/health")
+}
+
+// doText performs a GET request and returns the response body as a trimmed
+// string. Handles both plain text and JSON-encoded string responses.
+func (c *Client) doText(ctx context.Context, path string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
-		return "", fmt.Errorf("creating health request: %w", err)
+		return "", fmt.Errorf("creating request for %s: %w", path, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.APIToken)
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("executing health request: %w", err)
+		return "", fmt.Errorf("executing request for %s: %w", path, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("reading health response: %w", err)
+		return "", fmt.Errorf("reading response for %s: %w", path, err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("health API error (status %d): %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("API error for %s (status %d): %s", path, resp.StatusCode, string(body))
 	}
 
-	h := strings.TrimSpace(string(body))
-	if len(h) >= 2 && h[0] == '"' && h[len(h)-1] == '"' {
-		h = h[1 : len(h)-1]
+	s := strings.TrimSpace(string(body))
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		s = s[1 : len(s)-1]
 	}
-	return h, nil
+	return s, nil
 }
 
 // EnableAPI enables the Coolify API.

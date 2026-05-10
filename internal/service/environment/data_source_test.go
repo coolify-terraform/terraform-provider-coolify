@@ -16,7 +16,7 @@ func TestEnvironmentDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig(server.URL) + `
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_environment" "source" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   name         = "ds-test-env"

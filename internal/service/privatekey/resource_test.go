@@ -13,13 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func testProviderBlock(serverURL string) string {
-	return `
-provider "coolify" {
-  endpoint  = "` + serverURL + `"
-  token = "test-token"
-}`
-}
+
 
 func newPrivateKeyMockServer() *httptest.Server {
 	keys := make(map[string]*client.PrivateKey)
@@ -105,7 +99,7 @@ func TestPrivateKeyResource_Create(t *testing.T) {
 		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_private_key", "/api/v1/security/keys/"),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_private_key" "test" {
   name        = "my-ssh-key"
   private_key = "ssh-ed25519 AAAA-test-key"
@@ -119,7 +113,7 @@ resource "coolify_private_key" "test" {
 			},
 			// Plan idempotency
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_private_key" "test" {
   name        = "my-ssh-key"
   private_key = "ssh-ed25519 AAAA-test-key"
@@ -140,7 +134,7 @@ func TestPrivateKeyResource_Update(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_private_key" "test" {
   name        = "my-ssh-key"
   private_key = "ssh-ed25519 AAAA-test-key"
@@ -150,7 +144,7 @@ resource "coolify_private_key" "test" {
 				),
 			},
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_private_key" "test" {
   name           = "updated-key"
   description    = "A test key"
@@ -178,7 +172,7 @@ func TestPrivateKeyResource_Import(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_private_key" "test" {
   name        = "import-key"
   private_key = "ssh-ed25519 AAAA-import"
@@ -207,7 +201,7 @@ func TestPrivateKeyResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testProviderBlock(srv.URL) + `
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_private_key" "test" {
   name        = "disappearing-key"
   private_key = "ssh-ed25519 AAAA-test-key"
