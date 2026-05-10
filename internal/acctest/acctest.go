@@ -202,6 +202,21 @@ func AccTestServerUUID(t *testing.T) string {
 	return ""
 }
 
+// AccTestDatabaseConfig returns a Terraform config for an acceptance test of a
+// database resource, including a project dependency. The resourceType should be
+// the full Terraform resource type (e.g. "coolify_postgresql_database").
+func AccTestDatabaseConfig(resourceType, name, serverUUID, extra string) string {
+	return ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" { name = %[1]q }
+resource %[4]q "test" {
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  name         = %[1]q
+  %[3]s
+}
+`, name, serverUUID, extra, resourceType)
+}
+
 // AccTestSkipIfNoTFAcc skips the test if TF_ACC is not set.
 func AccTestSkipIfNoTFAcc(t *testing.T) {
 	t.Helper()

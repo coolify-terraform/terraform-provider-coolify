@@ -126,11 +126,7 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	config.Type = types.StringValue(db.Type)
 	config.Image = flex.StringToFramework(db.Image)
 	config.IsPublic = types.BoolValue(db.IsPublic)
-	if db.PublicPort != nil {
-		config.PublicPort = types.Int64Value(*db.PublicPort)
-	} else {
-		config.PublicPort = types.Int64Null()
-	}
+	config.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
 	config.ServerUUID = flex.StringToFramework(db.ServerUUID)
 	config.ProjectUUID = flex.StringToFramework(db.ProjectUUID)
 	config.EnvironmentName = flex.StringToFramework(db.EnvironmentName)

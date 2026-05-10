@@ -1,7 +1,6 @@
 package postgresql_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
@@ -20,7 +19,7 @@ func TestAccPostgresqlDatabaseResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and verify
 			{
-				Config: testAccPostgresqlConfig(name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "uuid"),
 					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "image"),
@@ -28,7 +27,7 @@ func TestAccPostgresqlDatabaseResource_CRUD(t *testing.T) {
 			},
 			// Update description
 			{
-				Config: testAccPostgresqlConfig(name, serverUUID, `description = "Updated via acc test"`),
+				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, `description = "Updated via acc test"`),
 				Check: resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "Updated via acc test"),
 			},
 			// Import
@@ -54,7 +53,7 @@ func TestAccPostgresqlDatabaseDataSources(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPostgresqlConfig(name, serverUUID, "") + `
+				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, "") + `
 data "coolify_database" "test" {
   uuid = coolify_postgresql_database.test.uuid
 }
@@ -81,17 +80,4 @@ data "coolify_databases" "all" {
 	})
 }
 
-func testAccPostgresqlConfig(name, serverUUID, extra string) string {
-	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
-resource "coolify_project" "test" {
-  name = %[1]q
-}
 
-resource "coolify_postgresql_database" "test" {
-  project_uuid = coolify_project.test.uuid
-  server_uuid  = %[2]q
-  name         = %[1]q
-  %[3]s
-}
-`, name, serverUUID, extra)
-}

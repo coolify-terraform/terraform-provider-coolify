@@ -1,7 +1,6 @@
 package mysql_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
@@ -20,7 +19,7 @@ func TestAccMysqlDatabaseResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: testAccMysqlConfig(name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_mysql_database", name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_mysql_database.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "name", name),
@@ -28,7 +27,7 @@ func TestAccMysqlDatabaseResource_CRUD(t *testing.T) {
 			},
 			// Step 2: Update description
 			{
-				Config: testAccMysqlConfig(name, serverUUID, `description = "updated mysql"`),
+				Config: acctest.AccTestDatabaseConfig("coolify_mysql_database", name, serverUUID, `description = "updated mysql"`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_mysql_database.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "name", name),
@@ -47,14 +46,4 @@ func TestAccMysqlDatabaseResource_CRUD(t *testing.T) {
 	})
 }
 
-func testAccMysqlConfig(name, serverUUID, extra string) string {
-	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
-resource "coolify_project" "test" { name = %[1]q }
-resource "coolify_mysql_database" "test" {
-  project_uuid = coolify_project.test.uuid
-  server_uuid  = %[2]q
-  name         = %[1]q
-  %[3]s
-}
-`, name, serverUUID, extra)
-}
+
