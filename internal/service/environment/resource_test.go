@@ -211,6 +211,41 @@ resource "coolify_environment" "test" {
 	})
 }
 
+func TestEnvironmentResource_UpdateDescription(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockEnvironmentServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_environment" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "update-env"
+  description  = "initial"
+}
+`,
+				Check: resource.TestCheckResourceAttr("coolify_environment.test", "description", "initial"),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_environment" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "update-env"
+  description  = "updated"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment.test", "name", "update-env"),
+					resource.TestCheckResourceAttr("coolify_environment.test", "description", "updated"),
+				),
+			},
+		},
+	})
+}
+
 func TestEnvironmentResource_Import(t *testing.T) {
 	t.Parallel()
 	server, _ := newMockEnvironmentServer()

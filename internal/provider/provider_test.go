@@ -107,3 +107,27 @@ data "coolify_team" "test" {
 		},
 	})
 }
+
+func TestProvider_InvalidEndpointScheme(t *testing.T) {
+	t.Setenv("COOLIFY_TOKEN", "")
+	t.Setenv("COOLIFY_ENDPOINT", "")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+provider "coolify" {
+  endpoint = "ftp://localhost:8000"
+  token    = "test-token"
+}
+
+data "coolify_team" "test" {
+  id = 0
+}
+`,
+				ExpectError: regexp.MustCompile(`Invalid Coolify Endpoint`),
+			},
+		},
+	})
+}
