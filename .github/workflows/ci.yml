@@ -76,7 +76,8 @@ jobs:
             --junitfile test-results/unit.xml \
             --rerun-fails \
             --rerun-fails-max-failures=5 \
-            -- -race -cover -coverprofile=coverage.out -timeout=10m -parallel=10 ./...
+            --packages ./... \
+            -- -race -cover -coverprofile=coverage.out -timeout=10m -parallel=10
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
       - name: Upload test results
