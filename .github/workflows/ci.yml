@@ -226,6 +226,8 @@ jobs:
       - run: cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
       - run: go generate ./...
       - run: git diff --exit-code
+      - name: API Coverage doc
+        run: make api-coverage && git diff --exit-code API_COVERAGE.md
 
   spec-freshness:
     name: Spec Freshness

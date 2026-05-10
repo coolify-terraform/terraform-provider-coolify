@@ -33,7 +33,10 @@ spec-update: ## Download latest Coolify OpenAPI spec
 spec-check: ## Run OpenAPI spec compliance tests
 	go test -race -count=1 -run 'TestClientEndpoints_SpecCompliance' ./internal/spectest/ -v
 
+api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
+	GENERATE_COVERAGE_DOC=1 go test -count=1 -run TestSpecCoverage_GenerateDoc ./internal/spectest/ -v
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs validate install spec-update spec-check help
+.PHONY: build test testacc lint fmt docs validate install spec-update spec-check api-coverage help
