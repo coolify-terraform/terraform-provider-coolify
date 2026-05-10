@@ -212,8 +212,8 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_scheduled_task` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
 | `coolify_storage` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
 | `coolify_mysql_database` | Yes | Yes | Yes | Yes | Second DB type for coverage |
-| `coolify_application` | - | | | | Needs public Git repo clone (slow) |
-| `coolify_docker_compose_application` | - | | | | Needs docker-compose.yml raw content |
+| `coolify_application` | Yes | Yes | Yes | Yes | Public git with coollabsio/coolify-examples |
+| `coolify_docker_compose_application` | Yes | Yes | Yes | Yes | Inline compose YAML |
 | `coolify_private_git_application` | - | | | | Needs SSH key + private repo |
 | `coolify_github_app_application` | - | | | | Needs GitHub App configured |
 | `coolify_github_app` | - | | | | Needs GitHub App OAuth setup |
@@ -273,7 +273,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ### Coverage Summary
 
-- **Resources**: 15/27 tested (56%), 12 untested require external
+- **Resources**: 17/27 tested (63%), 10 untested require external
   infrastructure or are database variants of the tested postgresql/mysql pattern
 - **Data Sources**: 31/41 tested (76%), 10 untested require external
   infrastructure (GitHub App, Hetzner, running app logs, executed backups/tasks)
