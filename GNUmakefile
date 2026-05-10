@@ -25,7 +25,15 @@ validate: ## Check HCL formatting in examples/
 install: ## Install provider to local Go bin
 	go install .
 
+spec-update: ## Download latest Coolify OpenAPI spec
+	curl -sL https://raw.githubusercontent.com/coollabsio/coolify/v4.x/openapi.json \
+		-o testdata/specs/coolify-v4.json
+	@echo "Updated testdata/specs/coolify-v4.json"
+
+spec-check: ## Run OpenAPI spec compliance tests
+	go test -race -count=1 -run 'TestClientEndpoints_SpecCompliance' ./internal/spectest/ -v
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs validate install help
+.PHONY: build test testacc lint fmt docs validate install spec-update spec-check help

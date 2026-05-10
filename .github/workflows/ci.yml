@@ -226,3 +226,23 @@ jobs:
       - run: cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
       - run: go generate ./...
       - run: git diff --exit-code
+
+  spec-freshness:
+    name: Spec Freshness
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@v6
+      - name: Check for upstream spec changes
+        run: |
+          curl -sL https://raw.githubusercontent.com/coollabsio/coolify/v4.x/openapi.json \
+            -o /tmp/coolify-latest.json
+          if ! diff -q testdata/specs/coolify-v4.json /tmp/coolify-latest.json > /dev/null 2>&1; then
+            echo "::warning::Coolify OpenAPI spec has changed upstream. Update testdata/specs/coolify-v4.json"
+            diff testdata/specs/coolify-v4.json /tmp/coolify-latest.json | head -50
+          else
+            echo "Spec is up to date"
+          fi

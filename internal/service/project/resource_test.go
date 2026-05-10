@@ -11,6 +11,7 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
+	"github.com/SebTardif/terraform-provider-coolify/internal/spectest"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -93,6 +94,83 @@ func newMockCoolifyServer() (*httptest.Server, *mockProjectStore) {
 	})
 
 	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	return server, store
+}
+
+// newSpecValidatedServer creates the same mock server but with OpenAPI spec validation.
+func newSpecValidatedServer(t *testing.T) (*httptest.Server, *mockProjectStore) {
+	store := &mockProjectStore{
+		projects: make(map[string]*mockProject),
+		counter:  0,
+	}
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("POST /api/v1/projects", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		p := store.Create(body.Name, body.Description)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": p.UUID})
+	})
+
+	mux.HandleFunc("GET /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.PathValue("uuid")
+		p, ok := store.Get(uuid)
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(p)
+	})
+
+	mux.HandleFunc("PATCH /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.PathValue("uuid")
+		var body struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		p, ok := store.Update(uuid, body.Name, body.Description)
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(p)
+	})
+
+	mux.HandleFunc("DELETE /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.PathValue("uuid")
+		if !store.Delete(uuid) {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+	})
+
+	mux.HandleFunc("GET /api/v1/projects", func(w http.ResponseWriter, r *http.Request) {
+		projects := store.List()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(projects)
+	})
+
+	server := httptest.NewServer(spectest.WithSpecValidation(t, "coolify-v4",
+		acctest.WithVersionEndpoint(mux)))
 	return server, store
 }
 
@@ -380,6 +458,34 @@ resource "coolify_project" "test" {
 `,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// TestProjectResource_SpecValidation runs the full CRUD lifecycle against
+// a mock server that validates every request/response against the OpenAPI spec.
+func TestProjectResource_SpecValidation(t *testing.T) {
+	t.Parallel()
+	server, _ := newSpecValidatedServer(t)
+	defer server.Close()
+
+	name := acctest.RandomWithPrefix("tf-spec")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig(server.URL) + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name        = %q
+  description = "spec validation test"
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_project.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_project.test", "name", name),
+				),
 			},
 		},
 	})
