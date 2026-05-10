@@ -2,7 +2,6 @@ package project_test
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
@@ -11,9 +10,7 @@ import (
 
 func TestAccProjectResource_basic(t *testing.T) {
 	t.Parallel()
-	if os.Getenv("TF_ACC") == "" {
-		t.Skip("TF_ACC not set, skipping acceptance test")
-	}
+	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	name := acctest.RandomWithPrefix("tf-acc-proj")
 

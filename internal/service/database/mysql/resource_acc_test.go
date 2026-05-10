@@ -41,7 +41,7 @@ func TestAccMysqlDatabaseResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateVerifyIgnore:              []string{"mysql_root_password"},
+				ImportStateVerifyIgnore:              []string{"mysql_password", "mysql_root_password"},
 			},
 		},
 	})

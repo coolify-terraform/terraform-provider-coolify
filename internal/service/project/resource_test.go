@@ -145,7 +145,7 @@ func newSpecValidatedServer(t *testing.T) (*httptest.Server, *mockProjectStore) 
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(p)
 	})
 

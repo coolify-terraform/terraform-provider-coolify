@@ -381,7 +381,7 @@ func TestClient_ListServers(t *testing.T) {
 	}
 }
 
-func TestClient_CreateApplication(t *testing.T) {
+func TestClient_CreatePublicApplication(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
