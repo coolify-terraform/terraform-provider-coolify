@@ -30,7 +30,7 @@ resource "coolify_environment" "example" {
 
 ### Optional
 
-- `description` (String) A description of the environment.
+- `description` (String) A description of the environment. Note: the Coolify API does not support updating this field after creation; changes are stored in Terraform state only.
 
 ### Read-Only
 
