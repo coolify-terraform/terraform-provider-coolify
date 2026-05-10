@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
+	"github.com/SebTardif/terraform-provider-coolify/internal/spectest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -83,7 +84,7 @@ func (s *mockEnvironmentStore) List(projectUUID string) []*mockEnvironment {
 }
 
 // newMockEnvironmentServer creates an httptest.Server that simulates the Coolify API for environments.
-func newMockEnvironmentServer() (*httptest.Server, *mockEnvironmentStore) {
+func newMockEnvironmentServer(auditT ...testing.TB) (*httptest.Server, *mockEnvironmentStore) {
 	store := newMockEnvironmentStore()
 	mux := http.NewServeMux()
 
@@ -134,7 +135,11 @@ func newMockEnvironmentServer() (*httptest.Server, *mockEnvironmentStore) {
 		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 	})
 
-	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	var handler http.Handler = acctest.WithVersionEndpoint(mux)
+	if len(auditT) > 0 {
+		handler = spectest.WithSpecAudit(auditT[0], "coolify-v4", handler)
+	}
+	server := httptest.NewServer(handler)
 	return server, store
 }
 
@@ -179,7 +184,7 @@ func checkEnvironmentDestroy(serverURL string) resource.TestCheckFunc {
 
 func TestEnvironmentResource_Create(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockEnvironmentServer()
+	server, _ := newMockEnvironmentServer(t)
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{

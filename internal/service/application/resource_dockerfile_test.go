@@ -10,6 +10,7 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/spectest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -54,7 +55,8 @@ func TestDockerfileApplicationResource_Create(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	srv := httptest.NewServer(spectest.WithSpecAudit(t, "coolify-v4",
+		acctest.WithVersionEndpoint(mux)))
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{

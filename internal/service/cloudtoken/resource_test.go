@@ -10,6 +10,7 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
+	"github.com/SebTardif/terraform-provider-coolify/internal/spectest"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -25,7 +26,7 @@ type mockCloudToken struct {
 }
 
 // newMockCoolifyServer creates an httptest.Server that simulates the Coolify API for cloud tokens.
-func newMockCoolifyServer() (*httptest.Server, *mockCloudTokenStore) {
+func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockCloudTokenStore) {
 	store := &mockCloudTokenStore{
 		cloudTokens: make(map[string]*mockCloudToken),
 		counter:     0,
@@ -104,7 +105,11 @@ func newMockCoolifyServer() (*httptest.Server, *mockCloudTokenStore) {
 		json.NewEncoder(w).Encode(map[string]string{"message": "valid"})
 	})
 
-	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	var handler http.Handler = acctest.WithVersionEndpoint(mux)
+	if len(auditT) > 0 {
+		handler = spectest.WithSpecAudit(auditT[0], "coolify-v4", handler)
+	}
+	server := httptest.NewServer(handler)
 	return server, store
 }
 
@@ -191,7 +196,7 @@ provider "coolify" {
 
 func TestCloudTokenResource_Create(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer()
+	server, _ := newMockCoolifyServer(t)
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
