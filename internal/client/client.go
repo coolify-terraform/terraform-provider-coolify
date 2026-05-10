@@ -158,13 +158,13 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 
 	// Check 404 first, regardless of expectedStatus.
 	if resp.StatusCode == http.StatusNotFound {
-		return &NotFoundError{Message: fmt.Sprintf("resource not found: %s", string(respBody))}
+		return &NotFoundError{Message: fmt.Sprintf("resource not found: %s", extractAPIMessage(respBody))}
 	}
 	if expectedStatus != 0 && resp.StatusCode != expectedStatus {
-		return fmt.Errorf("expected status %d, got %d: %s", expectedStatus, resp.StatusCode, string(respBody))
+		return fmt.Errorf("expected status %d, got %d: %s", expectedStatus, resp.StatusCode, extractAPIMessage(respBody))
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("api error (status %d): %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("api error (status %d): %s", resp.StatusCode, extractAPIMessage(respBody))
 	}
 
 	if result != nil && len(respBody) > 0 {
@@ -174,4 +174,17 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	}
 
 	return nil
+}
+
+// extractAPIMessage attempts to parse a JSON error response from the Coolify
+// API and return the human-readable "message" field. Falls back to the raw
+// body if parsing fails or no message field is present.
+func extractAPIMessage(body []byte) string {
+	var parsed struct {
+		Message string `json:"message"`
+	}
+	if json.Unmarshal(body, &parsed) == nil && parsed.Message != "" {
+		return parsed.Message
+	}
+	return string(body)
 }

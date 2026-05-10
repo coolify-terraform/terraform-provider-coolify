@@ -96,7 +96,7 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Optional:            true,
 			},
 			"retain_days": schema.Int64Attribute{
-				MarkdownDescription: "Number of backups to keep locally.",
+				MarkdownDescription: "Number of backup copies to retain locally (not days). For example, `7` keeps the last 7 backups regardless of their age.",
 				Optional:            true,
 				Validators: []validator.Int64{
 					int64validator.AtLeast(0),
