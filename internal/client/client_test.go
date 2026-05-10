@@ -2232,3 +2232,101 @@ func TestClient_DeleteS3Storage(t *testing.T) {
 	err := c.DeleteS3Storage(context.Background(), "s3-del")
 	require.NoError(t, err)
 }
+
+// --- extractAPIMessage ---
+
+func TestExtractAPIMessage(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		input []byte
+		want  string
+	}{
+		{
+			name:  "json with message field",
+			input: []byte(`{"message":"server overloaded"}`),
+			want:  "server overloaded",
+		},
+		{
+			name:  "json without message field",
+			input: []byte(`{"error":"not found","code":404}`),
+			want:  `{"error":"not found","code":404}`,
+		},
+		{
+			name:  "non-json body",
+			input: []byte("plain text error"),
+			want:  "plain text error",
+		},
+		{
+			name:  "empty body",
+			input: []byte(""),
+			want:  "",
+		},
+		{
+			name:  "json with empty message falls back to raw",
+			input: []byte(`{"message":""}`),
+			want:  `{"message":""}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := extractAPIMessage(tt.input)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// --- doText error paths ---
+
+func TestClient_GetVersion_Non2xx(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("forbidden"))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetVersion(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "403")
+	assert.Contains(t, err.Error(), "forbidden")
+}
+
+func TestClient_GetVersion_JSONQuoted(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"v4.1.0"`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	v, err := c.GetVersion(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "v4.1.0", v)
+}
+
+func TestClient_GetHealth_Non2xx(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`{"message":"access denied"}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetHealth(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "access denied")
+}
+
+// --- IsNotFound ---
+
+func TestIsNotFound(t *testing.T) {
+	t.Parallel()
+	assert.True(t, IsNotFound(&NotFoundError{Message: "gone"}))
+	assert.False(t, IsNotFound(io.EOF))
+	assert.False(t, IsNotFound(nil))
+}
