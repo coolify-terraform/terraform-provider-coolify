@@ -3,22 +3,30 @@
 page_title: "coolify_environment_variable Resource - coolify"
 subcategory: ""
 description: |-
-  Manages an environment variable on a Coolify application or service.
+  Manages an environment variable on a Coolify application, service, or database.
 ---
 
 # coolify_environment_variable (Resource)
 
-Manages an environment variable on a Coolify application or service.
+Manages an environment variable on a Coolify application, service, or database.
 
 ## Example Usage
 
 ```terraform
+# Set an environment variable on an application
 resource "coolify_environment_variable" "database_url" {
   application_uuid = coolify_application.example.uuid
   key              = "DATABASE_URL"
   value            = "postgresql://user:pass@db:5432/myapp"
   is_build         = false
   is_preview       = false
+}
+
+# Set an environment variable on a database
+resource "coolify_environment_variable" "db_password" {
+  database_uuid = coolify_postgresql_database.example.uuid
+  key           = "POSTGRES_PASSWORD"
+  value         = "supersecret"
 }
 ```
 
@@ -32,10 +40,11 @@ resource "coolify_environment_variable" "database_url" {
 
 ### Optional
 
-- `application_uuid` (String) The UUID of the application to set the variable on. Exactly one of `application_uuid` or `service_uuid` must be provided. Changing this forces a new resource.
+- `application_uuid` (String) The UUID of the application to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
+- `database_uuid` (String) The UUID of the database to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `is_build` (Boolean) Whether this variable is available at build time (defaults to `false`).
 - `is_preview` (Boolean) Whether this variable is available in preview deployments (defaults to `false`).
-- `service_uuid` (String) The UUID of the service to set the variable on. Exactly one of `application_uuid` or `service_uuid` must be provided. Changing this forces a new resource.
+- `service_uuid` (String) The UUID of the service to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 
 ### Read-Only
 
@@ -53,4 +62,7 @@ terraform import coolify_environment_variable.example application:<application-u
 
 # Import an environment variable on a service:
 terraform import coolify_environment_variable.example service:<service-uuid>:<env-var-uuid>
+
+# Import an environment variable on a database:
+terraform import coolify_environment_variable.example database:<database-uuid>:<env-var-uuid>
 ```

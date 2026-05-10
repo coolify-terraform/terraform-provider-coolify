@@ -9,10 +9,7 @@ import (
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
-	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
 	"github.com/SebTardif/terraform-provider-coolify/internal/spectest"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -177,13 +174,6 @@ func (s *mockCloudTokenStore) List() []*mockCloudToken {
 	return result
 }
 
-// testProviderFactory returns a provider factory wired to the given server URL.
-func testProviderFactory(serverURL string) map[string]func() (tfprotov6.ProviderServer, error) {
-	return map[string]func() (tfprotov6.ProviderServer, error){
-		"coolify": providerserver.NewProtocol6WithError(provider.New("test")()),
-	}
-}
-
 // providerConfig returns the HCL provider block pointing at the mock server.
 func providerConfig(serverURL string) string {
 	return fmt.Sprintf(`
@@ -200,7 +190,7 @@ func TestCloudTokenResource_Create(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy:             acctest.CheckDestroy(server.URL, "coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
@@ -239,7 +229,7 @@ func TestCloudTokenResource_Update(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig(server.URL) + `
@@ -279,7 +269,7 @@ func TestCloudTokenResource_Import(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig(server.URL) + `
@@ -313,7 +303,7 @@ func TestCloudTokenResource_Disappears(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig(server.URL) + `

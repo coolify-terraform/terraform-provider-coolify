@@ -3,22 +3,32 @@
 page_title: "coolify_environment_variables Data Source - coolify"
 subcategory: ""
 description: |-
-  Lists all environment variables for a Coolify application or service.
+  Lists all environment variables for a Coolify application, service, or database.
 ---
 
 # coolify_environment_variables (Data Source)
 
-Lists all environment variables for a Coolify application or service.
+Lists all environment variables for a Coolify application, service, or database.
 
 ## Example Usage
 
 ```terraform
+# List environment variables for an application
 data "coolify_environment_variables" "app_vars" {
   application_uuid = "your-app-uuid"
 }
 
 output "env_var_keys" {
   value = [for ev in data.coolify_environment_variables.app_vars.environment_variables : ev.key]
+}
+
+# List environment variables for a database
+data "coolify_environment_variables" "db_vars" {
+  database_uuid = "your-db-uuid"
+}
+
+output "db_env_var_keys" {
+  value = [for ev in data.coolify_environment_variables.db_vars.environment_variables : ev.key]
 }
 ```
 
@@ -27,8 +37,9 @@ output "env_var_keys" {
 
 ### Optional
 
-- `application_uuid` (String) The UUID of the application. Exactly one of `application_uuid` or `service_uuid` must be provided.
-- `service_uuid` (String) The UUID of the service. Exactly one of `application_uuid` or `service_uuid` must be provided.
+- `application_uuid` (String) The UUID of the application. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.
+- `database_uuid` (String) The UUID of the database. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.
+- `service_uuid` (String) The UUID of the service. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.
 
 ### Read-Only
 

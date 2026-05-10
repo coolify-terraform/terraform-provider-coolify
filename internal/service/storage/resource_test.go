@@ -10,6 +10,7 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/spectest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,6 +29,9 @@ func TestStorageResource_Create(t *testing.T) {
 		HostPath:  "/host/data",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -35,10 +39,19 @@ func TestStorageResource_Create(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.Storage{stor})
+		if deleted {
+			json.NewEncoder(w).Encode([]client.Storage{})
+		} else {
+			json.NewEncoder(w).Encode([]client.Storage{stor})
+		}
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -46,22 +59,31 @@ func TestStorageResource_Create(t *testing.T) {
 		acctest.WithVersionEndpoint(mux)))
 	defer srv.Close()
 
-	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{
-			{
-				Config: testStorageResourceConfig(srv.URL, `
+	config := testStorageResourceConfig(srv.URL, `
 					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					name             = "app-data"
 					mount_path       = "/data"
 					host_path        = "/host/data"
-				`),
+				`)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkStorageDestroy(srv.URL, "/api/v1/applications/cccc0001-0001-4000-8000-000000000001/storages"),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_storage.test", "uuid", "stor-create-uuid"),
 					resource.TestCheckResourceAttr("coolify_storage.test", "name", "app-data"),
 					resource.TestCheckResourceAttr("coolify_storage.test", "mount_path", "/data"),
 					resource.TestCheckResourceAttr("coolify_storage.test", "host_path", "/host/data"),
 				),
+			},
+			// Plan idempotency
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -340,6 +362,37 @@ func TestStorageResource_Disappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// checkStorageDestroy verifies that all coolify_storage resources have been
+// removed from the mock server. The standard acctest.CheckDestroy helper does
+// a GET to an individual-resource endpoint, but the storage mock only exposes
+// a list endpoint, so we check the list instead.
+func checkStorageDestroy(serverURL, listPath string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "coolify_storage" {
+				continue
+			}
+			uuid := rs.Primary.Attributes["uuid"]
+			if uuid == "" {
+				continue
+			}
+			resp, err := http.Get(serverURL + listPath)
+			if err != nil {
+				return fmt.Errorf("error checking destroy for coolify_storage/%s: %w", uuid, err)
+			}
+			var storages []client.Storage
+			json.NewDecoder(resp.Body).Decode(&storages)
+			resp.Body.Close()
+			for _, stor := range storages {
+				if stor.UUID == uuid {
+					return fmt.Errorf("coolify_storage %s still exists", uuid)
+				}
+			}
+		}
+		return nil
+	}
+}
 
 func testStorageResourceConfig(endpoint, attrs string) string {
 	return fmt.Sprintf(`

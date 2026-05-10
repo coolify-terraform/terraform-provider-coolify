@@ -3,6 +3,7 @@ package cloudtoken_test
 import (
 	"testing"
 
+	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -12,7 +13,7 @@ func TestCloudTokenDataSource(t *testing.T) {
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig(server.URL) + `

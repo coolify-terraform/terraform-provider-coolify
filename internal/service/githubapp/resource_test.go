@@ -215,6 +215,46 @@ func TestGitHubAppResource_Create(t *testing.T) {
 	server, _ := newMockCoolifyServer(t)
 	defer server.Close()
 
+	config := testProviderBlock(server.URL) + `
+resource "coolify_github_app" "test" {
+  name            = "my-github-app"
+  app_id          = 12345
+  installation_id = 67890
+  client_id       = "Iv1.abc123"
+  client_secret   = "secret123"
+  private_key     = "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----"
+}
+`
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkGitHubAppDestroy(server.URL),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_github_app.test", "id"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "name", "my-github-app"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "app_id", "12345"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "installation_id", "67890"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "client_id", "Iv1.abc123"),
+				),
+			},
+			// Plan idempotency
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestGitHubAppResource_Update(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockCoolifyServer()
+	defer server.Close()
+
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
@@ -226,31 +266,32 @@ resource "coolify_github_app" "test" {
   installation_id = 67890
   client_id       = "Iv1.abc123"
   client_secret   = "secret123"
+  webhook_secret  = "hook-secret-1"
   private_key     = "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_github_app.test", "id"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "name", "my-github-app"),
-					resource.TestCheckResourceAttr("coolify_github_app.test", "app_id", "12345"),
-					resource.TestCheckResourceAttr("coolify_github_app.test", "installation_id", "67890"),
-					resource.TestCheckResourceAttr("coolify_github_app.test", "client_id", "Iv1.abc123"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "webhook_secret", "hook-secret-1"),
 				),
 			},
-			// Plan idempotency
 			{
 				Config: testProviderBlock(server.URL) + `
 resource "coolify_github_app" "test" {
-  name            = "my-github-app"
+  name            = "my-github-app-updated"
   app_id          = 12345
   installation_id = 67890
   client_id       = "Iv1.abc123"
   client_secret   = "secret123"
+  webhook_secret  = "hook-secret-2"
   private_key     = "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----"
 }
 `,
-				PlanOnly:           true,
-				ExpectNonEmptyPlan: false,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_github_app.test", "name", "my-github-app-updated"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "webhook_secret", "hook-secret-2"),
+				),
 			},
 		},
 	})
@@ -444,4 +485,38 @@ data "coolify_github_app_branches" "test" {
 			},
 		},
 	})
+}
+
+// checkGitHubAppDestroy verifies that all coolify_github_app resources have
+// been removed from the mock server. The standard acctest.CheckDestroy helper
+// looks up by "uuid", but GitHub Apps use a numeric "id" attribute instead.
+func checkGitHubAppDestroy(serverURL string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "coolify_github_app" {
+				continue
+			}
+			idStr := rs.Primary.Attributes["id"]
+			if idStr == "" {
+				continue
+			}
+			id, err := strconv.ParseInt(idStr, 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid id %q: %w", idStr, err)
+			}
+			resp, err := http.Get(serverURL + "/api/v1/github-apps")
+			if err != nil {
+				return fmt.Errorf("error checking destroy for coolify_github_app/%s: %w", idStr, err)
+			}
+			var apps []mockGitHubApp
+			json.NewDecoder(resp.Body).Decode(&apps)
+			resp.Body.Close()
+			for _, app := range apps {
+				if app.ID == id {
+					return fmt.Errorf("coolify_github_app %s still exists", idStr)
+				}
+			}
+		}
+		return nil
+	}
 }

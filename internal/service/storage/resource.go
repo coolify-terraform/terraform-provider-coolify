@@ -18,19 +18,19 @@ import (
 )
 
 var (
-	_ resource.Resource                = &StorageResource{}
-	_ resource.ResourceWithConfigure   = &StorageResource{}
-	_ resource.ResourceWithImportState = &StorageResource{}
+	_ resource.Resource                = &storageResource{}
+	_ resource.ResourceWithConfigure   = &storageResource{}
+	_ resource.ResourceWithImportState = &storageResource{}
 )
 
-// StorageResource manages a persistent storage volume on a Coolify
+// storageResource manages a persistent storage volume on a Coolify
 // application, service, or database.
-type StorageResource struct {
+type storageResource struct {
 	client *client.Client
 }
 
-// StorageResourceModel maps the resource schema to Go types.
-type StorageResourceModel struct {
+// storageResourceModel maps the resource schema to Go types.
+type storageResourceModel struct {
 	UUID            types.String `tfsdk:"uuid"`
 	ApplicationUUID types.String `tfsdk:"application_uuid"`
 	ServiceUUID     types.String `tfsdk:"service_uuid"`
@@ -40,16 +40,16 @@ type StorageResourceModel struct {
 	HostPath        types.String `tfsdk:"host_path"`
 }
 
-// NewResource returns a new StorageResource instance.
+// NewResource returns a new storageResource instance.
 func NewResource() resource.Resource {
-	return &StorageResource{}
+	return &storageResource{}
 }
 
-func (r *StorageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *storageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_storage"
 }
 
-func (r *StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a persistent storage volume on a Coolify application, service, or database.",
 		Attributes: map[string]schema.Attribute{
@@ -106,7 +106,7 @@ func (r *StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 	}
 }
 
-func (r *StorageResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *storageResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -122,7 +122,7 @@ func (r *StorageResource) Configure(_ context.Context, req resource.ConfigureReq
 }
 
 // resolveParent determines the API parent type and UUID from the model.
-func resolveParent(model *StorageResourceModel) (parentType, parentUUID string, ok bool) {
+func resolveParent(model *storageResourceModel) (parentType, parentUUID string, ok bool) {
 	if !model.ApplicationUUID.IsNull() && !model.ApplicationUUID.IsUnknown() {
 		return "applications", model.ApplicationUUID.ValueString(), true
 	}
@@ -135,8 +135,8 @@ func resolveParent(model *StorageResourceModel) (parentType, parentUUID string, 
 	return "", "", false
 }
 
-func (r *StorageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan StorageResourceModel
+func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan storageResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -166,8 +166,8 @@ func (r *StorageResource) Create(ctx context.Context, req resource.CreateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *StorageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state StorageResourceModel
+func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state storageResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -210,8 +210,8 @@ func (r *StorageResource) Read(ctx context.Context, req resource.ReadRequest, re
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *StorageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan StorageResourceModel
+func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan storageResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -245,8 +245,8 @@ func (r *StorageResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *StorageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state StorageResourceModel
+func (r *storageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state storageResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -268,7 +268,7 @@ func (r *StorageResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 }
 
-func (r *StorageResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *storageResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	parts := strings.SplitN(req.ID, ":", 3)
 	if len(parts) != 3 {
 		resp.Diagnostics.AddError(

@@ -90,6 +90,17 @@ func TestScheduledTaskResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "enabled", "true"),
 				),
 			},
+			// Plan idempotency
+			{
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "backup-db"
+					command          = "pg_dump mydb > /backups/mydb.sql"
+					frequency        = "*/5 * * * *"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
