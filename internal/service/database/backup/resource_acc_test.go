@@ -75,3 +75,49 @@ resource "coolify_database_backup" "test" {
 }
 `, name, serverUUID, frequency)
 }
+
+// ---------------------------------------------------------------------------
+// TestAccBackupExecutionsDataSource
+// ---------------------------------------------------------------------------
+
+func TestAccBackupExecutionsDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-bkpexec")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccBackupExecutionsConfig(name, serverUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.coolify_backup_executions.test", "executions.#"),
+				),
+			},
+		},
+	})
+}
+
+func testAccBackupExecutionsConfig(name, serverUUID string) string {
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+resource "coolify_postgresql_database" "test" {
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  name         = %[1]q
+}
+resource "coolify_database_backup" "test" {
+  database_uuid = coolify_postgresql_database.test.uuid
+  frequency     = "0 2 * * *"
+  enabled       = true
+}
+data "coolify_backup_executions" "test" {
+  database_uuid = coolify_postgresql_database.test.uuid
+  backup_uuid   = coolify_database_backup.test.uuid
+}
+`, name, serverUUID)
+}

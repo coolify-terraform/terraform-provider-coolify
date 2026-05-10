@@ -130,3 +130,45 @@ data "coolify_applications" "test" {
 }
 `, name, serverUUID)
 }
+
+// ---------------------------------------------------------------------------
+// TestAccApplicationLogsDataSource
+// ---------------------------------------------------------------------------
+
+func TestAccApplicationLogsDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-applogs")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAppLogsConfig(name, serverUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.coolify_application_logs.test", "logs.#"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAppLogsConfig(name, serverUUID string) string {
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+resource "coolify_dockerfile_application" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %[2]q
+  name                = %[1]q
+  dockerfile_location = "/Dockerfile"
+  ports_exposes       = "80"
+}
+data "coolify_application_logs" "test" {
+  uuid = coolify_dockerfile_application.test.uuid
+}
+`, name, serverUUID)
+}

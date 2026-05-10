@@ -132,6 +132,54 @@ data "coolify_scheduled_tasks" "test" {
 `, name, serverUUID)
 }
 
+// ---------------------------------------------------------------------------
+// TestAccTaskExecutionsDataSource
+// ---------------------------------------------------------------------------
+
+func TestAccTaskExecutionsDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-taskexec")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccTaskExecutionsConfig(name, serverUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.coolify_task_executions.test", "executions.#"),
+				),
+			},
+		},
+	})
+}
+
+func testAccTaskExecutionsConfig(name, serverUUID string) string {
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+resource "coolify_dockerfile_application" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %[2]q
+  dockerfile_location = "/Dockerfile"
+  ports_exposes       = "80"
+}
+resource "coolify_scheduled_task" "test" {
+  application_uuid = coolify_dockerfile_application.test.uuid
+  name             = %[1]q
+  command          = "echo hello"
+  frequency        = "0 * * * *"
+}
+data "coolify_task_executions" "test" {
+  application_uuid = coolify_dockerfile_application.test.uuid
+  task_uuid        = coolify_scheduled_task.test.uuid
+}
+`, name, serverUUID)
+}
+
 func testAccScheduledTaskImportStateIdFunc(appResourceName, taskResourceName string) resource.ImportStateIdFunc {
 	return func(s *terraform.State) (string, error) {
 		appRS, ok := s.RootModule().Resources[appResourceName]
