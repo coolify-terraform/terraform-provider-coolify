@@ -113,7 +113,7 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 	// Read back the deployment status.
 	dep, err := r.client.GetDeployment(ctx, result.DeploymentUUID)
 	if err != nil {
-		// Deployment was triggered but we could not read status; store what we have.
+		resp.Diagnostics.AddWarning("Could not read deployment status", fmt.Sprintf("Deployment was triggered but status could not be read: %s. Defaulting to 'queued'.", err))
 		plan.Status = types.StringValue("queued")
 	} else {
 		plan.Status = types.StringValue(dep.Status)

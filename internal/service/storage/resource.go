@@ -223,9 +223,11 @@ func (r *StorageResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	storageUUID := plan.UUID.ValueString()
 	name := plan.Name.ValueString()
 	mountPath := plan.MountPath.ValueString()
 	input := client.UpdateStorageInput{
+		UUID:      &storageUUID,
 		Name:      &name,
 		MountPath: &mountPath,
 	}
