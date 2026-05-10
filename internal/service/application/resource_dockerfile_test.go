@@ -2,7 +2,6 @@ package application_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -312,14 +311,5 @@ func TestDockerfileApplicationResource_Disappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func testDockerfileResourceConfig(endpoint, attrs string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_dockerfile_application" "test" {
-  %s
-}
-`, endpoint, attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_dockerfile_application", "test", attrs)
 }

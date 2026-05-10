@@ -9,6 +9,9 @@ test: ## Run unit tests (race detector, coverage)
 testacc: ## Run acceptance tests (needs COOLIFY_ENDPOINT + COOLIFY_TOKEN)
 	TF_ACC=1 go test -v -cover -timeout=120m ./...
 
+vet: ## Run go vet
+	go vet ./...
+
 lint: ## Run golangci-lint
 	golangci-lint run ./...
 
@@ -39,4 +42,4 @@ api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs validate install spec-update spec-check api-coverage help
+.PHONY: build test testacc vet lint fmt docs validate install spec-update spec-check api-coverage help

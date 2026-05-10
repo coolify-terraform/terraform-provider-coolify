@@ -780,14 +780,5 @@ func TestEnvironmentVariableResource_DatabaseImport(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func testEnvVarResourceConfig(endpoint, attrs string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_environment_variable" "test" {
-  %s
-}
-`, endpoint, attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_environment_variable", "test", attrs)
 }

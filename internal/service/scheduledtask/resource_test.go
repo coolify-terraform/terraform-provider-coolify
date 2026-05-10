@@ -634,14 +634,5 @@ func TestScheduledTaskResource_ServiceDisappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func testScheduledTaskResourceConfig(endpoint, attrs string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-
-resource "coolify_scheduled_task" "test" {
-  %s
-}
-`, endpoint, attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_scheduled_task", "test", attrs)
 }

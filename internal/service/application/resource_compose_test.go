@@ -2,7 +2,6 @@ package application_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -355,14 +354,5 @@ func TestDockerComposeApplicationResource_InvalidFQDN(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func testDockerComposeResourceConfig(endpoint, attrs string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_docker_compose_application" "test" {
-  %s
-}
-`, endpoint, attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_docker_compose_application", "test", attrs)
 }

@@ -2,7 +2,6 @@ package application_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -342,14 +341,5 @@ func TestGitHubAppApplicationResource_Disappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func testGitHubAppResourceConfig(endpoint, attrs string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_github_app_application" "test" {
-  %s
-}
-`, endpoint, attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_github_app_application", "test", attrs)
 }

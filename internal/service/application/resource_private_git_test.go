@@ -2,7 +2,6 @@ package application_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -450,14 +449,5 @@ func TestPrivateGitApplicationResource_InvalidBuildPack(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func testPrivateGitResourceConfig(endpoint, attrs string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_private_git_application" "test" {
-  %s
-}
-`, endpoint, attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_private_git_application", "test", attrs)
 }

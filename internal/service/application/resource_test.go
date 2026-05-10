@@ -2,7 +2,6 @@ package application_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -337,16 +336,7 @@ func TestApplicationResource_Disappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func testApplicationResourceConfig(endpoint, attrs string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_application" "test" {
-  %s
-}
-`, endpoint, attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_application", "test", attrs)
 }
 
 func TestApplicationResource_InvalidPortsExposes(t *testing.T) {

@@ -395,14 +395,5 @@ func checkStorageDestroy(serverURL, listPath string) resource.TestCheckFunc {
 }
 
 func testStorageResourceConfig(endpoint, attrs string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_storage" "test" {
-  %s
-}
-`, endpoint, attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_storage", "test", attrs)
 }

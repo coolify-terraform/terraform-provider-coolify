@@ -106,16 +106,7 @@ func backupResponse(s *mockBackupState) map[string]interface{} {
 }
 
 func testBackupConfig(endpoint, attrs string) string {
-	return fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-
-resource "coolify_database_backup" "test" {
-  %s
-}
-`, endpoint, attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_database_backup", "test", attrs)
 }
 
 func TestDatabaseBackupResource_Create(t *testing.T) {
