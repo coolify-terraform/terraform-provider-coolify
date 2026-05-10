@@ -99,6 +99,26 @@ type ServerDomain struct {
 	IP     string `json:"ip"`
 }
 
+type CreateHetznerServerInput struct {
+	Name           string `json:"name"`
+	Description    string `json:"description,omitempty"`
+	HetznerToken   string `json:"hetzner_token"`
+	ServerType     string `json:"server_type"`
+	Location       string `json:"location"`
+	Image          string `json:"image"`
+	SSHKeyName     string `json:"ssh_key_name,omitempty"`
+	PrivateKeyUUID string `json:"private_key_uuid"`
+	ProjectUUID    string `json:"project_uuid"`
+}
+
+func (c *Client) CreateHetznerServer(ctx context.Context, input CreateHetznerServerInput) (*Server, error) {
+	var s Server
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/hetzner", input, &s, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating hetzner server: %w", err)
+	}
+	return &s, nil
+}
+
 // ListServerDomains returns all domains configured on a server.
 func (c *Client) ListServerDomains(ctx context.Context, uuid string) ([]ServerDomain, error) {
 	var d []ServerDomain

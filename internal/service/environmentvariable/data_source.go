@@ -25,6 +25,7 @@ type envVarListDataSource struct {
 type envVarListModel struct {
 	ApplicationUUID      types.String      `tfsdk:"application_uuid"`
 	ServiceUUID          types.String      `tfsdk:"service_uuid"`
+	DatabaseUUID         types.String      `tfsdk:"database_uuid"`
 	EnvironmentVariables []envVarItemModel `tfsdk:"environment_variables"`
 }
 
@@ -44,17 +45,24 @@ func (d *envVarListDataSource) Metadata(_ context.Context, req datasource.Metada
 
 func (d *envVarListDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Lists all environment variables for a Coolify application or service.",
+		MarkdownDescription: "Lists all environment variables for a Coolify application, service, or database.",
 		Attributes: map[string]schema.Attribute{
 			"application_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the application. Exactly one of `application_uuid` or `service_uuid` must be provided.",
+				MarkdownDescription: "The UUID of the application. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.",
 				Optional:            true,
 				Validators: []validator.String{
-					stringvalidator.ExactlyOneOf(path.MatchRoot("service_uuid")),
+					stringvalidator.ExactlyOneOf(
+						path.MatchRoot("service_uuid"),
+						path.MatchRoot("database_uuid"),
+					),
 				},
 			},
 			"service_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the service. Exactly one of `application_uuid` or `service_uuid` must be provided.",
+				MarkdownDescription: "The UUID of the service. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.",
+				Optional:            true,
+			},
+			"database_uuid": schema.StringAttribute{
+				MarkdownDescription: "The UUID of the database. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.",
 				Optional:            true,
 			},
 			"environment_variables": schema.ListNestedAttribute{
@@ -100,8 +108,10 @@ func (d *envVarListDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		envVars, err = d.client.ListApplicationEnvVars(ctx, config.ApplicationUUID.ValueString())
 	} else if !config.ServiceUUID.IsNull() {
 		envVars, err = d.client.ListServiceEnvVars(ctx, config.ServiceUUID.ValueString())
+	} else if !config.DatabaseUUID.IsNull() {
+		envVars, err = d.client.ListDatabaseEnvVars(ctx, config.DatabaseUUID.ValueString())
 	} else {
-		resp.Diagnostics.AddError("Configuration Error", "Either application_uuid or service_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 

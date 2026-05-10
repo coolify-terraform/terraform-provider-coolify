@@ -57,3 +57,52 @@ func (c *Client) UpdateServiceEnvVar(ctx context.Context, svcUUID string, ev Env
 func (c *Client) DeleteServiceEnvVar(ctx context.Context, svcUUID string, envUUID string) error {
 	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/services/%s/envs/%s", svcUUID, envUUID), nil, nil)
 }
+func (c *Client) CreateDatabaseEnvVar(ctx context.Context, dbUUID string, ev EnvironmentVariable) (*CreateEnvVarResponse, error) {
+	var r CreateEnvVarResponse
+	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/envs", dbUUID), ev, &r, http.StatusCreated); err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+func (c *Client) ListDatabaseEnvVars(ctx context.Context, dbUUID string) ([]EnvironmentVariable, error) {
+	var v []EnvironmentVariable
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/envs", dbUUID), nil, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+func (c *Client) UpdateDatabaseEnvVar(ctx context.Context, dbUUID string, ev EnvironmentVariable) error {
+	return c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/envs", dbUUID), ev, nil)
+}
+func (c *Client) DeleteDatabaseEnvVar(ctx context.Context, dbUUID string, envUUID string) error {
+	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/envs/%s", dbUUID, envUUID), nil, nil)
+}
+
+// --- Bulk environment variable types ---
+
+// BulkEnvVarInput is the request payload for bulk environment variable updates.
+type BulkEnvVarInput struct {
+	Variables []EnvVarEntry `json:"variables"`
+}
+
+// EnvVarEntry represents a single environment variable in a bulk update.
+type EnvVarEntry struct {
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	IsPreview bool   `json:"is_preview"`
+}
+
+// BulkUpdateAppEnvVars performs a bulk update of environment variables on an application.
+func (c *Client) BulkUpdateAppEnvVars(ctx context.Context, appUUID string, input BulkEnvVarInput) error {
+	return c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s/envs/bulk", appUUID), input, nil)
+}
+
+// BulkUpdateDatabaseEnvVars performs a bulk update of environment variables on a database.
+func (c *Client) BulkUpdateDatabaseEnvVars(ctx context.Context, dbUUID string, input BulkEnvVarInput) error {
+	return c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/envs/bulk", dbUUID), input, nil)
+}
+
+// BulkUpdateServiceEnvVars performs a bulk update of environment variables on a service.
+func (c *Client) BulkUpdateServiceEnvVars(ctx context.Context, svcUUID string, input BulkEnvVarInput) error {
+	return c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/services/%s/envs/bulk", svcUUID), input, nil)
+}

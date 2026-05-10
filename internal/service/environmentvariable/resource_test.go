@@ -438,7 +438,7 @@ func TestEnvironmentVariableResource_ImportBadType(t *testing.T) {
 			{
 				ResourceName:  "coolify_environment_variable.test",
 				ImportState:   true,
-				ImportStateId: "database:uuid:env-uuid",
+				ImportStateId: "unknown:uuid:env-uuid",
 				ExpectError:   regexp.MustCompile(`Invalid import ID type`),
 			},
 		},
@@ -601,6 +601,174 @@ func TestEnvironmentVariableResource_InvalidKey(t *testing.T) {
 		},
 	})
 }
+
+// ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_CreateDatabase
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_CreateDatabase(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID:      "env-db-uuid",
+		Key:       "POSTGRES_PASSWORD",
+		Value:     "supersecret",
+		IsPreview: false,
+		IsBuild:   false,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					database_uuid = "dddd0001-0001-4000-8000-000000000001"
+					key           = "POSTGRES_PASSWORD"
+					value         = "supersecret"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "uuid", "env-db-uuid"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "key", "POSTGRES_PASSWORD"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "supersecret"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "false"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "false"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_DatabaseUpdate
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_DatabaseUpdate(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	currentEnvVar := client.EnvironmentVariable{
+		UUID: "env-db-upd-uuid", Key: "DB_MAX_CONN", Value: "10", IsPreview: false, IsBuild: false,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentEnvVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{currentEnvVar})
+	})
+	mux.HandleFunc("PATCH /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["value"].(string); ok {
+			currentEnvVar.Value = v
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					database_uuid = "dddd0001-0001-4000-8000-000000000001"
+					key           = "DB_MAX_CONN"
+					value         = "10"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "10"),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					database_uuid = "dddd0001-0001-4000-8000-000000000001"
+					key           = "DB_MAX_CONN"
+					value         = "50"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "50"),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_DatabaseImport
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_DatabaseImport(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID: "env-db-imp-uuid", Key: "DB_VAR", Value: "db-value", IsPreview: false, IsBuild: false,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					database_uuid = "dddd0001-0001-4000-8000-000000000001"
+					key           = "DB_VAR"
+					value         = "db-value"
+				`),
+			},
+			{
+				ResourceName:                         "coolify_environment_variable.test",
+				ImportState:                          true,
+				ImportStateId:                        "database:dddd0001-0001-4000-8000-000000000001:env-db-imp-uuid",
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateVerifyIgnore:              []string{"value"},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 func testEnvVarResourceConfig(endpoint, attrs string) string {
 	return fmt.Sprintf(`

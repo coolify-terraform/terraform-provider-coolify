@@ -326,3 +326,30 @@ func (c *Client) DeleteDatabaseBackup(ctx context.Context, dbUUID string, backup
 	}
 	return nil
 }
+
+// --- Backup Execution types ---
+
+// BackupExecution represents a single execution of a database backup.
+type BackupExecution struct {
+	UUID      string `json:"uuid"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at"`
+	Size      int64  `json:"size,omitempty"`
+}
+
+// ListBackupExecutions returns all executions for a database backup.
+func (c *Client) ListBackupExecutions(ctx context.Context, dbUUID, backupUUID string) ([]BackupExecution, error) {
+	var execs []BackupExecution
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups/%s/executions", dbUUID, backupUUID), nil, &execs); err != nil {
+		return nil, fmt.Errorf("listing backup executions for database %s backup %s: %w", dbUUID, backupUUID, err)
+	}
+	return execs, nil
+}
+
+// DeleteBackupExecution deletes a specific backup execution.
+func (c *Client) DeleteBackupExecution(ctx context.Context, dbUUID, backupUUID, execUUID string) error {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/backups/%s/executions/%s", dbUUID, backupUUID, execUUID), nil, nil); err != nil {
+		return fmt.Errorf("deleting backup execution %s for database %s backup %s: %w", execUUID, dbUUID, backupUUID, err)
+	}
+	return nil
+}

@@ -31,3 +31,35 @@ func (c *Client) ListTeamMembers(ctx context.Context, id int) ([]TeamMember, err
 	}
 	return m, nil
 }
+
+func (c *Client) ListTeams(ctx context.Context) ([]Team, error) {
+	var t []Team
+	if err := c.do(ctx, http.MethodGet, "/api/v1/teams", nil, &t); err != nil {
+		return nil, fmt.Errorf("listing teams: %w", err)
+	}
+	return t, nil
+}
+
+func (c *Client) GetTeamMembers(ctx context.Context, teamID int) ([]TeamMember, error) {
+	var m []TeamMember
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/teams/%d/members", teamID), nil, &m); err != nil {
+		return nil, fmt.Errorf("getting team %d members: %w", teamID, err)
+	}
+	return m, nil
+}
+
+func (c *Client) GetCurrentTeam(ctx context.Context) (*Team, error) {
+	var t Team
+	if err := c.do(ctx, http.MethodGet, "/api/v1/teams/current", nil, &t); err != nil {
+		return nil, fmt.Errorf("getting current team: %w", err)
+	}
+	return &t, nil
+}
+
+func (c *Client) GetCurrentTeamMembers(ctx context.Context) ([]TeamMember, error) {
+	var m []TeamMember
+	if err := c.do(ctx, http.MethodGet, "/api/v1/teams/current/members", nil, &m); err != nil {
+		return nil, fmt.Errorf("getting current team members: %w", err)
+	}
+	return m, nil
+}

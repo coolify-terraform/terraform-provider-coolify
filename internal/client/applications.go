@@ -184,3 +184,51 @@ func (c *Client) CreateDockerImageApplication(ctx context.Context, input CreateD
 	}
 	return &a, nil
 }
+
+type CreateDockerfileAppInput struct {
+	ProjectUUID        string `json:"project_uuid"`
+	ServerUUID         string `json:"server_uuid"`
+	EnvironmentName    string `json:"environment_name"`
+	DockerfileLocation string `json:"dockerfile_location"`
+	PortsExposes       string `json:"ports_exposes"`
+	Name               string `json:"name,omitempty"`
+	Description        string `json:"description,omitempty"`
+	FQDN               string `json:"fqdn,omitempty"`
+	InstallCommand     string `json:"install_command,omitempty"`
+	BuildCommand       string `json:"build_command,omitempty"`
+	StartCommand       string `json:"start_command,omitempty"`
+}
+
+func (c *Client) CreateDockerfileApplication(ctx context.Context, input CreateDockerfileAppInput) (*Application, error) {
+	var a Application
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockerfile", input, &a, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating dockerfile application: %w", err)
+	}
+	return &a, nil
+}
+
+type CreateGitHubAppInput struct {
+	ProjectUUID        string `json:"project_uuid"`
+	ServerUUID         string `json:"server_uuid"`
+	EnvironmentName    string `json:"environment_name"`
+	GitHubAppUUID      string `json:"github_app_uuid"`
+	GitRepository      string `json:"git_repository"`
+	GitBranch          string `json:"git_branch"`
+	BuildPack          string `json:"build_pack"`
+	PortsExposes       string `json:"ports_exposes"`
+	Name               string `json:"name,omitempty"`
+	Description        string `json:"description,omitempty"`
+	FQDN               string `json:"fqdn,omitempty"`
+	DockerfileLocation string `json:"dockerfile_location,omitempty"`
+	InstallCommand     string `json:"install_command,omitempty"`
+	BuildCommand       string `json:"build_command,omitempty"`
+	StartCommand       string `json:"start_command,omitempty"`
+}
+
+func (c *Client) CreateGitHubAppApplication(ctx context.Context, input CreateGitHubAppInput) (*Application, error) {
+	var a Application
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-github-app", input, &a, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating github app application: %w", err)
+	}
+	return &a, nil
+}

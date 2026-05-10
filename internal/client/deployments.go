@@ -31,6 +31,20 @@ func (c *Client) GetDeployment(ctx context.Context, uuid string) (*Deployment, e
 	}
 	return &r, nil
 }
+func (c *Client) ListApplicationDeployments(ctx context.Context, appUUID string) ([]Deployment, error) {
+	var r []Deployment
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/deployments/applications/%s", appUUID), nil, &r); err != nil {
+		return nil, fmt.Errorf("listing deployments for application %s: %w", appUUID, err)
+	}
+	return r, nil
+}
+func (c *Client) CancelDeployment(ctx context.Context, uuid string) error {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/deployments/%s/cancel", uuid), nil, nil); err != nil {
+		return fmt.Errorf("cancelling deployment %s: %w", uuid, err)
+	}
+	return nil
+}
+
 func (c *Client) DeployByTag(ctx context.Context, tag string, input DeployByTagInput) error {
 	q := url.Values{}
 	q.Set("tag", tag)

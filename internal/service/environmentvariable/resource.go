@@ -26,7 +26,7 @@ var (
 )
 
 // EnvironmentVariableResource manages a single environment variable on an
-// application or service.
+// application, service, or database.
 type EnvironmentVariableResource struct {
 	client *client.Client
 }
@@ -36,6 +36,7 @@ type EnvironmentVariableResourceModel struct {
 	UUID            types.String `tfsdk:"uuid"`
 	ApplicationUUID types.String `tfsdk:"application_uuid"`
 	ServiceUUID     types.String `tfsdk:"service_uuid"`
+	DatabaseUUID    types.String `tfsdk:"database_uuid"`
 	Key             types.String `tfsdk:"key"`
 	Value           types.String `tfsdk:"value"`
 	IsPreview       types.Bool   `tfsdk:"is_preview"`
@@ -53,7 +54,7 @@ func (r *EnvironmentVariableResource) Metadata(_ context.Context, req resource.M
 
 func (r *EnvironmentVariableResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages an environment variable on a Coolify application or service.",
+		MarkdownDescription: "Manages an environment variable on a Coolify application, service, or database.",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the environment variable.",
@@ -63,7 +64,7 @@ func (r *EnvironmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				},
 			},
 			"application_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the application to set the variable on. Exactly one of `application_uuid` or `service_uuid` must be provided. Changing this forces a new resource.",
+				MarkdownDescription: "The UUID of the application to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -71,12 +72,21 @@ func (r *EnvironmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Validators: []validator.String{
 					stringvalidator.ExactlyOneOf(
 						path.MatchRoot("service_uuid"),
+						path.MatchRoot("database_uuid"),
 					),
 					validate.UUID(),
 				},
 			},
 			"service_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the service to set the variable on. Exactly one of `application_uuid` or `service_uuid` must be provided. Changing this forces a new resource.",
+				MarkdownDescription: "The UUID of the service to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{validate.UUID()},
+			},
+			"database_uuid": schema.StringAttribute{
+				MarkdownDescription: "The UUID of the database to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -147,8 +157,10 @@ func (r *EnvironmentVariableResource) Create(ctx context.Context, req resource.C
 		createResp, err = r.client.CreateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev)
 	} else if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
 		createResp, err = r.client.CreateServiceEnvVar(ctx, plan.ServiceUUID.ValueString(), ev)
+	} else if !plan.DatabaseUUID.IsNull() && !plan.DatabaseUUID.IsUnknown() {
+		createResp, err = r.client.CreateDatabaseEnvVar(ctx, plan.DatabaseUUID.ValueString(), ev)
 	} else {
-		resp.Diagnostics.AddError("Configuration Error", "Either application_uuid or service_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
@@ -175,8 +187,10 @@ func (r *EnvironmentVariableResource) Read(ctx context.Context, req resource.Rea
 		envVars, err = r.client.ListApplicationEnvVars(ctx, state.ApplicationUUID.ValueString())
 	} else if !state.ServiceUUID.IsNull() && !state.ServiceUUID.IsUnknown() {
 		envVars, err = r.client.ListServiceEnvVars(ctx, state.ServiceUUID.ValueString())
+	} else if !state.DatabaseUUID.IsNull() && !state.DatabaseUUID.IsUnknown() {
+		envVars, err = r.client.ListDatabaseEnvVars(ctx, state.DatabaseUUID.ValueString())
 	} else {
-		resp.Diagnostics.AddError("Configuration Error", "Either application_uuid or service_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
@@ -226,8 +240,10 @@ func (r *EnvironmentVariableResource) Update(ctx context.Context, req resource.U
 		err = r.client.UpdateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev)
 	} else if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
 		err = r.client.UpdateServiceEnvVar(ctx, plan.ServiceUUID.ValueString(), ev)
+	} else if !plan.DatabaseUUID.IsNull() && !plan.DatabaseUUID.IsUnknown() {
+		err = r.client.UpdateDatabaseEnvVar(ctx, plan.DatabaseUUID.ValueString(), ev)
 	} else {
-		resp.Diagnostics.AddError("Configuration Error", "Either application_uuid or service_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
@@ -252,8 +268,10 @@ func (r *EnvironmentVariableResource) Delete(ctx context.Context, req resource.D
 		err = r.client.DeleteApplicationEnvVar(ctx, state.ApplicationUUID.ValueString(), state.UUID.ValueString())
 	} else if !state.ServiceUUID.IsNull() && !state.ServiceUUID.IsUnknown() {
 		err = r.client.DeleteServiceEnvVar(ctx, state.ServiceUUID.ValueString(), state.UUID.ValueString())
+	} else if !state.DatabaseUUID.IsNull() && !state.DatabaseUUID.IsUnknown() {
+		err = r.client.DeleteDatabaseEnvVar(ctx, state.DatabaseUUID.ValueString(), state.UUID.ValueString())
 	} else {
-		resp.Diagnostics.AddError("Configuration Error", "Either application_uuid or service_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
@@ -271,7 +289,7 @@ func (r *EnvironmentVariableResource) ImportState(ctx context.Context, req resou
 	if len(parts) != 3 {
 		resp.Diagnostics.AddError(
 			"Invalid import ID format",
-			`Expected "application:{app_uuid}:{env_uuid}" or "service:{svc_uuid}:{env_uuid}".`,
+			`Expected "application:{app_uuid}:{env_uuid}", "service:{svc_uuid}:{env_uuid}", or "database:{db_uuid}:{env_uuid}".`,
 		)
 		return
 	}
@@ -285,10 +303,12 @@ func (r *EnvironmentVariableResource) ImportState(ctx context.Context, req resou
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("application_uuid"), parentUUID)...)
 	case "service":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("service_uuid"), parentUUID)...)
+	case "database":
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("database_uuid"), parentUUID)...)
 	default:
 		resp.Diagnostics.AddError(
 			"Invalid import ID type",
-			fmt.Sprintf("Expected \"application\" or \"service\", got %q.", resourceType),
+			fmt.Sprintf("Expected \"application\", \"service\", or \"database\", got %q.", resourceType),
 		)
 		return
 	}

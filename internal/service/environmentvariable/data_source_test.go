@@ -47,6 +47,40 @@ data "coolify_environment_variables" "test" {
 	})
 }
 
+func TestEnvironmentVariablesDataSource_Database(t *testing.T) {
+	t.Parallel()
+	envVars := []client.EnvironmentVariable{
+		{UUID: "ev-d1", Key: "POSTGRES_USER", Value: "admin", IsPreview: false, IsBuild: false},
+		{UUID: "ev-d2", Key: "POSTGRES_PASSWORD", Value: "secret", IsPreview: false, IsBuild: false},
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(envVars)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_environment_variables" "test" {
+  database_uuid = "dddd0001-0001-4000-8000-000000000001"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_environment_variables.test", "environment_variables.#", "2"),
+					resource.TestCheckResourceAttr("data.coolify_environment_variables.test", "environment_variables.0.key", "POSTGRES_USER"),
+					resource.TestCheckResourceAttr("data.coolify_environment_variables.test", "environment_variables.1.key", "POSTGRES_PASSWORD"),
+				),
+			},
+		},
+	})
+}
+
 func TestEnvironmentVariablesDataSource_Service(t *testing.T) {
 	t.Parallel()
 	envVars := []client.EnvironmentVariable{
