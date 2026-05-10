@@ -4,8 +4,8 @@
 <!-- Run: make api-coverage -->
 
 **Spec**: Coolify v4 (pinned in `testdata/specs/coolify-v4.json`)  
-**Coverage**: 122 / 135 endpoints (90.4%)  
-**Planned**: 0 | **Skipped**: 13
+**Coverage**: 135 / 135 endpoints (100.0%)  
+**Planned**: 0 | **Skipped**: 0
 
 ## Covered
 
@@ -13,6 +13,7 @@
 |----------|----------------------------------|-------|
 | `DELETE /applications/{uuid}` | `coolify_application + variants` | v0.1.0 |
 | `DELETE /applications/{uuid}/envs/{env_uuid}` | `coolify_environment_variable` | v0.1.0 |
+| `DELETE /applications/{uuid}/previews/{pull_request_id}` | `client.DeletePreviewDeployment` | v0.2.0 |
 | `DELETE /applications/{uuid}/scheduled-tasks/{task_uuid}` | `coolify_scheduled_task` | v0.2.0 |
 | `DELETE /applications/{uuid}/storages/{storage_uuid}` | `coolify_storage` | v0.2.0 |
 | `DELETE /cloud-tokens/{uuid}` | `coolify_cloud_token` | v0.2.0 |
@@ -33,6 +34,7 @@
 | `GET /applications` | `data.coolify_applications` | v0.1.0 |
 | `GET /applications/{uuid}` | `data.coolify_application` | v0.1.0 |
 | `GET /applications/{uuid}/envs` | `data.coolify_environment_variables` | v0.1.0 |
+| `GET /applications/{uuid}/logs` | `data.coolify_application_logs` | v0.2.0 |
 | `GET /applications/{uuid}/restart` | `coolify_deployment` | v0.1.0 |
 | `GET /applications/{uuid}/scheduled-tasks` | `data.coolify_scheduled_tasks` | v0.2.0 |
 | `GET /applications/{uuid}/scheduled-tasks/{task_uuid}/executions` | `data.coolify_task_executions` | v0.2.0 |
@@ -46,13 +48,20 @@
 | `GET /databases/{uuid}/backups` | `coolify_database_backup` | v0.1.0 |
 | `GET /databases/{uuid}/backups/{scheduled_backup_uuid}/executions` | `data.coolify_backup_executions` | v0.2.0 |
 | `GET /databases/{uuid}/envs` | `data.coolify_environment_variables` | v0.2.0 |
+| `GET /databases/{uuid}/restart` | `client.RestartDatabase` | v0.2.0 |
+| `GET /databases/{uuid}/start` | `client.StartDatabase` | v0.1.0 |
+| `GET /databases/{uuid}/stop` | `client.StopDatabase` | v0.1.0 |
 | `GET /databases/{uuid}/storages` | `data.coolify_storages` | v0.2.0 |
+| `GET /deploy` | `client.Deploy` | v0.2.0 |
 | `GET /deployments` | `data.coolify_deployments` | v0.2.0 |
 | `GET /deployments/applications/{uuid}` | `data.coolify_deployments` | v0.2.0 |
 | `GET /deployments/{uuid}` | `coolify_deployment` | v0.1.0 |
+| `GET /disable` | `client.DisableAPI` | v0.2.0 |
+| `GET /enable` | `client.EnableAPI` | v0.2.0 |
 | `GET /github-apps` | `data.coolify_github_apps` | v0.2.0 |
 | `GET /github-apps/{github_app_id}/repositories` | `data.coolify_github_app_repositories` | v0.2.0 |
 | `GET /github-apps/{github_app_id}/repositories/{owner}/{repo}/branches` | `data.coolify_github_app_branches` | v0.2.0 |
+| `GET /health` | `data.coolify_health` | v0.2.0 |
 | `GET /hetzner/images` | `data.coolify_hetzner_images` | v0.2.0 |
 | `GET /hetzner/locations` | `data.coolify_hetzner_locations` | v0.2.0 |
 | `GET /hetzner/server-types` | `data.coolify_hetzner_server_types` | v0.2.0 |
@@ -68,11 +77,15 @@
 | `GET /servers/{uuid}` | `data.coolify_server` | v0.1.0 |
 | `GET /servers/{uuid}/domains` | `data.coolify_server_domains` | v0.1.0 |
 | `GET /servers/{uuid}/resources` | `data.coolify_server_resources` | v0.1.0 |
+| `GET /servers/{uuid}/validate` | `data.coolify_server_validation` | v0.2.0 |
 | `GET /services` | `data.coolify_services` | v0.1.0 |
 | `GET /services/{uuid}` | `data.coolify_service` | v0.1.0 |
 | `GET /services/{uuid}/envs` | `data.coolify_environment_variables` | v0.2.0 |
+| `GET /services/{uuid}/restart` | `client.RestartService` | v0.2.0 |
 | `GET /services/{uuid}/scheduled-tasks` | `data.coolify_scheduled_tasks` | v0.2.0 |
 | `GET /services/{uuid}/scheduled-tasks/{task_uuid}/executions` | `data.coolify_task_executions` | v0.2.0 |
+| `GET /services/{uuid}/start` | `client.StartService` | v0.1.0 |
+| `GET /services/{uuid}/stop` | `client.StopService` | v0.1.0 |
 | `GET /services/{uuid}/storages` | `data.coolify_storages` | v0.2.0 |
 | `GET /teams` | `data.coolify_teams` | v0.2.0 |
 | `GET /teams/current` | `data.coolify_team_members` | v0.2.0 |
@@ -147,19 +160,6 @@ These endpoints are not appropriate for Terraform resource management.
 
 | Endpoint | Reason |
 |----------|--------|
-| `DELETE /applications/{uuid}/previews/{pull_request_id}` | Preview deployment management, niche |
-| `GET /applications/{uuid}/logs` | Streaming logs, not a Terraform resource |
-| `GET /databases/{uuid}/restart` | Operational action, not a Terraform resource |
-| `GET /databases/{uuid}/start` | Operational action, not a Terraform resource |
-| `GET /databases/{uuid}/stop` | Operational action, not a Terraform resource |
-| `GET /deploy` | Generic deploy trigger; use coolify_deployment resource |
-| `GET /disable` | API lifecycle management, not a Terraform resource |
-| `GET /enable` | API lifecycle management, not a Terraform resource |
-| `GET /health` | Operational healthcheck, not a Terraform resource |
-| `GET /servers/{uuid}/validate` | Operational validation, not a Terraform resource |
-| `GET /services/{uuid}/restart` | Operational action, not a Terraform resource |
-| `GET /services/{uuid}/start` | Operational action, not a Terraform resource |
-| `GET /services/{uuid}/stop` | Operational action, not a Terraform resource |
 
 ## New in Spec (Unclassified)
 

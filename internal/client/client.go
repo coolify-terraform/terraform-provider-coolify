@@ -80,6 +80,54 @@ func (c *Client) GetVersion(ctx context.Context) (string, error) {
 	return v, nil
 }
 
+// GetHealth returns the Coolify instance health status string.
+// The health endpoint may return text/html (not JSON), so we read the
+// body as a plain string similar to GetVersion.
+func (c *Client) GetHealth(ctx context.Context) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/api/v1/health", nil)
+	if err != nil {
+		return "", fmt.Errorf("creating health request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.APIToken)
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("executing health request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("reading health response: %w", err)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("health API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	h := strings.TrimSpace(string(body))
+	if len(h) >= 2 && h[0] == '"' && h[len(h)-1] == '"' {
+		h = h[1 : len(h)-1]
+	}
+	return h, nil
+}
+
+// EnableAPI enables the Coolify API.
+func (c *Client) EnableAPI(ctx context.Context) error {
+	if err := c.do(ctx, http.MethodGet, "/api/v1/enable", nil, nil); err != nil {
+		return fmt.Errorf("enabling API: %w", err)
+	}
+	return nil
+}
+
+// DisableAPI disables the Coolify API.
+func (c *Client) DisableAPI(ctx context.Context) error {
+	if err := c.do(ctx, http.MethodGet, "/api/v1/disable", nil, nil); err != nil {
+		return fmt.Errorf("disabling API: %w", err)
+	}
+	return nil
+}
+
 // NotFoundError is returned when the API responds with 404.
 type NotFoundError struct {
 	Message string

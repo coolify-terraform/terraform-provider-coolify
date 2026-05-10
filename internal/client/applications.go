@@ -232,3 +232,26 @@ func (c *Client) CreateGitHubAppApplication(ctx context.Context, input CreateGit
 	}
 	return &a, nil
 }
+
+// ApplicationLog represents a single log line from an application.
+type ApplicationLog struct {
+	Line      string `json:"line"`
+	Timestamp string `json:"timestamp,omitempty"`
+}
+
+// GetApplicationLogs returns log lines for an application.
+func (c *Client) GetApplicationLogs(ctx context.Context, uuid string) ([]ApplicationLog, error) {
+	var logs []ApplicationLog
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/logs", uuid), nil, &logs); err != nil {
+		return nil, fmt.Errorf("getting application logs %s: %w", uuid, err)
+	}
+	return logs, nil
+}
+
+// DeletePreviewDeployment deletes a preview deployment for an application.
+func (c *Client) DeletePreviewDeployment(ctx context.Context, appUUID string, pullRequestID int64) error {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s/previews/%d", appUUID, pullRequestID), nil, nil); err != nil {
+		return fmt.Errorf("deleting preview deployment for application %s pull request %d: %w", appUUID, pullRequestID, err)
+	}
+	return nil
+}

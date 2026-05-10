@@ -1871,7 +1871,7 @@ func TestClient_DeleteDatabaseBackup(t *testing.T) {
 
 func TestClient_ValidateServer(t *testing.T) {
 	t.Parallel()
-	expected := Server{UUID: "srv-1", Name: "prod", IsReachable: true, IsUsable: true}
+	expected := ServerValidation{Valid: true, Message: "Server is reachable"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/servers/srv-1/validate", r.URL.Path)
@@ -1883,9 +1883,8 @@ func TestClient_ValidateServer(t *testing.T) {
 	c := New(srv.URL, "test-token")
 	got, err := c.ValidateServer(context.Background(), "srv-1")
 	require.NoError(t, err)
-	assert.Equal(t, "srv-1", got.UUID)
-	assert.True(t, got.IsReachable)
-	assert.True(t, got.IsUsable)
+	assert.True(t, got.Valid)
+	assert.Equal(t, "Server is reachable", got.Message)
 }
 
 func TestClient_ListServerResources(t *testing.T) {

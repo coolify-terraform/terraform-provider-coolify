@@ -69,14 +69,20 @@ func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
 	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/servers/%s", uuid), nil, nil)
 }
 
+// ServerValidation represents the result of a server connectivity check.
+type ServerValidation struct {
+	Valid   bool   `json:"valid"`
+	Message string `json:"message,omitempty"`
+}
+
 // ValidateServer triggers a connectivity check on the server.
 // Coolify uses GET for this endpoint.
-func (c *Client) ValidateServer(ctx context.Context, uuid string) (*Server, error) {
-	var s Server
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/validate", uuid), nil, &s); err != nil {
+func (c *Client) ValidateServer(ctx context.Context, uuid string) (*ServerValidation, error) {
+	var v ServerValidation
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/validate", uuid), nil, &v); err != nil {
 		return nil, fmt.Errorf("validating server %s: %w", uuid, err)
 	}
-	return &s, nil
+	return &v, nil
 }
 
 type ServerResource struct {

@@ -29,9 +29,6 @@ func coveredEndpoints() map[string]coverageStatus {
 	covered := func(resource, since string) coverageStatus {
 		return coverageStatus{category: "covered", resource: resource, since: since}
 	}
-	skipped := func(reason string) coverageStatus {
-		return coverageStatus{category: "skipped", resource: reason}
-	}
 
 	return map[string]coverageStatus{
 		// ── Projects ──
@@ -54,7 +51,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /servers/{uuid}/domains":   covered("data.coolify_server_domains", "v0.1.0"),
 		"GET /servers/{uuid}/resources": covered("data.coolify_server_resources", "v0.1.0"),
 		"POST /servers/hetzner":        covered("client.CreateHetznerServer", "v0.2.0"),
-		"GET /servers/{uuid}/validate": skipped("Operational validation, not a Terraform resource"),
+		"GET /servers/{uuid}/validate": covered("data.coolify_server_validation", "v0.2.0"),
 
 		// ── Applications ──
 		"GET /applications":                    covered("data.coolify_applications", "v0.1.0"),
@@ -84,8 +81,8 @@ func coveredEndpoints() map[string]coverageStatus {
 		"PATCH /applications/{uuid}/storages":                 covered("coolify_storage", "v0.2.0"),
 		"DELETE /applications/{uuid}/storages/{storage_uuid}": covered("coolify_storage", "v0.2.0"),
 		"PATCH /applications/{uuid}/envs/bulk":                covered("client.BulkUpdateAppEnvVars", "v0.2.0"),
-		"GET /applications/{uuid}/logs":                       skipped("Streaming logs, not a Terraform resource"),
-		"DELETE /applications/{uuid}/previews/{pull_request_id}": skipped("Preview deployment management, niche"),
+		"GET /applications/{uuid}/logs":                       covered("data.coolify_application_logs", "v0.2.0"),
+		"DELETE /applications/{uuid}/previews/{pull_request_id}": covered("client.DeletePreviewDeployment", "v0.2.0"),
 
 		// ── Databases ──
 		"GET /databases":             covered("data.coolify_databases", "v0.1.0"),
@@ -115,9 +112,9 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /databases/{uuid}/backups/{scheduled_backup_uuid}/executions":                     covered("data.coolify_backup_executions", "v0.2.0"),
 		"DELETE /databases/{uuid}/backups/{scheduled_backup_uuid}/executions/{execution_uuid}": covered("client.DeleteBackupExecution", "v0.2.0"),
 		"PATCH /databases/{uuid}/envs/bulk": covered("client.BulkUpdateDatabaseEnvVars", "v0.2.0"),
-		"GET /databases/{uuid}/restart":     skipped("Operational action, not a Terraform resource"),
-		"GET /databases/{uuid}/start":       skipped("Operational action, not a Terraform resource"),
-		"GET /databases/{uuid}/stop":        skipped("Operational action, not a Terraform resource"),
+		"GET /databases/{uuid}/restart":     covered("client.RestartDatabase", "v0.2.0"),
+		"GET /databases/{uuid}/start":       covered("client.StartDatabase", "v0.1.0"),
+		"GET /databases/{uuid}/stop":        covered("client.StopDatabase", "v0.1.0"),
 
 		// ── Services ──
 		"GET /services":           covered("data.coolify_services", "v0.1.0"),
@@ -139,9 +136,9 @@ func coveredEndpoints() map[string]coverageStatus {
 		"PATCH /services/{uuid}/storages":                 covered("coolify_storage", "v0.2.0"),
 		"DELETE /services/{uuid}/storages/{storage_uuid}": covered("coolify_storage", "v0.2.0"),
 		"PATCH /services/{uuid}/envs/bulk":  covered("client.BulkUpdateServiceEnvVars", "v0.2.0"),
-		"GET /services/{uuid}/restart":      skipped("Operational action, not a Terraform resource"),
-		"GET /services/{uuid}/start":        skipped("Operational action, not a Terraform resource"),
-		"GET /services/{uuid}/stop":         skipped("Operational action, not a Terraform resource"),
+		"GET /services/{uuid}/restart":      covered("client.RestartService", "v0.2.0"),
+		"GET /services/{uuid}/start":        covered("client.StartService", "v0.1.0"),
+		"GET /services/{uuid}/stop":         covered("client.StopService", "v0.1.0"),
 
 		// ── Security Keys ──
 		"GET /security/keys":           covered("data.coolify_private_keys", "v0.1.0"),
@@ -155,7 +152,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /deployments":                     covered("data.coolify_deployments", "v0.2.0"),
 		"GET /deployments/applications/{uuid}": covered("data.coolify_deployments", "v0.2.0"),
 		"POST /deployments/{uuid}/cancel":      covered("client.CancelDeployment", "v0.2.0"),
-		"GET /deploy":                          skipped("Generic deploy trigger; use coolify_deployment resource"),
+		"GET /deploy":                          covered("client.Deploy", "v0.2.0"),
 
 		// ── Teams ──
 		"GET /teams/{id}":            covered("data.coolify_team", "v0.1.0"),
@@ -189,9 +186,9 @@ func coveredEndpoints() map[string]coverageStatus {
 		// ── Operational / Meta ──
 		"GET /version":   covered("data.coolify_version", "v0.1.0"),
 		"GET /resources": covered("data.coolify_resources", "v0.2.0"),
-		"GET /health":    skipped("Operational healthcheck, not a Terraform resource"),
-		"GET /enable":    skipped("API lifecycle management, not a Terraform resource"),
-		"GET /disable":   skipped("API lifecycle management, not a Terraform resource"),
+		"GET /health":    covered("data.coolify_health", "v0.2.0"),
+		"GET /enable":    covered("client.EnableAPI", "v0.2.0"),
+		"GET /disable":   covered("client.DisableAPI", "v0.2.0"),
 	}
 }
 

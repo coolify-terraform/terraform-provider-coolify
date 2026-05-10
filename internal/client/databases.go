@@ -261,6 +261,14 @@ func (c *Client) StopDatabase(ctx context.Context, uuid string) error {
 	return nil
 }
 
+// RestartDatabase restarts a database.
+func (c *Client) RestartDatabase(ctx context.Context, uuid string) error {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/restart", uuid), nil, nil); err != nil {
+		return fmt.Errorf("restarting database %s: %w", uuid, err)
+	}
+	return nil
+}
+
 // --- Database Backup types ---
 
 type DatabaseBackup struct {

@@ -45,6 +45,14 @@ func (c *Client) CancelDeployment(ctx context.Context, uuid string) error {
 	return nil
 }
 
+// Deploy triggers a generic deploy (webhook-style).
+func (c *Client) Deploy(ctx context.Context) error {
+	if err := c.do(ctx, http.MethodGet, "/api/v1/deploy", nil, nil); err != nil {
+		return fmt.Errorf("triggering deploy: %w", err)
+	}
+	return nil
+}
+
 func (c *Client) DeployByTag(ctx context.Context, tag string, input DeployByTagInput) error {
 	q := url.Values{}
 	q.Set("tag", tag)
