@@ -80,7 +80,7 @@ func TestServerDataSource_NotFound(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
 data "coolify_server" "test" {
-  uuid = "nonexistent-uuid"
+  uuid = "00000000-0000-4000-8000-000000000000"
 }`,
 				ExpectError: regexp.MustCompile(`Error reading server`),
 			},

@@ -343,7 +343,7 @@ func TestDockerComposeApplicationResource_InvalidFQDN(t *testing.T) {
 					docker_compose_raw = "version: '3'"
 					fqdn               = "app.example.com"
 				`),
-				ExpectError: regexp.MustCompile(`must start with http:// or https://`),
+				ExpectError: regexp.MustCompile(`must be a valid URL starting with http:// or https://`),
 			},
 		},
 	})

@@ -415,7 +415,7 @@ func TestPrivateGitApplicationResource_InvalidFQDN(t *testing.T) {
 					ports_exposes    = "3000"
 					fqdn             = "app.example.com"
 				`),
-				ExpectError: regexp.MustCompile(`must start with http:// or https://`),
+				ExpectError: regexp.MustCompile(`must be a valid URL starting with http:// or https://`),
 			},
 		},
 	})

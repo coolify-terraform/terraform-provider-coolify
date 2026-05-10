@@ -183,7 +183,7 @@ func (s *mockProjectStore) Create(name, description string) *mockProject {
 	defer s.mu.Unlock()
 	s.counter++
 	p := &mockProject{
-		UUID:        fmt.Sprintf("test-uuid-%d", s.counter),
+		UUID:        fmt.Sprintf("cccc0000-0000-4000-8000-%012d", s.counter),
 		Name:        name,
 		Description: description,
 	}

@@ -285,7 +285,7 @@ resource "coolify_s3_storage" "test" {
   secret_key = "secret"
 }
 `, srv.URL),
-				ExpectError: regexp.MustCompile(`must start with http:// or https://`),
+				ExpectError: regexp.MustCompile(`must be a valid URL starting with http:// or https://`),
 			},
 		},
 	})
