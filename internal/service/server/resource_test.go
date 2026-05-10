@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -249,6 +250,28 @@ resource "coolify_server" "test" {
 					acctest.CheckResourceDisappears(srv.URL, "coolify_server.test", "/api/v1/servers/"),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestServerResource_InvalidPort(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "bad-port-server"
+  ip               = "10.0.0.1"
+  port             = 99999
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
+}`,
+				ExpectError: regexp.MustCompile(`must be between 1 and 65535`),
 			},
 		},
 	})

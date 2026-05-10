@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -61,6 +62,27 @@ data "coolify_server" "test" {
 					resource.TestCheckResourceAttr("data.coolify_server.test", "is_reachable", "true"),
 					resource.TestCheckResourceAttr("data.coolify_server.test", "is_usable", "true"),
 				),
+			},
+		},
+	})
+}
+
+func TestServerDataSource_NotFound(t *testing.T) {
+	t.Parallel()
+	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	})))
+	defer mockSrv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
+data "coolify_server" "test" {
+  uuid = "nonexistent-uuid"
+}`,
+				ExpectError: regexp.MustCompile(`Error reading server`),
 			},
 		},
 	})
