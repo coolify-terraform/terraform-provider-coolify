@@ -51,7 +51,7 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			if v, ok := body["enabled"].(bool); ok {
 				state.enabled = v
 			}
-			if v, ok := body["number_of_backups_locally"].(float64); ok {
+			if v, ok := body["database_backup_retention_amount_locally"].(float64); ok {
 				i := int64(v)
 				state.retainDays = &i
 			}
@@ -70,7 +70,7 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			if v, ok := body["enabled"].(bool); ok {
 				state.enabled = v
 			}
-			if v, ok := body["number_of_backups_locally"].(float64); ok {
+			if v, ok := body["database_backup_retention_amount_locally"].(float64); ok {
 				i := int64(v)
 				state.retainDays = &i
 			}
@@ -100,7 +100,7 @@ func backupResponse(s *mockBackupState) map[string]interface{} {
 		resp["s3_storage_id"] = s.s3StorageID
 	}
 	if s.retainDays != nil {
-		resp["number_of_backups_locally"] = *s.retainDays
+		resp["database_backup_retention_amount_locally"] = *s.retainDays
 	}
 	return resp
 }
@@ -228,7 +228,7 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"id": backupID, "uuid": "bkp-disappear-uuid",
 				"database_uuid": dbUUID, "frequency": "0 2 * * *",
-				"enabled": true, "number_of_backups_locally": 7,
+				"enabled": true, "database_backup_retention_amount_locally": 7,
 			})
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID):
 			if deleted {
@@ -238,7 +238,7 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"id": backupID, "uuid": "bkp-disappear-uuid",
 				"database_uuid": dbUUID, "frequency": "0 2 * * *",
-				"enabled": true, "number_of_backups_locally": 7,
+				"enabled": true, "database_backup_retention_amount_locally": 7,
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID):
 			deleted = true

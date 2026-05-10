@@ -2056,15 +2056,15 @@ func TestClient_GetVersion(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/version", r.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`"4.0.0-beta.362"`))
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`v4.0.0-beta.362`))
 	}))
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
 	v, err := c.GetVersion(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, "4.0.0-beta.362", v)
+	assert.Equal(t, "v4.0.0-beta.362", v)
 }
 
 func TestClient_StartApplication(t *testing.T) {

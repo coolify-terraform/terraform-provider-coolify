@@ -17,6 +17,7 @@ type Database struct {
 	ServerUUID              string `json:"server_uuid,omitempty"`
 	ProjectUUID             string `json:"project_uuid,omitempty"`
 	EnvironmentName         string `json:"environment_name,omitempty"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	PostgresUser            string `json:"postgres_user,omitempty"`
 	PostgresPassword        string `json:"postgres_password,omitempty"`
 	PostgresDB              string `json:"postgres_db,omitempty"`
@@ -38,6 +39,7 @@ type CreatePostgresqlInput struct {
 	ServerUUID       string `json:"server_uuid"`
 	ProjectUUID      string `json:"project_uuid"`
 	EnvironmentName  string `json:"environment_name"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name             string `json:"name,omitempty"`
 	Description      string `json:"description,omitempty"`
 	Image            string `json:"image,omitempty"`
@@ -51,6 +53,7 @@ type CreateMysqlInput struct {
 	ServerUUID        string `json:"server_uuid"`
 	ProjectUUID       string `json:"project_uuid"`
 	EnvironmentName   string `json:"environment_name"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name              string `json:"name,omitempty"`
 	Description       string `json:"description,omitempty"`
 	Image             string `json:"image,omitempty"`
@@ -65,6 +68,7 @@ type CreateMariadbInput struct {
 	ServerUUID          string `json:"server_uuid"`
 	ProjectUUID         string `json:"project_uuid"`
 	EnvironmentName     string `json:"environment_name"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name                string `json:"name,omitempty"`
 	Description         string `json:"description,omitempty"`
 	Image               string `json:"image,omitempty"`
@@ -79,6 +83,7 @@ type CreateRedisInput struct {
 	ServerUUID      string `json:"server_uuid"`
 	ProjectUUID     string `json:"project_uuid"`
 	EnvironmentName string `json:"environment_name"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
 	Image           string `json:"image,omitempty"`
@@ -89,6 +94,7 @@ type CreateMongodbInput struct {
 	ServerUUID              string `json:"server_uuid"`
 	ProjectUUID             string `json:"project_uuid"`
 	EnvironmentName         string `json:"environment_name"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name                    string `json:"name,omitempty"`
 	Description             string `json:"description,omitempty"`
 	Image                   string `json:"image,omitempty"`
@@ -102,6 +108,7 @@ type CreateClickhouseInput struct {
 	ProjectUUID             string `json:"project_uuid"`
 	ServerUUID              string `json:"server_uuid"`
 	EnvironmentName         string `json:"environment_name,omitempty"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name                    string `json:"name,omitempty"`
 	Description             string `json:"description,omitempty"`
 	Image                   string `json:"image,omitempty"`
@@ -115,6 +122,7 @@ type CreateKeydbInput struct {
 	ProjectUUID     string `json:"project_uuid"`
 	ServerUUID      string `json:"server_uuid"`
 	EnvironmentName string `json:"environment_name,omitempty"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
 	Image           string `json:"image,omitempty"`
@@ -125,6 +133,7 @@ type CreateDragonflyInput struct {
 	ProjectUUID     string `json:"project_uuid"`
 	ServerUUID      string `json:"server_uuid"`
 	EnvironmentName string `json:"environment_name,omitempty"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
 	Image           string `json:"image,omitempty"`
@@ -262,21 +271,21 @@ type DatabaseBackup struct {
 	Enabled      bool   `json:"enabled"`
 	S3StorageID  string `json:"s3_storage_id,omitempty"`
 	DatabaseType string `json:"database_type,omitempty"`
-	RetainDays   *int64 `json:"number_of_backups_locally,omitempty"`
+	RetainDays   *int64 `json:"database_backup_retention_amount_locally,omitempty"`
 }
 
 type CreateDatabaseBackupInput struct {
 	Frequency   string `json:"frequency"`
 	Enabled     bool   `json:"enabled"`
 	S3StorageID string `json:"s3_storage_id,omitempty"`
-	RetainDays  *int64 `json:"number_of_backups_locally,omitempty"`
+	RetainDays  *int64 `json:"database_backup_retention_amount_locally,omitempty"`
 }
 
 type UpdateDatabaseBackupInput struct {
 	Frequency   *string `json:"frequency,omitempty"`
 	Enabled     *bool   `json:"enabled,omitempty"`
 	S3StorageID *string `json:"s3_storage_id,omitempty"`
-	RetainDays  *int64  `json:"number_of_backups_locally,omitempty"`
+	RetainDays  *int64  `json:"database_backup_retention_amount_locally,omitempty"`
 }
 
 func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]DatabaseBackup, error) {

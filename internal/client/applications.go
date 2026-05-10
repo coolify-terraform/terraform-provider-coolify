@@ -153,7 +153,7 @@ type CreateDockerComposeAppInput struct {
 	Name             string `json:"name,omitempty"`
 	Description      string `json:"description,omitempty"`
 	FQDN             string `json:"fqdn,omitempty"`
-	InstallCommand   string `json:"instant_deploy,omitempty"`
+	InstantDeploy bool `json:"instant_deploy,omitempty"`
 }
 
 func (c *Client) CreateDockerComposeApplication(ctx context.Context, input CreateDockerComposeAppInput) (*Application, error) {
