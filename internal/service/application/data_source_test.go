@@ -15,7 +15,7 @@ import (
 func TestApplicationDataSource_Read(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "ds-app-uuid",
+		UUID:          "cccc0004-0004-4000-8000-000000000001",
 		Name:          "data-source-app",
 		Description:   "a test app",
 		GitRepository: "https://github.com/example/repo",
@@ -46,11 +46,11 @@ provider "coolify" {
 }
 
 data "coolify_application" "test" {
-  uuid = "ds-app-uuid"
+  uuid = "cccc0004-0004-4000-8000-000000000001"
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coolify_application.test", "uuid", "ds-app-uuid"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "uuid", "cccc0004-0004-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "name", "data-source-app"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "description", "a test app"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "git_repository", "https://github.com/example/repo"),

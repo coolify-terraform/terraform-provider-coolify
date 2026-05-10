@@ -16,7 +16,7 @@ import (
 func TestServiceDataSource(t *testing.T) {
 	t.Parallel()
 	svc := &client.Service{
-		UUID:            "svc-ds-uuid-1",
+		UUID:            "cccc0001-0001-4000-8000-000000000001",
 		Name:            "my-plausible",
 		Description:     "Analytics service",
 		Type:            "plausible",
@@ -54,7 +54,7 @@ data "coolify_service" "test" {
 }
 `, mockSrv.URL, svc.UUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coolify_service.test", "uuid", "svc-ds-uuid-1"),
+					resource.TestCheckResourceAttr("data.coolify_service.test", "uuid", "cccc0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_service.test", "name", "my-plausible"),
 					resource.TestCheckResourceAttr("data.coolify_service.test", "description", "Analytics service"),
 					resource.TestCheckResourceAttr("data.coolify_service.test", "type", "plausible"),

@@ -210,11 +210,10 @@ resource "coolify_service" "test" {
 	})
 }
 
-func TestServiceResource_DescriptionRequiresReplace(t *testing.T) {
+func TestServiceResource_Update(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
-	createCount := 0
-	services := map[string]string{} // uuid -> description
+	currentDesc := "initial description"
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -223,25 +222,30 @@ func TestServiceResource_DescriptionRequiresReplace(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
-			createCount++
-			uuid := fmt.Sprintf("svc-uuid-%d", createCount)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": "svc-uuid-1"})
+
+		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
 			var body map[string]interface{}
 			json.NewDecoder(r.Body).Decode(&body)
-			desc := ""
 			if v, ok := body["description"].(string); ok {
-				desc = v
+				currentDesc = v
 			}
-			services[uuid] = desc
-			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(map[string]string{"uuid": uuid})
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":             "svc-uuid-1",
+				"name":             "plausible-svc",
+				"description":      currentDesc,
+				"type":             "plausible",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name": "production",
+			})
 
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/services/svc-uuid-"):
-			uuid := r.URL.Path[len("/api/v1/services/"):]
-			desc := services[uuid]
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":             uuid,
+				"uuid":             "svc-uuid-1",
 				"name":             "plausible-svc",
-				"description":      desc,
+				"description":      currentDesc,
 				"type":             "plausible",
 				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
 				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
@@ -281,13 +285,15 @@ resource "coolify_service" "test" {
 				Config: baseConfig("initial description"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_service.test", "description", "initial description"),
 				),
 			},
 			{
 				Config: baseConfig("updated description"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					// A second Create was called (destroy+recreate), proving RequiresReplace works.
-					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-uuid-2"),
+					// UUID stays the same, proving in-place update (no destroy+recreate).
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_service.test", "description", "updated description"),
 				),
 			},
 		},

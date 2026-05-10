@@ -45,6 +45,18 @@ func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*
 	}
 	return &s, nil
 }
+type UpdateServiceInput struct {
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+func (c *Client) UpdateService(ctx context.Context, uuid string, input UpdateServiceInput) (*Service, error) {
+	var s Service
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/services/%s", uuid), input, &s); err != nil {
+		return nil, fmt.Errorf("updating service %s: %w", uuid, err)
+	}
+	return &s, nil
+}
 func (c *Client) DeleteService(ctx context.Context, uuid string) error {
 	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/services/%s", uuid), nil, nil); err != nil {
 		return fmt.Errorf("deleting service %s: %w", uuid, err)

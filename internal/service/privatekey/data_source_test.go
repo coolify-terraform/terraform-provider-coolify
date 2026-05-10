@@ -15,7 +15,7 @@ import (
 func TestPrivateKeyDataSource(t *testing.T) {
 	t.Parallel()
 	key := &client.PrivateKey{
-		UUID:         "pk-ds-uuid-1",
+		UUID:         "cccc0003-0003-4000-8000-000000000001",
 		Name:         "data-source-key",
 		Description:  "A key for testing",
 		PrivateKey:   "ssh-ed25519 AAAA-ds-test",
@@ -42,10 +42,10 @@ func TestPrivateKeyDataSource(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_private_key" "test" {
-  uuid = "pk-ds-uuid-1"
+  uuid = "cccc0003-0003-4000-8000-000000000001"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coolify_private_key.test", "uuid", "pk-ds-uuid-1"),
+					resource.TestCheckResourceAttr("data.coolify_private_key.test", "uuid", "cccc0003-0003-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_private_key.test", "name", "data-source-key"),
 					resource.TestCheckResourceAttr("data.coolify_private_key.test", "description", "A key for testing"),
 					resource.TestCheckResourceAttr("data.coolify_private_key.test", "private_key", "ssh-ed25519 AAAA-ds-test"),

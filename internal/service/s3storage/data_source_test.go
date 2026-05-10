@@ -16,7 +16,7 @@ func TestS3StorageDataSource(t *testing.T) {
 	t.Parallel()
 	s := &client.S3Storage{
 		ID:          1,
-		UUID:        "s3-ds-uuid-1",
+		UUID:        "cccc0005-0005-4000-8000-000000000001",
 		Name:        "data-source-s3",
 		Description: "An S3 storage for testing",
 		Endpoint:    "https://s3.us-west-2.amazonaws.com",
@@ -46,10 +46,10 @@ func TestS3StorageDataSource(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
 data "coolify_s3_storage" "test" {
-  uuid = "s3-ds-uuid-1"
+  uuid = "cccc0005-0005-4000-8000-000000000001"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "uuid", "s3-ds-uuid-1"),
+					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "uuid", "cccc0005-0005-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "name", "data-source-s3"),
 					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "description", "An S3 storage for testing"),
 					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "endpoint", "https://s3.us-west-2.amazonaws.com"),

@@ -43,8 +43,8 @@ func (r *serviceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 		MarkdownDescription: "Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g. plausible, uptime-kuma, minio).",
 		Attributes: map[string]schema.Attribute{
 			"uuid":             schema.StringAttribute{MarkdownDescription: "The UUID of the service.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"name":             schema.StringAttribute{MarkdownDescription: "The name of the service. Changing this forces a new resource.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown(), stringplanmodifier.RequiresReplace()}},
-			"description":      schema.StringAttribute{MarkdownDescription: "A description of the service. Changing this forces a new resource.", Optional: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"name":             schema.StringAttribute{MarkdownDescription: "The name of the service.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"description":      schema.StringAttribute{MarkdownDescription: "A description of the service.", Optional: true},
 			"project_uuid":     schema.StringAttribute{MarkdownDescription: "The UUID of the project this service belongs to.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
 			"server_uuid":      schema.StringAttribute{MarkdownDescription: "The UUID of the server to deploy the service on.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
 			"environment_name": schema.StringAttribute{MarkdownDescription: "The environment name. Defaults to `production`. Changing this forces a new resource.", Optional: true, Computed: true, Default: stringdefault.StaticString("production"), PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
@@ -107,13 +107,27 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 	flattenService(svc, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
-func (r *serviceResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddError(
-		"Update not supported",
-		"The Coolify API does not support updating services in place. "+
-			"To change a service, destroy and recreate it. "+
-			"Mark mutable attributes with RequiresReplace() in the schema.",
-	)
+func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan serviceResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	input := client.UpdateServiceInput{
+		Name:        plan.Name.ValueString(),
+		Description: plan.Description.ValueString(),
+	}
+	if _, err := r.client.UpdateService(ctx, plan.UUID.ValueString(), input); err != nil {
+		resp.Diagnostics.AddError("Error updating service", err.Error())
+		return
+	}
+	svc, err := r.client.GetService(ctx, plan.UUID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading service after update", err.Error())
+		return
+	}
+	flattenService(svc, &plan)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state serviceResourceModel

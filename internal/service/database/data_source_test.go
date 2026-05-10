@@ -14,7 +14,7 @@ import (
 
 func TestDatabaseDataSource(t *testing.T) {
 	t.Parallel()
-	dbUUID := "db-ds-uuid-1"
+	dbUUID := "cccc0006-0006-4000-8000-000000000001"
 	var publicPort int64 = 5432
 
 	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
