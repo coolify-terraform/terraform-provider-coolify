@@ -137,7 +137,8 @@ make install     # Install provider to local Go bin
 ```
 
 For local provider testing with `dev_overrides`, acceptance test setup, and
-project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md).
+project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
+[TESTING.md](TESTING.md).
 
 ### CI Pipeline
 
