@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -369,6 +370,76 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_private_git_application.test", "uuid", "privgit-timeout-uuid"),
 				),
+			},
+		},
+	})
+}
+
+func TestPrivateGitApplicationResource_InvalidPortsExposes(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
+					private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
+					git_repository   = "git@github.com:example/repo.git"
+					build_pack       = "nixpacks"
+					ports_exposes    = "abc"
+				`),
+				ExpectError: regexp.MustCompile(`comma-separated list of port numbers`),
+			},
+		},
+	})
+}
+
+func TestPrivateGitApplicationResource_InvalidFQDN(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
+					private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
+					git_repository   = "git@github.com:example/repo.git"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					fqdn             = "app.example.com"
+				`),
+				ExpectError: regexp.MustCompile(`must start with http:// or https://`),
+			},
+		},
+	})
+}
+
+func TestPrivateGitApplicationResource_InvalidBuildPack(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
+					private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
+					git_repository   = "git@github.com:example/repo.git"
+					build_pack       = "invalid_pack"
+					ports_exposes    = "3000"
+				`),
+				ExpectError: regexp.MustCompile(`must be one of`),
 			},
 		},
 	})

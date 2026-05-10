@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -389,6 +390,49 @@ func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "uuid", "docker-timeout-uuid"),
 				),
+			},
+		},
+	})
+}
+
+func TestDockerImageApplicationResource_InvalidPortsExposes(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					project_uuid = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid  = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image = "nginx:latest"
+					ports_exposes = "abc"
+				`),
+				ExpectError: regexp.MustCompile(`comma-separated list of port numbers`),
+			},
+		},
+	})
+}
+
+func TestDockerImageApplicationResource_InvalidFQDN(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					project_uuid = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid  = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image = "nginx:latest"
+					ports_exposes = "3000"
+					fqdn          = "app.example.com"
+				`),
+				ExpectError: regexp.MustCompile(`must start with http:// or https://`),
 			},
 		},
 	})

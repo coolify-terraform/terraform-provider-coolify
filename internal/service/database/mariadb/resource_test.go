@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -248,6 +249,59 @@ resource "coolify_mariadb_database" "test" {
 					acctest.CheckResourceDisappears(srv.URL, "coolify_mariadb_database.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestMariadbDatabaseResource_InvalidPort(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_mariadb_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  public_port  = 99999
+}
+`, srv.URL),
+				ExpectError: regexp.MustCompile(`must be between 1 and 65535`),
+			},
+		},
+	})
+}
+
+func TestMariadbDatabaseResource_InvalidUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_mariadb_database" "test" {
+  project_uuid = "not-a-uuid"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`, srv.URL),
+				ExpectError: regexp.MustCompile(`must be a valid UUID`),
 			},
 		},
 	})

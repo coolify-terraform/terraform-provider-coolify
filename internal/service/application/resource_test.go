@@ -393,3 +393,25 @@ func TestApplicationResource_InvalidFQDN(t *testing.T) {
 		},
 	})
 }
+
+func TestApplicationResource_InvalidUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "not-a-valid-uuid"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`),
+				ExpectError: regexp.MustCompile(`must be a valid UUID`),
+			},
+		},
+	})
+}

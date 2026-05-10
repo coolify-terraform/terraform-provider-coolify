@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -323,6 +324,27 @@ func TestDockerComposeApplicationResource_Timeouts(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_docker_compose_application.test", "uuid", "compose-timeout-uuid"),
 				),
+			},
+		},
+	})
+}
+
+func TestDockerComposeApplicationResource_InvalidFQDN(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerComposeResourceConfig(srv.URL, `
+					project_uuid       = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid        = "bbbb0002-0002-4000-8000-000000000002"
+					docker_compose_raw = "version: '3'"
+					fqdn               = "app.example.com"
+				`),
+				ExpectError: regexp.MustCompile(`must start with http:// or https://`),
 			},
 		},
 	})
