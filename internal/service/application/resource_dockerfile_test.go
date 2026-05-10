@@ -95,6 +95,100 @@ func TestDockerfileApplicationResource_Create(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestDockerfileApplicationResource_Update
+// ---------------------------------------------------------------------------
+
+func TestDockerfileApplicationResource_Update(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	app := client.Application{
+		UUID:               "dockerfile-upd-uuid",
+		Name:               "my-dockerfile-app",
+		Description:        "",
+		DockerfileLocation: "/Dockerfile",
+		PortsExposes:       "80",
+		ProjectUUID:        "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:         "bbbb0001-0001-4000-8000-000000000001",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerfile", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["name"].(string); ok {
+			app.Name = v
+		}
+		if v, ok := body["description"].(string); ok {
+			app.Description = v
+		}
+		if v, ok := body["install_command"].(string); ok {
+			app.InstallCommand = v
+		}
+		if v, ok := body["build_command"].(string); ok {
+			app.BuildCommand = v
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerfileResourceConfig(srv.URL, `
+					name                = "my-dockerfile-app"
+					project_uuid        = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid         = "bbbb0001-0001-4000-8000-000000000001"
+					dockerfile_location = "/Dockerfile"
+					ports_exposes       = "80"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "name", "my-dockerfile-app"),
+				),
+			},
+			{
+				Config: testDockerfileResourceConfig(srv.URL, `
+					name                = "updated-dockerfile-app"
+					description         = "Updated via test"
+					project_uuid        = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid         = "bbbb0001-0001-4000-8000-000000000001"
+					dockerfile_location = "/Dockerfile"
+					ports_exposes       = "80"
+					install_command     = "npm install"
+					build_command       = "npm run build"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "uuid", "dockerfile-upd-uuid"),
+					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "name", "updated-dockerfile-app"),
+					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "description", "Updated via test"),
+					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "install_command", "npm install"),
+					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "build_command", "npm run build"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // TestDockerfileApplicationResource_Import
 // ---------------------------------------------------------------------------
 

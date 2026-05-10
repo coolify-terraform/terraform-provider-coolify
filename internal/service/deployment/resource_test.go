@@ -62,6 +62,23 @@ resource "coolify_deployment" "test" {
 					resource.TestCheckResourceAttr("coolify_deployment.test", "triggers.version", "1"),
 				),
 			},
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+  triggers = {
+    version = "1"
+  }
+}
+`, srv.URL, appUUID),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }

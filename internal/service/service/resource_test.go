@@ -108,6 +108,23 @@ resource "coolify_service" "test" {
 					resource.TestCheckResourceAttr("coolify_service.test", "environment_name", "production"),
 				),
 			},
+			// Idempotency
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+resource "coolify_service" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  type         = "plausible"
+}
+`, srv.URL),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Import
 			{
 				ResourceName:      "coolify_service.test",

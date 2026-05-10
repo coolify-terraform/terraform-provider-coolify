@@ -142,6 +142,16 @@ func TestDatabaseBackupResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_days", "7"),
 				),
 			},
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
+					frequency     = "0 2 * * *"
+					enabled       = true
+					retain_days   = 7
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }

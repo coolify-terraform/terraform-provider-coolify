@@ -105,6 +105,110 @@ func TestGitHubAppApplicationResource_Create(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestGitHubAppApplicationResource_Update
+// ---------------------------------------------------------------------------
+
+func TestGitHubAppApplicationResource_Update(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	app := client.Application{
+		UUID:          "ghapp-upd-uuid",
+		Name:          "my-github-app",
+		GitRepository: "github.com/myorg/myrepo",
+		GitBranch:     "main",
+		BuildPack:     "nixpacks",
+		PortsExposes:  "3000",
+		ProjectUUID:   "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:    "bbbb0001-0001-4000-8000-000000000001",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["name"].(string); ok {
+			app.Name = v
+		}
+		if v, ok := body["description"].(string); ok {
+			app.Description = v
+		}
+		if v, ok := body["install_command"].(string); ok {
+			app.InstallCommand = v
+		}
+		if v, ok := body["build_command"].(string); ok {
+			app.BuildCommand = v
+		}
+		if v, ok := body["start_command"].(string); ok {
+			app.StartCommand = v
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testGitHubAppResourceConfig(srv.URL, `
+					name             = "my-github-app"
+					project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+					github_app_uuid  = "cccc0001-0001-4000-8000-000000000001"
+					git_repository   = "github.com/myorg/myrepo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_github_app_application.test", "name", "my-github-app"),
+				),
+			},
+			{
+				Config: testGitHubAppResourceConfig(srv.URL, `
+					name             = "updated-github-app"
+					description      = "Updated via test"
+					project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+					github_app_uuid  = "cccc0001-0001-4000-8000-000000000001"
+					git_repository   = "github.com/myorg/myrepo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					install_command  = "yarn install"
+					start_command    = "yarn start"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_github_app_application.test", "uuid", "ghapp-upd-uuid"),
+					resource.TestCheckResourceAttr("coolify_github_app_application.test", "name", "updated-github-app"),
+					resource.TestCheckResourceAttr("coolify_github_app_application.test", "description", "Updated via test"),
+					resource.TestCheckResourceAttr("coolify_github_app_application.test", "install_command", "yarn install"),
+					resource.TestCheckResourceAttr("coolify_github_app_application.test", "start_command", "yarn start"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // TestGitHubAppApplicationResource_Import
 // ---------------------------------------------------------------------------
 

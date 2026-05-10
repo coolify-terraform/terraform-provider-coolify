@@ -63,6 +63,15 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "false"),
 				),
 			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "DATABASE_URL"
+					value            = "postgres://localhost/mydb"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }

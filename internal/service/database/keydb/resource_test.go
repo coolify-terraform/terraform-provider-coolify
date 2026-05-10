@@ -110,6 +110,16 @@ resource "coolify_keydb_database" "test" {
 					resource.TestCheckResourceAttr("coolify_keydb_database.test", "environment_name", "production"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_keydb_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
