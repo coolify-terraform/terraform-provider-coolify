@@ -76,11 +76,10 @@ func (r *environmentResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "A description of the environment.",
+				MarkdownDescription: "A description of the environment. Note: the Coolify API does not support updating this field after creation; changes are stored in Terraform state only.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -157,12 +156,15 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *environmentResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// All attributes require replace; Update should never be called.
-	resp.Diagnostics.AddError(
-		"Update Not Supported",
-		"All attributes of coolify_environment require replacement. This method should not be called.",
-	)
+func (r *environmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan environmentResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// The Coolify API has no PATCH endpoint for environments, so we persist
+	// the updated description to state without an API call.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *environmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
