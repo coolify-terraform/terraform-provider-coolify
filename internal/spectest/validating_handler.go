@@ -45,8 +45,8 @@ func withSpecValidation(t testing.TB, specVersion string, next http.Handler, str
 		t:         t,
 		strict:    strict,
 		skipPaths: []string{
-			"/api/v1/s3",       // S3 endpoints use /api/v1/storages in spec but our client uses /api/v1/s3
-			"/api/v1/version",  // returns text/html, validator expects JSON
+			"/api/v1/s3",      // S3 endpoints use /api/v1/storages in spec but our client uses /api/v1/s3
+			"/api/v1/version", // returns text/html, validator expects JSON
 		},
 	}
 }
@@ -118,7 +118,7 @@ func (vh *validatingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(rec.Code)
 	respBody := rec.Body.Bytes()
-	w.Write(respBody)
+	_, _ = w.Write(respBody)
 
 	// Validate response.
 	resp := &http.Response{

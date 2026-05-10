@@ -28,7 +28,7 @@ func TestAccPostgresqlDatabaseResource_CRUD(t *testing.T) {
 			// Update description
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, `description = "Updated via acc test"`),
-				Check: resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "Updated via acc test"),
+				Check:  resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "Updated via acc test"),
 			},
 			// Import
 			{
@@ -79,5 +79,3 @@ data "coolify_databases" "all" {
 		},
 	})
 }
-
-

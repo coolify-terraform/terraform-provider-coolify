@@ -31,7 +31,7 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 			// Step 2: Update description
 			{
 				Config: testAccPrivateGitAppConfig(name, serverUUID, `description = "Updated private git app"`),
-				Check: resource.TestCheckResourceAttr("coolify_private_git_application.test", "description", "Updated private git app"),
+				Check:  resource.TestCheckResourceAttr("coolify_private_git_application.test", "description", "Updated private git app"),
 			},
 			// Step 3: Import by UUID
 			{

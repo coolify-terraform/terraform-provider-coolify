@@ -245,4 +245,3 @@ func SetBoolPtr(dst **bool, v types.Bool) {
 		*dst = &b
 	}
 }
-

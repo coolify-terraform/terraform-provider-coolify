@@ -45,5 +45,3 @@ func TestAccMysqlDatabaseResource_CRUD(t *testing.T) {
 		},
 	})
 }
-
-

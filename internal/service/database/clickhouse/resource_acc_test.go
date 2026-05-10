@@ -26,7 +26,7 @@ func TestAccClickhouseDatabaseResource_CRUD(t *testing.T) {
 			},
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_clickhouse_database", name, serverUUID, `description = "Updated via acc test"`),
-				Check: resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "description", "Updated via acc test"),
+				Check:  resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "description", "Updated via acc test"),
 			},
 			{
 				ResourceName:                         "coolify_clickhouse_database.test",

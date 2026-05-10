@@ -102,7 +102,7 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockCloudTok
 		json.NewEncoder(w).Encode(map[string]string{"message": "valid"})
 	})
 
-	var handler http.Handler = acctest.WithVersionEndpoint(mux)
+	handler := acctest.WithVersionEndpoint(mux)
 	if len(auditT) > 0 {
 		handler = spectest.WithSpecAudit(auditT[0], "coolify-v4", handler)
 	}
@@ -173,8 +173,6 @@ func (s *mockCloudTokenStore) List() []*mockCloudToken {
 	}
 	return result
 }
-
-
 
 func TestCloudTokenResource_Create(t *testing.T) {
 	t.Parallel()

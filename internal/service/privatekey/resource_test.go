@@ -13,8 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-
-
 func newPrivateKeyMockServer() *httptest.Server {
 	keys := make(map[string]*client.PrivateKey)
 	var mu sync.Mutex

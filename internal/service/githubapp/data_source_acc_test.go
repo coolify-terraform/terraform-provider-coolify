@@ -19,7 +19,7 @@ func TestAccGitHubAppRepositoriesDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGitHubAppReposConfig(name),
+				Config:      testAccGitHubAppReposConfig(name),
 				ExpectError: regexp.MustCompile(`.+`),
 			},
 		},
@@ -36,7 +36,7 @@ func TestAccGitHubAppBranchesDataSource(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccGitHubAppBranchesConfig(name),
+				Config:      testAccGitHubAppBranchesConfig(name),
 				ExpectError: regexp.MustCompile(`.+`),
 			},
 		},

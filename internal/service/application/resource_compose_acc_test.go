@@ -27,7 +27,7 @@ func TestAccDockerComposeApplicationResource_CRUD(t *testing.T) {
 			},
 			{
 				Config: testAccDockerComposeAppConfig(name, serverUUID, `description = "Updated compose app"`),
-				Check: resource.TestCheckResourceAttr("coolify_docker_compose_application.test", "description", "Updated compose app"),
+				Check:  resource.TestCheckResourceAttr("coolify_docker_compose_application.test", "description", "Updated compose app"),
 			},
 			{
 				ResourceName:                         "coolify_docker_compose_application.test",

@@ -69,7 +69,7 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "The S3 endpoint URL (must start with `http://` or `https://`).",
 				Required:            true,
-				Validators: []validator.String{validate.FQDN()},
+				Validators:          []validator.String{validate.FQDN()},
 			},
 			"bucket": schema.StringAttribute{
 				MarkdownDescription: "The S3 bucket name.",

@@ -32,113 +32,113 @@ func coveredEndpoints() map[string]coverageStatus {
 
 	return map[string]coverageStatus{
 		// ── Projects ──
-		"GET /projects":        covered("data.coolify_projects", "v0.1.0"),
-		"POST /projects":       covered("coolify_project", "v0.1.0"),
-		"GET /projects/{uuid}": covered("data.coolify_project", "v0.1.0"),
-		"PATCH /projects/{uuid}":  covered("coolify_project", "v0.1.0"),
-		"DELETE /projects/{uuid}": covered("coolify_project", "v0.1.0"),
-		"GET /projects/{uuid}/environments":                               covered("data.coolify_environments", "v0.2.0"),
-		"POST /projects/{uuid}/environments":                              covered("coolify_environment", "v0.2.0"),
+		"GET /projects":                      covered("data.coolify_projects", "v0.1.0"),
+		"POST /projects":                     covered("coolify_project", "v0.1.0"),
+		"GET /projects/{uuid}":               covered("data.coolify_project", "v0.1.0"),
+		"PATCH /projects/{uuid}":             covered("coolify_project", "v0.1.0"),
+		"DELETE /projects/{uuid}":            covered("coolify_project", "v0.1.0"),
+		"GET /projects/{uuid}/environments":  covered("data.coolify_environments", "v0.2.0"),
+		"POST /projects/{uuid}/environments": covered("coolify_environment", "v0.2.0"),
 		"DELETE /projects/{uuid}/environments/{environment_name_or_uuid}": covered("coolify_environment", "v0.2.0"),
 		"GET /projects/{uuid}/{environment_name_or_uuid}":                 covered("data.coolify_environment", "v0.2.0"),
 
 		// ── Servers ──
-		"GET /servers":              covered("data.coolify_servers", "v0.1.0"),
-		"POST /servers":             covered("coolify_server", "v0.1.0"),
-		"GET /servers/{uuid}":       covered("data.coolify_server", "v0.1.0"),
-		"PATCH /servers/{uuid}":     covered("coolify_server", "v0.1.0"),
-		"DELETE /servers/{uuid}":    covered("coolify_server", "v0.1.0"),
+		"GET /servers":                  covered("data.coolify_servers", "v0.1.0"),
+		"POST /servers":                 covered("coolify_server", "v0.1.0"),
+		"GET /servers/{uuid}":           covered("data.coolify_server", "v0.1.0"),
+		"PATCH /servers/{uuid}":         covered("coolify_server", "v0.1.0"),
+		"DELETE /servers/{uuid}":        covered("coolify_server", "v0.1.0"),
 		"GET /servers/{uuid}/domains":   covered("data.coolify_server_domains", "v0.1.0"),
 		"GET /servers/{uuid}/resources": covered("data.coolify_server_resources", "v0.1.0"),
-		"POST /servers/hetzner":        covered("client.CreateHetznerServer", "v0.2.0"),
-		"GET /servers/{uuid}/validate": covered("data.coolify_server_validation", "v0.2.0"),
+		"POST /servers/hetzner":         covered("client.CreateHetznerServer", "v0.2.0"),
+		"GET /servers/{uuid}/validate":  covered("data.coolify_server_validation", "v0.2.0"),
 
 		// ── Applications ──
-		"GET /applications":                    covered("data.coolify_applications", "v0.1.0"),
-		"POST /applications/public":            covered("coolify_application", "v0.1.0"),
-		"POST /applications/dockercompose":     covered("coolify_docker_compose_application", "v0.1.0"),
-		"POST /applications/dockerimage":       covered("coolify_docker_image_application", "v0.1.0"),
-		"POST /applications/private-deploy-key": covered("coolify_private_git_application", "v0.1.0"),
-		"GET /applications/{uuid}":             covered("data.coolify_application", "v0.1.0"),
-		"PATCH /applications/{uuid}":           covered("coolify_application + variants", "v0.1.0"),
-		"DELETE /applications/{uuid}":          covered("coolify_application + variants", "v0.1.0"),
-		"GET /applications/{uuid}/envs":        covered("data.coolify_environment_variables", "v0.1.0"),
-		"POST /applications/{uuid}/envs":       covered("coolify_environment_variable", "v0.1.0"),
-		"PATCH /applications/{uuid}/envs":      covered("coolify_environment_variable", "v0.1.0"),
-		"DELETE /applications/{uuid}/envs/{env_uuid}": covered("coolify_environment_variable", "v0.1.0"),
-		"GET /applications/{uuid}/restart":     covered("coolify_deployment", "v0.1.0"),
-		"POST /applications/dockerfile":        covered("coolify_dockerfile_application", "v0.2.0"),
-		"POST /applications/private-github-app": covered("coolify_github_app_application", "v0.2.0"),
-		"GET /applications/{uuid}/start":       covered("client.StartApplication", "v0.2.0"),
-		"GET /applications/{uuid}/stop":        covered("client.StopApplication", "v0.2.0"),
+		"GET /applications":                                               covered("data.coolify_applications", "v0.1.0"),
+		"POST /applications/public":                                       covered("coolify_application", "v0.1.0"),
+		"POST /applications/dockercompose":                                covered("coolify_docker_compose_application", "v0.1.0"),
+		"POST /applications/dockerimage":                                  covered("coolify_docker_image_application", "v0.1.0"),
+		"POST /applications/private-deploy-key":                           covered("coolify_private_git_application", "v0.1.0"),
+		"GET /applications/{uuid}":                                        covered("data.coolify_application", "v0.1.0"),
+		"PATCH /applications/{uuid}":                                      covered("coolify_application + variants", "v0.1.0"),
+		"DELETE /applications/{uuid}":                                     covered("coolify_application + variants", "v0.1.0"),
+		"GET /applications/{uuid}/envs":                                   covered("data.coolify_environment_variables", "v0.1.0"),
+		"POST /applications/{uuid}/envs":                                  covered("coolify_environment_variable", "v0.1.0"),
+		"PATCH /applications/{uuid}/envs":                                 covered("coolify_environment_variable", "v0.1.0"),
+		"DELETE /applications/{uuid}/envs/{env_uuid}":                     covered("coolify_environment_variable", "v0.1.0"),
+		"GET /applications/{uuid}/restart":                                covered("coolify_deployment", "v0.1.0"),
+		"POST /applications/dockerfile":                                   covered("coolify_dockerfile_application", "v0.2.0"),
+		"POST /applications/private-github-app":                           covered("coolify_github_app_application", "v0.2.0"),
+		"GET /applications/{uuid}/start":                                  covered("client.StartApplication", "v0.2.0"),
+		"GET /applications/{uuid}/stop":                                   covered("client.StopApplication", "v0.2.0"),
 		"GET /applications/{uuid}/scheduled-tasks":                        covered("data.coolify_scheduled_tasks", "v0.2.0"),
 		"POST /applications/{uuid}/scheduled-tasks":                       covered("coolify_scheduled_task", "v0.2.0"),
 		"PATCH /applications/{uuid}/scheduled-tasks/{task_uuid}":          covered("coolify_scheduled_task", "v0.2.0"),
 		"DELETE /applications/{uuid}/scheduled-tasks/{task_uuid}":         covered("coolify_scheduled_task", "v0.2.0"),
 		"GET /applications/{uuid}/scheduled-tasks/{task_uuid}/executions": covered("data.coolify_task_executions", "v0.2.0"),
-		"GET /applications/{uuid}/storages":                   covered("data.coolify_storages", "v0.2.0"),
-		"POST /applications/{uuid}/storages":                  covered("coolify_storage", "v0.2.0"),
-		"PATCH /applications/{uuid}/storages":                 covered("coolify_storage", "v0.2.0"),
-		"DELETE /applications/{uuid}/storages/{storage_uuid}": covered("coolify_storage", "v0.2.0"),
-		"PATCH /applications/{uuid}/envs/bulk":                covered("client.BulkUpdateAppEnvVars", "v0.2.0"),
-		"GET /applications/{uuid}/logs":                       covered("data.coolify_application_logs", "v0.2.0"),
-		"DELETE /applications/{uuid}/previews/{pull_request_id}": covered("client.DeletePreviewDeployment", "v0.2.0"),
+		"GET /applications/{uuid}/storages":                               covered("data.coolify_storages", "v0.2.0"),
+		"POST /applications/{uuid}/storages":                              covered("coolify_storage", "v0.2.0"),
+		"PATCH /applications/{uuid}/storages":                             covered("coolify_storage", "v0.2.0"),
+		"DELETE /applications/{uuid}/storages/{storage_uuid}":             covered("coolify_storage", "v0.2.0"),
+		"PATCH /applications/{uuid}/envs/bulk":                            covered("client.BulkUpdateAppEnvVars", "v0.2.0"),
+		"GET /applications/{uuid}/logs":                                   covered("data.coolify_application_logs", "v0.2.0"),
+		"DELETE /applications/{uuid}/previews/{pull_request_id}":          covered("client.DeletePreviewDeployment", "v0.2.0"),
 
 		// ── Databases ──
-		"GET /databases":             covered("data.coolify_databases", "v0.1.0"),
-		"POST /databases/postgresql": covered("coolify_postgresql_database", "v0.1.0"),
-		"POST /databases/mysql":      covered("coolify_mysql_database", "v0.1.0"),
-		"POST /databases/mariadb":    covered("coolify_mariadb_database", "v0.1.0"),
-		"POST /databases/mongodb":    covered("coolify_mongodb_database", "v0.1.0"),
-		"POST /databases/redis":      covered("coolify_redis_database", "v0.1.0"),
-		"POST /databases/clickhouse": covered("coolify_clickhouse_database", "v0.1.0"),
-		"POST /databases/keydb":      covered("coolify_keydb_database", "v0.1.0"),
-		"POST /databases/dragonfly":  covered("coolify_dragonfly_database", "v0.1.0"),
-		"GET /databases/{uuid}":      covered("data.coolify_database", "v0.1.0"),
-		"PATCH /databases/{uuid}":    covered("coolify_*_database", "v0.1.0"),
-		"DELETE /databases/{uuid}":   covered("coolify_*_database", "v0.1.0"),
+		"GET /databases":                                                   covered("data.coolify_databases", "v0.1.0"),
+		"POST /databases/postgresql":                                       covered("coolify_postgresql_database", "v0.1.0"),
+		"POST /databases/mysql":                                            covered("coolify_mysql_database", "v0.1.0"),
+		"POST /databases/mariadb":                                          covered("coolify_mariadb_database", "v0.1.0"),
+		"POST /databases/mongodb":                                          covered("coolify_mongodb_database", "v0.1.0"),
+		"POST /databases/redis":                                            covered("coolify_redis_database", "v0.1.0"),
+		"POST /databases/clickhouse":                                       covered("coolify_clickhouse_database", "v0.1.0"),
+		"POST /databases/keydb":                                            covered("coolify_keydb_database", "v0.1.0"),
+		"POST /databases/dragonfly":                                        covered("coolify_dragonfly_database", "v0.1.0"),
+		"GET /databases/{uuid}":                                            covered("data.coolify_database", "v0.1.0"),
+		"PATCH /databases/{uuid}":                                          covered("coolify_*_database", "v0.1.0"),
+		"DELETE /databases/{uuid}":                                         covered("coolify_*_database", "v0.1.0"),
 		"GET /databases/{uuid}/backups":                                    covered("coolify_database_backup", "v0.1.0"),
 		"POST /databases/{uuid}/backups":                                   covered("coolify_database_backup", "v0.1.0"),
 		"PATCH /databases/{uuid}/backups/{scheduled_backup_uuid}":          covered("coolify_database_backup", "v0.1.0"),
 		"DELETE /databases/{uuid}/backups/{scheduled_backup_uuid}":         covered("coolify_database_backup", "v0.1.0"),
-		"GET /databases/{uuid}/envs":               covered("data.coolify_environment_variables", "v0.2.0"),
-		"POST /databases/{uuid}/envs":              covered("coolify_environment_variable", "v0.2.0"),
-		"PATCH /databases/{uuid}/envs":             covered("coolify_environment_variable", "v0.2.0"),
-		"DELETE /databases/{uuid}/envs/{env_uuid}": covered("coolify_environment_variable", "v0.2.0"),
-		"GET /databases/{uuid}/storages":                   covered("data.coolify_storages", "v0.2.0"),
-		"POST /databases/{uuid}/storages":                  covered("coolify_storage", "v0.2.0"),
-		"PATCH /databases/{uuid}/storages":                 covered("coolify_storage", "v0.2.0"),
-		"DELETE /databases/{uuid}/storages/{storage_uuid}": covered("coolify_storage", "v0.2.0"),
-		"GET /databases/{uuid}/backups/{scheduled_backup_uuid}/executions":                     covered("data.coolify_backup_executions", "v0.2.0"),
+		"GET /databases/{uuid}/envs":                                       covered("data.coolify_environment_variables", "v0.2.0"),
+		"POST /databases/{uuid}/envs":                                      covered("coolify_environment_variable", "v0.2.0"),
+		"PATCH /databases/{uuid}/envs":                                     covered("coolify_environment_variable", "v0.2.0"),
+		"DELETE /databases/{uuid}/envs/{env_uuid}":                         covered("coolify_environment_variable", "v0.2.0"),
+		"GET /databases/{uuid}/storages":                                   covered("data.coolify_storages", "v0.2.0"),
+		"POST /databases/{uuid}/storages":                                  covered("coolify_storage", "v0.2.0"),
+		"PATCH /databases/{uuid}/storages":                                 covered("coolify_storage", "v0.2.0"),
+		"DELETE /databases/{uuid}/storages/{storage_uuid}":                 covered("coolify_storage", "v0.2.0"),
+		"GET /databases/{uuid}/backups/{scheduled_backup_uuid}/executions": covered("data.coolify_backup_executions", "v0.2.0"),
 		"DELETE /databases/{uuid}/backups/{scheduled_backup_uuid}/executions/{execution_uuid}": covered("client.DeleteBackupExecution", "v0.2.0"),
-		"PATCH /databases/{uuid}/envs/bulk": covered("client.BulkUpdateDatabaseEnvVars", "v0.2.0"),
-		"GET /databases/{uuid}/restart":     covered("client.RestartDatabase", "v0.2.0"),
-		"GET /databases/{uuid}/start":       covered("client.StartDatabase", "v0.1.0"),
-		"GET /databases/{uuid}/stop":        covered("client.StopDatabase", "v0.1.0"),
+		"PATCH /databases/{uuid}/envs/bulk":                                                    covered("client.BulkUpdateDatabaseEnvVars", "v0.2.0"),
+		"GET /databases/{uuid}/restart":                                                        covered("client.RestartDatabase", "v0.2.0"),
+		"GET /databases/{uuid}/start":                                                          covered("client.StartDatabase", "v0.1.0"),
+		"GET /databases/{uuid}/stop":                                                           covered("client.StopDatabase", "v0.1.0"),
 
 		// ── Services ──
-		"GET /services":           covered("data.coolify_services", "v0.1.0"),
-		"POST /services":          covered("coolify_service", "v0.1.0"),
-		"GET /services/{uuid}":    covered("data.coolify_service", "v0.1.0"),
-		"PATCH /services/{uuid}":  covered("coolify_service", "v0.1.0"),
-		"DELETE /services/{uuid}": covered("coolify_service", "v0.1.0"),
-		"POST /services/{uuid}/envs":              covered("coolify_environment_variable", "v0.1.0"),
-		"PATCH /services/{uuid}/envs":             covered("coolify_environment_variable", "v0.1.0"),
-		"DELETE /services/{uuid}/envs/{env_uuid}": covered("coolify_environment_variable", "v0.1.0"),
-		"GET /services/{uuid}/envs":               covered("data.coolify_environment_variables", "v0.2.0"),
+		"GET /services":                                               covered("data.coolify_services", "v0.1.0"),
+		"POST /services":                                              covered("coolify_service", "v0.1.0"),
+		"GET /services/{uuid}":                                        covered("data.coolify_service", "v0.1.0"),
+		"PATCH /services/{uuid}":                                      covered("coolify_service", "v0.1.0"),
+		"DELETE /services/{uuid}":                                     covered("coolify_service", "v0.1.0"),
+		"POST /services/{uuid}/envs":                                  covered("coolify_environment_variable", "v0.1.0"),
+		"PATCH /services/{uuid}/envs":                                 covered("coolify_environment_variable", "v0.1.0"),
+		"DELETE /services/{uuid}/envs/{env_uuid}":                     covered("coolify_environment_variable", "v0.1.0"),
+		"GET /services/{uuid}/envs":                                   covered("data.coolify_environment_variables", "v0.2.0"),
 		"GET /services/{uuid}/scheduled-tasks":                        covered("data.coolify_scheduled_tasks", "v0.2.0"),
 		"POST /services/{uuid}/scheduled-tasks":                       covered("coolify_scheduled_task", "v0.2.0"),
 		"PATCH /services/{uuid}/scheduled-tasks/{task_uuid}":          covered("coolify_scheduled_task", "v0.2.0"),
 		"DELETE /services/{uuid}/scheduled-tasks/{task_uuid}":         covered("coolify_scheduled_task", "v0.2.0"),
 		"GET /services/{uuid}/scheduled-tasks/{task_uuid}/executions": covered("data.coolify_task_executions", "v0.2.0"),
-		"GET /services/{uuid}/storages":                   covered("data.coolify_storages", "v0.2.0"),
-		"POST /services/{uuid}/storages":                  covered("coolify_storage", "v0.2.0"),
-		"PATCH /services/{uuid}/storages":                 covered("coolify_storage", "v0.2.0"),
-		"DELETE /services/{uuid}/storages/{storage_uuid}": covered("coolify_storage", "v0.2.0"),
-		"PATCH /services/{uuid}/envs/bulk":  covered("client.BulkUpdateServiceEnvVars", "v0.2.0"),
-		"GET /services/{uuid}/restart":      covered("client.RestartService", "v0.2.0"),
-		"GET /services/{uuid}/start":        covered("client.StartService", "v0.1.0"),
-		"GET /services/{uuid}/stop":         covered("client.StopService", "v0.1.0"),
+		"GET /services/{uuid}/storages":                               covered("data.coolify_storages", "v0.2.0"),
+		"POST /services/{uuid}/storages":                              covered("coolify_storage", "v0.2.0"),
+		"PATCH /services/{uuid}/storages":                             covered("coolify_storage", "v0.2.0"),
+		"DELETE /services/{uuid}/storages/{storage_uuid}":             covered("coolify_storage", "v0.2.0"),
+		"PATCH /services/{uuid}/envs/bulk":                            covered("client.BulkUpdateServiceEnvVars", "v0.2.0"),
+		"GET /services/{uuid}/restart":                                covered("client.RestartService", "v0.2.0"),
+		"GET /services/{uuid}/start":                                  covered("client.StartService", "v0.1.0"),
+		"GET /services/{uuid}/stop":                                   covered("client.StopService", "v0.1.0"),
 
 		// ── Security Keys ──
 		"GET /security/keys":           covered("data.coolify_private_keys", "v0.1.0"),
@@ -170,10 +170,10 @@ func coveredEndpoints() map[string]coverageStatus {
 		"POST /cloud-tokens/{uuid}/validate": covered("client.ValidateCloudToken", "v0.2.0"),
 
 		// ── GitHub Apps ──
-		"GET /github-apps":                covered("data.coolify_github_apps", "v0.2.0"),
-		"POST /github-apps":               covered("coolify_github_app", "v0.2.0"),
-		"PATCH /github-apps/{github_app_id}":  covered("coolify_github_app", "v0.2.0"),
-		"DELETE /github-apps/{github_app_id}": covered("coolify_github_app", "v0.2.0"),
+		"GET /github-apps":                                                      covered("data.coolify_github_apps", "v0.2.0"),
+		"POST /github-apps":                                                     covered("coolify_github_app", "v0.2.0"),
+		"PATCH /github-apps/{github_app_id}":                                    covered("coolify_github_app", "v0.2.0"),
+		"DELETE /github-apps/{github_app_id}":                                   covered("coolify_github_app", "v0.2.0"),
 		"GET /github-apps/{github_app_id}/repositories":                         covered("data.coolify_github_app_repositories", "v0.2.0"),
 		"GET /github-apps/{github_app_id}/repositories/{owner}/{repo}/branches": covered("data.coolify_github_app_branches", "v0.2.0"),
 
@@ -314,16 +314,16 @@ func TestSpecCoverage_GenerateDoc(t *testing.T) {
 	b.WriteString("# API Coverage\n\n")
 	b.WriteString("<!-- Auto-generated from internal/spectest/coverage_test.go. Do not edit manually. -->\n")
 	b.WriteString("<!-- Run: make api-coverage -->\n\n")
-	b.WriteString(fmt.Sprintf("**Spec**: Coolify v4 (pinned in `testdata/specs/coolify-v4.json`)  \n"))
-	b.WriteString(fmt.Sprintf("**Coverage**: %d / %d endpoints (%.1f%%)  \n", len(coveredList), total, pct))
-	b.WriteString(fmt.Sprintf("**Planned**: %d | **Skipped**: %d\n", len(plannedList), len(skippedList)))
+	b.WriteString("**Spec**: Coolify v4 (pinned in `testdata/specs/coolify-v4.json`)  \n")
+	fmt.Fprintf(&b, "**Coverage**: %d / %d endpoints (%.1f%%)  \n", len(coveredList), total, pct)
+	fmt.Fprintf(&b, "**Planned**: %d | **Skipped**: %d\n", len(plannedList), len(skippedList))
 
 	// Covered
 	b.WriteString("\n## Covered\n\n")
 	b.WriteString("| Endpoint | Terraform Resource / Data Source | Since |\n")
 	b.WriteString("|----------|----------------------------------|-------|\n")
 	for _, e := range coveredList {
-		b.WriteString(fmt.Sprintf("| `%s` | `%s` | %s |\n", e.endpoint, e.status.resource, e.status.since))
+		fmt.Fprintf(&b, "| `%s` | `%s` | %s |\n", e.endpoint, e.status.resource, e.status.since)
 	}
 
 	// Planned
@@ -332,7 +332,7 @@ func TestSpecCoverage_GenerateDoc(t *testing.T) {
 	b.WriteString("| Priority | Endpoint | Notes |\n")
 	b.WriteString("|----------|----------|-------|\n")
 	for _, e := range plannedList {
-		b.WriteString(fmt.Sprintf("| %d | `%s` | %s |\n", e.status.priority, e.endpoint, e.status.notes))
+		fmt.Fprintf(&b, "| %d | `%s` | %s |\n", e.status.priority, e.endpoint, e.status.notes)
 	}
 
 	// Skipped
@@ -341,7 +341,7 @@ func TestSpecCoverage_GenerateDoc(t *testing.T) {
 	b.WriteString("| Endpoint | Reason |\n")
 	b.WriteString("|----------|--------|\n")
 	for _, e := range skippedList {
-		b.WriteString(fmt.Sprintf("| `%s` | %s |\n", e.endpoint, e.status.resource))
+		fmt.Fprintf(&b, "| `%s` | %s |\n", e.endpoint, e.status.resource)
 	}
 
 	b.WriteString("\n## New in Spec (Unclassified)\n\n")

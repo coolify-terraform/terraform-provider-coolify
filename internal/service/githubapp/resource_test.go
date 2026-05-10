@@ -193,15 +193,13 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 		})
 	})
 
-	var handler http.Handler = acctest.WithVersionEndpoint(mux)
+	handler := acctest.WithVersionEndpoint(mux)
 	if len(auditT) > 0 {
 		handler = spectest.WithSpecAudit(auditT[0], "coolify-v4", handler)
 	}
 	server := httptest.NewServer(handler)
 	return server, store
 }
-
-
 
 func TestGitHubAppResource_Create(t *testing.T) {
 	t.Parallel()

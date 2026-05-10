@@ -135,15 +135,13 @@ func newMockEnvironmentServer(auditT ...testing.TB) (*httptest.Server, *mockEnvi
 		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 	})
 
-	var handler http.Handler = acctest.WithVersionEndpoint(mux)
+	handler := acctest.WithVersionEndpoint(mux)
 	if len(auditT) > 0 {
 		handler = spectest.WithSpecAudit(auditT[0], "coolify-v4", handler)
 	}
 	server := httptest.NewServer(handler)
 	return server, store
 }
-
-
 
 // checkEnvironmentDestroy verifies environments are deleted after test completion.
 func checkEnvironmentDestroy(serverURL string) resource.TestCheckFunc {

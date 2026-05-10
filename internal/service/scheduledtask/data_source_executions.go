@@ -23,10 +23,10 @@ type taskExecutionsDataSource struct {
 }
 
 type taskExecutionsDataSourceModel struct {
-	ApplicationUUID types.String           `tfsdk:"application_uuid"`
-	ServiceUUID     types.String           `tfsdk:"service_uuid"`
-	TaskUUID        types.String           `tfsdk:"task_uuid"`
-	Executions      []taskExecutionModel   `tfsdk:"executions"`
+	ApplicationUUID types.String         `tfsdk:"application_uuid"`
+	ServiceUUID     types.String         `tfsdk:"service_uuid"`
+	TaskUUID        types.String         `tfsdk:"task_uuid"`
+	Executions      []taskExecutionModel `tfsdk:"executions"`
 }
 
 type taskExecutionModel struct {

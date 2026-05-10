@@ -45,6 +45,7 @@ func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*
 	}
 	return &s, nil
 }
+
 type UpdateServiceInput struct {
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`

@@ -114,7 +114,7 @@ func (r *dockerComposeApplicationResource) Schema(ctx context.Context, _ resourc
 			"fqdn": schema.StringAttribute{
 				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
 				Optional:            true,
-				Validators: []validator.String{validate.FQDN()},
+				Validators:          []validator.String{validate.FQDN()},
 			},
 			"status": schema.StringAttribute{
 				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",

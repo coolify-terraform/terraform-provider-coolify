@@ -126,7 +126,7 @@ func CheckResourceDisappears(serverURL, resourceAddr, apiPathPrefix string) reso
 		if err != nil {
 			return err
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil
 	}
 }
@@ -152,7 +152,7 @@ func CheckDestroy(serverURL, resourceType, apiPathPrefix string) resource.TestCh
 			if err != nil {
 				return fmt.Errorf("error checking destroy for %s/%s: %w", resourceType, uuid, err)
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode != http.StatusNotFound {
 				return fmt.Errorf("%s %s still exists (status %d)", resourceType, uuid, resp.StatusCode)
 			}

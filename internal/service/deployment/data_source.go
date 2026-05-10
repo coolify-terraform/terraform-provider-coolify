@@ -22,7 +22,7 @@ type deploymentsDataSource struct {
 }
 
 type deploymentsDataSourceModel struct {
-	ApplicationUUID types.String        `tfsdk:"application_uuid"`
+	ApplicationUUID types.String          `tfsdk:"application_uuid"`
 	Deployments     []deploymentItemModel `tfsdk:"deployments"`
 }
 

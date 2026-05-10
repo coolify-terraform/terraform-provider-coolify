@@ -230,8 +230,6 @@ func (s *mockProjectStore) List() []*mockProject {
 	return result
 }
 
-
-
 func TestProjectResource_Create(t *testing.T) {
 	t.Parallel()
 	server, _ := newMockCoolifyServer()

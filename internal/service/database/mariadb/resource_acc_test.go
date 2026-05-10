@@ -26,7 +26,7 @@ func TestAccMariadbDatabaseResource_CRUD(t *testing.T) {
 			},
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_mariadb_database", name, serverUUID, `description = "Updated via acc test"`),
-				Check: resource.TestCheckResourceAttr("coolify_mariadb_database.test", "description", "Updated via acc test"),
+				Check:  resource.TestCheckResourceAttr("coolify_mariadb_database.test", "description", "Updated via acc test"),
 			},
 			{
 				ResourceName:                         "coolify_mariadb_database.test",

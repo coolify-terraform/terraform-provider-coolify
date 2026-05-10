@@ -20,9 +20,9 @@ type executionsDataSource struct {
 }
 
 type executionsDataSourceModel struct {
-	DatabaseUUID types.String       `tfsdk:"database_uuid"`
-	BackupUUID   types.String       `tfsdk:"backup_uuid"`
-	Executions   []executionModel   `tfsdk:"executions"`
+	DatabaseUUID types.String     `tfsdk:"database_uuid"`
+	BackupUUID   types.String     `tfsdk:"backup_uuid"`
+	Executions   []executionModel `tfsdk:"executions"`
 }
 
 type executionModel struct {

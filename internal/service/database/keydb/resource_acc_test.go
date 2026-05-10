@@ -28,7 +28,7 @@ func TestAccKeydbDatabaseResource_CRUD(t *testing.T) {
 			// Step 2: Update description
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_keydb_database", name, serverUUID, `description = "Updated via acc test"`),
-				Check: resource.TestCheckResourceAttr("coolify_keydb_database.test", "description", "Updated via acc test"),
+				Check:  resource.TestCheckResourceAttr("coolify_keydb_database.test", "description", "Updated via acc test"),
 			},
 			// Step 3: Import by UUID
 			{
@@ -40,5 +40,3 @@ func TestAccKeydbDatabaseResource_CRUD(t *testing.T) {
 		},
 	})
 }
-
-

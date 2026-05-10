@@ -17,7 +17,7 @@ type Database struct {
 	ServerUUID              string `json:"server_uuid,omitempty"`
 	ProjectUUID             string `json:"project_uuid,omitempty"`
 	EnvironmentName         string `json:"environment_name,omitempty"`
-	EnvironmentUUID string `json:"environment_uuid,omitempty"`
+	EnvironmentUUID         string `json:"environment_uuid,omitempty"`
 	PostgresUser            string `json:"postgres_user,omitempty"`
 	PostgresPassword        string `json:"postgres_password,omitempty"`
 	PostgresDB              string `json:"postgres_db,omitempty"`
@@ -39,7 +39,7 @@ type CreatePostgresqlInput struct {
 	ServerUUID       string `json:"server_uuid"`
 	ProjectUUID      string `json:"project_uuid"`
 	EnvironmentName  string `json:"environment_name"`
-	EnvironmentUUID string `json:"environment_uuid,omitempty"`
+	EnvironmentUUID  string `json:"environment_uuid,omitempty"`
 	Name             string `json:"name,omitempty"`
 	Description      string `json:"description,omitempty"`
 	Image            string `json:"image,omitempty"`
@@ -53,7 +53,7 @@ type CreateMysqlInput struct {
 	ServerUUID        string `json:"server_uuid"`
 	ProjectUUID       string `json:"project_uuid"`
 	EnvironmentName   string `json:"environment_name"`
-	EnvironmentUUID string `json:"environment_uuid,omitempty"`
+	EnvironmentUUID   string `json:"environment_uuid,omitempty"`
 	Name              string `json:"name,omitempty"`
 	Description       string `json:"description,omitempty"`
 	Image             string `json:"image,omitempty"`
@@ -68,7 +68,7 @@ type CreateMariadbInput struct {
 	ServerUUID          string `json:"server_uuid"`
 	ProjectUUID         string `json:"project_uuid"`
 	EnvironmentName     string `json:"environment_name"`
-	EnvironmentUUID string `json:"environment_uuid,omitempty"`
+	EnvironmentUUID     string `json:"environment_uuid,omitempty"`
 	Name                string `json:"name,omitempty"`
 	Description         string `json:"description,omitempty"`
 	Image               string `json:"image,omitempty"`
@@ -94,7 +94,7 @@ type CreateMongodbInput struct {
 	ServerUUID              string `json:"server_uuid"`
 	ProjectUUID             string `json:"project_uuid"`
 	EnvironmentName         string `json:"environment_name"`
-	EnvironmentUUID string `json:"environment_uuid,omitempty"`
+	EnvironmentUUID         string `json:"environment_uuid,omitempty"`
 	Name                    string `json:"name,omitempty"`
 	Description             string `json:"description,omitempty"`
 	Image                   string `json:"image,omitempty"`
@@ -108,7 +108,7 @@ type CreateClickhouseInput struct {
 	ProjectUUID             string `json:"project_uuid"`
 	ServerUUID              string `json:"server_uuid"`
 	EnvironmentName         string `json:"environment_name,omitempty"`
-	EnvironmentUUID string `json:"environment_uuid,omitempty"`
+	EnvironmentUUID         string `json:"environment_uuid,omitempty"`
 	Name                    string `json:"name,omitempty"`
 	Description             string `json:"description,omitempty"`
 	Image                   string `json:"image,omitempty"`

@@ -28,7 +28,7 @@ func TestAccApplicationResource_CRUD(t *testing.T) {
 			},
 			{
 				Config: testAccPublicGitAppConfig(name, serverUUID, `description = "Updated public git app"`),
-				Check: resource.TestCheckResourceAttr("coolify_application.test", "description", "Updated public git app"),
+				Check:  resource.TestCheckResourceAttr("coolify_application.test", "description", "Updated public git app"),
 			},
 			{
 				ResourceName:                         "coolify_application.test",

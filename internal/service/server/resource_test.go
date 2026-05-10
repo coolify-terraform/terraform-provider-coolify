@@ -15,8 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-
-
 func newServerMockServer() *httptest.Server {
 	servers := make(map[string]*client.Server)
 	var mu sync.Mutex
