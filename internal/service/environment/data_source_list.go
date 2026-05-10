@@ -6,8 +6,10 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -50,6 +52,7 @@ func (d *environmentListDataSource) Schema(_ context.Context, _ datasource.Schem
 			"project_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the project.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"environments": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of environments.",

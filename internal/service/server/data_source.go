@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -48,6 +50,7 @@ func (d *serverDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the server.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: "The name of the server.",

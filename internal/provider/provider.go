@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"os"
+	"strings"
 )
 
 var _ provider.Provider = (*coolifyProvider)(nil)
@@ -73,6 +74,8 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 	if endpoint == "" {
 		resp.Diagnostics.AddError("Missing Coolify Endpoint", "Set endpoint in provider block or COOLIFY_ENDPOINT env var.")
+	} else if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
+		resp.Diagnostics.AddError("Invalid Coolify Endpoint", "Endpoint must start with http:// or https://.")
 	}
 	token := os.Getenv("COOLIFY_TOKEN")
 	if !config.Token.IsNull() && !config.Token.IsUnknown() {

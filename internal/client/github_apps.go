@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type GitHubApp struct {
@@ -93,7 +94,7 @@ func (c *Client) ListGitHubAppRepositories(ctx context.Context, id int64) ([]Git
 
 func (c *Client) ListGitHubAppBranches(ctx context.Context, id int64, owner, repo string) ([]GitHubBranch, error) {
 	var r []GitHubBranch
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/github-apps/%d/repositories/%s/%s/branches", id, owner, repo), nil, &r); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/github-apps/%d/repositories/%s/%s/branches", id, url.PathEscape(owner), url.PathEscape(repo)), nil, &r); err != nil {
 		return nil, fmt.Errorf("listing github app %d branches for %s/%s: %w", id, owner, repo, err)
 	}
 	return r, nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // Environment represents a Coolify environment within a project.
@@ -34,7 +35,7 @@ func (c *Client) ListEnvironments(ctx context.Context, projectUUID string) ([]En
 // GetEnvironment returns a single environment by name or UUID.
 func (c *Client) GetEnvironment(ctx context.Context, projectUUID, nameOrUUID string) (*Environment, error) {
 	var r Environment
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/%s", projectUUID, nameOrUUID), nil, &r); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/%s", projectUUID, url.PathEscape(nameOrUUID)), nil, &r); err != nil {
 		return nil, fmt.Errorf("getting environment %s in project %s: %w", nameOrUUID, projectUUID, err)
 	}
 	return &r, nil
@@ -51,5 +52,5 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectUUID string, inpu
 
 // DeleteEnvironment deletes an environment by name or UUID.
 func (c *Client) DeleteEnvironment(ctx context.Context, projectUUID, nameOrUUID string) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/projects/%s/environments/%s", projectUUID, nameOrUUID), nil, nil)
+	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/projects/%s/environments/%s", projectUUID, url.PathEscape(nameOrUUID)), nil, nil)
 }
