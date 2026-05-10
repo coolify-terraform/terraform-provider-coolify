@@ -19,6 +19,7 @@ jobs:
   changes:
     name: Detect Changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: github.event_name != 'schedule'
     outputs:
       go: ${{ steps.filter.outputs.go }}
@@ -50,6 +51,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: changes
     if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'push')
     steps:
@@ -65,7 +67,7 @@ jobs:
         with:
           terraform_wrapper: false
       - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@latest
+        run: go install gotest.tools/gotestsum@v1.13.0
       - name: Run tests
         run: |
           mkdir -p test-results
@@ -96,6 +98,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: changes
     if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'push')
     steps:
@@ -114,6 +117,7 @@ jobs:
   format:
     name: Format
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: changes
     if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'push')
     steps:
@@ -133,6 +137,7 @@ jobs:
   validate-examples:
     name: Validate Examples
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: changes
     if: always() && (needs.changes.outputs.terraform == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'push')
     strategy:
@@ -154,6 +159,7 @@ jobs:
   govulncheck:
     name: Govulncheck
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: changes
     if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'push')
     steps:
@@ -166,19 +172,20 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
       - name: Run govulncheck
         run: govulncheck ./...
 
   trivy:
     name: Trivy
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: step-security/harden-runner@v2
         with:
           egress-policy: audit
       - uses: actions/checkout@v6
-      - uses: aquasecurity/trivy-action@master
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -190,6 +197,7 @@ jobs:
   gitleaks:
     name: Gitleaks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: step-security/harden-runner@v2
         with:
@@ -209,6 +217,7 @@ jobs:
   docs:
     name: Docs
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: changes
     if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.docs == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'push')
     steps:
@@ -232,6 +241,7 @@ jobs:
   spec-freshness:
     name: Spec Freshness
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: github.event_name == 'schedule'
     steps:
       - uses: step-security/harden-runner@v2
