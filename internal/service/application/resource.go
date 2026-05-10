@@ -22,18 +22,18 @@ import (
 )
 
 var (
-	_ resource.Resource                = &ApplicationResource{}
-	_ resource.ResourceWithConfigure   = &ApplicationResource{}
-	_ resource.ResourceWithImportState = &ApplicationResource{}
+	_ resource.Resource                = &applicationResource{}
+	_ resource.ResourceWithConfigure   = &applicationResource{}
+	_ resource.ResourceWithImportState = &applicationResource{}
 )
 
-// ApplicationResource manages a Coolify application.
-type ApplicationResource struct {
+// applicationResource manages a Coolify application.
+type applicationResource struct {
 	client *client.Client
 }
 
-// ApplicationResourceModel maps the resource schema to Go types.
-type ApplicationResourceModel struct {
+// applicationResourceModel maps the resource schema to Go types.
+type applicationResourceModel struct {
 	UUID               types.String   `tfsdk:"uuid"`
 	Name               types.String   `tfsdk:"name"`
 	Description        types.String   `tfsdk:"description"`
@@ -53,16 +53,16 @@ type ApplicationResourceModel struct {
 	Timeouts           timeouts.Value `tfsdk:"timeouts"`
 }
 
-// NewResource returns a new ApplicationResource instance.
+// NewResource returns a new applicationResource instance.
 func NewResource() resource.Resource {
-	return &ApplicationResource{}
+	return &applicationResource{}
 }
 
-func (r *ApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *applicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_application"
 }
 
-func (r *ApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *applicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed from a public Git repository.",
 		Attributes: map[string]schema.Attribute{
@@ -171,7 +171,7 @@ func (r *ApplicationResource) Schema(ctx context.Context, _ resource.SchemaReque
 	}
 }
 
-func (r *ApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *applicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -186,8 +186,8 @@ func (r *ApplicationResource) Configure(_ context.Context, req resource.Configur
 	r.client = c
 }
 
-func (r *ApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan ApplicationResourceModel
+func (r *applicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan applicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -254,8 +254,8 @@ func (r *ApplicationResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *ApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state ApplicationResourceModel
+func (r *applicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state applicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -275,8 +275,8 @@ func (r *ApplicationResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *ApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan ApplicationResourceModel
+func (r *applicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan applicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -314,8 +314,8 @@ func (r *ApplicationResource) Update(ctx context.Context, req resource.UpdateReq
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *ApplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state ApplicationResourceModel
+func (r *applicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state applicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -330,13 +330,13 @@ func (r *ApplicationResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 }
 
-func (r *ApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *applicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 }
 
 // flattenApplication copies API fields into the Terraform state model.
-func flattenApplication(app *client.Application, state *ApplicationResourceModel) {
+func flattenApplication(app *client.Application, state *applicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)

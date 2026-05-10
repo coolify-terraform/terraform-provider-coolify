@@ -4,7 +4,7 @@
 
 ### Prerequisites
 
-- [Go](https://golang.org/doc/install) >= 1.24
+- [Go](https://golang.org/doc/install) >= 1.26
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0
 - [golangci-lint](https://golangci-lint.run/welcome/install/) v2.x
 
@@ -27,11 +27,12 @@ make test
 Acceptance tests (requires a running Coolify instance):
 
 ```bash
-cp .env.example .env
-# Edit .env with your Coolify endpoint and token
-source .env
+export COOLIFY_ENDPOINT="http://localhost:8000"
+export COOLIFY_TOKEN="your-api-token"
 make testacc
 ```
+
+See [TESTING.md](TESTING.md) for full acceptance test documentation.
 
 ### Code Quality
 

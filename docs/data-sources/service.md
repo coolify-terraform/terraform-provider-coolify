@@ -14,7 +14,7 @@ Use this data source to retrieve information about a Coolify service by UUID.
 
 ```terraform
 data "coolify_service" "example" {
-  uuid = "existing-service-uuid"
+  uuid = "550e8400-e29b-41d4-a716-446655440002"
 }
 ```
 

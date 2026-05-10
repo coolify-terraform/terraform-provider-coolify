@@ -22,18 +22,18 @@ import (
 )
 
 var (
-	_ resource.Resource                = &DockerfileApplicationResource{}
-	_ resource.ResourceWithConfigure   = &DockerfileApplicationResource{}
-	_ resource.ResourceWithImportState = &DockerfileApplicationResource{}
+	_ resource.Resource                = &dockerfileApplicationResource{}
+	_ resource.ResourceWithConfigure   = &dockerfileApplicationResource{}
+	_ resource.ResourceWithImportState = &dockerfileApplicationResource{}
 )
 
-// DockerfileApplicationResource manages a Coolify application deployed from a Dockerfile.
-type DockerfileApplicationResource struct {
+// dockerfileApplicationResource manages a Coolify application deployed from a Dockerfile.
+type dockerfileApplicationResource struct {
 	client *client.Client
 }
 
-// DockerfileApplicationResourceModel maps the resource schema to Go types.
-type DockerfileApplicationResourceModel struct {
+// dockerfileApplicationResourceModel maps the resource schema to Go types.
+type dockerfileApplicationResourceModel struct {
 	UUID               types.String   `tfsdk:"uuid"`
 	Name               types.String   `tfsdk:"name"`
 	Description        types.String   `tfsdk:"description"`
@@ -53,16 +53,16 @@ type DockerfileApplicationResourceModel struct {
 	Timeouts           timeouts.Value `tfsdk:"timeouts"`
 }
 
-// NewDockerfileResource returns a new DockerfileApplicationResource instance.
+// NewDockerfileResource returns a new dockerfileApplicationResource instance.
 func NewDockerfileResource() resource.Resource {
-	return &DockerfileApplicationResource{}
+	return &dockerfileApplicationResource{}
 }
 
-func (r *DockerfileApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *dockerfileApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_dockerfile_application"
 }
 
-func (r *DockerfileApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed from a Dockerfile.",
 		Attributes: map[string]schema.Attribute{
@@ -166,7 +166,7 @@ func (r *DockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 	}
 }
 
-func (r *DockerfileApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *dockerfileApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -181,8 +181,8 @@ func (r *DockerfileApplicationResource) Configure(_ context.Context, req resourc
 	r.client = c
 }
 
-func (r *DockerfileApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan DockerfileApplicationResourceModel
+func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan dockerfileApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -242,8 +242,8 @@ func (r *DockerfileApplicationResource) Create(ctx context.Context, req resource
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *DockerfileApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state DockerfileApplicationResourceModel
+func (r *dockerfileApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state dockerfileApplicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -263,8 +263,8 @@ func (r *DockerfileApplicationResource) Read(ctx context.Context, req resource.R
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *DockerfileApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan DockerfileApplicationResourceModel
+func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan dockerfileApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -299,8 +299,8 @@ func (r *DockerfileApplicationResource) Update(ctx context.Context, req resource
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *DockerfileApplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state DockerfileApplicationResourceModel
+func (r *dockerfileApplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state dockerfileApplicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -315,13 +315,13 @@ func (r *DockerfileApplicationResource) Delete(ctx context.Context, req resource
 	}
 }
 
-func (r *DockerfileApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *dockerfileApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 }
 
 // flattenDockerfileApplication copies API fields into the Terraform state model.
-func flattenDockerfileApplication(app *client.Application, state *DockerfileApplicationResourceModel) {
+func flattenDockerfileApplication(app *client.Application, state *dockerfileApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)

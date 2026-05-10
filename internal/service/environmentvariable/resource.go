@@ -20,19 +20,19 @@ import (
 )
 
 var (
-	_ resource.Resource                = &EnvironmentVariableResource{}
-	_ resource.ResourceWithConfigure   = &EnvironmentVariableResource{}
-	_ resource.ResourceWithImportState = &EnvironmentVariableResource{}
+	_ resource.Resource                = &environmentVariableResource{}
+	_ resource.ResourceWithConfigure   = &environmentVariableResource{}
+	_ resource.ResourceWithImportState = &environmentVariableResource{}
 )
 
-// EnvironmentVariableResource manages a single environment variable on an
+// environmentVariableResource manages a single environment variable on an
 // application, service, or database.
-type EnvironmentVariableResource struct {
+type environmentVariableResource struct {
 	client *client.Client
 }
 
-// EnvironmentVariableResourceModel maps the resource schema to Go types.
-type EnvironmentVariableResourceModel struct {
+// environmentVariableResourceModel maps the resource schema to Go types.
+type environmentVariableResourceModel struct {
 	UUID            types.String `tfsdk:"uuid"`
 	ApplicationUUID types.String `tfsdk:"application_uuid"`
 	ServiceUUID     types.String `tfsdk:"service_uuid"`
@@ -43,16 +43,16 @@ type EnvironmentVariableResourceModel struct {
 	IsBuild         types.Bool   `tfsdk:"is_build"`
 }
 
-// NewResource returns a new EnvironmentVariableResource instance.
+// NewResource returns a new environmentVariableResource instance.
 func NewResource() resource.Resource {
-	return &EnvironmentVariableResource{}
+	return &environmentVariableResource{}
 }
 
-func (r *EnvironmentVariableResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *environmentVariableResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_environment_variable"
 }
 
-func (r *EnvironmentVariableResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *environmentVariableResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages an environment variable on a Coolify application, service, or database.",
 		Attributes: map[string]schema.Attribute{
@@ -121,7 +121,7 @@ func (r *EnvironmentVariableResource) Schema(_ context.Context, _ resource.Schem
 	}
 }
 
-func (r *EnvironmentVariableResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *environmentVariableResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -136,8 +136,8 @@ func (r *EnvironmentVariableResource) Configure(_ context.Context, req resource.
 	r.client = c
 }
 
-func (r *EnvironmentVariableResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan EnvironmentVariableResourceModel
+func (r *environmentVariableResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan environmentVariableResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -173,8 +173,8 @@ func (r *EnvironmentVariableResource) Create(ctx context.Context, req resource.C
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *EnvironmentVariableResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state EnvironmentVariableResourceModel
+func (r *environmentVariableResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state environmentVariableResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -219,8 +219,8 @@ func (r *EnvironmentVariableResource) Read(ctx context.Context, req resource.Rea
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *EnvironmentVariableResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan EnvironmentVariableResourceModel
+func (r *environmentVariableResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan environmentVariableResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -255,8 +255,8 @@ func (r *EnvironmentVariableResource) Update(ctx context.Context, req resource.U
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *EnvironmentVariableResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state EnvironmentVariableResourceModel
+func (r *environmentVariableResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state environmentVariableResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -284,7 +284,7 @@ func (r *EnvironmentVariableResource) Delete(ctx context.Context, req resource.D
 	}
 }
 
-func (r *EnvironmentVariableResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *environmentVariableResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	parts := strings.SplitN(req.ID, ":", 3)
 	if len(parts) != 3 {
 		resp.Diagnostics.AddError(

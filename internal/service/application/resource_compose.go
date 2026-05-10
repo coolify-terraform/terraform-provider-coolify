@@ -22,18 +22,18 @@ import (
 )
 
 var (
-	_ resource.Resource                = &DockerComposeApplicationResource{}
-	_ resource.ResourceWithConfigure   = &DockerComposeApplicationResource{}
-	_ resource.ResourceWithImportState = &DockerComposeApplicationResource{}
+	_ resource.Resource                = &dockerComposeApplicationResource{}
+	_ resource.ResourceWithConfigure   = &dockerComposeApplicationResource{}
+	_ resource.ResourceWithImportState = &dockerComposeApplicationResource{}
 )
 
-// DockerComposeApplicationResource manages a Coolify application deployed from a Docker Compose file.
-type DockerComposeApplicationResource struct {
+// dockerComposeApplicationResource manages a Coolify application deployed from a Docker Compose file.
+type dockerComposeApplicationResource struct {
 	client *client.Client
 }
 
-// DockerComposeApplicationResourceModel maps the resource schema to Go types.
-type DockerComposeApplicationResourceModel struct {
+// dockerComposeApplicationResourceModel maps the resource schema to Go types.
+type dockerComposeApplicationResourceModel struct {
 	UUID             types.String   `tfsdk:"uuid"`
 	Name             types.String   `tfsdk:"name"`
 	Description      types.String   `tfsdk:"description"`
@@ -46,16 +46,16 @@ type DockerComposeApplicationResourceModel struct {
 	Timeouts         timeouts.Value `tfsdk:"timeouts"`
 }
 
-// NewDockerComposeResource returns a new DockerComposeApplicationResource instance.
+// NewDockerComposeResource returns a new dockerComposeApplicationResource instance.
 func NewDockerComposeResource() resource.Resource {
-	return &DockerComposeApplicationResource{}
+	return &dockerComposeApplicationResource{}
 }
 
-func (r *DockerComposeApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *dockerComposeApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_docker_compose_application"
 }
 
-func (r *DockerComposeApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *dockerComposeApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed from a Docker Compose file.",
 		Attributes: map[string]schema.Attribute{
@@ -128,7 +128,7 @@ func (r *DockerComposeApplicationResource) Schema(ctx context.Context, _ resourc
 	}
 }
 
-func (r *DockerComposeApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *dockerComposeApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -143,8 +143,8 @@ func (r *DockerComposeApplicationResource) Configure(_ context.Context, req reso
 	r.client = c
 }
 
-func (r *DockerComposeApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan DockerComposeApplicationResourceModel
+func (r *dockerComposeApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan dockerComposeApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -194,8 +194,8 @@ func (r *DockerComposeApplicationResource) Create(ctx context.Context, req resou
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *DockerComposeApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state DockerComposeApplicationResourceModel
+func (r *dockerComposeApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state dockerComposeApplicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -215,8 +215,8 @@ func (r *DockerComposeApplicationResource) Read(ctx context.Context, req resourc
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *DockerComposeApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan DockerComposeApplicationResourceModel
+func (r *dockerComposeApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan dockerComposeApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -247,8 +247,8 @@ func (r *DockerComposeApplicationResource) Update(ctx context.Context, req resou
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *DockerComposeApplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state DockerComposeApplicationResourceModel
+func (r *dockerComposeApplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state dockerComposeApplicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -263,13 +263,13 @@ func (r *DockerComposeApplicationResource) Delete(ctx context.Context, req resou
 	}
 }
 
-func (r *DockerComposeApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *dockerComposeApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 }
 
 // flattenDockerComposeApplication copies API fields into the Terraform state model.
-func flattenDockerComposeApplication(app *client.Application, state *DockerComposeApplicationResourceModel) {
+func flattenDockerComposeApplication(app *client.Application, state *dockerComposeApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)

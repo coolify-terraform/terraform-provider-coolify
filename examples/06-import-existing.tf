@@ -50,5 +50,5 @@ resource "coolify_environment_variable" "db_url" {
   application_uuid = coolify_application.existing.uuid
   key              = "DATABASE_URL"
   value            = "postgresql://user:pass@db:5432/myapp"
-  is_build_time    = false
+  is_build         = false
 }

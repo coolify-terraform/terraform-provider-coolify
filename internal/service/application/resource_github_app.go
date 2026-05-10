@@ -22,18 +22,18 @@ import (
 )
 
 var (
-	_ resource.Resource                = &GitHubAppApplicationResource{}
-	_ resource.ResourceWithConfigure   = &GitHubAppApplicationResource{}
-	_ resource.ResourceWithImportState = &GitHubAppApplicationResource{}
+	_ resource.Resource                = &gitHubAppApplicationResource{}
+	_ resource.ResourceWithConfigure   = &gitHubAppApplicationResource{}
+	_ resource.ResourceWithImportState = &gitHubAppApplicationResource{}
 )
 
-// GitHubAppApplicationResource manages a Coolify application deployed via a GitHub App.
-type GitHubAppApplicationResource struct {
+// gitHubAppApplicationResource manages a Coolify application deployed via a GitHub App.
+type gitHubAppApplicationResource struct {
 	client *client.Client
 }
 
-// GitHubAppApplicationResourceModel maps the resource schema to Go types.
-type GitHubAppApplicationResourceModel struct {
+// gitHubAppApplicationResourceModel maps the resource schema to Go types.
+type gitHubAppApplicationResourceModel struct {
 	UUID               types.String   `tfsdk:"uuid"`
 	Name               types.String   `tfsdk:"name"`
 	Description        types.String   `tfsdk:"description"`
@@ -54,16 +54,16 @@ type GitHubAppApplicationResourceModel struct {
 	Timeouts           timeouts.Value `tfsdk:"timeouts"`
 }
 
-// NewGitHubAppResource returns a new GitHubAppApplicationResource instance.
+// NewGitHubAppResource returns a new gitHubAppApplicationResource instance.
 func NewGitHubAppResource() resource.Resource {
-	return &GitHubAppApplicationResource{}
+	return &gitHubAppApplicationResource{}
 }
 
-func (r *GitHubAppApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *gitHubAppApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_github_app_application"
 }
 
-func (r *GitHubAppApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *gitHubAppApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed via a GitHub App integration.",
 		Attributes: map[string]schema.Attribute{
@@ -177,7 +177,7 @@ func (r *GitHubAppApplicationResource) Schema(ctx context.Context, _ resource.Sc
 	}
 }
 
-func (r *GitHubAppApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *gitHubAppApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -192,8 +192,8 @@ func (r *GitHubAppApplicationResource) Configure(_ context.Context, req resource
 	r.client = c
 }
 
-func (r *GitHubAppApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan GitHubAppApplicationResourceModel
+func (r *gitHubAppApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan gitHubAppApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -261,8 +261,8 @@ func (r *GitHubAppApplicationResource) Create(ctx context.Context, req resource.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *GitHubAppApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state GitHubAppApplicationResourceModel
+func (r *gitHubAppApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state gitHubAppApplicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -282,8 +282,8 @@ func (r *GitHubAppApplicationResource) Read(ctx context.Context, req resource.Re
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *GitHubAppApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan GitHubAppApplicationResourceModel
+func (r *gitHubAppApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan gitHubAppApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -321,8 +321,8 @@ func (r *GitHubAppApplicationResource) Update(ctx context.Context, req resource.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *GitHubAppApplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state GitHubAppApplicationResourceModel
+func (r *gitHubAppApplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state gitHubAppApplicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -337,13 +337,13 @@ func (r *GitHubAppApplicationResource) Delete(ctx context.Context, req resource.
 	}
 }
 
-func (r *GitHubAppApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *gitHubAppApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 }
 
 // flattenGitHubAppApplication copies API fields into the Terraform state model.
-func flattenGitHubAppApplication(app *client.Application, state *GitHubAppApplicationResourceModel) {
+func flattenGitHubAppApplication(app *client.Application, state *gitHubAppApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)

@@ -1,8 +1,10 @@
 # Terraform Provider for Coolify
 
 [![CI](https://github.com/SebTardif/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/SebTardif/terraform-provider-coolify/actions/workflows/ci.yml)
+![Go Version](https://img.shields.io/github/go-mod/go-version/SebTardif/terraform-provider-coolify)
+![License](https://img.shields.io/github/license/SebTardif/terraform-provider-coolify)
 
-A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 20 resources, 19 data sources, 205 tests.
+A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 27 resources, 41 data sources, 450+ tests, 100% API coverage.
 
 ## Getting Started
 
@@ -18,10 +20,15 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_server` | Register and configure servers |
 | `coolify_private_key` | Manage SSH keys for server access |
 | `coolify_application` | Deploy apps from public Git repositories |
-| `coolify_private_git_application` | Deploy apps from private Git repos (with SSH deploy key) |
+| `coolify_dockerfile_application` | Deploy apps from Dockerfiles |
 | `coolify_docker_image_application` | Deploy apps from Docker images (Docker Hub, GHCR, etc.) |
 | `coolify_docker_compose_application` | Deploy apps from Docker Compose files |
-| `coolify_environment_variable` | Manage env vars for applications and services |
+| `coolify_private_git_application` | Deploy apps from private Git repos (SSH deploy key) |
+| `coolify_github_app_application` | Deploy apps via GitHub App integration |
+| `coolify_environment` | Manage project environments |
+| `coolify_environment_variable` | Manage env vars for applications, services, and databases |
+| `coolify_deployment` | Trigger application deployments |
+| `coolify_service` | Deploy one-click services from the Coolify catalog |
 | `coolify_postgresql_database` | Provision PostgreSQL databases |
 | `coolify_mysql_database` | Provision MySQL databases |
 | `coolify_mariadb_database` | Provision MariaDB databases |
@@ -30,10 +37,12 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_clickhouse_database` | Provision ClickHouse databases |
 | `coolify_keydb_database` | Provision KeyDB databases (Redis-compatible) |
 | `coolify_dragonfly_database` | Provision DragonFly databases (Redis-compatible) |
-| `coolify_service` | Deploy one-click services from the Coolify catalog |
-| `coolify_deployment` | Trigger application deployments |
 | `coolify_database_backup` | Schedule automated database backups |
 | `coolify_s3_storage` | Manage S3 storage destinations for backups |
+| `coolify_scheduled_task` | Manage scheduled tasks on applications/services |
+| `coolify_storage` | Manage persistent storage volumes |
+| `coolify_cloud_token` | Manage cloud provider tokens (Hetzner) |
+| `coolify_github_app` | Manage GitHub App integrations |
 
 ## Data Sources
 
@@ -41,21 +50,32 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 |-------------|-------------|
 | `coolify_project` / `coolify_projects` | Read project(s) |
 | `coolify_server` / `coolify_servers` | Read server(s) |
-| `coolify_server_resources` | List resources deployed on a server |
-| `coolify_server_domains` | List domains configured on a server |
+| `coolify_server_resources` / `coolify_server_domains` | List resources and domains on a server |
+| `coolify_server_validation` | Validate server connectivity |
 | `coolify_private_key` / `coolify_private_keys` | Read SSH key(s) |
 | `coolify_application` / `coolify_applications` | Read application(s) |
+| `coolify_application_logs` | Read application logs |
 | `coolify_database` / `coolify_databases` | Read database(s) |
-| `coolify_environment_variables` | List env vars for an application or service |
-| `coolify_s3_storage` / `coolify_s3_storages` | Read S3 storage destination(s) |
+| `coolify_environment` / `coolify_environments` | Read environment(s) |
+| `coolify_environment_variables` | List env vars for an application, service, or database |
+| `coolify_deployments` | List deployments for an application |
 | `coolify_service` / `coolify_services` | Read service(s) |
-| `coolify_team` | Read team info and members |
+| `coolify_s3_storage` / `coolify_s3_storages` | Read S3 storage destination(s) |
+| `coolify_scheduled_tasks` / `coolify_task_executions` | Read scheduled tasks and executions |
+| `coolify_storages` | List persistent storage volumes |
+| `coolify_cloud_token` / `coolify_cloud_tokens` | Read cloud token(s) |
+| `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` | Read GitHub App(s), repos, branches |
+| `coolify_backup_executions` | List backup execution history |
+| `coolify_resources` | List all resources on a server |
+| `coolify_team` / `coolify_teams` / `coolify_team_members` | Read team(s) and members |
+| `coolify_health` | Read Coolify instance health status |
 | `coolify_version` | Read the Coolify instance version |
+| `coolify_hetzner_images` / `coolify_hetzner_locations` / `coolify_hetzner_server_types` / `coolify_hetzner_ssh_keys` | Read Hetzner cloud resources |
 
 ## Features
 
 - **Configurable timeouts** on all application resources (`timeouts = { create = "30m" }`)
-- **Input validators**: FQDN format, cron syntax, port range (1-65535), build pack enum
+- **Input validators**: UUID format, FQDN format, cron syntax, port range (1-65535), build pack enum, env var name format
 - **Provider health check**: validates API connection during configuration
 - **Import support**: all resources support `terraform import` ([guide](docs/guides/import.md))
 - **Retryable HTTP client**: automatic retry on 429/5xx with exponential backoff
@@ -64,7 +84,7 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.24 (for building from source)
+- [Go](https://golang.org/doc/install) >= 1.26 (for building from source)
 - A running [Coolify](https://coolify.io/) instance (v4.x)
 
 ## Usage
@@ -127,7 +147,7 @@ The provider requires a Coolify API token. Generate one in the Coolify UI under 
 
 ```bash
 make build       # Compile the provider
-make test        # Run unit tests (205 tests, race detector enabled)
+make test        # Run unit tests (450+ tests, race detector enabled)
 make testacc     # Run acceptance tests (needs running Coolify instance)
 make lint        # Run golangci-lint
 make fmt         # Format code (gofmt + go mod tidy)
@@ -142,8 +162,8 @@ project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ### CI Pipeline
 
-8 jobs run on every push and PR: Test, Lint, Format, Docs, Validate Examples,
-Govulncheck, Trivy, Gitleaks.
+9 jobs run on every push and PR: Test, Lint, Format, Docs, Validate Examples,
+Govulncheck, Trivy, Gitleaks, plus a weekly Spec Freshness check.
 
 ## License
 

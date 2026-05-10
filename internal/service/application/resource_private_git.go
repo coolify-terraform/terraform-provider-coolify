@@ -22,18 +22,18 @@ import (
 )
 
 var (
-	_ resource.Resource                = &PrivateGitApplicationResource{}
-	_ resource.ResourceWithConfigure   = &PrivateGitApplicationResource{}
-	_ resource.ResourceWithImportState = &PrivateGitApplicationResource{}
+	_ resource.Resource                = &privateGitApplicationResource{}
+	_ resource.ResourceWithConfigure   = &privateGitApplicationResource{}
+	_ resource.ResourceWithImportState = &privateGitApplicationResource{}
 )
 
-// PrivateGitApplicationResource manages a Coolify application deployed from a private Git repository.
-type PrivateGitApplicationResource struct {
+// privateGitApplicationResource manages a Coolify application deployed from a private Git repository.
+type privateGitApplicationResource struct {
 	client *client.Client
 }
 
-// PrivateGitApplicationResourceModel maps the resource schema to Go types.
-type PrivateGitApplicationResourceModel struct {
+// privateGitApplicationResourceModel maps the resource schema to Go types.
+type privateGitApplicationResourceModel struct {
 	UUID               types.String   `tfsdk:"uuid"`
 	Name               types.String   `tfsdk:"name"`
 	Description        types.String   `tfsdk:"description"`
@@ -54,16 +54,16 @@ type PrivateGitApplicationResourceModel struct {
 	Timeouts           timeouts.Value `tfsdk:"timeouts"`
 }
 
-// NewPrivateGitResource returns a new PrivateGitApplicationResource instance.
+// NewPrivateGitResource returns a new privateGitApplicationResource instance.
 func NewPrivateGitResource() resource.Resource {
-	return &PrivateGitApplicationResource{}
+	return &privateGitApplicationResource{}
 }
 
-func (r *PrivateGitApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *privateGitApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_private_git_application"
 }
 
-func (r *PrivateGitApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *privateGitApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed from a private Git repository using a deploy key.",
 		Attributes: map[string]schema.Attribute{
@@ -177,7 +177,7 @@ func (r *PrivateGitApplicationResource) Schema(ctx context.Context, _ resource.S
 	}
 }
 
-func (r *PrivateGitApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *privateGitApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -192,8 +192,8 @@ func (r *PrivateGitApplicationResource) Configure(_ context.Context, req resourc
 	r.client = c
 }
 
-func (r *PrivateGitApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan PrivateGitApplicationResourceModel
+func (r *privateGitApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan privateGitApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -261,8 +261,8 @@ func (r *PrivateGitApplicationResource) Create(ctx context.Context, req resource
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *PrivateGitApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state PrivateGitApplicationResourceModel
+func (r *privateGitApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state privateGitApplicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -282,8 +282,8 @@ func (r *PrivateGitApplicationResource) Read(ctx context.Context, req resource.R
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *PrivateGitApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan PrivateGitApplicationResourceModel
+func (r *privateGitApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan privateGitApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -321,8 +321,8 @@ func (r *PrivateGitApplicationResource) Update(ctx context.Context, req resource
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *PrivateGitApplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state PrivateGitApplicationResourceModel
+func (r *privateGitApplicationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state privateGitApplicationResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -337,13 +337,13 @@ func (r *PrivateGitApplicationResource) Delete(ctx context.Context, req resource
 	}
 }
 
-func (r *PrivateGitApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *privateGitApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 }
 
 // flattenPrivateGitApplication copies API fields into the Terraform state model.
-func flattenPrivateGitApplication(app *client.Application, state *PrivateGitApplicationResourceModel) {
+func flattenPrivateGitApplication(app *client.Application, state *privateGitApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)
