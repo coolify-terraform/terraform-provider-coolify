@@ -30,7 +30,7 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 	state := &mockBackupState{
 		id:         42,
 		uuid:       "bkp-uuid-001",
-		dbUUID:     "db-uuid-001",
+		dbUUID:     "eeee0001-0001-4000-8000-000000000001",
 		frequency:  "0 2 * * *",
 		enabled:    true,
 		retainDays: &retain,
@@ -128,7 +128,7 @@ func TestDatabaseBackupResource_Create(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "db-uuid-001"
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
 					retain_days   = 7
@@ -136,7 +136,7 @@ func TestDatabaseBackupResource_Create(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "id", "42"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "uuid", "bkp-uuid-001"),
-					resource.TestCheckResourceAttr("coolify_database_backup.test", "database_uuid", "db-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "database_uuid", "eeee0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "0 2 * * *"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "enabled", "true"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_days", "7"),
@@ -156,7 +156,7 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "db-uuid-001"
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
 					retain_days   = 7
@@ -168,7 +168,7 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 			},
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "db-uuid-001"
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 4 * * *"
 					enabled       = false
 					retain_days   = 14
@@ -193,7 +193,7 @@ func TestDatabaseBackupResource_Import(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "db-uuid-001"
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
 					retain_days   = 7
@@ -202,7 +202,7 @@ func TestDatabaseBackupResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_database_backup.test",
 				ImportState:                          true,
-				ImportStateId:                        "db-uuid-001:42",
+				ImportStateId:                        "eeee0001-0001-4000-8000-000000000001:42",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},
@@ -214,7 +214,7 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
 	deleted := false
-	dbUUID := "db-uuid-disappear"
+	dbUUID := "eeee0002-0002-4000-8000-000000000002"
 	backupID := 99
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -254,7 +254,7 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "db-uuid-disappear"
+					database_uuid = "eeee0002-0002-4000-8000-000000000002"
 					frequency     = "0 2 * * *"
 					enabled       = true
 					retain_days   = 7
@@ -288,7 +288,7 @@ func TestDatabaseBackupResource_ImportBadFormat(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "db-uuid-001"
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
 					retain_days   = 7
@@ -314,7 +314,7 @@ func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "db-uuid-001"
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
 					retain_days   = 7
@@ -323,7 +323,7 @@ func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
 			{
 				ResourceName:  "coolify_database_backup.test",
 				ImportState:   true,
-				ImportStateId: "db-uuid:not-a-number",
+				ImportStateId: "eeee0001-0001-4000-8000-000000000001:not-a-number",
 				ExpectError:   regexp.MustCompile(`backup_id must be an integer`),
 			},
 		},
@@ -340,7 +340,7 @@ func TestDatabaseBackupResource_InvalidRetainDays(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "db-uuid-001"
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
 					retain_days   = -1
@@ -361,7 +361,7 @@ func TestDatabaseBackupResource_InvalidCron(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "db-uuid-001"
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "not a cron"
 					enabled       = true
 				`),

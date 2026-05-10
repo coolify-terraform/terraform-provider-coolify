@@ -19,6 +19,7 @@ type mockRedisState struct {
 	name        string
 	description string
 	image       string
+	deleted     bool
 }
 
 func newMockRedisServer() (*httptest.Server, *mockRedisState) {
@@ -39,12 +40,16 @@ func newMockRedisServer() (*httptest.Server, *mockRedisState) {
 			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
+			if state.deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":             state.uuid,
 				"name":             state.name,
 				"description":      state.description,
-				"project_uuid":     "proj-uuid-1",
-				"server_uuid":      "srv-uuid-1",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name": "production",
 				"image":            state.image,
 				"is_public":        false,
@@ -64,6 +69,7 @@ func newMockRedisServer() (*httptest.Server, *mockRedisState) {
 			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
+			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
@@ -87,6 +93,7 @@ func TestRedisDatabaseResource_CreateUpdateImport(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_redis_database", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create
 			{
@@ -97,8 +104,8 @@ provider "coolify" {
 }
 
 resource "coolify_redis_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -118,8 +125,8 @@ provider "coolify" {
 }
 
 resource "coolify_redis_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `, srv.URL),
 				PlanOnly:           true,
@@ -134,8 +141,8 @@ provider "coolify" {
 }
 
 resource "coolify_redis_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-redis"
   description  = "Updated Redis"
 }
@@ -180,8 +187,8 @@ func TestRedisDatabaseResource_Disappears(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":             redisUUID,
 				"name":             "disappearing-redis",
-				"project_uuid":     "proj-uuid-1",
-				"server_uuid":      "srv-uuid-1",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name": "production",
 				"image":            "redis:7",
 				"is_public":        false,
@@ -215,8 +222,8 @@ provider "coolify" {
 }
 
 resource "coolify_redis_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(

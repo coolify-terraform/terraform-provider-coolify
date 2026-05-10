@@ -19,6 +19,7 @@ type mockKeydbState struct {
 	name        string
 	description string
 	image       string
+	deleted     bool
 }
 
 func newMockKeydbServer() (*httptest.Server, *mockKeydbState) {
@@ -39,12 +40,16 @@ func newMockKeydbServer() (*httptest.Server, *mockKeydbState) {
 			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
+			if state.deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":             state.uuid,
 				"name":             state.name,
 				"description":      state.description,
-				"project_uuid":     "proj-uuid-1",
-				"server_uuid":      "srv-uuid-1",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name": "production",
 				"image":            state.image,
 				"is_public":        false,
@@ -64,6 +69,7 @@ func newMockKeydbServer() (*httptest.Server, *mockKeydbState) {
 			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
+			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
@@ -87,12 +93,13 @@ func TestKeydbDatabaseResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_keydb_database", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_keydb_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -118,8 +125,8 @@ func TestKeydbDatabaseResource_Update(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_keydb_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -129,8 +136,8 @@ resource "coolify_keydb_database" "test" {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_keydb_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-keydb"
   description  = "Updated KeyDB"
 }
@@ -155,8 +162,8 @@ func TestKeydbDatabaseResource_Import(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_keydb_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 			},
@@ -193,7 +200,7 @@ func TestKeydbDatabaseResource_Disappears(t *testing.T) {
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid": dbUUID, "name": "disappearing-keydb",
-				"project_uuid": "proj-uuid-1", "server_uuid": "srv-uuid-1",
+				"project_uuid": "aaaa0001-0001-4000-8000-000000000001", "server_uuid": "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name": "production", "image": "eqalpha/keydb:latest", "is_public": false,
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dbUUID):
@@ -213,8 +220,8 @@ func TestKeydbDatabaseResource_Disappears(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_keydb_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(

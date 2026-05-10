@@ -6,6 +6,7 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -93,6 +94,7 @@ func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"private_key_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the private key used for SSH authentication.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"is_build_server": schema.BoolAttribute{
 				MarkdownDescription: "Whether this server is used for building applications.",

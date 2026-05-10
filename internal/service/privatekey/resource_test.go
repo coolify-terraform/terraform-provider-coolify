@@ -11,7 +11,6 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-
 )
 
 func testProviderBlock(serverURL string) string {
@@ -103,6 +102,7 @@ func TestPrivateKeyResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_private_key", "/api/v1/security/keys/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(srv.URL) + `

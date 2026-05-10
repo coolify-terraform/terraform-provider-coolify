@@ -32,7 +32,7 @@ func TestEnvironmentVariablesDataSource_Application(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_environment_variables" "test" {
-  application_uuid = "app-uuid-1"
+  application_uuid = "cccc0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -67,7 +67,7 @@ func TestEnvironmentVariablesDataSource_Service(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_environment_variables" "test" {
-  service_uuid = "svc-uuid-1"
+  service_uuid = "ffff0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(

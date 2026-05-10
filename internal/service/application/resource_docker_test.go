@@ -11,7 +11,6 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-
 )
 
 // ---------------------------------------------------------------------------
@@ -25,9 +24,12 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 		Name:                    "nginx-proxy",
 		DockerRegistryImageName: "nginx:latest",
 		PortsExposes:            "80",
-		ProjectUUID:             "proj-uuid",
-		ServerUUID:              "srv-uuid",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
 	}
+
+	mu := sync.Mutex{}
+	deleted := false
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
@@ -36,10 +38,19 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -48,12 +59,13 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_docker_image_application", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testDockerImageResourceConfig(srv.URL, `
 					name           = "nginx-proxy"
-					project_uuid   = "proj-uuid"
-					server_uuid    = "srv-uuid"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image   = "nginx:latest"
 					ports_exposes  = "80"
 				`),
@@ -68,8 +80,8 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 			{
 				Config: testDockerImageResourceConfig(srv.URL, `
 					name           = "nginx-proxy"
-					project_uuid   = "proj-uuid"
-					server_uuid    = "srv-uuid"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image   = "nginx:latest"
 					ports_exposes  = "80"
 				`),
@@ -92,8 +104,8 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 		Name:                    "nginx-proxy",
 		DockerRegistryImageName: "nginx:latest",
 		PortsExposes:            "80",
-		ProjectUUID:             "proj-uuid",
-		ServerUUID:              "srv-uuid",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
 	}
 
 	mux := http.NewServeMux()
@@ -132,8 +144,8 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 			{
 				Config: testDockerImageResourceConfig(srv.URL, `
 					name           = "nginx-proxy"
-					project_uuid   = "proj-uuid"
-					server_uuid    = "srv-uuid"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image   = "nginx:latest"
 					ports_exposes  = "80"
 				`),
@@ -144,8 +156,8 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 			{
 				Config: testDockerImageResourceConfig(srv.URL, `
 					name           = "nginx-proxy"
-					project_uuid   = "proj-uuid"
-					server_uuid    = "srv-uuid"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image   = "nginx:1.25"
 					ports_exposes  = "80"
 				`),
@@ -168,8 +180,8 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 		Name:                    "imported-docker-app",
 		DockerRegistryImageName: "nginx:latest",
 		PortsExposes:            "80",
-		ProjectUUID:             "proj-uuid",
-		ServerUUID:              "srv-uuid",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
 	}
 
 	mux := http.NewServeMux()
@@ -195,8 +207,8 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 			{
 				Config: testDockerImageResourceConfig(srv.URL, `
 					name           = "imported-docker-app"
-					project_uuid   = "proj-uuid"
-					server_uuid    = "srv-uuid"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image   = "nginx:latest"
 					ports_exposes  = "80"
 				`),
@@ -242,8 +254,8 @@ func TestDockerImageApplicationResource_Disappears(t *testing.T) {
 			Name:                    "disappearing-docker",
 			DockerRegistryImageName: "nginx:latest",
 			PortsExposes:            "80",
-			ProjectUUID:             "proj-uuid",
-			ServerUUID:              "srv-uuid",
+			ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+			ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
 		})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
@@ -261,8 +273,8 @@ func TestDockerImageApplicationResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testDockerImageResourceConfig(srv.URL, `
-					project_uuid  = "proj-uuid"
-					server_uuid   = "srv-uuid"
+					project_uuid  = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid   = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image  = "nginx:latest"
 					ports_exposes = "80"
 				`),
@@ -287,8 +299,8 @@ func TestDockerImageApplicationResource_Status(t *testing.T) {
 		Name:                    "status-app",
 		DockerRegistryImageName: "nginx:latest",
 		PortsExposes:            "80",
-		ProjectUUID:             "proj-uuid",
-		ServerUUID:              "srv-uuid",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
 		Status:                  "running:healthy",
 	}
 
@@ -315,8 +327,8 @@ func TestDockerImageApplicationResource_Status(t *testing.T) {
 			{
 				Config: testDockerImageResourceConfig(srv.URL, `
 					name           = "status-app"
-					project_uuid   = "proj-uuid"
-					server_uuid    = "srv-uuid"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image   = "nginx:latest"
 					ports_exposes  = "80"
 				`),
@@ -339,8 +351,8 @@ func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
 		Name:                    "timeout-app",
 		DockerRegistryImageName: "nginx:latest",
 		PortsExposes:            "80",
-		ProjectUUID:             "proj-uuid",
-		ServerUUID:              "srv-uuid",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
 	}
 
 	mux := http.NewServeMux()
@@ -366,8 +378,8 @@ func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
 			{
 				Config: testDockerImageResourceConfig(srv.URL, `
 					name           = "timeout-app"
-					project_uuid   = "proj-uuid"
-					server_uuid    = "srv-uuid"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image   = "nginx:latest"
 					ports_exposes  = "80"
 					timeouts = {

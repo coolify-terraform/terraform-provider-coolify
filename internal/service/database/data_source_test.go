@@ -29,8 +29,8 @@ func TestDatabaseDataSource(t *testing.T) {
 				"image":            "postgres:16",
 				"is_public":        true,
 				"public_port":      publicPort,
-				"server_uuid":      "srv-uuid-1",
-				"project_uuid":     "proj-uuid-1",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
 				"environment_name": "production",
 			})
 			return
@@ -61,8 +61,8 @@ data "coolify_database" "test" {
 					resource.TestCheckResourceAttr("data.coolify_database.test", "image", "postgres:16"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "is_public", "true"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "public_port", "5432"),
-					resource.TestCheckResourceAttr("data.coolify_database.test", "server_uuid", "srv-uuid-1"),
-					resource.TestCheckResourceAttr("data.coolify_database.test", "project_uuid", "proj-uuid-1"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "server_uuid", "bbbb0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "project_uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "environment_name", "production"),
 				),
 			},

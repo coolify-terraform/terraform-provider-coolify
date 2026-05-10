@@ -11,7 +11,6 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-
 )
 
 // ---------------------------------------------------------------------------
@@ -27,9 +26,12 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 		GitBranch:     "main",
 		BuildPack:     "dockerfile",
 		PortsExposes:  "8080",
-		ProjectUUID:   "proj-uuid",
-		ServerUUID:    "srv-uuid",
+		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
 	}
+
+	mu := sync.Mutex{}
+	deleted := false
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
@@ -38,10 +40,19 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -50,15 +61,16 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_private_git_application", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testPrivateGitResourceConfig(srv.URL, `
 					name             = "api-server"
-					project_uuid     = "proj-uuid"
-					server_uuid      = "srv-uuid"
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
 					git_repository   = "git@github.com:myorg/api-server.git"
 					git_branch       = "main"
-					private_key_uuid = "pk-deploy-uuid"
+					private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 					build_pack       = "dockerfile"
 					ports_exposes    = "8080"
 				`),
@@ -75,11 +87,11 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 			{
 				Config: testPrivateGitResourceConfig(srv.URL, `
 					name             = "api-server"
-					project_uuid     = "proj-uuid"
-					server_uuid      = "srv-uuid"
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
 					git_repository   = "git@github.com:myorg/api-server.git"
 					git_branch       = "main"
-					private_key_uuid = "pk-deploy-uuid"
+					private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 					build_pack       = "dockerfile"
 					ports_exposes    = "8080"
 				`),
@@ -105,8 +117,8 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 		GitBranch:     "main",
 		BuildPack:     "dockerfile",
 		PortsExposes:  "8080",
-		ProjectUUID:   "proj-uuid",
-		ServerUUID:    "srv-uuid",
+		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
 	}
 
 	mux := http.NewServeMux()
@@ -145,10 +157,10 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 			{
 				Config: testPrivateGitResourceConfig(srv.URL, `
 					name             = "api-server"
-					project_uuid     = "proj-uuid"
-					server_uuid      = "srv-uuid"
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
 					git_repository   = "git@github.com:myorg/api-server.git"
-					private_key_uuid = "pk-deploy-uuid"
+					private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 					build_pack       = "dockerfile"
 					ports_exposes    = "8080"
 					description      = "initial desc"
@@ -160,10 +172,10 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 			{
 				Config: testPrivateGitResourceConfig(srv.URL, `
 					name             = "api-server"
-					project_uuid     = "proj-uuid"
-					server_uuid      = "srv-uuid"
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
 					git_repository   = "git@github.com:myorg/api-server.git"
-					private_key_uuid = "pk-deploy-uuid"
+					private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 					build_pack       = "dockerfile"
 					ports_exposes    = "8080"
 					description      = "updated desc"
@@ -189,8 +201,8 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 		GitBranch:     "main",
 		BuildPack:     "dockerfile",
 		PortsExposes:  "8080",
-		ProjectUUID:   "proj-uuid",
-		ServerUUID:    "srv-uuid",
+		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
 	}
 
 	mux := http.NewServeMux()
@@ -216,10 +228,10 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 			{
 				Config: testPrivateGitResourceConfig(srv.URL, `
 					name             = "imported-pgit-app"
-					project_uuid     = "proj-uuid"
-					server_uuid      = "srv-uuid"
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
 					git_repository   = "git@github.com:myorg/api-server.git"
-					private_key_uuid = "pk-deploy-uuid"
+					private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 					build_pack       = "dockerfile"
 					ports_exposes    = "8080"
 				`),
@@ -267,8 +279,8 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 			GitBranch:     "main",
 			BuildPack:     "nixpacks",
 			PortsExposes:  "3000",
-			ProjectUUID:   "proj-uuid",
-			ServerUUID:    "srv-uuid",
+			ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
+			ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
 		})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
@@ -286,13 +298,13 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testPrivateGitResourceConfig(srv.URL, `
-					project_uuid     = "proj-uuid"
-					server_uuid      = "srv-uuid"
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
 					git_repository   = "git@github.com:org/repo.git"
 					git_branch       = "main"
 					build_pack       = "nixpacks"
 					ports_exposes    = "3000"
-					private_key_uuid = "pk-uuid"
+					private_key_uuid = "dddd0005-0005-4000-8000-000000000005"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_private_git_application.test", "uuid"),
@@ -317,8 +329,8 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 		GitBranch:     "main",
 		BuildPack:     "nixpacks",
 		PortsExposes:  "3000",
-		ProjectUUID:   "proj-uuid",
-		ServerUUID:    "srv-uuid",
+		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
 	}
 
 	mux := http.NewServeMux()
@@ -344,10 +356,10 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 			{
 				Config: testPrivateGitResourceConfig(srv.URL, `
 					name             = "timeout-privgit"
-					project_uuid     = "proj-uuid"
-					server_uuid      = "srv-uuid"
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
 					git_repository   = "git@github.com:org/repo.git"
-					private_key_uuid = "key-uuid"
+					private_key_uuid = "dddd0006-0006-4000-8000-000000000006"
 					build_pack       = "nixpacks"
 					ports_exposes    = "3000"
 					timeouts = {

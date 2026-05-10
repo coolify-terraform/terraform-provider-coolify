@@ -16,7 +16,7 @@ import (
 func TestDeploymentResource_Create(t *testing.T) {
 	t.Parallel()
 	deploymentUUID := "dep-test-uuid-001"
-	appUUID := "app-deploy-uuid"
+	appUUID := "cccc0002-0002-4000-8000-000000000002"
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +106,7 @@ provider "coolify" {
 }
 
 resource "coolify_deployment" "test" {
-  application_uuid = "app-uuid-1"
+  application_uuid = "cccc0001-0001-4000-8000-000000000001"
   triggers = {
     version = "1"
   }
@@ -125,7 +125,7 @@ provider "coolify" {
 }
 
 resource "coolify_deployment" "test" {
-  application_uuid = "app-uuid-1"
+  application_uuid = "cccc0001-0001-4000-8000-000000000001"
   triggers = {
     version = "2"
   }
@@ -135,6 +135,59 @@ resource "coolify_deployment" "test" {
 					resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", "dep-uuid-2"),
 					resource.TestCheckResourceAttr("coolify_deployment.test", "triggers.version", "2"),
 				),
+			},
+		},
+	})
+}
+
+func TestDeploymentResource_Import(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "dep-import-uuid-001"
+	appUUID := "cccc0001-0001-4000-8000-000000000001"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"deployment_uuid": deploymentUUID,
+			"message":         "Restart request queued.",
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.PathValue("uuid")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"uuid":   uuid,
+			"status": "finished",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+				Check: resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", deploymentUUID),
+			},
+			{
+				ResourceName:                         "coolify_deployment.test",
+				ImportState:                          true,
+				ImportStateId:                        deploymentUUID,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateVerifyIgnore:              []string{"application_uuid", "triggers"},
 			},
 		},
 	})
@@ -184,7 +237,7 @@ provider "coolify" {
 }
 
 resource "coolify_deployment" "test" {
-  application_uuid = "app-uuid-1"
+  application_uuid = "cccc0001-0001-4000-8000-000000000001"
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(

@@ -257,6 +257,7 @@ func TestProjectResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: testProviderFactory(server.URL),
+		CheckDestroy:             acctest.CheckDestroy(server.URL, "coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig(server.URL) + `

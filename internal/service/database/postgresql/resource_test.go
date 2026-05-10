@@ -23,6 +23,7 @@ type mockPostgresState struct {
 	pgUser      string
 	pgPassword  string
 	pgDB        string
+	deleted     bool
 }
 
 func newMockPostgresServer() (*httptest.Server, *mockPostgresState) {
@@ -46,12 +47,16 @@ func newMockPostgresServer() (*httptest.Server, *mockPostgresState) {
 			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
+			if state.deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":              state.uuid,
 				"name":              state.name,
 				"description":       state.description,
-				"project_uuid":      "proj-uuid-1",
-				"server_uuid":       "srv-uuid-1",
+				"project_uuid":      "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":       "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name":  "production",
 				"image":             state.image,
 				"is_public":         false,
@@ -77,6 +82,7 @@ func newMockPostgresServer() (*httptest.Server, *mockPostgresState) {
 			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
+			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
@@ -103,6 +109,7 @@ func TestPostgresqlDatabaseResource_CreateUpdateImport(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_postgresql_database", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create and verify
 			{
@@ -113,8 +120,8 @@ provider "coolify" {
 }
 
 resource "coolify_postgresql_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -136,8 +143,8 @@ provider "coolify" {
 }
 
 resource "coolify_postgresql_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `, srv.URL),
 				PlanOnly:           true,
@@ -157,8 +164,8 @@ provider "coolify" {
 }
 
 resource "coolify_postgresql_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-pg-db"
   description  = "Updated description"
 }
@@ -202,8 +209,8 @@ func TestPostgresqlDatabaseResource_DescriptionNullHandling(t *testing.T) {
 				"uuid":              pgUUID,
 				"name":              "pg-desc-db",
 				"description":       description,
-				"project_uuid":      "proj-uuid-1",
-				"server_uuid":       "srv-uuid-1",
+				"project_uuid":      "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":       "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name":  "production",
 				"image":             "postgres:16",
 				"is_public":         false,
@@ -244,8 +251,8 @@ provider "coolify" {
 }
 
 resource "coolify_postgresql_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   description  = "initial"
 }
 `, srv.URL),
@@ -266,8 +273,8 @@ provider "coolify" {
 }
 
 resource "coolify_postgresql_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -294,8 +301,8 @@ provider "coolify" {
 }
 
 resource "coolify_postgresql_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   public_port  = 99999
 }
 `, srv.URL),
@@ -329,8 +336,8 @@ func TestPostgresqlDatabaseResource_Disappears(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":              pgUUID,
 				"name":              "disappearing-pg",
-				"project_uuid":      "proj-uuid-1",
-				"server_uuid":       "srv-uuid-1",
+				"project_uuid":      "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":       "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name":  "production",
 				"image":             "postgres:16",
 				"is_public":         false,
@@ -367,8 +374,8 @@ provider "coolify" {
 }
 
 resource "coolify_postgresql_database" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(

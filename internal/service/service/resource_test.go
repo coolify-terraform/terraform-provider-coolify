@@ -18,6 +18,7 @@ type mockServiceState struct {
 	uuid        string
 	name        string
 	description string
+	deleted     bool
 }
 
 func newMockServiceServer() (*httptest.Server, *mockServiceState) {
@@ -45,17 +46,22 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			if state.deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":             state.uuid,
 				"name":             state.name,
 				"description":      state.description,
-				"project_uuid":     "proj-uuid-1",
-				"server_uuid":      "srv-uuid-1",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name": "production",
 				"type":             "plausible",
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
@@ -79,6 +85,7 @@ func TestServiceResource_CreateImport(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_service", "/api/v1/services/"),
 		Steps: []resource.TestStep{
 			// Create
 			{
@@ -89,8 +96,8 @@ provider "coolify" {
 }
 
 resource "coolify_service" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   type         = "plausible"
 }
 `, srv.URL),
@@ -137,8 +144,8 @@ func TestServiceResource_Disappears(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":             svcUUID,
 				"name":             "disappearing-svc",
-				"project_uuid":     "proj-uuid-1",
-				"server_uuid":      "srv-uuid-1",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name": "production",
 				"type":             "plausible",
 			})
@@ -171,8 +178,8 @@ provider "coolify" {
 }
 
 resource "coolify_service" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   type         = "plausible"
 }
 `, srv.URL),
@@ -219,8 +226,8 @@ func TestServiceResource_DescriptionRequiresReplace(t *testing.T) {
 				"name":             "plausible-svc",
 				"description":      desc,
 				"type":             "plausible",
-				"project_uuid":     "proj-uuid-1",
-				"server_uuid":      "srv-uuid-1",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name": "production",
 			})
 
@@ -242,8 +249,8 @@ provider "coolify" {
 }
 
 resource "coolify_service" "test" {
-  project_uuid = "proj-uuid-1"
-  server_uuid  = "srv-uuid-1"
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   type         = "plausible"
   description  = %q
 }

@@ -22,8 +22,8 @@ func TestApplicationDataSource_Read(t *testing.T) {
 		GitBranch:     "main",
 		BuildPack:     "nixpacks",
 		PortsExposes:  "8080",
-		ProjectUUID:   "proj-uuid",
-		ServerUUID:    "srv-uuid",
+		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
 	}
 
 	mux := http.NewServeMux()
@@ -57,8 +57,8 @@ data "coolify_application" "test" {
 					resource.TestCheckResourceAttr("data.coolify_application.test", "git_branch", "main"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "build_pack", "nixpacks"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "ports_exposes", "8080"),
-					resource.TestCheckResourceAttr("data.coolify_application.test", "project_uuid", "proj-uuid"),
-					resource.TestCheckResourceAttr("data.coolify_application.test", "server_uuid", "srv-uuid"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "project_uuid", "aaaa0002-0002-4000-8000-000000000002"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "server_uuid", "bbbb0002-0002-4000-8000-000000000002"),
 				),
 			},
 		},

@@ -5,17 +5,21 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
-	_ resource.Resource              = (*deploymentResource)(nil)
-	_ resource.ResourceWithConfigure = (*deploymentResource)(nil)
+	_ resource.Resource                = (*deploymentResource)(nil)
+	_ resource.ResourceWithConfigure   = (*deploymentResource)(nil)
+	_ resource.ResourceWithImportState = (*deploymentResource)(nil)
 )
 
 // deploymentResource triggers a deployment for a Coolify application.
@@ -50,6 +54,7 @@ func (r *deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.String{validate.UUID()},
 			},
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the deployment.",
@@ -146,4 +151,8 @@ func (r *deploymentResource) Update(_ context.Context, _ resource.UpdateRequest,
 
 func (r *deploymentResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
 	// Deployments cannot be undone; delete is a no-op.
+}
+
+func (r *deploymentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }

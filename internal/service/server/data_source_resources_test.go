@@ -44,7 +44,7 @@ func TestServerResourcesDataSource(t *testing.T) {
 			{
 				Config: testProviderBlock(mockSrv.URL) + `
 data "coolify_server_resources" "test" {
-  server_uuid = "srv-uuid-1"
+  server_uuid = "bbbb0001-0001-4000-8000-000000000001"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coolify_server_resources.test", "resources.#", "2"),

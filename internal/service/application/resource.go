@@ -8,6 +8,7 @@ import (
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -96,6 +97,7 @@ func (r *ApplicationResource) Schema(ctx context.Context, _ resource.SchemaReque
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.String{validate.UUID()},
 			},
 			"server_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the server to deploy the application on. Changing this forces a new resource.",
@@ -103,6 +105,7 @@ func (r *ApplicationResource) Schema(ctx context.Context, _ resource.SchemaReque
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.String{validate.UUID()},
 			},
 			"environment_name": schema.StringAttribute{
 				MarkdownDescription: "The environment name for the application (defaults to `production`). Changing this forces a new resource.",

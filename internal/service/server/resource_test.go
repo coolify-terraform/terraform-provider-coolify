@@ -124,13 +124,14 @@ func TestServerResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_server", "/api/v1/servers/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testProviderBlock(srv.URL) + `
 resource "coolify_server" "test" {
   name             = "my-server"
   ip               = "10.0.0.1"
-  private_key_uuid = "pk-uuid-1"
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_server.test", "uuid", "srv-test-uuid-1"),
@@ -138,7 +139,7 @@ resource "coolify_server" "test" {
 					resource.TestCheckResourceAttr("coolify_server.test", "ip", "10.0.0.1"),
 					resource.TestCheckResourceAttr("coolify_server.test", "port", "22"),
 					resource.TestCheckResourceAttr("coolify_server.test", "user", "root"),
-					resource.TestCheckResourceAttr("coolify_server.test", "private_key_uuid", "pk-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_server.test", "private_key_uuid", "dddd0002-0002-4000-8000-000000000002"),
 					resource.TestCheckResourceAttr("coolify_server.test", "is_build_server", "false"),
 					resource.TestCheckResourceAttr("coolify_server.test", "is_reachable", "true"),
 					resource.TestCheckResourceAttr("coolify_server.test", "is_usable", "true"),
@@ -149,7 +150,7 @@ resource "coolify_server" "test" {
 resource "coolify_server" "test" {
   name             = "my-server"
   ip               = "10.0.0.1"
-  private_key_uuid = "pk-uuid-1"
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 }`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
@@ -171,7 +172,7 @@ func TestServerResource_Update(t *testing.T) {
 resource "coolify_server" "test" {
   name             = "my-server"
   ip               = "10.0.0.1"
-  private_key_uuid = "pk-uuid-1"
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_server.test", "name", "my-server"),
@@ -186,7 +187,7 @@ resource "coolify_server" "test" {
   ip               = "10.0.0.2"
   port             = %d
   user             = "deploy"
-  private_key_uuid = "pk-uuid-2"
+  private_key_uuid = "dddd0003-0003-4000-8000-000000000003"
   is_build_server  = true
 }`, 2222),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -196,7 +197,7 @@ resource "coolify_server" "test" {
 					resource.TestCheckResourceAttr("coolify_server.test", "ip", "10.0.0.2"),
 					resource.TestCheckResourceAttr("coolify_server.test", "port", "2222"),
 					resource.TestCheckResourceAttr("coolify_server.test", "user", "deploy"),
-					resource.TestCheckResourceAttr("coolify_server.test", "private_key_uuid", "pk-uuid-2"),
+					resource.TestCheckResourceAttr("coolify_server.test", "private_key_uuid", "dddd0003-0003-4000-8000-000000000003"),
 					resource.TestCheckResourceAttr("coolify_server.test", "is_build_server", "true"),
 				),
 			},
@@ -217,7 +218,7 @@ func TestServerResource_Import(t *testing.T) {
 resource "coolify_server" "test" {
   name             = "import-server"
   ip               = "10.0.0.5"
-  private_key_uuid = "pk-uuid-5"
+  private_key_uuid = "dddd0004-0004-4000-8000-000000000004"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_server.test", "uuid", "srv-test-uuid-1"),
@@ -247,7 +248,7 @@ func TestServerResource_Disappears(t *testing.T) {
 resource "coolify_server" "test" {
   name             = "disappearing-server"
   ip               = "10.0.0.1"
-  private_key_uuid = "pk-uuid-1"
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_server.test", "uuid"),

@@ -51,7 +51,7 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "app-uuid-1"
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					key              = "DATABASE_URL"
 					value            = "postgres://localhost/mydb"
 				`),
@@ -119,7 +119,7 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "app-uuid-1"
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					key              = "API_KEY"
 					value            = "initial-secret"
 				`),
@@ -130,7 +130,7 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 			},
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "app-uuid-1"
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					key              = "API_KEY"
 					value            = "updated-secret"
 					is_build         = true
@@ -181,7 +181,7 @@ func TestEnvironmentVariableResource_Import(t *testing.T) {
 			// Step 1: create so the resource exists in state.
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "app-uuid-1"
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					key              = "IMPORT_VAR"
 					value            = "import-value"
 				`),
@@ -190,7 +190,7 @@ func TestEnvironmentVariableResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_environment_variable.test",
 				ImportState:                          true,
-				ImportStateId:                        "application:app-uuid-1:env-import-uuid",
+				ImportStateId:                        "application:cccc0001-0001-4000-8000-000000000001:env-import-uuid",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"value"},
@@ -235,7 +235,7 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					service_uuid = "svc-uuid-1"
+					service_uuid = "ffff0001-0001-4000-8000-000000000001"
 					key          = "REDIS_URL"
 					value        = "redis://localhost:6379"
 					is_preview   = true
@@ -298,7 +298,7 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					service_uuid = "svc-uuid-1"
+					service_uuid = "ffff0001-0001-4000-8000-000000000001"
 					key          = "LOG_LEVEL"
 					value        = "info"
 				`),
@@ -306,7 +306,7 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 			},
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					service_uuid = "svc-uuid-1"
+					service_uuid = "ffff0001-0001-4000-8000-000000000001"
 					key          = "LOG_LEVEL"
 					value        = "debug"
 				`),
@@ -348,7 +348,7 @@ func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					service_uuid = "svc-uuid-1"
+					service_uuid = "ffff0001-0001-4000-8000-000000000001"
 					key          = "SVC_VAR"
 					value        = "svc-value"
 				`),
@@ -356,7 +356,7 @@ func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
 			{
 				ResourceName:                         "coolify_environment_variable.test",
 				ImportState:                          true,
-				ImportStateId:                        "service:svc-uuid-1:env-svc-imp-uuid",
+				ImportStateId:                        "service:ffff0001-0001-4000-8000-000000000001:env-svc-imp-uuid",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"value"},
@@ -392,7 +392,7 @@ func TestEnvironmentVariableResource_ImportBadFormat(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "app-uuid-1"
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					key              = "K"
 					value            = "V"
 				`),
@@ -430,7 +430,7 @@ func TestEnvironmentVariableResource_ImportBadType(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "app-uuid-1"
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					key              = "K"
 					value            = "V"
 				`),
@@ -493,13 +493,13 @@ func TestEnvironmentVariableResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "app-uuid-1"
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					key              = "DISAPPEAR_VAR"
 					value            = "some-value"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_environment_variable.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_environment_variable.test", "/api/v1/applications/app-uuid-1/envs/"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_environment_variable.test", "/api/v1/applications/cccc0001-0001-4000-8000-000000000001/envs/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -551,7 +551,7 @@ func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					service_uuid = "svc-uuid-1"
+					service_uuid = "ffff0001-0001-4000-8000-000000000001"
 					key          = "SVC_GONE"
 					value        = "val"
 				`),
@@ -563,7 +563,7 @@ func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
 							return fmt.Errorf("resource not found in state")
 						}
 						uuid := rs.Primary.Attributes["uuid"]
-						req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/services/svc-uuid-1/envs/"+uuid, nil)
+						req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/services/ffff0001-0001-4000-8000-000000000001/envs/"+uuid, nil)
 						resp, err := http.DefaultClient.Do(req)
 						if err != nil {
 							return err
@@ -592,7 +592,7 @@ func TestEnvironmentVariableResource_InvalidKey(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
-					application_uuid = "app-uuid-1"
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					key              = "1INVALID"
 					value            = "test"
 				`),

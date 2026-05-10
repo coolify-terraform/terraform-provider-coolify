@@ -20,8 +20,8 @@ func TestServiceDataSource(t *testing.T) {
 		Name:            "my-plausible",
 		Description:     "Analytics service",
 		Type:            "plausible",
-		ServerUUID:      "srv-uuid-1",
-		ProjectUUID:     "proj-uuid-1",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
 		EnvironmentName: "production",
 	}
 
@@ -58,8 +58,8 @@ data "coolify_service" "test" {
 					resource.TestCheckResourceAttr("data.coolify_service.test", "name", "my-plausible"),
 					resource.TestCheckResourceAttr("data.coolify_service.test", "description", "Analytics service"),
 					resource.TestCheckResourceAttr("data.coolify_service.test", "type", "plausible"),
-					resource.TestCheckResourceAttr("data.coolify_service.test", "server_uuid", "srv-uuid-1"),
-					resource.TestCheckResourceAttr("data.coolify_service.test", "project_uuid", "proj-uuid-1"),
+					resource.TestCheckResourceAttr("data.coolify_service.test", "server_uuid", "bbbb0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("data.coolify_service.test", "project_uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_service.test", "environment_name", "production"),
 				),
 			},

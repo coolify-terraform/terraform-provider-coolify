@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -71,6 +72,7 @@ func (r *EnvironmentVariableResource) Schema(_ context.Context, _ resource.Schem
 					stringvalidator.ExactlyOneOf(
 						path.MatchRoot("service_uuid"),
 					),
+					validate.UUID(),
 				},
 			},
 			"service_uuid": schema.StringAttribute{
@@ -79,6 +81,7 @@ func (r *EnvironmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.String{validate.UUID()},
 			},
 			"key": schema.StringAttribute{
 				MarkdownDescription: "The name of the environment variable (must be a valid shell variable name).",
