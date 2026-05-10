@@ -1,0 +1,77 @@
+package backup_test
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+)
+
+func TestAccDatabaseBackupResource_CRUD(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-bkp")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			// Create with initial frequency
+			{
+				Config: testAccBackupConfig(name, serverUUID, "0 2 * * *"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_database_backup.test", "id"),
+					resource.TestCheckResourceAttrSet("coolify_database_backup.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "0 2 * * *"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_days", "7"),
+				),
+			},
+			// Update frequency
+			{
+				Config: testAccBackupConfig(name, serverUUID, "0 4 * * *"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "0 4 * * *"),
+				),
+			},
+			// Import
+			{
+				ResourceName:                         "coolify_database_backup.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs, ok := s.RootModule().Resources["coolify_database_backup.test"]
+					if !ok {
+						return "", fmt.Errorf("resource coolify_database_backup.test not found in state")
+					}
+					return rs.Primary.Attributes["database_uuid"] + ":" + rs.Primary.Attributes["id"], nil
+				},
+			},
+		},
+	})
+}
+
+func testAccBackupConfig(name, serverUUID, frequency string) string {
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_postgresql_database" "test" {
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  name         = %[1]q
+}
+
+resource "coolify_database_backup" "test" {
+  database_uuid = coolify_postgresql_database.test.uuid
+  frequency     = %[3]q
+  enabled       = true
+  retain_days   = 7
+}
+`, name, serverUUID, frequency)
+}

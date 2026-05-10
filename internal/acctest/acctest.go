@@ -1,12 +1,14 @@
 package acctest
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
 	"testing"
 
+	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -168,4 +170,42 @@ func RequireEnv(t *testing.T, key string) string {
 		t.Skipf("Environment variable %s not set, skipping", key)
 	}
 	return v
+}
+
+// AccTestClient returns a Coolify API client configured from environment
+// variables. Skips the test if COOLIFY_ENDPOINT or COOLIFY_TOKEN are not set.
+func AccTestClient(t *testing.T) *client.Client {
+	t.Helper()
+	TestAccPreCheck(t)
+	return client.New(os.Getenv("COOLIFY_ENDPOINT"), os.Getenv("COOLIFY_TOKEN"))
+}
+
+// AccTestServerUUID returns the UUID of a usable server from the Coolify
+// instance. Checks COOLIFY_SERVER_UUID first, then queries the API for the
+// first available server. Skips the test if no server is available.
+func AccTestServerUUID(t *testing.T) string {
+	t.Helper()
+	if v := os.Getenv("COOLIFY_SERVER_UUID"); v != "" {
+		return v
+	}
+	c := AccTestClient(t)
+	servers, err := c.ListServers(context.Background())
+	if err != nil {
+		t.Skipf("Could not list servers: %v", err)
+	}
+	for _, s := range servers {
+		if s.UUID != "" {
+			return s.UUID
+		}
+	}
+	t.Skip("No servers available for acceptance tests")
+	return ""
+}
+
+// AccTestSkipIfNoTFAcc skips the test if TF_ACC is not set.
+func AccTestSkipIfNoTFAcc(t *testing.T) {
+	t.Helper()
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("TF_ACC not set, skipping acceptance test")
+	}
 }
