@@ -78,7 +78,7 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 		return "", fmt.Errorf("reading response for %s: %w", path, err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("API error for %s (status %d): %s", path, resp.StatusCode, string(body))
+		return "", fmt.Errorf("api error for %s (status %d): %s", path, resp.StatusCode, string(body))
 	}
 
 	s := strings.TrimSpace(string(body))
@@ -164,7 +164,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		return fmt.Errorf("expected status %d, got %d: %s", expectedStatus, resp.StatusCode, string(respBody))
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("api error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	if result != nil && len(respBody) > 0 {
