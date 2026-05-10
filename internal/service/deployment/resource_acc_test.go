@@ -34,6 +34,34 @@ func TestAccDeploymentResource_Create(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestAccDeploymentDataSources
+// ---------------------------------------------------------------------------
+
+func TestAccDeploymentDataSources(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-deploy-ds")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDeploymentConfig(name, serverUUID) + `
+data "coolify_deployments" "all" {
+  depends_on = [coolify_deployment.test]
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.coolify_deployments.all", "deployments.#"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

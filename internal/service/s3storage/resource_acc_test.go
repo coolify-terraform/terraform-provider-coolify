@@ -2,6 +2,7 @@ package s3storage_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
@@ -66,6 +67,46 @@ resource "coolify_s3_storage" "test" {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"access_key", "secret_key"},
+			},
+		},
+	})
+}
+
+func TestAccS3StorageDataSources(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	name := acctest.RandomWithPrefix("tf-acc-s3-ds")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_s3_storage" "test" {
+  name       = %[1]q
+  endpoint   = "http://minio.local:9000"
+  bucket     = "test-bucket"
+  region     = "us-east-1"
+  access_key = "minioadmin"
+  secret_key = "minioadmin"
+}
+
+data "coolify_s3_storage" "by_uuid" {
+  uuid = coolify_s3_storage.test.uuid
+}
+
+data "coolify_s3_storages" "all" {
+  depends_on = [coolify_s3_storage.test]
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// Verify singular data source
+					resource.TestCheckResourceAttrPair("data.coolify_s3_storage.by_uuid", "uuid", "coolify_s3_storage.test", "uuid"),
+					resource.TestCheckResourceAttrPair("data.coolify_s3_storage.by_uuid", "name", "coolify_s3_storage.test", "name"),
+					// Verify list data source
+					resource.TestMatchResourceAttr("data.coolify_s3_storages.all", "storages.#", regexp.MustCompile(`[1-9]\d*`)),
+				),
 			},
 		},
 	})

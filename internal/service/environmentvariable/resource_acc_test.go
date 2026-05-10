@@ -54,6 +54,52 @@ func TestAccEnvironmentVariableResource_ApplicationCRUD(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestAccEnvironmentVariableDataSources
+// ---------------------------------------------------------------------------
+
+func TestAccEnvironmentVariableDataSources(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-envvar-ds")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_dockerfile_application" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %[2]q
+  dockerfile_location = "/Dockerfile"
+  ports_exposes       = "80"
+}
+
+resource "coolify_environment_variable" "test" {
+  application_uuid = coolify_dockerfile_application.test.uuid
+  key              = "TEST_DS_VAR"
+  value            = "ds-value"
+}
+
+data "coolify_environment_variables" "by_app" {
+  application_uuid = coolify_dockerfile_application.test.uuid
+  depends_on       = [coolify_environment_variable.test]
+}
+`, name, serverUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.coolify_environment_variables.by_app", "environment_variables.#"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

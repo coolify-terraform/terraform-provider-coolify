@@ -2,6 +2,7 @@ package privatekey_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
@@ -67,6 +68,44 @@ resource "coolify_private_key" "test" {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"private_key"},
+			},
+		},
+	})
+}
+
+func TestAccPrivateKeyDataSources(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	name := acctest.RandomWithPrefix("tf-acc-pk-ds")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_private_key" "test" {
+  name        = %[1]q
+  description = "acc test key for data sources"
+  private_key = <<-EOT
+%[2]sEOT
+}
+
+data "coolify_private_key" "by_uuid" {
+  uuid = coolify_private_key.test.uuid
+}
+
+data "coolify_private_keys" "all" {
+  depends_on = [coolify_private_key.test]
+}
+`, name, testAccPrivateKeyPEM),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// Verify singular data source
+					resource.TestCheckResourceAttrPair("data.coolify_private_key.by_uuid", "uuid", "coolify_private_key.test", "uuid"),
+					resource.TestCheckResourceAttrPair("data.coolify_private_key.by_uuid", "name", "coolify_private_key.test", "name"),
+					// Verify list data source
+					resource.TestMatchResourceAttr("data.coolify_private_keys.all", "private_keys.#", regexp.MustCompile(`[1-9]\d*`)),
+				),
 			},
 		},
 	})
