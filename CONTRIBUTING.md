@@ -36,11 +36,25 @@ See [TESTING.md](TESTING.md) for full acceptance test documentation.
 
 ### Code Quality
 
+Run all CI checks locally before pushing:
+
 ```bash
-make lint    # Run golangci-lint
-make fmt     # Format code
-make docs    # Generate documentation
+make ci      # Build, vet, lint, test, validate, fmt check, docs check
 ```
+
+Or run individual checks:
+
+```bash
+make lint      # Run golangci-lint
+make fmt       # Format code (gofmt + go mod tidy)
+make docs      # Generate documentation
+make validate  # Check HCL formatting in examples/
+```
+
+**Required local tools** (match the versions pinned in CI):
+
+- `golangci-lint` v2.12.2+ (`curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b ~/.local/bin v2.12.2`)
+- `terraform` >= 1.6 (for `terraform fmt` on examples)
 
 ## Project Structure
 
@@ -113,6 +127,6 @@ To test the provider against a real Coolify instance without publishing:
 
 ## Pull Requests
 
-- Run `make test` and `make lint` before submitting
+- Run `make ci` before submitting (mirrors the full CI pipeline locally)
 - Include tests for new functionality
 - Keep PRs focused on a single change
