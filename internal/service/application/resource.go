@@ -143,9 +143,7 @@ func (r *applicationResource) Schema(ctx context.Context, _ resource.SchemaReque
 			"fqdn": schema.StringAttribute{
 				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
 				Optional:            true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile(`^https?://`), "must start with http:// or https://"),
-				},
+				Validators: []validator.String{validate.FQDN()},
 			},
 			"dockerfile_location": schema.StringAttribute{
 				MarkdownDescription: "The path to the Dockerfile, relative to the repository root.",

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2266,6 +2267,11 @@ func TestExtractAPIMessage(t *testing.T) {
 			name:  "json with empty message falls back to raw",
 			input: []byte(`{"message":""}`),
 			want:  `{"message":""}`,
+		},
+		{
+			name:  "long body is truncated",
+			input: []byte(strings.Repeat("x", 300)),
+			want:  strings.Repeat("x", 200) + "... (truncated)",
 		},
 	}
 	for _, tt := range tests {

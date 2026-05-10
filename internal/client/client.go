@@ -186,5 +186,9 @@ func extractAPIMessage(body []byte) string {
 	if json.Unmarshal(body, &parsed) == nil && parsed.Message != "" {
 		return parsed.Message
 	}
-	return string(body)
+	s := string(body)
+	if len(s) > 200 {
+		s = s[:200] + "... (truncated)"
+	}
+	return s
 }

@@ -3,11 +3,10 @@ package s3storage
 import (
 	"context"
 	"fmt"
-	"regexp"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -70,9 +69,7 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "The S3 endpoint URL (must start with `http://` or `https://`).",
 				Required:            true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile(`^https?://`), "must start with http:// or https://"),
-				},
+				Validators: []validator.String{validate.FQDN()},
 			},
 			"bucket": schema.StringAttribute{
 				MarkdownDescription: "The S3 bucket name.",

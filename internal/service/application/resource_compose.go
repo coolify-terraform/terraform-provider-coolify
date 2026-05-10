@@ -3,14 +3,12 @@ package application
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -116,9 +114,7 @@ func (r *dockerComposeApplicationResource) Schema(ctx context.Context, _ resourc
 			"fqdn": schema.StringAttribute{
 				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
 				Optional:            true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile(`^https?://`), "must start with http:// or https://"),
-				},
+				Validators: []validator.String{validate.FQDN()},
 			},
 			"status": schema.StringAttribute{
 				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
