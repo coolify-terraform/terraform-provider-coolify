@@ -20,7 +20,7 @@ import (
 type mockGitHubApp struct {
 	ID               int64  `json:"id"`
 	Name             string `json:"name"`
-	OrganizationName string `json:"organization_name,omitempty"`
+	OrganizationName string `json:"organization,omitempty"`
 	AppID            int64  `json:"app_id,omitempty"`
 	InstallationID   int64  `json:"installation_id,omitempty"`
 	ClientID         string `json:"client_id,omitempty"`
@@ -106,7 +106,7 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 	mux.HandleFunc("POST /api/v1/github-apps", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Name             string `json:"name"`
-			OrganizationName string `json:"organization_name"`
+			OrganizationName string `json:"organization"`
 			AppID            int64  `json:"app_id"`
 			InstallationID   int64  `json:"installation_id"`
 			ClientID         string `json:"client_id"`

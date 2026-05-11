@@ -10,7 +10,7 @@ import (
 type GitHubApp struct {
 	ID               int64  `json:"id"`
 	Name             string `json:"name"`
-	OrganizationName string `json:"organization_name,omitempty"`
+	OrganizationName string `json:"organization,omitempty"`
 	AppID            int64  `json:"app_id,omitempty"`
 	InstallationID   int64  `json:"installation_id,omitempty"`
 	ClientID         string `json:"client_id,omitempty"`
@@ -19,7 +19,7 @@ type GitHubApp struct {
 
 type CreateGitHubAppIntegrationInput struct {
 	Name             string `json:"name"`
-	OrganizationName string `json:"organization_name,omitempty"`
+	OrganizationName string `json:"organization,omitempty"`
 	AppID            int64  `json:"app_id"`
 	InstallationID   int64  `json:"installation_id"`
 	ClientID         string `json:"client_id"`
