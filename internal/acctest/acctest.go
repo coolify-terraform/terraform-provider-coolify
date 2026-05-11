@@ -3,7 +3,7 @@ package acctest
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"testing"
@@ -43,7 +43,7 @@ func TestAccPreCheck(t *testing.T) {
 
 // RandomWithPrefix generates a random string with the given prefix.
 func RandomWithPrefix(prefix string) string {
-	return fmt.Sprintf("%s-%d", prefix, rand.Intn(999999))
+	return fmt.Sprintf("%s-%d", prefix, rand.IntN(999999))
 }
 
 // TestProtoV6ProviderFactories returns provider factories for unit tests.

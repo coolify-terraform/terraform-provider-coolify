@@ -46,7 +46,7 @@ api-coverage-check: ## Check API_COVERAGE.md is up to date
 	@make api-coverage && git diff --exit-code API_COVERAGE.md || (echo "API_COVERAGE.md out of date: run 'make api-coverage' and commit"; exit 1)
 
 vulncheck: ## Run govulncheck for known vulnerabilities
-	govulncheck ./...
+	go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'

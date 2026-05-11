@@ -74,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable `timeouts` block on all application resources
 - Graceful handling of out-of-band resource deletion (404 in Read removes from state)
 - 450+ unit tests with race detection across 34 packages
-- CI pipeline: 9 jobs (test, lint, format, validate examples, docs, govulncheck, trivy, gitleaks, spec check)
+- CI pipeline: 9 jobs (detect changes, test, lint, validate examples, docs, govulncheck, trivy, gitleaks, spec freshness)
 - GoReleaser config for GPG-signed releases
 - Computed `status` field on all application resources
 - Full-stack deployment example
