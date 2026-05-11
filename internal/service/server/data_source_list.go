@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -117,7 +118,7 @@ func (d *serversDataSource) Read(ctx context.Context, _ datasource.ReadRequest, 
 		state.Servers = append(state.Servers, serverDataSourceModel{
 			UUID:           types.StringValue(srv.UUID),
 			Name:           types.StringValue(srv.Name),
-			Description:    types.StringValue(srv.Description),
+			Description:    flex.StringToFramework(srv.Description),
 			IP:             types.StringValue(srv.IP),
 			Port:           types.Int64Value(int64(srv.Port)),
 			User:           types.StringValue(srv.User),

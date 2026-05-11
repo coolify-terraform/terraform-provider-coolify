@@ -99,7 +99,7 @@ terraform {
 }
 
 provider "coolify" {
-  endpoint = "http://your-coolify-instance:8000"
+  endpoint = "https://your-coolify-instance"
   token    = "your-api-token"
 }
 
