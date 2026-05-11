@@ -293,9 +293,9 @@ func TestClient_CreateProject_ServerError(t *testing.T) {
 	}
 	// The retryable client retries on 500 and eventually gives up.
 	// The error message should indicate the retry exhaustion.
-	if got := err.Error(); !contains(got, "giving up") && !contains(got, "500") {
-		t.Errorf("expected error message to mention retry exhaustion or status 500, got: %s", got)
-	}
+	got := err.Error()
+	assert.True(t, strings.Contains(got, "giving up") || strings.Contains(got, "500"),
+		"expected error message to mention retry exhaustion or status 500, got: %s", got)
 }
 
 func TestClient_ListServers(t *testing.T) {
@@ -517,16 +517,6 @@ func TestClient_ContextCancellation(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error with cancelled context, got nil")
 	}
-}
-
-// contains checks whether s contains substr (avoids importing strings).
-func contains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
 
 // --- Servers ---
