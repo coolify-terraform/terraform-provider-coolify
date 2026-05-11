@@ -110,23 +110,8 @@ jobs:
       - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
-
-  format:
-    name: Format
-    runs-on: self-hosted
-    timeout-minutes: 10
-    needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          cache: true
-      - run: |
-          gofmt -s -l . | tee fmt_output.txt
-          test ! -s fmt_output.txt
-      - run: go mod tidy && git diff --exit-code
+      - name: Check go mod tidy
+        run: go mod tidy && git diff --exit-code go.mod go.sum
 
   validate-examples:
     name: Validate Examples

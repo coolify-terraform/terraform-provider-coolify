@@ -39,7 +39,7 @@ spec-check: ## Run OpenAPI spec compliance tests
 api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 	GENERATE_COVERAGE_DOC=1 go test -count=1 -run TestSpecCoverage_GenerateDoc ./internal/spectest/ -v
 
-ci: build vet fmt-check lint test validate docs-check vulncheck ## Run all checks (mirrors CI pipeline)
+ci: build fmt-check lint test validate docs-check vulncheck ## Run all checks (mirrors CI pipeline)
 
 fmt-check: ## Check formatting (no changes)
 	@output=$$(gofmt -s -l .); if [ -n "$$output" ]; then echo "gofmt needed on:"; echo "$$output"; exit 1; fi

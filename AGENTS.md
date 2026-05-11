@@ -89,9 +89,10 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 
 ## CI
 
-9 GitHub Actions jobs on push to main and PRs (self-hosted runner):
-Detect Changes, Test, Lint, Format, Validate Examples, Govulncheck, Trivy,
+8 GitHub Actions jobs on push to main and PRs (self-hosted runner):
+Detect Changes, Test, Lint, Validate Examples, Govulncheck, Trivy,
 Gitleaks, Docs. Plus Spec Freshness (weekly schedule only).
+Format check (gofmt) is included in the Lint job via golangci-lint.
 
 ## Safety
 
