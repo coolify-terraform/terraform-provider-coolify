@@ -29,7 +29,7 @@ resource "coolify_application" "app" {
 resource "coolify_environment_variable" "database_url" {
   application_uuid = coolify_application.app.uuid
   key              = "DATABASE_URL"
-  value            = "postgresql://postgres@${coolify_postgresql_database.app.name}:5432/${var.db_name}"
+  value            = "postgresql://${coolify_postgresql_database.app.postgres_user}:${coolify_postgresql_database.app.postgres_password}@${coolify_postgresql_database.app.name}:5432/${coolify_postgresql_database.app.postgres_db}"
   is_build         = false
   is_preview       = false
 }
