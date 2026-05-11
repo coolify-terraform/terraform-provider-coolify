@@ -90,6 +90,7 @@ func (r *applicationResource) Schema(ctx context.Context, _ resource.SchemaReque
 			"description": schema.StringAttribute{
 				MarkdownDescription: "A description of the application.",
 				Optional:            true,
+				Computed:            true,
 			},
 			"project_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the project this application belongs to. Changing this forces a new resource.",
