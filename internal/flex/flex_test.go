@@ -151,29 +151,6 @@ func TestStringToFramework(t *testing.T) {
 // StringValueToFramework
 // ---------------------------------------------------------------------------
 
-func TestStringValueToFramework(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name  string
-		input string
-		want  string
-	}{
-		{"empty preserved", "", ""},
-		{"non-empty", "bar", "bar"},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := flex.StringValueToFramework(tc.input)
-			if got.IsNull() {
-				t.Fatal("expected non-null, got null")
-			}
-			if got.ValueString() != tc.want {
-				t.Fatalf("expected %q, got %q", tc.want, got.ValueString())
-			}
-		})
-	}
-}
-
 // ---------------------------------------------------------------------------
 // StringPtrToFramework
 // ---------------------------------------------------------------------------
@@ -321,51 +298,8 @@ func TestBoolPtrToFramework(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// StringFromFramework / BoolFromFramework / Int64PtrFromFramework
+// Int64PtrFromFramework
 // ---------------------------------------------------------------------------
-
-func TestStringFromFramework(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name  string
-		input types.String
-		want  string
-	}{
-		{"normal value", types.StringValue("test"), "test"},
-		{"null returns empty", types.StringNull(), ""},
-		{"unknown returns empty", types.StringUnknown(), ""},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := flex.StringFromFramework(tc.input)
-			if got != tc.want {
-				t.Fatalf("expected %q, got %q", tc.want, got)
-			}
-		})
-	}
-}
-
-func TestBoolFromFramework(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name  string
-		input types.Bool
-		want  bool
-	}{
-		{"true", types.BoolValue(true), true},
-		{"false", types.BoolValue(false), false},
-		{"null returns false", types.BoolNull(), false},
-		{"unknown returns false", types.BoolUnknown(), false},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := flex.BoolFromFramework(tc.input)
-			if got != tc.want {
-				t.Fatalf("expected %v, got %v", tc.want, got)
-			}
-		})
-	}
-}
 
 func TestInt64PtrFromFramework(t *testing.T) {
 	t.Parallel()

@@ -41,12 +41,6 @@ func StringToFramework(s string) types.String {
 	return types.StringValue(s)
 }
 
-// StringValueToFramework converts a Go string to a framework types.String.
-// Empty strings are preserved as empty (not null).
-func StringValueToFramework(s string) types.String {
-	return types.StringValue(s)
-}
-
 // StringPtrToFramework converts a Go string pointer to a Terraform String.
 func StringPtrToFramework(v *string) types.String {
 	if v == nil {
@@ -110,22 +104,6 @@ func SetBoolPtr(dst **bool, v types.Bool) {
 		b := v.ValueBool()
 		*dst = &b
 	}
-}
-
-// StringFromFramework converts a framework types.String to a Go string.
-func StringFromFramework(s types.String) string {
-	if s.IsNull() || s.IsUnknown() {
-		return ""
-	}
-	return s.ValueString()
-}
-
-// BoolFromFramework converts a framework types.Bool to a Go bool.
-func BoolFromFramework(b types.Bool) bool {
-	if b.IsNull() || b.IsUnknown() {
-		return false
-	}
-	return b.ValueBool()
 }
 
 // Int64PtrFromFramework converts a framework types.Int64 to a *int64.

@@ -202,27 +202,13 @@ func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource
 		DockerfileLocation: plan.DockerfileLocation.ValueString(),
 		PortsExposes:       plan.PortsExposes.ValueString(),
 	}
-	if v := flex.StringFromFramework(plan.EnvironmentName); v != "" {
-		input.EnvironmentName = v
-	}
-	if v := flex.StringFromFramework(plan.Name); v != "" {
-		input.Name = v
-	}
-	if v := flex.StringFromFramework(plan.Description); v != "" {
-		input.Description = v
-	}
-	if v := flex.StringFromFramework(plan.FQDN); v != "" {
-		input.FQDN = v
-	}
-	if v := flex.StringFromFramework(plan.InstallCommand); v != "" {
-		input.InstallCommand = v
-	}
-	if v := flex.StringFromFramework(plan.BuildCommand); v != "" {
-		input.BuildCommand = v
-	}
-	if v := flex.StringFromFramework(plan.StartCommand); v != "" {
-		input.StartCommand = v
-	}
+	flex.SetIfKnown(&input.EnvironmentName, plan.EnvironmentName)
+	flex.SetIfKnown(&input.Name, plan.Name)
+	flex.SetIfKnown(&input.Description, plan.Description)
+	flex.SetIfKnown(&input.FQDN, plan.FQDN)
+	flex.SetIfKnown(&input.InstallCommand, plan.InstallCommand)
+	flex.SetIfKnown(&input.BuildCommand, plan.BuildCommand)
+	flex.SetIfKnown(&input.StartCommand, plan.StartCommand)
 
 	created, err := r.client.CreateDockerfileApplication(ctx, input)
 	if err != nil {

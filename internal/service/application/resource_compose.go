@@ -161,18 +161,10 @@ func (r *dockerComposeApplicationResource) Create(ctx context.Context, req resou
 		ServerUUID:       plan.ServerUUID.ValueString(),
 		DockerComposeRaw: plan.DockerComposeRaw.ValueString(),
 	}
-	if v := flex.StringFromFramework(plan.EnvironmentName); v != "" {
-		input.EnvironmentName = v
-	}
-	if v := flex.StringFromFramework(plan.Name); v != "" {
-		input.Name = v
-	}
-	if v := flex.StringFromFramework(plan.Description); v != "" {
-		input.Description = v
-	}
-	if v := flex.StringFromFramework(plan.FQDN); v != "" {
-		input.FQDN = v
-	}
+	flex.SetIfKnown(&input.EnvironmentName, plan.EnvironmentName)
+	flex.SetIfKnown(&input.Name, plan.Name)
+	flex.SetIfKnown(&input.Description, plan.Description)
+	flex.SetIfKnown(&input.FQDN, plan.FQDN)
 
 	created, err := r.client.CreateDockerComposeApplication(ctx, input)
 	if err != nil {
