@@ -269,9 +269,7 @@ func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource
 	}
 
 	input := client.UpdateApplicationInput{}
-	strPtr := func(v types.String) *string {
-		return flex.StringValueOrNull(v)
-	}
+	strPtr := flex.StringValueOrNull
 	input.Name = strPtr(plan.Name)
 	input.Description = strPtr(plan.Description)
 	input.DockerfileLocation = strPtr(plan.DockerfileLocation)

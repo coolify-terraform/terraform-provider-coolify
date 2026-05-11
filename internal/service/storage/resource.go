@@ -190,6 +190,7 @@ func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, re
 		if s.UUID == state.UUID.ValueString() {
 			state.Name = types.StringValue(s.Name)
 			state.MountPath = types.StringValue(s.MountPath)
+			//nolint:gocritic // preserves null vs empty distinction for optional field
 			if s.HostPath != "" {
 				state.HostPath = types.StringValue(s.HostPath)
 			} else if state.HostPath.IsNull() {

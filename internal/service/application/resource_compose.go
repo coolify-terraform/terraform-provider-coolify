@@ -219,9 +219,7 @@ func (r *dockerComposeApplicationResource) Update(ctx context.Context, req resou
 	}
 
 	input := client.UpdateApplicationInput{}
-	strPtr := func(v types.String) *string {
-		return flex.StringValueOrNull(v)
-	}
+	strPtr := flex.StringValueOrNull
 	input.Name = strPtr(plan.Name)
 	input.Description = strPtr(plan.Description)
 	input.FQDN = strPtr(plan.FQDN)

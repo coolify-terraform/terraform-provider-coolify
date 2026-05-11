@@ -17,6 +17,34 @@ linters:
     - unconvert
     - wastedassign
     - whitespace
+    - funlen
+    - godox
+    - dupl
+    - gocognit
+    - nestif
+    - forbidigo
+    - gocritic
+    - dupword
+
+  settings:
+    funlen:
+      lines: 150
+      statements: 80
+    dupl:
+      threshold: 200
+    gocognit:
+      min-complexity: 20
+    nestif:
+      min-complexity: 5
+    godox:
+      keywords:
+        - FIXME
+        - HACK
+        - XXX
+    forbidigo:
+      forbid:
+        - pattern: fmt\.Print.*
+          msg: "do not commit debug print statements"
 
   exclusions:
     rules:
@@ -24,6 +52,9 @@ linters:
         linters:
           - errcheck
           - bodyclose
+          - funlen
+          - dupl
+          - gocognit
 
 formatters:
   enable:

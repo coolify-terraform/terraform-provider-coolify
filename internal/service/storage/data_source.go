@@ -101,6 +101,7 @@ func (d *storageListDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 
 	var parentType, parentUUID string
+	//nolint:gocritic // if-else chain dispatches to different parent types; switch not applicable
 	if !config.ApplicationUUID.IsNull() {
 		parentType = "applications"
 		parentUUID = config.ApplicationUUID.ValueString()

@@ -153,6 +153,7 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 	var createResp *client.CreateEnvVarResponse
 	var err error
 
+	//nolint:gocritic // if-else chain dispatches to different client methods; switch not applicable
 	if !plan.ApplicationUUID.IsNull() && !plan.ApplicationUUID.IsUnknown() {
 		createResp, err = r.client.CreateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev)
 	} else if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
@@ -183,6 +184,7 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 	var envVars []client.EnvironmentVariable
 	var err error
 
+	//nolint:gocritic // if-else chain dispatches to different client methods; switch not applicable
 	if !state.ApplicationUUID.IsNull() && !state.ApplicationUUID.IsUnknown() {
 		envVars, err = r.client.ListApplicationEnvVars(ctx, state.ApplicationUUID.ValueString())
 	} else if !state.ServiceUUID.IsNull() && !state.ServiceUUID.IsUnknown() {
@@ -236,6 +238,7 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 
 	var err error
 
+	//nolint:gocritic // if-else chain dispatches to different client methods; switch not applicable
 	if !plan.ApplicationUUID.IsNull() && !plan.ApplicationUUID.IsUnknown() {
 		err = r.client.UpdateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev)
 	} else if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
@@ -264,6 +267,7 @@ func (r *environmentVariableResource) Delete(ctx context.Context, req resource.D
 
 	var err error
 
+	//nolint:gocritic // if-else chain dispatches to different client methods; switch not applicable
 	if !state.ApplicationUUID.IsNull() && !state.ApplicationUUID.IsUnknown() {
 		err = r.client.DeleteApplicationEnvVar(ctx, state.ApplicationUUID.ValueString(), state.UUID.ValueString())
 	} else if !state.ServiceUUID.IsNull() && !state.ServiceUUID.IsUnknown() {

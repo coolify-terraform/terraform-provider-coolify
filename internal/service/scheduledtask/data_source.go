@@ -97,6 +97,7 @@ func (d *scheduledTaskListDataSource) Read(ctx context.Context, req datasource.R
 	}
 
 	var parentType, parentUUID string
+	//nolint:gocritic // if-else chain with different client calls and early return; switch not clearer
 	if !config.ApplicationUUID.IsNull() {
 		parentType = "applications"
 		parentUUID = config.ApplicationUUID.ValueString()

@@ -104,6 +104,7 @@ func (d *envVarListDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	var envVars []client.EnvironmentVariable
 	var err error
 
+	//nolint:gocritic // if-else chain with different client calls and early return; switch not clearer
 	if !config.ApplicationUUID.IsNull() {
 		envVars, err = d.client.ListApplicationEnvVars(ctx, config.ApplicationUUID.ValueString())
 	} else if !config.ServiceUUID.IsNull() {
