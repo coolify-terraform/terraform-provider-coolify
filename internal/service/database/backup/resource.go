@@ -245,12 +245,24 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceModel) {
 	m.ID = types.Int64Value(int64(b.ID))
 	m.UUID = types.StringValue(b.UUID)
-	m.DatabaseUUID = types.StringValue(b.DatabaseUUID)
-	m.Frequency = types.StringValue(b.Frequency)
-	m.Enabled = types.BoolValue(b.Enabled)
+	if b.DatabaseUUID != "" {
+		m.DatabaseUUID = types.StringValue(b.DatabaseUUID)
+	}
+	if b.Frequency != "" {
+		m.Frequency = types.StringValue(b.Frequency)
+	}
+	// Only update Enabled from API if it differs from a non-null state value,
+	// to avoid overwriting the user's config with API defaults.
+	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
+		// Keep existing state value; Coolify may return incorrect defaults
+	} else {
+		m.Enabled = types.BoolValue(b.Enabled)
+	}
 	m.S3StorageID = flex.StringToFramework(b.S3StorageID)
 	if b.RetainDays != nil {
 		m.RetainDays = types.Int64Value(*b.RetainDays)
+	} else if !m.RetainDays.IsNull() {
+		// Preserve existing state value when API returns nil
 	} else {
 		m.RetainDays = types.Int64Null()
 	}

@@ -296,7 +296,15 @@ func flattenDockerImageApplication(app *client.Application, state *dockerImageAp
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)
-	state.DockerImage = types.StringValue(app.DockerRegistryImageName)
+	// Coolify may strip the ":latest" tag from Docker image names (e.g.
+	// "alpine:latest" becomes "alpine"). Preserve the user's original value
+	// if the API value matches without the tag.
+	if prior := state.DockerImage; !prior.IsNull() && !prior.IsUnknown() &&
+		(prior.ValueString() == app.DockerRegistryImageName || prior.ValueString() == app.DockerRegistryImageName+":latest") {
+		// keep existing state value
+	} else {
+		state.DockerImage = types.StringValue(app.DockerRegistryImageName)
+	}
 	state.PortsExposes = types.StringValue(app.PortsExposes)
 	state.FQDN = flex.StringToFramework(app.FQDN)
 	state.InstallCommand = flex.StringToFramework(app.InstallCommand)

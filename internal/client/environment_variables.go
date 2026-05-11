@@ -8,7 +8,7 @@ import (
 )
 
 type EnvironmentVariable struct {
-	UUID      string `json:"uuid"`
+	UUID      string `json:"uuid,omitempty"`
 	Key       string `json:"key"`
 	Value     string `json:"value"`
 	IsPreview bool   `json:"is_preview"`
