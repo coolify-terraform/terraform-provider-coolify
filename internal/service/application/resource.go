@@ -265,7 +265,6 @@ func (r *applicationResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-//nolint:dupl // shared Update extraction tracked in #11
 func (r *applicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan applicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -273,33 +272,13 @@ func (r *applicationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	input := client.UpdateApplicationInput{}
-	strPtr := flex.StringValueOrNull
-	input.Name = strPtr(plan.Name)
-	input.Description = strPtr(plan.Description)
-	input.GitRepository = strPtr(plan.GitRepository)
-	input.GitBranch = strPtr(plan.GitBranch)
-	input.BuildPack = strPtr(plan.BuildPack)
-	input.PortsExposes = strPtr(plan.PortsExposes)
-	input.FQDN = strPtr(plan.FQDN)
-	input.DockerfileLocation = strPtr(plan.DockerfileLocation)
-	input.InstallCommand = strPtr(plan.InstallCommand)
-	input.BuildCommand = strPtr(plan.BuildCommand)
-	input.StartCommand = strPtr(plan.StartCommand)
-
-	_, err := r.client.UpdateApplication(ctx, plan.UUID.ValueString(), input)
-	if err != nil {
-		resp.Diagnostics.AddError("Error updating application", err.Error())
+	input := buildUpdateInput(plan.common())
+	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
+		flattenApplication(app, &plan)
+	})
+	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	app, err := r.client.GetApplication(ctx, plan.UUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading application after update", err.Error())
-		return
-	}
-
-	flattenApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -329,23 +308,16 @@ func (r *applicationResource) ImportState(ctx context.Context, req resource.Impo
 }
 
 // flattenApplication copies API fields into the Terraform state model.
-//
-//nolint:dupl // shared flatten extraction tracked in #11
-func flattenApplication(app *client.Application, state *applicationResourceModel) {
-	state.UUID = types.StringValue(app.UUID)
-	state.Name = types.StringValue(app.Name)
-	state.Description = flex.StringToFramework(app.Description)
-	state.GitRepository = types.StringValue(app.GitRepository)
-	state.GitBranch = types.StringValue(app.GitBranch)
-	state.BuildPack = types.StringValue(app.BuildPack)
-	state.PortsExposes = types.StringValue(app.PortsExposes)
-	state.FQDN = flex.StringToFramework(app.FQDN)
-	state.DockerfileLocation = flex.StringToFramework(app.DockerfileLocation)
-	state.InstallCommand = flex.StringToFramework(app.InstallCommand)
-	state.BuildCommand = flex.StringToFramework(app.BuildCommand)
-	state.StartCommand = flex.StringToFramework(app.StartCommand)
+func (m *applicationResourceModel) common() commonAppFields {
+	return commonAppFields{
+		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
+		GitRepository: &m.GitRepository, GitBranch: &m.GitBranch, BuildPack: &m.BuildPack,
+		PortsExposes: &m.PortsExposes, FQDN: &m.FQDN, DockerfileLocation: &m.DockerfileLocation,
+		InstallCommand: &m.InstallCommand, BuildCommand: &m.BuildCommand, StartCommand: &m.StartCommand,
+		Status: &m.Status, ProjectUUID: &m.ProjectUUID, ServerUUID: &m.ServerUUID,
+	}
+}
 
-	state.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
-	state.ServerUUID = flex.StringToFramework(app.ServerUUID)
-	state.Status = flex.StringToFramework(app.Status)
+func flattenApplication(app *client.Application, state *applicationResourceModel) {
+	flattenApplicationCommon(app, state.common())
 }

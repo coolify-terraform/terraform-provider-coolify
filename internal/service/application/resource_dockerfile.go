@@ -320,23 +320,16 @@ func (r *dockerfileApplicationResource) ImportState(ctx context.Context, req res
 }
 
 // flattenDockerfileApplication copies API fields into the Terraform state model.
-//
-//nolint:dupl // shared flatten extraction tracked in #11
-func flattenDockerfileApplication(app *client.Application, state *dockerfileApplicationResourceModel) {
-	state.UUID = types.StringValue(app.UUID)
-	state.Name = types.StringValue(app.Name)
-	state.Description = flex.StringToFramework(app.Description)
-	state.DockerfileLocation = types.StringValue(app.DockerfileLocation)
-	state.PortsExposes = types.StringValue(app.PortsExposes)
-	state.FQDN = flex.StringToFramework(app.FQDN)
-	state.InstallCommand = flex.StringToFramework(app.InstallCommand)
-	state.BuildCommand = flex.StringToFramework(app.BuildCommand)
-	state.StartCommand = flex.StringToFramework(app.StartCommand)
-	state.GitRepository = flex.StringToFramework(app.GitRepository)
-	state.GitBranch = flex.StringToFramework(app.GitBranch)
-	state.BuildPack = flex.StringToFramework(app.BuildPack)
-	state.Status = flex.StringToFramework(app.Status)
+func (m *dockerfileApplicationResourceModel) common() commonAppFields {
+	return commonAppFields{
+		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
+		GitRepository: &m.GitRepository, GitBranch: &m.GitBranch, BuildPack: &m.BuildPack,
+		PortsExposes: &m.PortsExposes, FQDN: &m.FQDN, DockerfileLocation: &m.DockerfileLocation,
+		InstallCommand: &m.InstallCommand, BuildCommand: &m.BuildCommand, StartCommand: &m.StartCommand,
+		Status: &m.Status, ProjectUUID: &m.ProjectUUID, ServerUUID: &m.ServerUUID,
+	}
+}
 
-	state.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
-	state.ServerUUID = flex.StringToFramework(app.ServerUUID)
+func flattenDockerfileApplication(app *client.Application, state *dockerfileApplicationResourceModel) {
+	flattenApplicationCommon(app, state.common())
 }
