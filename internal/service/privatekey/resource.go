@@ -112,6 +112,14 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	plan.UUID = types.StringValue(created.UUID)
+
+	// Save partial state so the resource is tracked even if the read-back fails.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Read back for full state.
 	key, err := r.client.GetPrivateKey(ctx, created.UUID)
 	if err != nil {
@@ -157,15 +165,10 @@ func (r *privateKeyResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	name := plan.Name.ValueString()
-	desc := plan.Description.ValueString()
-	pk := plan.PrivateKey.ValueString()
-
-	input := client.UpdatePrivateKeyInput{
-		Name:        &name,
-		Description: &desc,
-		PrivateKey:  &pk,
-	}
+	input := client.UpdatePrivateKeyInput{}
+	flex.SetStrPtr(&input.Name, plan.Name)
+	flex.SetStrPtr(&input.Description, plan.Description)
+	flex.SetStrPtr(&input.PrivateKey, plan.PrivateKey)
 
 	_, err := r.client.UpdatePrivateKey(ctx, state.UUID.ValueString(), input)
 	if err != nil {

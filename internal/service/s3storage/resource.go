@@ -133,6 +133,14 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	plan.UUID = types.StringValue(created.UUID)
+
+	// Save partial state so the resource is tracked even if the read-back fails.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Read back for full state.
 	s, err := r.client.GetS3Storage(ctx, created.UUID)
 	if err != nil {

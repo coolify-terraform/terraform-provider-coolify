@@ -70,17 +70,22 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	input := client.CreateServiceInput{ServerUUID: plan.ServerUUID.ValueString(), ProjectUUID: plan.ProjectUUID.ValueString(), EnvironmentName: plan.EnvironmentName.ValueString(), Type: plan.Type.ValueString()}
-	if !plan.Name.IsNull() && !plan.Name.IsUnknown() {
-		input.Name = plan.Name.ValueString()
-	}
-	if !plan.Description.IsNull() {
-		input.Description = plan.Description.ValueString()
-	}
+	flex.SetIfKnown(&input.Name, plan.Name)
+	flex.SetIfKnown(&input.Description, plan.Description)
 	created, err := r.client.CreateService(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating service", err.Error())
 		return
 	}
+
+	plan.UUID = types.StringValue(created.UUID)
+
+	// Save partial state so the resource is tracked even if the read-back fails.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	svc, err := r.client.GetService(ctx, created.UUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading service after creation", err.Error())
