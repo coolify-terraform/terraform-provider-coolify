@@ -532,6 +532,33 @@ func TestScheduledTaskResource_CreateWithServiceUUID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestScheduledTaskResource_CronAlias
+// ---------------------------------------------------------------------------
+
+func TestScheduledTaskResource_CronAlias(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	// Verify @daily is accepted by the validator (validation runs before any API call).
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "daily-task"
+					command          = "echo daily"
+					frequency        = "@daily"
+				`),
+				// The API call fails (NotFoundHandler), but validation passes.
+				ExpectError: regexp.MustCompile(`Error creating`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // TestScheduledTaskResource_InvalidFrequency
 // ---------------------------------------------------------------------------
 

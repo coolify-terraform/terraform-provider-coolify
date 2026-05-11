@@ -227,6 +227,7 @@ resource "coolify_github_app" "test" {
 				Config: config,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_github_app.test", "id"),
+					resource.TestCheckResourceAttrSet("coolify_github_app.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "name", "my-github-app"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "app_id", "12345"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "installation_id", "67890"),

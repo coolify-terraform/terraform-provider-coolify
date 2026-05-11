@@ -383,6 +383,27 @@ func TestDatabaseBackupResource_InvalidRetainDays(t *testing.T) {
 	})
 }
 
+func TestDatabaseBackupResource_CronAlias(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockBackupServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
+					frequency     = "@daily"
+					enabled       = true
+					retain_days   = 7
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "@daily"),
+			},
+		},
+	})
+}
+
 func TestDatabaseBackupResource_InvalidCron(t *testing.T) {
 	t.Parallel()
 	srv, _ := newMockBackupServer()

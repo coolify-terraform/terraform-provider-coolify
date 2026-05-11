@@ -31,9 +31,9 @@ func WithSpecAudit(t testing.TB, specVersion string, next http.Handler) http.Han
 }
 
 func withSpecValidation(t testing.TB, specVersion string, next http.Handler, strict bool) http.Handler {
-	v, err := loadValidator(specVersion)
+	v, err := newValidator(specVersion)
 	if err != nil {
-		t.Fatalf("failed to load validator for spec %s: %v", specVersion, err)
+		t.Fatalf("failed to create validator for spec %s: %v", specVersion, err)
 	}
 	return &validatingHandler{
 		inner:     next,

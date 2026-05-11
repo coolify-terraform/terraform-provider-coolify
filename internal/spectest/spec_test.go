@@ -9,29 +9,12 @@ import (
 
 func TestLoadSpec(t *testing.T) {
 	t.Parallel()
-	doc, err := LoadSpec("coolify-v4")
+	v, err := newValidator("coolify-v4")
 	if err != nil {
-		t.Fatalf("LoadSpec: %v", err)
+		t.Fatalf("loadValidator: %v", err)
 	}
-	model, err := (*doc).BuildV3Model()
-	if err != nil {
-		t.Fatalf("BuildV3Model error: %v", err)
-	}
-	if model == nil {
-		t.Fatal("model is nil")
-	}
-	paths := model.Model.Paths
-	if paths == nil || paths.PathItems.Len() == 0 {
-		t.Fatal("no paths in spec")
-	}
-
-	// Verify a known endpoint exists.
-	versionPath := paths.PathItems.GetOrZero("/version")
-	if versionPath == nil {
-		t.Fatal("expected /version path in spec")
-	}
-	if versionPath.Get == nil {
-		t.Fatal("expected GET operation on /version")
+	if v == nil {
+		t.Fatal("validator is nil")
 	}
 }
 

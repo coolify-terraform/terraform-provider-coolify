@@ -22,8 +22,10 @@ func TestApplicationDataSource_Read(t *testing.T) {
 		GitBranch:     "main",
 		BuildPack:     "nixpacks",
 		PortsExposes:  "8080",
-		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		DockerComposeRaw:        "version: '3'\nservices:\n  web:\n    image: nginx",
+		DockerRegistryImageName: "registry.example.com/app:latest",
 	}
 
 	mux := http.NewServeMux()
@@ -59,6 +61,8 @@ data "coolify_application" "test" {
 					resource.TestCheckResourceAttr("data.coolify_application.test", "ports_exposes", "8080"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "project_uuid", "aaaa0002-0002-4000-8000-000000000002"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "server_uuid", "bbbb0002-0002-4000-8000-000000000002"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "docker_compose_raw", "version: '3'\nservices:\n  web:\n    image: nginx"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "docker_registry_image_name", "registry.example.com/app:latest"),
 				),
 			},
 		},
