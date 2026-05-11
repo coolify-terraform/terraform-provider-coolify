@@ -55,6 +55,8 @@ data "coolify_s3_storage" "test" {
 					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "endpoint", "https://s3.us-west-2.amazonaws.com"),
 					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "bucket", "test-bucket"),
 					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "region", "us-west-2"),
+					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "access_key", "AKIAIOSFODNN7EXAMPLE"),
+					resource.TestCheckResourceAttr("data.coolify_s3_storage.test", "secret_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 				),
 			},
 		},

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/acctest"
@@ -30,7 +29,7 @@ func TestServerResourcesDataSource(t *testing.T) {
 	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/resources") {
+		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/servers/bbbb0001-0001-4000-8000-000000000001/resources" {
 			json.NewEncoder(w).Encode(resources)
 			return
 		}
