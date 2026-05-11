@@ -76,12 +76,12 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Validators: []validator.String{validate.UUID()},
 			},
 			"frequency": schema.StringAttribute{
-				MarkdownDescription: "Cron expression for backup schedule (e.g. \"0 2 * * *\" for daily at 2 AM).",
+				MarkdownDescription: "Cron expression for backup schedule (e.g. `0 2 * * *` for daily at 2 AM, or `@daily`, `@hourly`, `@weekly`).",
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^(\S+\s+){4}\S+$`),
-						"must be a valid cron expression with 5 fields (e.g. \"0 2 * * *\")",
+						regexp.MustCompile(`^(\S+\s+){4}\S+$|^@(annually|yearly|monthly|weekly|daily|hourly)$`),
+						"must be a valid cron expression (e.g. \"0 2 * * *\" or \"@daily\")",
 					),
 				},
 			},

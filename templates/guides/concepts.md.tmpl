@@ -29,8 +29,12 @@ The Terraform provider maps each level to a resource or data source.
 | Resource | Purpose |
 |----------|---------|
 | `coolify_project` | Logical group for applications and databases |
+| `coolify_environment` | Environment within a project (production, staging) |
 | `coolify_server` | A Docker host registered with Coolify |
 | `coolify_private_key` | SSH key for server access or Git clone |
+| `coolify_s3_storage` | S3-compatible destination for backup storage |
+| `coolify_cloud_token` | Hetzner/cloud provider API token |
+| `coolify_github_app` | GitHub App integration for repository access |
 
 ### Applications
 
@@ -63,10 +67,11 @@ All database resources share the same base schema (`project_uuid`,
 
 | Resource | Purpose |
 |----------|---------|
-| `coolify_environment_variable` | Inject config into apps or services |
+| `coolify_environment_variable` | Inject config into apps, services, or databases |
+| `coolify_storage` | Persistent volume mount for apps or services |
+| `coolify_scheduled_task` | Cron-based task on apps or services |
 | `coolify_deployment` | Trigger a deploy (with force-redeploy via `triggers`) |
 | `coolify_database_backup` | Schedule automated backups with cron syntax |
-| `coolify_s3_storage` | S3-compatible destination for backup storage |
 | `coolify_service` | Deploy one-click services from the Coolify catalog |
 
 ## Data sources

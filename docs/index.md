@@ -47,10 +47,11 @@ provider "coolify" {
 
 | Category | Resources |
 |----------|-----------|
-| Infrastructure | `coolify_project`, `coolify_server`, `coolify_private_key` |
-| Applications | `coolify_application`, `coolify_docker_image_application`, `coolify_docker_compose_application`, `coolify_private_git_application` |
+| Infrastructure | `coolify_project`, `coolify_environment`, `coolify_server`, `coolify_private_key`, `coolify_s3_storage`, `coolify_cloud_token`, `coolify_github_app` |
+| Applications | `coolify_application`, `coolify_dockerfile_application`, `coolify_docker_image_application`, `coolify_docker_compose_application`, `coolify_private_git_application`, `coolify_github_app_application` |
 | Databases | `coolify_postgresql_database`, `coolify_mysql_database`, `coolify_mariadb_database`, `coolify_redis_database`, `coolify_mongodb_database`, `coolify_clickhouse_database`, `coolify_keydb_database`, `coolify_dragonfly_database` |
-| Operations | `coolify_environment_variable`, `coolify_deployment`, `coolify_database_backup`, `coolify_s3_storage`, `coolify_service` |
+| Services | `coolify_service` |
+| Operations | `coolify_environment_variable`, `coolify_storage`, `coolify_scheduled_task`, `coolify_deployment`, `coolify_database_backup` |
 
 All resources support `terraform import`.
 

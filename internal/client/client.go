@@ -212,6 +212,18 @@ func validateParentType(pt string) error {
 	return nil
 }
 
+var validTaskParentTypes = map[string]bool{
+	"applications": true,
+	"services":     true,
+}
+
+func validateTaskParentType(pt string) error {
+	if !validTaskParentTypes[pt] {
+		return fmt.Errorf("invalid parent type %q for scheduled tasks: must be applications or services", pt)
+	}
+	return nil
+}
+
 // extractAPIMessage attempts to parse a JSON error response from the Coolify
 // API and return the human-readable "message" field. Falls back to the raw
 // body if parsing fails or no message field is present.
