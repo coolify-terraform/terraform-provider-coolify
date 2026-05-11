@@ -39,6 +39,7 @@ type ApplicationDataSourceModel struct {
 	PortsExposes       types.String `tfsdk:"ports_exposes"`
 	ProjectUUID             types.String `tfsdk:"project_uuid"`
 	ServerUUID              types.String `tfsdk:"server_uuid"`
+	EnvironmentName         types.String `tfsdk:"environment_name"`
 	Status                  types.String `tfsdk:"status"`
 	DockerComposeRaw        types.String `tfsdk:"docker_compose_raw"`
 	DockerRegistryImageName types.String `tfsdk:"docker_registry_image_name"`
@@ -114,6 +115,10 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				MarkdownDescription: "The UUID of the server the application is deployed on.",
 				Computed:            true,
 			},
+			"environment_name": schema.StringAttribute{
+				MarkdownDescription: "The environment name of the application.",
+				Computed:            true,
+			},
 			"status": schema.StringAttribute{
 				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited).",
 				Computed:            true,
@@ -172,6 +177,7 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	config.PortsExposes = flex.StringToFramework(app.PortsExposes)
 	config.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
 	config.ServerUUID = flex.StringToFramework(app.ServerUUID)
+	config.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
 	config.Status = flex.StringToFramework(app.Status)
 	config.DockerComposeRaw = flex.StringToFramework(app.DockerComposeRaw)
 	config.DockerRegistryImageName = flex.StringToFramework(app.DockerRegistryImageName)

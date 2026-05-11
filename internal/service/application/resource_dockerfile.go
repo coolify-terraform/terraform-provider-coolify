@@ -264,30 +264,13 @@ func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	input := client.UpdateApplicationInput{}
-	strPtr := flex.StringValueOrNull
-	input.Name = strPtr(plan.Name)
-	input.Description = strPtr(plan.Description)
-	input.DockerfileLocation = strPtr(plan.DockerfileLocation)
-	input.PortsExposes = strPtr(plan.PortsExposes)
-	input.FQDN = strPtr(plan.FQDN)
-	input.InstallCommand = strPtr(plan.InstallCommand)
-	input.BuildCommand = strPtr(plan.BuildCommand)
-	input.StartCommand = strPtr(plan.StartCommand)
-
-	_, err := r.client.UpdateApplication(ctx, plan.UUID.ValueString(), input)
-	if err != nil {
-		resp.Diagnostics.AddError("Error updating application", err.Error())
+	input := buildUpdateInput(plan.common())
+	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
+		flattenDockerfileApplication(app, &plan)
+	})
+	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	app, err := r.client.GetApplication(ctx, plan.UUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading application after update", err.Error())
-		return
-	}
-
-	flattenDockerfileApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
