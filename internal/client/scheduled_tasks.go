@@ -39,7 +39,7 @@ type createScheduledTaskResponse struct {
 // ListScheduledTasks returns all scheduled tasks for a parent resource.
 // parentType must be "applications" or "services".
 func (c *Client) ListScheduledTasks(ctx context.Context, parentType, parentUUID string) ([]ScheduledTask, error) {
-	if err := validateTaskParentType(parentType); err != nil {
+	if err := validateParentType(parentType); err != nil {
 		return nil, err
 	}
 	var tasks []ScheduledTask
@@ -52,7 +52,7 @@ func (c *Client) ListScheduledTasks(ctx context.Context, parentType, parentUUID 
 // CreateScheduledTask creates a new scheduled task on a parent resource.
 // parentType must be "applications" or "services". Returns the UUID of the created task.
 func (c *Client) CreateScheduledTask(ctx context.Context, parentType, parentUUID string, input CreateScheduledTaskInput) (string, error) {
-	if err := validateTaskParentType(parentType); err != nil {
+	if err := validateParentType(parentType); err != nil {
 		return "", err
 	}
 	var resp createScheduledTaskResponse
@@ -65,7 +65,7 @@ func (c *Client) CreateScheduledTask(ctx context.Context, parentType, parentUUID
 // UpdateScheduledTask updates an existing scheduled task.
 // parentType must be "applications" or "services".
 func (c *Client) UpdateScheduledTask(ctx context.Context, parentType, parentUUID, taskUUID string, input UpdateScheduledTaskInput) error {
-	if err := validateTaskParentType(parentType); err != nil {
+	if err := validateParentType(parentType); err != nil {
 		return err
 	}
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s", parentType, url.PathEscape(parentUUID), url.PathEscape(taskUUID)), input, nil); err != nil {
@@ -77,7 +77,7 @@ func (c *Client) UpdateScheduledTask(ctx context.Context, parentType, parentUUID
 // DeleteScheduledTask deletes a scheduled task.
 // parentType must be "applications" or "services".
 func (c *Client) DeleteScheduledTask(ctx context.Context, parentType, parentUUID, taskUUID string) error {
-	if err := validateTaskParentType(parentType); err != nil {
+	if err := validateParentType(parentType); err != nil {
 		return err
 	}
 	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s", parentType, url.PathEscape(parentUUID), url.PathEscape(taskUUID)), nil, nil); err != nil {
@@ -97,7 +97,7 @@ type TaskExecution struct {
 // ListTaskExecutions returns all executions for a scheduled task.
 // parentType must be "applications" or "services".
 func (c *Client) ListTaskExecutions(ctx context.Context, parentType, parentUUID, taskUUID string) ([]TaskExecution, error) {
-	if err := validateTaskParentType(parentType); err != nil {
+	if err := validateParentType(parentType); err != nil {
 		return nil, err
 	}
 	var execs []TaskExecution

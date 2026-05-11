@@ -69,7 +69,7 @@ func TestClient_Timeout(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	// Shorten the timeout so the test finishes quickly.
-	c.httpClient.Timeout = 2 * time.Second
+	c.HTTPClient.Timeout = 2 * time.Second
 
 	start := time.Now()
 	err := c.do(context.Background(), http.MethodGet, "/slow", nil, nil)
@@ -284,7 +284,7 @@ func TestClient_CreateProject_ServerError(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	// Shorten retry delays so the test does not wait too long.
-	c.httpClient.Timeout = 10 * time.Second
+	c.HTTPClient.Timeout = 10 * time.Second
 	_, err := c.CreateProject(context.Background(), CreateProjectInput{
 		Name: "Will Fail",
 	})

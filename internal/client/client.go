@@ -20,14 +20,14 @@ const maxResponseSize = 10 << 20
 
 // Client is the Coolify API client.
 type Client struct {
-	baseURL    string
-	apiToken   string
-	httpClient *http.Client
-	userAgent  string
+	BaseURL    string
+	apiToken   string // unexported: prevents %+v leaking the token
+	HTTPClient *http.Client
+	UserAgent  string
 }
 
 // New creates a new Coolify API client.
-func New(baseURL, apiToken string, opts ...func(*Client)) *Client {
+func New(baseURL, apiToken string) *Client {
 	rc := retryablehttp.NewClient()
 	rc.RetryMax = 3
 	rc.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
@@ -51,21 +51,12 @@ func New(baseURL, apiToken string, opts ...func(*Client)) *Client {
 	httpClient := rc.StandardClient()
 	httpClient.Timeout = 30 * time.Second
 
-	c := &Client{
-		baseURL:    baseURL,
+	return &Client{
+		BaseURL:    baseURL,
 		apiToken:   apiToken,
-		httpClient: httpClient,
-		userAgent:  "terraform-provider-coolify",
+		HTTPClient: httpClient,
+		UserAgent:  "terraform-provider-coolify",
 	}
-	for _, opt := range opts {
-		opt(c)
-	}
-	return c
-}
-
-// WithUserAgent returns an option that sets the User-Agent header.
-func WithUserAgent(ua string) func(*Client) {
-	return func(c *Client) { c.userAgent = ua }
 }
 
 // GetVersion returns the Coolify instance version string.
@@ -81,14 +72,14 @@ func (c *Client) GetHealth(ctx context.Context) (string, error) {
 // doText performs a GET request and returns the response body as a trimmed
 // string. Handles both plain text and JSON-encoded string responses.
 func (c *Client) doText(ctx context.Context, path string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
 		return "", fmt.Errorf("creating request for %s: %w", path, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
-	req.Header.Set("User-Agent", c.userAgent)
+	req.Header.Set("User-Agent", c.UserAgent)
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("executing request for %s: %w", path, err)
 	}
@@ -155,18 +146,18 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		reqBody = bytes.NewReader(data)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, reqBody)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", c.userAgent)
+	req.Header.Set("User-Agent", c.UserAgent)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("executing request: %w", err)
 	}
@@ -212,17 +203,7 @@ func validateParentType(pt string) error {
 	return nil
 }
 
-var validTaskParentTypes = map[string]bool{
-	"applications": true,
-	"services":     true,
-}
 
-func validateTaskParentType(pt string) error {
-	if !validTaskParentTypes[pt] {
-		return fmt.Errorf("invalid parent type %q for scheduled tasks: must be applications or services", pt)
-	}
-	return nil
-}
 
 // extractAPIMessage attempts to parse a JSON error response from the Coolify
 // API and return the human-readable "message" field. Falls back to the raw
