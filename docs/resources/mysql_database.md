@@ -39,10 +39,10 @@ resource "coolify_mysql_database" "example" {
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `image` (String) The Docker image to use.
 - `is_public` (Boolean) When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.
-- `mysql_database` (String) The MySQL database name.
-- `mysql_password` (String, Sensitive) The MySQL user password.
-- `mysql_root_password` (String, Sensitive) The MySQL root password.
-- `mysql_user` (String) The MySQL user.
+- `mysql_database` (String) The default database name (maps to `MYSQL_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `mysql_password` (String, Sensitive) The MySQL user password (maps to `MYSQL_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `mysql_root_password` (String, Sensitive) The MySQL root password (maps to `MYSQL_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `mysql_user` (String) The MySQL user name (maps to `MYSQL_USER`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 

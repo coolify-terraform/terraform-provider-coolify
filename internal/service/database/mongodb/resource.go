@@ -44,9 +44,9 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 }
 func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a MongoDB database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(map[string]schema.Attribute{
-		"mongo_initdb_root_username": schema.StringAttribute{MarkdownDescription: "The MongoDB root username.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"mongo_initdb_root_password": schema.StringAttribute{MarkdownDescription: "The MongoDB root password.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"mongo_initdb_database":      schema.StringAttribute{MarkdownDescription: "The MongoDB initial database name.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"mongo_initdb_root_username": schema.StringAttribute{MarkdownDescription: "The MongoDB root username (maps to `MONGO_INITDB_ROOT_USERNAME`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"mongo_initdb_root_password": schema.StringAttribute{MarkdownDescription: "The MongoDB root password (maps to `MONGO_INITDB_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"mongo_initdb_database":      schema.StringAttribute{MarkdownDescription: "The initial database name (maps to `MONGO_INITDB_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

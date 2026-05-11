@@ -39,10 +39,10 @@ resource "coolify_mariadb_database" "example" {
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `image` (String) The Docker image to use.
 - `is_public` (Boolean) When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.
-- `mariadb_database` (String) The MariaDB database name.
-- `mariadb_password` (String, Sensitive) The MariaDB user password.
-- `mariadb_root_password` (String, Sensitive) The MariaDB root password.
-- `mariadb_user` (String) The MariaDB user.
+- `mariadb_database` (String) The default database name (maps to `MARIADB_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `mariadb_password` (String, Sensitive) The MariaDB user password (maps to `MARIADB_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `mariadb_root_password` (String, Sensitive) The MariaDB root password (maps to `MARIADB_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `mariadb_user` (String) The MariaDB user name (maps to `MARIADB_USER`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 

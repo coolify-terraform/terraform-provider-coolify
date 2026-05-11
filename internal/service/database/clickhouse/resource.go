@@ -43,8 +43,8 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 }
 func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a ClickHouse database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(map[string]schema.Attribute{
-		"clickhouse_admin_user":     schema.StringAttribute{MarkdownDescription: "The ClickHouse admin user.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"clickhouse_admin_password": schema.StringAttribute{MarkdownDescription: "The ClickHouse admin password.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"clickhouse_admin_user":     schema.StringAttribute{MarkdownDescription: "The ClickHouse admin user name (maps to `CLICKHOUSE_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"clickhouse_admin_password": schema.StringAttribute{MarkdownDescription: "The ClickHouse admin password (maps to `CLICKHOUSE_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

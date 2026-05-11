@@ -2,7 +2,7 @@ resource "coolify_github_app_application" "app" {
   name            = "my-github-app"
   project_uuid    = coolify_project.example.uuid
   server_uuid     = coolify_server.example.uuid
-  github_app_uuid = coolify_github_app.example.uuid
+  github_app_uuid = "your-github-app-uuid" # from Coolify dashboard
   git_repository  = "github.com/myorg/myrepo"
   git_branch      = "main"
   build_pack      = "nixpacks"

@@ -45,10 +45,10 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 }
 func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a MariaDB database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(map[string]schema.Attribute{
-		"mariadb_user":          schema.StringAttribute{MarkdownDescription: "The MariaDB user.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"mariadb_password":      schema.StringAttribute{MarkdownDescription: "The MariaDB user password.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"mariadb_database":      schema.StringAttribute{MarkdownDescription: "The MariaDB database name.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"mariadb_root_password": schema.StringAttribute{MarkdownDescription: "The MariaDB root password.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"mariadb_user":          schema.StringAttribute{MarkdownDescription: "The MariaDB user name (maps to `MARIADB_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"mariadb_password":      schema.StringAttribute{MarkdownDescription: "The MariaDB user password (maps to `MARIADB_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"mariadb_database":      schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MARIADB_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"mariadb_root_password": schema.StringAttribute{MarkdownDescription: "The MariaDB root password (maps to `MARIADB_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

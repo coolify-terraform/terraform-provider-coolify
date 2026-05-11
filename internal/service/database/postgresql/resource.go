@@ -54,15 +54,15 @@ func (r *postgresqlDatabaseResource) Schema(_ context.Context, _ resource.Schema
 		MarkdownDescription: "Manages a PostgreSQL database resource on Coolify.",
 		Attributes: CommonDatabaseAttrs(map[string]schema.Attribute{
 			"postgres_user": schema.StringAttribute{
-				MarkdownDescription: "The PostgreSQL user.", Optional: true, Computed: true,
+				MarkdownDescription: "The PostgreSQL superuser name (maps to `POSTGRES_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"postgres_password": schema.StringAttribute{
-				MarkdownDescription: "The PostgreSQL password.", Optional: true, Computed: true, Sensitive: true,
+				MarkdownDescription: "The PostgreSQL superuser password (maps to `POSTGRES_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"postgres_db": schema.StringAttribute{
-				MarkdownDescription: "The PostgreSQL database name.", Optional: true, Computed: true,
+				MarkdownDescription: "The default database name (maps to `POSTGRES_DB`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 		}),

@@ -50,10 +50,10 @@ func (r *mysqlDatabaseResource) Schema(_ context.Context, _ resource.SchemaReque
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a MySQL database resource on Coolify.",
 		Attributes: postgresql.CommonDatabaseAttrs(map[string]schema.Attribute{
-			"mysql_user":          schema.StringAttribute{MarkdownDescription: "The MySQL user.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"mysql_password":      schema.StringAttribute{MarkdownDescription: "The MySQL user password.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"mysql_database":      schema.StringAttribute{MarkdownDescription: "The MySQL database name.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"mysql_root_password": schema.StringAttribute{MarkdownDescription: "The MySQL root password.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"mysql_user":          schema.StringAttribute{MarkdownDescription: "The MySQL user name (maps to `MYSQL_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"mysql_password":      schema.StringAttribute{MarkdownDescription: "The MySQL user password (maps to `MYSQL_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"mysql_database":      schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MYSQL_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"mysql_root_password": schema.StringAttribute{MarkdownDescription: "The MySQL root password (maps to `MYSQL_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		}),
 	}
 }

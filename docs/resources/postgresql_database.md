@@ -40,9 +40,9 @@ resource "coolify_postgresql_database" "example" {
 - `image` (String) The Docker image to use.
 - `is_public` (Boolean) When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.
 - `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
-- `postgres_db` (String) The PostgreSQL database name.
-- `postgres_password` (String, Sensitive) The PostgreSQL password.
-- `postgres_user` (String) The PostgreSQL user.
+- `postgres_db` (String) The default database name (maps to `POSTGRES_DB`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `postgres_password` (String, Sensitive) The PostgreSQL superuser password (maps to `POSTGRES_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `postgres_user` (String) The PostgreSQL superuser name (maps to `POSTGRES_USER`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 
 ### Read-Only

@@ -31,8 +31,8 @@ resource "coolify_clickhouse_database" "example" {
 
 ### Optional
 
-- `clickhouse_admin_password` (String, Sensitive) The ClickHouse admin password.
-- `clickhouse_admin_user` (String) The ClickHouse admin user.
+- `clickhouse_admin_password` (String, Sensitive) The ClickHouse admin password (maps to `CLICKHOUSE_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `clickhouse_admin_user` (String) The ClickHouse admin user name (maps to `CLICKHOUSE_USER`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `description` (String) A description of the database.
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `image` (String) The Docker image to use.

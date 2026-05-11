@@ -22,11 +22,13 @@ resource "coolify_environment_variable" "database_url" {
   is_preview       = false
 }
 
-# Set an environment variable on a database
-resource "coolify_environment_variable" "db_password" {
+# Set a custom environment variable on a database
+# Note: do not duplicate built-in credential fields (e.g. POSTGRES_PASSWORD)
+# that are already managed by the database resource's own attributes.
+resource "coolify_environment_variable" "db_log_level" {
   database_uuid = coolify_postgresql_database.example.uuid
-  key           = "POSTGRES_PASSWORD"
-  value         = "supersecret"
+  key           = "POSTGRES_LOG_MIN_MESSAGES"
+  value         = "warning"
 }
 ```
 
