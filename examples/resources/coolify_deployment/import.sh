@@ -1,3 +1,2 @@
-# Import is not supported for coolify_deployment resources.
-# Deployments are ephemeral triggers. Re-run terraform apply to create a new deployment.
-terraform import coolify_deployment.web <deployment-uuid>
+# Import format: application_uuid:deployment_uuid
+terraform import coolify_deployment.web <application-uuid>:<deployment-uuid>

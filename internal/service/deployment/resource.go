@@ -3,6 +3,7 @@ package deployment
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
@@ -154,9 +155,22 @@ func (r *deploymentResource) Delete(_ context.Context, _ resource.DeleteRequest,
 }
 
 func (r *deploymentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	if err := validate.ImportUUID(req.ID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
+	parts := strings.SplitN(req.ID, ":", 2)
+	if len(parts) != 2 {
+		resp.Diagnostics.AddError(
+			"Invalid import ID format",
+			`Expected "application_uuid:deployment_uuid".`,
+		)
 		return
 	}
-	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+	if err := validate.ImportUUID(parts[0]); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", "application UUID segment: "+err.Error())
+		return
+	}
+	if err := validate.ImportUUID(parts[1]); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", "deployment UUID segment: "+err.Error())
+		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("application_uuid"), parts[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parts[1])...)
 }

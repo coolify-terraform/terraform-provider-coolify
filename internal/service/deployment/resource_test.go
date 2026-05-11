@@ -202,10 +202,10 @@ resource "coolify_deployment" "test" {
 			{
 				ResourceName:                         "coolify_deployment.test",
 				ImportState:                          true,
-				ImportStateId:                        deploymentUUID,
+				ImportStateId:                        appUUID + ":" + deploymentUUID,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateVerifyIgnore:              []string{"application_uuid", "triggers"},
+				ImportStateVerifyIgnore:              []string{"triggers"},
 			},
 		},
 	})
