@@ -61,6 +61,8 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.Name, p.Name)
 	flex.SetIfKnown(&in.Description, p.Description)
 	flex.SetIfKnown(&in.Image, p.Image)
+	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
+	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	c, err := r.client.CreateKeydbDatabase(ctx, in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating KeyDB database", err.Error())

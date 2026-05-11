@@ -98,6 +98,8 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	flex.SetIfKnown(&input.PostgresUser, plan.PostgresUser)
 	flex.SetIfKnown(&input.PostgresPassword, plan.PostgresPassword)
 	flex.SetIfKnown(&input.PostgresDB, plan.PostgresDB)
+	input.IsPublic = flex.BoolValueOrNull(plan.IsPublic)
+	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
 
 	created, err := r.client.CreatePostgresqlDatabase(ctx, input)
 	if err != nil {

@@ -73,6 +73,8 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.MongoInitdbRootUsername, p.MongoInitdbRootUsername)
 	flex.SetIfKnown(&in.MongoInitdbRootPassword, p.MongoInitdbRootPassword)
 	flex.SetIfKnown(&in.MongoInitdbDatabase, p.MongoInitdbDatabase)
+	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
+	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	c, err := r.client.CreateMongodbDatabase(ctx, in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating MongoDB database", err.Error())

@@ -70,6 +70,8 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.Image, p.Image)
 	flex.SetIfKnown(&in.ClickhouseAdminUser, p.ClickhouseAdminUser)
 	flex.SetIfKnown(&in.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
+	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
+	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	c, err := r.client.CreateClickhouseDatabase(ctx, in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating ClickHouse database", err.Error())
