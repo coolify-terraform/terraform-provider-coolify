@@ -355,7 +355,7 @@ jobs:
   ci-pass:
     name: CI
     if: always()
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 2
     needs: [test, lint, validate-examples, govulncheck, trivy, gitleaks, goreleaser-check, docs]
     steps:

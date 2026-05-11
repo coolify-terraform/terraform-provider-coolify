@@ -38,6 +38,7 @@ linters:
       min-complexity: 5
     godox:
       keywords:
+        - TODO
         - FIXME
         - HACK
         - XXX
