@@ -92,7 +92,7 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Default:             booldefault.StaticBool(true),
 			},
 			"s3_storage_id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the S3 storage destination.",
+				MarkdownDescription: "The UUID of the S3 storage destination for off-site backups. Use the `uuid` output of a `coolify_s3_storage` resource. When omitted, backups are stored locally on the server.",
 				Optional:            true,
 			},
 			"retain_days": schema.Int64Attribute{

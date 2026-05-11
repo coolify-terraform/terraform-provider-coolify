@@ -35,14 +35,14 @@ resource "coolify_mongodb_database" "example" {
 ### Optional
 
 - `description` (String) A description of the database.
-- `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
+- `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `image` (String) The Docker image to use.
-- `is_public` (Boolean) Whether the database is publicly accessible.
+- `is_public` (Boolean) When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.
 - `mongo_initdb_database` (String) The MongoDB initial database name.
 - `mongo_initdb_root_password` (String, Sensitive) The MongoDB root password.
 - `mongo_initdb_root_username` (String) The MongoDB root username.
 - `name` (String) The name of the database resource.
-- `public_port` (Number) The public port for the database, if publicly accessible.
+- `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 
 ### Read-Only
 

@@ -43,7 +43,7 @@ resource "coolify_database_backup" "daily" {
 
 - `enabled` (Boolean) Whether the backup schedule is active.
 - `retain_days` (Number) Number of backup copies to retain locally (not days). For example, `7` keeps the last 7 backups regardless of their age.
-- `s3_storage_id` (String) The ID of the S3 storage destination.
+- `s3_storage_id` (String) The UUID of the S3 storage destination for off-site backups. Use the `uuid` output of a `coolify_s3_storage` resource. When omitted, backups are stored locally on the server.
 
 ### Read-Only
 
