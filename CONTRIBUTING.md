@@ -39,7 +39,7 @@ See [TESTING.md](TESTING.md) for full acceptance test documentation.
 Run all CI checks locally before pushing:
 
 ```bash
-make ci      # Build, vet, lint, test, validate, fmt check, docs check
+make ci      # Build, lint, test, validate, docs-check, api-coverage-check, vulncheck
 ```
 
 Or run individual checks:

@@ -9,9 +9,6 @@ test: ## Run unit tests (race detector, coverage)
 testacc: ## Run acceptance tests (needs COOLIFY_ENDPOINT + COOLIFY_TOKEN)
 	TF_ACC=1 go test -v -cover -count=1 -timeout=120m -run 'TestAcc' ./...
 
-vet: ## Run go vet
-	go vet ./...
-
 lint: ## Run golangci-lint + go mod tidy check
 	golangci-lint run ./...
 	@go mod tidy && git diff --exit-code go.mod go.sum || (echo "go mod tidy produced changes"; exit 1)
@@ -42,10 +39,6 @@ api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 
 ci: build lint test validate docs-check api-coverage-check vulncheck ## Run all checks (mirrors CI pipeline)
 
-fmt-check: ## Check formatting (no changes)
-	@output=$$(gofmt -s -l .); if [ -n "$$output" ]; then echo "gofmt needed on:"; echo "$$output"; exit 1; fi
-	@go mod tidy && git diff --exit-code go.mod go.sum || (echo "go mod tidy produced changes"; exit 1)
-
 docs-check: ## Check generated docs are up to date
 	@go generate ./... && git diff --exit-code || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
 
@@ -58,4 +51,4 @@ vulncheck: ## Run govulncheck for known vulnerabilities
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc vet lint fmt fmt-check docs docs-check api-coverage-check validate install spec-update spec-check api-coverage vulncheck ci help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check validate install spec-update spec-check api-coverage vulncheck ci help
