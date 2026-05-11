@@ -61,7 +61,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
       - uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false
@@ -106,7 +106,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
       - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
@@ -138,7 +138,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
       - name: Run govulncheck
@@ -189,7 +189,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
       - uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false
