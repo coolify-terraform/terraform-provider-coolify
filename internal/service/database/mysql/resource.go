@@ -76,13 +76,13 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 	input := client.CreateMysqlInput{ServerUUID: plan.ServerUUID.ValueString(), ProjectUUID: plan.ProjectUUID.ValueString(), EnvironmentName: plan.EnvironmentName.ValueString()}
-	postgresql.SetIfKnown(&input.Name, plan.Name)
-	postgresql.SetIfKnown(&input.Description, plan.Description)
-	postgresql.SetIfKnown(&input.Image, plan.Image)
-	postgresql.SetIfKnown(&input.MysqlUser, plan.MysqlUser)
-	postgresql.SetIfKnown(&input.MysqlPassword, plan.MysqlPassword)
-	postgresql.SetIfKnown(&input.MysqlDatabase, plan.MysqlDatabase)
-	postgresql.SetIfKnown(&input.MysqlRootPassword, plan.MysqlRootPassword)
+	flex.SetIfKnown(&input.Name, plan.Name)
+	flex.SetIfKnown(&input.Description, plan.Description)
+	flex.SetIfKnown(&input.Image, plan.Image)
+	flex.SetIfKnown(&input.MysqlUser, plan.MysqlUser)
+	flex.SetIfKnown(&input.MysqlPassword, plan.MysqlPassword)
+	flex.SetIfKnown(&input.MysqlDatabase, plan.MysqlDatabase)
+	flex.SetIfKnown(&input.MysqlRootPassword, plan.MysqlRootPassword)
 	created, err := r.client.CreateMysqlDatabase(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating MySQL database", err.Error())
@@ -129,15 +129,15 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 	}
 	uuid := state.UUID.ValueString()
 	input := client.UpdateDatabaseInput{}
-	postgresql.SetStrPtr(&input.Name, plan.Name)
-	postgresql.SetStrPtr(&input.Description, plan.Description)
-	postgresql.SetStrPtr(&input.Image, plan.Image)
-	postgresql.SetBoolPtr(&input.IsPublic, plan.IsPublic)
+	flex.SetStrPtr(&input.Name, plan.Name)
+	flex.SetStrPtr(&input.Description, plan.Description)
+	flex.SetStrPtr(&input.Image, plan.Image)
+	flex.SetBoolPtr(&input.IsPublic, plan.IsPublic)
 	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
-	postgresql.SetStrPtr(&input.MysqlUser, plan.MysqlUser)
-	postgresql.SetStrPtr(&input.MysqlPassword, plan.MysqlPassword)
-	postgresql.SetStrPtr(&input.MysqlDatabase, plan.MysqlDatabase)
-	postgresql.SetStrPtr(&input.MysqlRootPassword, plan.MysqlRootPassword)
+	flex.SetStrPtr(&input.MysqlUser, plan.MysqlUser)
+	flex.SetStrPtr(&input.MysqlPassword, plan.MysqlPassword)
+	flex.SetStrPtr(&input.MysqlDatabase, plan.MysqlDatabase)
+	flex.SetStrPtr(&input.MysqlRootPassword, plan.MysqlRootPassword)
 	if _, err := r.client.UpdateDatabase(ctx, uuid, input); err != nil {
 		resp.Diagnostics.AddError("Error updating MySQL database", err.Error())
 		return

@@ -81,6 +81,29 @@ func BoolPtrToFramework(v *bool) types.Bool {
 	return types.BoolValue(*v)
 }
 
+// SetIfKnown sets dst to the string value if v is known and non-null.
+func SetIfKnown(dst *string, v types.String) {
+	if !v.IsNull() && !v.IsUnknown() {
+		*dst = v.ValueString()
+	}
+}
+
+// SetStrPtr sets dst to a pointer to the string value if v is known and non-null.
+func SetStrPtr(dst **string, v types.String) {
+	if !v.IsNull() && !v.IsUnknown() {
+		s := v.ValueString()
+		*dst = &s
+	}
+}
+
+// SetBoolPtr sets dst to a pointer to the bool value if v is known and non-null.
+func SetBoolPtr(dst **bool, v types.Bool) {
+	if !v.IsNull() && !v.IsUnknown() {
+		b := v.ValueBool()
+		*dst = &b
+	}
+}
+
 // StringFromFramework converts a framework types.String to a Go string.
 func StringFromFramework(s types.String) string {
 	if s.IsNull() || s.IsUnknown() {

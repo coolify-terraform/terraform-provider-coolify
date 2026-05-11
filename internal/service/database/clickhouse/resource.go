@@ -64,11 +64,11 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		return
 	}
 	in := client.CreateClickhouseInput{ServerUUID: p.ServerUUID.ValueString(), ProjectUUID: p.ProjectUUID.ValueString(), EnvironmentName: p.EnvironmentName.ValueString()}
-	pg.SetIfKnown(&in.Name, p.Name)
-	pg.SetIfKnown(&in.Description, p.Description)
-	pg.SetIfKnown(&in.Image, p.Image)
-	pg.SetIfKnown(&in.ClickhouseAdminUser, p.ClickhouseAdminUser)
-	pg.SetIfKnown(&in.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
+	flex.SetIfKnown(&in.Name, p.Name)
+	flex.SetIfKnown(&in.Description, p.Description)
+	flex.SetIfKnown(&in.Image, p.Image)
+	flex.SetIfKnown(&in.ClickhouseAdminUser, p.ClickhouseAdminUser)
+	flex.SetIfKnown(&in.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
 	c, err := r.client.CreateClickhouseDatabase(ctx, in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating ClickHouse database", err.Error())
@@ -112,13 +112,13 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		return
 	}
 	u := client.UpdateDatabaseInput{}
-	pg.SetStrPtr(&u.Name, p.Name)
-	pg.SetStrPtr(&u.Description, p.Description)
-	pg.SetStrPtr(&u.Image, p.Image)
-	pg.SetBoolPtr(&u.IsPublic, p.IsPublic)
+	flex.SetStrPtr(&u.Name, p.Name)
+	flex.SetStrPtr(&u.Description, p.Description)
+	flex.SetStrPtr(&u.Image, p.Image)
+	flex.SetBoolPtr(&u.IsPublic, p.IsPublic)
 	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	pg.SetStrPtr(&u.ClickhouseAdminUser, p.ClickhouseAdminUser)
-	pg.SetStrPtr(&u.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
+	flex.SetStrPtr(&u.ClickhouseAdminUser, p.ClickhouseAdminUser)
+	flex.SetStrPtr(&u.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
 	if _, err := r.client.UpdateDatabase(ctx, s.UUID.ValueString(), u); err != nil {
 		resp.Diagnostics.AddError("Error updating ClickHouse database", err.Error())
 		return

@@ -66,12 +66,12 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		return
 	}
 	in := client.CreateMongodbInput{ServerUUID: p.ServerUUID.ValueString(), ProjectUUID: p.ProjectUUID.ValueString(), EnvironmentName: p.EnvironmentName.ValueString()}
-	pg.SetIfKnown(&in.Name, p.Name)
-	pg.SetIfKnown(&in.Description, p.Description)
-	pg.SetIfKnown(&in.Image, p.Image)
-	pg.SetIfKnown(&in.MongoInitdbRootUsername, p.MongoInitdbRootUsername)
-	pg.SetIfKnown(&in.MongoInitdbRootPassword, p.MongoInitdbRootPassword)
-	pg.SetIfKnown(&in.MongoInitdbDatabase, p.MongoInitdbDatabase)
+	flex.SetIfKnown(&in.Name, p.Name)
+	flex.SetIfKnown(&in.Description, p.Description)
+	flex.SetIfKnown(&in.Image, p.Image)
+	flex.SetIfKnown(&in.MongoInitdbRootUsername, p.MongoInitdbRootUsername)
+	flex.SetIfKnown(&in.MongoInitdbRootPassword, p.MongoInitdbRootPassword)
+	flex.SetIfKnown(&in.MongoInitdbDatabase, p.MongoInitdbDatabase)
 	c, err := r.client.CreateMongodbDatabase(ctx, in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating MongoDB database", err.Error())
@@ -115,14 +115,14 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		return
 	}
 	u := client.UpdateDatabaseInput{}
-	pg.SetStrPtr(&u.Name, p.Name)
-	pg.SetStrPtr(&u.Description, p.Description)
-	pg.SetStrPtr(&u.Image, p.Image)
-	pg.SetBoolPtr(&u.IsPublic, p.IsPublic)
+	flex.SetStrPtr(&u.Name, p.Name)
+	flex.SetStrPtr(&u.Description, p.Description)
+	flex.SetStrPtr(&u.Image, p.Image)
+	flex.SetBoolPtr(&u.IsPublic, p.IsPublic)
 	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	pg.SetStrPtr(&u.MongoInitdbRootUsername, p.MongoInitdbRootUsername)
-	pg.SetStrPtr(&u.MongoInitdbRootPassword, p.MongoInitdbRootPassword)
-	pg.SetStrPtr(&u.MongoInitdbDatabase, p.MongoInitdbDatabase)
+	flex.SetStrPtr(&u.MongoInitdbRootUsername, p.MongoInitdbRootUsername)
+	flex.SetStrPtr(&u.MongoInitdbRootPassword, p.MongoInitdbRootPassword)
+	flex.SetStrPtr(&u.MongoInitdbDatabase, p.MongoInitdbDatabase)
 	if _, err := r.client.UpdateDatabase(ctx, s.UUID.ValueString(), u); err != nil {
 		resp.Diagnostics.AddError("Error updating MongoDB database", err.Error())
 		return

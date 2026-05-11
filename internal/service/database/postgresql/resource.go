@@ -92,12 +92,12 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 		ProjectUUID:     plan.ProjectUUID.ValueString(),
 		EnvironmentName: plan.EnvironmentName.ValueString(),
 	}
-	SetIfKnown(&input.Name, plan.Name)
-	SetIfKnown(&input.Description, plan.Description)
-	SetIfKnown(&input.Image, plan.Image)
-	SetIfKnown(&input.PostgresUser, plan.PostgresUser)
-	SetIfKnown(&input.PostgresPassword, plan.PostgresPassword)
-	SetIfKnown(&input.PostgresDB, plan.PostgresDB)
+	flex.SetIfKnown(&input.Name, plan.Name)
+	flex.SetIfKnown(&input.Description, plan.Description)
+	flex.SetIfKnown(&input.Image, plan.Image)
+	flex.SetIfKnown(&input.PostgresUser, plan.PostgresUser)
+	flex.SetIfKnown(&input.PostgresPassword, plan.PostgresPassword)
+	flex.SetIfKnown(&input.PostgresDB, plan.PostgresDB)
 
 	created, err := r.client.CreatePostgresqlDatabase(ctx, input)
 	if err != nil {
@@ -145,14 +145,14 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 	}
 	uuid := state.UUID.ValueString()
 	input := client.UpdateDatabaseInput{}
-	SetStrPtr(&input.Name, plan.Name)
-	SetStrPtr(&input.Description, plan.Description)
-	SetStrPtr(&input.Image, plan.Image)
-	SetBoolPtr(&input.IsPublic, plan.IsPublic)
+	flex.SetStrPtr(&input.Name, plan.Name)
+	flex.SetStrPtr(&input.Description, plan.Description)
+	flex.SetStrPtr(&input.Image, plan.Image)
+	flex.SetBoolPtr(&input.IsPublic, plan.IsPublic)
 	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
-	SetStrPtr(&input.PostgresUser, plan.PostgresUser)
-	SetStrPtr(&input.PostgresPassword, plan.PostgresPassword)
-	SetStrPtr(&input.PostgresDB, plan.PostgresDB)
+	flex.SetStrPtr(&input.PostgresUser, plan.PostgresUser)
+	flex.SetStrPtr(&input.PostgresPassword, plan.PostgresPassword)
+	flex.SetStrPtr(&input.PostgresDB, plan.PostgresDB)
 	if _, err := r.client.UpdateDatabase(ctx, uuid, input); err != nil {
 		resp.Diagnostics.AddError("Error updating PostgreSQL database", err.Error())
 		return
@@ -221,27 +221,4 @@ func CommonDatabaseAttrs(extra map[string]schema.Attribute) map[string]schema.At
 		attrs[k] = v
 	}
 	return attrs
-}
-
-// SetIfKnown sets dst to the string value if v is known and non-null.
-func SetIfKnown(dst *string, v types.String) {
-	if !v.IsNull() && !v.IsUnknown() {
-		*dst = v.ValueString()
-	}
-}
-
-// SetStrPtr sets dst to a pointer to the string value if v is known and non-null.
-func SetStrPtr(dst **string, v types.String) {
-	if !v.IsNull() && !v.IsUnknown() {
-		s := v.ValueString()
-		*dst = &s
-	}
-}
-
-// SetBoolPtr sets dst to a pointer to the bool value if v is known and non-null.
-func SetBoolPtr(dst **bool, v types.Bool) {
-	if !v.IsNull() && !v.IsUnknown() {
-		b := v.ValueBool()
-		*dst = &b
-	}
 }

@@ -68,13 +68,13 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		return
 	}
 	in := client.CreateMariadbInput{ServerUUID: p.ServerUUID.ValueString(), ProjectUUID: p.ProjectUUID.ValueString(), EnvironmentName: p.EnvironmentName.ValueString()}
-	pg.SetIfKnown(&in.Name, p.Name)
-	pg.SetIfKnown(&in.Description, p.Description)
-	pg.SetIfKnown(&in.Image, p.Image)
-	pg.SetIfKnown(&in.MariadbUser, p.MariadbUser)
-	pg.SetIfKnown(&in.MariadbPassword, p.MariadbPassword)
-	pg.SetIfKnown(&in.MariadbDatabase, p.MariadbDatabase)
-	pg.SetIfKnown(&in.MariadbRootPassword, p.MariadbRootPassword)
+	flex.SetIfKnown(&in.Name, p.Name)
+	flex.SetIfKnown(&in.Description, p.Description)
+	flex.SetIfKnown(&in.Image, p.Image)
+	flex.SetIfKnown(&in.MariadbUser, p.MariadbUser)
+	flex.SetIfKnown(&in.MariadbPassword, p.MariadbPassword)
+	flex.SetIfKnown(&in.MariadbDatabase, p.MariadbDatabase)
+	flex.SetIfKnown(&in.MariadbRootPassword, p.MariadbRootPassword)
 	c, err := r.client.CreateMariadbDatabase(ctx, in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating MariaDB database", err.Error())
@@ -118,15 +118,15 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		return
 	}
 	u := client.UpdateDatabaseInput{}
-	pg.SetStrPtr(&u.Name, p.Name)
-	pg.SetStrPtr(&u.Description, p.Description)
-	pg.SetStrPtr(&u.Image, p.Image)
-	pg.SetBoolPtr(&u.IsPublic, p.IsPublic)
+	flex.SetStrPtr(&u.Name, p.Name)
+	flex.SetStrPtr(&u.Description, p.Description)
+	flex.SetStrPtr(&u.Image, p.Image)
+	flex.SetBoolPtr(&u.IsPublic, p.IsPublic)
 	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	pg.SetStrPtr(&u.MariadbUser, p.MariadbUser)
-	pg.SetStrPtr(&u.MariadbPassword, p.MariadbPassword)
-	pg.SetStrPtr(&u.MariadbDatabase, p.MariadbDatabase)
-	pg.SetStrPtr(&u.MariadbRootPassword, p.MariadbRootPassword)
+	flex.SetStrPtr(&u.MariadbUser, p.MariadbUser)
+	flex.SetStrPtr(&u.MariadbPassword, p.MariadbPassword)
+	flex.SetStrPtr(&u.MariadbDatabase, p.MariadbDatabase)
+	flex.SetStrPtr(&u.MariadbRootPassword, p.MariadbRootPassword)
 	if _, err := r.client.UpdateDatabase(ctx, s.UUID.ValueString(), u); err != nil {
 		resp.Diagnostics.AddError("Error updating MariaDB database", err.Error())
 		return
