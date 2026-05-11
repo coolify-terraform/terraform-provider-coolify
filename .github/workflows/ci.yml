@@ -204,15 +204,32 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     if: github.event_name == 'schedule'
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v6
       - name: Check for upstream spec changes
+        id: spec-check
         run: |
           curl -sL https://raw.githubusercontent.com/coollabsio/coolify/v4.x/openapi.json \
             -o /tmp/coolify-latest.json
           if ! diff -q testdata/specs/coolify-v4.json /tmp/coolify-latest.json > /dev/null 2>&1; then
-            echo "::warning::Coolify OpenAPI spec has changed upstream. Update testdata/specs/coolify-v4.json"
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Coolify OpenAPI spec has changed upstream"
             diff testdata/specs/coolify-v4.json /tmp/coolify-latest.json | head -50
           else
             echo "Spec is up to date"
+          fi
+      - name: Create issue for spec drift
+        if: steps.spec-check.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh issue list --label "spec-drift" --state open --json number --jq length)
+          if [ "$EXISTING" = "0" ]; then
+            gh issue create \
+              --title "Upstream Coolify OpenAPI spec has changed" \
+              --label "spec-drift" \
+              --body "The weekly spec-freshness check detected changes in the upstream Coolify OpenAPI spec. Run \`make spec-update\` to download the latest spec and review the diff."
           fi

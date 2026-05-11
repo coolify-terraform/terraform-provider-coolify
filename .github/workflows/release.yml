@@ -17,6 +17,12 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+      - name: Verify tag is on main
+        run: |
+          if ! git branch -r --contains HEAD | grep -q 'origin/main'; then
+            echo "::error::Tag does not point to a commit on main branch"
+            exit 1
+          fi
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
