@@ -132,10 +132,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	if !plan.S3StorageID.IsNull() && !plan.S3StorageID.IsUnknown() {
 		input.S3StorageID = plan.S3StorageID.ValueString()
 	}
-	if !plan.RetainDays.IsNull() && !plan.RetainDays.IsUnknown() {
-		v := plan.RetainDays.ValueInt64()
-		input.RetainDays = &v
-	}
+	flex.SetInt64Ptr(&input.RetainDays, plan.RetainDays)
 
 	created, err := r.client.CreateDatabaseBackup(ctx, plan.DatabaseUUID.ValueString(), input)
 	if err != nil {
@@ -184,22 +181,10 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 	backupID := int(state.ID.ValueInt64())
 
 	input := client.UpdateDatabaseBackupInput{}
-	if !plan.Frequency.IsNull() && !plan.Frequency.IsUnknown() {
-		v := plan.Frequency.ValueString()
-		input.Frequency = &v
-	}
-	if !plan.Enabled.IsNull() && !plan.Enabled.IsUnknown() {
-		v := plan.Enabled.ValueBool()
-		input.Enabled = &v
-	}
-	if !plan.S3StorageID.IsNull() && !plan.S3StorageID.IsUnknown() {
-		v := plan.S3StorageID.ValueString()
-		input.S3StorageID = &v
-	}
-	if !plan.RetainDays.IsNull() && !plan.RetainDays.IsUnknown() {
-		v := plan.RetainDays.ValueInt64()
-		input.RetainDays = &v
-	}
+	flex.SetStrPtr(&input.Frequency, plan.Frequency)
+	flex.SetBoolPtr(&input.Enabled, plan.Enabled)
+	flex.SetStrPtr(&input.S3StorageID, plan.S3StorageID)
+	flex.SetInt64Ptr(&input.RetainDays, plan.RetainDays)
 
 	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, backupID, input); err != nil {
 		resp.Diagnostics.AddError("Error updating database backup", err.Error())

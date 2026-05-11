@@ -199,23 +199,18 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	name := plan.Name.ValueString()
-	desc := plan.Description.ValueString()
-	ip := plan.IP.ValueString()
 	port := int(plan.Port.ValueInt64())
-	user := plan.User.ValueString()
-	pkUUID := plan.PrivateKeyUUID.ValueString()
 	buildSrv := plan.IsBuildServer.ValueBool()
 
 	input := client.UpdateServerInput{
-		Name:           &name,
-		Description:    &desc,
-		IP:             &ip,
-		Port:           &port,
-		User:           &user,
-		PrivateKeyUUID: &pkUUID,
-		IsBuildServer:  &buildSrv,
+		Port:          &port,
+		IsBuildServer: &buildSrv,
 	}
+	flex.SetStrPtr(&input.Name, plan.Name)
+	flex.SetStrPtr(&input.Description, plan.Description)
+	flex.SetStrPtr(&input.IP, plan.IP)
+	flex.SetStrPtr(&input.User, plan.User)
+	flex.SetStrPtr(&input.PrivateKeyUUID, plan.PrivateKeyUUID)
 
 	_, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input)
 	if err != nil {

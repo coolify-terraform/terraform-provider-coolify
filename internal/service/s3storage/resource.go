@@ -178,23 +178,14 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	name := plan.Name.ValueString()
-	desc := plan.Description.ValueString()
-	endpoint := plan.Endpoint.ValueString()
-	bucket := plan.Bucket.ValueString()
-	region := plan.Region.ValueString()
-	accessKey := plan.AccessKey.ValueString()
-	secretKey := plan.SecretKey.ValueString()
-
-	input := client.UpdateS3StorageInput{
-		Name:        &name,
-		Description: &desc,
-		Endpoint:    &endpoint,
-		Bucket:      &bucket,
-		Region:      &region,
-		AccessKey:   &accessKey,
-		SecretKey:   &secretKey,
-	}
+	input := client.UpdateS3StorageInput{}
+	flex.SetStrPtr(&input.Name, plan.Name)
+	flex.SetStrPtr(&input.Description, plan.Description)
+	flex.SetStrPtr(&input.Endpoint, plan.Endpoint)
+	flex.SetStrPtr(&input.Bucket, plan.Bucket)
+	flex.SetStrPtr(&input.Region, plan.Region)
+	flex.SetStrPtr(&input.AccessKey, plan.AccessKey)
+	flex.SetStrPtr(&input.SecretKey, plan.SecretKey)
 
 	_, err := r.client.UpdateS3Storage(ctx, state.UUID.ValueString(), input)
 	if err != nil {

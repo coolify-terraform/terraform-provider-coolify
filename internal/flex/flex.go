@@ -96,6 +96,14 @@ func SetStrPtr(dst **string, v types.String) {
 	}
 }
 
+// SetInt64Ptr sets dst to a pointer to the int64 value if v is known and non-null.
+func SetInt64Ptr(dst **int64, v types.Int64) {
+	if !v.IsNull() && !v.IsUnknown() {
+		i := v.ValueInt64()
+		*dst = &i
+	}
+}
+
 // SetBoolPtr sets dst to a pointer to the bool value if v is known and non-null.
 func SetBoolPtr(dst **bool, v types.Bool) {
 	if !v.IsNull() && !v.IsUnknown() {
