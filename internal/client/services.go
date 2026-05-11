@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type Service struct {
@@ -34,7 +35,7 @@ func (c *Client) ListServices(ctx context.Context) ([]Service, error) {
 }
 func (c *Client) GetService(ctx context.Context, uuid string) (*Service, error) {
 	var s Service
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s", uuid), nil, &s); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s", url.PathEscape(uuid)), nil, &s); err != nil {
 		return nil, fmt.Errorf("getting service %s: %w", uuid, err)
 	}
 	return &s, nil
@@ -54,25 +55,25 @@ type UpdateServiceInput struct {
 
 func (c *Client) UpdateService(ctx context.Context, uuid string, input UpdateServiceInput) (*Service, error) {
 	var s Service
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/services/%s", uuid), input, &s); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/services/%s", url.PathEscape(uuid)), input, &s); err != nil {
 		return nil, fmt.Errorf("updating service %s: %w", uuid, err)
 	}
 	return &s, nil
 }
 func (c *Client) DeleteService(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/services/%s", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/services/%s", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("deleting service %s: %w", uuid, err)
 	}
 	return nil
 }
 func (c *Client) StartService(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/start", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/start", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("starting service %s: %w", uuid, err)
 	}
 	return nil
 }
 func (c *Client) StopService(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/stop", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/stop", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("stopping service %s: %w", uuid, err)
 	}
 	return nil
@@ -80,7 +81,7 @@ func (c *Client) StopService(ctx context.Context, uuid string) error {
 
 // RestartService restarts a service.
 func (c *Client) RestartService(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/restart", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s/restart", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("restarting service %s: %w", uuid, err)
 	}
 	return nil

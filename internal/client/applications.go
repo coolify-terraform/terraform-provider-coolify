@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type Application struct {
@@ -73,14 +74,14 @@ type RestartApplicationResponse struct {
 
 func (c *Client) RestartApplication(ctx context.Context, uuid string) (*RestartApplicationResponse, error) {
 	var r RestartApplicationResponse
-	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/applications/%s/restart", uuid), nil, &r); err != nil {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/applications/%s/restart", url.PathEscape(uuid)), nil, &r); err != nil {
 		return nil, fmt.Errorf("restarting application %s: %w", uuid, err)
 	}
 	return &r, nil
 }
 func (c *Client) GetApplication(ctx context.Context, uuid string) (*Application, error) {
 	var a Application
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s", uuid), nil, &a); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), nil, &a); err != nil {
 		return nil, fmt.Errorf("getting application %s: %w", uuid, err)
 	}
 	return &a, nil
@@ -94,27 +95,27 @@ func (c *Client) CreatePublicApplication(ctx context.Context, input CreatePublic
 }
 func (c *Client) UpdateApplication(ctx context.Context, uuid string, input UpdateApplicationInput) (*Application, error) {
 	var a Application
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s", uuid), input, &a); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), input, &a); err != nil {
 		return nil, fmt.Errorf("updating application %s: %w", uuid, err)
 	}
 	return &a, nil
 }
 func (c *Client) DeleteApplication(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("deleting application %s: %w", uuid, err)
 	}
 	return nil
 }
 
 func (c *Client) StartApplication(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/start", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/start", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("starting application %s: %w", uuid, err)
 	}
 	return nil
 }
 
 func (c *Client) StopApplication(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/stop", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/stop", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("stopping application %s: %w", uuid, err)
 	}
 	return nil
@@ -248,7 +249,7 @@ type ApplicationLog struct {
 // GetApplicationLogs returns log lines for an application.
 func (c *Client) GetApplicationLogs(ctx context.Context, uuid string) ([]ApplicationLog, error) {
 	var logs []ApplicationLog
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/logs", uuid), nil, &logs); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/logs", url.PathEscape(uuid)), nil, &logs); err != nil {
 		return nil, fmt.Errorf("getting application logs %s: %w", uuid, err)
 	}
 	return logs, nil
@@ -256,7 +257,7 @@ func (c *Client) GetApplicationLogs(ctx context.Context, uuid string) ([]Applica
 
 // DeletePreviewDeployment deletes a preview deployment for an application.
 func (c *Client) DeletePreviewDeployment(ctx context.Context, appUUID string, pullRequestID int64) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s/previews/%d", appUUID, pullRequestID), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s/previews/%d", url.PathEscape(appUUID), pullRequestID), nil, nil); err != nil {
 		return fmt.Errorf("deleting preview deployment for application %s pull request %d: %w", appUUID, pullRequestID, err)
 	}
 	return nil

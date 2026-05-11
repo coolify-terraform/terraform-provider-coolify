@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type Project struct {
@@ -32,7 +33,7 @@ func (c *Client) ListProjects(ctx context.Context) ([]Project, error) {
 
 func (c *Client) GetProject(ctx context.Context, uuid string) (*Project, error) {
 	var r Project
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/projects/%s", uuid), nil, &r); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/projects/%s", url.PathEscape(uuid)), nil, &r); err != nil {
 		return nil, fmt.Errorf("getting project %s: %w", uuid, err)
 	}
 	return &r, nil
@@ -48,14 +49,14 @@ func (c *Client) CreateProject(ctx context.Context, input CreateProjectInput) (*
 
 func (c *Client) UpdateProject(ctx context.Context, uuid string, input UpdateProjectInput) (*Project, error) {
 	var r Project
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/projects/%s", uuid), input, &r); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/projects/%s", url.PathEscape(uuid)), input, &r); err != nil {
 		return nil, fmt.Errorf("updating project %s: %w", uuid, err)
 	}
 	return &r, nil
 }
 
 func (c *Client) DeleteProject(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/projects/%s", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/projects/%s", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("deleting project %s: %w", uuid, err)
 	}
 	return nil

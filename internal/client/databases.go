@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type Database struct {
@@ -174,7 +175,7 @@ func (c *Client) ListDatabases(ctx context.Context) ([]Database, error) {
 }
 func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error) {
 	var d Database
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, &d); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s", url.PathEscape(uuid)), nil, &d); err != nil {
 		return nil, fmt.Errorf("getting database %s: %w", uuid, err)
 	}
 	return &d, nil
@@ -237,25 +238,25 @@ func (c *Client) CreateDragonflyDatabase(ctx context.Context, input CreateDragon
 }
 func (c *Client) UpdateDatabase(ctx context.Context, uuid string, input UpdateDatabaseInput) (*Database, error) {
 	var d Database
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s", uuid), input, &d); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s", url.PathEscape(uuid)), input, &d); err != nil {
 		return nil, fmt.Errorf("updating database %s: %w", uuid, err)
 	}
 	return &d, nil
 }
 func (c *Client) DeleteDatabase(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("deleting database %s: %w", uuid, err)
 	}
 	return nil
 }
 func (c *Client) StartDatabase(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/start", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/start", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("starting database %s: %w", uuid, err)
 	}
 	return nil
 }
 func (c *Client) StopDatabase(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/stop", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/stop", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("stopping database %s: %w", uuid, err)
 	}
 	return nil
@@ -263,7 +264,7 @@ func (c *Client) StopDatabase(ctx context.Context, uuid string) error {
 
 // RestartDatabase restarts a database.
 func (c *Client) RestartDatabase(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/restart", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/restart", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("restarting database %s: %w", uuid, err)
 	}
 	return nil
@@ -298,7 +299,7 @@ type UpdateDatabaseBackupInput struct {
 
 func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]DatabaseBackup, error) {
 	var backups []DatabaseBackup
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID), nil, &backups); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)), nil, &backups); err != nil {
 		return nil, fmt.Errorf("listing backups for database %s: %w", dbUUID, err)
 	}
 	return backups, nil
@@ -306,7 +307,7 @@ func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]Data
 
 func (c *Client) GetDatabaseBackup(ctx context.Context, dbUUID string, backupID int) (*DatabaseBackup, error) {
 	var b DatabaseBackup
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID), nil, &b); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups/%d", url.PathEscape(dbUUID), backupID), nil, &b); err != nil {
 		return nil, fmt.Errorf("getting backup %d for database %s: %w", backupID, dbUUID, err)
 	}
 	return &b, nil
@@ -314,7 +315,7 @@ func (c *Client) GetDatabaseBackup(ctx context.Context, dbUUID string, backupID 
 
 func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input CreateDatabaseBackupInput) (*DatabaseBackup, error) {
 	var b DatabaseBackup
-	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID), input, &b, http.StatusCreated); err != nil {
+	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)), input, &b, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating backup for database %s: %w", dbUUID, err)
 	}
 	return &b, nil
@@ -322,14 +323,14 @@ func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input 
 
 func (c *Client) UpdateDatabaseBackup(ctx context.Context, dbUUID string, backupID int, input UpdateDatabaseBackupInput) (*DatabaseBackup, error) {
 	var b DatabaseBackup
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID), input, &b); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/backups/%d", url.PathEscape(dbUUID), backupID), input, &b); err != nil {
 		return nil, fmt.Errorf("updating backup %d for database %s: %w", backupID, dbUUID, err)
 	}
 	return &b, nil
 }
 
 func (c *Client) DeleteDatabaseBackup(ctx context.Context, dbUUID string, backupID int) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/backups/%d", url.PathEscape(dbUUID), backupID), nil, nil); err != nil {
 		return fmt.Errorf("deleting backup %d for database %s: %w", backupID, dbUUID, err)
 	}
 	return nil
@@ -348,7 +349,7 @@ type BackupExecution struct {
 // ListBackupExecutions returns all executions for a database backup.
 func (c *Client) ListBackupExecutions(ctx context.Context, dbUUID, backupUUID string) ([]BackupExecution, error) {
 	var execs []BackupExecution
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups/%s/executions", dbUUID, backupUUID), nil, &execs); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups/%s/executions", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), nil, &execs); err != nil {
 		return nil, fmt.Errorf("listing backup executions for database %s backup %s: %w", dbUUID, backupUUID, err)
 	}
 	return execs, nil
@@ -356,7 +357,7 @@ func (c *Client) ListBackupExecutions(ctx context.Context, dbUUID, backupUUID st
 
 // DeleteBackupExecution deletes a specific backup execution.
 func (c *Client) DeleteBackupExecution(ctx context.Context, dbUUID, backupUUID, execUUID string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/backups/%s/executions/%s", dbUUID, backupUUID, execUUID), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/backups/%s/executions/%s", url.PathEscape(dbUUID), url.PathEscape(backupUUID), url.PathEscape(execUUID)), nil, nil); err != nil {
 		return fmt.Errorf("deleting backup execution %s for database %s backup %s: %w", execUUID, dbUUID, backupUUID, err)
 	}
 	return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type S3Storage struct {
@@ -48,7 +49,7 @@ func (c *Client) ListS3Storages(ctx context.Context) ([]S3Storage, error) {
 
 func (c *Client) GetS3Storage(ctx context.Context, uuid string) (*S3Storage, error) {
 	var s S3Storage
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/storages/%s", uuid), nil, &s); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/storages/%s", url.PathEscape(uuid)), nil, &s); err != nil {
 		return nil, fmt.Errorf("getting s3 storage %s: %w", uuid, err)
 	}
 	return &s, nil
@@ -64,14 +65,14 @@ func (c *Client) CreateS3Storage(ctx context.Context, input CreateS3StorageInput
 
 func (c *Client) UpdateS3Storage(ctx context.Context, uuid string, input UpdateS3StorageInput) (*S3Storage, error) {
 	var s S3Storage
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/storages/%s", uuid), input, &s); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/storages/%s", url.PathEscape(uuid)), input, &s); err != nil {
 		return nil, fmt.Errorf("updating s3 storage %s: %w", uuid, err)
 	}
 	return &s, nil
 }
 
 func (c *Client) DeleteS3Storage(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/storages/%s", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/storages/%s", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("deleting s3 storage %s: %w", uuid, err)
 	}
 	return nil

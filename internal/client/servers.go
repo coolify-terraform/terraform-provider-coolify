@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type Server struct {
@@ -46,7 +47,7 @@ func (c *Client) ListServers(ctx context.Context) ([]Server, error) {
 }
 func (c *Client) GetServer(ctx context.Context, uuid string) (*Server, error) {
 	var s Server
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s", uuid), nil, &s); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s", url.PathEscape(uuid)), nil, &s); err != nil {
 		return nil, fmt.Errorf("getting server %s: %w", uuid, err)
 	}
 	return &s, nil
@@ -60,13 +61,13 @@ func (c *Client) CreateServer(ctx context.Context, input CreateServerInput) (*Se
 }
 func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServerInput) (*Server, error) {
 	var s Server
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s", uuid), input, &s); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s", url.PathEscape(uuid)), input, &s); err != nil {
 		return nil, fmt.Errorf("updating server %s: %w", uuid, err)
 	}
 	return &s, nil
 }
 func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/servers/%s", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/servers/%s", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("deleting server %s: %w", uuid, err)
 	}
 	return nil
@@ -82,7 +83,7 @@ type ServerValidation struct {
 // Coolify uses GET for this endpoint.
 func (c *Client) ValidateServer(ctx context.Context, uuid string) (*ServerValidation, error) {
 	var v ServerValidation
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/validate", uuid), nil, &v); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/validate", url.PathEscape(uuid)), nil, &v); err != nil {
 		return nil, fmt.Errorf("validating server %s: %w", uuid, err)
 	}
 	return &v, nil
@@ -97,7 +98,7 @@ type ServerResource struct {
 // ListServerResources returns all resources (apps, databases, services) deployed on a server.
 func (c *Client) ListServerResources(ctx context.Context, uuid string) ([]ServerResource, error) {
 	var r []ServerResource
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/resources", uuid), nil, &r); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/resources", url.PathEscape(uuid)), nil, &r); err != nil {
 		return nil, fmt.Errorf("listing server resources %s: %w", uuid, err)
 	}
 	return r, nil
@@ -131,7 +132,7 @@ func (c *Client) CreateHetznerServer(ctx context.Context, input CreateHetznerSer
 // ListServerDomains returns all domains configured on a server.
 func (c *Client) ListServerDomains(ctx context.Context, uuid string) ([]ServerDomain, error) {
 	var d []ServerDomain
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/domains", uuid), nil, &d); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/domains", url.PathEscape(uuid)), nil, &d); err != nil {
 		return nil, fmt.Errorf("listing server domains %s: %w", uuid, err)
 	}
 	return d, nil

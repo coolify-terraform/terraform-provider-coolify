@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // ScheduledTask represents a scheduled task on an application or service.
@@ -42,7 +43,7 @@ func (c *Client) ListScheduledTasks(ctx context.Context, parentType, parentUUID 
 		return nil, err
 	}
 	var tasks []ScheduledTask
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks", parentType, parentUUID), nil, &tasks); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks", parentType, url.PathEscape(parentUUID)), nil, &tasks); err != nil {
 		return nil, fmt.Errorf("listing scheduled tasks for %s %s: %w", parentType, parentUUID, err)
 	}
 	return tasks, nil
@@ -55,7 +56,7 @@ func (c *Client) CreateScheduledTask(ctx context.Context, parentType, parentUUID
 		return "", err
 	}
 	var resp createScheduledTaskResponse
-	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks", parentType, parentUUID), input, &resp, http.StatusCreated); err != nil {
+	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks", parentType, url.PathEscape(parentUUID)), input, &resp, http.StatusCreated); err != nil {
 		return "", fmt.Errorf("creating scheduled task for %s %s: %w", parentType, parentUUID, err)
 	}
 	return resp.UUID, nil
@@ -67,7 +68,7 @@ func (c *Client) UpdateScheduledTask(ctx context.Context, parentType, parentUUID
 	if err := validateParentType(parentType); err != nil {
 		return err
 	}
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s", parentType, parentUUID, taskUUID), input, nil); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s", parentType, url.PathEscape(parentUUID), url.PathEscape(taskUUID)), input, nil); err != nil {
 		return fmt.Errorf("updating scheduled task %s for %s %s: %w", taskUUID, parentType, parentUUID, err)
 	}
 	return nil
@@ -79,7 +80,7 @@ func (c *Client) DeleteScheduledTask(ctx context.Context, parentType, parentUUID
 	if err := validateParentType(parentType); err != nil {
 		return err
 	}
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s", parentType, parentUUID, taskUUID), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s", parentType, url.PathEscape(parentUUID), url.PathEscape(taskUUID)), nil, nil); err != nil {
 		return fmt.Errorf("deleting scheduled task %s for %s %s: %w", taskUUID, parentType, parentUUID, err)
 	}
 	return nil
@@ -100,7 +101,7 @@ func (c *Client) ListTaskExecutions(ctx context.Context, parentType, parentUUID,
 		return nil, err
 	}
 	var execs []TaskExecution
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s/executions", parentType, parentUUID, taskUUID), nil, &execs); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/%s/%s/scheduled-tasks/%s/executions", parentType, url.PathEscape(parentUUID), url.PathEscape(taskUUID)), nil, &execs); err != nil {
 		return nil, fmt.Errorf("listing task executions for %s %s task %s: %w", parentType, parentUUID, taskUUID, err)
 	}
 	return execs, nil

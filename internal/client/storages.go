@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // Storage represents a persistent storage volume in Coolify.
@@ -42,7 +43,7 @@ func (c *Client) ListStorages(ctx context.Context, parentType, parentUUID string
 		return nil, err
 	}
 	var v []Storage
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, parentUUID), nil, &v); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID)), nil, &v); err != nil {
 		return nil, fmt.Errorf("listing storages for %s %s: %w", parentType, parentUUID, err)
 	}
 	return v, nil
@@ -55,7 +56,7 @@ func (c *Client) CreateStorage(ctx context.Context, parentType, parentUUID strin
 		return nil, err
 	}
 	var r CreateStorageResponse
-	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, parentUUID), input, &r, http.StatusCreated); err != nil {
+	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID)), input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating storage for %s %s: %w", parentType, parentUUID, err)
 	}
 	return &r, nil
@@ -67,7 +68,7 @@ func (c *Client) UpdateStorage(ctx context.Context, parentType, parentUUID strin
 	if err := validateParentType(parentType); err != nil {
 		return err
 	}
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, parentUUID), input, nil); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID)), input, nil); err != nil {
 		return fmt.Errorf("updating storage for %s %s: %w", parentType, parentUUID, err)
 	}
 	return nil
@@ -78,7 +79,7 @@ func (c *Client) DeleteStorage(ctx context.Context, parentType, parentUUID, stor
 	if err := validateParentType(parentType); err != nil {
 		return err
 	}
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/%s/%s/storages/%s", parentType, parentUUID, storageUUID), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/%s/%s/storages/%s", parentType, url.PathEscape(parentUUID), url.PathEscape(storageUUID)), nil, nil); err != nil {
 		return fmt.Errorf("deleting storage %s for %s %s: %w", storageUUID, parentType, parentUUID, err)
 	}
 	return nil

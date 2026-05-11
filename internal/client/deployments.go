@@ -26,20 +26,20 @@ func (c *Client) ListDeployments(ctx context.Context) ([]Deployment, error) {
 }
 func (c *Client) GetDeployment(ctx context.Context, uuid string) (*Deployment, error) {
 	var r Deployment
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/deployments/%s", uuid), nil, &r); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/deployments/%s", url.PathEscape(uuid)), nil, &r); err != nil {
 		return nil, fmt.Errorf("getting deployment %s: %w", uuid, err)
 	}
 	return &r, nil
 }
 func (c *Client) ListApplicationDeployments(ctx context.Context, appUUID string) ([]Deployment, error) {
 	var r []Deployment
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/deployments/applications/%s", appUUID), nil, &r); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/deployments/applications/%s", url.PathEscape(appUUID)), nil, &r); err != nil {
 		return nil, fmt.Errorf("listing deployments for application %s: %w", appUUID, err)
 	}
 	return r, nil
 }
 func (c *Client) CancelDeployment(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/deployments/%s/cancel", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/deployments/%s/cancel", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("cancelling deployment %s: %w", uuid, err)
 	}
 	return nil

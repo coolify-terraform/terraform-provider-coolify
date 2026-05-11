@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type CloudToken struct {
@@ -34,7 +35,7 @@ func (c *Client) ListCloudTokens(ctx context.Context) ([]CloudToken, error) {
 
 func (c *Client) GetCloudToken(ctx context.Context, uuid string) (*CloudToken, error) {
 	var r CloudToken
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/cloud-tokens/%s", uuid), nil, &r); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/cloud-tokens/%s", url.PathEscape(uuid)), nil, &r); err != nil {
 		return nil, fmt.Errorf("getting cloud token %s: %w", uuid, err)
 	}
 	return &r, nil
@@ -50,21 +51,21 @@ func (c *Client) CreateCloudToken(ctx context.Context, input CreateCloudTokenInp
 
 func (c *Client) UpdateCloudToken(ctx context.Context, uuid string, input UpdateCloudTokenInput) (*CloudToken, error) {
 	var r CloudToken
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/cloud-tokens/%s", uuid), input, &r); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/cloud-tokens/%s", url.PathEscape(uuid)), input, &r); err != nil {
 		return nil, fmt.Errorf("updating cloud token %s: %w", uuid, err)
 	}
 	return &r, nil
 }
 
 func (c *Client) DeleteCloudToken(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/cloud-tokens/%s", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/cloud-tokens/%s", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("deleting cloud token %s: %w", uuid, err)
 	}
 	return nil
 }
 
 func (c *Client) ValidateCloudToken(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/cloud-tokens/%s/validate", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/cloud-tokens/%s/validate", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("validating cloud token %s: %w", uuid, err)
 	}
 	return nil

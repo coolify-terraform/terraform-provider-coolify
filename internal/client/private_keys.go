@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 type PrivateKey struct {
@@ -33,7 +34,7 @@ func (c *Client) ListPrivateKeys(ctx context.Context) ([]PrivateKey, error) {
 }
 func (c *Client) GetPrivateKey(ctx context.Context, uuid string) (*PrivateKey, error) {
 	var k PrivateKey
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/security/keys/%s", uuid), nil, &k); err != nil {
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/security/keys/%s", url.PathEscape(uuid)), nil, &k); err != nil {
 		return nil, fmt.Errorf("getting private key %s: %w", uuid, err)
 	}
 	return &k, nil
@@ -47,13 +48,13 @@ func (c *Client) CreatePrivateKey(ctx context.Context, input CreatePrivateKeyInp
 }
 func (c *Client) UpdatePrivateKey(ctx context.Context, uuid string, input UpdatePrivateKeyInput) (*PrivateKey, error) {
 	var k PrivateKey
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/security/keys/%s", uuid), input, &k); err != nil {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/security/keys/%s", url.PathEscape(uuid)), input, &k); err != nil {
 		return nil, fmt.Errorf("updating private key %s: %w", uuid, err)
 	}
 	return &k, nil
 }
 func (c *Client) DeletePrivateKey(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/security/keys/%s", uuid), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/security/keys/%s", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("deleting private key %s: %w", uuid, err)
 	}
 	return nil
