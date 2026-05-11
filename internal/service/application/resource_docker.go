@@ -127,6 +127,7 @@ func (r *dockerImageApplicationResource) Schema(ctx context.Context, _ resource.
 			"fqdn": schema.StringAttribute{
 				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
 				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.String{validate.FQDN()},
 			},
 			"install_command": schema.StringAttribute{
