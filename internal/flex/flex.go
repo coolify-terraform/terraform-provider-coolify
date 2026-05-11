@@ -14,15 +14,6 @@ func StringValueOrNull(v types.String) *string {
 	return &s
 }
 
-// Int64ValueOrNull extracts the underlying Go int64 as a pointer.
-func Int64ValueOrNull(v types.Int64) *int64 {
-	if v.IsNull() || v.IsUnknown() {
-		return nil
-	}
-	i := v.ValueInt64()
-	return &i
-}
-
 // BoolValueOrNull extracts the underlying Go bool as a pointer.
 func BoolValueOrNull(v types.Bool) *bool {
 	if v.IsNull() || v.IsUnknown() {
