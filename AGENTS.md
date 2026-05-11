@@ -4,7 +4,7 @@
 
 Terraform provider for [Coolify](https://coolify.io/), the open-source self-hosted PaaS.
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
-27 resources, 41 data sources, 390+ tests (unit + acceptance), 9 CI jobs.
+27 resources, 41 data sources, 390+ tests (unit + acceptance), 10 CI jobs.
 
 ## Commands
 
@@ -92,7 +92,7 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 
 ## CI
 
-9 GitHub Actions jobs on push to main and PRs (self-hosted runner):
+10 GitHub Actions jobs on push to main and PRs (self-hosted runner):
 Detect Changes, Test, Lint, Validate Examples, Docs, Govulncheck,
 Trivy, Gitleaks, GoReleaser Check. Plus Spec Freshness (weekly only).
 Format check (gofmt) is included in the Lint job via golangci-lint.
