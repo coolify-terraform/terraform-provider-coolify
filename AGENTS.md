@@ -75,7 +75,10 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 ### Code style
 
 - `gofmt -s` for formatting (enforced by CI)
-- golangci-lint v2 with errcheck, govet, staticcheck, unused, misspell
+- golangci-lint v2 with 20 linters: errcheck, errorlint, govet, ineffassign, staticcheck,
+  unused, misspell, bodyclose, nilerr, unconvert, wastedassign, whitespace,
+  funlen (150 lines/80 statements), godox (no FIXME/HACK/XXX), dupl (200 tokens),
+  gocognit (complexity 20), nestif (depth 5), forbidigo (no fmt.Print), gocritic, dupword
 - errcheck excluded from test files
 - No em dashes in human-facing text
 
@@ -89,9 +92,9 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 
 ## CI
 
-8 GitHub Actions jobs on push to main and PRs (self-hosted runner):
-Detect Changes, Test, Lint, Validate Examples, Govulncheck, Trivy,
-Gitleaks, Docs. Plus Spec Freshness (weekly schedule only).
+9 GitHub Actions jobs on push to main and PRs (self-hosted runner):
+Detect Changes, Test, Lint, Validate Examples, Docs, Govulncheck,
+Trivy, Gitleaks, GoReleaser Check. Plus Spec Freshness (weekly only).
 Format check (gofmt) is included in the Lint job via golangci-lint.
 
 ## Safety

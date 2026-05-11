@@ -162,8 +162,8 @@ project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ### CI Pipeline
 
-9 jobs run on every push and PR: Test, Lint, Format, Docs, Validate Examples,
-Govulncheck, Trivy, Gitleaks, plus a weekly Spec Freshness check.
+9 jobs run on every push and PR: Detect Changes, Test, Lint, Validate Examples,
+Docs, Govulncheck, Trivy, Gitleaks, GoReleaser Check. Plus a weekly Spec Freshness check.
 
 ## License
 
