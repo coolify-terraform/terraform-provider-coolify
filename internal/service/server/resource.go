@@ -71,6 +71,7 @@ func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "A description of the server.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"ip": schema.StringAttribute{
 				MarkdownDescription: "The IP address of the server.",

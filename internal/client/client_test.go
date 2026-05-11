@@ -1044,7 +1044,8 @@ func TestClient_UpdateService(t *testing.T) {
 
 		var input UpdateServiceInput
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&input))
-		assert.Equal(t, "Updated Name", input.Name)
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "Updated Name", *input.Name)
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(Service{UUID: "svc-upd", Name: "Updated Name", Type: "plausible"})
@@ -1052,7 +1053,8 @@ func TestClient_UpdateService(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	svc, err := c.UpdateService(context.Background(), "svc-upd", UpdateServiceInput{Name: "Updated Name"})
+	updName := "Updated Name"
+	svc, err := c.UpdateService(context.Background(), "svc-upd", UpdateServiceInput{Name: &updName})
 	require.NoError(t, err)
 	assert.Equal(t, "svc-upd", svc.UUID)
 	assert.Equal(t, "Updated Name", svc.Name)

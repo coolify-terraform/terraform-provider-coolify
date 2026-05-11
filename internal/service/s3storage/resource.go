@@ -65,6 +65,7 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "A description of the S3 storage.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "The S3 endpoint URL (must start with `http://` or `https://`).",

@@ -91,6 +91,7 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 				MarkdownDescription: "A description of the application.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"project_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the project this application belongs to. Changing this forces a new resource.",
@@ -132,6 +133,7 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				Validators:          []validator.String{validate.FQDN()},
 			},
 			"install_command": schema.StringAttribute{

@@ -62,6 +62,7 @@ func (r *privateKeyResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "A description of the private key.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"private_key": schema.StringAttribute{
 				MarkdownDescription: "The PEM-encoded private key content.",

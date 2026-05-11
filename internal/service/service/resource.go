@@ -44,7 +44,7 @@ func (r *serviceResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 		Attributes: map[string]schema.Attribute{
 			"uuid":             schema.StringAttribute{MarkdownDescription: "The UUID of the service.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"name":             schema.StringAttribute{MarkdownDescription: "The name of the service.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"description":      schema.StringAttribute{MarkdownDescription: "A description of the service.", Optional: true, Computed: true},
+			"description":      schema.StringAttribute{MarkdownDescription: "A description of the service.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"project_uuid":     schema.StringAttribute{MarkdownDescription: "The UUID of the project this service belongs to.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
 			"server_uuid":      schema.StringAttribute{MarkdownDescription: "The UUID of the server to deploy the service on.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
 			"environment_name": schema.StringAttribute{MarkdownDescription: "The environment name. Defaults to `production`. Changing this forces a new resource.", Optional: true, Computed: true, Default: stringdefault.StaticString("production"), PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
