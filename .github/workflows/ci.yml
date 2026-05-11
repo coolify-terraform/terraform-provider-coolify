@@ -148,6 +148,8 @@ jobs:
     name: Trivy
     runs-on: self-hosted
     timeout-minutes: 10
+    needs: changes
+    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     steps:
       - uses: actions/checkout@v6
       - uses: aquasecurity/trivy-action@v0.36.0
