@@ -2,6 +2,7 @@ package validate_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
@@ -71,5 +72,39 @@ func TestUUID_NullAndUnknown(t *testing.T) {
 	}, &unknownResp)
 	if unknownResp.Diagnostics.HasError() {
 		t.Error("UUID(unknown) should pass, got error")
+	}
+}
+
+func TestIsUUID(t *testing.T) {
+	t.Parallel()
+	if !validate.IsUUID("550e8400-e29b-41d4-a716-446655440000") {
+		t.Error("expected valid UUID to return true")
+	}
+	if validate.IsUUID("not-a-uuid") {
+		t.Error("expected invalid string to return false")
+	}
+	if validate.IsUUID("../../admin") {
+		t.Error("expected path traversal to return false")
+	}
+	if validate.IsUUID("") {
+		t.Error("expected empty string to return false")
+	}
+}
+
+func TestImportUUID_Valid(t *testing.T) {
+	t.Parallel()
+	if err := validate.ImportUUID("550e8400-e29b-41d4-a716-446655440000"); err != nil {
+		t.Errorf("expected nil error for valid UUID, got: %v", err)
+	}
+}
+
+func TestImportUUID_Invalid(t *testing.T) {
+	t.Parallel()
+	err := validate.ImportUUID("../../admin")
+	if err == nil {
+		t.Fatal("expected error for path traversal ID")
+	}
+	if !strings.Contains(err.Error(), "../../admin") {
+		t.Errorf("error should contain the bad ID, got: %v", err)
 	}
 }

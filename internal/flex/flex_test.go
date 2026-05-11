@@ -397,3 +397,86 @@ func TestInt64PtrFromFramework(t *testing.T) {
 		})
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Setter helpers (SetIfKnown, SetStrPtr, SetInt64Ptr, SetBoolPtr)
+// ---------------------------------------------------------------------------
+
+func TestSetIfKnown(t *testing.T) {
+	t.Parallel()
+	t.Run("known value sets destination", func(t *testing.T) {
+		var dst string
+		flex.SetIfKnown(&dst, types.StringValue("hello"))
+		if dst != "hello" {
+			t.Fatalf("expected 'hello', got %q", dst)
+		}
+	})
+	t.Run("null leaves unchanged", func(t *testing.T) {
+		dst := "original"
+		flex.SetIfKnown(&dst, types.StringNull())
+		if dst != "original" {
+			t.Fatalf("expected 'original', got %q", dst)
+		}
+	})
+	t.Run("unknown leaves unchanged", func(t *testing.T) {
+		dst := "original"
+		flex.SetIfKnown(&dst, types.StringUnknown())
+		if dst != "original" {
+			t.Fatalf("expected 'original', got %q", dst)
+		}
+	})
+}
+
+func TestSetStrPtr(t *testing.T) {
+	t.Parallel()
+	t.Run("known value sets pointer", func(t *testing.T) {
+		var dst *string
+		flex.SetStrPtr(&dst, types.StringValue("hello"))
+		if dst == nil || *dst != "hello" {
+			t.Fatal("expected pointer to 'hello'")
+		}
+	})
+	t.Run("null leaves nil", func(t *testing.T) {
+		var dst *string
+		flex.SetStrPtr(&dst, types.StringNull())
+		if dst != nil {
+			t.Fatal("expected nil")
+		}
+	})
+}
+
+func TestSetInt64Ptr(t *testing.T) {
+	t.Parallel()
+	t.Run("known value sets pointer", func(t *testing.T) {
+		var dst *int64
+		flex.SetInt64Ptr(&dst, types.Int64Value(42))
+		if dst == nil || *dst != 42 {
+			t.Fatal("expected pointer to 42")
+		}
+	})
+	t.Run("null leaves nil", func(t *testing.T) {
+		var dst *int64
+		flex.SetInt64Ptr(&dst, types.Int64Null())
+		if dst != nil {
+			t.Fatal("expected nil")
+		}
+	})
+}
+
+func TestSetBoolPtr(t *testing.T) {
+	t.Parallel()
+	t.Run("known value sets pointer", func(t *testing.T) {
+		var dst *bool
+		flex.SetBoolPtr(&dst, types.BoolValue(true))
+		if dst == nil || !*dst {
+			t.Fatal("expected pointer to true")
+		}
+	})
+	t.Run("null leaves nil", func(t *testing.T) {
+		var dst *bool
+		flex.SetBoolPtr(&dst, types.BoolNull())
+		if dst != nil {
+			t.Fatal("expected nil")
+		}
+	})
+}
