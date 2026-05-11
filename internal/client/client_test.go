@@ -419,6 +419,18 @@ func TestClient_CreatePublicApplication(t *testing.T) {
 			t.Errorf("expected ports_exposes 3000, got %s", input.PortsExposes)
 		}
 
+		// Verify FQDN is sent as "domains" key (spec requirement)
+		var raw map[string]interface{}
+		if err := json.Unmarshal(body, &raw); err != nil {
+			t.Fatalf("failed to unmarshal raw body: %v", err)
+		}
+		if _, ok := raw["domains"]; !ok {
+			t.Error("expected 'domains' key in JSON body (FQDN field)")
+		}
+		if _, ok := raw["fqdn"]; ok {
+			t.Error("unexpected 'fqdn' key in JSON body (should be 'domains')")
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(Application{
@@ -439,6 +451,7 @@ func TestClient_CreatePublicApplication(t *testing.T) {
 		GitBranch:       "main",
 		BuildPack:       "dockerfile",
 		PortsExposes:    "3000",
+		FQDN:            "https://app.example.com",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -880,6 +893,12 @@ func TestClient_CreateApplicationEnvVar(t *testing.T) {
 		assert.Equal(t, "DATABASE_URL", ev.Key)
 		assert.Equal(t, "postgres://localhost/db", ev.Value)
 		assert.True(t, ev.IsBuild)
+
+		// Verify JSON uses spec-correct key "is_buildtime" (not "is_build_time")
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &raw))
+		_, hasBuildtime := raw["is_buildtime"]
+		assert.True(t, hasBuildtime, "expected JSON key 'is_buildtime'")
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
