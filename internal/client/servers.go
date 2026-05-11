@@ -66,7 +66,10 @@ func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServ
 	return &s, nil
 }
 func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/servers/%s", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/servers/%s", uuid), nil, nil); err != nil {
+		return fmt.Errorf("deleting server %s: %w", uuid, err)
+	}
+	return nil
 }
 
 // ServerValidation represents the result of a server connectivity check.

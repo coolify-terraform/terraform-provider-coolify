@@ -81,7 +81,10 @@ func (c *Client) UpdateGitHubApp(ctx context.Context, id int64, input UpdateGitH
 }
 
 func (c *Client) DeleteGitHubApp(ctx context.Context, id int64) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/github-apps/%d", id), nil, nil)
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/github-apps/%d", id), nil, nil); err != nil {
+		return fmt.Errorf("deleting github app %d: %w", id, err)
+	}
+	return nil
 }
 
 func (c *Client) ListGitHubAppRepositories(ctx context.Context, id int64) ([]GitHubRepository, error) {

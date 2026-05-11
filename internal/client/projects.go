@@ -55,5 +55,8 @@ func (c *Client) UpdateProject(ctx context.Context, uuid string, input UpdatePro
 }
 
 func (c *Client) DeleteProject(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/projects/%s", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/projects/%s", uuid), nil, nil); err != nil {
+		return fmt.Errorf("deleting project %s: %w", uuid, err)
+	}
+	return nil
 }

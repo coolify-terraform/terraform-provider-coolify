@@ -57,9 +57,15 @@ func (c *Client) UpdateCloudToken(ctx context.Context, uuid string, input Update
 }
 
 func (c *Client) DeleteCloudToken(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/cloud-tokens/%s", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/cloud-tokens/%s", uuid), nil, nil); err != nil {
+		return fmt.Errorf("deleting cloud token %s: %w", uuid, err)
+	}
+	return nil
 }
 
 func (c *Client) ValidateCloudToken(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/cloud-tokens/%s/validate", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/cloud-tokens/%s/validate", uuid), nil, nil); err != nil {
+		return fmt.Errorf("validating cloud token %s: %w", uuid, err)
+	}
+	return nil
 }

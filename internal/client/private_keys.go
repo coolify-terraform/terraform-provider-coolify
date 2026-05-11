@@ -55,5 +55,8 @@ func (c *Client) UpdatePrivateKey(ctx context.Context, uuid string, input Update
 	return &k, nil
 }
 func (c *Client) DeletePrivateKey(ctx context.Context, uuid string) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/security/keys/%s", uuid), nil, nil)
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/security/keys/%s", uuid), nil, nil); err != nil {
+		return fmt.Errorf("deleting private key %s: %w", uuid, err)
+	}
+	return nil
 }

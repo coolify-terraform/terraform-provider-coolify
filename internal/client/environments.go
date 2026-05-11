@@ -52,5 +52,8 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectUUID string, inpu
 
 // DeleteEnvironment deletes an environment by name or UUID.
 func (c *Client) DeleteEnvironment(ctx context.Context, projectUUID, nameOrUUID string) error {
-	return c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/projects/%s/environments/%s", projectUUID, url.PathEscape(nameOrUUID)), nil, nil)
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/projects/%s/environments/%s", projectUUID, url.PathEscape(nameOrUUID)), nil, nil); err != nil {
+		return fmt.Errorf("deleting environment %s in project %s: %w", nameOrUUID, projectUUID, err)
+	}
+	return nil
 }
