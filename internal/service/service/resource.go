@@ -118,10 +118,9 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	input := client.UpdateServiceInput{
-		Name:        plan.Name.ValueString(),
-		Description: plan.Description.ValueString(),
-	}
+	input := client.UpdateServiceInput{}
+	flex.SetStrPtr(&input.Name, plan.Name)
+	flex.SetStrPtr(&input.Description, plan.Description)
 	if _, err := r.client.UpdateService(ctx, plan.UUID.ValueString(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating service", err.Error())
 		return

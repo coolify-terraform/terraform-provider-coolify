@@ -48,8 +48,8 @@ func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*
 }
 
 type UpdateServiceInput struct {
-	Name        string `json:"name,omitempty"`
-	Description string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
 }
 
 func (c *Client) UpdateService(ctx context.Context, uuid string, input UpdateServiceInput) (*Service, error) {
