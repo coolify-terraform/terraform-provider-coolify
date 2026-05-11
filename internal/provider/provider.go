@@ -98,6 +98,7 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	endpoint = strings.TrimRight(endpoint, "/")
 	c := client.New(endpoint, token)
 	if p.version != "" {
 		c.UserAgent = "terraform-provider-coolify/" + p.version
