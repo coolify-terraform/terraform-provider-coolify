@@ -17,6 +17,11 @@ func TestUUID_Valid(t *testing.T) {
 		"aaaa0001-0001-4000-8000-000000000001",
 		"00000000-0000-0000-0000-000000000000",
 		"ABCDEF12-3456-7890-ABCD-EF1234567890",
+		// Coolify NanoID format
+		"deey8xhb2bm3fxpobcxyddfv",             // real NanoID (24 chars)
+		"abcdefghij0123456789",                 // boundary: exactly 20 chars
+		"abcdefghij0123456789ABCDEFGHIJ012345", // boundary: exactly 36 chars
+		"ABCDEFghij0123456789abcdef",           // mixed case (26 chars)
 	}
 	v := validate.UUID()
 	for _, s := range valid {
@@ -39,6 +44,11 @@ func TestUUID_Invalid(t *testing.T) {
 		"550e8400-e29b-41d4-a716",
 		"550e8400-e29b-41d4-a716-44665544000g",
 		"",
+		// NanoID boundary violations
+		"abcdefghij012345678",                   // 19 chars (min - 1)
+		"abcdefghij0123456789ABCDEFGHIJ0123456", // 37 chars (max + 1)
+		"abcdef_ghij01234567890",                // underscore not in [a-zA-Z0-9]
+		"abcdef ghij01234567890",                // space not in [a-zA-Z0-9]
 	}
 	v := validate.UUID()
 	for _, s := range invalid {
@@ -79,6 +89,9 @@ func TestIsUUID(t *testing.T) {
 	t.Parallel()
 	if !validate.IsUUID("550e8400-e29b-41d4-a716-446655440000") {
 		t.Error("expected valid UUID to return true")
+	}
+	if !validate.IsUUID("deey8xhb2bm3fxpobcxyddfv") {
+		t.Error("expected valid NanoID to return true")
 	}
 	if validate.IsUUID("not-a-uuid") {
 		t.Error("expected invalid string to return false")

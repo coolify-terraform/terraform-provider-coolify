@@ -442,6 +442,20 @@ func TestStringPtrForUpdate(t *testing.T) {
 			t.Fatalf("expected nil, got %v", *result)
 		}
 	})
+
+	t.Run("plan unknown state had value clears", func(t *testing.T) {
+		result := flex.StringPtrForUpdate(types.StringUnknown(), types.StringValue("old"))
+		if result == nil || *result != "" {
+			t.Fatalf("expected empty string (clear), got %v", result)
+		}
+	})
+
+	t.Run("plan unknown state null returns nil", func(t *testing.T) {
+		result := flex.StringPtrForUpdate(types.StringUnknown(), types.StringNull())
+		if result != nil {
+			t.Fatalf("expected nil, got %v", *result)
+		}
+	})
 }
 
 func TestInt64PtrForUpdate(t *testing.T) {
@@ -463,6 +477,20 @@ func TestInt64PtrForUpdate(t *testing.T) {
 
 	t.Run("both null returns nil", func(t *testing.T) {
 		result := flex.Int64PtrForUpdate(types.Int64Null(), types.Int64Null())
+		if result != nil {
+			t.Fatalf("expected nil, got %v", *result)
+		}
+	})
+
+	t.Run("plan unknown state had value clears", func(t *testing.T) {
+		result := flex.Int64PtrForUpdate(types.Int64Unknown(), types.Int64Value(10))
+		if result == nil || *result != 0 {
+			t.Fatalf("expected 0 (clear), got %v", result)
+		}
+	})
+
+	t.Run("plan unknown state null returns nil", func(t *testing.T) {
+		result := flex.Int64PtrForUpdate(types.Int64Unknown(), types.Int64Null())
 		if result != nil {
 			t.Fatalf("expected nil, got %v", *result)
 		}

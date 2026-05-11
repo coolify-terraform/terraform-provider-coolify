@@ -260,11 +260,12 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 	}
 	m.Enabled = types.BoolValue(b.Enabled)
 	m.S3StorageID = flex.StringToFramework(b.S3StorageID)
-	if b.RetainDays != nil {
+	switch {
+	case b.RetainDays != nil:
 		m.RetainDays = types.Int64Value(*b.RetainDays)
-	} else if !m.RetainDays.IsNull() {
+	case !m.RetainDays.IsNull():
 		// Preserve existing state value when API returns nil
-	} else {
+	default:
 		m.RetainDays = types.Int64Null()
 	}
 }
