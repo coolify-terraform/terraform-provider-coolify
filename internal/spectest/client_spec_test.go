@@ -321,7 +321,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		// Teams (additional)
 		{"ListTeams", "GET", "/api/v1/teams",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "team-1"}}},
-		{"GetTeamMembers", "GET", "/api/v1/teams/1/members",
+		{"ListTeamMembers", "GET", "/api/v1/teams/1/members",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "user-1"}}},
 		{"GetCurrentTeam", "GET", "/api/v1/teams/current",
 			nil, 200, map[string]interface{}{"id": 1, "name": "team-1"}},

@@ -40,14 +40,6 @@ func (c *Client) ListTeams(ctx context.Context) ([]Team, error) {
 	return t, nil
 }
 
-func (c *Client) GetTeamMembers(ctx context.Context, teamID int) ([]TeamMember, error) {
-	var m []TeamMember
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/teams/%d/members", teamID), nil, &m); err != nil {
-		return nil, fmt.Errorf("getting team %d members: %w", teamID, err)
-	}
-	return m, nil
-}
-
 func (c *Client) GetCurrentTeam(ctx context.Context) (*Team, error) {
 	var t Team
 	if err := c.do(ctx, http.MethodGet, "/api/v1/teams/current", nil, &t); err != nil {

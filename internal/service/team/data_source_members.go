@@ -97,7 +97,7 @@ func (d *teamMembersDataSource) Read(ctx context.Context, req datasource.ReadReq
 		}
 	} else {
 		teamID := int(config.ID.ValueInt64())
-		members, err = d.client.GetTeamMembers(ctx, teamID)
+		members, err = d.client.ListTeamMembers(ctx, teamID)
 		if err != nil {
 			resp.Diagnostics.AddError("Error reading team members", err.Error())
 			return

@@ -1027,6 +1027,28 @@ func TestClient_DeleteService(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestClient_UpdateService(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-upd", r.URL.Path)
+
+		var input UpdateServiceInput
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&input))
+		assert.Equal(t, "Updated Name", input.Name)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Service{UUID: "svc-upd", Name: "Updated Name", Type: "plausible"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	svc, err := c.UpdateService(context.Background(), "svc-upd", UpdateServiceInput{Name: "Updated Name"})
+	require.NoError(t, err)
+	assert.Equal(t, "svc-upd", svc.UUID)
+	assert.Equal(t, "Updated Name", svc.Name)
+}
+
 // --- Teams ---
 
 func TestClient_GetTeam(t *testing.T) {
