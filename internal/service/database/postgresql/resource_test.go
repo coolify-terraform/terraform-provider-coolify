@@ -104,7 +104,7 @@ func newMockPostgresServer() (*httptest.Server, *mockPostgresState) {
 
 func TestPostgresqlDatabaseResource_CreateUpdateImport(t *testing.T) {
 	t.Parallel()
-	srv, state := newMockPostgresServer()
+	srv, _ := newMockPostgresServer()
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -152,11 +152,6 @@ resource "coolify_postgresql_database" "test" {
 			},
 			// Update name and description
 			{
-				PreConfig: func() {
-					state.mu.Lock()
-					defer state.mu.Unlock()
-					// The mock PATCH handler will update these
-				},
 				Config: fmt.Sprintf(`
 provider "coolify" {
   endpoint  = %q

@@ -340,12 +340,9 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 	}
 
 	for _, ep := range endpoints {
-		ep := ep // capture range variable
 		t.Run(ep.name, func(t *testing.T) {
 			// Not parallel: libopenapi-validator has internal state
 			// that races when shared across goroutines.
-
-			// Create a mock server that returns the expected response.
 			mux := http.NewServeMux()
 			pattern := fmt.Sprintf("%s %s", ep.method, ep.path)
 			mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
@@ -362,7 +359,6 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			srv := httptest.NewServer(WithSpecAudit(t, "coolify-v4", mux))
 			defer srv.Close()
 
-			// Send the request.
 			var reqBody *bytes.Buffer
 			if ep.body != nil {
 				data, _ := json.Marshal(ep.body)

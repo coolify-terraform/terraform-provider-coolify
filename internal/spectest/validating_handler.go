@@ -106,11 +106,9 @@ func (vh *validatingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Record the response.
 	rec := httptest.NewRecorder()
 	vh.inner.ServeHTTP(rec, r)
 
-	// Copy recorded response to the real writer.
 	for k, vs := range rec.Header() {
 		for _, v := range vs {
 			w.Header().Add(k, v)
