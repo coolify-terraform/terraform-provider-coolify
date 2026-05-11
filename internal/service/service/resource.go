@@ -144,6 +144,10 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 }
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	if err := validate.ImportUUID(req.ID); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
+		return
+	}
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 

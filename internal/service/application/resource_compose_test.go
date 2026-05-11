@@ -168,7 +168,7 @@ func TestDockerComposeApplicationResource_Update(t *testing.T) {
 func TestDockerComposeApplicationResource_Import(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:             "compose-imp-uuid",
+		UUID:             "aaaa0001-0001-4000-8000-000000000001",
 		Name:             "imported-compose-app",
 		DockerComposeRaw: "version: '3'\nservices:\n  web:\n    image: nginx\n",
 		ProjectUUID:      "aaaa0002-0002-4000-8000-000000000002",
@@ -206,7 +206,7 @@ func TestDockerComposeApplicationResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_docker_compose_application.test",
 				ImportState:                          true,
-				ImportStateId:                        "compose-imp-uuid",
+				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"environment_name"},

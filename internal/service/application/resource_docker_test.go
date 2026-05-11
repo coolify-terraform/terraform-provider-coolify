@@ -176,7 +176,7 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 func TestDockerImageApplicationResource_Import(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:                    "docker-imp-uuid",
+		UUID:                    "aaaa0001-0001-4000-8000-000000000001",
 		Name:                    "imported-docker-app",
 		DockerRegistryImageName: "nginx:latest",
 		PortsExposes:            "80",
@@ -216,7 +216,7 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_docker_image_application.test",
 				ImportState:                          true,
-				ImportStateId:                        "docker-imp-uuid",
+				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"environment_name"},

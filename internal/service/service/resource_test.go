@@ -23,7 +23,7 @@ type mockServiceState struct {
 
 func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 	state := &mockServiceState{
-		uuid: "svc-test-uuid-001",
+		uuid: "dddd0001-0001-4000-8000-000000000001",
 		name: "plausible-svc",
 	}
 
@@ -102,7 +102,7 @@ resource "coolify_service" "test" {
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "dddd0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_service.test", "name", "plausible-svc"),
 					resource.TestCheckResourceAttr("coolify_service.test", "type", "plausible"),
 					resource.TestCheckResourceAttr("coolify_service.test", "environment_name", "production"),
@@ -129,7 +129,7 @@ resource "coolify_service" "test" {
 			{
 				ResourceName:      "coolify_service.test",
 				ImportState:       true,
-				ImportStateId:     "svc-test-uuid-001",
+				ImportStateId:     "dddd0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"project_uuid", "server_uuid", "environment_name", "type"},
 			},

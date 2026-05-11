@@ -24,7 +24,7 @@ type mockDragonflyState struct {
 
 func newMockDragonflyServer() (*httptest.Server, *mockDragonflyState) {
 	state := &mockDragonflyState{
-		uuid:  "dragonfly-test-uuid-001",
+		uuid:  "aaaa0001-0001-4000-8000-000000000001",
 		name:  "dragonfly-test-db",
 		image: "docker.dragonflydb.io/dragonflydb/dragonfly:latest",
 	}
@@ -103,7 +103,7 @@ resource "coolify_dragonfly_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "uuid", "dragonfly-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "name", "dragonfly-test-db"),
 					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "image", "docker.dragonflydb.io/dragonflydb/dragonfly:latest"),
 					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_public", "false"),
@@ -180,7 +180,7 @@ resource "coolify_dragonfly_database" "test" {
 			{
 				ResourceName:                         "coolify_dragonfly_database.test",
 				ImportState:                          true,
-				ImportStateId:                        "dragonfly-test-uuid-001",
+				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},

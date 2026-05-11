@@ -28,7 +28,7 @@ type mockMysqlState struct {
 
 func newMockMysqlServer() (*httptest.Server, *mockMysqlState) {
 	state := &mockMysqlState{
-		uuid:          "mysql-test-uuid-001",
+		uuid:          "aaaa0001-0001-4000-8000-000000000001",
 		name:          "mysql-test-db",
 		image:         "mysql:8",
 		mysqlUser:     "mysqluser",
@@ -121,7 +121,7 @@ resource "coolify_mysql_database" "test" {
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "uuid", "mysql-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "name", "mysql-test-db"),
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "mysql_user", "mysqluser"),
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "mysql_database", "mydb"),
@@ -169,7 +169,7 @@ resource "coolify_mysql_database" "test" {
 			{
 				ResourceName:      "coolify_mysql_database.test",
 				ImportState:       true,
-				ImportStateId:     "mysql-test-uuid-001",
+				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"mysql_password", "mysql_root_password"},
 			},

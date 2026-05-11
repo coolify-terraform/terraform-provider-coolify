@@ -28,7 +28,7 @@ type mockPostgresState struct {
 
 func newMockPostgresServer() (*httptest.Server, *mockPostgresState) {
 	state := &mockPostgresState{
-		uuid:       "pg-test-uuid-001",
+		uuid:       "aaaa0001-0001-4000-8000-000000000001",
 		name:       "pg-test-db",
 		image:      "postgres:16",
 		pgUser:     "postgres",
@@ -125,7 +125,7 @@ resource "coolify_postgresql_database" "test" {
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "uuid", "pg-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "name", "pg-test-db"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "postgres_user", "postgres"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "postgres_db", "defaultdb"),
@@ -166,7 +166,7 @@ resource "coolify_postgresql_database" "test" {
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "uuid", "pg-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "name", "updated-pg-db"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "Updated description"),
 				),
@@ -175,7 +175,7 @@ resource "coolify_postgresql_database" "test" {
 			{
 				ResourceName:      "coolify_postgresql_database.test",
 				ImportState:       true,
-				ImportStateId:     "pg-test-uuid-001",
+				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"postgres_password"},
 			},

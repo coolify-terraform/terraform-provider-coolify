@@ -29,7 +29,7 @@ type mockMariadbState struct {
 
 func newMockMariadbServer() (*httptest.Server, *mockMariadbState) {
 	state := &mockMariadbState{
-		uuid:            "mdb-test-uuid-001",
+		uuid:            "aaaa0001-0001-4000-8000-000000000001",
 		name:            "mariadb-test-db",
 		image:           "mariadb:11",
 		mariadbUser:     "mariauser",
@@ -122,7 +122,7 @@ resource "coolify_mariadb_database" "test" {
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "uuid", "mdb-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "name", "mariadb-test-db"),
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "mariadb_user", "mariauser"),
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "mariadb_database", "mariadb"),
@@ -169,7 +169,7 @@ resource "coolify_mariadb_database" "test" {
 			{
 				ResourceName:      "coolify_mariadb_database.test",
 				ImportState:       true,
-				ImportStateId:     "mdb-test-uuid-001",
+				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"mariadb_password", "mariadb_root_password"},
 			},

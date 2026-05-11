@@ -16,7 +16,7 @@ import (
 
 func TestDeploymentResource_Create(t *testing.T) {
 	t.Parallel()
-	deploymentUUID := "dep-test-uuid-001"
+	deploymentUUID := "aaaa0001-0001-4000-8000-000000000001"
 	appUUID := "cccc0002-0002-4000-8000-000000000002"
 
 	mux := http.NewServeMux()
@@ -160,7 +160,7 @@ resource "coolify_deployment" "test" {
 
 func TestDeploymentResource_Import(t *testing.T) {
 	t.Parallel()
-	deploymentUUID := "dep-import-uuid-001"
+	deploymentUUID := "bbbb0001-0001-4000-8000-000000000001"
 	appUUID := "cccc0001-0001-4000-8000-000000000001"
 
 	mux := http.NewServeMux()

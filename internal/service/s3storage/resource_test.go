@@ -34,7 +34,7 @@ func newS3StorageMockServer() *httptest.Server {
 			}
 			s := &client.S3Storage{
 				ID:          1,
-				UUID:        "s3-test-uuid-1",
+				UUID:        "cccc0005-0005-4000-8000-000000000001",
 				Name:        input.Name,
 				Description: input.Description,
 				Endpoint:    input.Endpoint,
@@ -130,7 +130,7 @@ resource "coolify_s3_storage" "test" {
   secret_key  = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_s3_storage.test", "uuid", "s3-test-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_s3_storage.test", "uuid", "cccc0005-0005-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "name", "my-s3"),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "description", "Test S3 storage"),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "endpoint", "https://s3.amazonaws.com"),
@@ -191,7 +191,7 @@ resource "coolify_s3_storage" "test" {
   secret_key  = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_s3_storage.test", "uuid", "s3-test-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_s3_storage.test", "uuid", "cccc0005-0005-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "name", "updated-s3"),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "description", "Updated description"),
 				),
@@ -219,13 +219,13 @@ resource "coolify_s3_storage" "test" {
   secret_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_s3_storage.test", "uuid", "s3-test-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_s3_storage.test", "uuid", "cccc0005-0005-4000-8000-000000000001"),
 				),
 			},
 			{
 				ResourceName:                         "coolify_s3_storage.test",
 				ImportState:                          true,
-				ImportStateId:                        "s3-test-uuid-1",
+				ImportStateId:                        "cccc0005-0005-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},

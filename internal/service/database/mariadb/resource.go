@@ -7,6 +7,7 @@ import (
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	pg "github.com/SebTardif/terraform-provider-coolify/internal/service/database/postgresql"
+	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -154,6 +155,10 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	}
 }
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	if err := validate.ImportUUID(req.ID); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
+		return
+	}
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 func flattenDatabase(db *client.Database, m *model) {

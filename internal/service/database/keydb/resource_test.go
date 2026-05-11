@@ -24,7 +24,7 @@ type mockKeydbState struct {
 
 func newMockKeydbServer() (*httptest.Server, *mockKeydbState) {
 	state := &mockKeydbState{
-		uuid:  "keydb-test-uuid-001",
+		uuid:  "aaaa0001-0001-4000-8000-000000000001",
 		name:  "keydb-test-db",
 		image: "eqalpha/keydb:latest",
 	}
@@ -103,7 +103,7 @@ resource "coolify_keydb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "uuid", "keydb-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_keydb_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_keydb_database.test", "name", "keydb-test-db"),
 					resource.TestCheckResourceAttr("coolify_keydb_database.test", "image", "eqalpha/keydb:latest"),
 					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_public", "false"),
@@ -180,7 +180,7 @@ resource "coolify_keydb_database" "test" {
 			{
 				ResourceName:                         "coolify_keydb_database.test",
 				ImportState:                          true,
-				ImportStateId:                        "keydb-test-uuid-001",
+				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},

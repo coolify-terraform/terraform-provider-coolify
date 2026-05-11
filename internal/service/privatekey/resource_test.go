@@ -31,7 +31,7 @@ func newPrivateKeyMockServer() *httptest.Server {
 				return
 			}
 			key := &client.PrivateKey{
-				UUID:        "pk-test-uuid-1",
+				UUID:        "cccc0002-0002-4000-8000-000000000001",
 				Name:        input.Name,
 				Description: input.Description,
 				PrivateKey:  input.PrivateKey,
@@ -99,7 +99,7 @@ resource "coolify_private_key" "test" {
   private_key = "ssh-ed25519 AAAA-test-key"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_private_key.test", "uuid", "pk-test-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_private_key.test", "uuid", "cccc0002-0002-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "name", "my-ssh-key"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "private_key", "ssh-ed25519 AAAA-test-key"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "is_git_related", "false"),
@@ -145,7 +145,7 @@ resource "coolify_private_key" "test" {
   private_key = "ssh-ed25519 AAAA-updated"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_private_key.test", "uuid", "pk-test-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_private_key.test", "uuid", "cccc0002-0002-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "name", "updated-key"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "description", "A test key"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "private_key", "ssh-ed25519 AAAA-updated"),
@@ -171,13 +171,13 @@ resource "coolify_private_key" "test" {
   private_key = "ssh-ed25519 AAAA-import"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_private_key.test", "uuid", "pk-test-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_private_key.test", "uuid", "cccc0002-0002-4000-8000-000000000001"),
 				),
 			},
 			{
 				ResourceName:                         "coolify_private_key.test",
 				ImportState:                          true,
-				ImportStateId:                        "pk-test-uuid-1",
+				ImportStateId:                        "cccc0002-0002-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},

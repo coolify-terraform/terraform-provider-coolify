@@ -221,6 +221,10 @@ func (r *s3StorageResource) Delete(ctx context.Context, req resource.DeleteReque
 }
 
 func (r *s3StorageResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	if err := validate.ImportUUID(req.ID); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
+		return
+	}
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 

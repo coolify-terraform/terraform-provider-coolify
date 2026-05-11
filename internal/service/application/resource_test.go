@@ -185,7 +185,7 @@ func TestApplicationResource_Update(t *testing.T) {
 func TestApplicationResource_Import(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "import-app-uuid",
+		UUID:          "aaaa0001-0001-4000-8000-000000000001",
 		Name:          "imported-app",
 		GitRepository: "https://github.com/example/repo",
 		GitBranch:     "main",
@@ -229,7 +229,7 @@ func TestApplicationResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_application.test",
 				ImportState:                          true,
-				ImportStateId:                        "import-app-uuid",
+				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"environment_name"},

@@ -27,7 +27,7 @@ type mockMongodbState struct {
 
 func newMockMongodbServer() (*httptest.Server, *mockMongodbState) {
 	state := &mockMongodbState{
-		uuid:      "mongo-test-uuid-001",
+		uuid:      "aaaa0001-0001-4000-8000-000000000001",
 		name:      "mongo-test-db",
 		image:     "mongo:7",
 		mongoUser: "root",
@@ -118,7 +118,7 @@ resource "coolify_mongodb_database" "test" {
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "uuid", "mongo-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "name", "mongo-test-db"),
 					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "mongo_initdb_root_username", "root"),
 					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "mongo_initdb_database", "admin"),
@@ -165,7 +165,7 @@ resource "coolify_mongodb_database" "test" {
 			{
 				ResourceName:      "coolify_mongodb_database.test",
 				ImportState:       true,
-				ImportStateId:     "mongo-test-uuid-001",
+				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"mongo_initdb_root_password"},
 			},

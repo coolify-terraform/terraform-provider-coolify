@@ -24,7 +24,7 @@ type mockRedisState struct {
 
 func newMockRedisServer() (*httptest.Server, *mockRedisState) {
 	state := &mockRedisState{
-		uuid:  "redis-test-uuid-001",
+		uuid:  "aaaa0001-0001-4000-8000-000000000001",
 		name:  "redis-test-db",
 		image: "redis:7",
 	}
@@ -109,7 +109,7 @@ resource "coolify_redis_database" "test" {
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "uuid", "redis-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "name", "redis-test-db"),
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "image", "redis:7"),
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_public", "false"),
@@ -156,7 +156,7 @@ resource "coolify_redis_database" "test" {
 			{
 				ResourceName:      "coolify_redis_database.test",
 				ImportState:       true,
-				ImportStateId:     "redis-test-uuid-001",
+				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 			},
 		},

@@ -27,7 +27,7 @@ type mockClickhouseState struct {
 
 func newMockClickhouseServer() (*httptest.Server, *mockClickhouseState) {
 	state := &mockClickhouseState{
-		uuid:      "ch-test-uuid-001",
+		uuid:      "aaaa0001-0001-4000-8000-000000000001",
 		name:      "ch-test-db",
 		image:     "clickhouse/clickhouse-server:latest",
 		adminUser: "default",
@@ -116,7 +116,7 @@ resource "coolify_clickhouse_database" "test" {
 }
 `, srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "uuid", "ch-test-uuid-001"),
+					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "name", "ch-test-db"),
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "image", "clickhouse/clickhouse-server:latest"),
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_public", "false"),
@@ -164,7 +164,7 @@ resource "coolify_clickhouse_database" "test" {
 			{
 				ResourceName:      "coolify_clickhouse_database.test",
 				ImportState:       true,
-				ImportStateId:     "ch-test-uuid-001",
+				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"clickhouse_admin_password"},
 			},

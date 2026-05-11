@@ -33,7 +33,7 @@ func newServerMockServer() *httptest.Server {
 				return
 			}
 			srv := &client.Server{
-				UUID:           "srv-test-uuid-1",
+				UUID:           "bbbb0001-0001-4000-8000-000000000001",
 				Name:           input.Name,
 				Description:    input.Description,
 				IP:             input.IP,
@@ -127,7 +127,7 @@ resource "coolify_server" "test" {
   private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_server.test", "uuid", "srv-test-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_server.test", "uuid", "bbbb0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_server.test", "name", "my-server"),
 					resource.TestCheckResourceAttr("coolify_server.test", "ip", "10.0.0.1"),
 					resource.TestCheckResourceAttr("coolify_server.test", "port", "22"),
@@ -184,7 +184,7 @@ resource "coolify_server" "test" {
   is_build_server  = true
 }`, 2222),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_server.test", "uuid", "srv-test-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_server.test", "uuid", "bbbb0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_server.test", "name", "updated-server"),
 					resource.TestCheckResourceAttr("coolify_server.test", "description", "Updated desc"),
 					resource.TestCheckResourceAttr("coolify_server.test", "ip", "10.0.0.2"),
@@ -214,13 +214,13 @@ resource "coolify_server" "test" {
   private_key_uuid = "dddd0004-0004-4000-8000-000000000004"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_server.test", "uuid", "srv-test-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_server.test", "uuid", "bbbb0001-0001-4000-8000-000000000001"),
 				),
 			},
 			{
 				ResourceName:                         "coolify_server.test",
 				ImportState:                          true,
-				ImportStateId:                        "srv-test-uuid-1",
+				ImportStateId:                        "bbbb0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},

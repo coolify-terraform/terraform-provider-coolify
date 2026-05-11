@@ -214,7 +214,7 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 func TestGitHubAppApplicationResource_Import(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "ghapp-imp-uuid",
+		UUID:          "aaaa0001-0001-4000-8000-000000000001",
 		Name:          "imported-ghapp",
 		GitRepository: "github.com/myorg/myrepo",
 		GitBranch:     "main",
@@ -259,7 +259,7 @@ func TestGitHubAppApplicationResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_github_app_application.test",
 				ImportState:                          true,
-				ImportStateId:                        "ghapp-imp-uuid",
+				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"environment_name", "github_app_uuid"},

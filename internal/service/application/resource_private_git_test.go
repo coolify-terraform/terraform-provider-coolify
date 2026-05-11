@@ -195,7 +195,7 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 func TestPrivateGitApplicationResource_Import(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "pgit-imp-uuid",
+		UUID:          "aaaa0001-0001-4000-8000-000000000001",
 		Name:          "imported-pgit-app",
 		GitRepository: "git@github.com:myorg/api-server.git",
 		GitBranch:     "main",
@@ -239,7 +239,7 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_private_git_application.test",
 				ImportState:                          true,
-				ImportStateId:                        "pgit-imp-uuid",
+				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"environment_name", "private_key_uuid"},
