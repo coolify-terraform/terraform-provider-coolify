@@ -104,17 +104,12 @@ func TestClickhouseDatabaseResource_CreateUpdateImport(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_clickhouse_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "name", "ch-test-db"),
@@ -126,35 +121,25 @@ resource "coolify_clickhouse_database" "test" {
 			},
 			// Plan idempotency
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_clickhouse_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			// Update
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_clickhouse_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-ch"
   description  = "Updated ClickHouse"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "name", "updated-ch"),
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "description", "Updated ClickHouse"),
@@ -216,19 +201,14 @@ func TestClickhouseDatabaseResource_CreateWithCredentials(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_clickhouse_database" "test" {
   project_uuid              = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid               = "bbbb0001-0001-4000-8000-000000000001"
   clickhouse_admin_user     = "myadmin"
   clickhouse_admin_password = "mypass123"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "clickhouse_admin_user", "myadmin"),
 					func(s *terraform.State) error {
@@ -305,17 +285,12 @@ func TestClickhouseDatabaseResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_clickhouse_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_clickhouse_database.test", "uuid"),
 					acctest.CheckResourceDisappears(srv.URL, "coolify_clickhouse_database.test", "/api/v1/databases/"),

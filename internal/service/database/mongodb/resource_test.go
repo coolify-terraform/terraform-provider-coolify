@@ -106,17 +106,12 @@ func TestMongodbDatabaseResource_CreateUpdateImport(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mongodb_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "name", "mongo-test-db"),
@@ -127,35 +122,25 @@ resource "coolify_mongodb_database" "test" {
 			},
 			// Plan idempotency
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mongodb_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			// Update
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mongodb_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-mongo"
   description  = "Updated MongoDB"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "name", "updated-mongo"),
 					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "description", "Updated MongoDB"),
@@ -228,17 +213,12 @@ func TestMongodbDatabaseResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mongodb_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_mongodb_database.test", "uuid"),
 					acctest.CheckResourceDisappears(srv.URL, "coolify_mongodb_database.test", "/api/v1/databases/"),

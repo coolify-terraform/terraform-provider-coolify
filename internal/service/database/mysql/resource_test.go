@@ -109,17 +109,12 @@ func TestMysqlDatabaseResource_CreateUpdateImport(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mysql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "name", "mysql-test-db"),
@@ -131,35 +126,25 @@ resource "coolify_mysql_database" "test" {
 			},
 			// Plan idempotency
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mysql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			// Update
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mysql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-mysql-db"
   description  = "Updated MySQL"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "name", "updated-mysql-db"),
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "description", "Updated MySQL"),
@@ -233,17 +218,12 @@ func TestMysqlDatabaseResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mysql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_mysql_database.test", "uuid"),
 					acctest.CheckResourceDisappears(srv.URL, "coolify_mysql_database.test", "/api/v1/databases/"),

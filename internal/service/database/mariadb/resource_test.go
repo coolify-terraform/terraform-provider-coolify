@@ -110,17 +110,12 @@ func TestMariadbDatabaseResource_CreateUpdateImport(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mariadb_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "name", "mariadb-test-db"),
@@ -131,35 +126,25 @@ resource "coolify_mariadb_database" "test" {
 			},
 			// Plan idempotency
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mariadb_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			// Update
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mariadb_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-mariadb"
   description  = "Updated MariaDB"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "name", "updated-mariadb"),
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "description", "Updated MariaDB"),
@@ -233,17 +218,12 @@ func TestMariadbDatabaseResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mariadb_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_mariadb_database.test", "uuid"),
 					acctest.CheckResourceDisappears(srv.URL, "coolify_mariadb_database.test", "/api/v1/databases/"),
@@ -263,18 +243,13 @@ func TestMariadbDatabaseResource_InvalidPort(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mariadb_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   public_port  = 99999
 }
-`, srv.URL),
+`,
 				ExpectError: regexp.MustCompile(`must be between 1 and 65535`),
 			},
 		},
@@ -290,17 +265,12 @@ func TestMariadbDatabaseResource_InvalidUUID(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_mariadb_database" "test" {
   project_uuid = "not-a-uuid"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				ExpectError: regexp.MustCompile(`must be a valid UUID`),
 			},
 		},

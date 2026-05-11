@@ -113,17 +113,12 @@ func TestPostgresqlDatabaseResource_CreateUpdateImport(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and verify
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_postgresql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "name", "pg-test-db"),
@@ -136,35 +131,25 @@ resource "coolify_postgresql_database" "test" {
 			},
 			// Plan idempotency: re-apply same config, expect empty plan
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_postgresql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			// Update name and description
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_postgresql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-pg-db"
   description  = "Updated description"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "name", "updated-pg-db"),
@@ -239,18 +224,13 @@ func TestPostgresqlDatabaseResource_DescriptionNullHandling(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_postgresql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   description  = "initial"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "initial"),
 				),
@@ -261,17 +241,12 @@ resource "coolify_postgresql_database" "test" {
 					description = ""
 					mu.Unlock()
 				},
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_postgresql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckNoResourceAttr("coolify_postgresql_database.test", "description"),
 				),
@@ -289,18 +264,13 @@ func TestPostgresqlDatabaseResource_InvalidPort(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_postgresql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   public_port  = 99999
 }
-`, srv.URL),
+`,
 				ExpectError: regexp.MustCompile(`must be between 1 and 65535`),
 			},
 		},
@@ -362,17 +332,12 @@ func TestPostgresqlDatabaseResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_postgresql_database" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`, srv.URL),
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "uuid"),
 					acctest.CheckResourceDisappears(srv.URL, "coolify_postgresql_database.test", "/api/v1/databases/"),

@@ -29,6 +29,9 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 		IsBuild:   false,
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -36,10 +39,19 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+		if deleted {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{})
+		} else {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+		}
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		deleted = true
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -48,6 +60,7 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkEnvVarDestroy(srv.URL, "applications", "cccc0001-0001-4000-8000-000000000001"),
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
@@ -222,6 +235,9 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 		IsBuild:   true,
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -229,10 +245,19 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+		if deleted {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{})
+		} else {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+		}
 	})
 	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		deleted = true
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -241,6 +266,7 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkEnvVarDestroy(srv.URL, "services", "ffff0001-0001-4000-8000-000000000001"),
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
@@ -612,6 +638,77 @@ func TestEnvironmentVariableResource_InvalidKey(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_DatabaseDisappears
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_DatabaseDisappears(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID: "env-db-disappear-uuid", Key: "DB_GONE", Value: "val", IsPreview: false, IsBuild: false,
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if deleted {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{})
+		} else {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+		}
+	})
+	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		deleted = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					database_uuid = "dddd0001-0001-4000-8000-000000000001"
+					key           = "DB_GONE"
+					value         = "val"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_environment_variable.test", "uuid"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_environment_variable.test"]
+						if !ok {
+							return fmt.Errorf("resource not found in state")
+						}
+						uuid := rs.Primary.Attributes["uuid"]
+						req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/v1/databases/dddd0001-0001-4000-8000-000000000001/envs/"+uuid, nil)
+						resp, err := http.DefaultClient.Do(req)
+						if err != nil {
+							return err
+						}
+						resp.Body.Close()
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // TestEnvironmentVariableResource_CreateDatabase
 // ---------------------------------------------------------------------------
 
@@ -625,6 +722,9 @@ func TestEnvironmentVariableResource_CreateDatabase(t *testing.T) {
 		IsBuild:   false,
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -632,10 +732,19 @@ func TestEnvironmentVariableResource_CreateDatabase(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+		if deleted {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{})
+		} else {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+		}
 	})
 	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		deleted = true
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -644,6 +753,7 @@ func TestEnvironmentVariableResource_CreateDatabase(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkEnvVarDestroy(srv.URL, "databases", "dddd0001-0001-4000-8000-000000000001"),
 		Steps: []resource.TestStep{
 			{
 				Config: testEnvVarResourceConfig(srv.URL, `
@@ -781,4 +891,33 @@ func TestEnvironmentVariableResource_DatabaseImport(t *testing.T) {
 
 func testEnvVarResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_environment_variable", "test", attrs)
+}
+
+func checkEnvVarDestroy(serverURL, parentType, parentUUID string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "coolify_environment_variable" {
+				continue
+			}
+			uuid := rs.Primary.Attributes["uuid"]
+			if uuid == "" {
+				continue
+			}
+			resp, err := http.Get(serverURL + "/api/v1/" + parentType + "/" + parentUUID + "/envs")
+			if err != nil {
+				return fmt.Errorf("checking env var destroy: %w", err)
+			}
+			defer resp.Body.Close()
+			var envVars []client.EnvironmentVariable
+			if err := json.NewDecoder(resp.Body).Decode(&envVars); err != nil {
+				return fmt.Errorf("decoding env var list: %w", err)
+			}
+			for _, ev := range envVars {
+				if ev.UUID == uuid {
+					return fmt.Errorf("coolify_environment_variable %s still exists", uuid)
+				}
+			}
+		}
+		return nil
+	}
 }

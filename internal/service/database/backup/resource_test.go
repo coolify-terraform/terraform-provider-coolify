@@ -23,6 +23,7 @@ type mockBackupState struct {
 	enabled     bool
 	s3StorageID string
 	retainDays  *int64
+	deleted     bool
 }
 
 func newMockBackupServer() (*httptest.Server, *mockBackupState) {
@@ -59,6 +60,10 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			json.NewEncoder(w).Encode(backupResponse(state))
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id):
+			if state.deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(backupResponse(state))
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id):
@@ -77,6 +82,7 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			json.NewEncoder(w).Encode(backupResponse(state))
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id):
+			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
@@ -109,6 +115,30 @@ func testBackupConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_database_backup", "test", attrs)
 }
 
+func checkBackupDestroy(serverURL string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "coolify_database_backup" {
+				continue
+			}
+			dbUUID := rs.Primary.Attributes["database_uuid"]
+			backupID := rs.Primary.Attributes["id"]
+			if dbUUID == "" || backupID == "" {
+				continue
+			}
+			resp, err := http.Get(fmt.Sprintf("%s/api/v1/databases/%s/backups/%s", serverURL, dbUUID, backupID))
+			if err != nil {
+				return fmt.Errorf("checking backup destroy: %w", err)
+			}
+			resp.Body.Close()
+			if resp.StatusCode != http.StatusNotFound {
+				return fmt.Errorf("coolify_database_backup %s/%s still exists (status %d)", dbUUID, backupID, resp.StatusCode)
+			}
+		}
+		return nil
+	}
+}
+
 func TestDatabaseBackupResource_Create(t *testing.T) {
 	t.Parallel()
 	srv, _ := newMockBackupServer()
@@ -116,6 +146,7 @@ func TestDatabaseBackupResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkBackupDestroy(srv.URL),
 		Steps: []resource.TestStep{
 			{
 				Config: testBackupConfig(srv.URL, `
