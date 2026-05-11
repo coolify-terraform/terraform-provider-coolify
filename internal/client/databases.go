@@ -277,7 +277,7 @@ type DatabaseBackup struct {
 	DatabaseUUID string `json:"database_uuid"`
 	Frequency    string `json:"frequency"`
 	Enabled      bool   `json:"enabled"`
-	S3StorageID  string `json:"s3_storage_id,omitempty"`
+	S3StorageID  string `json:"s3_storage_uuid,omitempty"`
 	DatabaseType string `json:"database_type,omitempty"`
 	RetainDays   *int64 `json:"database_backup_retention_amount_locally,omitempty"`
 }
@@ -285,14 +285,14 @@ type DatabaseBackup struct {
 type CreateDatabaseBackupInput struct {
 	Frequency   string `json:"frequency"`
 	Enabled     bool   `json:"enabled"`
-	S3StorageID string `json:"s3_storage_id,omitempty"`
+	S3StorageID string `json:"s3_storage_uuid,omitempty"`
 	RetainDays  *int64 `json:"database_backup_retention_amount_locally,omitempty"`
 }
 
 type UpdateDatabaseBackupInput struct {
 	Frequency   *string `json:"frequency,omitempty"`
 	Enabled     *bool   `json:"enabled,omitempty"`
-	S3StorageID *string `json:"s3_storage_id,omitempty"`
+	S3StorageID *string `json:"s3_storage_uuid,omitempty"`
 	RetainDays  *int64  `json:"database_backup_retention_amount_locally,omitempty"`
 }
 
