@@ -39,7 +39,7 @@ func New(baseURL, apiToken string) *Client {
 		}
 		if resp.StatusCode >= 500 {
 			switch resp.Request.Method {
-			case http.MethodGet, http.MethodHead, http.MethodPut:
+			case http.MethodGet, http.MethodPatch:
 				return true, nil
 			default:
 				return false, nil

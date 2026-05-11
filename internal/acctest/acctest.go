@@ -89,15 +89,6 @@ resource "%s" "%s" {
 `, ProviderBlockForURL(endpoint), resourceType, resourceName, attrs)
 }
 
-// TestDataSourceConfig returns a Terraform config with a provider block and a single data source.
-func TestDataSourceConfig(endpoint, dataSourceType, dataSourceName, attrs string) string {
-	return fmt.Sprintf(`%s
-data "%s" "%s" {
-  %s
-}
-`, ProviderBlockForURL(endpoint), dataSourceType, dataSourceName, attrs)
-}
-
 // CheckResourceDisappears returns a TestCheckFunc that deletes a resource
 // out-of-band via the mock API. Use in Disappears tests to simulate external
 // deletion. The deletePath should be the API path prefix (e.g., "/api/v1/servers/").
@@ -159,17 +150,6 @@ func CheckDestroy(serverURL, resourceType, apiPathPrefix string) resource.TestCh
 		}
 		return nil
 	}
-}
-
-// RequireEnv skips the test if the given environment variable is not set.
-// Returns the value if set.
-func RequireEnv(t *testing.T, key string) string {
-	t.Helper()
-	v := os.Getenv(key)
-	if v == "" {
-		t.Skipf("Environment variable %s not set, skipping", key)
-	}
-	return v
 }
 
 // AccTestClient returns a Coolify API client configured from environment

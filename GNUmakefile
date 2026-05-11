@@ -43,7 +43,7 @@ docs-check: ## Check generated docs are up to date
 	@go generate ./... && git diff --exit-code || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
 
 api-coverage-check: ## Check API_COVERAGE.md is up to date
-	@make api-coverage && git diff --exit-code API_COVERAGE.md || (echo "API_COVERAGE.md out of date: run 'make api-coverage' and commit"; exit 1)
+	@$(MAKE) api-coverage && git diff --exit-code API_COVERAGE.md || (echo "API_COVERAGE.md out of date: run 'make api-coverage' and commit"; exit 1)
 
 vulncheck: ## Run govulncheck for known vulnerabilities
 	go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
