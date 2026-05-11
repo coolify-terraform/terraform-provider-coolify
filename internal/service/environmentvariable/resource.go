@@ -197,6 +197,10 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 	}
 
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading environment variables", err.Error())
 		return
 	}

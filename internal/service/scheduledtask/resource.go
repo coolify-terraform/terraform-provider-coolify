@@ -170,6 +170,10 @@ func (r *scheduledTaskResource) Read(ctx context.Context, req resource.ReadReque
 
 	tasks, err := r.client.ListScheduledTasks(ctx, parentType, parentUUID)
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading scheduled tasks", err.Error())
 		return
 	}

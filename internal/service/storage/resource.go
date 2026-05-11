@@ -180,6 +180,10 @@ func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	storages, err := r.client.ListStorages(ctx, parentType, parentUUID)
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading persistent storages", err.Error())
 		return
 	}
