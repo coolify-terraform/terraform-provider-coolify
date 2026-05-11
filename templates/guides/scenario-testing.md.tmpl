@@ -12,6 +12,24 @@ based on a fictional ACME Corp company. Each scenario has working Terraform
 code and a `.tftest.hcl` file that validates the infrastructure against a
 real Coolify instance.
 
+-> **This is different from `make testacc`.** The Go acceptance tests
+(`make testacc`) test individual resources via the Go test framework.
+Scenario tests use `terraform test` to validate multi-resource composition
+from the same `.tf` files that users copy. Both test against a real
+Coolify instance.
+
+## What "pass" means
+
+A passing scenario test means:
+- All Terraform resources were created successfully on real Coolify
+- The API returned valid UUIDs for every resource
+- Resource references (e.g. app -> database via env var) resolved correctly
+- `terraform test` auto-destroyed all resources after verification
+
+It does NOT mean the applications are building, running, or serving
+traffic. Coolify queues builds asynchronously; the test only validates
+that the Terraform provider creates and reads resources correctly.
+
 ## Prerequisites
 
 - Docker and Docker Compose
@@ -19,6 +37,12 @@ real Coolify instance.
 - Terraform 1.12+ (for `terraform test`)
 - `sudo` access (one-time setup for directories, SSH, and sudo config)
 - OpenSSH server (Coolify SSHs into the target server to manage Docker)
+- Port 8000 available (or change `APP_PORT` in `.env`)
+
+-> **Do not use the `docker-compose.yml` in the repo root.** That file
+is a minimal single-container setup for reference only. Coolify requires
+4 services (app + PostgreSQL + Redis + Soketi). This guide uses the
+official multi-service installation.
 
 ## Step 1: Host Prerequisites (one-time)
 
@@ -78,6 +102,10 @@ docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml 
   up -d --pull always --remove-orphans --force-recreate
 ```
 
+If port 8000 is already in use, edit `/data/coolify/source/.env` and set
+`APP_PORT=9000` (or any free port) before starting. Use that port in all
+subsequent commands and `TF_VAR_coolify_endpoint`.
+
 Wait 30-60 seconds for Coolify to start, then verify:
 
 ```bash
@@ -89,22 +117,31 @@ and running Docker commands. Without a reachable SSH server, Coolify
 silently fails to create applications (returns a UUID but doesn't persist
 the resource).
 
-## Step 3: Create an Admin Account
+## Step 3: Create an Admin Account and Enable the API
 
-Open [http://localhost:8000](http://localhost:8000) in your browser and
-create the first admin account. Use a strong, unique password (Coolify
-checks passwords against the [Have I Been Pwned](https://haveibeenpwned.com/)
-database and rejects compromised ones).
+### Option A: Browser (if you have a desktop)
 
-## Step 4: Enable the API and Create a Token
+1. Open [http://localhost:8000](http://localhost:8000) and register an
+   admin account. Use a unique password (Coolify rejects passwords found
+   in the [Have I Been Pwned](https://haveibeenpwned.com/) database).
+2. After registration, Coolify shows an **onboarding wizard**. You can
+   complete it or skip it, but you MUST dismiss it before accessing
+   Settings (the Settings page returns 404 until onboarding is done).
+3. You may also see a **sponsor/donation popup** after login. Dismiss it
+   with "Accept and Close" or "Maybe next time".
+4. Go to **Settings** and enable the **API**.
+5. Go to **Security > API Tokens**, create a token, and copy it.
 
-In the Coolify dashboard:
+### Option B: Database only (headless servers, CI)
 
-1. Go to **Settings** and enable the API
-2. Go to **Security > API Tokens** and create a new token
-3. Copy the token (it starts with a number followed by `|`)
+If you don't have a browser (headless server, CI runner), do everything
+via the database. You still need to register through the UI for the
+initial admin account, but you can use a tool like `curl` with CSRF
+tokens or skip registration entirely by inserting the user directly.
 
-Alternatively, enable the API and create a token via the database:
+The simplest headless approach is to enable the API and create a token
+via the database after registering through a forwarded port
+(`ssh -L 8000:localhost:8000 your-server`):
 
 ```bash
 # Enable API
@@ -216,6 +253,11 @@ provider_installation {
 EOF
 ```
 
+-> **Warning:** While `~/.terraformrc` exists with `dev_overrides`, ALL
+`terraform` commands on this machine use the dev provider binary instead
+of the published one. This affects other Terraform projects too. Delete
+`~/.terraformrc` when you're done testing (see Cleanup).
+
 ## Step 7: Run the Scenarios
 
 ```bash
@@ -237,6 +279,32 @@ for dir in examples/scenarios/acme-*/; do
   cd -
 done
 ```
+
+## Coming Back Later
+
+Coolify data persists in Docker volumes (`coolify-db`, `coolify-redis`).
+After stopping and restarting, you don't need to re-register or recreate
+the token. Just start Coolify and re-export your variables:
+
+```bash
+# Start Coolify
+cd /data/coolify/source
+docker network create --attachable coolify 2>/dev/null
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Re-export your saved token and server UUID
+export COOLIFY_TOKEN="<your-token-from-step-4>"
+export COOLIFY_SERVER_UUID="<your-uuid-from-step-5>"
+export TF_VAR_coolify_endpoint="http://localhost:8000"
+export TF_VAR_coolify_token="$COOLIFY_TOKEN"
+export TF_VAR_server_uuid="$COOLIFY_SERVER_UUID"
+```
+
+-> **Save your token and server UUID** somewhere after the initial setup.
+You'll need them every time you restart.
+
+If you run `docker compose down -v` (with `-v`), all data is deleted
+and you must redo Steps 3-5.
 
 ## Cleanup
 
