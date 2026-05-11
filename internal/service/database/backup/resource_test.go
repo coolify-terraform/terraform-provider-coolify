@@ -114,7 +114,7 @@ func backupResponse(s *mockBackupState) map[string]interface{} {
 		"enabled":       s.enabled,
 	}
 	if s.s3StorageID != "" {
-		resp["s3_storage_id"] = s.s3StorageID
+		resp["s3_storage_uuid"] = s.s3StorageID
 	}
 	if s.retainDays != nil {
 		resp["database_backup_retention_amount_locally"] = *s.retainDays
