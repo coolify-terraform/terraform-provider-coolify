@@ -39,7 +39,7 @@ spec-check: ## Run OpenAPI spec compliance tests
 api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 	GENERATE_COVERAGE_DOC=1 go test -count=1 -run TestSpecCoverage_GenerateDoc ./internal/spectest/ -v
 
-ci: build vet fmt-check lint test validate docs-check ## Run all checks (mirrors CI pipeline)
+ci: build vet fmt-check lint test validate docs-check vulncheck ## Run all checks (mirrors CI pipeline)
 
 fmt-check: ## Check formatting (no changes)
 	@output=$$(gofmt -s -l .); if [ -n "$$output" ]; then echo "gofmt needed on:"; echo "$$output"; exit 1; fi
@@ -48,7 +48,10 @@ fmt-check: ## Check formatting (no changes)
 docs-check: ## Check generated docs are up to date
 	@go generate ./... && git diff --exit-code docs/ || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
 
+vulncheck: ## Run govulncheck for known vulnerabilities
+	govulncheck ./...
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc vet lint fmt fmt-check docs docs-check validate install spec-update spec-check api-coverage ci help
+.PHONY: build test testacc vet lint fmt fmt-check docs docs-check validate install spec-update spec-check api-coverage vulncheck ci help

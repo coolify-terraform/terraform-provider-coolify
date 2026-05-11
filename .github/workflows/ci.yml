@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
   schedule:
     - cron: "0 6 * * 1"  # Weekly Monday 6am UTC (security scanners)
 
@@ -54,7 +55,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'push')
+    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -99,7 +100,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'push')
+    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -115,7 +116,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'push')
+    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -132,7 +133,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     needs: changes
-    if: always() && (needs.changes.outputs.terraform == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'push')
+    if: always() && (needs.changes.outputs.terraform == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     steps:
       - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v4
@@ -146,7 +147,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'push')
+    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -197,7 +198,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.docs == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'push')
+    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.docs == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'push')
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6

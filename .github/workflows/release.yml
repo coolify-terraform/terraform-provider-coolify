@@ -21,6 +21,11 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Smoke test
+        run: |
+          go build ./...
+          go vet ./...
+          go test -race -count=1 -timeout=5m ./...
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v7
         id: import_gpg
