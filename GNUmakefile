@@ -37,7 +37,7 @@ spec-check: ## Run OpenAPI spec compliance tests
 api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 	GENERATE_COVERAGE_DOC=1 go test -count=1 -run TestSpecCoverage_GenerateDoc ./internal/spectest/ -v
 
-ci: build lint test validate docs-check api-coverage-check vulncheck ## Run all checks (mirrors CI pipeline)
+ci: build lint test validate docs-check api-coverage-check vulncheck goreleaser-check ## Run all checks (mirrors CI pipeline)
 
 docs-check: ## Check generated docs are up to date
 	@go generate ./... && git diff --exit-code || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
@@ -45,10 +45,13 @@ docs-check: ## Check generated docs are up to date
 api-coverage-check: ## Check API_COVERAGE.md is up to date
 	@$(MAKE) api-coverage && git diff --exit-code API_COVERAGE.md || (echo "API_COVERAGE.md out of date: run 'make api-coverage' and commit"; exit 1)
 
+goreleaser-check: ## Validate .goreleaser.yml config
+	goreleaser check
+
 vulncheck: ## Run govulncheck for known vulnerabilities
 	go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check validate install spec-update spec-check api-coverage vulncheck ci help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check validate install spec-update spec-check api-coverage vulncheck goreleaser-check ci help
