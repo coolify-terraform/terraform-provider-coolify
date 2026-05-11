@@ -11,7 +11,7 @@
 ### Clone and Build
 
 ```bash
-git clone https://github.com/SebTardif/terraform-provider-coolify.git
+git clone https://github.com/SebTardifLabs/terraform-provider-coolify.git
 cd terraform-provider-coolify
 make build
 ```
@@ -55,6 +55,8 @@ make validate  # Check HCL formatting in examples/
 
 - `golangci-lint` v2.12.2+ (`curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b ~/.local/bin v2.12.2`)
 - `terraform` >= 1.6 (for `terraform fmt` on examples)
+- `goreleaser` v2.x (`go install github.com/goreleaser/goreleaser/v2@latest`)
+- `tfplugindocs` (`cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs`)
 
 ## Project Structure
 
@@ -127,6 +129,6 @@ To test the provider against a real Coolify instance without publishing:
 
 ## Pull Requests
 
-- Run `make ci` before submitting (mirrors the full CI pipeline locally)
+- Run `make ci` before submitting (runs all checks except trivy/gitleaks security scans)
 - Include tests for new functionality
 - Keep PRs focused on a single change

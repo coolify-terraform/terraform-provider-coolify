@@ -4,7 +4,7 @@ build: ## Compile the provider
 	go build -v ./...
 
 test: ## Run unit tests (race detector, coverage)
-	go test -race -cover -count=1 -timeout=10m ./...
+	go test -race -cover -count=1 -p 10 -timeout=10m ./...
 
 testacc: ## Run acceptance tests (needs COOLIFY_ENDPOINT + COOLIFY_TOKEN)
 	TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -run 'TestAcc' ./...
@@ -37,7 +37,7 @@ spec-check: ## Run OpenAPI spec compliance tests
 api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 	GENERATE_COVERAGE_DOC=1 go test -count=1 -run TestSpecCoverage_GenerateDoc ./internal/spectest/ -v
 
-ci: build lint test validate docs-check api-coverage-check vulncheck goreleaser-check ## Run all checks (mirrors CI pipeline)
+ci: build lint test validate docs-check api-coverage-check vulncheck goreleaser-check ## Run all checks (CI also runs trivy + gitleaks security scans)
 
 docs-check: ## Check generated docs are up to date
 	@go generate ./... && git diff --exit-code || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
