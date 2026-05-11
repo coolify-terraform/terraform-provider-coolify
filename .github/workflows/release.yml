@@ -29,6 +29,10 @@ jobs:
           cache: false
       - name: Smoke test
         run: go build ./...
+      - name: Validate goreleaser config
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          args: check
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v7
         id: import_gpg

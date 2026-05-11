@@ -39,6 +39,7 @@ jobs:
               - 'go.mod'
               - 'go.sum'
               - '.golangci.yml'
+              - 'testdata/**'
             docs:
               - 'templates/**'
               - 'docs/**'
@@ -48,6 +49,7 @@ jobs:
             ci:
               - '.github/workflows/ci.yml'
               - '.codecov.yml'
+              - '.goreleaser.yml'
               - 'GNUmakefile'
 
   test:
@@ -179,6 +181,18 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           gitleaks detect --source . --exit-code 1
+
+  goreleaser-check:
+    name: GoReleaser Check
+    runs-on: self-hosted
+    timeout-minutes: 5
+    needs: changes
+    if: always() && (needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch')
+    steps:
+      - uses: actions/checkout@v6
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          args: check
 
   docs:
     name: Docs
