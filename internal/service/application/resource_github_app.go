@@ -118,9 +118,12 @@ func (r *gitHubAppApplicationResource) Schema(ctx context.Context, _ resource.Sc
 				},
 			},
 			"github_app_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the GitHub App used for repository access.",
+				MarkdownDescription: "The UUID of the GitHub App used for repository access. Changing this forces a new resource.",
 				Required:            true,
 				Validators:          []validator.String{validate.UUID()},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"git_repository": schema.StringAttribute{
 				MarkdownDescription: "The Git repository URL (e.g. `github.com/org/repo`).",

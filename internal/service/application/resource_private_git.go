@@ -128,9 +128,12 @@ func (r *privateGitApplicationResource) Schema(ctx context.Context, _ resource.S
 				Default:             stringdefault.StaticString("main"),
 			},
 			"private_key_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the SSH private key used for Git clone authentication.",
+				MarkdownDescription: "The UUID of the SSH private key used for Git clone authentication. Changing this forces a new resource.",
 				Required:            true,
 				Validators:          []validator.String{validate.UUID()},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"build_pack": schema.StringAttribute{
 				MarkdownDescription: "The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`.",
