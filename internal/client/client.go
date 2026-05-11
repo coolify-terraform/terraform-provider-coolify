@@ -34,8 +34,16 @@ func New(baseURL, apiToken string) *Client {
 		if err != nil {
 			return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
 		}
-		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+		if resp.StatusCode == http.StatusTooManyRequests {
 			return true, nil
+		}
+		if resp.StatusCode >= 500 {
+			switch resp.Request.Method {
+			case http.MethodGet, http.MethodHead, http.MethodPut:
+				return true, nil
+			default:
+				return false, nil
+			}
 		}
 		return false, nil
 	}
@@ -205,9 +213,14 @@ func extractAPIMessage(body []byte) string {
 	if json.Unmarshal(body, &parsed) == nil && parsed.Message != "" {
 		return parsed.Message
 	}
-	s := string(body)
+	s := strings.Map(func(r rune) rune {
+		if r < 32 && r != '\n' {
+			return -1
+		}
+		return r
+	}, string(body))
 	if len(s) > 200 {
 		s = s[:200] + "... (truncated)"
 	}
-	return s
+	return "[raw API response] " + s
 }

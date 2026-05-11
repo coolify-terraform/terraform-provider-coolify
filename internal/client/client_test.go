@@ -2282,27 +2282,27 @@ func TestExtractAPIMessage(t *testing.T) {
 		{
 			name:  "json without message field",
 			input: []byte(`{"error":"not found","code":404}`),
-			want:  `{"error":"not found","code":404}`,
+			want:  `[raw API response] {"error":"not found","code":404}`,
 		},
 		{
 			name:  "non-json body",
 			input: []byte("plain text error"),
-			want:  "plain text error",
+			want:  "[raw API response] plain text error",
 		},
 		{
 			name:  "empty body",
 			input: []byte(""),
-			want:  "",
+			want:  "[raw API response] ",
 		},
 		{
 			name:  "json with empty message falls back to raw",
 			input: []byte(`{"message":""}`),
-			want:  `{"message":""}`,
+			want:  `[raw API response] {"message":""}`,
 		},
 		{
 			name:  "long body is truncated",
 			input: []byte(strings.Repeat("x", 300)),
-			want:  strings.Repeat("x", 200) + "... (truncated)",
+			want:  "[raw API response] " + strings.Repeat("x", 200) + "... (truncated)",
 		},
 	}
 	for _, tt := range tests {
