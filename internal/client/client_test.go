@@ -2624,3 +2624,22 @@ func TestClient_CreateDockerfileApplication(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "dockerfile-app-new", app.UUID)
 }
+
+func TestGitHubApp_OrganizationName_JSONTag(t *testing.T) {
+	t.Parallel()
+	app := GitHubApp{OrganizationName: "my-org"}
+	data, err := json.Marshal(app)
+	require.NoError(t, err)
+
+	var raw map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &raw))
+	_, hasOrganization := raw["organization"]
+	assert.True(t, hasOrganization, "expected JSON key 'organization'")
+	_, hasOrganizationName := raw["organization_name"]
+	assert.False(t, hasOrganizationName, "unexpected JSON key 'organization_name'")
+
+	apiJSON := []byte(`{"id":1,"name":"test","organization":"round-trip-org"}`)
+	var parsed GitHubApp
+	require.NoError(t, json.Unmarshal(apiJSON, &parsed))
+	assert.Equal(t, "round-trip-org", parsed.OrganizationName)
+}
