@@ -307,13 +307,20 @@ jobs:
         with:
           terraform_wrapper: false
           terraform_version: "1.12.x"
-      - name: Build provider
-        run: go build -o terraform-provider-coolify .
-      - name: Install provider locally
+      - name: Build and install provider locally
         run: |
-          PLUGIN_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/SebTardifLabs/coolify/0.0.0-dev/linux_amd64"
+          go build -o terraform-provider-coolify .
+          PLUGIN_DIR="$HOME/.terraform.d/plugins/SebTardifLabs/coolify/0.0.0-dev/linux_amd64"
           mkdir -p "$PLUGIN_DIR"
           cp terraform-provider-coolify "$PLUGIN_DIR/"
+          cat > "$HOME/.terraformrc" <<EOF
+          provider_installation {
+            dev_overrides {
+              "SebTardifLabs/coolify" = "$PLUGIN_DIR"
+            }
+            direct {}
+          }
+          EOF
       - name: Run scenario tests
         env:
           TF_VAR_coolify_endpoint: ${{ secrets.COOLIFY_ENDPOINT }}
@@ -325,7 +332,6 @@ jobs:
             echo "=== Testing $(basename "$dir") ==="
             (
               cd "$dir"
-              terraform init
               terraform test -verbose
             ) || failed=1
             echo ""
