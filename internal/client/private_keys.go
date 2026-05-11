@@ -14,16 +14,14 @@ type PrivateKey struct {
 	IsGitRelated bool   `json:"is_git_related"`
 }
 type CreatePrivateKeyInput struct {
-	Name         string `json:"name"`
-	Description  string `json:"description,omitempty"`
-	PrivateKey   string `json:"private_key"`
-	IsGitRelated bool   `json:"is_git_related,omitempty"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	PrivateKey  string `json:"private_key"`
 }
 type UpdatePrivateKeyInput struct {
-	Name         *string `json:"name,omitempty"`
-	Description  *string `json:"description,omitempty"`
-	PrivateKey   *string `json:"private_key,omitempty"`
-	IsGitRelated *bool   `json:"is_git_related,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	PrivateKey  *string `json:"private_key,omitempty"`
 }
 
 func (c *Client) ListPrivateKeys(ctx context.Context) ([]PrivateKey, error) {

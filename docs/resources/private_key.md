@@ -31,10 +31,10 @@ resource "coolify_private_key" "example" {
 ### Optional
 
 - `description` (String) A description of the private key.
-- `is_git_related` (Boolean) Whether this key is used for Git operations.
 
 ### Read-Only
 
+- `is_git_related` (Boolean) Whether this key is used for Git operations. Determined by the server.
 - `uuid` (String) The unique identifier of the private key.
 
 ## Import

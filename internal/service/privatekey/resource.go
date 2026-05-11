@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -68,10 +68,8 @@ func (r *privateKeyResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Sensitive:           true,
 			},
 			"is_git_related": schema.BoolAttribute{
-				MarkdownDescription: "Whether this key is used for Git operations.",
-				Optional:            true,
+				MarkdownDescription: "Whether this key is used for Git operations. Determined by the server.",
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
 			},
 		},
 	}
@@ -102,10 +100,9 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	input := client.CreatePrivateKeyInput{
-		Name:         plan.Name.ValueString(),
-		Description:  plan.Description.ValueString(),
-		PrivateKey:   plan.PrivateKey.ValueString(),
-		IsGitRelated: plan.IsGitRelated.ValueBool(),
+		Name:        plan.Name.ValueString(),
+		Description: plan.Description.ValueString(),
+		PrivateKey:  plan.PrivateKey.ValueString(),
 	}
 
 	created, err := r.client.CreatePrivateKey(ctx, input)
@@ -163,13 +160,10 @@ func (r *privateKeyResource) Update(ctx context.Context, req resource.UpdateRequ
 	desc := plan.Description.ValueString()
 	pk := plan.PrivateKey.ValueString()
 
-	gitRelated := plan.IsGitRelated.ValueBool()
-
 	input := client.UpdatePrivateKeyInput{
-		Name:         &name,
-		Description:  &desc,
-		PrivateKey:   &pk,
-		IsGitRelated: &gitRelated,
+		Name:        &name,
+		Description: &desc,
+		PrivateKey:  &pk,
 	}
 
 	_, err := r.client.UpdatePrivateKey(ctx, state.UUID.ValueString(), input)

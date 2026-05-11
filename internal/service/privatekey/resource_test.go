@@ -31,11 +31,10 @@ func newPrivateKeyMockServer() *httptest.Server {
 				return
 			}
 			key := &client.PrivateKey{
-				UUID:         "pk-test-uuid-1",
-				Name:         input.Name,
-				Description:  input.Description,
-				PrivateKey:   input.PrivateKey,
-				IsGitRelated: input.IsGitRelated,
+				UUID:        "pk-test-uuid-1",
+				Name:        input.Name,
+				Description: input.Description,
+				PrivateKey:  input.PrivateKey,
 			}
 			keys[key.UUID] = key
 			w.WriteHeader(http.StatusCreated)
@@ -70,9 +69,6 @@ func newPrivateKeyMockServer() *httptest.Server {
 			}
 			if update.PrivateKey != nil {
 				key.PrivateKey = *update.PrivateKey
-			}
-			if update.IsGitRelated != nil {
-				key.IsGitRelated = *update.IsGitRelated
 			}
 			json.NewEncoder(w).Encode(key)
 
@@ -144,17 +140,16 @@ resource "coolify_private_key" "test" {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_private_key" "test" {
-  name           = "updated-key"
-  description    = "A test key"
-  private_key    = "ssh-ed25519 AAAA-updated"
-  is_git_related = true
+  name        = "updated-key"
+  description = "A test key"
+  private_key = "ssh-ed25519 AAAA-updated"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_private_key.test", "uuid", "pk-test-uuid-1"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "name", "updated-key"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "description", "A test key"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "private_key", "ssh-ed25519 AAAA-updated"),
-					resource.TestCheckResourceAttr("coolify_private_key.test", "is_git_related", "true"),
+					resource.TestCheckResourceAttr("coolify_private_key.test", "is_git_related", "false"),
 				),
 			},
 		},
