@@ -110,6 +110,12 @@ func (r *cloudTokenResource) Create(ctx context.Context, req resource.CreateRequ
 
 	plan.UUID = types.StringValue(ct.UUID)
 
+	// Save partial state so the resource is tracked even if the read-back fails.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Read back the full cloud token to populate all fields.
 	diags := r.readCloudToken(ctx, ct.UUID, &plan)
 	resp.Diagnostics.Append(diags...)

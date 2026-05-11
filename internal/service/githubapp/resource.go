@@ -161,6 +161,12 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 
 	plan.ID = types.Int64Value(app.ID)
 
+	// Save partial state so the resource is tracked even if the read-back fails.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Read back the full object to populate all fields.
 	diags := r.readGitHubApp(ctx, app.ID, &plan)
 	resp.Diagnostics.Append(diags...)

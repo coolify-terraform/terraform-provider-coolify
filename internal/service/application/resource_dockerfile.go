@@ -149,14 +149,17 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 			"git_repository": schema.StringAttribute{
 				MarkdownDescription: "The Git repository URL. Read-only, set by the API.",
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"git_branch": schema.StringAttribute{
 				MarkdownDescription: "The Git branch. Read-only, set by the API.",
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"build_pack": schema.StringAttribute{
 				MarkdownDescription: "The build pack type. Read-only, set by the API.",
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"status": schema.StringAttribute{
 				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
