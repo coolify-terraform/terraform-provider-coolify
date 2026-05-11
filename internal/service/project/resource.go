@@ -103,6 +103,14 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 
 	plan.UUID = types.StringValue(project.UUID)
 
+	// Save partial state immediately so the resource is tracked even if
+	// the read-back fails. Without this, a transient error after create
+	// leaves an orphaned resource in Coolify with no Terraform state.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Read back the full project to populate all fields.
 	diags := r.readProject(ctx, project.UUID, &plan)
 	resp.Diagnostics.Append(diags...)
