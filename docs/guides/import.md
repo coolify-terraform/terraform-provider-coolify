@@ -50,7 +50,20 @@ terraform import coolify_scheduled_task.check service:<svc-uuid>:<task-uuid>
 terraform import coolify_storage.data application:<app-uuid>:<storage-uuid>
 terraform import coolify_storage.vol service:<svc-uuid>:<storage-uuid>
 terraform import coolify_storage.pgdata database:<db-uuid>:<storage-uuid>
+
+# Deployment: application_uuid:deployment_uuid
+terraform import coolify_deployment.web <app-uuid>:<deployment-uuid>
+
+# Environment: project_uuid:environment_name
+terraform import coolify_environment.staging <project-uuid>:staging
 ```
+
+~> **Important:** Application imports default to `environment_name = "production"`. If your
+application is in a different environment, set `environment_name` in your `.tf` file to match
+**before** running `terraform plan`, otherwise Terraform will propose replacing the resource.
+This applies to all 6 application types: `coolify_application`, `coolify_docker_image_application`,
+`coolify_dockerfile_application`, `coolify_docker_compose_application`,
+`coolify_github_app_application`, and `coolify_private_git_application`.
 
 ## Workflow
 
