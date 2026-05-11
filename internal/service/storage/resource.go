@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -152,9 +153,7 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 		Name:      plan.Name.ValueString(),
 		MountPath: plan.MountPath.ValueString(),
 	}
-	if !plan.HostPath.IsNull() && !plan.HostPath.IsUnknown() {
-		input.HostPath = plan.HostPath.ValueString()
-	}
+	flex.SetIfKnown(&input.HostPath, plan.HostPath)
 
 	createResp, err := r.client.CreateStorage(ctx, parentType, parentUUID, input)
 	if err != nil {
@@ -232,10 +231,7 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 		Name:      &name,
 		MountPath: &mountPath,
 	}
-	if !plan.HostPath.IsNull() && !plan.HostPath.IsUnknown() {
-		hp := plan.HostPath.ValueString()
-		input.HostPath = &hp
-	}
+	flex.SetStrPtr(&input.HostPath, plan.HostPath)
 
 	err := r.client.UpdateStorage(ctx, parentType, parentUUID, input)
 	if err != nil {

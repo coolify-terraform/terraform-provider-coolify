@@ -89,6 +89,13 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 		resp.Diagnostics.AddError("Error creating MySQL database", err.Error())
 		return
 	}
+
+	plan.UUID = types.StringValue(created.UUID)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	db, err := r.client.GetDatabase(ctx, created.UUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading MySQL database after creation", err.Error())

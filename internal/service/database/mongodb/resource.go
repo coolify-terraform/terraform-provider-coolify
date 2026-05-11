@@ -78,6 +78,13 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		resp.Diagnostics.AddError("Error creating MongoDB database", err.Error())
 		return
 	}
+
+	p.UUID = types.StringValue(c.UUID)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading MongoDB database", err.Error())

@@ -129,9 +129,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 		Frequency: plan.Frequency.ValueString(),
 		Enabled:   plan.Enabled.ValueBool(),
 	}
-	if !plan.S3StorageID.IsNull() && !plan.S3StorageID.IsUnknown() {
-		input.S3StorageID = plan.S3StorageID.ValueString()
-	}
+	flex.SetIfKnown(&input.S3StorageID, plan.S3StorageID)
 	flex.SetInt64Ptr(&input.RetainDays, plan.RetainDays)
 
 	created, err := r.client.CreateDatabaseBackup(ctx, plan.DatabaseUUID.ValueString(), input)

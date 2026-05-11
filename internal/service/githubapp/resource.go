@@ -150,12 +150,8 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 		ClientSecret:   plan.ClientSecret.ValueString(),
 		PrivateKey:     plan.PrivateKey.ValueString(),
 	}
-	if !plan.OrganizationName.IsNull() && !plan.OrganizationName.IsUnknown() {
-		input.OrganizationName = plan.OrganizationName.ValueString()
-	}
-	if !plan.WebhookSecret.IsNull() && !plan.WebhookSecret.IsUnknown() {
-		input.WebhookSecret = plan.WebhookSecret.ValueString()
-	}
+	flex.SetIfKnown(&input.OrganizationName, plan.OrganizationName)
+	flex.SetIfKnown(&input.WebhookSecret, plan.WebhookSecret)
 
 	app, err := r.client.CreateGitHubApp(ctx, input)
 	if err != nil {

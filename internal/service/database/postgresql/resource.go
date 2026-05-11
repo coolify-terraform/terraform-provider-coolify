@@ -104,6 +104,13 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 		resp.Diagnostics.AddError("Error creating PostgreSQL database", err.Error())
 		return
 	}
+
+	plan.UUID = types.StringValue(created.UUID)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	db, err := r.client.GetDatabase(ctx, created.UUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading PostgreSQL database after creation", err.Error())

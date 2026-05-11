@@ -66,6 +66,13 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		resp.Diagnostics.AddError("Error creating KeyDB database", err.Error())
 		return
 	}
+
+	p.UUID = types.StringValue(c.UUID)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading KeyDB database", err.Error())
