@@ -34,7 +34,7 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 	deleted := false
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
@@ -122,7 +122,7 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
@@ -206,7 +206,7 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
@@ -259,7 +259,7 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 	appUUID := "pgit-disappear-uuid"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
@@ -334,7 +334,7 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})

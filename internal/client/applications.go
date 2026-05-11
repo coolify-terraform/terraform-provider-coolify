@@ -139,7 +139,7 @@ type CreatePrivateGitAppInput struct {
 
 func (c *Client) CreatePrivateGitApplication(ctx context.Context, input CreatePrivateGitAppInput) (*Application, error) {
 	var a Application
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-github-app", input, &a, http.StatusCreated); err != nil {
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-deploy-key", input, &a, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating private git application: %w", err)
 	}
 	return &a, nil

@@ -1700,7 +1700,7 @@ func TestClient_CreatePrivateGitApplication(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
-		assert.Equal(t, "/api/v1/applications/private-github-app", r.URL.Path)
+		assert.Equal(t, "/api/v1/applications/private-deploy-key", r.URL.Path)
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
