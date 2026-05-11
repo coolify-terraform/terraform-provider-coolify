@@ -170,7 +170,7 @@ func TestStorageResource_Update(t *testing.T) {
 func TestStorageResource_Import(t *testing.T) {
 	t.Parallel()
 	stor := client.Storage{
-		UUID:      "stor-import-uuid",
+		UUID:      "dddd0001-0001-4000-8000-000000000001",
 		Name:      "import-vol",
 		MountPath: "/mnt/import",
 	}
@@ -207,7 +207,7 @@ func TestStorageResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_storage.test",
 				ImportState:                          true,
-				ImportStateId:                        "application:cccc0001-0001-4000-8000-000000000001:stor-import-uuid",
+				ImportStateId:                        "application:cccc0001-0001-4000-8000-000000000001:dddd0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},
@@ -292,7 +292,7 @@ func TestStorageResource_ImportBadType(t *testing.T) {
 			{
 				ResourceName:  "coolify_storage.test",
 				ImportState:   true,
-				ImportStateId: "unknown:uuid:stor-uuid",
+				ImportStateId: "unknown:aaaa0001-0001-4000-8000-000000000001:bbbb0001-0001-4000-8000-000000000001",
 				ExpectError:   regexp.MustCompile(`Invalid import ID type`),
 			},
 		},

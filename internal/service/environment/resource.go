@@ -198,6 +198,10 @@ func (r *environmentResource) ImportState(ctx context.Context, req resource.Impo
 		return
 	}
 
+	if err := validate.ImportUUID(parts[0]); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", "project UUID segment: "+err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), parts[1])...)
 }

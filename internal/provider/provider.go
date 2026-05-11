@@ -72,10 +72,21 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	if !config.Endpoint.IsNull() && !config.Endpoint.IsUnknown() {
 		endpoint = config.Endpoint.ValueString()
 	}
-	if endpoint == "" {
+	switch {
+	case endpoint == "":
 		resp.Diagnostics.AddError("Missing Coolify Endpoint", "Set endpoint in provider block or COOLIFY_ENDPOINT env var.")
-	} else if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
+	case !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://"):
 		resp.Diagnostics.AddError("Invalid Coolify Endpoint", "Endpoint must start with http:// or https://.")
+	case strings.HasPrefix(endpoint, "http://"):
+		host := strings.TrimPrefix(endpoint, "http://")
+		host = strings.SplitN(host, "/", 2)[0]
+		host = strings.SplitN(host, ":", 2)[0]
+		if host != "localhost" && host != "127.0.0.1" && host != "::1" {
+			resp.Diagnostics.AddWarning(
+				"Insecure Coolify Endpoint",
+				"The endpoint uses plain HTTP. The API token will be sent in cleartext. Use https:// for non-local endpoints.",
+			)
+		}
 	}
 	token := os.Getenv("COOLIFY_TOKEN")
 	if !config.Token.IsNull() && !config.Token.IsUnknown() {

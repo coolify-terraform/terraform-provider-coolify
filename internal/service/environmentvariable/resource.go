@@ -302,6 +302,15 @@ func (r *environmentVariableResource) ImportState(ctx context.Context, req resou
 	parentUUID := parts[1]
 	envUUID := parts[2]
 
+	if err := validate.ImportUUID(parentUUID); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", "parent UUID segment: "+err.Error())
+		return
+	}
+	if err := validate.ImportUUID(envUUID); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", "env variable UUID segment: "+err.Error())
+		return
+	}
+
 	switch resourceType {
 	case "application":
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("application_uuid"), parentUUID)...)

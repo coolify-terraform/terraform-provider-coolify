@@ -221,7 +221,7 @@ func TestScheduledTaskResource_Import(t *testing.T) {
 	t.Parallel()
 
 	task := client.ScheduledTask{
-		UUID:      "task-import-uuid",
+		UUID:      "dddd0001-0001-4000-8000-000000000001",
 		Name:      "import-task",
 		Command:   "echo hello",
 		Frequency: "0 0 * * *",
@@ -261,7 +261,7 @@ func TestScheduledTaskResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_scheduled_task.test",
 				ImportState:                          true,
-				ImportStateId:                        "application:cccc0001-0001-4000-8000-000000000001:task-import-uuid",
+				ImportStateId:                        "application:cccc0001-0001-4000-8000-000000000001:dddd0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},
@@ -277,7 +277,7 @@ func TestScheduledTaskResource_ImportService(t *testing.T) {
 	t.Parallel()
 
 	task := client.ScheduledTask{
-		UUID:      "task-svc-imp-uuid",
+		UUID:      "dddd0002-0002-4000-8000-000000000001",
 		Name:      "svc-import-task",
 		Command:   "echo service",
 		Frequency: "0 0 * * *",
@@ -315,7 +315,7 @@ func TestScheduledTaskResource_ImportService(t *testing.T) {
 			{
 				ResourceName:                         "coolify_scheduled_task.test",
 				ImportState:                          true,
-				ImportStateId:                        "service:ffff0001-0001-4000-8000-000000000001:task-svc-imp-uuid",
+				ImportStateId:                        "service:ffff0001-0001-4000-8000-000000000001:dddd0002-0002-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},
@@ -406,7 +406,7 @@ func TestScheduledTaskResource_ImportBadType(t *testing.T) {
 			{
 				ResourceName:  "coolify_scheduled_task.test",
 				ImportState:   true,
-				ImportStateId: "unknown:uuid:task-uuid",
+				ImportStateId: "unknown:aaaa0001-0001-4000-8000-000000000001:bbbb0001-0001-4000-8000-000000000001",
 				ExpectError:   regexp.MustCompile(`Invalid import ID type`),
 			},
 		},

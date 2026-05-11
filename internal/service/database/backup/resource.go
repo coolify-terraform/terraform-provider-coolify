@@ -227,6 +227,10 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 	}
 
 	dbUUID := parts[0]
+	if err := validate.ImportUUID(dbUUID); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", "database UUID segment: "+err.Error())
+		return
+	}
 	backupID, err := strconv.Atoi(parts[1])
 	if err != nil {
 		resp.Diagnostics.AddError(

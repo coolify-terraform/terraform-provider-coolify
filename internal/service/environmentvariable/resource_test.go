@@ -160,7 +160,7 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 func TestEnvironmentVariableResource_Import(t *testing.T) {
 	t.Parallel()
 	envVar := client.EnvironmentVariable{
-		UUID:      "env-import-uuid",
+		UUID:      "eeee0001-0001-4000-8000-000000000001",
 		Key:       "IMPORT_VAR",
 		Value:     "import-value",
 		IsPreview: false,
@@ -199,7 +199,7 @@ func TestEnvironmentVariableResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_environment_variable.test",
 				ImportState:                          true,
-				ImportStateId:                        "application:cccc0001-0001-4000-8000-000000000001:env-import-uuid",
+				ImportStateId:                        "application:cccc0001-0001-4000-8000-000000000001:eeee0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"value"},
@@ -332,7 +332,7 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
 	t.Parallel()
 	envVar := client.EnvironmentVariable{
-		UUID: "env-svc-imp-uuid", Key: "SVC_VAR", Value: "svc-value", IsPreview: false, IsBuild: false,
+		UUID: "eeee0002-0002-4000-8000-000000000001", Key: "SVC_VAR", Value: "svc-value", IsPreview: false, IsBuild: false,
 	}
 
 	mux := http.NewServeMux()
@@ -365,7 +365,7 @@ func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
 			{
 				ResourceName:                         "coolify_environment_variable.test",
 				ImportState:                          true,
-				ImportStateId:                        "service:ffff0001-0001-4000-8000-000000000001:env-svc-imp-uuid",
+				ImportStateId:                        "service:ffff0001-0001-4000-8000-000000000001:eeee0002-0002-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"value"},
@@ -422,11 +422,11 @@ func TestEnvironmentVariableResource_ImportBadType(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"uuid": "env-err2-uuid"})
+		json.NewEncoder(w).Encode(map[string]string{"uuid": "eeee0002-0002-4000-8000-000000000001"})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.EnvironmentVariable{{UUID: "env-err2-uuid", Key: "K", Value: "V"}})
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{{UUID: "eeee0002-0002-4000-8000-000000000001", Key: "K", Value: "V"}})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
@@ -447,7 +447,7 @@ func TestEnvironmentVariableResource_ImportBadType(t *testing.T) {
 			{
 				ResourceName:  "coolify_environment_variable.test",
 				ImportState:   true,
-				ImportStateId: "unknown:uuid:env-uuid",
+				ImportStateId: "unknown:aaaa0001-0001-4000-8000-000000000001:bbbb0001-0001-4000-8000-000000000001",
 				ExpectError:   regexp.MustCompile(`Invalid import ID type`),
 			},
 		},
@@ -733,7 +733,7 @@ func TestEnvironmentVariableResource_DatabaseUpdate(t *testing.T) {
 func TestEnvironmentVariableResource_DatabaseImport(t *testing.T) {
 	t.Parallel()
 	envVar := client.EnvironmentVariable{
-		UUID: "env-db-imp-uuid", Key: "DB_VAR", Value: "db-value", IsPreview: false, IsBuild: false,
+		UUID: "eeee0003-0003-4000-8000-000000000001", Key: "DB_VAR", Value: "db-value", IsPreview: false, IsBuild: false,
 	}
 
 	mux := http.NewServeMux()
@@ -766,7 +766,7 @@ func TestEnvironmentVariableResource_DatabaseImport(t *testing.T) {
 			{
 				ResourceName:                         "coolify_environment_variable.test",
 				ImportState:                          true,
-				ImportStateId:                        "database:dddd0001-0001-4000-8000-000000000001:env-db-imp-uuid",
+				ImportStateId:                        "database:dddd0001-0001-4000-8000-000000000001:eeee0003-0003-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"value"},
