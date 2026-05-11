@@ -11,7 +11,7 @@
 terraform {
   required_providers {
     coolify = {
-      source = "SebTardif/coolify"
+      source = "SebTardifLabs/coolify"
     }
   }
 }
