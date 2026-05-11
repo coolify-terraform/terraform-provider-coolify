@@ -21,7 +21,7 @@ const maxResponseSize = 10 << 20
 // Client is the Coolify API client.
 type Client struct {
 	BaseURL    string
-	APIToken   string
+	apiToken   string
 	HTTPClient *http.Client
 	UserAgent  string
 }
@@ -53,7 +53,7 @@ func New(baseURL, apiToken string) *Client {
 
 	return &Client{
 		BaseURL:    baseURL,
-		APIToken:   apiToken,
+		apiToken:   apiToken,
 		HTTPClient: httpClient,
 		UserAgent:  "terraform-provider-coolify",
 	}
@@ -76,7 +76,7 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("creating request for %s: %w", path, err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.APIToken)
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	req.Header.Set("User-Agent", c.UserAgent)
 
 	resp, err := c.HTTPClient.Do(req)
@@ -150,7 +150,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.APIToken)
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", c.UserAgent)
 	if body != nil {
