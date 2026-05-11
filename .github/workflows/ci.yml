@@ -28,6 +28,7 @@ jobs:
       docs: ${{ steps.filter.outputs.docs }}
       terraform: ${{ steps.filter.outputs.terraform }}
       ci: ${{ steps.filter.outputs.ci }}
+      scenarios: ${{ steps.filter.outputs.scenarios }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -53,6 +54,9 @@ jobs:
               - '.codecov.yml'
               - '.goreleaser.yml'
               - 'GNUmakefile'
+            scenarios:
+              - 'examples/scenarios/**'
+              - '.github/workflows/ci.yml'
 
   test:
     name: Test
@@ -281,6 +285,52 @@ jobs:
               --label "spec-drift" \
               --body "The weekly spec-freshness check detected changes in the upstream Coolify OpenAPI spec. Run \`make spec-update\` to download the latest spec and review the diff."
           fi
+
+  scenario-tests:
+    name: Scenario Tests
+    runs-on: self-hosted
+    timeout-minutes: 30
+    needs: [changes, test]
+    if: >-
+      always() &&
+      needs.test.result == 'success' &&
+      (needs.changes.outputs.scenarios == 'true' || github.event_name == 'workflow_dispatch')
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+          terraform_version: "1.12.x"
+      - name: Build provider
+        run: go build -o terraform-provider-coolify .
+      - name: Install provider locally
+        run: |
+          PLUGIN_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/SebTardifLabs/coolify/0.0.0-dev/linux_amd64"
+          mkdir -p "$PLUGIN_DIR"
+          cp terraform-provider-coolify "$PLUGIN_DIR/"
+      - name: Run scenario tests
+        env:
+          TF_VAR_coolify_endpoint: ${{ secrets.COOLIFY_ENDPOINT }}
+          TF_VAR_coolify_token: ${{ secrets.COOLIFY_TOKEN }}
+          TF_VAR_server_uuid: ${{ secrets.COOLIFY_SERVER_UUID }}
+        run: |
+          failed=0
+          for dir in examples/scenarios/acme-*/; do
+            echo "=== Testing $(basename "$dir") ==="
+            (
+              cd "$dir"
+              terraform init
+              terraform test -verbose
+            ) || failed=1
+            echo ""
+          done
+          exit $failed
 
   ci-pass:
     name: CI
