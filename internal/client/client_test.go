@@ -2433,3 +2433,99 @@ func TestClient_GetGitHubApp_EmptyList(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, IsNotFound(err))
 }
+
+// --- validateParentType ---
+
+func TestValidateParentType_Valid(t *testing.T) {
+	t.Parallel()
+	for _, pt := range []string{"applications", "services", "databases"} {
+		require.NoError(t, validateParentType(pt), "expected %q to be valid", pt)
+	}
+}
+
+func TestValidateParentType_Invalid(t *testing.T) {
+	t.Parallel()
+	for _, pt := range []string{"invalid", "", "APPLICATION", "deployments"} {
+		err := validateParentType(pt)
+		require.Error(t, err, "expected %q to be invalid", pt)
+		assert.Contains(t, err.Error(), pt)
+	}
+}
+
+// --- Bulk Environment Variables ---
+
+func TestClient_BulkUpdateAppEnvVars(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-1/envs/bulk", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input BulkEnvVarInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.Len(t, input.Variables, 2)
+		assert.Equal(t, "KEY1", input.Variables[0].Key)
+		assert.Equal(t, "val1", input.Variables[0].Value)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.BulkUpdateAppEnvVars(context.Background(), "app-1", BulkEnvVarInput{
+		Variables: []EnvVarEntry{
+			{Key: "KEY1", Value: "val1"},
+			{Key: "KEY2", Value: "val2"},
+		},
+	})
+	require.NoError(t, err)
+}
+
+func TestClient_BulkUpdateDatabaseEnvVars(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-1/envs/bulk", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input BulkEnvVarInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.Len(t, input.Variables, 1)
+		assert.Equal(t, "DB_KEY", input.Variables[0].Key)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.BulkUpdateDatabaseEnvVars(context.Background(), "db-1", BulkEnvVarInput{
+		Variables: []EnvVarEntry{{Key: "DB_KEY", Value: "db_val"}},
+	})
+	require.NoError(t, err)
+}
+
+func TestClient_BulkUpdateServiceEnvVars(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-1/envs/bulk", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input BulkEnvVarInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.Len(t, input.Variables, 1)
+		assert.Equal(t, "SVC_KEY", input.Variables[0].Key)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.BulkUpdateServiceEnvVars(context.Background(), "svc-1", BulkEnvVarInput{
+		Variables: []EnvVarEntry{{Key: "SVC_KEY", Value: "svc_val"}},
+	})
+	require.NoError(t, err)
+}
