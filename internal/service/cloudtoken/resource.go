@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -168,11 +169,9 @@ func (r *cloudTokenResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	name := plan.Name.ValueString()
-	token := plan.Token.ValueString()
 	input := client.UpdateCloudTokenInput{
-		Name:  &name,
-		Token: &token,
+		Name:  flex.StringValueOrNull(plan.Name),
+		Token: flex.StringValueOrNull(plan.Token),
 	}
 
 	_, err := r.client.UpdateCloudToken(ctx, state.UUID.ValueString(), input)

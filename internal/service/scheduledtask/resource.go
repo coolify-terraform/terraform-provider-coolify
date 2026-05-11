@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -202,16 +203,11 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 
 	parentType, parentUUID := plan.parentInfo()
 
-	name := plan.Name.ValueString()
-	command := plan.Command.ValueString()
-	frequency := plan.Frequency.ValueString()
-	enabled := plan.Enabled.ValueBool()
-
 	input := client.UpdateScheduledTaskInput{
-		Name:      &name,
-		Command:   &command,
-		Frequency: &frequency,
-		Enabled:   &enabled,
+		Name:      flex.StringValueOrNull(plan.Name),
+		Command:   flex.StringValueOrNull(plan.Command),
+		Frequency: flex.StringValueOrNull(plan.Frequency),
+		Enabled:   flex.BoolValueOrNull(plan.Enabled),
 	}
 
 	if err := r.client.UpdateScheduledTask(ctx, parentType, parentUUID, plan.UUID.ValueString(), input); err != nil {

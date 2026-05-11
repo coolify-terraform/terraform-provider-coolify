@@ -223,15 +223,12 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	storageUUID := plan.UUID.ValueString()
-	name := plan.Name.ValueString()
-	mountPath := plan.MountPath.ValueString()
 	input := client.UpdateStorageInput{
-		UUID:      &storageUUID,
-		Name:      &name,
-		MountPath: &mountPath,
+		UUID:      flex.StringValueOrNull(plan.UUID),
+		Name:      flex.StringValueOrNull(plan.Name),
+		MountPath: flex.StringValueOrNull(plan.MountPath),
+		HostPath:  flex.StringValueOrNull(plan.HostPath),
 	}
-	flex.SetStrPtr(&input.HostPath, plan.HostPath)
 
 	err := r.client.UpdateStorage(ctx, parentType, parentUUID, input)
 	if err != nil {
