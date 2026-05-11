@@ -2358,3 +2358,88 @@ func TestIsNotFound(t *testing.T) {
 	assert.False(t, IsNotFound(io.EOF))
 	assert.False(t, IsNotFound(nil))
 }
+
+// --- doWithStatus status mismatch ---
+
+func TestClient_CreateProject_WrongStatusCode(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK) // 200, not the expected 201
+		json.NewEncoder(w).Encode(Project{UUID: "proj-wrong"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateProject(context.Background(), CreateProjectInput{Name: "p"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "expected status 201")
+	assert.Contains(t, err.Error(), "got 200")
+}
+
+// --- Malformed JSON response ---
+
+func TestClient_GetProject_MalformedJSON(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`<html>502 Bad Gateway</html>`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetProject(context.Background(), "proj-1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "decoding response")
+}
+
+// --- GitHub Apps client-side filtering ---
+
+func TestClient_GetGitHubApp_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{
+			{ID: 99, Name: "other-app"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetGitHubApp(context.Background(), 42)
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+	assert.Contains(t, err.Error(), "42")
+}
+
+func TestClient_GetGitHubApp_Found(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{
+			{ID: 10, Name: "first-app"},
+			{ID: 42, Name: "target-app"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.GetGitHubApp(context.Background(), 42)
+	require.NoError(t, err)
+	assert.Equal(t, int64(42), app.ID)
+	assert.Equal(t, "target-app", app.Name)
+}
+
+func TestClient_GetGitHubApp_EmptyList(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetGitHubApp(context.Background(), 1)
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
