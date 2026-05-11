@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -116,7 +117,7 @@ func (d *s3StorageDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	config.UUID = types.StringValue(s.UUID)
 	config.Name = types.StringValue(s.Name)
-	config.Description = types.StringValue(s.Description)
+	config.Description = flex.StringToFramework(s.Description)
 	config.Endpoint = types.StringValue(s.Endpoint)
 	config.Bucket = types.StringValue(s.Bucket)
 	config.Region = types.StringValue(s.Region)

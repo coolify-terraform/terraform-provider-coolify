@@ -31,8 +31,13 @@ jobs:
           CONCLUSION=$(gh run list \
             --commit "$SHA" \
             --workflow ci.yml \
+            --status completed \
             --json conclusion \
-            --jq '.[0].conclusion')
+            --jq '.[0].conclusion // empty')
+          if [ -z "$CONCLUSION" ]; then
+            echo "::error::No completed CI run found for commit $SHA. Wait for CI to finish."
+            exit 1
+          fi
           if [ "$CONCLUSION" != "success" ]; then
             echo "::error::CI workflow conclusion is '${CONCLUSION}', refusing to release"
             exit 1

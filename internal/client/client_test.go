@@ -69,7 +69,7 @@ func TestClient_Timeout(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	// Shorten the timeout so the test finishes quickly.
-	c.HTTPClient.Timeout = 2 * time.Second
+	c.httpClient.Timeout = 2 * time.Second
 
 	start := time.Now()
 	err := c.do(context.Background(), http.MethodGet, "/slow", nil, nil)
@@ -284,7 +284,7 @@ func TestClient_CreateProject_ServerError(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	// Shorten retry delays so the test does not wait too long.
-	c.HTTPClient.Timeout = 10 * time.Second
+	c.httpClient.Timeout = 10 * time.Second
 	_, err := c.CreateProject(context.Background(), CreateProjectInput{
 		Name: "Will Fail",
 	})
@@ -586,7 +586,8 @@ func TestClient_CreateServer(t *testing.T) {
 		assert.Equal(t, 2222, input.Port)
 		assert.Equal(t, "deploy", input.User)
 		assert.Equal(t, "pk-99", input.PrivateKeyUUID)
-		assert.True(t, input.IsBuildServer)
+		require.NotNil(t, input.IsBuildServer)
+		assert.True(t, *input.IsBuildServer)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -594,6 +595,7 @@ func TestClient_CreateServer(t *testing.T) {
 	}))
 	defer srv.Close()
 
+	buildServer := true
 	c := New(srv.URL, "test-token")
 	s, err := c.CreateServer(context.Background(), CreateServerInput{
 		Name:           "New Server",
@@ -601,7 +603,7 @@ func TestClient_CreateServer(t *testing.T) {
 		Port:           2222,
 		User:           "deploy",
 		PrivateKeyUUID: "pk-99",
-		IsBuildServer:  true,
+		IsBuildServer:  &buildServer,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "srv-new", s.UUID)

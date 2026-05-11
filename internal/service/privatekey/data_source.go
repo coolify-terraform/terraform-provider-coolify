@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -100,7 +101,7 @@ func (d *privateKeyDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	config.UUID = types.StringValue(key.UUID)
 	config.Name = types.StringValue(key.Name)
-	config.Description = types.StringValue(key.Description)
+	config.Description = flex.StringToFramework(key.Description)
 	config.PrivateKey = types.StringValue(key.PrivateKey)
 	config.IsGitRelated = types.BoolValue(key.IsGitRelated)
 

@@ -66,7 +66,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			map[string]interface{}{
 				"server_uuid": "srv-1", "project_uuid": "proj-1",
 				"environment_name": "production", "environment_uuid": "env-1",
-			}, 200, map[string]string{"uuid": "db-1"}},
+			}, 201, map[string]string{"uuid": "db-1"}},
 		{"GetDatabase", "GET", "/api/v1/databases/db-1",
 			nil, 200, map[string]interface{}{"uuid": "db-1", "name": "pg-db"}},
 		{"DeleteDatabase", "DELETE", "/api/v1/databases/db-1",

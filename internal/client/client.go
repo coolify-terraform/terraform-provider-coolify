@@ -20,14 +20,14 @@ const maxResponseSize = 10 << 20
 
 // Client is the Coolify API client.
 type Client struct {
-	BaseURL    string
+	baseURL    string
 	apiToken   string
-	HTTPClient *http.Client
-	UserAgent  string
+	httpClient *http.Client
+	userAgent  string
 }
 
 // New creates a new Coolify API client.
-func New(baseURL, apiToken string) *Client {
+func New(baseURL, apiToken string, opts ...func(*Client)) *Client {
 	rc := retryablehttp.NewClient()
 	rc.RetryMax = 3
 	rc.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
@@ -51,12 +51,21 @@ func New(baseURL, apiToken string) *Client {
 	httpClient := rc.StandardClient()
 	httpClient.Timeout = 30 * time.Second
 
-	return &Client{
-		BaseURL:    baseURL,
+	c := &Client{
+		baseURL:    baseURL,
 		apiToken:   apiToken,
-		HTTPClient: httpClient,
-		UserAgent:  "terraform-provider-coolify",
+		httpClient: httpClient,
+		userAgent:  "terraform-provider-coolify",
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
+}
+
+// WithUserAgent returns an option that sets the User-Agent header.
+func WithUserAgent(ua string) func(*Client) {
+	return func(c *Client) { c.userAgent = ua }
 }
 
 // GetVersion returns the Coolify instance version string.
@@ -72,14 +81,14 @@ func (c *Client) GetHealth(ctx context.Context) (string, error) {
 // doText performs a GET request and returns the response body as a trimmed
 // string. Handles both plain text and JSON-encoded string responses.
 func (c *Client) doText(ctx context.Context, path string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
 		return "", fmt.Errorf("creating request for %s: %w", path, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
-	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("User-Agent", c.userAgent)
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("executing request for %s: %w", path, err)
 	}
@@ -146,18 +155,18 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		reqBody = bytes.NewReader(data)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, reqBody)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("User-Agent", c.userAgent)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("executing request: %w", err)
 	}

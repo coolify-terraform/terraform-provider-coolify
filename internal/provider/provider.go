@@ -99,10 +99,11 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 	endpoint = strings.TrimRight(endpoint, "/")
-	c := client.New(endpoint, token)
+	var opts []func(*client.Client)
 	if p.version != "" {
-		c.UserAgent = "terraform-provider-coolify/" + p.version
+		opts = append(opts, client.WithUserAgent("terraform-provider-coolify/"+p.version))
 	}
+	c := client.New(endpoint, token, opts...)
 
 	// Validate the connection by fetching the Coolify version.
 	if _, err := c.GetVersion(ctx); err != nil {

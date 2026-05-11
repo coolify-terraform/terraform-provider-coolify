@@ -62,6 +62,9 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: "A description of the project.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
