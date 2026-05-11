@@ -73,5 +73,8 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# NOTE: Import assumes environment_name = "production". If your app
+# is in a different environment, set environment_name in your config
+# to match BEFORE running terraform plan.
 terraform import coolify_github_app_application.app <application-uuid>
 ```

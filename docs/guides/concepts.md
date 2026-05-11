@@ -34,12 +34,14 @@ The Terraform provider maps each level to a resource or data source.
 
 ### Applications
 
-Four application types cover different deployment methods:
+Six application types cover different deployment methods:
 
 | Resource | Source |
 |----------|--------|
 | `coolify_application` | Public Git repository |
 | `coolify_private_git_application` | Private Git repository (SSH key) |
+| `coolify_github_app_application` | GitHub App integration |
+| `coolify_dockerfile_application` | Dockerfile (no Git repo required) |
 | `coolify_docker_image_application` | Docker image (Docker Hub, GHCR) |
 | `coolify_docker_compose_application` | Docker Compose file |
 
