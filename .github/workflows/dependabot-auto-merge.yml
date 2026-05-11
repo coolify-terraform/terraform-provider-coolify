@@ -27,11 +27,23 @@ jobs:
           echo "number=$PR" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: dependabot/fetch-metadata@v2
+      - name: Check for major bump
         if: steps.pr.outputs.number
-        id: metadata
+        id: check
+        run: |
+          TITLE=$(gh pr view "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" --json title --jq '.title')
+          # Dependabot titles: "Bump X from N to M" — major if first digit changes
+          if echo "$TITLE" | grep -qP 'from \d+\.\S+ to (\d+)\.' && \
+             [ "$(echo "$TITLE" | grep -oP 'from (\d+)' | grep -oP '\d+')" != \
+               "$(echo "$TITLE" | grep -oP 'to (\d+)' | grep -oP '\d+')" ]; then
+            echo "major=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "major=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Approve and merge (skip major bumps)
-        if: steps.pr.outputs.number && steps.metadata.outputs.update-type != 'version-update:semver-major'
+        if: steps.pr.outputs.number && steps.check.outputs.major != 'true'
         run: |
           gh pr review "${{ steps.pr.outputs.number }}" --approve --repo "${{ github.repository }}"
           gh pr merge "${{ steps.pr.outputs.number }}" --squash --repo "${{ github.repository }}"

@@ -125,6 +125,11 @@ func TestStorageResource_Update(t *testing.T) {
 		if v, ok := body["mount_path"].(string); ok {
 			currentStor.MountPath = v
 		}
+		if v, ok := body["host_path"]; ok {
+			if s, ok := v.(string); ok {
+				currentStor.HostPath = s
+			}
+		}
 		w.WriteHeader(http.StatusOK)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
@@ -158,6 +163,35 @@ func TestStorageResource_Update(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_storage.test", "name", "app-data-updated"),
 					resource.TestCheckResourceAttr("coolify_storage.test", "mount_path", "/data/new"),
 				),
+			},
+			// Add host_path
+			{
+				Config: testStorageResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "app-data-updated"
+					mount_path       = "/data/new"
+					host_path        = "/host/data"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_storage.test", "host_path", "/host/data"),
+			},
+			// Remove host_path: should clear, not perpetual diff
+			{
+				Config: testStorageResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "app-data-updated"
+					mount_path       = "/data/new"
+				`),
+				Check: resource.TestCheckNoResourceAttr("coolify_storage.test", "host_path"),
+			},
+			// Plan idempotency after removal
+			{
+				Config: testStorageResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "app-data-updated"
+					mount_path       = "/data/new"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
