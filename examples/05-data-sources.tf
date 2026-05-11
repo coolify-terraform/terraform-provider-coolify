@@ -32,7 +32,9 @@ data "coolify_projects" "all" {}
 data "coolify_servers" "all" {}
 
 # Read the current team
-data "coolify_team" "current" {}
+data "coolify_team" "current" {
+  id = 0
+}
 
 output "coolify_version" {
   value = data.coolify_version.current.version

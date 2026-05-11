@@ -28,7 +28,14 @@ resource "coolify_project" "this" {
   description = "${var.environment} environment"
 }
 
+resource "coolify_environment" "this" {
+  count        = var.environment != "production" ? 1 : 0
+  project_uuid = coolify_project.this.uuid
+  name         = var.environment
+}
+
 resource "coolify_postgresql_database" "db" {
+  depends_on        = [coolify_environment.this]
   name              = "${var.project_name}-db"
   project_uuid      = coolify_project.this.uuid
   server_uuid       = var.server_uuid
@@ -38,6 +45,7 @@ resource "coolify_postgresql_database" "db" {
 }
 
 resource "coolify_application" "app" {
+  depends_on       = [coolify_environment.this]
   name             = "${var.project_name}-app"
   project_uuid     = coolify_project.this.uuid
   server_uuid      = var.server_uuid
