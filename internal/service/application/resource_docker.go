@@ -306,6 +306,7 @@ func flattenDockerImageApplication(app *client.Application, state *dockerImageAp
 	state.StartCommand = flex.StringToFramework(app.StartCommand)
 	state.Status = flex.StringToFramework(app.Status)
 
-	state.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
-	state.ServerUUID = flex.StringToFramework(app.ServerUUID)
+	state.ProjectUUID = types.StringValue(app.ProjectUUID)
+	state.ServerUUID = types.StringValue(app.ServerUUID)
+	state.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
 }

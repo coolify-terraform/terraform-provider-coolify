@@ -273,10 +273,11 @@ func flattenDockerComposeApplication(app *client.Application, state *dockerCompo
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)
-	state.DockerComposeRaw = flex.StringToFramework(app.DockerComposeRaw)
+	state.DockerComposeRaw = types.StringValue(app.DockerComposeRaw)
 	state.FQDN = flex.StringToFramework(app.FQDN)
 
-	state.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
-	state.ServerUUID = flex.StringToFramework(app.ServerUUID)
+	state.ProjectUUID = types.StringValue(app.ProjectUUID)
+	state.ServerUUID = types.StringValue(app.ServerUUID)
+	state.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
 	state.Status = flex.StringToFramework(app.Status)
 }

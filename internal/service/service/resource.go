@@ -159,8 +159,8 @@ func flattenService(svc *client.Service, m *serviceResourceModel) {
 	m.UUID = types.StringValue(svc.UUID)
 	m.Name = flex.StringToFramework(svc.Name)
 	m.Description = flex.StringToFramework(svc.Description)
-	m.Type = flex.StringToFramework(svc.Type)
-	m.ProjectUUID = flex.StringToFramework(svc.ProjectUUID)
-	m.ServerUUID = flex.StringToFramework(svc.ServerUUID)
+	m.Type = types.StringValue(svc.Type)
+	m.ProjectUUID = types.StringValue(svc.ProjectUUID)
+	m.ServerUUID = types.StringValue(svc.ServerUUID)
 	m.EnvironmentName = flex.StringToFramework(svc.EnvironmentName)
 }

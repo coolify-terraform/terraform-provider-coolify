@@ -28,6 +28,7 @@ type commonAppFields struct {
 	Status             *types.String
 	ProjectUUID        *types.String
 	ServerUUID         *types.String
+	EnvironmentName    *types.String
 }
 
 // flattenApplicationCommon maps shared API fields into any application model
@@ -46,8 +47,9 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	*f.BuildCommand = flex.StringToFramework(app.BuildCommand)
 	*f.StartCommand = flex.StringToFramework(app.StartCommand)
 	*f.Status = flex.StringToFramework(app.Status)
-	*f.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
-	*f.ServerUUID = flex.StringToFramework(app.ServerUUID)
+	*f.ProjectUUID = types.StringValue(app.ProjectUUID)
+	*f.ServerUUID = types.StringValue(app.ServerUUID)
+	*f.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
 }
 
 // buildUpdateInput constructs the shared UpdateApplicationInput from field pointers.

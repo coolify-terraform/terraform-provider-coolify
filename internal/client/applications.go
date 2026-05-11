@@ -22,6 +22,7 @@ type Application struct {
 	PortsExposes            string `json:"ports_exposes,omitempty"`
 	ServerUUID              string `json:"server_uuid,omitempty"`
 	ProjectUUID             string `json:"project_uuid,omitempty"`
+	EnvironmentName         string `json:"environment_name,omitempty"`
 	DockerRegistryImageName string `json:"docker_registry_image_name,omitempty"`
 	DockerComposeRaw        string `json:"docker_compose_raw,omitempty"`
 	Status                  string `json:"status,omitempty"`

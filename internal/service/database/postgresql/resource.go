@@ -209,8 +209,8 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	m.PostgresPassword = flex.StringToFramework(db.PostgresPassword)
 	m.PostgresDB = flex.StringToFramework(db.PostgresDB)
 	m.Description = flex.StringToFramework(db.Description)
-	m.ProjectUUID = flex.StringToFramework(db.ProjectUUID)
-	m.ServerUUID = flex.StringToFramework(db.ServerUUID)
+	m.ProjectUUID = types.StringValue(db.ProjectUUID)
+	m.ServerUUID = types.StringValue(db.ServerUUID)
 	m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
 }
 

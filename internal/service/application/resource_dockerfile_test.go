@@ -26,6 +26,7 @@ func TestDockerfileApplicationResource_Create(t *testing.T) {
 		PortsExposes:       "80",
 		ProjectUUID:        "aaaa0001-0001-4000-8000-000000000001",
 		ServerUUID:         "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName:    "production",
 	}
 
 	mu := sync.Mutex{}
@@ -108,6 +109,7 @@ func TestDockerfileApplicationResource_Update(t *testing.T) {
 		PortsExposes:       "80",
 		ProjectUUID:        "aaaa0001-0001-4000-8000-000000000001",
 		ServerUUID:         "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName:    "production",
 	}
 
 	mux := http.NewServeMux()
@@ -200,6 +202,7 @@ func TestDockerfileApplicationResource_Import(t *testing.T) {
 		PortsExposes:       "80",
 		ProjectUUID:        "aaaa0001-0001-4000-8000-000000000001",
 		ServerUUID:         "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName:    "production",
 	}
 
 	mux := http.NewServeMux()
@@ -274,6 +277,7 @@ func TestDockerfileApplicationResource_Disappears(t *testing.T) {
 			PortsExposes:       "80",
 			ProjectUUID:        "aaaa0001-0001-4000-8000-000000000001",
 			ServerUUID:         "bbbb0001-0001-4000-8000-000000000001",
+			EnvironmentName:    "production",
 		})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {

@@ -20,14 +20,15 @@ import (
 func TestPrivateGitApplicationResource_Create(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "pgit-app-uuid",
-		Name:          "api-server",
-		GitRepository: "git@github.com:myorg/api-server.git",
-		GitBranch:     "main",
-		BuildPack:     "dockerfile",
-		PortsExposes:  "8080",
-		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+		UUID:            "pgit-app-uuid",
+		Name:            "api-server",
+		GitRepository:   "git@github.com:myorg/api-server.git",
+		GitBranch:       "main",
+		BuildPack:       "dockerfile",
+		PortsExposes:    "8080",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
 	}
 
 	mu := sync.Mutex{}
@@ -110,15 +111,16 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
 	currentApp := client.Application{
-		UUID:          "pgit-upd-uuid",
-		Name:          "api-server",
-		Description:   "initial desc",
-		GitRepository: "git@github.com:myorg/api-server.git",
-		GitBranch:     "main",
-		BuildPack:     "dockerfile",
-		PortsExposes:  "8080",
-		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+		UUID:            "pgit-upd-uuid",
+		Name:            "api-server",
+		Description:     "initial desc",
+		GitRepository:   "git@github.com:myorg/api-server.git",
+		GitBranch:       "main",
+		BuildPack:       "dockerfile",
+		PortsExposes:    "8080",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
 	}
 
 	mux := http.NewServeMux()
@@ -195,14 +197,15 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 func TestPrivateGitApplicationResource_Import(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "aaaa0001-0001-4000-8000-000000000001",
-		Name:          "imported-pgit-app",
-		GitRepository: "git@github.com:myorg/api-server.git",
-		GitBranch:     "main",
-		BuildPack:     "dockerfile",
-		PortsExposes:  "8080",
-		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+		UUID:            "aaaa0001-0001-4000-8000-000000000001",
+		Name:            "imported-pgit-app",
+		GitRepository:   "git@github.com:myorg/api-server.git",
+		GitBranch:       "main",
+		BuildPack:       "dockerfile",
+		PortsExposes:    "8080",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
 	}
 
 	mux := http.NewServeMux()
@@ -273,14 +276,15 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(client.Application{
-			UUID:          appUUID,
-			Name:          "disappearing-pgit",
-			GitRepository: "git@github.com:org/repo.git",
-			GitBranch:     "main",
-			BuildPack:     "nixpacks",
-			PortsExposes:  "3000",
-			ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-			ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+			UUID:            appUUID,
+			Name:            "disappearing-pgit",
+			GitRepository:   "git@github.com:org/repo.git",
+			GitBranch:       "main",
+			BuildPack:       "nixpacks",
+			PortsExposes:    "3000",
+			ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+			ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+			EnvironmentName: "production",
 		})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
@@ -323,14 +327,15 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "privgit-timeout-uuid",
-		Name:          "timeout-privgit",
-		GitRepository: "git@github.com:org/repo.git",
-		GitBranch:     "main",
-		BuildPack:     "nixpacks",
-		PortsExposes:  "3000",
-		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+		UUID:            "privgit-timeout-uuid",
+		Name:            "timeout-privgit",
+		GitRepository:   "git@github.com:org/repo.git",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
 	}
 
 	mux := http.NewServeMux()

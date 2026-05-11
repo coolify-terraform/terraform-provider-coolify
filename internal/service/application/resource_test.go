@@ -20,14 +20,15 @@ import (
 func TestApplicationResource_Create(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "create-app-uuid",
-		Name:          "my-app",
-		GitRepository: "https://github.com/example/repo",
-		GitBranch:     "main",
-		BuildPack:     "nixpacks",
-		PortsExposes:  "3000",
-		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+		UUID:            "create-app-uuid",
+		Name:            "my-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
 	}
 
 	mu := sync.Mutex{}
@@ -104,15 +105,16 @@ func TestApplicationResource_Update(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
 	currentApp := client.Application{
-		UUID:          "update-app-uuid",
-		Name:          "my-app",
-		Description:   "initial desc",
-		GitRepository: "https://github.com/example/repo",
-		GitBranch:     "main",
-		BuildPack:     "nixpacks",
-		PortsExposes:  "3000",
-		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+		UUID:            "update-app-uuid",
+		Name:            "my-app",
+		Description:     "initial desc",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
 	}
 
 	mux := http.NewServeMux()
@@ -185,14 +187,15 @@ func TestApplicationResource_Update(t *testing.T) {
 func TestApplicationResource_Import(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "aaaa0001-0001-4000-8000-000000000001",
-		Name:          "imported-app",
-		GitRepository: "https://github.com/example/repo",
-		GitBranch:     "main",
-		BuildPack:     "nixpacks",
-		PortsExposes:  "3000",
-		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+		UUID:            "aaaa0001-0001-4000-8000-000000000001",
+		Name:            "imported-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
 	}
 
 	mux := http.NewServeMux()
@@ -271,14 +274,15 @@ func TestApplicationResource_InvalidBuildPack(t *testing.T) {
 func TestApplicationResource_Disappears(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "disappear-app-uuid",
-		Name:          "disappearing-app",
-		GitRepository: "https://github.com/example/repo",
-		GitBranch:     "main",
-		BuildPack:     "nixpacks",
-		PortsExposes:  "3000",
-		ProjectUUID:   "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:    "bbbb0002-0002-4000-8000-000000000002",
+		UUID:            "disappear-app-uuid",
+		Name:            "disappearing-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
 	}
 
 	mu := sync.Mutex{}

@@ -25,6 +25,7 @@ func TestDockerComposeApplicationResource_Create(t *testing.T) {
 		DockerComposeRaw: "version: '3'\nservices:\n  web:\n    image: nginx\n",
 		ProjectUUID:      "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:       "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:  "production",
 	}
 
 	mu := sync.Mutex{}
@@ -100,6 +101,7 @@ func TestDockerComposeApplicationResource_Update(t *testing.T) {
 		DockerComposeRaw: "version: '3'\nservices:\n  web:\n    image: nginx\n",
 		ProjectUUID:      "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:       "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:  "production",
 	}
 
 	mux := http.NewServeMux()
@@ -173,6 +175,7 @@ func TestDockerComposeApplicationResource_Import(t *testing.T) {
 		DockerComposeRaw: "version: '3'\nservices:\n  web:\n    image: nginx\n",
 		ProjectUUID:      "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:       "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:  "production",
 	}
 
 	mux := http.NewServeMux()
@@ -245,6 +248,7 @@ func TestDockerComposeApplicationResource_Disappears(t *testing.T) {
 			DockerComposeRaw: "version: '3'\nservices:\n  web:\n    image: nginx\n",
 			ProjectUUID:      "aaaa0002-0002-4000-8000-000000000002",
 			ServerUUID:       "bbbb0002-0002-4000-8000-000000000002",
+			EnvironmentName:  "production",
 		})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
@@ -288,6 +292,7 @@ func TestDockerComposeApplicationResource_Timeouts(t *testing.T) {
 		DockerComposeRaw: "version: '3'\nservices:\n  web:\n    image: nginx",
 		ProjectUUID:      "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:       "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:  "production",
 	}
 
 	mux := http.NewServeMux()

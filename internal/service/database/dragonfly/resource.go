@@ -158,7 +158,7 @@ func flattenDatabase(db *client.Database, m *model) {
 	m.IsPublic = types.BoolValue(db.IsPublic)
 	m.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
 	m.Description = flex.StringToFramework(db.Description)
-	m.ProjectUUID = flex.StringToFramework(db.ProjectUUID)
-	m.ServerUUID = flex.StringToFramework(db.ServerUUID)
+	m.ProjectUUID = types.StringValue(db.ProjectUUID)
+	m.ServerUUID = types.StringValue(db.ServerUUID)
 	m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
 }

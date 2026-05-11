@@ -26,6 +26,7 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 		PortsExposes:            "80",
 		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
 	}
 
 	mu := sync.Mutex{}
@@ -106,6 +107,7 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 		PortsExposes:            "80",
 		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
 	}
 
 	mux := http.NewServeMux()
@@ -182,6 +184,7 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 		PortsExposes:            "80",
 		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
 	}
 
 	mux := http.NewServeMux()
@@ -256,6 +259,7 @@ func TestDockerImageApplicationResource_Disappears(t *testing.T) {
 			PortsExposes:            "80",
 			ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
 			ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+			EnvironmentName:         "production",
 		})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
@@ -301,6 +305,7 @@ func TestDockerImageApplicationResource_Status(t *testing.T) {
 		PortsExposes:            "80",
 		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
 		Status:                  "running:healthy",
 	}
 
@@ -353,6 +358,7 @@ func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
 		PortsExposes:            "80",
 		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
 	}
 
 	mux := http.NewServeMux()

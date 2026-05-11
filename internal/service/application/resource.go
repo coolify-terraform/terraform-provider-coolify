@@ -315,6 +315,7 @@ func (m *applicationResourceModel) common() commonAppFields {
 		PortsExposes: &m.PortsExposes, FQDN: &m.FQDN, DockerfileLocation: &m.DockerfileLocation,
 		InstallCommand: &m.InstallCommand, BuildCommand: &m.BuildCommand, StartCommand: &m.StartCommand,
 		Status: &m.Status, ProjectUUID: &m.ProjectUUID, ServerUUID: &m.ServerUUID,
+		EnvironmentName: &m.EnvironmentName,
 	}
 }
 

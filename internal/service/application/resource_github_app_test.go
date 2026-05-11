@@ -20,14 +20,15 @@ import (
 func TestGitHubAppApplicationResource_Create(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "ghapp-app-uuid",
-		Name:          "my-github-app",
-		GitRepository: "github.com/myorg/myrepo",
-		GitBranch:     "main",
-		BuildPack:     "nixpacks",
-		PortsExposes:  "3000",
-		ProjectUUID:   "aaaa0001-0001-4000-8000-000000000001",
-		ServerUUID:    "bbbb0001-0001-4000-8000-000000000001",
+		UUID:            "ghapp-app-uuid",
+		Name:            "my-github-app",
+		GitRepository:   "github.com/myorg/myrepo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName: "production",
 	}
 
 	mu := sync.Mutex{}
@@ -111,14 +112,15 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
 	app := client.Application{
-		UUID:          "ghapp-upd-uuid",
-		Name:          "my-github-app",
-		GitRepository: "github.com/myorg/myrepo",
-		GitBranch:     "main",
-		BuildPack:     "nixpacks",
-		PortsExposes:  "3000",
-		ProjectUUID:   "aaaa0001-0001-4000-8000-000000000001",
-		ServerUUID:    "bbbb0001-0001-4000-8000-000000000001",
+		UUID:            "ghapp-upd-uuid",
+		Name:            "my-github-app",
+		GitRepository:   "github.com/myorg/myrepo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName: "production",
 	}
 
 	mux := http.NewServeMux()
@@ -214,14 +216,15 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 func TestGitHubAppApplicationResource_Import(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "aaaa0001-0001-4000-8000-000000000001",
-		Name:          "imported-ghapp",
-		GitRepository: "github.com/myorg/myrepo",
-		GitBranch:     "main",
-		BuildPack:     "nixpacks",
-		PortsExposes:  "3000",
-		ProjectUUID:   "aaaa0001-0001-4000-8000-000000000001",
-		ServerUUID:    "bbbb0001-0001-4000-8000-000000000001",
+		UUID:            "aaaa0001-0001-4000-8000-000000000001",
+		Name:            "imported-ghapp",
+		GitRepository:   "github.com/myorg/myrepo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName: "production",
 	}
 
 	mux := http.NewServeMux()
@@ -293,14 +296,15 @@ func TestGitHubAppApplicationResource_Disappears(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(client.Application{
-			UUID:          appUUID,
-			Name:          "disappearing-ghapp",
-			GitRepository: "github.com/org/repo",
-			GitBranch:     "main",
-			BuildPack:     "nixpacks",
-			PortsExposes:  "3000",
-			ProjectUUID:   "aaaa0001-0001-4000-8000-000000000001",
-			ServerUUID:    "bbbb0001-0001-4000-8000-000000000001",
+			UUID:            appUUID,
+			Name:            "disappearing-ghapp",
+			GitRepository:   "github.com/org/repo",
+			GitBranch:       "main",
+			BuildPack:       "nixpacks",
+			PortsExposes:    "3000",
+			ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+			ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+			EnvironmentName: "production",
 		})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
