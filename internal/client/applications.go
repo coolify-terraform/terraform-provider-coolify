@@ -35,7 +35,7 @@ type CreatePublicAppInput struct {
 	PortsExposes       string `json:"ports_exposes"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
-	FQDN               string `json:"fqdn,omitempty"`
+	FQDN               string `json:"domains,omitempty"`
 	DockerfileLocation string `json:"dockerfile_location,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
@@ -44,7 +44,7 @@ type CreatePublicAppInput struct {
 type UpdateApplicationInput struct {
 	Name                    *string `json:"name,omitempty"`
 	Description             *string `json:"description,omitempty"`
-	FQDN                    *string `json:"fqdn,omitempty"`
+	FQDN                    *string `json:"domains,omitempty"`
 	GitRepository           *string `json:"git_repository,omitempty"`
 	GitBranch               *string `json:"git_branch,omitempty"`
 	BuildPack               *string `json:"build_pack,omitempty"`
@@ -130,7 +130,7 @@ type CreatePrivateGitAppInput struct {
 	PrivateKeyUUID     string `json:"private_key_uuid"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
-	FQDN               string `json:"fqdn,omitempty"`
+	FQDN               string `json:"domains,omitempty"`
 	DockerfileLocation string `json:"dockerfile_location,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
@@ -152,7 +152,7 @@ type CreateDockerComposeAppInput struct {
 	DockerComposeRaw string `json:"docker_compose_raw"`
 	Name             string `json:"name,omitempty"`
 	Description      string `json:"description,omitempty"`
-	FQDN             string `json:"fqdn,omitempty"`
+	FQDN             string `json:"domains,omitempty"`
 	InstantDeploy    bool   `json:"instant_deploy,omitempty"`
 }
 
@@ -172,7 +172,7 @@ type CreateDockerImageAppInput struct {
 	PortsExposes    string `json:"ports_exposes"`
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
-	FQDN            string `json:"fqdn,omitempty"`
+	FQDN            string `json:"domains,omitempty"`
 	InstallCommand  string `json:"install_command,omitempty"`
 	StartCommand    string `json:"start_command,omitempty"`
 }
@@ -193,7 +193,7 @@ type CreateDockerfileAppInput struct {
 	PortsExposes       string `json:"ports_exposes"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
-	FQDN               string `json:"fqdn,omitempty"`
+	FQDN               string `json:"domains,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
 	StartCommand       string `json:"start_command,omitempty"`
@@ -218,7 +218,7 @@ type CreateGitHubAppInput struct {
 	PortsExposes       string `json:"ports_exposes"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
-	FQDN               string `json:"fqdn,omitempty"`
+	FQDN               string `json:"domains,omitempty"`
 	DockerfileLocation string `json:"dockerfile_location,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`

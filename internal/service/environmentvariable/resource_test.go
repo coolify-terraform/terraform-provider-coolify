@@ -111,7 +111,7 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 		if v, ok := body["value"].(string); ok {
 			currentEnvVar.Value = v
 		}
-		if v, ok := body["is_build_time"].(bool); ok {
+		if v, ok := body["is_buildtime"].(bool); ok {
 			currentEnvVar.IsBuild = v
 		}
 		w.WriteHeader(http.StatusOK)

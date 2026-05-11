@@ -11,7 +11,7 @@ type EnvironmentVariable struct {
 	Key       string `json:"key"`
 	Value     string `json:"value"`
 	IsPreview bool   `json:"is_preview"`
-	IsBuild   bool   `json:"is_build_time"`
+	IsBuild   bool   `json:"is_buildtime"`
 }
 type CreateEnvVarResponse struct {
 	UUID string `json:"uuid"`
@@ -100,7 +100,7 @@ func (c *Client) DeleteDatabaseEnvVar(ctx context.Context, dbUUID string, envUUI
 
 // BulkEnvVarInput is the request payload for bulk environment variable updates.
 type BulkEnvVarInput struct {
-	Variables []EnvVarEntry `json:"variables"`
+	Variables []EnvVarEntry `json:"data"`
 }
 
 // EnvVarEntry represents a single environment variable in a bulk update.
