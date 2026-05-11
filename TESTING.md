@@ -44,7 +44,7 @@ full Terraform lifecycle: `plan` -> `apply` -> `read` -> `update` ->
 docker compose up -d
 
 # Complete initial setup at http://localhost:8000
-# Create an API token from Settings > API
+# Create an API token from Security > API Tokens
 
 # Set environment variables
 export COOLIFY_ENDPOINT="http://localhost:8000"

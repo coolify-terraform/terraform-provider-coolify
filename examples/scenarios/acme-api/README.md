@@ -64,7 +64,7 @@ Docker networking, and managed entirely through Terraform.
 ## Prerequisites
 
 1. A running [Coolify](https://coolify.io/) instance (v4+)
-2. An API token (Settings → API Tokens)
+2. An API token (Security > API Tokens)
 3. A registered server UUID (Settings → Servers)
 4. [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.0
 

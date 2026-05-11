@@ -136,7 +136,7 @@ plus full-stack, multi-environment, and microservices examples.
 
 ## Authentication
 
-The provider requires a Coolify API token. Generate one in the Coolify UI under **Settings > Keys & Tokens > API tokens**.
+The provider requires a Coolify API token. Generate one in the Coolify UI under **Security > API Tokens**.
 
 | Attribute | Environment Variable | Description |
 |-----------|---------------------|-------------|
@@ -162,8 +162,9 @@ project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ### CI Pipeline
 
-9 jobs run on every push and PR: Detect Changes, Test, Lint, Validate Examples,
-Docs, Govulncheck, Trivy, Gitleaks, GoReleaser Check. Plus a weekly Spec Freshness check.
+12 jobs in the CI workflow: Detect Changes, Test, Lint, Validate Examples,
+Docs, Govulncheck, Trivy, Gitleaks, GoReleaser Check, Scenario Tests,
+Spec Freshness (weekly), and a CI gate job.
 
 ## License
 

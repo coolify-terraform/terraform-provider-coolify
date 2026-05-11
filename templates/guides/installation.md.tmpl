@@ -36,7 +36,7 @@ terraform init
 
 ## Configure authentication
 
-Generate an API token in the Coolify UI: **Settings > Keys & Tokens > API tokens**.
+Generate an API token in the Coolify UI: **Security > API Tokens**.
 
 Set the credentials as environment variables (recommended):
 

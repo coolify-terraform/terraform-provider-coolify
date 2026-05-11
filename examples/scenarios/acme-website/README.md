@@ -63,7 +63,7 @@ environment wiring, and optional backup infrastructure) in a single
 
 1. **Running Coolify instance**: a server with Coolify installed and accessible
    via its API endpoint (e.g. `https://coolify.example.com`).
-2. **API token**: generate one in Coolify under *Settings > API Tokens*.
+2. **API token**: generate one in Coolify under *Security > API Tokens*.
 3. **Server UUID**: the UUID of the destination server registered in Coolify.
    Find it under *Servers* in the Coolify dashboard.
 4. *(Optional)* **S3-compatible storage credentials**: only needed if you
