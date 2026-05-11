@@ -138,7 +138,14 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
+	// Save the user's planned enabled value before flattening, because
+	// Coolify may return enabled=false immediately after creation even
+	// when true was sent. The next Read will pick up the real value.
+	plannedEnabled := plan.Enabled
 	flattenDatabaseBackup(created, &plan)
+	if plannedEnabled.ValueBool() && !plan.Enabled.ValueBool() {
+		plan.Enabled = plannedEnabled
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -251,13 +258,7 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 	if b.Frequency != "" {
 		m.Frequency = types.StringValue(b.Frequency)
 	}
-	// Only update Enabled from API if it differs from a non-null state value,
-	// to avoid overwriting the user's config with API defaults.
-	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
-		// Keep existing state value; Coolify may return incorrect defaults
-	} else {
-		m.Enabled = types.BoolValue(b.Enabled)
-	}
+	m.Enabled = types.BoolValue(b.Enabled)
 	m.S3StorageID = flex.StringToFramework(b.S3StorageID)
 	if b.RetainDays != nil {
 		m.RetainDays = types.Int64Value(*b.RetainDays)
