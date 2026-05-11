@@ -65,10 +65,38 @@ This applies to all 6 application types: `coolify_application`, `coolify_docker_
 `coolify_dockerfile_application`, `coolify_docker_compose_application`,
 `coolify_github_app_application`, and `coolify_private_git_application`.
 
+## Known Limitations
+
+The Coolify API does not return all fields in its GET responses. After
+importing a resource, the following fields may be missing from state and
+must be set in your `.tf` configuration before running `terraform plan`:
+
+| Resource Type | Fields the API may not return |
+|---|---|
+| All databases | `project_uuid`, `server_uuid`, `environment_name` |
+| All applications | `project_uuid`, `server_uuid`, `environment_name` |
+| Database backups | `database_uuid` |
+
+If these fields are missing, `terraform plan` will either show a diff
+or propose replacing the resource. Set them in your config to match
+your actual Coolify setup.
+
+Additionally, Coolify normalizes some input values:
+
+| Field | What Coolify does |
+|---|---|
+| `git_repository` | Strips `https://github.com/` prefix |
+| `docker_image` | Strips `:latest` tag |
+| `dockerfile_location` | Not returned on GET |
+
+The provider handles these normalizations automatically during normal
+operations, but after `terraform import` you may see a one-time diff
+on the first `terraform plan`.
+
 ## Workflow
 
 1. Write the resource block in your `.tf` file
 2. Run `terraform import <resource>.<name> <id>`
 3. Run `terraform plan` to see what Terraform detects
-4. Fill in required attributes not stored in state
+4. Fill in required attributes not stored in state (see above)
 5. Run `terraform plan` again to confirm no changes

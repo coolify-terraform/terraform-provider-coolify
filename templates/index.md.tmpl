@@ -16,7 +16,13 @@ The Coolify provider allows you to manage resources in a [Coolify](https://cooli
 
 ## Authentication
 
-The provider requires a Coolify API token. Generate one in the Coolify UI under **Keys & Tokens > API tokens**.
+The provider requires a Coolify API token.
+
+~> **The Coolify API is disabled by default.** You must enable it in the
+Coolify dashboard under **Settings** before generating a token. Without
+this, all provider operations fail with "Unauthenticated."
+
+Generate a token in the Coolify UI under **Security > API Tokens**.
 
 You can configure credentials in two ways:
 
@@ -37,6 +43,7 @@ export COOLIFY_TOKEN="your-api-token"
 - **[Installation](guides/installation)** - Detailed setup and configuration options
 - **[Concepts](guides/concepts)** - How Coolify resources map to Terraform
 - **[Import Guide](guides/import)** - Bring existing Coolify resources under Terraform management
+- **[Scenario Examples](guides/scenario-testing)** - Real-world ACME Corp deployment scenarios
 
 ## Resource Overview
 

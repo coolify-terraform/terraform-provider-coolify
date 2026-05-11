@@ -1,11 +1,13 @@
-# Local Coolify instance for acceptance testing.
+# WARNING: This single-container setup does NOT work for testing.
+# Coolify requires PostgreSQL, Redis, and Soketi (4 services total).
 #
-# Usage:
-#   docker compose up -d
-#   # Wait for Coolify to start, then get the API token from the UI
-#   export COOLIFY_ENDPOINT="http://localhost:8000"
-#   export COOLIFY_TOKEN="<your-token>"
-#   make testacc
+# For a working local Coolify instance, follow the guide:
+#   docs/guides/scenario-testing.md
+#
+# Or use the official multi-service installation:
+#   https://coolify.io/docs/get-started/installation
+#
+# This file is kept only as a minimal reference. Do not use it directly.
 
 services:
   coolify:

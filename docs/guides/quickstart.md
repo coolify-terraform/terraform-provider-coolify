@@ -26,7 +26,7 @@ Create a file called `main.tf`:
 terraform {
   required_providers {
     coolify = {
-      source = "SebTardif/coolify"
+      source = "SebTardifLabs/coolify"
     }
   }
 }
@@ -105,9 +105,11 @@ terraform destroy
 
 ## Next steps
 
-- Add a [database and environment variables](https://github.com/SebTardif/terraform-provider-coolify/tree/main/examples/full-stack)
+- Browse the [ACME Corp scenarios](https://github.com/SebTardifLabs/terraform-provider-coolify/tree/main/examples/scenarios)
+  for real-world examples (website + database, microservices, multi-environment)
+- Add a [database and environment variables](https://github.com/SebTardifLabs/terraform-provider-coolify/tree/main/examples/full-stack)
   for a complete stack
-- Set up [automated backups](https://github.com/SebTardif/terraform-provider-coolify/tree/main/examples/resources/coolify_database_backup)
+- Set up [automated backups](https://github.com/SebTardifLabs/terraform-provider-coolify/tree/main/examples/resources/coolify_database_backup)
   with S3 storage
 - Read the [Import Guide](import) to bring existing Coolify resources
   under Terraform management
