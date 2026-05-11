@@ -78,7 +78,7 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 		return "", fmt.Errorf("reading response for %s: %w", path, err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("api error for %s (status %d): %s", path, resp.StatusCode, string(body))
+		return "", fmt.Errorf("api error for %s (status %d): %s", path, resp.StatusCode, extractAPIMessage(body))
 	}
 
 	s := strings.TrimSpace(string(body))
@@ -173,6 +173,21 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		}
 	}
 
+	return nil
+}
+
+// validParentTypes is the set of allowed parent resource types for compound
+// API paths like /api/v1/{parentType}/{parentUUID}/scheduled-tasks.
+var validParentTypes = map[string]bool{
+	"applications": true,
+	"services":     true,
+	"databases":    true,
+}
+
+func validateParentType(pt string) error {
+	if !validParentTypes[pt] {
+		return fmt.Errorf("invalid parent type %q: must be one of applications, services, databases", pt)
+	}
 	return nil
 }
 
