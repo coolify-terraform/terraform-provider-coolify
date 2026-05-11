@@ -147,6 +147,7 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 		Name:      plan.Name.ValueString(),
 		Command:   plan.Command.ValueString(),
 		Frequency: plan.Frequency.ValueString(),
+		Enabled:   plan.Enabled.ValueBool(),
 	}
 
 	taskUUID, err := r.client.CreateScheduledTask(ctx, parentType, parentUUID, input)

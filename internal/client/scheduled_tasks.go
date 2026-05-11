@@ -20,6 +20,7 @@ type CreateScheduledTaskInput struct {
 	Name      string `json:"name"`
 	Command   string `json:"command"`
 	Frequency string `json:"frequency"`
+	Enabled   bool   `json:"enabled"`
 }
 
 // UpdateScheduledTaskInput holds the fields that can be updated on a scheduled task.
