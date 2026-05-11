@@ -7,11 +7,11 @@
 #   export TF_VAR_coolify_token="your-api-token"
 #   export TF_VAR_server_uuid="your-server-uuid"
 
+# Required variables are provided via TF_VAR_* environment variables:
+#   TF_VAR_coolify_endpoint, TF_VAR_coolify_token, TF_VAR_server_uuid
+
 variables {
-  coolify_endpoint = "http://localhost:8000"
-  coolify_token    = "test-token"
-  server_uuid      = "test-server-uuid"
-  enable_backups   = false
+  enable_backups = false
 }
 
 run "create_and_verify" {

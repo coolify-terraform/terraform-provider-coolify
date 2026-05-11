@@ -1,16 +1,7 @@
 # Acceptance test for the ACME Corp Order Processing API scenario.
 #
-# Defaults below are placeholders. For CI, override with TF_VAR_* env vars:
-#
-#   export TF_VAR_coolify_endpoint="https://coolify.example.com"
-#   export TF_VAR_coolify_token="your-api-token"
-#   export TF_VAR_server_uuid="your-server-uuid"
-
-variables {
-  coolify_endpoint = "http://localhost:8000"
-  coolify_token    = "test-token"
-  server_uuid      = "test-server-uuid"
-}
+# Required variables are provided via TF_VAR_* environment variables:
+#   TF_VAR_coolify_endpoint, TF_VAR_coolify_token, TF_VAR_server_uuid
 
 run "create_and_verify" {
   command = apply

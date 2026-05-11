@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
@@ -37,7 +38,14 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	*f.UUID = types.StringValue(app.UUID)
 	*f.Name = types.StringValue(app.Name)
 	*f.Description = flex.StringToFramework(app.Description)
-	*f.GitRepository = types.StringValue(app.GitRepository)
+	// Coolify normalizes GitHub URLs by stripping the "https://github.com/"
+	// prefix (e.g. "https://github.com/org/repo" becomes "org/repo"). Preserve
+	// the user's original input if the API value is a suffix of it.
+	if prior := f.GitRepository; !prior.IsNull() && !prior.IsUnknown() && strings.HasSuffix(prior.ValueString(), app.GitRepository) {
+		*f.GitRepository = *prior
+	} else {
+		*f.GitRepository = types.StringValue(app.GitRepository)
+	}
 	*f.GitBranch = types.StringValue(app.GitBranch)
 	*f.BuildPack = types.StringValue(app.BuildPack)
 	*f.PortsExposes = types.StringValue(app.PortsExposes)
@@ -47,9 +55,17 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	*f.BuildCommand = flex.StringToFramework(app.BuildCommand)
 	*f.StartCommand = flex.StringToFramework(app.StartCommand)
 	*f.Status = flex.StringToFramework(app.Status)
-	*f.ProjectUUID = types.StringValue(app.ProjectUUID)
-	*f.ServerUUID = types.StringValue(app.ServerUUID)
-	*f.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
+	// Immutable fields: only update if the API returns them (Coolify may
+	// omit these from the GET response).
+	if app.ProjectUUID != "" {
+		*f.ProjectUUID = types.StringValue(app.ProjectUUID)
+	}
+	if app.ServerUUID != "" {
+		*f.ServerUUID = types.StringValue(app.ServerUUID)
+	}
+	if app.EnvironmentName != "" {
+		*f.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
+	}
 }
 
 // buildUpdateInput constructs the shared UpdateApplicationInput from field pointers.

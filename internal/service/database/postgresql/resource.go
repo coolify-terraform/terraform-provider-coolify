@@ -209,9 +209,17 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	m.PostgresPassword = flex.StringToFramework(db.PostgresPassword)
 	m.PostgresDB = flex.StringToFramework(db.PostgresDB)
 	m.Description = flex.StringToFramework(db.Description)
-	m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	m.ServerUUID = types.StringValue(db.ServerUUID)
-	m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
+	// Immutable fields: only update if the API returns them (Coolify may
+	// omit these from the GET response).
+	if db.ProjectUUID != "" {
+		m.ProjectUUID = types.StringValue(db.ProjectUUID)
+	}
+	if db.ServerUUID != "" {
+		m.ServerUUID = types.StringValue(db.ServerUUID)
+	}
+	if db.EnvironmentName != "" {
+		m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
+	}
 }
 
 // --- shared helpers ---

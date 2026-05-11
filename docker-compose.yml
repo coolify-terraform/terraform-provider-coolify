@@ -16,8 +16,7 @@ services:
       - coolify-data:/data/coolify
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - APP_ENV=local
-      - APP_DEBUG=true
+      - APP_ENV=production
     restart: unless-stopped
 
 volumes:

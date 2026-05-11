@@ -195,7 +195,13 @@ func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
 	m.MysqlDatabase = flex.StringToFramework(db.MysqlDatabase)
 	m.MysqlRootPassword = flex.StringToFramework(db.MysqlRootPassword)
 	m.Description = flex.StringToFramework(db.Description)
-	m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	m.ServerUUID = types.StringValue(db.ServerUUID)
-	m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
+	if db.ProjectUUID != "" {
+		m.ProjectUUID = types.StringValue(db.ProjectUUID)
+	}
+	if db.ServerUUID != "" {
+		m.ServerUUID = types.StringValue(db.ServerUUID)
+	}
+	if db.EnvironmentName != "" {
+		m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
+	}
 }

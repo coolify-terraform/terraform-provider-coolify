@@ -181,7 +181,13 @@ func flattenDatabase(db *client.Database, m *model) {
 	m.MariadbDatabase = flex.StringToFramework(db.MariadbDatabase)
 	m.MariadbRootPassword = flex.StringToFramework(db.MariadbRootPassword)
 	m.Description = flex.StringToFramework(db.Description)
-	m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	m.ServerUUID = types.StringValue(db.ServerUUID)
-	m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
+	if db.ProjectUUID != "" {
+		m.ProjectUUID = types.StringValue(db.ProjectUUID)
+	}
+	if db.ServerUUID != "" {
+		m.ServerUUID = types.StringValue(db.ServerUUID)
+	}
+	if db.EnvironmentName != "" {
+		m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
+	}
 }
