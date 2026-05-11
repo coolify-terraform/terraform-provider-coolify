@@ -40,6 +40,16 @@ terraform import coolify_database_backup.daily <db-uuid>:<backup-id>
 # Environment variable: type:parent_uuid:env_var_uuid
 terraform import coolify_environment_variable.db_url application:<app-uuid>:<env-uuid>
 terraform import coolify_environment_variable.redis service:<svc-uuid>:<env-uuid>
+terraform import coolify_environment_variable.pg_pass database:<db-uuid>:<env-uuid>
+
+# Scheduled task: type:parent_uuid:task_uuid
+terraform import coolify_scheduled_task.backup application:<app-uuid>:<task-uuid>
+terraform import coolify_scheduled_task.check service:<svc-uuid>:<task-uuid>
+
+# Persistent storage: type:parent_uuid:storage_uuid
+terraform import coolify_storage.data application:<app-uuid>:<storage-uuid>
+terraform import coolify_storage.vol service:<svc-uuid>:<storage-uuid>
+terraform import coolify_storage.pgdata database:<db-uuid>:<storage-uuid>
 ```
 
 ## Workflow
