@@ -29,6 +29,7 @@ type CreatePublicAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
 	ServerUUID         string `json:"server_uuid"`
 	EnvironmentName    string `json:"environment_name"`
+	EnvironmentUUID    string `json:"environment_uuid,omitempty"`
 	GitRepository      string `json:"git_repository"`
 	GitBranch          string `json:"git_branch"`
 	BuildPack          string `json:"build_pack"`
@@ -123,6 +124,7 @@ type CreatePrivateGitAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
 	ServerUUID         string `json:"server_uuid"`
 	EnvironmentName    string `json:"environment_name"`
+	EnvironmentUUID    string `json:"environment_uuid,omitempty"`
 	GitRepository      string `json:"git_repository"`
 	GitBranch          string `json:"git_branch"`
 	BuildPack          string `json:"build_pack"`
@@ -149,6 +151,7 @@ type CreateDockerComposeAppInput struct {
 	ProjectUUID      string `json:"project_uuid"`
 	ServerUUID       string `json:"server_uuid"`
 	EnvironmentName  string `json:"environment_name"`
+	EnvironmentUUID  string `json:"environment_uuid,omitempty"`
 	DockerComposeRaw string `json:"docker_compose_raw"`
 	Name             string `json:"name,omitempty"`
 	Description      string `json:"description,omitempty"`
@@ -168,6 +171,7 @@ type CreateDockerImageAppInput struct {
 	ProjectUUID     string `json:"project_uuid"`
 	ServerUUID      string `json:"server_uuid"`
 	EnvironmentName string `json:"environment_name"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	DockerImage     string `json:"docker_registry_image_name"`
 	PortsExposes    string `json:"ports_exposes"`
 	Name            string `json:"name,omitempty"`
@@ -189,7 +193,8 @@ type CreateDockerfileAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
 	ServerUUID         string `json:"server_uuid"`
 	EnvironmentName    string `json:"environment_name"`
-	DockerfileLocation string `json:"dockerfile_location"`
+	EnvironmentUUID    string `json:"environment_uuid,omitempty"`
+	DockerfileLocation string `json:"dockerfile"`
 	PortsExposes       string `json:"ports_exposes"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
@@ -211,6 +216,7 @@ type CreateGitHubAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
 	ServerUUID         string `json:"server_uuid"`
 	EnvironmentName    string `json:"environment_name"`
+	EnvironmentUUID    string `json:"environment_uuid,omitempty"`
 	GitHubAppUUID      string `json:"github_app_uuid"`
 	GitRepository      string `json:"git_repository"`
 	GitBranch          string `json:"git_branch"`

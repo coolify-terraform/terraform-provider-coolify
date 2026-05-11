@@ -22,6 +22,7 @@ type CreateServiceInput struct {
 	ServerUUID      string `json:"server_uuid"`
 	ProjectUUID     string `json:"project_uuid"`
 	EnvironmentName string `json:"environment_name"`
+	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 }
 
 func (c *Client) ListServices(ctx context.Context) ([]Service, error) {
