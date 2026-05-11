@@ -244,6 +244,12 @@ func (r *applicationResource) Create(ctx context.Context, req resource.CreateReq
 
 	plan.UUID = types.StringValue(created.UUID)
 
+	// Save partial state so the resource is tracked even if the read-back fails.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	app, err := r.client.GetApplication(ctx, created.UUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading application after creation", err.Error())
