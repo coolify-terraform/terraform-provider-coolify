@@ -4,7 +4,7 @@
 
 Terraform provider for [Coolify](https://coolify.io/), the open-source self-hosted PaaS.
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
-27 resources, 41 data sources, 370+ tests (unit + acceptance), 9 CI jobs.
+27 resources, 41 data sources, 390+ tests (unit + acceptance), 9 CI jobs.
 
 ## Commands
 
@@ -82,7 +82,7 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 ## Testing
 
 - Framework: `hashicorp/terraform-plugin-testing` with `httptest` mock servers
-- 370+ tests (unit + acceptance), ~76% statement coverage
+- 390+ tests (unit + acceptance), ~76% statement coverage
 - Acceptance tests are skipped unless `TF_ACC=1` is set
 - Run `make ci` before pushing (build, lint, test, validate, docs-check, api-coverage-check, vulncheck)
 - Before adding a test function, grep for its name to avoid duplicates
