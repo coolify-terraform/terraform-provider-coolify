@@ -146,7 +146,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		Port:           int(plan.Port.ValueInt64()),
 		User:           plan.User.ValueString(),
 		PrivateKeyUUID: plan.PrivateKeyUUID.ValueString(),
-		IsBuildServer:  plan.IsBuildServer.ValueBool(),
+		IsBuildServer:  flex.BoolValueOrNull(plan.IsBuildServer),
 	}
 
 	created, err := r.client.CreateServer(ctx, input)

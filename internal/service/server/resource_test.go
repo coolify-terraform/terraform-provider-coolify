@@ -40,7 +40,7 @@ func newServerMockServer() *httptest.Server {
 				Port:           input.Port,
 				User:           input.User,
 				PrivateKeyUUID: input.PrivateKeyUUID,
-				IsBuildServer:  input.IsBuildServer,
+				IsBuildServer:  input.IsBuildServer != nil && *input.IsBuildServer,
 				IsReachable:    true,
 				IsUsable:       true,
 			}

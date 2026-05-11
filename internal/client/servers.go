@@ -26,7 +26,7 @@ type CreateServerInput struct {
 	Port           int    `json:"port"`
 	User           string `json:"user,omitempty"`
 	PrivateKeyUUID string `json:"private_key_uuid"`
-	IsBuildServer  bool   `json:"is_build_server,omitempty"`
+	IsBuildServer  *bool  `json:"is_build_server,omitempty"`
 }
 type UpdateServerInput struct {
 	Name           *string `json:"name,omitempty"`
