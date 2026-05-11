@@ -122,6 +122,12 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	// Save partial state so the resource is tracked even if the read-back fails.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Read back the full environment to populate computed fields.
 	diags := r.readEnvironment(ctx, plan.ProjectUUID.ValueString(), plan.Name.ValueString(), &plan)
 	resp.Diagnostics.Append(diags...)

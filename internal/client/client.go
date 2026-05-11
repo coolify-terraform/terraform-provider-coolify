@@ -93,11 +93,11 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 		return "", fmt.Errorf("api error for %s (status %d): %s", path, resp.StatusCode, extractAPIMessage(body))
 	}
 
-	s := strings.TrimSpace(string(body))
-	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
-		s = s[1 : len(s)-1]
+	var unquoted string
+	if json.Unmarshal(body, &unquoted) == nil {
+		return unquoted, nil
 	}
-	return s, nil
+	return strings.TrimSpace(string(body)), nil
 }
 
 // EnableAPI enables the Coolify API.

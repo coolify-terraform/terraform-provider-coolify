@@ -107,7 +107,7 @@ type CreateMongodbInput struct {
 type CreateClickhouseInput struct {
 	ProjectUUID             string `json:"project_uuid"`
 	ServerUUID              string `json:"server_uuid"`
-	EnvironmentName         string `json:"environment_name,omitempty"`
+	EnvironmentName         string `json:"environment_name"`
 	EnvironmentUUID         string `json:"environment_uuid,omitempty"`
 	Name                    string `json:"name,omitempty"`
 	Description             string `json:"description,omitempty"`
@@ -121,7 +121,7 @@ type CreateClickhouseInput struct {
 type CreateKeydbInput struct {
 	ProjectUUID     string `json:"project_uuid"`
 	ServerUUID      string `json:"server_uuid"`
-	EnvironmentName string `json:"environment_name,omitempty"`
+	EnvironmentName string `json:"environment_name"`
 	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
@@ -132,7 +132,7 @@ type CreateKeydbInput struct {
 type CreateDragonflyInput struct {
 	ProjectUUID     string `json:"project_uuid"`
 	ServerUUID      string `json:"server_uuid"`
-	EnvironmentName string `json:"environment_name,omitempty"`
+	EnvironmentName string `json:"environment_name"`
 	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
