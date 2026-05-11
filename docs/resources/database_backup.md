@@ -26,7 +26,7 @@ resource "coolify_database_backup" "daily" {
   database_uuid = coolify_postgresql_database.db.uuid
   frequency     = "0 2 * * *"
   enabled       = true
-  retain_days   = 7
+  retain_days   = 7 # Number of backup copies to keep (not days)
   s3_storage_id = coolify_s3_storage.backups.uuid
 }
 ```
@@ -57,6 +57,7 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-# Import a database backup using the composite ID format:
+# Import a database backup using the composite ID format.
+# Note: <backup-id> is the numeric "id" attribute (e.g. 42), NOT the backup's "uuid".
 terraform import coolify_database_backup.example <database-uuid>:<backup-id>
 ```
