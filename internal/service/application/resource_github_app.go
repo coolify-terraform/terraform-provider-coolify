@@ -283,6 +283,7 @@ func (r *gitHubAppApplicationResource) Read(ctx context.Context, req resource.Re
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
+//nolint:dupl // shared Update extraction tracked in #11
 func (r *gitHubAppApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan gitHubAppApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -342,6 +343,8 @@ func (r *gitHubAppApplicationResource) ImportState(ctx context.Context, req reso
 }
 
 // flattenGitHubAppApplication copies API fields into the Terraform state model.
+//
+//nolint:dupl // shared flatten extraction tracked in #11
 func flattenGitHubAppApplication(app *client.Application, state *gitHubAppApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)

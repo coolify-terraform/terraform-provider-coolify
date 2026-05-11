@@ -317,6 +317,8 @@ func (r *dockerfileApplicationResource) ImportState(ctx context.Context, req res
 }
 
 // flattenDockerfileApplication copies API fields into the Terraform state model.
+//
+//nolint:dupl // shared flatten extraction tracked in #11
 func flattenDockerfileApplication(app *client.Application, state *dockerfileApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)

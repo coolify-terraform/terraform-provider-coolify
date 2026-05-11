@@ -273,6 +273,7 @@ func (r *applicationResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
+//nolint:dupl // shared Update extraction tracked in #11
 func (r *applicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan applicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -332,6 +333,8 @@ func (r *applicationResource) ImportState(ctx context.Context, req resource.Impo
 }
 
 // flattenApplication copies API fields into the Terraform state model.
+//
+//nolint:dupl // shared flatten extraction tracked in #11
 func flattenApplication(app *client.Application, state *applicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)

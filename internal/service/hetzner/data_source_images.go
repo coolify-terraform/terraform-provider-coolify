@@ -1,3 +1,4 @@
+//nolint:dupl // shared hetzner list data source extraction tracked in #11
 package hetzner
 
 import (

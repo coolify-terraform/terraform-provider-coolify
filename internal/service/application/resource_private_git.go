@@ -283,6 +283,7 @@ func (r *privateGitApplicationResource) Read(ctx context.Context, req resource.R
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
+//nolint:dupl // shared Update extraction tracked in #11
 func (r *privateGitApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan privateGitApplicationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -342,6 +343,8 @@ func (r *privateGitApplicationResource) ImportState(ctx context.Context, req res
 }
 
 // flattenPrivateGitApplication copies API fields into the Terraform state model.
+//
+//nolint:dupl // shared flatten extraction tracked in #11
 func flattenPrivateGitApplication(app *client.Application, state *privateGitApplicationResourceModel) {
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
