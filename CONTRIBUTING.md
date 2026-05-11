@@ -104,7 +104,7 @@ To test the provider against a real Coolify instance without publishing:
    ```hcl
    provider_installation {
      dev_overrides {
-       "SebTardif/coolify" = "/home/YOUR_USER/go/bin"
+       "SebTardifLabs/coolify" = "/home/YOUR_USER/go/bin"
      }
      direct {}
    }

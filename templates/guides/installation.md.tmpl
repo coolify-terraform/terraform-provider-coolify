@@ -22,7 +22,7 @@ Add the provider to your `required_providers` block:
 terraform {
   required_providers {
     coolify = {
-      source = "SebTardif/coolify"
+      source = "SebTardifLabs/coolify"
     }
   }
 }
@@ -62,7 +62,7 @@ Create a file called `main.tf`:
 terraform {
   required_providers {
     coolify = {
-      source = "SebTardif/coolify"
+      source = "SebTardifLabs/coolify"
     }
   }
 }

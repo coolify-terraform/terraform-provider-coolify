@@ -93,7 +93,7 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 terraform {
   required_providers {
     coolify = {
-      source = "SebTardif/coolify"
+      source = "SebTardifLabs/coolify"
     }
   }
 }
