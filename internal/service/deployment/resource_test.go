@@ -31,8 +31,8 @@ func TestDeploymentResource_Create(t *testing.T) {
 		uuid := r.PathValue("uuid")
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"uuid":   uuid,
-			"status": "queued",
+			"deployment_uuid": uuid,
+			"status":          "queued",
 		})
 	})
 
@@ -105,8 +105,8 @@ func TestDeploymentResource_TriggersForceNew(t *testing.T) {
 		uuid := r.PathValue("uuid")
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"uuid":   uuid,
-			"status": "queued",
+			"deployment_uuid": uuid,
+			"status":          "queued",
 		})
 	})
 
@@ -175,8 +175,8 @@ func TestDeploymentResource_Import(t *testing.T) {
 		uuid := r.PathValue("uuid")
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"uuid":   uuid,
-			"status": "finished",
+			"deployment_uuid": uuid,
+			"status":          "finished",
 		})
 	})
 
@@ -236,8 +236,8 @@ func TestDeploymentResource_Disappears(t *testing.T) {
 		uuid := r.PathValue("uuid")
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"uuid":   uuid,
-			"status": "queued",
+			"deployment_uuid": uuid,
+			"status":          "queued",
 		})
 	})
 

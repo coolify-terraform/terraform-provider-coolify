@@ -14,8 +14,8 @@ import (
 func TestDeploymentsDataSource_Read(t *testing.T) {
 	t.Parallel()
 	deployments := []map[string]interface{}{
-		{"uuid": "dep-001", "status": "finished", "server_uuid": "srv-001"},
-		{"uuid": "dep-002", "status": "queued", "server_uuid": "srv-001"},
+		{"deployment_uuid": "dep-001", "status": "finished", "server_uuid": "srv-001"},
+		{"deployment_uuid": "dep-002", "status": "queued", "server_uuid": "srv-001"},
 	}
 
 	mux := http.NewServeMux()
@@ -50,7 +50,7 @@ data "coolify_deployments" "test" {}
 func TestDeploymentsDataSource_ReadByApplication(t *testing.T) {
 	t.Parallel()
 	appDeployments := []map[string]interface{}{
-		{"uuid": "dep-app-001", "status": "finished", "server_uuid": "srv-002"},
+		{"deployment_uuid": "dep-app-001", "status": "finished", "server_uuid": "srv-002"},
 	}
 
 	mux := http.NewServeMux()

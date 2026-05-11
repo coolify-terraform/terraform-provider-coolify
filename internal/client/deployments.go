@@ -8,7 +8,7 @@ import (
 )
 
 type Deployment struct {
-	UUID       string `json:"uuid,omitempty"`
+	UUID       string `json:"deployment_uuid,omitempty"`
 	ID         int    `json:"id,omitempty"`
 	Status     string `json:"status,omitempty"`
 	ServerUUID string `json:"server_uuid,omitempty"`
