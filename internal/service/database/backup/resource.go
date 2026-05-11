@@ -181,8 +181,8 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 	input := client.UpdateDatabaseBackupInput{}
 	flex.SetStrPtr(&input.Frequency, plan.Frequency)
 	flex.SetBoolPtr(&input.Enabled, plan.Enabled)
-	flex.SetStrPtr(&input.S3StorageID, plan.S3StorageID)
-	flex.SetInt64Ptr(&input.RetainDays, plan.RetainDays)
+	input.S3StorageID = flex.StringPtrForUpdate(plan.S3StorageID, state.S3StorageID)
+	input.RetainDays = flex.Int64PtrForUpdate(plan.RetainDays, state.RetainDays)
 
 	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, backupID, input); err != nil {
 		resp.Diagnostics.AddError("Error updating database backup", err.Error())

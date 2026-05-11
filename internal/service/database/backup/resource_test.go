@@ -75,9 +75,20 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			if v, ok := body["enabled"].(bool); ok {
 				state.enabled = v
 			}
-			if v, ok := body["database_backup_retention_amount_locally"].(float64); ok {
-				i := int64(v)
-				state.retainDays = &i
+			if v, ok := body["s3_storage_uuid"]; ok {
+				if s, ok := v.(string); ok {
+					state.s3StorageID = s
+				}
+			}
+			if v, ok := body["database_backup_retention_amount_locally"]; ok {
+				if f, ok := v.(float64); ok {
+					i := int64(f)
+					if i == 0 {
+						state.retainDays = nil
+					} else {
+						state.retainDays = &i
+					}
+				}
 			}
 			json.NewEncoder(w).Encode(backupResponse(state))
 
@@ -196,6 +207,7 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "0 2 * * *"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_days", "7"),
 				),
 			},
 			{
@@ -210,6 +222,25 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "enabled", "false"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_days", "14"),
 				),
+			},
+			// Remove retain_days from config: should clear to 0, not perpetual diff
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
+					frequency     = "0 4 * * *"
+					enabled       = false
+				`),
+				Check: resource.TestCheckNoResourceAttr("coolify_database_backup.test", "retain_days"),
+			},
+			// Plan idempotency after removal
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
+					frequency     = "0 4 * * *"
+					enabled       = false
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})

@@ -220,6 +220,11 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var state storageResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	parentType, parentUUID, ok := resolveParent(&plan)
 	if !ok {
@@ -231,7 +236,7 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 		UUID:      flex.StringValueOrNull(plan.UUID),
 		Name:      flex.StringValueOrNull(plan.Name),
 		MountPath: flex.StringValueOrNull(plan.MountPath),
-		HostPath:  flex.StringValueOrNull(plan.HostPath),
+		HostPath:  flex.StringPtrForUpdate(plan.HostPath, state.HostPath),
 	}
 
 	err := r.client.UpdateStorage(ctx, parentType, parentUUID, input)

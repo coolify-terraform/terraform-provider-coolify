@@ -114,3 +114,35 @@ func Int64PtrFromFramework(v types.Int64) *int64 {
 	val := v.ValueInt64()
 	return &val
 }
+
+// StringPtrForUpdate returns a *string suitable for a JSON PATCH body.
+// If the plan has a value, returns a pointer to it. If the plan is null
+// but the prior state had a value, returns a pointer to "" (explicit clear).
+// If both are null, returns nil (omit from body).
+func StringPtrForUpdate(plan, state types.String) *string {
+	if !plan.IsNull() && !plan.IsUnknown() {
+		s := plan.ValueString()
+		return &s
+	}
+	if !state.IsNull() {
+		empty := ""
+		return &empty
+	}
+	return nil
+}
+
+// Int64PtrForUpdate returns a *int64 suitable for a JSON PATCH body.
+// If the plan has a value, returns a pointer to it. If the plan is null
+// but the prior state had a value, returns a pointer to 0 (explicit clear).
+// If both are null, returns nil (omit from body).
+func Int64PtrForUpdate(plan, state types.Int64) *int64 {
+	if !plan.IsNull() && !plan.IsUnknown() {
+		i := plan.ValueInt64()
+		return &i
+	}
+	if !state.IsNull() {
+		zero := int64(0)
+		return &zero
+	}
+	return nil
+}
