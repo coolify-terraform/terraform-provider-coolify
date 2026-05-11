@@ -17,15 +17,32 @@ real Coolify instance.
 - Docker and Docker Compose
 - Go 1.26+ (to build the provider)
 - Terraform 1.12+ (for `terraform test`)
-- A machine where you can run `sudo` (one-time directory setup)
+- `sudo` access (one-time setup for directories, SSH, and sudo config)
+- OpenSSH server (Coolify SSHs into the target server to manage Docker)
 
-## Step 1: Set Up a Local Coolify Instance
+## Step 1: Host Prerequisites (one-time)
 
-Coolify requires PostgreSQL, Redis, and Soketi. Use the official multi-service
-installation:
+Coolify is a PaaS that manages Docker containers by SSHing into target
+servers. Even when the "server" is localhost, Coolify connects via SSH.
+These prerequisites make that work:
 
 ```bash
-# Create directories (one-time, needs sudo)
+# Install OpenSSH server (Coolify needs to SSH into the host)
+sudo apt-get install -y openssh-server
+sudo systemctl enable ssh && sudo systemctl start ssh
+
+# Allow passwordless sudo (Coolify runs sudo commands on the target)
+echo "$(whoami) ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/coolify-test
+```
+
+## Step 2: Set Up a Local Coolify Instance
+
+Coolify requires PostgreSQL, Redis, and Soketi. Use the official
+multi-service installation (NOT the single-container docker-compose.yml
+in this repo, which doesn't work):
+
+```bash
+# Create directories
 sudo mkdir -p /data/coolify/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
 sudo mkdir -p /data/coolify/proxy/dynamic
 sudo chown -R $USER:$USER /data/coolify
@@ -51,6 +68,10 @@ mkdir -p ~/.ssh
 cat /data/coolify/ssh/keys/id.root@host.docker.internal.pub >> ~/.ssh/authorized_keys
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
 
+# Set SSH directory ownership for the Coolify container user (UID 9999)
+sudo chown -R 9999 /data/coolify/ssh
+sudo chmod -R 700 /data/coolify/ssh
+
 # Create Docker network and start
 docker network create --attachable coolify
 docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml \
@@ -63,13 +84,19 @@ Wait 30-60 seconds for Coolify to start, then verify:
 curl -s http://localhost:8000/api/health
 ```
 
-## Step 2: Create an Admin Account
+-> **Why SSH?** Coolify deploys applications by SSHing into target servers
+and running Docker commands. Without a reachable SSH server, Coolify
+silently fails to create applications (returns a UUID but doesn't persist
+the resource).
+
+## Step 3: Create an Admin Account
 
 Open [http://localhost:8000](http://localhost:8000) in your browser and
 create the first admin account. Use a strong, unique password (Coolify
-rejects passwords found in data breaches).
+checks passwords against the [Have I Been Pwned](https://haveibeenpwned.com/)
+database and rejects compromised ones).
 
-## Step 3: Enable the API and Create a Token
+## Step 4: Enable the API and Create a Token
 
 In the Coolify dashboard:
 
@@ -113,7 +140,7 @@ curl -s http://localhost:8000/api/v1/version -H "Authorization: Bearer $COOLIFY_
 # Should print: 4.0.0
 ```
 
-## Step 4: Register a Server
+## Step 5: Register a Server
 
 ```bash
 # Upload the SSH key
@@ -124,6 +151,15 @@ KEY_UUID=$(curl -s -X POST http://localhost:8000/api/v1/security/keys \
     'name': 'localhost-key',
     'private_key': open('/data/coolify/ssh/keys/id.root@host.docker.internal').read()
   }))")" | python3 -c "import sys,json;print(json.load(sys.stdin)['uuid'])")
+
+# Fix SSH key encryption (API-created keys may not encrypt properly)
+docker exec coolify sh -c 'php artisan tinker --execute="
+\$key = \App\Models\PrivateKey::first();
+\$raw = file_get_contents(\"/var/www/html/storage/app/ssh/keys/id.root@host.docker.internal\");
+\$key->private_key = \$raw;
+\$key->save();
+echo \"Key fixed: \" . \$key->uuid;
+"'
 
 # Register the server
 export COOLIFY_SERVER_UUID=$(curl -s -X POST http://localhost:8000/api/v1/servers \
@@ -138,9 +174,29 @@ export COOLIFY_SERVER_UUID=$(curl -s -X POST http://localhost:8000/api/v1/server
   }" | python3 -c "import sys,json;print(json.load(sys.stdin)['uuid'])")
 
 echo "Server UUID: $COOLIFY_SERVER_UUID"
+
+# Validate the server (triggers SSH connectivity check)
+curl -s "http://localhost:8000/api/v1/servers/$COOLIFY_SERVER_UUID/validate" \
+  -H "Authorization: Bearer $COOLIFY_TOKEN"
+
+# Wait for validation to complete (usually 10-20 seconds)
+for i in $(seq 1 12); do
+  sleep 10
+  STATUS=$(curl -s "http://localhost:8000/api/v1/servers/$COOLIFY_SERVER_UUID" \
+    -H "Authorization: Bearer $COOLIFY_TOKEN" | \
+    python3 -c "import sys,json; s=json.load(sys.stdin).get('settings',{}); \
+    print(f'{s.get(\"is_reachable\",False)} {s.get(\"is_usable\",False)}')")
+  echo "($i/12) reachable/usable: $STATUS"
+  echo "$STATUS" | grep -q "True True" && echo "Server ready!" && break
+done
 ```
 
-## Step 5: Build and Install the Provider
+-> **If validation fails**, check: (1) `sshd` is running on the host,
+(2) `/data/coolify/ssh` is owned by UID 9999, (3) passwordless sudo
+is configured. Run `docker logs coolify 2>&1 | grep -i validate` for
+the actual error.
+
+## Step 6: Build and Install the Provider
 
 ```bash
 cd /path/to/terraform-provider-coolify
@@ -160,7 +216,7 @@ provider_installation {
 EOF
 ```
 
-## Step 6: Run the Scenarios
+## Step 7: Run the Scenarios
 
 ```bash
 export TF_VAR_coolify_endpoint="http://localhost:8000"
@@ -198,6 +254,35 @@ docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml 
 docker network rm coolify 2>/dev/null
 sudo rm -rf /data/coolify
 ```
+
+## Troubleshooting
+
+### "Validation failed" (422) on resource creation
+
+Coolify's API rejects unexpected fields. If you see this on environment
+variables, check that the provider version matches the API version. Run
+`go build` to rebuild the provider after any code changes.
+
+### Server shows `is_reachable=False`
+
+Check in order:
+1. **SSH server running?** `sudo systemctl status ssh`
+2. **SSH key readable by Coolify?** `docker exec coolify ls -la /var/www/html/storage/app/ssh/keys/`
+   (files must be owned by `www-data` / UID 9999)
+3. **Passwordless sudo?** `sudo -n true && echo "OK"` (should print OK with no prompt)
+4. **Actual error?** `docker logs coolify 2>&1 | grep -i "validate\|FAIL" | tail -5`
+
+### "Project has resources, so it cannot be deleted"
+
+Coolify deletes applications asynchronously. When `terraform destroy`
+tries to delete the project immediately after the app, the app hasn't
+been fully removed yet. Wait a few seconds and delete the project
+manually: `curl -X DELETE ".../projects/{uuid}"`
+
+### Applications created but not persisted (404 on read-back)
+
+The server is not SSH-reachable. Coolify returns a UUID from Create but
+silently drops the record. Fix the server validation (see Step 5).
 
 ## Available Scenarios
 
