@@ -25,7 +25,7 @@ resource "coolify_cloud_token" "example" {
 
 ### Required
 
-- `cloud_provider` (String) The cloud provider type. Changing this forces a new resource.
+- `cloud_provider` (String) The cloud provider type (e.g. `hetzner`, `aws`). Changing this forces a new resource.
 - `name` (String) The name of the cloud token.
 - `token` (String, Sensitive) The cloud provider token.
 

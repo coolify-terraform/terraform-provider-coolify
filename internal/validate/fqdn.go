@@ -32,7 +32,7 @@ func (v fqdnValidator) ValidateString(_ context.Context, req validator.StringReq
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
 		resp.Diagnostics.AddAttributeError(
 			req.Path,
-			"Invalid FQDN",
+			"Invalid URL",
 			"must be a valid URL starting with http:// or https:// with a non-empty host, got: "+val,
 		)
 	}
