@@ -19,6 +19,7 @@ import (
 // mockGitHubApp stores GitHub App data in the mock server.
 type mockGitHubApp struct {
 	ID               int64  `json:"id"`
+	UUID             string `json:"uuid,omitempty"`
 	Name             string `json:"name"`
 	OrganizationName string `json:"organization,omitempty"`
 	AppID            int64  `json:"app_id,omitempty"`
@@ -40,6 +41,7 @@ func (s *mockGitHubAppStore) Create(name, orgName string, appID, installID int64
 	s.counter++
 	app := &mockGitHubApp{
 		ID:               s.counter,
+		UUID:             fmt.Sprintf("ghapp-uuid-%03d", s.counter),
 		Name:             name,
 		OrganizationName: orgName,
 		AppID:            appID,

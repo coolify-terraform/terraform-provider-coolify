@@ -26,6 +26,8 @@ type Application struct {
 	DockerRegistryImageName string `json:"docker_registry_image_name,omitempty"`
 	DockerComposeRaw        string `json:"docker_compose_raw,omitempty"`
 	Status                  string `json:"status,omitempty"`
+	PrivateKeyUUID          string `json:"private_key_uuid,omitempty"`
+	GitHubAppUUID           string `json:"github_app_uuid,omitempty"`
 }
 type CreatePublicAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`

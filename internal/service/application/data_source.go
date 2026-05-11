@@ -37,9 +37,11 @@ type ApplicationDataSourceModel struct {
 	BuildCommand       types.String `tfsdk:"build_command"`
 	StartCommand       types.String `tfsdk:"start_command"`
 	PortsExposes       types.String `tfsdk:"ports_exposes"`
-	ProjectUUID        types.String `tfsdk:"project_uuid"`
-	ServerUUID         types.String `tfsdk:"server_uuid"`
-	Status             types.String `tfsdk:"status"`
+	ProjectUUID             types.String `tfsdk:"project_uuid"`
+	ServerUUID              types.String `tfsdk:"server_uuid"`
+	Status                  types.String `tfsdk:"status"`
+	DockerComposeRaw        types.String `tfsdk:"docker_compose_raw"`
+	DockerRegistryImageName types.String `tfsdk:"docker_registry_image_name"`
 }
 
 // NewDataSource returns a new ApplicationDataSource instance.
@@ -116,6 +118,14 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited).",
 				Computed:            true,
 			},
+			"docker_compose_raw": schema.StringAttribute{
+				MarkdownDescription: "The raw Docker Compose content.",
+				Computed:            true,
+			},
+			"docker_registry_image_name": schema.StringAttribute{
+				MarkdownDescription: "The Docker registry image name.",
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -163,6 +173,8 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	config.ProjectUUID = flex.StringToFramework(app.ProjectUUID)
 	config.ServerUUID = flex.StringToFramework(app.ServerUUID)
 	config.Status = flex.StringToFramework(app.Status)
+	config.DockerComposeRaw = flex.StringToFramework(app.DockerComposeRaw)
+	config.DockerRegistryImageName = flex.StringToFramework(app.DockerRegistryImageName)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

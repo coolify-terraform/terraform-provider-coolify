@@ -29,6 +29,7 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
 		EnvironmentName: "production",
+		PrivateKeyUUID:  "dddd0001-0001-4000-8000-000000000001",
 	}
 
 	mu := sync.Mutex{}
@@ -121,6 +122,7 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
 		EnvironmentName: "production",
+		PrivateKeyUUID:  "dddd0001-0001-4000-8000-000000000001",
 	}
 
 	mux := http.NewServeMux()
@@ -206,6 +208,7 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
 		EnvironmentName: "production",
+		PrivateKeyUUID:  "dddd0001-0001-4000-8000-000000000001",
 	}
 
 	mux := http.NewServeMux()
@@ -285,6 +288,7 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 			ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
 			ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
 			EnvironmentName: "production",
+			PrivateKeyUUID:  "dddd0005-0005-4000-8000-000000000005",
 		})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
@@ -336,6 +340,7 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
 		EnvironmentName: "production",
+		PrivateKeyUUID:  "dddd0006-0006-4000-8000-000000000006",
 	}
 
 	mux := http.NewServeMux()

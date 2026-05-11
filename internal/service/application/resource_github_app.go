@@ -69,9 +69,6 @@ func (r *gitHubAppApplicationResource) Schema(ctx context.Context, _ resource.Sc
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Create: true,
-				Read:   true,
-				Update: true,
-				Delete: true,
 			}),
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the application.",
@@ -332,4 +329,7 @@ func (m *gitHubAppApplicationResourceModel) common() commonAppFields {
 
 func flattenGitHubAppApplication(app *client.Application, state *gitHubAppApplicationResourceModel) {
 	flattenApplicationCommon(app, state.common())
+	if app.GitHubAppUUID != "" {
+		state.GitHubAppUUID = types.StringValue(app.GitHubAppUUID)
+	}
 }

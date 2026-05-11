@@ -9,6 +9,7 @@ import (
 
 type GitHubApp struct {
 	ID               int64  `json:"id"`
+	UUID             string `json:"uuid,omitempty"`
 	Name             string `json:"name"`
 	OrganizationName string `json:"organization,omitempty"`
 	AppID            int64  `json:"app_id,omitempty"`

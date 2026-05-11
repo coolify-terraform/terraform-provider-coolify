@@ -59,9 +59,6 @@ func (r *dockerComposeApplicationResource) Schema(ctx context.Context, _ resourc
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Create: true,
-				Read:   true,
-				Update: true,
-				Delete: true,
 			}),
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the application.",

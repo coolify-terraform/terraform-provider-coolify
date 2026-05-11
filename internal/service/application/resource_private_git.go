@@ -69,9 +69,6 @@ func (r *privateGitApplicationResource) Schema(ctx context.Context, _ resource.S
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Create: true,
-				Read:   true,
-				Update: true,
-				Delete: true,
 			}),
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the application.",
@@ -332,4 +329,7 @@ func (m *privateGitApplicationResourceModel) common() commonAppFields {
 
 func flattenPrivateGitApplication(app *client.Application, state *privateGitApplicationResourceModel) {
 	flattenApplicationCommon(app, state.common())
+	if app.PrivateKeyUUID != "" {
+		state.PrivateKeyUUID = types.StringValue(app.PrivateKeyUUID)
+	}
 }

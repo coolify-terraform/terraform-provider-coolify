@@ -30,6 +30,8 @@ data "coolify_application" "example" {
 - `build_command` (String) The build command.
 - `build_pack` (String) The build pack type used by the application.
 - `description` (String) The description of the application.
+- `docker_compose_raw` (String) The raw Docker Compose content.
+- `docker_registry_image_name` (String) The Docker registry image name.
 - `dockerfile_location` (String) The path to the Dockerfile.
 - `fqdn` (String) The fully qualified domain name of the application.
 - `git_branch` (String) The Git branch used by the application.

@@ -29,6 +29,7 @@ func TestGitHubAppApplicationResource_Create(t *testing.T) {
 		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
 		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
 		EnvironmentName: "production",
+		GitHubAppUUID:   "cccc0001-0001-4000-8000-000000000001",
 	}
 
 	mu := sync.Mutex{}
@@ -121,6 +122,7 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
 		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
 		EnvironmentName: "production",
+		GitHubAppUUID:   "cccc0001-0001-4000-8000-000000000001",
 	}
 
 	mux := http.NewServeMux()
@@ -225,6 +227,7 @@ func TestGitHubAppApplicationResource_Import(t *testing.T) {
 		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
 		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
 		EnvironmentName: "production",
+		GitHubAppUUID:   "cccc0001-0001-4000-8000-000000000001",
 	}
 
 	mux := http.NewServeMux()
@@ -305,6 +308,7 @@ func TestGitHubAppApplicationResource_Disappears(t *testing.T) {
 			ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
 			ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
 			EnvironmentName: "production",
+			GitHubAppUUID:   "cccc0001-0001-4000-8000-000000000001",
 		})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {

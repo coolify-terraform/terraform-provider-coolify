@@ -31,6 +31,7 @@ type gitHubAppResource struct {
 // gitHubAppResourceModel maps the resource schema data.
 type gitHubAppResourceModel struct {
 	ID               types.Int64  `tfsdk:"id"`
+	UUID             types.String `tfsdk:"uuid"`
 	Name             types.String `tfsdk:"name"`
 	OrganizationName types.String `tfsdk:"organization_name"`
 	AppID            types.Int64  `tfsdk:"app_id"`
@@ -59,6 +60,13 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Computed:            true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
+				},
+			},
+			"uuid": schema.StringAttribute{
+				MarkdownDescription: "The unique identifier of the GitHub App.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
@@ -196,6 +204,7 @@ func (r *gitHubAppResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	state.ID = types.Int64Value(app.ID)
+	state.UUID = flex.StringToFramework(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.OrganizationName = flex.StringToFramework(app.OrganizationName)
 	state.AppID = types.Int64Value(app.AppID)
@@ -283,6 +292,7 @@ func (r *gitHubAppResource) readGitHubApp(ctx context.Context, id int64, model *
 	}
 
 	model.ID = types.Int64Value(app.ID)
+	model.UUID = flex.StringToFramework(app.UUID)
 	model.Name = types.StringValue(app.Name)
 	model.OrganizationName = flex.StringToFramework(app.OrganizationName)
 	model.AppID = types.Int64Value(app.AppID)

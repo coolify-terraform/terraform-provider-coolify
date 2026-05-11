@@ -43,6 +43,7 @@ resource "coolify_github_app" "example" {
 ### Read-Only
 
 - `id` (Number) The numeric identifier of the GitHub App.
+- `uuid` (String) The unique identifier of the GitHub App.
 
 ## Import
 
