@@ -14,7 +14,7 @@ type Deployment struct {
 	ServerUUID string `json:"server_uuid,omitempty"`
 }
 type DeployByTagInput struct {
-	ForceRebuild bool `json:"force_rebuild,omitempty"`
+	ForceRebuild bool `json:"force_rebuild"`
 }
 
 func (c *Client) ListDeployments(ctx context.Context) ([]Deployment, error) {

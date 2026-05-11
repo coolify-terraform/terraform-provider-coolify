@@ -157,9 +157,8 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 
 	state.ID = types.Int64Value(env.ID)
 	state.Name = types.StringValue(env.Name)
-	// Populate description from the API only on first read (e.g. import).
-	// After that, preserve the state value because the API has no PATCH
-	// endpoint for environments.
+	// Preserve state description value: the API has no PATCH endpoint for
+	// environments, so we can only read the description on first import.
 	if state.Description.IsNull() {
 		state.Description = flex.StringToFramework(env.Description)
 	}
