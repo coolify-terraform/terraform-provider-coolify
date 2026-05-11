@@ -2548,3 +2548,40 @@ func TestClient_BulkUpdateServiceEnvVars(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestClient_PostNotRetriedOn5xx(t *testing.T) {
+	t.Parallel()
+	var attempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateProject(context.Background(), CreateProjectInput{
+		Name: "should-not-retry",
+	})
+	require.Error(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&attempts),
+		"POST should not be retried on 5xx; expected exactly 1 attempt")
+}
+
+func TestDeployment_DeploymentUUID_JSONTag(t *testing.T) {
+	t.Parallel()
+	d := Deployment{UUID: "test-uuid-123", Status: "finished"}
+	data, err := json.Marshal(d)
+	require.NoError(t, err)
+
+	var raw map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &raw))
+	_, hasDeploymentUUID := raw["deployment_uuid"]
+	assert.True(t, hasDeploymentUUID, "expected JSON key 'deployment_uuid'")
+	_, hasUUID := raw["uuid"]
+	assert.False(t, hasUUID, "unexpected JSON key 'uuid'")
+
+	apiJSON := []byte(`{"deployment_uuid":"round-trip-uuid","status":"queued"}`)
+	var parsed Deployment
+	require.NoError(t, json.Unmarshal(apiJSON, &parsed))
+	assert.Equal(t, "round-trip-uuid", parsed.UUID)
+}
