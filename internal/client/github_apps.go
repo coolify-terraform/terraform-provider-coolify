@@ -54,7 +54,7 @@ func (c *Client) ListGitHubApps(ctx context.Context) ([]GitHubApp, error) {
 func (c *Client) GetGitHubApp(ctx context.Context, id int64) (*GitHubApp, error) {
 	apps, err := c.ListGitHubApps(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting github app %d: %w", id, err)
 	}
 	for i := range apps {
 		if apps[i].ID == id {
