@@ -41,7 +41,7 @@ resource "coolify_mongodb_database" "example" {
 - `mongo_initdb_database` (String) The MongoDB initial database name.
 - `mongo_initdb_root_password` (String, Sensitive) The MongoDB root password.
 - `mongo_initdb_root_username` (String) The MongoDB root username.
-- `name` (String) The name of the database resource.
+- `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 
 ### Read-Only

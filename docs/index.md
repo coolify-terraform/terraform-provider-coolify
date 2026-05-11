@@ -31,8 +31,8 @@ export COOLIFY_TOKEN="your-api-token"
 
 ```terraform
 provider "coolify" {
-  endpoint = "http://coolify.example.com:8000"
-  token    = "your-api-token" # Or set COOLIFY_TOKEN env var
+  endpoint = var.coolify_endpoint # Or set COOLIFY_ENDPOINT env var
+  token    = var.coolify_token    # Or set COOLIFY_TOKEN env var
 }
 ```
 

@@ -39,7 +39,7 @@ resource "coolify_postgresql_database" "example" {
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `image` (String) The Docker image to use.
 - `is_public` (Boolean) When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.
-- `name` (String) The name of the database resource.
+- `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
 - `postgres_db` (String) The PostgreSQL database name.
 - `postgres_password` (String, Sensitive) The PostgreSQL password.
 - `postgres_user` (String) The PostgreSQL user.
