@@ -220,17 +220,9 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	name := plan.Name.ValueString()
-	input := client.UpdateGitHubAppIntegrationInput{
-		Name: &name,
-	}
-	if !plan.WebhookSecret.IsNull() && !plan.WebhookSecret.IsUnknown() {
-		ws := plan.WebhookSecret.ValueString()
-		input.WebhookSecret = &ws
-	} else {
-		empty := ""
-		input.WebhookSecret = &empty
-	}
+	input := client.UpdateGitHubAppIntegrationInput{}
+	flex.SetStrPtr(&input.Name, plan.Name)
+	flex.SetStrPtr(&input.WebhookSecret, plan.WebhookSecret)
 
 	_, err := r.client.UpdateGitHubApp(ctx, state.ID.ValueInt64(), input)
 	if err != nil {
