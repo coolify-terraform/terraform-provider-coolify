@@ -14,6 +14,10 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
+// maxResponseSize limits API response bodies to 10 MB to prevent OOM
+// from a malicious or compromised server.
+const maxResponseSize = 10 << 20
+
 // Client is the Coolify API client.
 type Client struct {
 	BaseURL    string
@@ -73,7 +77,7 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 	if err != nil {
 		return "", fmt.Errorf("reading response for %s: %w", path, err)
 	}
@@ -151,7 +155,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 	if err != nil {
 		return fmt.Errorf("reading response: %w", err)
 	}
