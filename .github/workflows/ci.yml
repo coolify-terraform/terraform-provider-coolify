@@ -321,7 +321,17 @@ jobs:
             direct {}
           }
           EOF
+      - name: Check secrets configured
+        id: secrets
+        run: |
+          if [ -z "${{ secrets.COOLIFY_ENDPOINT }}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Scenario tests skipped: COOLIFY_ENDPOINT secret not configured"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run scenario tests
+        if: steps.secrets.outputs.configured == 'true'
         env:
           TF_VAR_coolify_endpoint: ${{ secrets.COOLIFY_ENDPOINT }}
           TF_VAR_coolify_token: ${{ secrets.COOLIFY_TOKEN }}
@@ -332,6 +342,10 @@ jobs:
             echo "=== Testing $(basename "$dir") ==="
             (
               cd "$dir"
+              # Modules need terraform init even with dev_overrides
+              if [ -d "modules" ]; then
+                terraform init
+              fi
               terraform test -verbose
             ) || failed=1
             echo ""
