@@ -25,18 +25,18 @@ type ApplicationDataSource struct {
 
 // ApplicationDataSourceModel maps the data source schema to Go types.
 type ApplicationDataSourceModel struct {
-	UUID               types.String `tfsdk:"uuid"`
-	Name               types.String `tfsdk:"name"`
-	Description        types.String `tfsdk:"description"`
-	FQDN               types.String `tfsdk:"fqdn"`
-	GitRepository      types.String `tfsdk:"git_repository"`
-	GitBranch          types.String `tfsdk:"git_branch"`
-	BuildPack          types.String `tfsdk:"build_pack"`
-	DockerfileLocation types.String `tfsdk:"dockerfile_location"`
-	InstallCommand     types.String `tfsdk:"install_command"`
-	BuildCommand       types.String `tfsdk:"build_command"`
-	StartCommand       types.String `tfsdk:"start_command"`
-	PortsExposes       types.String `tfsdk:"ports_exposes"`
+	UUID                    types.String `tfsdk:"uuid"`
+	Name                    types.String `tfsdk:"name"`
+	Description             types.String `tfsdk:"description"`
+	FQDN                    types.String `tfsdk:"fqdn"`
+	GitRepository           types.String `tfsdk:"git_repository"`
+	GitBranch               types.String `tfsdk:"git_branch"`
+	BuildPack               types.String `tfsdk:"build_pack"`
+	DockerfileLocation      types.String `tfsdk:"dockerfile_location"`
+	InstallCommand          types.String `tfsdk:"install_command"`
+	BuildCommand            types.String `tfsdk:"build_command"`
+	StartCommand            types.String `tfsdk:"start_command"`
+	PortsExposes            types.String `tfsdk:"ports_exposes"`
 	ProjectUUID             types.String `tfsdk:"project_uuid"`
 	ServerUUID              types.String `tfsdk:"server_uuid"`
 	EnvironmentName         types.String `tfsdk:"environment_name"`

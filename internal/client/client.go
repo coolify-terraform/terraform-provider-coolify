@@ -203,8 +203,6 @@ func validateParentType(pt string) error {
 	return nil
 }
 
-
-
 // extractAPIMessage attempts to parse a JSON error response from the Coolify
 // API and return the human-readable "message" field. Falls back to the raw
 // body if parsing fails or no message field is present.

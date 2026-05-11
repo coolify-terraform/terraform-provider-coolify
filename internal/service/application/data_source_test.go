@@ -15,13 +15,13 @@ import (
 func TestApplicationDataSource_Read(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:          "cccc0004-0004-4000-8000-000000000001",
-		Name:          "data-source-app",
-		Description:   "a test app",
-		GitRepository: "https://github.com/example/repo",
-		GitBranch:     "main",
-		BuildPack:     "nixpacks",
-		PortsExposes:  "8080",
+		UUID:                    "cccc0004-0004-4000-8000-000000000001",
+		Name:                    "data-source-app",
+		Description:             "a test app",
+		GitRepository:           "https://github.com/example/repo",
+		GitBranch:               "main",
+		BuildPack:               "nixpacks",
+		PortsExposes:            "8080",
 		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
 		DockerComposeRaw:        "version: '3'\nservices:\n  web:\n    image: nginx",
