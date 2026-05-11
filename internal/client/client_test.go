@@ -2585,3 +2585,42 @@ func TestDeployment_DeploymentUUID_JSONTag(t *testing.T) {
 	require.NoError(t, json.Unmarshal(apiJSON, &parsed))
 	assert.Equal(t, "round-trip-uuid", parsed.UUID)
 }
+
+func TestClient_CreateDockerfileApplication(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/dockerfile", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateDockerfileAppInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "/Dockerfile", input.DockerfileLocation)
+
+		// Guard: API expects "dockerfile" key, NOT "dockerfile_location"
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &raw))
+		_, hasDockerfile := raw["dockerfile"]
+		assert.True(t, hasDockerfile, "expected JSON key 'dockerfile'")
+		_, hasDockerfileLocation := raw["dockerfile_location"]
+		assert.False(t, hasDockerfileLocation, "unexpected JSON key 'dockerfile_location'")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "dockerfile-app-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.CreateDockerfileApplication(context.Background(), CreateDockerfileAppInput{
+		ProjectUUID:        "proj-1",
+		ServerUUID:         "srv-1",
+		EnvironmentName:    "production",
+		DockerfileLocation: "/Dockerfile",
+		PortsExposes:       "80",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "dockerfile-app-new", app.UUID)
+}
