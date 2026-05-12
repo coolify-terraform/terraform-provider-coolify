@@ -177,7 +177,7 @@ curl -s http://localhost:8000/api/v1/version -H "Authorization: Bearer $COOLIFY_
 # Should print: 4.0.0
 ```
 
-## Step 5: Register a Server
+## Step 4: Register a Server
 
 ```bash
 # Upload the SSH key
@@ -233,7 +233,7 @@ done
 is configured. Run `docker logs coolify 2>&1 | grep -i validate` for
 the actual error.
 
-## Step 6: Build and Install the Provider
+## Step 5: Build and Install the Provider
 
 ```bash
 cd /path/to/terraform-provider-coolify
@@ -258,7 +258,7 @@ EOF
 of the published one. This affects other Terraform projects too. Delete
 `~/.terraformrc` when you're done testing (see Cleanup).
 
-## Step 7: Run the Scenarios
+## Step 6: Run the Scenarios
 
 ```bash
 export TF_VAR_coolify_endpoint="http://localhost:8000"
@@ -293,8 +293,8 @@ docker network create --attachable coolify 2>/dev/null
 docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # Re-export your saved token and server UUID
-export COOLIFY_TOKEN="<your-token-from-step-4>"
-export COOLIFY_SERVER_UUID="<your-uuid-from-step-5>"
+export COOLIFY_TOKEN="<your-token-from-step-3>"
+export COOLIFY_SERVER_UUID="<your-uuid-from-step-4>"
 export TF_VAR_coolify_endpoint="http://localhost:8000"
 export TF_VAR_coolify_token="$COOLIFY_TOKEN"
 export TF_VAR_server_uuid="$COOLIFY_SERVER_UUID"
@@ -304,7 +304,7 @@ export TF_VAR_server_uuid="$COOLIFY_SERVER_UUID"
 You'll need them every time you restart.
 
 If you run `docker compose down -v` (with `-v`), all data is deleted
-and you must redo Steps 3-5.
+and you must redo Steps 3-4.
 
 ## Cleanup
 
@@ -350,7 +350,7 @@ manually: `curl -X DELETE ".../projects/{uuid}"`
 ### Applications created but not persisted (404 on read-back)
 
 The server is not SSH-reachable. Coolify returns a UUID from Create but
-silently drops the record. Fix the server validation (see Step 5).
+silently drops the record. Fix the server validation (see Step 4).
 
 ## Available Scenarios
 
@@ -358,4 +358,8 @@ silently drops the record. Fix the server validation (see Step 5).
 |---|---|---|
 | `acme-website` | Beginner | Project + PostgreSQL + Node.js app + env vars + optional S3 backups |
 | `acme-api` | Intermediate | Dockerfile app + Docker image worker + PostgreSQL + Redis + scheduled task + backup |
+| `acme-databases` | Beginner | All 8 database engines (PostgreSQL, MySQL, MariaDB, Redis, MongoDB, ClickHouse, KeyDB, Dragonfly) |
+| `acme-docker` | Intermediate | Docker image tag normalization, scheduled tasks, storage |
+| `acme-integrations` | Intermediate | Managed services from the Coolify catalog |
 | `acme-multi-env` | Advanced | Terraform module composition for dev + staging environments |
+| `acme-platform` | Intermediate | Private keys, environments, storage, data sources |
