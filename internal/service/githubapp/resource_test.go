@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strconv"
 	"sync"
 	"testing"
@@ -308,6 +309,22 @@ resource "coolify_github_app" "test" {
 					resource.TestCheckResourceAttr("coolify_github_app.test", "webhook_secret", "hook-secret-2"),
 				),
 			},
+			// Plan idempotency after update
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_github_app" "test" {
+  name            = "my-github-app-updated"
+  app_id          = 54321
+  installation_id = 99999
+  client_id       = "Iv1.xyz789"
+  client_secret   = "secret456"
+  webhook_secret  = "hook-secret-2"
+  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nupdated\n-----END RSA PRIVATE KEY-----"
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
@@ -532,6 +549,56 @@ data "coolify_github_app" "test" {
 					resource.TestCheckResourceAttr("data.coolify_github_app.test", "installation_id", "22222"),
 					resource.TestCheckResourceAttr("data.coolify_github_app.test", "client_id", "Iv1.dstest"),
 				),
+			},
+		},
+	})
+}
+
+func TestGitHubAppDataSource_NotFound(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockCoolifyServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+data "coolify_github_app" "test" {
+  id = 999
+}
+`,
+				ExpectError: regexp.MustCompile("Error reading GitHub App"),
+			},
+		},
+	})
+}
+
+func TestGitHubAppResource_ImportBadID(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockCoolifyServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_github_app" "test" {
+  name            = "import-bad-id"
+  app_id          = 12345
+  installation_id = 67890
+  client_id       = "Iv1.badid"
+  client_secret   = "badidsecret"
+  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nbadid\n-----END RSA PRIVATE KEY-----"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_github_app.test",
+				ImportState:   true,
+				ImportStateId: "not-a-number",
+				ExpectError:   regexp.MustCompile("Invalid Import ID"),
 			},
 		},
 	})
