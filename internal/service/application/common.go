@@ -49,9 +49,11 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	*f.GitBranch = types.StringValue(app.GitBranch)
 	*f.BuildPack = types.StringValue(app.BuildPack)
 	// Coolify may override ports_exposes (e.g. return 80 instead of 3000
-	// for Dockerfile apps). Preserve the user's value when the API differs.
+	// for Dockerfile apps). Preserve the user's configured value.
 	if app.PortsExposes != "" {
-		*f.PortsExposes = types.StringValue(app.PortsExposes)
+		if f.PortsExposes.IsNull() || f.PortsExposes.IsUnknown() {
+			*f.PortsExposes = types.StringValue(app.PortsExposes)
+		}
 	}
 	*f.FQDN = flex.StringToFramework(app.FQDN)
 	// Coolify does not return dockerfile_location on GET. Preserve from state.
