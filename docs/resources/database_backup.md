@@ -33,11 +33,11 @@ resource "coolify_s3_storage" "backups" {
 }
 
 resource "coolify_database_backup" "daily" {
-  database_uuid = coolify_postgresql_database.db.uuid
-  frequency     = "0 2 * * *"
-  enabled       = true
-  retain_days   = 7 # Number of backup copies to keep (not days)
-  s3_storage_id = coolify_s3_storage.backups.uuid
+  database_uuid         = coolify_postgresql_database.db.uuid
+  frequency             = "0 2 * * *"
+  enabled               = true
+  retain_amount_locally = 7 # Number of backup copies to keep (not days)
+  s3_storage_id         = coolify_s3_storage.backups.uuid
 }
 ```
 
@@ -51,9 +51,19 @@ resource "coolify_database_backup" "daily" {
 
 ### Optional
 
+- `backup_now` (Boolean) Trigger an immediate backup after creation. Only used during create, ignored on updates.
+- `databases_to_backup` (String) Comma-separated list of database names to back up selectively.
+- `dump_all` (Boolean) Whether to dump all databases.
 - `enabled` (Boolean) Whether the backup schedule is active.
-- `retain_days` (Number) Number of backup copies to retain locally (not days). For example, `7` keeps the last 7 backups regardless of their age.
-- `s3_storage_id` (String) The UUID of the S3 storage destination for off-site backups. Use the `uuid` output of a `coolify_s3_storage` resource. When omitted, backups are stored locally on the server.
+- `retain_amount_locally` (Number) Number of backup copies to retain locally.
+- `retain_amount_s3` (Number) Number of backup copies to retain in S3.
+- `retain_days_locally` (Number) Number of days to retain backups locally.
+- `retain_days_s3` (Number) Number of days to retain backups in S3.
+- `retain_max_storage_locally` (Number) Maximum storage in MB for local backups.
+- `retain_max_storage_s3` (Number) Maximum storage in MB for S3 backups.
+- `s3_storage_id` (String) The UUID of the S3 storage destination for off-site backups. Required when `save_s3` is `true`.
+- `save_s3` (Boolean) Whether to save backups to S3 storage.
+- `timeout` (Number) Backup job timeout in seconds (60-36000).
 
 ### Read-Only
 

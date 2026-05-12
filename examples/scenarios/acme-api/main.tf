@@ -127,8 +127,8 @@ resource "coolify_scheduled_task" "cleanup" {
 # When s3_storage_id is omitted, backups are stored locally on the server.
 
 resource "coolify_database_backup" "orders" {
-  database_uuid = coolify_postgresql_database.orders.uuid
-  frequency     = "@daily"
-  enabled       = true
-  retain_amount_locally   = 7
+  database_uuid         = coolify_postgresql_database.orders.uuid
+  frequency             = "@daily"
+  enabled               = true
+  retain_amount_locally = 7
 }

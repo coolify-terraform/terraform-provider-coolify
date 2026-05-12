@@ -76,10 +76,10 @@ resource "coolify_redis_database" "cache" {
 # --- Database Backup ---
 
 resource "coolify_database_backup" "daily" {
-  database_uuid = coolify_postgresql_database.api_db.uuid
-  frequency     = "0 3 * * *"
-  enabled       = true
-  retain_amount_locally   = 14
+  database_uuid         = coolify_postgresql_database.api_db.uuid
+  frequency             = "0 3 * * *"
+  enabled               = true
+  retain_amount_locally = 14
 }
 
 # --- Applications ---

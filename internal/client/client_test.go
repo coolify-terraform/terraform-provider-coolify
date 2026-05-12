@@ -1780,7 +1780,7 @@ func TestClient_ListDatabaseBackups(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		retain := int64(7)
 		json.NewEncoder(w).Encode([]DatabaseBackup{
-			{ID: 1, UUID: "bk-1", DatabaseUUID: "db-uuid-1", Frequency: "0 * * * *", Enabled: true, RetainDays: &retain},
+			{ID: 1, UUID: "bk-1", DatabaseUUID: "db-uuid-1", Frequency: "0 * * * *", Enabled: true, RetainAmountLocally: &retain},
 			{ID: 2, UUID: "bk-2", DatabaseUUID: "db-uuid-1", Frequency: "0 0 * * *", Enabled: false},
 		})
 	}))
@@ -1795,8 +1795,8 @@ func TestClient_ListDatabaseBackups(t *testing.T) {
 	assert.Equal(t, "db-uuid-1", backups[0].DatabaseUUID)
 	assert.Equal(t, "0 * * * *", backups[0].Frequency)
 	assert.True(t, backups[0].Enabled)
-	require.NotNil(t, backups[0].RetainDays)
-	assert.Equal(t, int64(7), *backups[0].RetainDays)
+	require.NotNil(t, backups[0].RetainAmountLocally)
+	assert.Equal(t, int64(7), *backups[0].RetainAmountLocally)
 	assert.Equal(t, 2, backups[1].ID)
 	assert.Equal(t, "bk-2", backups[1].UUID)
 	assert.False(t, backups[1].Enabled)

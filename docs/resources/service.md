@@ -42,10 +42,18 @@ resource "coolify_service" "monitoring" {
 - `description` (String) A description of the service.
 - `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
 - `name` (String) The name of the service.
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only
 
 - `uuid` (String) The UUID of the service.
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
 
 ## Import
 
