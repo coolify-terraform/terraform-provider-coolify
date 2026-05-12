@@ -129,10 +129,19 @@ resource "coolify_application" "web" {
 }
 ```
 
-See the [examples/](examples/) directory for more scenarios:
-`01-first-project.tf`, `02-deploy-application.tf`, `03-database-with-backup.tf`,
-`04-docker-image-deploy.tf`, `05-data-sources.tf`, `06-import-existing.tf`,
-plus full-stack, multi-environment, and microservices examples.
+See the [examples/](examples/) directory for more. The
+[examples/scenarios/](examples/scenarios/) directory has 7 real-world
+scenarios tested against a live Coolify instance:
+
+| Scenario | What it tests |
+|---|---|
+| `acme-website` | Project, PostgreSQL, application, env vars |
+| `acme-api` | Dockerfile + Docker image apps, Redis, scheduled tasks, backups |
+| `acme-multi-env` | Terraform modules for dev/staging environments |
+| `acme-databases` | All 8 database engines (PostgreSQL, MySQL, MariaDB, Redis, MongoDB, ClickHouse, KeyDB, Dragonfly) |
+| `acme-platform` | Private keys, environments, storage, data sources |
+| `acme-docker` | Docker image tag normalization, scheduled tasks, storage |
+| `acme-integrations` | Managed services from the Coolify catalog |
 
 ## Authentication
 

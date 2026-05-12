@@ -28,8 +28,8 @@ resource "coolify_docker_image_application" "nginx" {
 
 ### Required
 
-- `docker_image` (String) The Docker image to deploy (e.g. `nginx:latest`, `ghcr.io/org/app:v1`).
-- `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g. `80` or `80,443`).
+- `docker_image` (String) The Docker image to deploy (e.g. `nginx:latest`, `ghcr.io/org/app:v1`). Note: Coolify strips image tags internally (e.g. `redis:7-alpine` is stored as `redis`). The provider preserves your configured value.
+- `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g. `80` or `80,443`). Note: Coolify may override this value internally; the provider preserves your configured value.
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing this forces a new resource.
 

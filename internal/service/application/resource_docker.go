@@ -113,11 +113,11 @@ func (r *dockerImageApplicationResource) Schema(ctx context.Context, _ resource.
 				},
 			},
 			"docker_image": schema.StringAttribute{
-				MarkdownDescription: "The Docker image to deploy (e.g. `nginx:latest`, `ghcr.io/org/app:v1`).",
+				MarkdownDescription: "The Docker image to deploy (e.g. `nginx:latest`, `ghcr.io/org/app:v1`). Note: Coolify strips image tags internally (e.g. `redis:7-alpine` is stored as `redis`). The provider preserves your configured value.",
 				Required:            true,
 			},
 			"ports_exposes": schema.StringAttribute{
-				MarkdownDescription: "The ports to expose, as a comma-separated list (e.g. `80` or `80,443`).",
+				MarkdownDescription: "The ports to expose, as a comma-separated list (e.g. `80` or `80,443`). Note: Coolify may override this value internally; the provider preserves your configured value.",
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(regexp.MustCompile(`^\d+(,\d+)*$`), "must be a comma-separated list of port numbers (e.g. \"80\" or \"80,443\")"),

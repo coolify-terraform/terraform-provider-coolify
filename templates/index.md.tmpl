@@ -55,6 +55,25 @@ export COOLIFY_TOKEN="your-api-token"
 | Services | `coolify_service` |
 | Operations | `coolify_environment_variable`, `coolify_storage`, `coolify_scheduled_task`, `coolify_deployment`, `coolify_database_backup` |
 
-All resources support `terraform import`.
+All resources support `terraform import`. See the [Import Guide](guides/import)
+for composite ID formats, known limitations, and field normalization behaviors.
+
+## Coolify API Behaviors
+
+Coolify's API normalizes certain values. The provider handles these
+automatically, but they are worth knowing:
+
+| Behavior | Affected Resources | What happens |
+|---|---|---|
+| **Git URL prefix stripping** | All application types | `https://github.com/org/repo` is stored as `org/repo` |
+| **Docker image tag stripping** | `coolify_docker_image_application` | `redis:7-alpine` is stored as `redis` (all tags, not just `:latest`) |
+| **Port override** | `coolify_dockerfile_application` | Coolify may return a different port than configured |
+| **Immutable fields omitted** | All databases, apps, services | `project_uuid`, `server_uuid`, `environment_name` not returned by GET |
+| **Storage name prefixing** | `coolify_storage` | Coolify prepends the application UUID to the storage name |
+| **Base64 encoding required** | `coolify_docker_compose_application` | `docker_compose_raw` must be base64-encoded despite the field name |
+| **Async deletion** | `coolify_project` | Child resources are deleted asynchronously; project delete retries automatically |
+
+The provider preserves your configured values for all normalized fields.
+You should not see diffs on `terraform plan` after the initial apply.
 
 {{ .SchemaMarkdown | trimspace }}

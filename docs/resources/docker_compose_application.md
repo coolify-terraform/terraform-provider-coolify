@@ -34,7 +34,7 @@ resource "coolify_docker_compose_application" "example" {
 
 ### Required
 
-- `docker_compose_raw` (String) The raw Docker Compose YAML content.
+- `docker_compose_raw` (String) The Docker Compose YAML content, **base64-encoded**. Use `base64encode(<<-YAML ... YAML)` in your configuration. Despite the field name, Coolify's API requires base64 encoding.
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing this forces a new resource.
 

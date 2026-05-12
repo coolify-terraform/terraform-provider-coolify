@@ -107,7 +107,7 @@ func (r *dockerComposeApplicationResource) Schema(ctx context.Context, _ resourc
 				},
 			},
 			"docker_compose_raw": schema.StringAttribute{
-				MarkdownDescription: "The raw Docker Compose YAML content.",
+				MarkdownDescription: "The Docker Compose YAML content, **base64-encoded**. Use `base64encode(<<-YAML ... YAML)` in your configuration. Despite the field name, Coolify's API requires base64 encoding.",
 				Required:            true,
 			},
 			"fqdn": schema.StringAttribute{
