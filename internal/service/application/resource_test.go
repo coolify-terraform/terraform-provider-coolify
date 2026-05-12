@@ -447,6 +447,241 @@ func TestApplicationResource_GitRepoNormalization(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestApplicationResource_LimitsAndHealthChecks
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_LimitsAndHealthChecks(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+
+	swappiness := int64(60)
+	cpuShares := int64(1024)
+	hcEnabled := true
+	hcInterval := int64(30)
+	hcTimeout := int64(10)
+	hcRetries := int64(3)
+	hcStartPeriod := int64(5)
+	autoDeployEnabled := true
+
+	currentApp := client.Application{
+		UUID:            "limits-hc-uuid",
+		Name:            "limits-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
+		// Resource limits
+		LimitsMemory:            "512m",
+		LimitsMemorySwap:        "1g",
+		LimitsMemorySwappiness:  &swappiness,
+		LimitsMemoryReservation: "256m",
+		LimitsCPUs:              "0.5",
+		LimitsCPUSet:            "0-1",
+		LimitsCPUShares:         &cpuShares,
+		// Health checks
+		HealthCheckEnabled:     &hcEnabled,
+		HealthCheckPath:        "/health",
+		HealthCheckPort:        "3000",
+		HealthCheckInterval:    &hcInterval,
+		HealthCheckTimeout:     &hcTimeout,
+		HealthCheckRetries:     &hcRetries,
+		HealthCheckStartPeriod: &hcStartPeriod,
+		// Auto-deploy
+		IsAutoDeployEnabled: &autoDeployEnabled,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != currentApp.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != currentApp.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["limits_memory"].(string); ok {
+			currentApp.LimitsMemory = v
+		}
+		if v, ok := body["limits_memory_swap"].(string); ok {
+			currentApp.LimitsMemorySwap = v
+		}
+		if v, ok := body["limits_memory_swappiness"].(float64); ok {
+			i := int64(v)
+			currentApp.LimitsMemorySwappiness = &i
+		}
+		if v, ok := body["limits_memory_reservation"].(string); ok {
+			currentApp.LimitsMemoryReservation = v
+		}
+		if v, ok := body["limits_cpus"].(string); ok {
+			currentApp.LimitsCPUs = v
+		}
+		if v, ok := body["limits_cpuset"].(string); ok {
+			currentApp.LimitsCPUSet = v
+		}
+		if v, ok := body["limits_cpu_shares"].(float64); ok {
+			i := int64(v)
+			currentApp.LimitsCPUShares = &i
+		}
+		if v, ok := body["health_check_enabled"].(bool); ok {
+			currentApp.HealthCheckEnabled = &v
+		}
+		if v, ok := body["health_check_path"].(string); ok {
+			currentApp.HealthCheckPath = v
+		}
+		if v, ok := body["health_check_port"].(string); ok {
+			currentApp.HealthCheckPort = v
+		}
+		if v, ok := body["health_check_interval"].(float64); ok {
+			i := int64(v)
+			currentApp.HealthCheckInterval = &i
+		}
+		if v, ok := body["health_check_timeout"].(float64); ok {
+			i := int64(v)
+			currentApp.HealthCheckTimeout = &i
+		}
+		if v, ok := body["health_check_retries"].(float64); ok {
+			i := int64(v)
+			currentApp.HealthCheckRetries = &i
+		}
+		if v, ok := body["health_check_start_period"].(float64); ok {
+			i := int64(v)
+			currentApp.HealthCheckStartPeriod = &i
+		}
+		if v, ok := body["is_auto_deploy_enabled"].(bool); ok {
+			currentApp.IsAutoDeployEnabled = &v
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != currentApp.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			// Step 1: Create with resource limits + health checks + auto-deploy.
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid             = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid              = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository           = "https://github.com/example/repo"
+					build_pack               = "nixpacks"
+					ports_exposes            = "3000"
+					limits_memory            = "512m"
+					limits_memory_swap       = "1g"
+					limits_memory_swappiness = 60
+					limits_memory_reservation = "256m"
+					limits_cpus              = "0.5"
+					limits_cpuset            = "0-1"
+					limits_cpu_shares        = 1024
+					health_check_enabled     = true
+					health_check_path        = "/health"
+					health_check_port        = "3000"
+					health_check_interval    = 30
+					health_check_timeout     = 10
+					health_check_retries     = 3
+					health_check_start_period = 5
+					is_auto_deploy_enabled   = true
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "uuid", "limits-hc-uuid"),
+					// Resource limits
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_memory", "512m"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_memory_swap", "1g"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_memory_swappiness", "60"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_memory_reservation", "256m"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_cpus", "0.5"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_cpuset", "0-1"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_cpu_shares", "1024"),
+					// Health checks
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_path", "/health"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_port", "3000"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_interval", "30"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_timeout", "10"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_retries", "3"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_start_period", "5"),
+					// Auto-deploy
+					resource.TestCheckResourceAttr("coolify_application.test", "is_auto_deploy_enabled", "true"),
+				),
+			},
+			// Step 2: Update some fields and verify the new values.
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid             = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid              = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository           = "https://github.com/example/repo"
+					build_pack               = "nixpacks"
+					ports_exposes            = "3000"
+					limits_memory            = "1g"
+					limits_memory_swap       = "2g"
+					limits_memory_swappiness = 80
+					limits_memory_reservation = "512m"
+					limits_cpus              = "2"
+					limits_cpuset            = "0-3"
+					limits_cpu_shares        = 512
+					health_check_enabled     = false
+					health_check_path        = "/ready"
+					health_check_port        = "8080"
+					health_check_interval    = 60
+					health_check_timeout     = 20
+					health_check_retries     = 5
+					health_check_start_period = 10
+					is_auto_deploy_enabled   = false
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// Resource limits — updated values
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_memory", "1g"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_memory_swap", "2g"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_memory_swappiness", "80"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_memory_reservation", "512m"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_cpus", "2"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_cpuset", "0-3"),
+					resource.TestCheckResourceAttr("coolify_application.test", "limits_cpu_shares", "512"),
+					// Health checks — updated values
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_path", "/ready"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_port", "8080"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_interval", "60"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_timeout", "20"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_retries", "5"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_start_period", "10"),
+					// Auto-deploy — updated value
+					resource.TestCheckResourceAttr("coolify_application.test", "is_auto_deploy_enabled", "false"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
