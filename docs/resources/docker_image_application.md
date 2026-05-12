@@ -38,7 +38,22 @@ resource "coolify_docker_image_application" "nginx" {
 - `description` (String) A description of the application.
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
 - `fqdn` (String) The fully qualified domain name for the application (must start with http:// or https://).
+- `health_check_enabled` (Boolean) Whether health checks are enabled.
+- `health_check_interval` (Number) Health check interval in seconds.
+- `health_check_path` (String) The URL path for health checks.
+- `health_check_port` (String) The port for health checks.
+- `health_check_retries` (Number) Number of health check retries.
+- `health_check_start_period` (Number) Health check start period in seconds.
+- `health_check_timeout` (Number) Health check timeout in seconds.
 - `install_command` (String) The command to run during the install phase.
+- `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled.
+- `limits_cpu_shares` (Number) CPU shares (relative weight).
+- `limits_cpus` (String) CPU limit (e.g., `0.5`, `2`).
+- `limits_cpuset` (String) CPU set restriction (e.g., `0-3`, `0,2`).
+- `limits_memory` (String) Memory limit (e.g., `512m`, `2g`).
+- `limits_memory_reservation` (String) Memory reservation (e.g., `256m`).
+- `limits_memory_swap` (String) Memory swap limit (e.g., `1g`).
+- `limits_memory_swappiness` (Number) Memory swappiness (0-100).
 - `name` (String) The name of the application.
 - `start_command` (String) The command to run to start the application.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))

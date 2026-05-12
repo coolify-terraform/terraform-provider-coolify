@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -38,6 +39,24 @@ type commonAppFields struct {
 	ProjectUUID        *types.String
 	ServerUUID         *types.String
 	EnvironmentName    *types.String
+	// Resource limits
+	LimitsMemory            *types.String
+	LimitsMemorySwap        *types.String
+	LimitsMemorySwappiness  *types.Int64
+	LimitsMemoryReservation *types.String
+	LimitsCPUs              *types.String
+	LimitsCPUSet            *types.String
+	LimitsCPUShares         *types.Int64
+	// Health checks
+	HealthCheckEnabled     *types.Bool
+	HealthCheckPath        *types.String
+	HealthCheckPort        *types.String
+	HealthCheckInterval    *types.Int64
+	HealthCheckTimeout     *types.Int64
+	HealthCheckRetries     *types.Int64
+	HealthCheckStartPeriod *types.Int64
+	// Auto-deploy
+	IsAutoDeployEnabled *types.Bool
 }
 
 // flattenApplicationCommon maps shared API fields into any application model
@@ -83,11 +102,62 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	if app.EnvironmentName != "" {
 		*f.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
 	}
+	// Resource limits – only overwrite state when the API returns a value;
+	// Coolify may omit these fields from the GET response.
+	if app.LimitsMemory != "" {
+		*f.LimitsMemory = types.StringValue(app.LimitsMemory)
+	}
+	if app.LimitsMemorySwap != "" {
+		*f.LimitsMemorySwap = types.StringValue(app.LimitsMemorySwap)
+	}
+	if app.LimitsMemorySwappiness != nil {
+		*f.LimitsMemorySwappiness = types.Int64Value(*app.LimitsMemorySwappiness)
+	}
+	if app.LimitsMemoryReservation != "" {
+		*f.LimitsMemoryReservation = types.StringValue(app.LimitsMemoryReservation)
+	}
+	if app.LimitsCPUs != "" {
+		*f.LimitsCPUs = types.StringValue(app.LimitsCPUs)
+	}
+	if app.LimitsCPUSet != "" {
+		*f.LimitsCPUSet = types.StringValue(app.LimitsCPUSet)
+	}
+	if app.LimitsCPUShares != nil {
+		*f.LimitsCPUShares = types.Int64Value(*app.LimitsCPUShares)
+	}
+	// Health checks
+	if app.HealthCheckEnabled != nil {
+		*f.HealthCheckEnabled = types.BoolValue(*app.HealthCheckEnabled)
+	}
+	if app.HealthCheckPath != "" {
+		*f.HealthCheckPath = types.StringValue(app.HealthCheckPath)
+	}
+	if app.HealthCheckPort != "" {
+		*f.HealthCheckPort = types.StringValue(app.HealthCheckPort)
+	}
+	if app.HealthCheckInterval != nil {
+		*f.HealthCheckInterval = types.Int64Value(*app.HealthCheckInterval)
+	}
+	if app.HealthCheckTimeout != nil {
+		*f.HealthCheckTimeout = types.Int64Value(*app.HealthCheckTimeout)
+	}
+	if app.HealthCheckRetries != nil {
+		*f.HealthCheckRetries = types.Int64Value(*app.HealthCheckRetries)
+	}
+	if app.HealthCheckStartPeriod != nil {
+		*f.HealthCheckStartPeriod = types.Int64Value(*app.HealthCheckStartPeriod)
+	}
+	// Auto-deploy
+	if app.IsAutoDeployEnabled != nil {
+		*f.IsAutoDeployEnabled = types.BoolValue(*app.IsAutoDeployEnabled)
+	}
 }
 
 // buildUpdateInput constructs the shared UpdateApplicationInput from field pointers.
 func buildUpdateInput(f commonAppFields) client.UpdateApplicationInput {
 	strPtr := flex.StringValueOrNull
+	int64Ptr := flex.Int64PtrFromFramework
+	boolPtr := flex.BoolValueOrNull
 	return client.UpdateApplicationInput{
 		Name:               strPtr(*f.Name),
 		Description:        strPtr(*f.Description),
@@ -100,6 +170,24 @@ func buildUpdateInput(f commonAppFields) client.UpdateApplicationInput {
 		InstallCommand:     strPtr(*f.InstallCommand),
 		BuildCommand:       strPtr(*f.BuildCommand),
 		StartCommand:       strPtr(*f.StartCommand),
+		// Resource limits
+		LimitsMemory:            strPtr(*f.LimitsMemory),
+		LimitsMemorySwap:        strPtr(*f.LimitsMemorySwap),
+		LimitsMemorySwappiness:  int64Ptr(*f.LimitsMemorySwappiness),
+		LimitsMemoryReservation: strPtr(*f.LimitsMemoryReservation),
+		LimitsCPUs:              strPtr(*f.LimitsCPUs),
+		LimitsCPUSet:            strPtr(*f.LimitsCPUSet),
+		LimitsCPUShares:         int64Ptr(*f.LimitsCPUShares),
+		// Health checks
+		HealthCheckEnabled:     boolPtr(*f.HealthCheckEnabled),
+		HealthCheckPath:        strPtr(*f.HealthCheckPath),
+		HealthCheckPort:        strPtr(*f.HealthCheckPort),
+		HealthCheckInterval:    int64Ptr(*f.HealthCheckInterval),
+		HealthCheckTimeout:     int64Ptr(*f.HealthCheckTimeout),
+		HealthCheckRetries:     int64Ptr(*f.HealthCheckRetries),
+		HealthCheckStartPeriod: int64Ptr(*f.HealthCheckStartPeriod),
+		// Auto-deploy
+		IsAutoDeployEnabled: boolPtr(*f.IsAutoDeployEnabled),
 	}
 }
 
@@ -153,6 +241,73 @@ func CommonAppAttrs(ctx context.Context, extra map[string]schema.Attribute) map[
 		"status": schema.StringAttribute{
 			MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
 			Computed:            true,
+		},
+		// Resource limits
+		"limits_memory": schema.StringAttribute{
+			MarkdownDescription: "Memory limit (e.g., `512m`, `2g`).",
+			Optional:            true,
+		},
+		"limits_memory_swap": schema.StringAttribute{
+			MarkdownDescription: "Memory swap limit (e.g., `1g`).",
+			Optional:            true,
+		},
+		"limits_memory_swappiness": schema.Int64Attribute{
+			MarkdownDescription: "Memory swappiness (0-100).",
+			Optional:            true,
+		},
+		"limits_memory_reservation": schema.StringAttribute{
+			MarkdownDescription: "Memory reservation (e.g., `256m`).",
+			Optional:            true,
+		},
+		"limits_cpus": schema.StringAttribute{
+			MarkdownDescription: "CPU limit (e.g., `0.5`, `2`).",
+			Optional:            true,
+		},
+		"limits_cpuset": schema.StringAttribute{
+			MarkdownDescription: "CPU set restriction (e.g., `0-3`, `0,2`).",
+			Optional:            true,
+		},
+		"limits_cpu_shares": schema.Int64Attribute{
+			MarkdownDescription: "CPU shares (relative weight).",
+			Optional:            true,
+		},
+		// Health checks
+		"health_check_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether health checks are enabled.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"health_check_path": schema.StringAttribute{
+			MarkdownDescription: "The URL path for health checks.",
+			Optional:            true,
+		},
+		"health_check_port": schema.StringAttribute{
+			MarkdownDescription: "The port for health checks.",
+			Optional:            true,
+		},
+		"health_check_interval": schema.Int64Attribute{
+			MarkdownDescription: "Health check interval in seconds.",
+			Optional:            true,
+		},
+		"health_check_timeout": schema.Int64Attribute{
+			MarkdownDescription: "Health check timeout in seconds.",
+			Optional:            true,
+		},
+		"health_check_retries": schema.Int64Attribute{
+			MarkdownDescription: "Number of health check retries.",
+			Optional:            true,
+		},
+		"health_check_start_period": schema.Int64Attribute{
+			MarkdownDescription: "Health check start period in seconds.",
+			Optional:            true,
+		},
+		// Auto-deploy
+		"is_auto_deploy_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether auto-deploy on push is enabled.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(true),
 		},
 	}
 	for k, v := range extra {

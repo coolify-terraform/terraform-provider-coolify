@@ -34,23 +34,38 @@ type dockerfileApplicationResource struct {
 
 // dockerfileApplicationResourceModel maps the resource schema to Go types.
 type dockerfileApplicationResourceModel struct {
-	UUID               types.String   `tfsdk:"uuid"`
-	Name               types.String   `tfsdk:"name"`
-	Description        types.String   `tfsdk:"description"`
-	ProjectUUID        types.String   `tfsdk:"project_uuid"`
-	ServerUUID         types.String   `tfsdk:"server_uuid"`
-	EnvironmentName    types.String   `tfsdk:"environment_name"`
-	DockerfileLocation types.String   `tfsdk:"dockerfile_location"`
-	PortsExposes       types.String   `tfsdk:"ports_exposes"`
-	FQDN               types.String   `tfsdk:"fqdn"`
-	InstallCommand     types.String   `tfsdk:"install_command"`
-	BuildCommand       types.String   `tfsdk:"build_command"`
-	StartCommand       types.String   `tfsdk:"start_command"`
-	GitRepository      types.String   `tfsdk:"git_repository"`
-	GitBranch          types.String   `tfsdk:"git_branch"`
-	BuildPack          types.String   `tfsdk:"build_pack"`
-	Status             types.String   `tfsdk:"status"`
-	Timeouts           timeouts.Value `tfsdk:"timeouts"`
+	UUID                    types.String   `tfsdk:"uuid"`
+	Name                    types.String   `tfsdk:"name"`
+	Description             types.String   `tfsdk:"description"`
+	ProjectUUID             types.String   `tfsdk:"project_uuid"`
+	ServerUUID              types.String   `tfsdk:"server_uuid"`
+	EnvironmentName         types.String   `tfsdk:"environment_name"`
+	DockerfileLocation      types.String   `tfsdk:"dockerfile_location"`
+	PortsExposes            types.String   `tfsdk:"ports_exposes"`
+	FQDN                    types.String   `tfsdk:"fqdn"`
+	InstallCommand          types.String   `tfsdk:"install_command"`
+	BuildCommand            types.String   `tfsdk:"build_command"`
+	StartCommand            types.String   `tfsdk:"start_command"`
+	GitRepository           types.String   `tfsdk:"git_repository"`
+	GitBranch               types.String   `tfsdk:"git_branch"`
+	BuildPack               types.String   `tfsdk:"build_pack"`
+	Status                  types.String   `tfsdk:"status"`
+	LimitsMemory            types.String   `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String   `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64    `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String   `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String   `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String   `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64    `tfsdk:"limits_cpu_shares"`
+	HealthCheckEnabled      types.Bool     `tfsdk:"health_check_enabled"`
+	HealthCheckPath         types.String   `tfsdk:"health_check_path"`
+	HealthCheckPort         types.String   `tfsdk:"health_check_port"`
+	HealthCheckInterval     types.Int64    `tfsdk:"health_check_interval"`
+	HealthCheckTimeout      types.Int64    `tfsdk:"health_check_timeout"`
+	HealthCheckRetries      types.Int64    `tfsdk:"health_check_retries"`
+	HealthCheckStartPeriod  types.Int64    `tfsdk:"health_check_start_period"`
+	IsAutoDeployEnabled     types.Bool     `tfsdk:"is_auto_deploy_enabled"`
+	Timeouts                timeouts.Value `tfsdk:"timeouts"`
 }
 
 // NewDockerfileResource returns a new dockerfileApplicationResource instance.
@@ -245,6 +260,8 @@ func (r *dockerfileApplicationResource) ImportState(ctx context.Context, req res
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("health_check_enabled"), false)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("is_auto_deploy_enabled"), true)...)
 }
 
 // flattenDockerfileApplication copies API fields into the Terraform state model.
@@ -256,6 +273,13 @@ func (m *dockerfileApplicationResourceModel) common() commonAppFields {
 		InstallCommand: &m.InstallCommand, BuildCommand: &m.BuildCommand, StartCommand: &m.StartCommand,
 		Status: &m.Status, ProjectUUID: &m.ProjectUUID, ServerUUID: &m.ServerUUID,
 		EnvironmentName: &m.EnvironmentName,
+		LimitsMemory:    &m.LimitsMemory, LimitsMemorySwap: &m.LimitsMemorySwap,
+		LimitsMemorySwappiness: &m.LimitsMemorySwappiness, LimitsMemoryReservation: &m.LimitsMemoryReservation,
+		LimitsCPUs: &m.LimitsCPUs, LimitsCPUSet: &m.LimitsCPUSet, LimitsCPUShares: &m.LimitsCPUShares,
+		HealthCheckEnabled: &m.HealthCheckEnabled, HealthCheckPath: &m.HealthCheckPath,
+		HealthCheckPort: &m.HealthCheckPort, HealthCheckInterval: &m.HealthCheckInterval,
+		HealthCheckTimeout: &m.HealthCheckTimeout, HealthCheckRetries: &m.HealthCheckRetries,
+		HealthCheckStartPeriod: &m.HealthCheckStartPeriod, IsAutoDeployEnabled: &m.IsAutoDeployEnabled,
 	}
 }
 

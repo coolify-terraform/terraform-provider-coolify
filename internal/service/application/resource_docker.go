@@ -34,19 +34,34 @@ type dockerImageApplicationResource struct {
 
 // dockerImageApplicationResourceModel maps the resource schema to Go types.
 type dockerImageApplicationResourceModel struct {
-	UUID            types.String   `tfsdk:"uuid"`
-	Name            types.String   `tfsdk:"name"`
-	Description     types.String   `tfsdk:"description"`
-	ProjectUUID     types.String   `tfsdk:"project_uuid"`
-	ServerUUID      types.String   `tfsdk:"server_uuid"`
-	EnvironmentName types.String   `tfsdk:"environment_name"`
-	DockerImage     types.String   `tfsdk:"docker_image"`
-	PortsExposes    types.String   `tfsdk:"ports_exposes"`
-	FQDN            types.String   `tfsdk:"fqdn"`
-	InstallCommand  types.String   `tfsdk:"install_command"`
-	StartCommand    types.String   `tfsdk:"start_command"`
-	Status          types.String   `tfsdk:"status"`
-	Timeouts        timeouts.Value `tfsdk:"timeouts"`
+	UUID                    types.String   `tfsdk:"uuid"`
+	Name                    types.String   `tfsdk:"name"`
+	Description             types.String   `tfsdk:"description"`
+	ProjectUUID             types.String   `tfsdk:"project_uuid"`
+	ServerUUID              types.String   `tfsdk:"server_uuid"`
+	EnvironmentName         types.String   `tfsdk:"environment_name"`
+	DockerImage             types.String   `tfsdk:"docker_image"`
+	PortsExposes            types.String   `tfsdk:"ports_exposes"`
+	FQDN                    types.String   `tfsdk:"fqdn"`
+	InstallCommand          types.String   `tfsdk:"install_command"`
+	StartCommand            types.String   `tfsdk:"start_command"`
+	Status                  types.String   `tfsdk:"status"`
+	LimitsMemory            types.String   `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String   `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64    `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String   `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String   `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String   `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64    `tfsdk:"limits_cpu_shares"`
+	HealthCheckEnabled      types.Bool     `tfsdk:"health_check_enabled"`
+	HealthCheckPath         types.String   `tfsdk:"health_check_path"`
+	HealthCheckPort         types.String   `tfsdk:"health_check_port"`
+	HealthCheckInterval     types.Int64    `tfsdk:"health_check_interval"`
+	HealthCheckTimeout      types.Int64    `tfsdk:"health_check_timeout"`
+	HealthCheckRetries      types.Int64    `tfsdk:"health_check_retries"`
+	HealthCheckStartPeriod  types.Int64    `tfsdk:"health_check_start_period"`
+	IsAutoDeployEnabled     types.Bool     `tfsdk:"is_auto_deploy_enabled"`
+	Timeouts                timeouts.Value `tfsdk:"timeouts"`
 }
 
 // NewDockerResource returns a new dockerImageApplicationResource instance.
@@ -195,6 +210,21 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 	input.InstallCommand = strPtr(plan.InstallCommand)
 	input.StartCommand = strPtr(plan.StartCommand)
 	input.DockerRegistryImageName = strPtr(plan.DockerImage)
+	input.LimitsMemory = strPtr(plan.LimitsMemory)
+	input.LimitsMemorySwap = strPtr(plan.LimitsMemorySwap)
+	input.LimitsMemorySwappiness = flex.Int64PtrFromFramework(plan.LimitsMemorySwappiness)
+	input.LimitsMemoryReservation = strPtr(plan.LimitsMemoryReservation)
+	input.LimitsCPUs = strPtr(plan.LimitsCPUs)
+	input.LimitsCPUSet = strPtr(plan.LimitsCPUSet)
+	input.LimitsCPUShares = flex.Int64PtrFromFramework(plan.LimitsCPUShares)
+	input.HealthCheckEnabled = flex.BoolValueOrNull(plan.HealthCheckEnabled)
+	input.HealthCheckPath = strPtr(plan.HealthCheckPath)
+	input.HealthCheckPort = strPtr(plan.HealthCheckPort)
+	input.HealthCheckInterval = flex.Int64PtrFromFramework(plan.HealthCheckInterval)
+	input.HealthCheckTimeout = flex.Int64PtrFromFramework(plan.HealthCheckTimeout)
+	input.HealthCheckRetries = flex.Int64PtrFromFramework(plan.HealthCheckRetries)
+	input.HealthCheckStartPeriod = flex.Int64PtrFromFramework(plan.HealthCheckStartPeriod)
+	input.IsAutoDeployEnabled = flex.BoolValueOrNull(plan.IsAutoDeployEnabled)
 
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenDockerImageApplication(app, &plan)
@@ -230,6 +260,8 @@ func (r *dockerImageApplicationResource) ImportState(ctx context.Context, req re
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("health_check_enabled"), false)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("is_auto_deploy_enabled"), true)...)
 }
 
 // flattenDockerImageApplication copies API fields into the Terraform state model.
@@ -268,5 +300,53 @@ func flattenDockerImageApplication(app *client.Application, state *dockerImageAp
 	}
 	if app.EnvironmentName != "" {
 		state.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
+	}
+	// Resource limits – only overwrite state when the API returns a value.
+	if app.LimitsMemory != "" {
+		state.LimitsMemory = types.StringValue(app.LimitsMemory)
+	}
+	if app.LimitsMemorySwap != "" {
+		state.LimitsMemorySwap = types.StringValue(app.LimitsMemorySwap)
+	}
+	if app.LimitsMemorySwappiness != nil {
+		state.LimitsMemorySwappiness = types.Int64Value(*app.LimitsMemorySwappiness)
+	}
+	if app.LimitsMemoryReservation != "" {
+		state.LimitsMemoryReservation = types.StringValue(app.LimitsMemoryReservation)
+	}
+	if app.LimitsCPUs != "" {
+		state.LimitsCPUs = types.StringValue(app.LimitsCPUs)
+	}
+	if app.LimitsCPUSet != "" {
+		state.LimitsCPUSet = types.StringValue(app.LimitsCPUSet)
+	}
+	if app.LimitsCPUShares != nil {
+		state.LimitsCPUShares = types.Int64Value(*app.LimitsCPUShares)
+	}
+	// Health checks
+	if app.HealthCheckEnabled != nil {
+		state.HealthCheckEnabled = types.BoolValue(*app.HealthCheckEnabled)
+	}
+	if app.HealthCheckPath != "" {
+		state.HealthCheckPath = types.StringValue(app.HealthCheckPath)
+	}
+	if app.HealthCheckPort != "" {
+		state.HealthCheckPort = types.StringValue(app.HealthCheckPort)
+	}
+	if app.HealthCheckInterval != nil {
+		state.HealthCheckInterval = types.Int64Value(*app.HealthCheckInterval)
+	}
+	if app.HealthCheckTimeout != nil {
+		state.HealthCheckTimeout = types.Int64Value(*app.HealthCheckTimeout)
+	}
+	if app.HealthCheckRetries != nil {
+		state.HealthCheckRetries = types.Int64Value(*app.HealthCheckRetries)
+	}
+	if app.HealthCheckStartPeriod != nil {
+		state.HealthCheckStartPeriod = types.Int64Value(*app.HealthCheckStartPeriod)
+	}
+	// Auto-deploy
+	if app.IsAutoDeployEnabled != nil {
+		state.IsAutoDeployEnabled = types.BoolValue(*app.IsAutoDeployEnabled)
 	}
 }

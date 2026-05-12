@@ -28,6 +28,24 @@ type Application struct {
 	Status                  string `json:"status,omitempty"`
 	PrivateKeyUUID          string `json:"private_key_uuid,omitempty"`
 	GitHubAppUUID           string `json:"github_app_uuid,omitempty"`
+	// Resource limits
+	LimitsMemory            string `json:"limits_memory,omitempty"`
+	LimitsMemorySwap        string `json:"limits_memory_swap,omitempty"`
+	LimitsMemorySwappiness  *int64 `json:"limits_memory_swappiness,omitempty"`
+	LimitsMemoryReservation string `json:"limits_memory_reservation,omitempty"`
+	LimitsCPUs              string `json:"limits_cpus,omitempty"`
+	LimitsCPUSet            string `json:"limits_cpuset,omitempty"`
+	LimitsCPUShares         *int64 `json:"limits_cpu_shares,omitempty"`
+	// Health checks
+	HealthCheckEnabled     *bool  `json:"health_check_enabled,omitempty"`
+	HealthCheckPath        string `json:"health_check_path,omitempty"`
+	HealthCheckPort        string `json:"health_check_port,omitempty"`
+	HealthCheckInterval    *int64 `json:"health_check_interval,omitempty"`
+	HealthCheckTimeout     *int64 `json:"health_check_timeout,omitempty"`
+	HealthCheckRetries     *int64 `json:"health_check_retries,omitempty"`
+	HealthCheckStartPeriod *int64 `json:"health_check_start_period,omitempty"`
+	// Auto-deploy
+	IsAutoDeployEnabled *bool `json:"is_auto_deploy_enabled,omitempty"`
 }
 type CreatePublicAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
@@ -61,6 +79,24 @@ type UpdateApplicationInput struct {
 	DockerRegistryImageName *string `json:"docker_registry_image_name,omitempty"`
 	DockerComposeRaw        *string `json:"docker_compose_raw,omitempty"`
 	GitHubAppUUID           *string `json:"github_app_uuid,omitempty"`
+	// Resource limits
+	LimitsMemory            *string `json:"limits_memory,omitempty"`
+	LimitsMemorySwap        *string `json:"limits_memory_swap,omitempty"`
+	LimitsMemorySwappiness  *int64  `json:"limits_memory_swappiness,omitempty"`
+	LimitsMemoryReservation *string `json:"limits_memory_reservation,omitempty"`
+	LimitsCPUs              *string `json:"limits_cpus,omitempty"`
+	LimitsCPUSet            *string `json:"limits_cpuset,omitempty"`
+	LimitsCPUShares         *int64  `json:"limits_cpu_shares,omitempty"`
+	// Health checks
+	HealthCheckEnabled     *bool   `json:"health_check_enabled,omitempty"`
+	HealthCheckPath        *string `json:"health_check_path,omitempty"`
+	HealthCheckPort        *string `json:"health_check_port,omitempty"`
+	HealthCheckInterval    *int64  `json:"health_check_interval,omitempty"`
+	HealthCheckTimeout     *int64  `json:"health_check_timeout,omitempty"`
+	HealthCheckRetries     *int64  `json:"health_check_retries,omitempty"`
+	HealthCheckStartPeriod *int64  `json:"health_check_start_period,omitempty"`
+	// Auto-deploy
+	IsAutoDeployEnabled *bool `json:"is_auto_deploy_enabled,omitempty"`
 }
 
 func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {
