@@ -63,7 +63,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.Image, p.Image)
 	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
 	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	c, err := r.client.CreateDragonflyDatabase(ctx, in)
+	c, err := r.client.CreateDatabase(ctx, "dragonfly", in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating Dragonfly database", err.Error())
 		return

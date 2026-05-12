@@ -180,59 +180,13 @@ func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error
 	}
 	return &d, nil
 }
-func (c *Client) CreatePostgresqlDatabase(ctx context.Context, input CreatePostgresqlInput) (*Database, error) {
+// CreateDatabase creates a database of the given type (postgresql, mysql,
+// mariadb, redis, mongodb, clickhouse, keydb, dragonfly). The input struct
+// is type-specific but serialized as JSON.
+func (c *Client) CreateDatabase(ctx context.Context, dbType string, input any) (*Database, error) {
 	var d Database
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/postgresql", input, &d, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating postgresql database: %w", err)
-	}
-	return &d, nil
-}
-func (c *Client) CreateMysqlDatabase(ctx context.Context, input CreateMysqlInput) (*Database, error) {
-	var d Database
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mysql", input, &d, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating mysql database: %w", err)
-	}
-	return &d, nil
-}
-func (c *Client) CreateMariadbDatabase(ctx context.Context, input CreateMariadbInput) (*Database, error) {
-	var d Database
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mariadb", input, &d, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating mariadb database: %w", err)
-	}
-	return &d, nil
-}
-func (c *Client) CreateRedisDatabase(ctx context.Context, input CreateRedisInput) (*Database, error) {
-	var d Database
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/redis", input, &d, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating redis database: %w", err)
-	}
-	return &d, nil
-}
-func (c *Client) CreateMongodbDatabase(ctx context.Context, input CreateMongodbInput) (*Database, error) {
-	var d Database
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/mongodb", input, &d, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating mongodb database: %w", err)
-	}
-	return &d, nil
-}
-func (c *Client) CreateClickhouseDatabase(ctx context.Context, input CreateClickhouseInput) (*Database, error) {
-	var d Database
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/clickhouse", input, &d, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating clickhouse database: %w", err)
-	}
-	return &d, nil
-}
-func (c *Client) CreateKeydbDatabase(ctx context.Context, input CreateKeydbInput) (*Database, error) {
-	var d Database
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/keydb", input, &d, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating keydb database: %w", err)
-	}
-	return &d, nil
-}
-func (c *Client) CreateDragonflyDatabase(ctx context.Context, input CreateDragonflyInput) (*Database, error) {
-	var d Database
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/dragonfly", input, &d, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating dragonfly database: %w", err)
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/"+url.PathEscape(dbType), input, &d, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating %s database: %w", dbType, err)
 	}
 	return &d, nil
 }

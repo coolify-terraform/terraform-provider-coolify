@@ -78,7 +78,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.MariadbRootPassword, p.MariadbRootPassword)
 	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
 	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	c, err := r.client.CreateMariadbDatabase(ctx, in)
+	c, err := r.client.CreateDatabase(ctx, "mariadb", in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating MariaDB database", err.Error())
 		return

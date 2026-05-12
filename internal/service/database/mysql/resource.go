@@ -86,7 +86,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	flex.SetIfKnown(&input.MysqlRootPassword, plan.MysqlRootPassword)
 	input.IsPublic = flex.BoolValueOrNull(plan.IsPublic)
 	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
-	created, err := r.client.CreateMysqlDatabase(ctx, input)
+	created, err := r.client.CreateDatabase(ctx, "mysql", input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating MySQL database", err.Error())
 		return

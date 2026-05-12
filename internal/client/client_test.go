@@ -461,7 +461,7 @@ func TestClient_CreatePublicApplication(t *testing.T) {
 	}
 }
 
-func TestClient_CreatePostgresqlDatabase(t *testing.T) {
+func TestClient_CreateDatabase_Postgresql(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -499,7 +499,7 @@ func TestClient_CreatePostgresqlDatabase(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	db, err := c.CreatePostgresqlDatabase(context.Background(), CreatePostgresqlInput{
+	db, err := c.CreateDatabase(context.Background(), "postgresql", CreatePostgresqlInput{
 		ServerUUID:      "srv-1",
 		ProjectUUID:     "proj-1",
 		EnvironmentName: "production",
@@ -778,7 +778,7 @@ func TestClient_GetDatabase(t *testing.T) {
 	assert.Equal(t, "appdb", db.PostgresDB)
 }
 
-func TestClient_CreateMysqlDatabase(t *testing.T) {
+func TestClient_CreateDatabase_Mysql(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -801,7 +801,7 @@ func TestClient_CreateMysqlDatabase(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	db, err := c.CreateMysqlDatabase(context.Background(), CreateMysqlInput{
+	db, err := c.CreateDatabase(context.Background(), "mysql", CreateMysqlInput{
 		ServerUUID:      "srv-1",
 		ProjectUUID:     "proj-1",
 		EnvironmentName: "production",
@@ -1325,7 +1325,7 @@ func TestClient_ListDatabases(t *testing.T) {
 	assert.Equal(t, "redis", dbs[1].Type)
 }
 
-func TestClient_CreateMariadbDatabase(t *testing.T) {
+func TestClient_CreateDatabase_Mariadb(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -1348,7 +1348,7 @@ func TestClient_CreateMariadbDatabase(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	db, err := c.CreateMariadbDatabase(context.Background(), CreateMariadbInput{
+	db, err := c.CreateDatabase(context.Background(), "mariadb", CreateMariadbInput{
 		ServerUUID:      "srv-1",
 		ProjectUUID:     "proj-1",
 		EnvironmentName: "production",
@@ -1359,7 +1359,7 @@ func TestClient_CreateMariadbDatabase(t *testing.T) {
 	assert.Equal(t, "db-mariadb-new", db.UUID)
 }
 
-func TestClient_CreateRedisDatabase(t *testing.T) {
+func TestClient_CreateDatabase_Redis(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -1380,7 +1380,7 @@ func TestClient_CreateRedisDatabase(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	db, err := c.CreateRedisDatabase(context.Background(), CreateRedisInput{
+	db, err := c.CreateDatabase(context.Background(), "redis", CreateRedisInput{
 		ServerUUID:      "srv-1",
 		ProjectUUID:     "proj-1",
 		EnvironmentName: "production",
@@ -1389,7 +1389,7 @@ func TestClient_CreateRedisDatabase(t *testing.T) {
 	assert.Equal(t, "db-redis-new", db.UUID)
 }
 
-func TestClient_CreateMongodbDatabase(t *testing.T) {
+func TestClient_CreateDatabase_Mongodb(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -1412,7 +1412,7 @@ func TestClient_CreateMongodbDatabase(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	db, err := c.CreateMongodbDatabase(context.Background(), CreateMongodbInput{
+	db, err := c.CreateDatabase(context.Background(), "mongodb", CreateMongodbInput{
 		ServerUUID:              "srv-1",
 		ProjectUUID:             "proj-1",
 		EnvironmentName:         "production",
@@ -2002,7 +2002,7 @@ func TestClient_CreateDockerComposeApplication(t *testing.T) {
 	assert.Equal(t, "dockercompose", got.BuildPack)
 }
 
-func TestClient_CreateKeydbDatabase(t *testing.T) {
+func TestClient_CreateDatabase_Keydb(t *testing.T) {
 	t.Parallel()
 	expected := Database{UUID: "keydb-1", Name: "cache", Type: "keydb"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2021,7 +2021,7 @@ func TestClient_CreateKeydbDatabase(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	got, err := c.CreateKeydbDatabase(context.Background(), CreateKeydbInput{
+	got, err := c.CreateDatabase(context.Background(), "keydb", CreateKeydbInput{
 		ProjectUUID: "proj-1", ServerUUID: "srv-1", EnvironmentName: "production",
 	})
 	require.NoError(t, err)
@@ -2029,7 +2029,7 @@ func TestClient_CreateKeydbDatabase(t *testing.T) {
 	assert.Equal(t, "keydb", got.Type)
 }
 
-func TestClient_CreateDragonflyDatabase(t *testing.T) {
+func TestClient_CreateDatabase_Dragonfly(t *testing.T) {
 	t.Parallel()
 	expected := Database{UUID: "df-1", Name: "sessions", Type: "dragonfly"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2048,7 +2048,7 @@ func TestClient_CreateDragonflyDatabase(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	got, err := c.CreateDragonflyDatabase(context.Background(), CreateDragonflyInput{
+	got, err := c.CreateDatabase(context.Background(), "dragonfly", CreateDragonflyInput{
 		ProjectUUID: "proj-1", ServerUUID: "srv-1", EnvironmentName: "production",
 	})
 	require.NoError(t, err)
@@ -2056,7 +2056,7 @@ func TestClient_CreateDragonflyDatabase(t *testing.T) {
 	assert.Equal(t, "dragonfly", got.Type)
 }
 
-func TestClient_CreateClickhouseDatabase(t *testing.T) {
+func TestClient_CreateDatabase_Clickhouse(t *testing.T) {
 	t.Parallel()
 	expected := Database{UUID: "ch-1", Name: "analytics", Type: "clickhouse"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2076,7 +2076,7 @@ func TestClient_CreateClickhouseDatabase(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	got, err := c.CreateClickhouseDatabase(context.Background(), CreateClickhouseInput{
+	got, err := c.CreateDatabase(context.Background(), "clickhouse", CreateClickhouseInput{
 		ProjectUUID:     "proj-1",
 		ServerUUID:      "srv-1",
 		EnvironmentName: "production",
