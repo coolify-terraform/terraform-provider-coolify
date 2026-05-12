@@ -6,7 +6,7 @@
 
 - [Go](https://golang.org/doc/install) >= 1.26
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- [golangci-lint](https://golangci-lint.run/welcome/install/) v2.x
+- [golangci-lint](https://golangci-lint.run/welcome/install/) v2.12.2 exactly (must match CI)
 
 ### Clone and Build
 
@@ -39,23 +39,24 @@ See [TESTING.md](TESTING.md) for full acceptance test documentation.
 Run all CI checks locally before pushing:
 
 ```bash
-make ci      # Build, lint, test, validate, docs-check, api-coverage-check, vulncheck
+make ci      # Run the full local check suite
 ```
 
 Or run individual checks:
 
 ```bash
-make lint      # Run golangci-lint
-make fmt       # Format code (gofmt + go mod tidy)
-make docs      # Generate documentation
-make validate  # Check HCL formatting in examples/
+make lint              # Run golangci-lint (requires v2.12.2 exactly)
+make fmt               # Format code (gofmt + go mod tidy)
+make docs              # Generate documentation
+make validate          # Check HCL formatting in examples/
+make goreleaser-check  # Validate .goreleaser.yml (requires goreleaser v2.x)
 ```
 
 **Required local tools** (match the versions pinned in CI):
 
-- `golangci-lint` v2.12.2+ (`curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b ~/.local/bin v2.12.2`)
+- `golangci-lint` v2.12.2 exactly (match CI: `curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b ~/.local/bin v2.12.2`)
 - `terraform` >= 1.6 (for `terraform fmt` on examples)
-- `goreleaser` v2.x (`go install github.com/goreleaser/goreleaser/v2@latest`)
+- `goreleaser` v2.x (match CI major version: `go install github.com/goreleaser/goreleaser/v2@latest`)
 - `tfplugindocs` (`cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs`)
 
 ## Project Structure
