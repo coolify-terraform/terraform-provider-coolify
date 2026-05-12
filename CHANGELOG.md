@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_storage` - Manage persistent storage volumes
   - `coolify_cloud_token` - Manage cloud provider tokens (Hetzner)
   - `coolify_github_app` - Manage GitHub App integrations
-- **42 Data Sources:**
+- **46 Data Sources:**
   - `coolify_project` / `coolify_projects` - Read project(s)
   - `coolify_server` / `coolify_servers` - Read server(s)
   - `coolify_server_resources` - List all resources deployed on a server
@@ -62,11 +62,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_database` / `coolify_databases` - Read database(s)
   - `coolify_service` / `coolify_services` - Read service(s)
   - `coolify_environment` / `coolify_environments` - Read environment(s)
-  - `coolify_environment_variables` - List environment variables for an application, service, or database
-  - `coolify_deployments` - List deployments for an application
+  - `coolify_environment_variable` / `coolify_environment_variables` - Read / list environment variables for an application, service, or database
+  - `coolify_deployment` / `coolify_deployments` - Read / list deployments for an application
   - `coolify_s3_storage` / `coolify_s3_storages` - Read S3 storage destination(s)
-  - `coolify_scheduled_tasks` / `coolify_task_executions` - Read scheduled tasks and executions
-  - `coolify_storages` - List persistent storage volumes
+  - `coolify_scheduled_task` / `coolify_scheduled_tasks` / `coolify_task_executions` - Read scheduled task(s) and executions
+  - `coolify_storage` / `coolify_storages` - Read / list persistent storage volumes
   - `coolify_cloud_token` / `coolify_cloud_tokens` - Read cloud token(s)
   - `coolify_github_app` / `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` - Read GitHub App(s) and repos
   - `coolify_backup_executions` - List backup execution history
@@ -84,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input validators: `build_pack` OneOf, FQDN format, cron syntax, port range (1-65535), UUID format, environment variable name format
 - Configurable `timeouts` block on all application resources
 - Graceful handling of out-of-band resource deletion (404 in Read removes from state)
-- 390+ unit tests with race detection across 34 packages
+- 400+ unit tests with race detection across 34 packages
 - CI pipeline: 12 jobs (detect changes, test, lint, validate examples, docs, govulncheck, trivy, gitleaks, goreleaser check, scenario tests, spec freshness, CI gate)
 - GoReleaser config for GPG-signed releases
 - Computed `status` field on all application resources
@@ -92,7 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `coolify_github_app`: `app_id`, `installation_id`, `client_id`, `client_secret`, `private_key`, and `organization_name` can now be updated in-place (previously forced destroy/recreate). This matches the Coolify API's PATCH support for these fields.
+- `coolify_github_app`: `app_id`, `installation_id`, `client_id`, `client_secret`, `private_key_uuid`, and `organization_name` can now be updated in-place (previously forced destroy/recreate). This matches the Coolify API's PATCH support for these fields.
 - `coolify_github_app_application`: `github_app_uuid` can now be updated in-place (previously forced destroy/recreate).
 
 ### Fixed

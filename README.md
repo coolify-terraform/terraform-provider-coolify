@@ -57,12 +57,12 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_application_logs` | Read application logs |
 | `coolify_database` / `coolify_databases` | Read database(s) |
 | `coolify_environment` / `coolify_environments` | Read environment(s) |
-| `coolify_environment_variables` | List env vars for an application, service, or database |
-| `coolify_deployments` | List deployments for an application |
+| `coolify_environment_variable` / `coolify_environment_variables` | Read / list env vars for an application, service, or database |
+| `coolify_deployment` / `coolify_deployments` | Read / list deployments for an application |
 | `coolify_service` / `coolify_services` | Read service(s) |
 | `coolify_s3_storage` / `coolify_s3_storages` | Read S3 storage destination(s) |
-| `coolify_scheduled_tasks` / `coolify_task_executions` | Read scheduled tasks and executions |
-| `coolify_storages` | List persistent storage volumes |
+| `coolify_scheduled_task` / `coolify_scheduled_tasks` / `coolify_task_executions` | Read scheduled task(s) and executions |
+| `coolify_storage` / `coolify_storages` | Read / list persistent storage volumes |
 | `coolify_cloud_token` / `coolify_cloud_tokens` | Read cloud token(s) |
 | `coolify_github_app` / `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` | Read GitHub App(s), repos, branches |
 | `coolify_backup_executions` | List backup execution history |
