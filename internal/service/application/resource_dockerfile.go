@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -66,56 +65,7 @@ func (r *dockerfileApplicationResource) Metadata(_ context.Context, req resource
 func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed from a Dockerfile.",
-		Attributes: map[string]schema.Attribute{
-			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
-				Create: true,
-			}),
-			"uuid": schema.StringAttribute{
-				MarkdownDescription: "The unique identifier of the application.",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the application.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"description": schema.StringAttribute{
-				MarkdownDescription: "A description of the application.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"project_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the project this application belongs to. Changing this forces a new resource.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{validate.UUID()},
-			},
-			"server_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the server to deploy the application on. Changing this forces a new resource.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{validate.UUID()},
-			},
-			"environment_name": schema.StringAttribute{
-				MarkdownDescription: "The environment name for the application (defaults to `production`). Changing this forces a new resource.",
-				Optional:            true,
-				Computed:            true,
-				Default:             stringdefault.StaticString("production"),
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
+		Attributes: CommonAppAttrs(ctx, map[string]schema.Attribute{
 			"dockerfile_location": schema.StringAttribute{
 				MarkdownDescription: "The Dockerfile content, **base64-encoded**. Use `base64encode(<<-DOCKERFILE ... DOCKERFILE)` in your configuration. Despite the field name, this is not a file path.",
 				Required:            true,
@@ -126,13 +76,6 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(regexp.MustCompile(`^\d+(,\d+)*$`), "must be a comma-separated list of port numbers (e.g. \"80\" or \"80,443\")"),
 				},
-			},
-			"fqdn": schema.StringAttribute{
-				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-				Validators:          []validator.String{validate.FQDN()},
 			},
 			"install_command": schema.StringAttribute{
 				MarkdownDescription: "The command to run during the install phase.",
@@ -161,11 +104,7 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
-			"status": schema.StringAttribute{
-				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
-				Computed:            true,
-			},
-		},
+		}),
 	}
 }
 

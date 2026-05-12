@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -31,10 +34,12 @@ type deploymentResource struct {
 
 // deploymentResourceModel maps the resource schema data.
 type deploymentResourceModel struct {
-	ApplicationUUID types.String `tfsdk:"application_uuid"`
-	UUID            types.String `tfsdk:"uuid"`
-	Status          types.String `tfsdk:"status"`
-	Triggers        types.Map    `tfsdk:"triggers"`
+	Timeouts          timeouts.Value `tfsdk:"timeouts"`
+	ApplicationUUID   types.String   `tfsdk:"application_uuid"`
+	UUID              types.String   `tfsdk:"uuid"`
+	Status            types.String   `tfsdk:"status"`
+	WaitForCompletion types.Bool     `tfsdk:"wait_for_completion"`
+	Triggers          types.Map      `tfsdk:"triggers"`
 }
 
 // NewResource returns a new deployment resource instance.
@@ -46,10 +51,11 @@ func (r *deploymentResource) Metadata(_ context.Context, req resource.MetadataRe
 	resp.TypeName = req.ProviderTypeName + "_deployment"
 }
 
-func (r *deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *deploymentResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Triggers a deployment for a Coolify application. Changing the triggers map forces a new deployment.",
 		Attributes: map[string]schema.Attribute{
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"application_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the application to deploy.",
 				Required:            true,
@@ -68,6 +74,12 @@ func (r *deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			"status": schema.StringAttribute{
 				MarkdownDescription: "The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `error`. The deployment may still be `in_progress` when `terraform apply` completes.",
 				Computed:            true,
+			},
+			"wait_for_completion": schema.BoolAttribute{
+				MarkdownDescription: "When `true`, the resource waits until the deployment reaches `finished` or `error` status before completing. On `error`, the apply fails with a diagnostic. Default `false`.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 			"triggers": schema.MapAttribute{
 				MarkdownDescription: "An arbitrary map of values that, when changed, triggers a new deployment.",
@@ -105,6 +117,14 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_deployment"})
 
+	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
+
 	appUUID := plan.ApplicationUUID.ValueString()
 	result, err := r.client.RestartApplication(ctx, appUUID)
 	if err != nil {
@@ -123,7 +143,37 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 		plan.Status = types.StringValue(dep.Status)
 	}
 
+	// Save partial state so the deployment is tracked.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if plan.WaitForCompletion.ValueBool() {
+		tflog.Debug(ctx, "waiting for deployment completion", map[string]interface{}{"uuid": result.DeploymentUUID})
+		for {
+			select {
+			case <-ctx.Done():
+				resp.Diagnostics.AddError("Deployment timed out", fmt.Sprintf("Deployment %s did not complete within the configured timeout. Last status: %s", result.DeploymentUUID, plan.Status.ValueString()))
+				return
+			case <-time.After(5 * time.Second):
+			}
+			dep, err := r.client.GetDeployment(ctx, result.DeploymentUUID)
+			if err != nil {
+				resp.Diagnostics.AddError("Error polling deployment", fmt.Sprintf("Could not read deployment %s: %s", result.DeploymentUUID, err))
+				return
+			}
+			plan.Status = types.StringValue(dep.Status)
+			resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+			if dep.Status == "finished" {
+				break
+			}
+			if dep.Status == "error" {
+				resp.Diagnostics.AddError("Deployment failed", fmt.Sprintf("Deployment %s finished with status 'error'", result.DeploymentUUID))
+				return
+			}
+		}
+	}
 }
 
 func (r *deploymentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

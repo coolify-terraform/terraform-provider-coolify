@@ -7,7 +7,14 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -94,6 +101,64 @@ func buildUpdateInput(f commonAppFields) client.UpdateApplicationInput {
 		BuildCommand:       strPtr(*f.BuildCommand),
 		StartCommand:       strPtr(*f.StartCommand),
 	}
+}
+
+// CommonAppAttrs returns the shared schema attributes for all application types.
+func CommonAppAttrs(ctx context.Context, extra map[string]schema.Attribute) map[string]schema.Attribute {
+	attrs := map[string]schema.Attribute{
+		"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
+		"uuid": schema.StringAttribute{
+			MarkdownDescription: "The unique identifier of the application.",
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"name": schema.StringAttribute{
+			MarkdownDescription: "The name of the application.",
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"description": schema.StringAttribute{
+			MarkdownDescription: "A description of the application.",
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"project_uuid": schema.StringAttribute{
+			MarkdownDescription: "The UUID of the project this application belongs to. Changing this forces a new resource.",
+			Required:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			Validators:          []validator.String{validate.UUID()},
+		},
+		"server_uuid": schema.StringAttribute{
+			MarkdownDescription: "The UUID of the server to deploy the application on. Changing this forces a new resource.",
+			Required:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			Validators:          []validator.String{validate.UUID()},
+		},
+		"environment_name": schema.StringAttribute{
+			MarkdownDescription: "The environment name for the application (defaults to `production`). Changing this forces a new resource.",
+			Optional:            true,
+			Computed:            true,
+			Default:             stringdefault.StaticString("production"),
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+		},
+		"fqdn": schema.StringAttribute{
+			MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			Validators:          []validator.String{validate.FQDN()},
+		},
+		"status": schema.StringAttribute{
+			MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
+			Computed:            true,
+		},
+	}
+	for k, v := range extra {
+		attrs[k] = v
+	}
+	return attrs
 }
 
 // updateAndReadBack performs the shared update-then-read pattern for all

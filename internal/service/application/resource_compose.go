@@ -12,10 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -57,72 +54,12 @@ func (r *dockerComposeApplicationResource) Metadata(_ context.Context, req resou
 func (r *dockerComposeApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed from a Docker Compose file.",
-		Attributes: map[string]schema.Attribute{
-			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
-				Create: true,
-			}),
-			"uuid": schema.StringAttribute{
-				MarkdownDescription: "The unique identifier of the application.",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the application.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"description": schema.StringAttribute{
-				MarkdownDescription: "A description of the application.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"project_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the project this application belongs to. Changing this forces a new resource.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{validate.UUID()},
-			},
-			"server_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the server to deploy the application on. Changing this forces a new resource.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Validators: []validator.String{validate.UUID()},
-			},
-			"environment_name": schema.StringAttribute{
-				MarkdownDescription: "The environment name for the application (defaults to `production`). Changing this forces a new resource.",
-				Optional:            true,
-				Computed:            true,
-				Default:             stringdefault.StaticString("production"),
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
+		Attributes: CommonAppAttrs(ctx, map[string]schema.Attribute{
 			"docker_compose_raw": schema.StringAttribute{
 				MarkdownDescription: "The Docker Compose YAML content, **base64-encoded**. Use `base64encode(<<-YAML ... YAML)` in your configuration. Despite the field name, Coolify's API requires base64 encoding.",
 				Required:            true,
 			},
-			"fqdn": schema.StringAttribute{
-				MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-				Validators:          []validator.String{validate.FQDN()},
-			},
-			"status": schema.StringAttribute{
-				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
-				Computed:            true,
-			},
-		},
+		}),
 	}
 }
 

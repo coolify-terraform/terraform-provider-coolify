@@ -31,12 +31,21 @@ resource "coolify_deployment" "web" {
 
 ### Optional
 
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `triggers` (Map of String) An arbitrary map of values that, when changed, triggers a new deployment.
+- `wait_for_completion` (Boolean) When `true`, the resource waits until the deployment reaches `finished` or `error` status before completing. On `error`, the apply fails with a diagnostic. Default `false`.
 
 ### Read-Only
 
 - `status` (String) The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `error`. The deployment may still be `in_progress` when `terraform apply` completes.
 - `uuid` (String) The UUID of the deployment.
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
 
 ## Import
 
