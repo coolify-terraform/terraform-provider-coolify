@@ -2637,6 +2637,41 @@ func TestClient_CreateDockerfileApplication(t *testing.T) {
 	assert.Equal(t, "dockerfile-app-new", app.UUID)
 }
 
+func TestClient_CreateHetznerServer(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/servers/hetzner", r.URL.Path)
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		assert.Equal(t, "my-hetzner", body["name"])
+		assert.Equal(t, "tok-uuid-1", body["cloud_provider_token_uuid"])
+		assert.Equal(t, "cx11", body["server_type"])
+		assert.Equal(t, "fsn1", body["location"])
+		assert.Equal(t, "ubuntu-22.04", body["image"])
+		assert.Equal(t, "pk-uuid-1", body["private_key_uuid"])
+		_, hasHetznerToken := body["hetzner_token"]
+		assert.False(t, hasHetznerToken, "should not send old hetzner_token field")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": "hz-srv-1"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	server, err := c.CreateHetznerServer(context.Background(), CreateHetznerServerInput{
+		Name:                   "my-hetzner",
+		CloudProviderTokenUUID: "tok-uuid-1",
+		ServerType:             "cx11",
+		Location:               "fsn1",
+		Image:                  "ubuntu-22.04",
+		PrivateKeyUUID:         "pk-uuid-1",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "hz-srv-1", server.UUID)
+}
+
 func TestGitHubApp_OrganizationName_JSONTag(t *testing.T) {
 	t.Parallel()
 	app := GitHubApp{OrganizationName: "my-org"}
@@ -2654,4 +2689,32 @@ func TestGitHubApp_OrganizationName_JSONTag(t *testing.T) {
 	var parsed GitHubApp
 	require.NoError(t, json.Unmarshal(apiJSON, &parsed))
 	assert.Equal(t, "round-trip-org", parsed.OrganizationName)
+}
+
+func TestGitHubAppCreate_PrivateKeyUUID_JSONTag(t *testing.T) {
+	t.Parallel()
+	input := CreateGitHubAppIntegrationInput{PrivateKeyUUID: "pk-uuid-123"}
+	data, err := json.Marshal(input)
+	require.NoError(t, err)
+
+	var raw map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &raw))
+	_, hasPrivateKeyUUID := raw["private_key_uuid"]
+	assert.True(t, hasPrivateKeyUUID, "expected JSON key 'private_key_uuid'")
+	_, hasPrivateKey := raw["private_key"]
+	assert.False(t, hasPrivateKey, "should not send old 'private_key' field")
+}
+
+func TestHetznerCreate_CloudProviderTokenUUID_JSONTag(t *testing.T) {
+	t.Parallel()
+	input := CreateHetznerServerInput{CloudProviderTokenUUID: "tok-uuid-1"}
+	data, err := json.Marshal(input)
+	require.NoError(t, err)
+
+	var raw map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &raw))
+	_, hasToken := raw["cloud_provider_token_uuid"]
+	assert.True(t, hasToken, "expected JSON key 'cloud_provider_token_uuid'")
+	_, hasOldToken := raw["hetzner_token"]
+	assert.False(t, hasOldToken, "should not send old 'hetzner_token' field")
 }
