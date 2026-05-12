@@ -46,21 +46,11 @@ resource "coolify_docker_image_application" "redis" {
 }
 
 # --- Docker Compose Application ---
-
-resource "coolify_docker_compose_application" "stack" {
-  name             = "acme-compose-stack"
-  project_uuid     = coolify_project.docker.uuid
-  server_uuid      = var.server_uuid
-  environment_name = "production"
-  docker_compose_raw = base64encode(<<-YAML
-    services:
-      web:
-        image: nginx:alpine
-        ports:
-          - "8080:80"
-  YAML
-  )
-}
+# Temporarily removed: Coolify's compose endpoint has multiple issues:
+# - Requires base64-encoded docker_compose_raw (filed #42)
+# - Returns 404 on read-back after successful create (silent failure)
+# - Leaves unknown values for computed fields (description, fqdn, status)
+# See issue #43 for tracking.
 
 # --- Scheduled Task (attached to nginx app) ---
 

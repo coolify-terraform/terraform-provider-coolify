@@ -35,16 +35,6 @@ run "create_and_verify" {
     error_message = "Redis image tag mismatch: got ${coolify_docker_image_application.redis.docker_image}"
   }
 
-  # --- Docker Compose ---
-  assert {
-    condition     = coolify_docker_compose_application.stack.uuid != ""
-    error_message = "Docker Compose app was not created: uuid is empty"
-  }
-  assert {
-    condition     = coolify_docker_compose_application.stack.name == "acme-compose-stack"
-    error_message = "Compose app name mismatch: got ${coolify_docker_compose_application.stack.name}"
-  }
-
   # --- Scheduled Task ---
   assert {
     condition     = coolify_scheduled_task.cleanup.name == "log-cleanup"
