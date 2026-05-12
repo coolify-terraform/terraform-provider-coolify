@@ -194,7 +194,7 @@ jobs:
           persist-credentials: false
       - name: Install gitleaks
         run: |
-          VER="8.24.3"
+          VER="8.30.1"
           if ! command -v gitleaks >/dev/null 2>&1 || ! gitleaks version 2>/dev/null | grep -q "$VER"; then
             curl -sfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" \
               | sudo tar xz -C /usr/local/bin gitleaks
