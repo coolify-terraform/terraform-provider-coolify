@@ -71,7 +71,7 @@ run "idempotency" {
   command = plan
 
   assert {
-    condition     = !run.create_and_verify.incomplete
-    error_message = "Previous run did not complete successfully"
+    condition     = coolify_project.docker.name == "acme-docker"
+    error_message = "Project name changed after re-plan (state corruption)"
   }
 }

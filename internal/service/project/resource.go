@@ -3,6 +3,8 @@ package project
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
 	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
@@ -200,12 +202,26 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	err := r.client.DeleteProject(ctx, state.UUID.ValueString())
-	if err != nil {
-		if client.IsNotFound(err) {
-			// Already deleted; nothing to do.
+	// Coolify deletes applications and databases asynchronously. When
+	// terraform destroy runs, child resources are deleted first but
+	// Coolify may not have finished removing them by the time the project
+	// delete is attempted. Retry for up to 30 seconds.
+	uuid := state.UUID.ValueString()
+	var err error
+	for range 6 {
+		err = r.client.DeleteProject(ctx, uuid)
+		if err == nil {
 			return
 		}
+		if client.IsNotFound(err) {
+			return
+		}
+		if !strings.Contains(err.Error(), "has resources") {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	if err != nil {
 		resp.Diagnostics.AddError("Error Deleting Project", fmt.Sprintf("Could not delete project: %s", err))
 	}
 }

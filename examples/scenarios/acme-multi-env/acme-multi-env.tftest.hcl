@@ -50,7 +50,7 @@ run "idempotency" {
   command = plan
 
   assert {
-    condition     = !run.create_both_environments.incomplete
-    error_message = "Previous run did not complete successfully"
+    condition     = module.dev.project_uuid != ""
+    error_message = "Dev project UUID empty after re-plan (state corruption)"
   }
 }

@@ -82,7 +82,7 @@ run "idempotency" {
   command = plan
 
   assert {
-    condition     = !run.create_all_databases.incomplete
-    error_message = "Previous run did not complete successfully"
+    condition     = coolify_project.eval.name == "acme-db-eval"
+    error_message = "Project name changed after re-plan (state corruption)"
   }
 }
