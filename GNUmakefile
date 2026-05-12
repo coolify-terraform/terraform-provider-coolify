@@ -40,13 +40,24 @@ spec-check: ## Run OpenAPI spec compliance tests
 api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 	GENERATE_COVERAGE_DOC=1 go test -count=1 -run TestSpecCoverage_GenerateDoc ./internal/spectest/ -v
 
-ci: build lint test validate docs-check api-coverage-check vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
+ci: build lint test validate docs-check api-coverage-check counts-check vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
 
 modverify: ## Verify module cache integrity against go.sum
 	go mod verify
 
 docs-check: ## Check generated docs are up to date
 	@go generate ./... && git diff --exit-code || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
+
+counts-check: ## Verify AGENTS.md resource/data source counts match provider.go
+	@r_actual=$$(sed -n '/func.*Resources.*\[\]func.*resource\.Resource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
+	d_actual=$$(sed -n '/func.*DataSources.*\[\]func.*datasource\.DataSource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
+	r_doc=$$(grep -oP '^\d+ resources' AGENTS.md | grep -oP '^\d+'); \
+	d_doc=$$(grep -oP '\d+ data sources' AGENTS.md | grep -oP '^\d+'); \
+	ok=true; \
+	if [ "$$r_actual" != "$$r_doc" ]; then echo "AGENTS.md says $$r_doc resources but provider.go has $$r_actual"; ok=false; fi; \
+	if [ "$$d_actual" != "$$d_doc" ]; then echo "AGENTS.md says $$d_doc data sources but provider.go has $$d_actual"; ok=false; fi; \
+	$$ok || (echo "Run: update AGENTS.md counts to match provider.go"; exit 1); \
+	echo "Counts OK: $$r_actual resources, $$d_actual data sources"
 
 api-coverage-check: ## Check API_COVERAGE.md is up to date
 	@$(MAKE) api-coverage && git diff --exit-code API_COVERAGE.md || (echo "API_COVERAGE.md out of date: run 'make api-coverage' and commit"; exit 1)
@@ -77,4 +88,4 @@ vulncheck: ## Run govulncheck for known vulnerabilities
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check validate install spec-update spec-check api-coverage vulncheck check-golangci-lint-version check-goreleaser-version goreleaser-check modverify ci help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check api-coverage vulncheck check-golangci-lint-version check-goreleaser-version goreleaser-check modverify ci help

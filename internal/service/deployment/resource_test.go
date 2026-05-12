@@ -296,6 +296,136 @@ resource "coolify_deployment" "test" {
 	})
 }
 
+func TestDeploymentResource_WaitForCompletion(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "wait-0001-0001-4000-8000-000000000001"
+	appUUID := "cccc0003-0003-4000-8000-000000000003"
+
+	mu := sync.Mutex{}
+	getCount := 0
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"deployment_uuid": deploymentUUID,
+			"message":         "Restart request queued.",
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		getCount++
+		n := getCount
+		mu.Unlock()
+		uuid := r.PathValue("uuid")
+		status := "in_progress"
+		if n >= 3 {
+			status = "finished"
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": uuid,
+			"status":          status,
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid    = %q
+  wait_for_completion = true
+  triggers = {
+    version = "1"
+  }
+}
+`, srv.URL, appUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", deploymentUUID),
+					resource.TestCheckResourceAttr("coolify_deployment.test", "status", "finished"),
+					resource.TestCheckResourceAttr("coolify_deployment.test", "wait_for_completion", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestDeploymentResource_WaitForCompletionError(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "wait-err-0001-4000-8000-000000000001"
+	appUUID := "cccc0004-0004-4000-8000-000000000004"
+
+	mu := sync.Mutex{}
+	getCount := 0
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"deployment_uuid": deploymentUUID,
+			"message":         "Restart request queued.",
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		getCount++
+		n := getCount
+		mu.Unlock()
+		uuid := r.PathValue("uuid")
+		status := "in_progress"
+		if n >= 3 {
+			status = "error"
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": uuid,
+			"status":          status,
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid    = %q
+  wait_for_completion = true
+  triggers = {
+    version = "1"
+  }
+}
+`, srv.URL, appUUID),
+				ExpectError: regexp.MustCompile(`Deployment failed`),
+			},
+		},
+	})
+}
+
 func TestDeploymentResource_InvalidUUID(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))

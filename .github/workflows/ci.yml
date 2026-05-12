@@ -247,6 +247,8 @@ jobs:
       - run: git diff --exit-code
       - name: API Coverage doc
         run: make api-coverage && git diff --exit-code API_COVERAGE.md
+      - name: Verify AGENTS.md counts
+        run: make counts-check
 
   spec-freshness:
     name: Spec Freshness

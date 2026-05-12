@@ -189,6 +189,16 @@ func (r *applicationResource) Create(ctx context.Context, req resource.CreateReq
 
 	app, err := r.client.GetApplication(ctx, created.UUID)
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			resp.Diagnostics.AddError(
+				"Application created but not persisted",
+				fmt.Sprintf("Coolify returned UUID %s but the application was not found on read-back. "+
+					"This usually means the target server is not reachable via SSH. "+
+					"Verify the server is online and SSH-accessible before retrying.", created.UUID),
+			)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading application after creation", fmt.Sprintf("application %s: %s", created.UUID, err))
 		return
 	}
