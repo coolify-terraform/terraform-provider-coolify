@@ -76,6 +76,23 @@ run "create_and_verify" {
   }
 }
 
+run "verify_data_sources" {
+  command = apply
+
+  variables {
+    enable_backups = false
+  }
+
+  assert {
+    condition     = data.coolify_project.verify.name == coolify_project.acme.name
+    error_message = "Project data source name does not match resource"
+  }
+  assert {
+    condition     = data.coolify_application.verify.name == coolify_application.website.name
+    error_message = "Application data source name does not match resource"
+  }
+}
+
 # Idempotency: re-plan should produce no changes.
 # Catches normalization bugs where flatten returns different values than config.
 # If the plan shows changes, terraform test logs them but doesn't fail on its own.

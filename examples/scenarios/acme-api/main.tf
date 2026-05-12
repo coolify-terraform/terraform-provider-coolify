@@ -123,6 +123,16 @@ resource "coolify_scheduled_task" "cleanup" {
   enabled          = true
 }
 
+# --- Data Source Read-Backs ---
+
+data "coolify_project" "verify" {
+  uuid = coolify_project.acme.uuid
+}
+
+data "coolify_application" "verify_api" {
+  uuid = coolify_dockerfile_application.api.uuid
+}
+
 # --- Database Backup ---
 # When s3_storage_id is omitted, backups are stored locally on the server.
 

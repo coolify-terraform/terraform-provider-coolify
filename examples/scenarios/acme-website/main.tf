@@ -67,6 +67,16 @@ resource "coolify_environment_variable" "node_env" {
   is_preview       = false
 }
 
+# --- Data Source Read-Backs ---
+
+data "coolify_project" "verify" {
+  uuid = coolify_project.acme.uuid
+}
+
+data "coolify_application" "verify" {
+  uuid = coolify_application.website.uuid
+}
+
 # --- Backups (optional) ---
 # Set enable_backups = true and provide S3 credentials to activate.
 

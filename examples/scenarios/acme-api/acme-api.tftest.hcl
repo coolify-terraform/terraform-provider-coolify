@@ -84,6 +84,19 @@ run "create_and_verify" {
   }
 }
 
+run "verify_data_sources" {
+  command = apply
+
+  assert {
+    condition     = data.coolify_project.verify.name == coolify_project.acme.name
+    error_message = "Project data source name does not match resource"
+  }
+  assert {
+    condition     = data.coolify_application.verify_api.name == coolify_dockerfile_application.api.name
+    error_message = "API application data source name does not match resource"
+  }
+}
+
 # Idempotency: re-plan should produce no changes.
 run "idempotency" {
   command = plan
