@@ -251,19 +251,12 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 	input.StartCommand = strPtr(plan.StartCommand)
 	input.DockerRegistryImageName = strPtr(plan.DockerImage)
 
-	_, err := r.client.UpdateApplication(ctx, plan.UUID.ValueString(), input)
-	if err != nil {
-		resp.Diagnostics.AddError("Error updating application", fmt.Sprintf("application %s: %s", plan.UUID.ValueString(), err))
+	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
+		flattenDockerImageApplication(app, &plan)
+	})
+	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	app, err := r.client.GetApplication(ctx, plan.UUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading application after update", fmt.Sprintf("application %s: %s", plan.UUID.ValueString(), err))
-		return
-	}
-
-	flattenDockerImageApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 

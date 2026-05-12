@@ -40,22 +40,12 @@ func StringPtrToFramework(v *string) types.String {
 	return types.StringValue(*v)
 }
 
-// Int64ToFramework converts a Go int64 to a Terraform Int64 value.
-func Int64ToFramework(v int64) types.Int64 {
-	return types.Int64Value(v)
-}
-
 // Int64PtrToFramework converts a *int64 to a framework types.Int64.
 func Int64PtrToFramework(v *int64) types.Int64 {
 	if v == nil {
 		return types.Int64Null()
 	}
 	return types.Int64Value(*v)
-}
-
-// BoolToFramework converts a Go bool to a Terraform Bool value.
-func BoolToFramework(v bool) types.Bool {
-	return types.BoolValue(v)
 }
 
 // BoolPtrToFramework converts a Go bool pointer to a Terraform Bool.

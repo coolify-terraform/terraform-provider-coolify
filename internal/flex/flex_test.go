@@ -152,29 +152,8 @@ func TestStringPtrToFramework(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Int64ToFramework / Int64PtrToFramework
+// Int64PtrToFramework
 // ---------------------------------------------------------------------------
-
-func TestInt64ToFramework(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name  string
-		input int64
-		want  int64
-	}{
-		{"positive", 10, 10},
-		{"zero", 0, 0},
-		{"negative", -3, -3},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := flex.Int64ToFramework(tc.input)
-			if got.ValueInt64() != tc.want {
-				t.Fatalf("expected %d, got %d", tc.want, got.ValueInt64())
-			}
-		})
-	}
-}
 
 func TestInt64PtrToFramework(t *testing.T) {
 	t.Parallel()
@@ -208,28 +187,8 @@ func TestInt64PtrToFramework(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// BoolToFramework / BoolPtrToFramework
+// BoolPtrToFramework
 // ---------------------------------------------------------------------------
-
-func TestBoolToFramework(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name  string
-		input bool
-		want  bool
-	}{
-		{"true", true, true},
-		{"false", false, false},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := flex.BoolToFramework(tc.input)
-			if got.ValueBool() != tc.want {
-				t.Fatalf("expected %v, got %v", tc.want, got.ValueBool())
-			}
-		})
-	}
-}
 
 func TestBoolPtrToFramework(t *testing.T) {
 	t.Parallel()
