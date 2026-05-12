@@ -354,6 +354,78 @@ func TestDockerComposeApplicationResource_InvalidFQDN(t *testing.T) {
 	})
 }
 
+// TestDockerComposeApplicationResource_APIReformatsCompose verifies that when
+// the API returns a different docker_compose_raw than what the user configured
+// (e.g., decoded or reformatted), the provider preserves the user's value.
+func TestDockerComposeApplicationResource_APIReformatsCompose(t *testing.T) {
+	t.Parallel()
+	userCompose := "dXNlci1jb21wb3NlLXlhbWw=" // base64 of "user-compose-yaml"
+	apiCompose := "user-compose-yaml"            // API returns decoded version
+
+	app := client.Application{
+		UUID:             "compose-reformat-uuid",
+		Name:             "reformatted-app",
+		DockerComposeRaw: apiCompose,
+		ProjectUUID:      "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:       "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:  "production",
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockercompose", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	config := testDockerComposeResourceConfig(srv.URL, `
+		name               = "reformatted-app"
+		project_uuid       = "aaaa0002-0002-4000-8000-000000000002"
+		server_uuid        = "bbbb0002-0002-4000-8000-000000000002"
+		docker_compose_raw = "`+userCompose+`"
+	`)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_docker_compose_application", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_docker_compose_application.test", "docker_compose_raw", userCompose),
+				),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

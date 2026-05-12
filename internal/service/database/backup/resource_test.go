@@ -454,3 +454,91 @@ func TestDatabaseBackupResource_InvalidCron(t *testing.T) {
 		},
 	})
 }
+
+// TestDatabaseBackupResource_CreateWithZeroID verifies that when Coolify
+// returns id=0 for a newly created backup, the provider resolves the real
+// ID by listing backups and matching by UUID.
+func TestDatabaseBackupResource_CreateWithZeroID(t *testing.T) {
+	t.Parallel()
+	dbUUID := "eeee0003-0003-4000-8000-000000000003"
+	backupUUID := "bkp-zero-id-uuid"
+	realID := 99
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
+			// Return id=0 to simulate the Coolify bug.
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"id": 0, "uuid": backupUUID,
+				"database_uuid": dbUUID, "frequency": "0 2 * * *",
+				"enabled": true, "database_backup_retention_amount_locally": 7,
+			})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
+			// List endpoint returns the backup with its real ID.
+			json.NewEncoder(w).Encode([]map[string]interface{}{
+				{
+					"id": realID, "uuid": backupUUID,
+					"database_uuid": dbUUID, "frequency": "0 2 * * *",
+					"enabled": true, "database_backup_retention_amount_locally": 7,
+				},
+			})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, realID):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"id": realID, "uuid": backupUUID,
+				"database_uuid": dbUUID, "frequency": "0 2 * * *",
+				"enabled": true, "database_backup_retention_amount_locally": 7,
+			})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, realID):
+			deleted = true
+			w.WriteHeader(http.StatusOK)
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, fmt.Sprintf(`
+					database_uuid = "%s"
+					frequency     = "0 2 * * *"
+					enabled       = true
+					retain_days   = 7
+				`, dbUUID)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "id", fmt.Sprintf("%d", realID)),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "uuid", backupUUID),
+				),
+			},
+			{
+				Config: testBackupConfig(srv.URL, fmt.Sprintf(`
+					database_uuid = "%s"
+					frequency     = "0 2 * * *"
+					enabled       = true
+					retain_days   = 7
+				`, dbUUID)),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}

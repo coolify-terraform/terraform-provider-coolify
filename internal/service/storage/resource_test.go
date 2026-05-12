@@ -428,6 +428,73 @@ func checkStorageDestroy(serverURL, listPath string) resource.TestCheckFunc {
 	}
 }
 
+// TestStorageResource_NamePrefixStripping verifies that when Coolify returns
+// a storage name prefixed with the application UUID (e.g., "app-uuid-my-storage"),
+// the provider preserves the user's original name to avoid a perpetual diff.
+func TestStorageResource_NamePrefixStripping(t *testing.T) {
+	t.Parallel()
+	appUUID := "cccc0002-0002-4000-8000-000000000002"
+	storUUID := "stor-prefix-uuid"
+	userName := "app-data"
+	prefixedName := appUUID + "-" + userName
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": storUUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if deleted {
+			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {}, "file_storages": {}})
+		} else {
+			// API returns the prefixed name.
+			json.NewEncoder(w).Encode(map[string][]client.Storage{
+				"persistent_storages": {{UUID: storUUID, Name: prefixedName, MountPath: "/data"}},
+				"file_storages":       {},
+			})
+		}
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	config := testStorageResourceConfig(srv.URL, fmt.Sprintf(`
+		application_uuid = "%s"
+		name             = "%s"
+		mount_path       = "/data"
+	`, appUUID, userName))
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_storage.test", "name", userName),
+				),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testStorageResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_storage", "test", attrs)
 }
