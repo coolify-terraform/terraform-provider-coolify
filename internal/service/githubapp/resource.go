@@ -185,15 +185,7 @@ func (r *gitHubAppResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	state.ID = types.Int64Value(app.ID)
-	state.UUID = flex.StringToFramework(app.UUID)
-	state.Name = types.StringValue(app.Name)
-	state.OrganizationName = flex.StringToFramework(app.OrganizationName)
-	state.AppID = types.Int64Value(app.AppID)
-	state.InstallationID = types.Int64Value(app.InstallationID)
-	state.ClientID = types.StringValue(app.ClientID)
-	state.WebhookSecret = flex.StringToFramework(app.WebhookSecret)
-	// client_secret and private_key are write-only; preserved from state.
+	flattenGitHubApp(app, &state)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -221,20 +213,13 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 	flex.SetStrPtr(&input.WebhookSecret, plan.WebhookSecret)
 	flex.SetStrPtr(&input.PrivateKey, plan.PrivateKey)
 
-	_, err := r.client.UpdateGitHubApp(ctx, state.ID.ValueInt64(), input)
+	app, err := r.client.UpdateGitHubApp(ctx, state.ID.ValueInt64(), input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error Updating GitHub App", fmt.Sprintf("Could not update GitHub App %d: %s", state.ID.ValueInt64(), err))
 		return
 	}
 
-	plan.ID = state.ID
-
-	// Read back the full object to populate all fields.
-	diags := r.readGitHubApp(ctx, state.ID.ValueInt64(), &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	flattenGitHubApp(app, &plan)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -279,6 +264,14 @@ func (r *gitHubAppResource) readGitHubApp(ctx context.Context, id int64, model *
 		return diags
 	}
 
+	flattenGitHubApp(app, model)
+	return diags
+}
+
+// flattenGitHubApp maps API fields into the Terraform resource model.
+// client_secret and private_key are write-only (not returned by API) and
+// preserved from the plan/state by the caller.
+func flattenGitHubApp(app *client.GitHubApp, model *gitHubAppResourceModel) {
 	model.ID = types.Int64Value(app.ID)
 	model.UUID = flex.StringToFramework(app.UUID)
 	model.Name = types.StringValue(app.Name)
@@ -287,7 +280,4 @@ func (r *gitHubAppResource) readGitHubApp(ctx context.Context, id int64, model *
 	model.InstallationID = types.Int64Value(app.InstallationID)
 	model.ClientID = types.StringValue(app.ClientID)
 	model.WebhookSecret = flex.StringToFramework(app.WebhookSecret)
-	// client_secret and private_key are write-only; preserved from state/plan.
-
-	return diags
 }
