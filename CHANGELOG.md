@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- `coolify_github_app`: The `private_key` attribute has been renamed to `private_key_uuid` to match the Coolify API spec. This field now accepts a UUID referencing an existing `coolify_private_key` resource instead of raw key content.
+
 ### Added
 
 - **Provider configuration** with `endpoint` and `token` attributes (env var fallback: `COOLIFY_ENDPOINT`, `COOLIFY_TOKEN`)
