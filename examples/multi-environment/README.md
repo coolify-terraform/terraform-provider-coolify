@@ -12,9 +12,13 @@ Initialize the workspace:
 terraform init
 ```
 
-Deploy to a specific environment:
+Create a local `.tfvars` file from the tracked example, then deploy the target environment:
 
 ```bash
+cp environments/dev.tfvars.example environments/dev.tfvars
+cp environments/staging.tfvars.example environments/staging.tfvars
+cp environments/prod.tfvars.example environments/prod.tfvars
+
 # Development
 terraform apply -var-file=environments/dev.tfvars
 
@@ -25,14 +29,15 @@ terraform apply -var-file=environments/staging.tfvars
 terraform apply -var-file=environments/prod.tfvars
 ```
 
-You must also provide the required variables that are not in the tfvars files:
+Provide connection values and secrets outside version control:
 
 ```bash
-terraform apply \
-  -var-file=environments/dev.tfvars \
-  -var="coolify_endpoint=https://coolify.example.com" \
-  -var="coolify_token=your-api-token" \
-  -var="server_uuid=your-server-uuid"
+export TF_VAR_coolify_endpoint="https://coolify.example.com"
+export TF_VAR_coolify_token="your-api-token"
+export TF_VAR_server_uuid="your-server-uuid"
+export TF_VAR_db_password="change-me-in-production"
+
+terraform apply -var-file=environments/dev.tfvars
 ```
 
 ## Structure
@@ -40,4 +45,4 @@ terraform apply \
 - `main.tf` - Root module that wires provider config to the app module.
 - `modules/app/main.tf` - Reusable module that creates a project, database,
   application, and environment variable.
-- `environments/*.tfvars` - Per-environment variable overrides.
+- `environments/*.tfvars.example` - Tracked environment templates. Copy one to a local `.tfvars` file before applying.
