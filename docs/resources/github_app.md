@@ -18,18 +18,13 @@ variable "github_app_client_secret" {
   sensitive = true
 }
 
-variable "github_app_private_key" {
-  type      = string
-  sensitive = true
-}
-
 resource "coolify_github_app" "example" {
-  name            = "my-github-app"
-  app_id          = 12345
-  installation_id = 67890
-  client_id       = "Iv1.abc123def456"
-  client_secret   = var.github_app_client_secret
-  private_key     = var.github_app_private_key
+  name             = "my-github-app"
+  app_id           = 12345
+  installation_id  = 67890
+  client_id        = "Iv1.abc123def456"
+  client_secret    = var.github_app_client_secret
+  private_key_uuid = coolify_private_key.github.uuid
 }
 ```
 
@@ -43,7 +38,7 @@ resource "coolify_github_app" "example" {
 - `client_secret` (String, Sensitive) The GitHub App client secret. Write-only: not returned by the API after creation.
 - `installation_id` (Number) The GitHub App installation ID.
 - `name` (String) The name of the GitHub App.
-- `private_key` (String, Sensitive) The GitHub App private key. Write-only: not returned by the API after creation.
+- `private_key_uuid` (String, Sensitive) UUID of an existing `coolify_private_key` resource for GitHub App authentication. Write-only: not returned by the API after creation.
 
 ### Optional
 
