@@ -40,10 +40,10 @@ resource "coolify_github_app" "example" {
 
 - `app_id` (Number) The GitHub App ID.
 - `client_id` (String) The GitHub App client ID.
-- `client_secret` (String, Sensitive) The GitHub App client secret.
+- `client_secret` (String, Sensitive) The GitHub App client secret. Write-only: not returned by the API after creation.
 - `installation_id` (Number) The GitHub App installation ID.
 - `name` (String) The name of the GitHub App.
-- `private_key` (String, Sensitive) The GitHub App private key.
+- `private_key` (String, Sensitive) The GitHub App private key. Write-only: not returned by the API after creation.
 
 ### Optional
 

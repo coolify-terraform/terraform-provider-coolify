@@ -74,10 +74,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable `timeouts` block on all application resources
 - Graceful handling of out-of-band resource deletion (404 in Read removes from state)
 - 390+ unit tests with race detection across 34 packages
-- CI pipeline: 9 jobs (detect changes, test, lint, validate examples, docs, govulncheck, trivy, gitleaks, goreleaser check) + weekly spec freshness
+- CI pipeline: 12 jobs (detect changes, test, lint, validate examples, docs, govulncheck, trivy, gitleaks, goreleaser check, scenario tests, spec freshness, CI gate)
 - GoReleaser config for GPG-signed releases
 - Computed `status` field on all application resources
 - Full-stack deployment example
+
+### Changed
+
+- `coolify_github_app`: `app_id`, `installation_id`, `client_id`, `client_secret`, `private_key`, and `organization_name` can now be updated in-place (previously forced destroy/recreate). This matches the Coolify API's PATCH support for these fields.
+- `coolify_github_app_application`: `github_app_uuid` can now be updated in-place (previously forced destroy/recreate).
 
 ### Fixed
 

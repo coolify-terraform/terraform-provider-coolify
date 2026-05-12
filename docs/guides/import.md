@@ -31,6 +31,12 @@ terraform import coolify_service.plausible <service-uuid>
 terraform import coolify_s3_storage.backups <storage-uuid>
 ```
 
+The `coolify_github_app` resource uses a **numeric ID** (not a UUID):
+
+```bash
+terraform import coolify_github_app.my_app 42
+```
+
 Resources with composite IDs:
 
 ```bash
@@ -75,6 +81,7 @@ must be set in your `.tf` configuration before running `terraform plan`:
 |---|---|
 | All databases | `project_uuid`, `server_uuid`, `environment_name` |
 | All applications | `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_github_app` | `client_secret`, `private_key` (write-only, never returned by the API) |
 | Database backups | `database_uuid` |
 
 If these fields are missing, `terraform plan` will either show a diff

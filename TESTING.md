@@ -225,7 +225,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_dragonfly_database` | Yes | Yes | Yes | Yes | |
 | `coolify_keydb_database` | Yes | Yes | Yes | Yes | |
 
-### Data Sources (41 total)
+### Data Sources (42 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -263,6 +263,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_task_executions` | Yes | May return empty list |
 | `coolify_application_logs` | Yes | May return empty list |
 | `coolify_backup_executions` | Yes | May return empty list |
+| `coolify_github_app` | Yes | Singular lookup by numeric ID |
 | `coolify_github_apps` | Yes | Paired with github_app resource |
 | `coolify_github_app_repositories` | Yes | ExpectError with dummy credentials |
 | `coolify_github_app_branches` | Yes | ExpectError with dummy credentials |
@@ -274,7 +275,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 ### Coverage Summary
 
 - **Resources**: 27/27 tested (100%)
-- **Data Sources**: 41/41 tested (100%)
+- **Data Sources**: 42/42 tested (100%)
 - **Total acceptance test functions**: 59
 
 ### Testing strategies for edge cases
