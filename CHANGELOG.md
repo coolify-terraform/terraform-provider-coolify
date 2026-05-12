@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `coolify_deployment`: `wait_for_completion` attribute polls deployment status until `finished` or `error`; `timeouts` block for configurable Create timeout
+- `coolify_database_backup`: 12 new fields for S3 toggle, selective backup, retention policies, and job timeout
+- All application resources: 16 new fields for resource limits, health checks, and auto-deploy control
+- All database and service resources: `timeouts` block with configurable Create timeout (default 10 minutes)
+- 4 new singular data sources: `coolify_deployment`, `coolify_environment_variable`, `coolify_scheduled_task`, `coolify_storage`
+- `tflog.Debug` structured logging in all resource CRUD methods
 - **Provider configuration** with `endpoint` and `token` attributes (env var fallback: `COOLIFY_ENDPOINT`, `COOLIFY_TOKEN`)
 - Health check during `Configure` validates API connection by calling `/api/v1/version`
 - **27 Resources:**
