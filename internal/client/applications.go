@@ -60,6 +60,7 @@ type UpdateApplicationInput struct {
 	PortsExposes            *string `json:"ports_exposes,omitempty"`
 	DockerRegistryImageName *string `json:"docker_registry_image_name,omitempty"`
 	DockerComposeRaw        *string `json:"docker_compose_raw,omitempty"`
+	GitHubAppUUID           *string `json:"github_app_uuid,omitempty"`
 }
 
 func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {

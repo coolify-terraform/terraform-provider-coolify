@@ -30,8 +30,14 @@ type CreateGitHubAppIntegrationInput struct {
 }
 
 type UpdateGitHubAppIntegrationInput struct {
-	Name          *string `json:"name,omitempty"`
-	WebhookSecret *string `json:"webhook_secret,omitempty"`
+	Name             *string `json:"name,omitempty"`
+	OrganizationName *string `json:"organization,omitempty"`
+	AppID            *int64  `json:"app_id,omitempty"`
+	InstallationID   *int64  `json:"installation_id,omitempty"`
+	ClientID         *string `json:"client_id,omitempty"`
+	ClientSecret     *string `json:"client_secret,omitempty"`
+	WebhookSecret    *string `json:"webhook_secret,omitempty"`
+	PrivateKey       *string `json:"private_key,omitempty"`
 }
 
 type GitHubRepository struct {

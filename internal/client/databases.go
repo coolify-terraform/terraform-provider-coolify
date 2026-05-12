@@ -180,6 +180,7 @@ func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error
 	}
 	return &d, nil
 }
+
 // CreateDatabase creates a database of the given type (postgresql, mysql,
 // mariadb, redis, mongodb, clickhouse, keydb, dragonfly). The input struct
 // is type-specific but serialized as JSON.

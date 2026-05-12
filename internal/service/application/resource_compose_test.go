@@ -360,7 +360,7 @@ func TestDockerComposeApplicationResource_InvalidFQDN(t *testing.T) {
 func TestDockerComposeApplicationResource_APIReformatsCompose(t *testing.T) {
 	t.Parallel()
 	userCompose := "dXNlci1jb21wb3NlLXlhbWw=" // base64 of "user-compose-yaml"
-	apiCompose := "user-compose-yaml"            // API returns decoded version
+	apiCompose := "user-compose-yaml"         // API returns decoded version
 
 	app := client.Application{
 		UUID:             "compose-reformat-uuid",

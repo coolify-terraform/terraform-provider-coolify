@@ -174,40 +174,18 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 	dbUUID := state.DatabaseUUID.ValueString()
 	backupID := int(state.ID.ValueInt64())
 
-	var b *client.DatabaseBackup
-
-	if backupID == 0 && !state.UUID.IsNull() && !state.UUID.IsUnknown() {
-		// id=0 means Coolify didn't assign a numeric ID yet. Find by UUID.
-		backups, listErr := r.client.ListDatabaseBackups(ctx, dbUUID)
-		if listErr != nil {
-			if client.IsNotFound(listErr) {
-				resp.State.RemoveResource(ctx)
-				return
-			}
-			resp.Diagnostics.AddError("Error reading database backup", fmt.Sprintf("backup %s for database %s: %s", state.UUID.ValueString(), dbUUID, listErr))
-			return
-		}
-		for i := range backups {
-			if backups[i].UUID == state.UUID.ValueString() {
-				b = &backups[i]
-				break
-			}
-		}
-		if b == nil {
+	b, readErr := r.readBackup(ctx, dbUUID, backupID, state.UUID)
+	if readErr != nil {
+		if client.IsNotFound(readErr) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
-	} else {
-		var err error
-		b, err = r.client.GetDatabaseBackup(ctx, dbUUID, backupID)
-		if err != nil {
-			if client.IsNotFound(err) {
-				resp.State.RemoveResource(ctx)
-				return
-			}
-			resp.Diagnostics.AddError("Error reading database backup", fmt.Sprintf("backup %d for database %s: %s", backupID, dbUUID, err))
-			return
-		}
+		resp.Diagnostics.AddError("Error reading database backup", readErr.Error())
+		return
+	}
+	if b == nil {
+		resp.State.RemoveResource(ctx)
+		return
 	}
 
 	flattenDatabaseBackup(b, &state)
@@ -291,6 +269,24 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("database_uuid"), dbUUID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), int64(backupID))...)
+}
+
+// readBackup looks up a backup by numeric ID, or falls back to UUID-based
+// search when the ID is zero (Coolify hasn't assigned one yet).
+func (r *databaseBackupResource) readBackup(ctx context.Context, dbUUID string, backupID int, uuid types.String) (*client.DatabaseBackup, error) {
+	if backupID != 0 || uuid.IsNull() || uuid.IsUnknown() {
+		return r.client.GetDatabaseBackup(ctx, dbUUID, backupID)
+	}
+	backups, err := r.client.ListDatabaseBackups(ctx, dbUUID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range backups {
+		if backups[i].UUID == uuid.ValueString() {
+			return &backups[i], nil
+		}
+	}
+	return nil, nil
 }
 
 func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceModel) {

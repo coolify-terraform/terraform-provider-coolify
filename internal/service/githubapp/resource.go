@@ -77,38 +77,23 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "The GitHub organization name.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"app_id": schema.Int64Attribute{
 				MarkdownDescription: "The GitHub App ID.",
 				Required:            true,
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplace(),
-				},
 			},
 			"installation_id": schema.Int64Attribute{
 				MarkdownDescription: "The GitHub App installation ID.",
 				Required:            true,
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplace(),
-				},
 			},
 			"client_id": schema.StringAttribute{
 				MarkdownDescription: "The GitHub App client ID.",
 				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"client_secret": schema.StringAttribute{
 				MarkdownDescription: "The GitHub App client secret.",
 				Required:            true,
 				Sensitive:           true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"webhook_secret": schema.StringAttribute{
 				MarkdownDescription: "The GitHub App webhook secret.",
@@ -120,9 +105,6 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "The GitHub App private key.",
 				Required:            true,
 				Sensitive:           true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 		},
 	}
@@ -231,7 +213,13 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 
 	input := client.UpdateGitHubAppIntegrationInput{}
 	flex.SetStrPtr(&input.Name, plan.Name)
+	flex.SetStrPtr(&input.OrganizationName, plan.OrganizationName)
+	flex.SetInt64Ptr(&input.AppID, plan.AppID)
+	flex.SetInt64Ptr(&input.InstallationID, plan.InstallationID)
+	flex.SetStrPtr(&input.ClientID, plan.ClientID)
+	flex.SetStrPtr(&input.ClientSecret, plan.ClientSecret)
 	flex.SetStrPtr(&input.WebhookSecret, plan.WebhookSecret)
+	flex.SetStrPtr(&input.PrivateKey, plan.PrivateKey)
 
 	_, err := r.client.UpdateGitHubApp(ctx, state.ID.ValueInt64(), input)
 	if err != nil {

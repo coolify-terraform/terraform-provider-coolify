@@ -60,20 +60,41 @@ func (s *mockGitHubAppStore) Get(id int64) (*mockGitHubApp, bool) {
 	return app, ok
 }
 
-func (s *mockGitHubAppStore) Update(id int64, name *string, webhookSecret *string) (*mockGitHubApp, bool) {
+func (s *mockGitHubAppStore) Update(id int64, upd mockGitHubAppUpdate) (*mockGitHubApp, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	app, ok := s.apps[id]
 	if !ok {
 		return nil, false
 	}
-	if name != nil {
-		app.Name = *name
+	if upd.Name != nil {
+		app.Name = *upd.Name
 	}
-	if webhookSecret != nil {
-		app.WebhookSecret = *webhookSecret
+	if upd.OrganizationName != nil {
+		app.OrganizationName = *upd.OrganizationName
+	}
+	if upd.AppID != nil {
+		app.AppID = *upd.AppID
+	}
+	if upd.InstallationID != nil {
+		app.InstallationID = *upd.InstallationID
+	}
+	if upd.ClientID != nil {
+		app.ClientID = *upd.ClientID
+	}
+	if upd.WebhookSecret != nil {
+		app.WebhookSecret = *upd.WebhookSecret
 	}
 	return app, true
+}
+
+type mockGitHubAppUpdate struct {
+	Name             *string `json:"name"`
+	OrganizationName *string `json:"organization"`
+	AppID            *int64  `json:"app_id"`
+	InstallationID   *int64  `json:"installation_id"`
+	ClientID         *string `json:"client_id"`
+	WebhookSecret    *string `json:"webhook_secret"`
 }
 
 func (s *mockGitHubAppStore) Delete(id int64) bool {
@@ -142,16 +163,13 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 			return
 		}
 
-		var body struct {
-			Name          *string `json:"name"`
-			WebhookSecret *string `json:"webhook_secret"`
-		}
+		var body mockGitHubAppUpdate
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 			return
 		}
 
-		app, ok := store.Update(id, body.Name, body.WebhookSecret)
+		app, ok := store.Update(id, body)
 		if !ok {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
@@ -274,16 +292,19 @@ resource "coolify_github_app" "test" {
 				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_github_app" "test" {
   name            = "my-github-app-updated"
-  app_id          = 12345
-  installation_id = 67890
-  client_id       = "Iv1.abc123"
-  client_secret   = "secret123"
+  app_id          = 54321
+  installation_id = 99999
+  client_id       = "Iv1.xyz789"
+  client_secret   = "secret456"
   webhook_secret  = "hook-secret-2"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----"
+  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nupdated\n-----END RSA PRIVATE KEY-----"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_github_app.test", "name", "my-github-app-updated"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "app_id", "54321"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "installation_id", "99999"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "client_id", "Iv1.xyz789"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "webhook_secret", "hook-secret-2"),
 				),
 			},

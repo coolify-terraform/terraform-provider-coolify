@@ -157,6 +157,9 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 		if v, ok := body["start_command"].(string); ok {
 			app.StartCommand = v
 		}
+		if v, ok := body["github_app_uuid"].(string); ok {
+			app.GitHubAppUUID = v
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
 	})
