@@ -27,14 +27,13 @@ type mockBackupState struct {
 }
 
 func newMockBackupServer() (*httptest.Server, *mockBackupState) {
-	retain := int64(7)
 	state := &mockBackupState{
-		id:         42,
-		uuid:       "bkp-uuid-001",
-		dbUUID:     "eeee0001-0001-4000-8000-000000000001",
-		frequency:  "0 2 * * *",
-		enabled:    true,
-		retainDays: &retain,
+		id:     42,
+		uuid:   "bkp-uuid-001",
+		dbUUID: "eeee0001-0001-4000-8000-000000000001",
+		// Deliberately differ from test configs so the POST handler must
+		// receive and apply the correct values. Pre-initializing with
+		// matching values masked body serialization bugs.
 	}
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
