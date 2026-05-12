@@ -31,6 +31,8 @@ type privateKeyResourceModel struct {
 	Name         types.String `tfsdk:"name"`
 	Description  types.String `tfsdk:"description"`
 	PrivateKey   types.String `tfsdk:"private_key"`
+	PublicKey    types.String `tfsdk:"public_key"`
+	Fingerprint  types.String `tfsdk:"fingerprint"`
 	IsGitRelated types.Bool   `tfsdk:"is_git_related"`
 }
 
@@ -68,6 +70,14 @@ func (r *privateKeyResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "The PEM-encoded private key content.",
 				Required:            true,
 				Sensitive:           true,
+			},
+			"public_key": schema.StringAttribute{
+				MarkdownDescription: "The public key derived from the private key. Read-only.",
+				Computed:            true,
+			},
+			"fingerprint": schema.StringAttribute{
+				MarkdownDescription: "The fingerprint of the private key. Read-only.",
+				Computed:            true,
 			},
 			"is_git_related": schema.BoolAttribute{
 				MarkdownDescription: "Whether this key is used for Git operations. Determined by the server.",
@@ -217,5 +227,7 @@ func flattenPrivateKey(key *client.PrivateKey, model *privateKeyResourceModel) {
 	model.Name = types.StringValue(key.Name)
 	model.Description = flex.StringToFramework(key.Description)
 	model.PrivateKey = types.StringValue(key.PrivateKey)
+	model.PublicKey = flex.StringToFramework(key.PublicKey)
+	model.Fingerprint = flex.StringToFramework(key.Fingerprint)
 	model.IsGitRelated = types.BoolValue(key.IsGitRelated)
 }

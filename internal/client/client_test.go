@@ -658,8 +658,8 @@ func TestClient_ListPrivateKeys(t *testing.T) {
 		assert.Equal(t, "/api/v1/security/keys", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]PrivateKey{
-			{UUID: "pk-1", Name: "key-one", PrivateKey: "ssh-rsa AAA", IsGitRelated: true},
-			{UUID: "pk-2", Name: "key-two", PrivateKey: "ssh-ed25519 BBB", IsGitRelated: false},
+			{UUID: "pk-1", Name: "key-one", PrivateKey: "ssh-rsa AAA", PublicKey: "ssh-rsa PUB1", Fingerprint: "SHA256:fp1", IsGitRelated: true},
+			{UUID: "pk-2", Name: "key-two", PrivateKey: "ssh-ed25519 BBB", PublicKey: "ssh-ed25519 PUB2", Fingerprint: "SHA256:fp2", IsGitRelated: false},
 		})
 	}))
 	defer srv.Close()
@@ -670,8 +670,12 @@ func TestClient_ListPrivateKeys(t *testing.T) {
 	require.Len(t, keys, 2)
 	assert.Equal(t, "pk-1", keys[0].UUID)
 	assert.Equal(t, "key-one", keys[0].Name)
+	assert.Equal(t, "ssh-rsa PUB1", keys[0].PublicKey)
+	assert.Equal(t, "SHA256:fp1", keys[0].Fingerprint)
 	assert.True(t, keys[0].IsGitRelated)
 	assert.Equal(t, "pk-2", keys[1].UUID)
+	assert.Equal(t, "ssh-ed25519 PUB2", keys[1].PublicKey)
+	assert.Equal(t, "SHA256:fp2", keys[1].Fingerprint)
 	assert.False(t, keys[1].IsGitRelated)
 }
 
@@ -686,6 +690,8 @@ func TestClient_GetPrivateKey(t *testing.T) {
 			Name:         "my-key",
 			Description:  "Test key",
 			PrivateKey:   "ssh-rsa AAAA",
+			PublicKey:    "ssh-rsa AAAA-public",
+			Fingerprint:  "SHA256:client-test-fingerprint",
 			IsGitRelated: true,
 		})
 	}))
@@ -698,6 +704,8 @@ func TestClient_GetPrivateKey(t *testing.T) {
 	assert.Equal(t, "my-key", k.Name)
 	assert.Equal(t, "Test key", k.Description)
 	assert.Equal(t, "ssh-rsa AAAA", k.PrivateKey)
+	assert.Equal(t, "ssh-rsa AAAA-public", k.PublicKey)
+	assert.Equal(t, "SHA256:client-test-fingerprint", k.Fingerprint)
 	assert.True(t, k.IsGitRelated)
 }
 

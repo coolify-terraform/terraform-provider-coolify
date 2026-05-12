@@ -42,6 +42,8 @@ resource "coolify_private_key" "test" {
 					resource.TestCheckResourceAttrSet("coolify_private_key.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "name", name),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "description", "acc test key"),
+					resource.TestCheckResourceAttrSet("coolify_private_key.test", "public_key"),
+					resource.TestCheckResourceAttrSet("coolify_private_key.test", "fingerprint"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "is_git_related", "false"),
 				),
 			},
@@ -59,6 +61,8 @@ resource "coolify_private_key" "test" {
 					resource.TestCheckResourceAttrSet("coolify_private_key.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "description", "updated acc test key"),
+					resource.TestCheckResourceAttrSet("coolify_private_key.test", "public_key"),
+					resource.TestCheckResourceAttrSet("coolify_private_key.test", "fingerprint"),
 				),
 			},
 			// Step 3: Import by UUID
@@ -103,6 +107,8 @@ data "coolify_private_keys" "all" {
 					// Verify singular data source
 					resource.TestCheckResourceAttrPair("data.coolify_private_key.by_uuid", "uuid", "coolify_private_key.test", "uuid"),
 					resource.TestCheckResourceAttrPair("data.coolify_private_key.by_uuid", "name", "coolify_private_key.test", "name"),
+					resource.TestCheckResourceAttrPair("data.coolify_private_key.by_uuid", "public_key", "coolify_private_key.test", "public_key"),
+					resource.TestCheckResourceAttrPair("data.coolify_private_key.by_uuid", "fingerprint", "coolify_private_key.test", "fingerprint"),
 					// Verify list data source
 					resource.TestMatchResourceAttr("data.coolify_private_keys.all", "private_keys.#", regexp.MustCompile(`[1-9]\d*`)),
 				),

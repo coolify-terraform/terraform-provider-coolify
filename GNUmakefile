@@ -1,3 +1,6 @@
+GOLANGCI_LINT_VERSION := 2.12.2
+GORELEASER_MAJOR := 2
+
 default: help
 
 build: ## Compile the provider
@@ -9,7 +12,7 @@ test: ## Run unit tests (race detector, coverage)
 testacc: ## Run acceptance tests (needs COOLIFY_ENDPOINT + COOLIFY_TOKEN)
 	TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -run 'TestAcc' ./...
 
-lint: ## Run golangci-lint + go mod tidy check
+lint: check-golangci-lint-version ## Run golangci-lint + go mod tidy check (CI-pinned golangci-lint)
 	golangci-lint run ./...
 	@go mod tidy && git diff --exit-code go.mod go.sum || (echo "go mod tidy produced changes"; exit 1)
 
@@ -48,7 +51,24 @@ docs-check: ## Check generated docs are up to date
 api-coverage-check: ## Check API_COVERAGE.md is up to date
 	@$(MAKE) api-coverage && git diff --exit-code API_COVERAGE.md || (echo "API_COVERAGE.md out of date: run 'make api-coverage' and commit"; exit 1)
 
-goreleaser-check: ## Validate .goreleaser.yml config
+check-golangci-lint-version: ## Verify golangci-lint version matches CI
+	@version="$$(golangci-lint version 2>/dev/null || true)"; \
+	if ! printf '%s\n' "$$version" | grep -q "version $(GOLANGCI_LINT_VERSION) "; then \
+		echo "ERROR: golangci-lint $(GOLANGCI_LINT_VERSION) required to match CI."; \
+		if [ -n "$$version" ]; then echo "Installed: $$version"; else echo "Installed: not found"; fi; \
+		exit 1; \
+	fi
+
+check-goreleaser-version: ## Verify goreleaser major version matches CI
+	@raw_version="$$(goreleaser --version 2>/dev/null || true)"; \
+	version="$$(printf '%s\n' "$$raw_version" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"; \
+	if [ "$${version%%.*}" != "$(GORELEASER_MAJOR)" ]; then \
+		echo "ERROR: goreleaser v$(GORELEASER_MAJOR).x required to match CI."; \
+		if [ -n "$$version" ]; then echo "Installed: $$version"; else echo "Installed: not found"; fi; \
+		exit 1; \
+	fi
+
+goreleaser-check: check-goreleaser-version ## Validate .goreleaser.yml with CI-compatible goreleaser
 	goreleaser check
 
 vulncheck: ## Run govulncheck for known vulnerabilities
@@ -57,4 +77,4 @@ vulncheck: ## Run govulncheck for known vulnerabilities
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check validate install spec-update spec-check api-coverage vulncheck goreleaser-check modverify ci help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check validate install spec-update spec-check api-coverage vulncheck check-golangci-lint-version check-goreleaser-version goreleaser-check modverify ci help

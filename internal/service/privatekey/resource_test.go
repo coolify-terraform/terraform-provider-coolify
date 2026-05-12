@@ -35,6 +35,8 @@ func newPrivateKeyMockServer() *httptest.Server {
 				Name:        input.Name,
 				Description: input.Description,
 				PrivateKey:  input.PrivateKey,
+				PublicKey:   "ssh-ed25519 AAAA-public",
+				Fingerprint: "SHA256:test-fingerprint",
 			}
 			keys[key.UUID] = key
 			w.WriteHeader(http.StatusCreated)
@@ -102,6 +104,8 @@ resource "coolify_private_key" "test" {
 					resource.TestCheckResourceAttr("coolify_private_key.test", "uuid", "cccc0002-0002-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "name", "my-ssh-key"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "private_key", "ssh-ed25519 AAAA-test-key"),
+					resource.TestCheckResourceAttr("coolify_private_key.test", "public_key", "ssh-ed25519 AAAA-public"),
+					resource.TestCheckResourceAttr("coolify_private_key.test", "fingerprint", "SHA256:test-fingerprint"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "is_git_related", "false"),
 				),
 			},
@@ -149,6 +153,8 @@ resource "coolify_private_key" "test" {
 					resource.TestCheckResourceAttr("coolify_private_key.test", "name", "updated-key"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "description", "A test key"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "private_key", "ssh-ed25519 AAAA-updated"),
+					resource.TestCheckResourceAttr("coolify_private_key.test", "public_key", "ssh-ed25519 AAAA-public"),
+					resource.TestCheckResourceAttr("coolify_private_key.test", "fingerprint", "SHA256:test-fingerprint"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "is_git_related", "false"),
 				),
 			},

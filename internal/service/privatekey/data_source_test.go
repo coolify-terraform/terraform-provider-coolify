@@ -19,6 +19,8 @@ func TestPrivateKeyDataSource(t *testing.T) {
 		Name:         "data-source-key",
 		Description:  "A key for testing",
 		PrivateKey:   "ssh-ed25519 AAAA-ds-test",
+		PublicKey:    "ssh-ed25519 AAAA-ds-public",
+		Fingerprint:  "SHA256:data-source-fingerprint",
 		IsGitRelated: true,
 	}
 
@@ -49,6 +51,8 @@ data "coolify_private_key" "test" {
 					resource.TestCheckResourceAttr("data.coolify_private_key.test", "name", "data-source-key"),
 					resource.TestCheckResourceAttr("data.coolify_private_key.test", "description", "A key for testing"),
 					resource.TestCheckResourceAttr("data.coolify_private_key.test", "private_key", "ssh-ed25519 AAAA-ds-test"),
+					resource.TestCheckResourceAttr("data.coolify_private_key.test", "public_key", "ssh-ed25519 AAAA-ds-public"),
+					resource.TestCheckResourceAttr("data.coolify_private_key.test", "fingerprint", "SHA256:data-source-fingerprint"),
 					resource.TestCheckResourceAttr("data.coolify_private_key.test", "is_git_related", "true"),
 				),
 			},
