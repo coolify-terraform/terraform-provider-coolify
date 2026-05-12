@@ -502,6 +502,41 @@ data "coolify_github_app_branches" "test" {
 	})
 }
 
+func TestGitHubAppDataSource(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockCoolifyServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_github_app" "test" {
+  name            = "ds-test-app"
+  app_id          = 11111
+  installation_id = 22222
+  client_id       = "Iv1.dstest"
+  client_secret   = "dstestsecret"
+  private_key     = "-----BEGIN RSA PRIVATE KEY-----\ndstest\n-----END RSA PRIVATE KEY-----"
+}
+
+data "coolify_github_app" "test" {
+  id = coolify_github_app.test.id
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.coolify_github_app.test", "id"),
+					resource.TestCheckResourceAttr("data.coolify_github_app.test", "name", "ds-test-app"),
+					resource.TestCheckResourceAttr("data.coolify_github_app.test", "app_id", "11111"),
+					resource.TestCheckResourceAttr("data.coolify_github_app.test", "installation_id", "22222"),
+					resource.TestCheckResourceAttr("data.coolify_github_app.test", "client_id", "Iv1.dstest"),
+				),
+			},
+		},
+	})
+}
+
 // checkGitHubAppDestroy verifies that all coolify_github_app resources have
 // been removed from the mock server. The standard acctest.CheckDestroy helper
 // looks up by "uuid", but GitHub Apps use a numeric "id" attribute instead.
