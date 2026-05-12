@@ -159,8 +159,18 @@ func flattenService(svc *client.Service, m *serviceResourceModel) {
 	m.UUID = types.StringValue(svc.UUID)
 	m.Name = flex.StringToFramework(svc.Name)
 	m.Description = flex.StringToFramework(svc.Description)
-	m.Type = types.StringValue(svc.Type)
-	m.ProjectUUID = types.StringValue(svc.ProjectUUID)
-	m.ServerUUID = types.StringValue(svc.ServerUUID)
-	m.EnvironmentName = flex.StringToFramework(svc.EnvironmentName)
+	// Immutable fields: only update if the API returns them (Coolify may
+	// omit these from the GET response).
+	if svc.Type != "" {
+		m.Type = types.StringValue(svc.Type)
+	}
+	if svc.ProjectUUID != "" {
+		m.ProjectUUID = types.StringValue(svc.ProjectUUID)
+	}
+	if svc.ServerUUID != "" {
+		m.ServerUUID = types.StringValue(svc.ServerUUID)
+	}
+	if svc.EnvironmentName != "" {
+		m.EnvironmentName = flex.StringToFramework(svc.EnvironmentName)
+	}
 }

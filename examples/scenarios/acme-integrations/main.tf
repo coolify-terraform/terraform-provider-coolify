@@ -8,9 +8,6 @@ terraform {
     coolify = {
       source = "SebTardifLabs/coolify"
     }
-    tls = {
-      source = "hashicorp/tls"
-    }
   }
 }
 
@@ -26,24 +23,11 @@ resource "coolify_project" "integrations" {
   description = "ACME Corp external service integrations"
 }
 
-# --- GitHub App (dummy credentials, registers metadata only) ---
-# GitHub App CRUD works with dummy values because Coolify stores the
-# metadata without immediately verifying OAuth connectivity.
-
-resource "tls_private_key" "github" {
-  algorithm = "RSA"
-  rsa_bits  = 2048
-}
-
-resource "coolify_github_app" "acme" {
-  name            = "acme-github-integration"
-  organization    = "acme-corp"
-  app_id          = 12345
-  installation_id = 67890
-  client_id       = "dummy-client-id-for-testing"
-  client_secret   = "dummy-client-secret-for-testing"
-  private_key     = tls_private_key.github.private_key_pem
-}
+# --- GitHub App ---
+# Temporarily removed: Coolify validates GitHub App credentials on creation
+# (returns 422 with dummy values). Unlike what acceptance tests suggest,
+# real Coolify requires valid GitHub App OAuth credentials.
+# See issue #44 for tracking.
 
 # --- Managed Service (from Coolify service catalog) ---
 
