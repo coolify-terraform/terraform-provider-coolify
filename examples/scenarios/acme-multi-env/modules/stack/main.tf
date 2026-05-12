@@ -1,5 +1,13 @@
 # Reusable Coolify stack: project + database + application + env var
 
+terraform {
+  required_providers {
+    coolify = {
+      source = "SebTardifLabs/coolify"
+    }
+  }
+}
+
 resource "coolify_project" "this" {
   name        = var.project_name
   description = "Managed by Terraform"
