@@ -13,6 +13,16 @@ Manages a Coolify GitHub App integration.
 ## Example Usage
 
 ```terraform
+variable "github_app_client_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "github_app_private_key" {
+  type      = string
+  sensitive = true
+}
+
 resource "coolify_github_app" "example" {
   name            = "my-github-app"
   app_id          = 12345

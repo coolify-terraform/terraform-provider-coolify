@@ -13,6 +13,16 @@ Manages a Coolify S3 storage destination.
 ## Example Usage
 
 ```terraform
+variable "s3_access_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "s3_secret_key" {
+  type      = string
+  sensitive = true
+}
+
 resource "coolify_s3_storage" "example" {
   name        = "my-backup-storage"
   description = "S3 storage for database backups"

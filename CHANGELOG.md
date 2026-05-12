@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_storage` - Manage persistent storage volumes
   - `coolify_cloud_token` - Manage cloud provider tokens (Hetzner)
   - `coolify_github_app` - Manage GitHub App integrations
-- **41 Data Sources:**
+- **42 Data Sources:**
   - `coolify_project` / `coolify_projects` - Read project(s)
   - `coolify_server` / `coolify_servers` - Read server(s)
   - `coolify_server_resources` - List all resources deployed on a server
@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_scheduled_tasks` / `coolify_task_executions` - Read scheduled tasks and executions
   - `coolify_storages` - List persistent storage volumes
   - `coolify_cloud_token` / `coolify_cloud_tokens` - Read cloud token(s)
-  - `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` - Read GitHub App(s) and repos
+  - `coolify_github_app` / `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` - Read GitHub App(s) and repos
   - `coolify_backup_executions` - List backup execution history
   - `coolify_resources` - List all resources on a server
   - `coolify_team` / `coolify_teams` / `coolify_team_members` - Read team(s) and members

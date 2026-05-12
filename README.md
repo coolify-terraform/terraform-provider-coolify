@@ -4,7 +4,7 @@
 ![Go Version](https://img.shields.io/github/go-mod/go-version/SebTardif/terraform-provider-coolify)
 ![License](https://img.shields.io/github/license/SebTardif/terraform-provider-coolify)
 
-A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 27 resources, 41 data sources, 390+ tests, 100% API coverage.
+A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 27 resources, 42 data sources, 390+ tests, 100% API coverage.
 
 ## Getting Started
 
@@ -64,7 +64,7 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_scheduled_tasks` / `coolify_task_executions` | Read scheduled tasks and executions |
 | `coolify_storages` | List persistent storage volumes |
 | `coolify_cloud_token` / `coolify_cloud_tokens` | Read cloud token(s) |
-| `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` | Read GitHub App(s), repos, branches |
+| `coolify_github_app` / `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` | Read GitHub App(s), repos, branches |
 | `coolify_backup_executions` | List backup execution history |
 | `coolify_resources` | List all resources on a server |
 | `coolify_team` / `coolify_teams` / `coolify_team_members` | Read team(s) and members |
