@@ -114,7 +114,7 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 
 	_, err := r.client.CreateEnvironment(ctx, plan.ProjectUUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Creating Environment", fmt.Sprintf("Could not create environment %s/%s: %s", plan.ProjectUUID.ValueString(), plan.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Error creating environment", fmt.Sprintf("Could not create environment %s/%s: %s", plan.ProjectUUID.ValueString(), plan.Name.ValueString(), err))
 		return
 	}
 
@@ -147,7 +147,7 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error Reading Environment", fmt.Sprintf("Could not read environment %s/%s: %s", state.ProjectUUID.ValueString(), state.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Error reading environment", fmt.Sprintf("Could not read environment %s/%s: %s", state.ProjectUUID.ValueString(), state.Name.ValueString(), err))
 		return
 	}
 
@@ -185,7 +185,7 @@ func (r *environmentResource) Delete(ctx context.Context, req resource.DeleteReq
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error Deleting Environment", fmt.Sprintf("Could not delete environment %s/%s: %s", state.ProjectUUID.ValueString(), state.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Error deleting environment", fmt.Sprintf("Could not delete environment %s/%s: %s", state.ProjectUUID.ValueString(), state.Name.ValueString(), err))
 	}
 }
 
@@ -213,7 +213,7 @@ func (r *environmentResource) readEnvironment(ctx context.Context, projectUUID, 
 
 	env, err := r.client.GetEnvironment(ctx, projectUUID, name)
 	if err != nil {
-		diags.AddError("Error Reading Environment", fmt.Sprintf("Could not read environment %s/%s after create: %s", projectUUID, name, err))
+		diags.AddError("Error reading environment", fmt.Sprintf("Could not read environment %s/%s after create: %s", projectUUID, name, err))
 		return diags
 	}
 

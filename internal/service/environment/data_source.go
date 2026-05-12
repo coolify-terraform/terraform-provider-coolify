@@ -88,7 +88,7 @@ func (d *environmentDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	env, err := d.client.GetEnvironment(ctx, config.ProjectUUID.ValueString(), config.Name.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error Reading Environment", fmt.Sprintf("Could not read environment: %s", err))
+		resp.Diagnostics.AddError("Error reading environment", fmt.Sprintf("Could not read environment: %s", err))
 		return
 	}
 

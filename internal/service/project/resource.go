@@ -103,7 +103,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 
 	project, err := r.client.CreateProject(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Creating Project", fmt.Sprintf("Could not create project: %s", err))
+		resp.Diagnostics.AddError("Error creating project", fmt.Sprintf("Could not create project: %s", err))
 		return
 	}
 
@@ -141,7 +141,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error Reading Project", fmt.Sprintf("Could not read project %s: %s", state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error reading project", fmt.Sprintf("Could not read project %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -179,7 +179,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	_, err := r.client.UpdateProject(ctx, state.UUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Updating Project", fmt.Sprintf("Could not update project %s: %s", state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error updating project", fmt.Sprintf("Could not update project %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -228,7 +228,7 @@ retryLoop:
 		}
 	}
 	if err != nil {
-		resp.Diagnostics.AddError("Error Deleting Project", fmt.Sprintf("Could not delete project: %s", err))
+		resp.Diagnostics.AddError("Error deleting project", fmt.Sprintf("Could not delete project: %s", err))
 	}
 }
 
@@ -246,7 +246,7 @@ func (r *projectResource) readProject(ctx context.Context, uuid string, model *p
 
 	project, err := r.client.GetProject(ctx, uuid)
 	if err != nil {
-		diags.AddError("Error Reading Project", fmt.Sprintf("Could not read project %s after create/update: %s", uuid, err))
+		diags.AddError("Error reading project", fmt.Sprintf("Could not read project %s after create/update: %s", uuid, err))
 		return diags
 	}
 

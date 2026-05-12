@@ -93,7 +93,7 @@ func (d *serviceListDataSource) Configure(_ context.Context, req datasource.Conf
 func (d *serviceListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	services, err := d.client.ListServices(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing Services", fmt.Sprintf("Could not list services: %s", err))
+		resp.Diagnostics.AddError("Error listing services", fmt.Sprintf("Could not list services: %s", err))
 		return
 	}
 

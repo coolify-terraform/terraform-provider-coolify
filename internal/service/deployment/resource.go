@@ -105,7 +105,7 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 	appUUID := plan.ApplicationUUID.ValueString()
 	result, err := r.client.RestartApplication(ctx, appUUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Triggering Deployment", fmt.Sprintf("Could not restart application %s: %s", appUUID, err))
+		resp.Diagnostics.AddError("Error triggering deployment", fmt.Sprintf("Could not restart application %s: %s", appUUID, err))
 		return
 	}
 
@@ -136,7 +136,7 @@ func (r *deploymentResource) Read(ctx context.Context, req resource.ReadRequest,
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error Reading Deployment", fmt.Sprintf("Could not read deployment %s: %s", state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error reading deployment", fmt.Sprintf("Could not read deployment %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 

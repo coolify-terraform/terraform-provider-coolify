@@ -108,7 +108,7 @@ func (d *applicationListDataSource) Configure(_ context.Context, req datasource.
 func (d *applicationListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	apps, err := d.client.ListApplications(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing Applications", fmt.Sprintf("Could not list applications: %s", err))
+		resp.Diagnostics.AddError("Error listing applications", fmt.Sprintf("Could not list applications: %s", err))
 		return
 	}
 

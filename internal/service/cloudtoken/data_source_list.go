@@ -87,7 +87,7 @@ func (d *cloudTokenListDataSource) Configure(_ context.Context, req datasource.C
 func (d *cloudTokenListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	tokens, err := d.client.ListCloudTokens(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing Cloud Tokens", fmt.Sprintf("Could not list cloud tokens: %s", err))
+		resp.Diagnostics.AddError("Error listing cloud tokens", fmt.Sprintf("Could not list cloud tokens: %s", err))
 		return
 	}
 

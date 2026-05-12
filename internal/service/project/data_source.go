@@ -84,7 +84,7 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	project, err := d.client.GetProject(ctx, config.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error Reading Project", fmt.Sprintf("Could not read project: %s", err))
+		resp.Diagnostics.AddError("Error reading project", fmt.Sprintf("Could not read project: %s", err))
 		return
 	}
 

@@ -83,7 +83,7 @@ func (d *cloudTokenDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	ct, err := d.client.GetCloudToken(ctx, config.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error Reading Cloud Token", fmt.Sprintf("Could not read cloud token: %s", err))
+		resp.Diagnostics.AddError("Error reading cloud token", fmt.Sprintf("Could not read cloud token: %s", err))
 		return
 	}
 

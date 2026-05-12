@@ -88,7 +88,7 @@ func (d *projectListDataSource) Configure(_ context.Context, req datasource.Conf
 func (d *projectListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	projects, err := d.client.ListProjects(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing Projects", fmt.Sprintf("Could not list projects: %s", err))
+		resp.Diagnostics.AddError("Error listing projects", fmt.Sprintf("Could not list projects: %s", err))
 		return
 	}
 

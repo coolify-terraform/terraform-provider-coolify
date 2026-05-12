@@ -104,7 +104,7 @@ func (d *gitHubAppBranchesDataSource) Read(ctx context.Context, req datasource.R
 		config.Repo.ValueString(),
 	)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing Branches", fmt.Sprintf("Could not list branches: %s", err))
+		resp.Diagnostics.AddError("Error listing branches", fmt.Sprintf("Could not list branches: %s", err))
 		return
 	}
 

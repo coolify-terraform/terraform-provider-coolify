@@ -102,7 +102,7 @@ func (d *environmentListDataSource) Read(ctx context.Context, req datasource.Rea
 
 	envs, err := d.client.ListEnvironments(ctx, config.ProjectUUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing Environments", fmt.Sprintf("Could not list environments: %s", err))
+		resp.Diagnostics.AddError("Error listing environments", fmt.Sprintf("Could not list environments: %s", err))
 		return
 	}
 

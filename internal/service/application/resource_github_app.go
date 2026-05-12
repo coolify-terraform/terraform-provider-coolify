@@ -227,7 +227,7 @@ func (r *gitHubAppApplicationResource) Create(ctx context.Context, req resource.
 
 	created, err := r.client.CreateGitHubAppApplication(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating github app application", err.Error())
+		resp.Diagnostics.AddError("Error creating GitHub App application", err.Error())
 		return
 	}
 

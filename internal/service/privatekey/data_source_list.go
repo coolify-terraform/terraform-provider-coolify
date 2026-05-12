@@ -103,7 +103,7 @@ func (d *privateKeyListDataSource) Configure(_ context.Context, req datasource.C
 func (d *privateKeyListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	keys, err := d.client.ListPrivateKeys(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing Private Keys", fmt.Sprintf("Could not list private keys: %s", err))
+		resp.Diagnostics.AddError("Error listing private keys", fmt.Sprintf("Could not list private keys: %s", err))
 		return
 	}
 

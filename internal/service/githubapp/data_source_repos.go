@@ -99,7 +99,7 @@ func (d *gitHubAppReposDataSource) Read(ctx context.Context, req datasource.Read
 
 	repos, err := d.client.ListGitHubAppRepositories(ctx, config.GitHubAppID.ValueInt64())
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing Repositories", fmt.Sprintf("Could not list repositories: %s", err))
+		resp.Diagnostics.AddError("Error listing repositories", fmt.Sprintf("Could not list repositories: %s", err))
 		return
 	}
 

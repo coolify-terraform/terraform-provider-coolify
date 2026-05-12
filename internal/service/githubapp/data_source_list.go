@@ -109,7 +109,7 @@ func (d *gitHubAppListDataSource) Configure(_ context.Context, req datasource.Co
 func (d *gitHubAppListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	apps, err := d.client.ListGitHubApps(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing GitHub Apps", fmt.Sprintf("Could not list GitHub Apps: %s", err))
+		resp.Diagnostics.AddError("Error listing GitHub Apps", fmt.Sprintf("Could not list GitHub Apps: %s", err))
 		return
 	}
 

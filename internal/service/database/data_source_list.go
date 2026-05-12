@@ -103,7 +103,7 @@ func (d *databaseListDataSource) Configure(_ context.Context, req datasource.Con
 func (d *databaseListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
 	databases, err := d.client.ListDatabases(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Listing Databases", fmt.Sprintf("Could not list databases: %s", err))
+		resp.Diagnostics.AddError("Error listing databases", fmt.Sprintf("Could not list databases: %s", err))
 		return
 	}
 

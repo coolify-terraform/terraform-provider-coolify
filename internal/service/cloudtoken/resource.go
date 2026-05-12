@@ -105,7 +105,7 @@ func (r *cloudTokenResource) Create(ctx context.Context, req resource.CreateRequ
 
 	ct, err := r.client.CreateCloudToken(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Creating Cloud Token", fmt.Sprintf("Could not create cloud token: %s", err))
+		resp.Diagnostics.AddError("Error creating cloud token", fmt.Sprintf("Could not create cloud token: %s", err))
 		return
 	}
 
@@ -141,7 +141,7 @@ func (r *cloudTokenResource) Read(ctx context.Context, req resource.ReadRequest,
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error Reading Cloud Token", fmt.Sprintf("Could not read cloud token %s: %s", state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error reading cloud token", fmt.Sprintf("Could not read cloud token %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -176,7 +176,7 @@ func (r *cloudTokenResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	_, err := r.client.UpdateCloudToken(ctx, state.UUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Updating Cloud Token", fmt.Sprintf("Could not update cloud token %s: %s", state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error updating cloud token", fmt.Sprintf("Could not update cloud token %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -205,7 +205,7 @@ func (r *cloudTokenResource) Delete(ctx context.Context, req resource.DeleteRequ
 			// Already deleted; nothing to do.
 			return
 		}
-		resp.Diagnostics.AddError("Error Deleting Cloud Token", fmt.Sprintf("Could not delete cloud token %s: %s", state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error deleting cloud token", fmt.Sprintf("Could not delete cloud token %s: %s", state.UUID.ValueString(), err))
 	}
 }
 
@@ -223,7 +223,7 @@ func (r *cloudTokenResource) readCloudToken(ctx context.Context, uuid string, mo
 
 	ct, err := r.client.GetCloudToken(ctx, uuid)
 	if err != nil {
-		diags.AddError("Error Reading Cloud Token", fmt.Sprintf("Could not read cloud token %s after create/update: %s", uuid, err))
+		diags.AddError("Error reading cloud token", fmt.Sprintf("Could not read cloud token %s after create/update: %s", uuid, err))
 		return diags
 	}
 
