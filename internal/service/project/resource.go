@@ -208,6 +208,7 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	// delete is attempted. Retry for up to 30 seconds.
 	uuid := state.UUID.ValueString()
 	var err error
+retryLoop:
 	for range 6 {
 		err = r.client.DeleteProject(ctx, uuid)
 		if err == nil {
@@ -219,7 +220,12 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		if !strings.Contains(err.Error(), "has resources") {
 			break
 		}
-		time.Sleep(5 * time.Second)
+		select {
+		case <-ctx.Done():
+			err = ctx.Err()
+			break retryLoop
+		case <-time.After(5 * time.Second):
+		}
 	}
 	if err != nil {
 		resp.Diagnostics.AddError("Error Deleting Project", fmt.Sprintf("Could not delete project: %s", err))

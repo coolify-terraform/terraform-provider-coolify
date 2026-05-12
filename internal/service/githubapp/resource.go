@@ -213,6 +213,9 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 	flex.SetStrPtr(&input.WebhookSecret, plan.WebhookSecret)
 	flex.SetStrPtr(&input.PrivateKey, plan.PrivateKey)
 
+	// Use the PATCH response directly (returns the full object) instead of
+	// a separate GET read-back. This avoids the O(n) list-and-scan in
+	// GetGitHubApp since the Coolify API has no GET /github-apps/{id}.
 	app, err := r.client.UpdateGitHubApp(ctx, state.ID.ValueInt64(), input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error Updating GitHub App", fmt.Sprintf("Could not update GitHub App %d: %s", state.ID.ValueInt64(), err))
