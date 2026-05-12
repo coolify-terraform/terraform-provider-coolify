@@ -134,22 +134,8 @@ func (r *dockerComposeApplicationResource) Create(ctx context.Context, req resou
 		return
 	}
 
-	app, err := r.client.GetApplication(ctx, created.UUID)
-	if err != nil {
-		if client.IsNotFound(err) {
-			// Coolify returned a UUID but the application does not exist.
-			// This happens when the target server is not SSH-reachable;
-			// the API accepts the request but silently fails to persist.
-			resp.State.RemoveResource(ctx)
-			resp.Diagnostics.AddError(
-				"Application created but not persisted",
-				fmt.Sprintf("Coolify returned UUID %s but the application was not found on read-back. "+
-					"This usually means the target server is not reachable via SSH. "+
-					"Verify the server is online and SSH-accessible before retrying.", created.UUID),
-			)
-			return
-		}
-		resp.Diagnostics.AddError("Error reading application after creation", fmt.Sprintf("application %s: %s", created.UUID, err))
+	app := readBackAfterCreate(ctx, r.client, created.UUID, resp)
+	if app == nil {
 		return
 	}
 

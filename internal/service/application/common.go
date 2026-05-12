@@ -310,6 +310,28 @@ func CommonAppAttrs(ctx context.Context, extra map[string]schema.Attribute) map[
 	return attrs
 }
 
+// readBackAfterCreate reads the application after creation and handles the
+// 404-on-readback case (server not SSH-reachable). Returns nil if an error
+// was added to diagnostics.
+func readBackAfterCreate(ctx context.Context, c *client.Client, uuid string, resp *resource.CreateResponse) *client.Application {
+	app, err := c.GetApplication(ctx, uuid)
+	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			resp.Diagnostics.AddError(
+				"Application created but not persisted",
+				fmt.Sprintf("Coolify returned UUID %s but the application was not found on read-back. "+
+					"This usually means the target server is not reachable via SSH. "+
+					"Verify the server is online and SSH-accessible before retrying.", uuid),
+			)
+			return nil
+		}
+		resp.Diagnostics.AddError("Error reading application after creation", fmt.Sprintf("application %s: %s", uuid, err))
+		return nil
+	}
+	return app
+}
+
 // updateAndReadBack performs the shared update-then-read pattern for all
 // application resources.
 func updateAndReadBack(
