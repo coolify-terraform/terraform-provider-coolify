@@ -4,5 +4,6 @@ useDefault = true
 [allowlist]
 paths = [
   '''_test\.go$''',
-  '''examples/''',
+  '''examples/.*\.tf$''',
+  '''examples/.*\.tfvars\.example$''',
 ]

@@ -14,3 +14,10 @@ variable "server_uuid" {
   type        = string
 }
 
+variable "deploy_key" {
+  description = "SSH private key for deployments (PEM-encoded)"
+  type        = string
+  sensitive   = true
+  default     = "-----BEGIN OPENSSH PRIVATE KEY-----\ngenerate-your-own-key\n-----END OPENSSH PRIVATE KEY-----"
+}
+

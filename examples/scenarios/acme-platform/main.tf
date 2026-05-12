@@ -29,12 +29,11 @@ data "coolify_server" "target" {
 data "coolify_teams" "all" {}
 
 # --- Private Key ---
-# Uses a test-only SSH key. In production, use a real deployment key.
 
 resource "coolify_private_key" "deploy" {
   name        = "acme-deploy-key"
   description = "Deployment key for ACME platform"
-  private_key = file("${path.module}/test-deploy-key")
+  private_key = var.deploy_key
 }
 
 # --- Project with custom environment ---
