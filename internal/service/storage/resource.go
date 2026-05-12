@@ -192,7 +192,15 @@ func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, re
 	found := false
 	for _, s := range storages {
 		if s.UUID == state.UUID.ValueString() {
-			state.Name = types.StringValue(s.Name)
+			// Coolify prefixes storage names with the application UUID
+			// (e.g., "app-uuid-my-storage"). Preserve the user's original
+			// name to avoid a perpetual diff.
+			apiName := s.Name
+			stateName := state.Name.ValueString()
+			if stateName != "" && apiName != stateName && strings.HasSuffix(apiName, "-"+stateName) {
+				apiName = stateName
+			}
+			state.Name = types.StringValue(apiName)
 			state.MountPath = types.StringValue(s.MountPath)
 			//nolint:gocritic // preserves null vs empty distinction for optional field
 			if s.HostPath != "" {

@@ -146,6 +146,21 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	if plannedEnabled.ValueBool() && !plan.Enabled.ValueBool() {
 		plan.Enabled = plannedEnabled
 	}
+
+	// Coolify may return id=0 for a newly created backup. Resolve the
+	// real ID by listing backups and matching by UUID.
+	if plan.ID.ValueInt64() == 0 && !plan.UUID.IsNull() && !plan.UUID.IsUnknown() {
+		backups, listErr := r.client.ListDatabaseBackups(ctx, plan.DatabaseUUID.ValueString())
+		if listErr == nil {
+			for _, b := range backups {
+				if b.UUID == plan.UUID.ValueString() {
+					plan.ID = types.Int64Value(int64(b.ID))
+					break
+				}
+			}
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -156,14 +171,43 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	b, err := r.client.GetDatabaseBackup(ctx, state.DatabaseUUID.ValueString(), int(state.ID.ValueInt64()))
-	if err != nil {
-		if client.IsNotFound(err) {
+	dbUUID := state.DatabaseUUID.ValueString()
+	backupID := int(state.ID.ValueInt64())
+
+	var b *client.DatabaseBackup
+
+	if backupID == 0 && !state.UUID.IsNull() && !state.UUID.IsUnknown() {
+		// id=0 means Coolify didn't assign a numeric ID yet. Find by UUID.
+		backups, listErr := r.client.ListDatabaseBackups(ctx, dbUUID)
+		if listErr != nil {
+			if client.IsNotFound(listErr) {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+			resp.Diagnostics.AddError("Error reading database backup", listErr.Error())
+			return
+		}
+		for i := range backups {
+			if backups[i].UUID == state.UUID.ValueString() {
+				b = &backups[i]
+				break
+			}
+		}
+		if b == nil {
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading database backup", err.Error())
-		return
+	} else {
+		var err error
+		b, err = r.client.GetDatabaseBackup(ctx, dbUUID, backupID)
+		if err != nil {
+			if client.IsNotFound(err) {
+				resp.State.RemoveResource(ctx)
+				return
+			}
+			resp.Diagnostics.AddError("Error reading database backup", err.Error())
+			return
+		}
 	}
 
 	flattenDatabaseBackup(b, &state)

@@ -270,7 +270,11 @@ func flattenDockerComposeApplication(app *client.Application, state *dockerCompo
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)
-	state.DockerComposeRaw = types.StringValue(app.DockerComposeRaw)
+	// Preserve user's docker_compose_raw from state: the API may return
+	// a decoded or reformatted version that would cause a perpetual diff.
+	if state.DockerComposeRaw.IsNull() || state.DockerComposeRaw.IsUnknown() {
+		state.DockerComposeRaw = types.StringValue(app.DockerComposeRaw)
+	}
 	state.FQDN = flex.StringToFramework(app.FQDN)
 
 	if app.ProjectUUID != "" {
