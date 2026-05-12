@@ -74,15 +74,7 @@ func (r *postgresqlDatabaseResource) Schema(ctx context.Context, _ resource.Sche
 }
 
 func (r *postgresqlDatabaseResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError("Unexpected Resource Configure Type", fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData))
-		return
-	}
-	r.client = c
+	r.client = ConfigureDatabase(req, resp)
 }
 
 func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -145,13 +137,13 @@ func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.Read
 	}
 	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": state.UUID.ValueString()})
 
-	db, err := r.client.GetDatabase(ctx, state.UUID.ValueString())
+	db, err := ReadDatabase(ctx, r.client, state.UUID.ValueString())
 	if err != nil {
-		if client.IsNotFound(err) {
-			resp.State.RemoveResource(ctx)
-			return
-		}
 		resp.Diagnostics.AddError("Error reading PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", state.UUID.ValueString(), err))
+		return
+	}
+	if db == nil {
+		resp.State.RemoveResource(ctx)
 		return
 	}
 	flattenDatabase(db, &state)
@@ -182,13 +174,9 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 	flex.SetStrPtr(&input.PostgresUser, plan.PostgresUser)
 	flex.SetStrPtr(&input.PostgresPassword, plan.PostgresPassword)
 	flex.SetStrPtr(&input.PostgresDB, plan.PostgresDB)
-	if _, err := r.client.UpdateDatabase(ctx, uuid, input); err != nil {
-		resp.Diagnostics.AddError("Error updating PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", uuid, err))
-		return
-	}
-	db, err := r.client.GetDatabase(ctx, uuid)
+	db, err := UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading PostgreSQL database after update", fmt.Sprintf("PostgreSQL database %s: %s", uuid, err))
+		resp.Diagnostics.AddError("Error updating PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", uuid, err))
 		return
 	}
 	flattenDatabase(db, &plan)
@@ -203,44 +191,21 @@ func (r *postgresqlDatabaseResource) Delete(ctx context.Context, req resource.De
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": state.UUID.ValueString()})
 
-	if err := r.client.DeleteDatabase(ctx, state.UUID.ValueString()); err != nil {
-		if client.IsNotFound(err) {
-			return
-		}
+	if err := DeleteDatabase(ctx, r.client, state.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }
 
 func (r *postgresqlDatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	if err := validate.ImportUUID(req.ID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
-		return
-	}
-	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+	ImportDatabaseState(ctx, req, resp)
 }
 
 func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
-	m.UUID = types.StringValue(db.UUID)
-	m.Name = types.StringValue(db.Name)
-	m.Image = flex.StringToFramework(db.Image)
-	m.IsPublic = types.BoolValue(db.IsPublic)
-	m.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
+	FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
 	m.PostgresUser = flex.StringToFramework(db.PostgresUser)
 	m.PostgresPassword = flex.StringToFramework(db.PostgresPassword)
 	m.PostgresDB = flex.StringToFramework(db.PostgresDB)
-	m.Description = flex.StringToFramework(db.Description)
-	// Immutable fields: only update if the API returns them (Coolify may
-	// omit these from the GET response).
-	if db.ProjectUUID != "" {
-		m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	}
-	if db.ServerUUID != "" {
-		m.ServerUUID = types.StringValue(db.ServerUUID)
-	}
-	if db.EnvironmentName != "" {
-		m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
-	}
 }
 
 // --- shared helpers ---
@@ -265,4 +230,81 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		attrs[k] = v
 	}
 	return attrs
+}
+
+// ConfigureDatabase extracts the API client from provider data.
+// Returns nil when ProviderData is nil (expected during early configure).
+func ConfigureDatabase(req resource.ConfigureRequest, resp *resource.ConfigureResponse) *client.Client {
+	if req.ProviderData == nil {
+		return nil
+	}
+	c, ok := req.ProviderData.(*client.Client)
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected Resource Configure Type", fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData))
+		return nil
+	}
+	return c
+}
+
+// ReadDatabase fetches a database by UUID. Returns (nil, nil) when the
+// database is not found (caller should remove the resource from state).
+func ReadDatabase(ctx context.Context, c *client.Client, uuid string) (*client.Database, error) {
+	db, err := c.GetDatabase(ctx, uuid)
+	if err != nil {
+		if client.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return db, nil
+}
+
+// UpdateDatabase sends an update for the given database and reads back the
+// result.
+func UpdateDatabase(ctx context.Context, c *client.Client, uuid string, input client.UpdateDatabaseInput) (*client.Database, error) {
+	if _, err := c.UpdateDatabase(ctx, uuid, input); err != nil {
+		return nil, err
+	}
+	return c.GetDatabase(ctx, uuid)
+}
+
+// DeleteDatabase removes a database by UUID, silently succeeding if already
+// gone.
+func DeleteDatabase(ctx context.Context, c *client.Client, uuid string) error {
+	if err := c.DeleteDatabase(ctx, uuid); err != nil {
+		if client.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+// ImportDatabaseState validates the import ID as a UUID and passes it through
+// as the "uuid" attribute.
+func ImportDatabaseState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	if err := validate.ImportUUID(req.ID); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
+		return
+	}
+	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+}
+
+// FlattenDatabaseCommon sets the fields shared by all database resource types.
+func FlattenDatabaseCommon(db *client.Database, uuid, name, description, image, projectUUID, serverUUID, envName *types.String, isPublic *types.Bool, publicPort *types.Int64) {
+	*uuid = types.StringValue(db.UUID)
+	*name = types.StringValue(db.Name)
+	*image = flex.StringToFramework(db.Image)
+	*isPublic = types.BoolValue(db.IsPublic)
+	*publicPort = flex.Int64PtrToFramework(db.PublicPort)
+	*description = flex.StringToFramework(db.Description)
+	if db.ProjectUUID != "" {
+		*projectUUID = types.StringValue(db.ProjectUUID)
+	}
+	if db.ServerUUID != "" {
+		*serverUUID = types.StringValue(db.ServerUUID)
+	}
+	if db.EnvironmentName != "" {
+		*envName = flex.StringToFramework(db.EnvironmentName)
+	}
 }

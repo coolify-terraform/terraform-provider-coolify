@@ -8,9 +8,7 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -52,15 +50,7 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError("Unexpected Resource Configure Type", fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData))
-		return
-	}
-	r.client = c
+	r.client = pg.ConfigureDatabase(req, resp)
 }
 func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var p model
@@ -115,13 +105,13 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 
 	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": s.UUID.ValueString()})
 
-	db, err := r.client.GetDatabase(ctx, s.UUID.ValueString())
+	db, err := pg.ReadDatabase(ctx, r.client, s.UUID.ValueString())
 	if err != nil {
-		if client.IsNotFound(err) {
-			resp.State.RemoveResource(ctx)
-			return
-		}
 		resp.Diagnostics.AddError("Error reading ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
+		return
+	}
+	if db == nil {
+		resp.State.RemoveResource(ctx)
 		return
 	}
 	flattenDatabase(db, &s)
@@ -149,13 +139,9 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	flex.SetStrPtr(&u.ClickhouseAdminUser, p.ClickhouseAdminUser)
 	flex.SetStrPtr(&u.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
-	if _, err := r.client.UpdateDatabase(ctx, s.UUID.ValueString(), u); err != nil {
-		resp.Diagnostics.AddError("Error updating ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
-		return
-	}
-	db, err := r.client.GetDatabase(ctx, s.UUID.ValueString())
+	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error updating ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
 		return
 	}
 	flattenDatabase(db, &p)
@@ -170,37 +156,16 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": s.UUID.ValueString()})
 
-	if err := r.client.DeleteDatabase(ctx, s.UUID.ValueString()); err != nil {
-		if client.IsNotFound(err) {
-			return
-		}
+	if err := pg.DeleteDatabase(ctx, r.client, s.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
 		return
 	}
 }
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	if err := validate.ImportUUID(req.ID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
-		return
-	}
-	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+	pg.ImportDatabaseState(ctx, req, resp)
 }
 func flattenDatabase(db *client.Database, m *model) {
-	m.UUID = types.StringValue(db.UUID)
-	m.Name = types.StringValue(db.Name)
-	m.Image = flex.StringToFramework(db.Image)
-	m.IsPublic = types.BoolValue(db.IsPublic)
-	m.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
+	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
 	m.ClickhouseAdminUser = flex.StringToFramework(db.ClickhouseAdminUser)
 	m.ClickhouseAdminPassword = flex.StringToFramework(db.ClickhouseAdminPassword)
-	m.Description = flex.StringToFramework(db.Description)
-	if db.ProjectUUID != "" {
-		m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	}
-	if db.ServerUUID != "" {
-		m.ServerUUID = types.StringValue(db.ServerUUID)
-	}
-	if db.EnvironmentName != "" {
-		m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
-	}
 }

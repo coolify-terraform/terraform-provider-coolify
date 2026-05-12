@@ -7,10 +7,8 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -53,7 +51,7 @@ func (r *mysqlDatabaseResource) Metadata(_ context.Context, req resource.Metadat
 func (r *mysqlDatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a MySQL database resource on Coolify.",
-		Attributes: postgresql.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
+		Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 			"mysql_user":          schema.StringAttribute{MarkdownDescription: "The MySQL user name (maps to `MYSQL_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_password":      schema.StringAttribute{MarkdownDescription: "The MySQL user password (maps to `MYSQL_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_database":      schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MYSQL_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
@@ -63,15 +61,7 @@ func (r *mysqlDatabaseResource) Schema(ctx context.Context, _ resource.SchemaReq
 }
 
 func (r *mysqlDatabaseResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError("Unexpected Resource Configure Type", fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData))
-		return
-	}
-	r.client = c
+	r.client = pg.ConfigureDatabase(req, resp)
 }
 
 func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -128,13 +118,13 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 	}
 	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
 
-	db, err := r.client.GetDatabase(ctx, state.UUID.ValueString())
+	db, err := pg.ReadDatabase(ctx, r.client, state.UUID.ValueString())
 	if err != nil {
-		if client.IsNotFound(err) {
-			resp.State.RemoveResource(ctx)
-			return
-		}
 		resp.Diagnostics.AddError("Error reading MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
+		return
+	}
+	if db == nil {
+		resp.State.RemoveResource(ctx)
 		return
 	}
 	flattenDatabase(db, &state)
@@ -166,13 +156,9 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 	flex.SetStrPtr(&input.MysqlPassword, plan.MysqlPassword)
 	flex.SetStrPtr(&input.MysqlDatabase, plan.MysqlDatabase)
 	flex.SetStrPtr(&input.MysqlRootPassword, plan.MysqlRootPassword)
-	if _, err := r.client.UpdateDatabase(ctx, uuid, input); err != nil {
-		resp.Diagnostics.AddError("Error updating MySQL database", fmt.Sprintf("MySQL database %s: %s", uuid, err))
-		return
-	}
-	db, err := r.client.GetDatabase(ctx, uuid)
+	db, err := pg.UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading MySQL database after update", fmt.Sprintf("MySQL database %s: %s", uuid, err))
+		resp.Diagnostics.AddError("Error updating MySQL database", fmt.Sprintf("MySQL database %s: %s", uuid, err))
 		return
 	}
 	flattenDatabase(db, &plan)
@@ -187,41 +173,20 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
 
-	if err := r.client.DeleteDatabase(ctx, state.UUID.ValueString()); err != nil {
-		if client.IsNotFound(err) {
-			return
-		}
+	if err := pg.DeleteDatabase(ctx, r.client, state.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }
 
 func (r *mysqlDatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	if err := validate.ImportUUID(req.ID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
-		return
-	}
-	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+	pg.ImportDatabaseState(ctx, req, resp)
 }
 
 func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
-	m.UUID = types.StringValue(db.UUID)
-	m.Name = types.StringValue(db.Name)
-	m.Image = flex.StringToFramework(db.Image)
-	m.IsPublic = types.BoolValue(db.IsPublic)
-	m.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
+	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
 	m.MysqlUser = flex.StringToFramework(db.MysqlUser)
 	m.MysqlPassword = flex.StringToFramework(db.MysqlPassword)
 	m.MysqlDatabase = flex.StringToFramework(db.MysqlDatabase)
 	m.MysqlRootPassword = flex.StringToFramework(db.MysqlRootPassword)
-	m.Description = flex.StringToFramework(db.Description)
-	if db.ProjectUUID != "" {
-		m.ProjectUUID = types.StringValue(db.ProjectUUID)
-	}
-	if db.ServerUUID != "" {
-		m.ServerUUID = types.StringValue(db.ServerUUID)
-	}
-	if db.EnvironmentName != "" {
-		m.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
-	}
 }
