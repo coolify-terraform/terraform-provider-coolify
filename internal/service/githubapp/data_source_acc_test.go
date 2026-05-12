@@ -51,7 +51,7 @@ resource "coolify_github_app" "test" {
   installation_id = 67890
   client_id       = "Iv1.dummy"
   client_secret   = "dummysecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\ndummy\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-dummy"
 }
 
 data "coolify_github_app_repositories" "test" {
@@ -68,7 +68,7 @@ resource "coolify_github_app" "test" {
   installation_id = 67890
   client_id       = "Iv1.dummy"
   client_secret   = "dummysecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\ndummy\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-dummy"
 }
 
 data "coolify_github_app_branches" "test" {

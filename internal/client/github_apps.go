@@ -26,7 +26,7 @@ type CreateGitHubAppIntegrationInput struct {
 	ClientID         string `json:"client_id"`
 	ClientSecret     string `json:"client_secret"`
 	WebhookSecret    string `json:"webhook_secret,omitempty"`
-	PrivateKey       string `json:"private_key"`
+	PrivateKeyUUID   string `json:"private_key_uuid"`
 }
 
 type UpdateGitHubAppIntegrationInput struct {
@@ -37,7 +37,7 @@ type UpdateGitHubAppIntegrationInput struct {
 	ClientID         *string `json:"client_id,omitempty"`
 	ClientSecret     *string `json:"client_secret,omitempty"`
 	WebhookSecret    *string `json:"webhook_secret,omitempty"`
-	PrivateKey       *string `json:"private_key,omitempty"`
+	PrivateKeyUUID   *string `json:"private_key_uuid,omitempty"`
 }
 
 type GitHubRepository struct {

@@ -39,7 +39,7 @@ type gitHubAppResourceModel struct {
 	ClientID         types.String `tfsdk:"client_id"`
 	ClientSecret     types.String `tfsdk:"client_secret"`
 	WebhookSecret    types.String `tfsdk:"webhook_secret"`
-	PrivateKey       types.String `tfsdk:"private_key"`
+	PrivateKeyUUID   types.String `tfsdk:"private_key_uuid"`
 }
 
 // NewResource returns a new GitHub App resource instance.
@@ -101,8 +101,8 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Computed:            true,
 				Sensitive:           true,
 			},
-			"private_key": schema.StringAttribute{
-				MarkdownDescription: "The GitHub App private key. Write-only: not returned by the API after creation.",
+			"private_key_uuid": schema.StringAttribute{
+				MarkdownDescription: "UUID of an existing `coolify_private_key` resource for GitHub App authentication. Write-only: not returned by the API after creation.",
 				Required:            true,
 				Sensitive:           true,
 			},
@@ -138,7 +138,7 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 		InstallationID: plan.InstallationID.ValueInt64(),
 		ClientID:       plan.ClientID.ValueString(),
 		ClientSecret:   plan.ClientSecret.ValueString(),
-		PrivateKey:     plan.PrivateKey.ValueString(),
+		PrivateKeyUUID: plan.PrivateKeyUUID.ValueString(),
 	}
 	flex.SetIfKnown(&input.OrganizationName, plan.OrganizationName)
 	flex.SetIfKnown(&input.WebhookSecret, plan.WebhookSecret)
@@ -211,7 +211,7 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 	flex.SetStrPtr(&input.ClientID, plan.ClientID)
 	flex.SetStrPtr(&input.ClientSecret, plan.ClientSecret)
 	flex.SetStrPtr(&input.WebhookSecret, plan.WebhookSecret)
-	flex.SetStrPtr(&input.PrivateKey, plan.PrivateKey)
+	flex.SetStrPtr(&input.PrivateKeyUUID, plan.PrivateKeyUUID)
 
 	// Use the PATCH response directly (returns the full object) instead of
 	// a separate GET read-back. This avoids the O(n) list-and-scan in
@@ -257,7 +257,7 @@ func (r *gitHubAppResource) ImportState(ctx context.Context, req resource.Import
 }
 
 // readGitHubApp fetches the GitHub App from the API and updates the model in place.
-// client_secret and private_key are write-only and preserved from the caller's model.
+// client_secret and private_key_uuid are write-only and preserved from the caller's model.
 func (r *gitHubAppResource) readGitHubApp(ctx context.Context, id int64, model *gitHubAppResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -272,8 +272,8 @@ func (r *gitHubAppResource) readGitHubApp(ctx context.Context, id int64, model *
 }
 
 // flattenGitHubApp maps API fields into the Terraform resource model.
-// client_secret and private_key are write-only (not returned by API) and
-// preserved from the plan/state by the caller.
+// client_secret and private_key_uuid are write-only (not returned by API)
+// and preserved from the plan/state by the caller.
 func flattenGitHubApp(app *client.GitHubApp, model *gitHubAppResourceModel) {
 	model.ID = types.Int64Value(app.ID)
 	model.UUID = flex.StringToFramework(app.UUID)

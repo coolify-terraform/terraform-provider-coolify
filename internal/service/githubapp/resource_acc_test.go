@@ -36,7 +36,7 @@ func TestAccGitHubAppResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "id",
-				ImportStateVerifyIgnore:              []string{"client_secret", "private_key"},
+				ImportStateVerifyIgnore:              []string{"client_secret", "private_key_uuid"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rs, ok := s.RootModule().Resources["coolify_github_app.test"]
 					if !ok {
@@ -81,17 +81,7 @@ resource "coolify_github_app" "test" {
   installation_id = 67890
   client_id       = "Iv1.fake123456789"
   client_secret   = "fake-client-secret-value"
-  private_key     = <<-EOT
------BEGIN RSA PRIVATE KEY-----
-MIIBogIBAAJBALRiMLH00a6VK6aBIOxSjDQ3cBcVSaDXGfhLzJRNFp+t4/AOeDmR
-5jXIx7DKXAIF9LRPz2gMjTb4i/r20hEh4cUCAwEAAQJBAJmHpJzk0fzYIYv3ihEE
-3Ni7SIsMFCEzW0MREqYoLfpyBenGChQVqBqy9XAEiTHDhVsMb0ygDVRGGBGk0nkC
-IQDjBCIEaeWV//pZGeJBU6o3JRxJV0rYpAf+0JCuXxvhfwIhAMuaVUIzMgEeClUH
-7MYhb91EjG7RQcU0fYq+mUKPXaQfAiAXgdSDZvGhRHrFHGMLCcGI0EdCxKNcUmOb
-sDijzrCVlQIgbbsHtPPG0oFkkRe8Y+FRZFyJBLlaCRxNyOWLzRYW/BsCIBFJ2Pla
-0EQ2/JWFj1fOfsMnVMxOa2A1SL4lXEm6iNgV
------END RSA PRIVATE KEY-----
-EOT
+  private_key_uuid = "pk-uuid-acctest"
 }
 `, name)
 }

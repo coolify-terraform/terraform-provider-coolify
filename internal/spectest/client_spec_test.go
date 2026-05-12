@@ -312,7 +312,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"CreateHetznerServer", "POST", "/api/v1/servers/hetzner",
 			map[string]interface{}{
 				"name": "hetzner-srv", "private_key_uuid": "pk-1",
-				"hetzner_token": "tok-1", "server_type": "cx11",
+				"cloud_provider_token_uuid": "tok-1", "server_type": "cx11",
 				"location": "fsn1", "image": "ubuntu-22.04",
 			}, 201, map[string]string{"uuid": "srv-1"}},
 		{"ValidateServer", "GET", "/api/v1/servers/srv-1/validate",

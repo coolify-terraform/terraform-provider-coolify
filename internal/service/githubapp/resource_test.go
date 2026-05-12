@@ -151,7 +151,7 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 			ClientID         string `json:"client_id"`
 			ClientSecret     string `json:"client_secret"`
 			WebhookSecret    string `json:"webhook_secret"`
-			PrivateKey       string `json:"private_key"`
+			PrivateKeyUUID   string `json:"private_key_uuid"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
@@ -259,7 +259,7 @@ resource "coolify_github_app" "test" {
   installation_id = 67890
   client_id       = "Iv1.abc123"
   client_secret   = "secret123"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-test"
 }
 `
 
@@ -305,7 +305,7 @@ resource "coolify_github_app" "test" {
   client_id       = "Iv1.abc123"
   client_secret   = "secret123"
   webhook_secret  = "hook-secret-1"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-test"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -323,7 +323,7 @@ resource "coolify_github_app" "test" {
   client_id       = "Iv1.xyz789"
   client_secret   = "secret456"
   webhook_secret  = "hook-secret-2"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nupdated\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-updated"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -344,7 +344,7 @@ resource "coolify_github_app" "test" {
   client_id       = "Iv1.xyz789"
   client_secret   = "secret456"
   webhook_secret  = "hook-secret-2"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nupdated\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-updated"
 }
 `,
 				PlanOnly:           true,
@@ -370,7 +370,7 @@ resource "coolify_github_app" "test" {
   installation_id = 22222
   client_id       = "Iv1.import"
   client_secret   = "importsecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nimport\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-import"
 }
 `,
 				Check: resource.TestCheckResourceAttrSet("coolify_github_app.test", "id"),
@@ -380,7 +380,7 @@ resource "coolify_github_app" "test" {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "id",
-				ImportStateVerifyIgnore:              []string{"client_secret", "private_key"},
+				ImportStateVerifyIgnore:              []string{"client_secret", "private_key_uuid"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rs, ok := s.RootModule().Resources["coolify_github_app.test"]
 					if !ok {
@@ -409,7 +409,7 @@ resource "coolify_github_app" "test" {
   installation_id = 88888
   client_id       = "Iv1.disappear"
   client_secret   = "disappearsecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\ndisappear\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-disappear"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -448,7 +448,7 @@ resource "coolify_github_app" "first" {
   installation_id = 222
   client_id       = "Iv1.first"
   client_secret   = "firstsecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nfirst\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-first"
 }
 
 resource "coolify_github_app" "second" {
@@ -457,7 +457,7 @@ resource "coolify_github_app" "second" {
   installation_id = 444
   client_id       = "Iv1.second"
   client_secret   = "secondsecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nsecond\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-second"
 }
 
 data "coolify_github_apps" "all" {
@@ -488,7 +488,7 @@ resource "coolify_github_app" "test" {
   installation_id = 666
   client_id       = "Iv1.repos"
   client_secret   = "repossecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nrepos\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-repos"
 }
 
 data "coolify_github_app_repositories" "test" {
@@ -525,7 +525,7 @@ resource "coolify_github_app" "test" {
   installation_id = 888
   client_id       = "Iv1.branches"
   client_secret   = "branchessecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nbranches\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-branches"
 }
 
 data "coolify_github_app_branches" "test" {
@@ -560,7 +560,7 @@ resource "coolify_github_app" "test" {
   installation_id = 22222
   client_id       = "Iv1.dstest"
   client_secret   = "dstestsecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\ndstest\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-dstest"
 }
 
 data "coolify_github_app" "test" {
@@ -615,7 +615,7 @@ resource "coolify_github_app" "test" {
   installation_id = 67890
   client_id       = "Iv1.badid"
   client_secret   = "badidsecret"
-  private_key     = "-----BEGIN RSA PRIVATE KEY-----\nbadid\n-----END RSA PRIVATE KEY-----"
+  private_key_uuid = "pk-uuid-badid"
 }
 `,
 			},
