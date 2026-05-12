@@ -1,3 +1,13 @@
+variable "s3_access_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "s3_secret_key" {
+  type      = string
+  sensitive = true
+}
+
 resource "coolify_s3_storage" "backups" {
   name       = "backup-storage"
   endpoint   = "https://s3.amazonaws.com"
