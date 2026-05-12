@@ -89,7 +89,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading MongoDB database", err.Error())
+		resp.Diagnostics.AddError("Error reading MongoDB database", fmt.Sprintf("MongoDB database %s: %s", c.UUID, err))
 		return
 	}
 	flattenDatabase(db, &p)
@@ -107,7 +107,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading MongoDB database", err.Error())
+		resp.Diagnostics.AddError("Error reading MongoDB database", fmt.Sprintf("MongoDB database %s: %s", s.UUID.ValueString(), err))
 		return
 	}
 	flattenDatabase(db, &s)
@@ -134,12 +134,12 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	flex.SetStrPtr(&u.MongoInitdbRootPassword, p.MongoInitdbRootPassword)
 	flex.SetStrPtr(&u.MongoInitdbDatabase, p.MongoInitdbDatabase)
 	if _, err := r.client.UpdateDatabase(ctx, s.UUID.ValueString(), u); err != nil {
-		resp.Diagnostics.AddError("Error updating MongoDB database", err.Error())
+		resp.Diagnostics.AddError("Error updating MongoDB database", fmt.Sprintf("MongoDB database %s: %s", s.UUID.ValueString(), err))
 		return
 	}
 	db, err := r.client.GetDatabase(ctx, s.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading MongoDB database", err.Error())
+		resp.Diagnostics.AddError("Error reading MongoDB database", fmt.Sprintf("MongoDB database %s: %s", s.UUID.ValueString(), err))
 		return
 	}
 	flattenDatabase(db, &p)
@@ -155,7 +155,7 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting MongoDB database", err.Error())
+		resp.Diagnostics.AddError("Error deleting MongoDB database", fmt.Sprintf("MongoDB database %s: %s", s.UUID.ValueString(), err))
 		return
 	}
 }

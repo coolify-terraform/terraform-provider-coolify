@@ -199,7 +199,7 @@ func (r *gitHubAppResource) Read(ctx context.Context, req resource.ReadRequest, 
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error Reading GitHub App", fmt.Sprintf("Could not read GitHub App: %s", err))
+		resp.Diagnostics.AddError("Error Reading GitHub App", fmt.Sprintf("Could not read GitHub App %d: %s", state.ID.ValueInt64(), err))
 		return
 	}
 
@@ -235,7 +235,7 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 
 	_, err := r.client.UpdateGitHubApp(ctx, state.ID.ValueInt64(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Updating GitHub App", fmt.Sprintf("Could not update GitHub App: %s", err))
+		resp.Diagnostics.AddError("Error Updating GitHub App", fmt.Sprintf("Could not update GitHub App %d: %s", state.ID.ValueInt64(), err))
 		return
 	}
 
@@ -264,7 +264,7 @@ func (r *gitHubAppResource) Delete(ctx context.Context, req resource.DeleteReque
 			// Already deleted; nothing to do.
 			return
 		}
-		resp.Diagnostics.AddError("Error Deleting GitHub App", fmt.Sprintf("Could not delete GitHub App: %s", err))
+		resp.Diagnostics.AddError("Error Deleting GitHub App", fmt.Sprintf("Could not delete GitHub App %d: %s", state.ID.ValueInt64(), err))
 	}
 }
 
@@ -287,7 +287,7 @@ func (r *gitHubAppResource) readGitHubApp(ctx context.Context, id int64, model *
 
 	app, err := r.client.GetGitHubApp(ctx, id)
 	if err != nil {
-		diags.AddError("Error Reading GitHub App", fmt.Sprintf("Could not read GitHub App after create/update: %s", err))
+		diags.AddError("Error Reading GitHub App", fmt.Sprintf("Could not read GitHub App %d after create/update: %s", id, err))
 		return diags
 	}
 

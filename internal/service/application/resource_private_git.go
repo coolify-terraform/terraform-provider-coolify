@@ -244,7 +244,7 @@ func (r *privateGitApplicationResource) Create(ctx context.Context, req resource
 
 	app, err := r.client.GetApplication(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading application after creation", err.Error())
+		resp.Diagnostics.AddError("Error reading application after creation", fmt.Sprintf("application %s: %s", created.UUID, err))
 		return
 	}
 
@@ -265,7 +265,7 @@ func (r *privateGitApplicationResource) Read(ctx context.Context, req resource.R
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading application", err.Error())
+		resp.Diagnostics.AddError("Error reading application", fmt.Sprintf("application %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -301,7 +301,7 @@ func (r *privateGitApplicationResource) Delete(ctx context.Context, req resource
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting application", err.Error())
+		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

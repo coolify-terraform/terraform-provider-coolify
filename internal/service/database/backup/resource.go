@@ -134,7 +134,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 
 	created, err := r.client.CreateDatabaseBackup(ctx, plan.DatabaseUUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating database backup", err.Error())
+		resp.Diagnostics.AddError("Error creating database backup", fmt.Sprintf("backup for database %s: %s", plan.DatabaseUUID.ValueString(), err))
 		return
 	}
 
@@ -184,7 +184,7 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 				resp.State.RemoveResource(ctx)
 				return
 			}
-			resp.Diagnostics.AddError("Error reading database backup", listErr.Error())
+			resp.Diagnostics.AddError("Error reading database backup", fmt.Sprintf("backup %s for database %s: %s", state.UUID.ValueString(), dbUUID, listErr))
 			return
 		}
 		for i := range backups {
@@ -205,7 +205,7 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 				resp.State.RemoveResource(ctx)
 				return
 			}
-			resp.Diagnostics.AddError("Error reading database backup", err.Error())
+			resp.Diagnostics.AddError("Error reading database backup", fmt.Sprintf("backup %d for database %s: %s", backupID, dbUUID, err))
 			return
 		}
 	}
@@ -236,13 +236,13 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 	input.RetainDays = flex.Int64PtrForUpdate(plan.RetainDays, state.RetainDays)
 
 	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, backupID, input); err != nil {
-		resp.Diagnostics.AddError("Error updating database backup", err.Error())
+		resp.Diagnostics.AddError("Error updating database backup", fmt.Sprintf("backup %d for database %s: %s", backupID, dbUUID, err))
 		return
 	}
 
 	b, err := r.client.GetDatabaseBackup(ctx, dbUUID, backupID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading database backup after update", err.Error())
+		resp.Diagnostics.AddError("Error reading database backup after update", fmt.Sprintf("backup %d for database %s: %s", backupID, dbUUID, err))
 		return
 	}
 
@@ -260,7 +260,7 @@ func (r *databaseBackupResource) Delete(ctx context.Context, req resource.Delete
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting database backup", err.Error())
+		resp.Diagnostics.AddError("Error deleting database backup", fmt.Sprintf("backup %d for database %s: %s", int(state.ID.ValueInt64()), state.DatabaseUUID.ValueString(), err))
 		return
 	}
 }

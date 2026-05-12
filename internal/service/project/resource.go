@@ -141,7 +141,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error Reading Project", fmt.Sprintf("Could not read project: %s", err))
+		resp.Diagnostics.AddError("Error Reading Project", fmt.Sprintf("Could not read project %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -179,7 +179,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	_, err := r.client.UpdateProject(ctx, state.UUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error Updating Project", fmt.Sprintf("Could not update project: %s", err))
+		resp.Diagnostics.AddError("Error Updating Project", fmt.Sprintf("Could not update project %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -240,7 +240,7 @@ func (r *projectResource) readProject(ctx context.Context, uuid string, model *p
 
 	project, err := r.client.GetProject(ctx, uuid)
 	if err != nil {
-		diags.AddError("Error Reading Project", fmt.Sprintf("Could not read project after create/update: %s", err))
+		diags.AddError("Error Reading Project", fmt.Sprintf("Could not read project %s after create/update: %s", uuid, err))
 		return diags
 	}
 

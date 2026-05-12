@@ -100,7 +100,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 
 	db, err := r.client.GetDatabase(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading MySQL database after creation", err.Error())
+		resp.Diagnostics.AddError("Error reading MySQL database after creation", fmt.Sprintf("MySQL database %s: %s", created.UUID, err))
 		return
 	}
 	flattenDatabase(db, &plan)
@@ -119,7 +119,7 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading MySQL database", err.Error())
+		resp.Diagnostics.AddError("Error reading MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 	flattenDatabase(db, &state)
@@ -149,12 +149,12 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 	flex.SetStrPtr(&input.MysqlDatabase, plan.MysqlDatabase)
 	flex.SetStrPtr(&input.MysqlRootPassword, plan.MysqlRootPassword)
 	if _, err := r.client.UpdateDatabase(ctx, uuid, input); err != nil {
-		resp.Diagnostics.AddError("Error updating MySQL database", err.Error())
+		resp.Diagnostics.AddError("Error updating MySQL database", fmt.Sprintf("MySQL database %s: %s", uuid, err))
 		return
 	}
 	db, err := r.client.GetDatabase(ctx, uuid)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading MySQL database after update", err.Error())
+		resp.Diagnostics.AddError("Error reading MySQL database after update", fmt.Sprintf("MySQL database %s: %s", uuid, err))
 		return
 	}
 	flattenDatabase(db, &plan)
@@ -171,7 +171,7 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting MySQL database", err.Error())
+		resp.Diagnostics.AddError("Error deleting MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

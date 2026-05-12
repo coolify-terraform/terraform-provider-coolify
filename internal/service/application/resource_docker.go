@@ -205,7 +205,7 @@ func (r *dockerImageApplicationResource) Create(ctx context.Context, req resourc
 
 	app, err := r.client.GetApplication(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading application after creation", err.Error())
+		resp.Diagnostics.AddError("Error reading application after creation", fmt.Sprintf("application %s: %s", created.UUID, err))
 		return
 	}
 
@@ -226,7 +226,7 @@ func (r *dockerImageApplicationResource) Read(ctx context.Context, req resource.
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading application", err.Error())
+		resp.Diagnostics.AddError("Error reading application", fmt.Sprintf("application %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -253,13 +253,13 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 
 	_, err := r.client.UpdateApplication(ctx, plan.UUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error updating application", err.Error())
+		resp.Diagnostics.AddError("Error updating application", fmt.Sprintf("application %s: %s", plan.UUID.ValueString(), err))
 		return
 	}
 
 	app, err := r.client.GetApplication(ctx, plan.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading application after update", err.Error())
+		resp.Diagnostics.AddError("Error reading application after update", fmt.Sprintf("application %s: %s", plan.UUID.ValueString(), err))
 		return
 	}
 
@@ -278,7 +278,7 @@ func (r *dockerImageApplicationResource) Delete(ctx context.Context, req resourc
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting application", err.Error())
+		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

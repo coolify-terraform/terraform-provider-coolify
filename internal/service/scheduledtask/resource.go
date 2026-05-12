@@ -152,7 +152,7 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 
 	taskUUID, err := r.client.CreateScheduledTask(ctx, parentType, parentUUID, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating scheduled task", err.Error())
+		resp.Diagnostics.AddError("Error creating scheduled task", fmt.Sprintf("scheduled task on %s: %s", parentUUID, err))
 		return
 	}
 
@@ -175,7 +175,7 @@ func (r *scheduledTaskResource) Read(ctx context.Context, req resource.ReadReque
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading scheduled tasks", err.Error())
+		resp.Diagnostics.AddError("Error reading scheduled tasks", fmt.Sprintf("scheduled task %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -216,7 +216,7 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	if err := r.client.UpdateScheduledTask(ctx, parentType, parentUUID, plan.UUID.ValueString(), input); err != nil {
-		resp.Diagnostics.AddError("Error updating scheduled task", err.Error())
+		resp.Diagnostics.AddError("Error updating scheduled task", fmt.Sprintf("scheduled task %s: %s", plan.UUID.ValueString(), err))
 		return
 	}
 
@@ -236,7 +236,7 @@ func (r *scheduledTaskResource) Delete(ctx context.Context, req resource.DeleteR
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting scheduled task", err.Error())
+		resp.Diagnostics.AddError("Error deleting scheduled task", fmt.Sprintf("scheduled task %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

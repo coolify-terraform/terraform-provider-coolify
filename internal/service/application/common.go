@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
@@ -106,12 +107,12 @@ func updateAndReadBack(
 	flatten func(*client.Application),
 ) {
 	if _, err := c.UpdateApplication(ctx, uuid, input); err != nil {
-		resp.Diagnostics.AddError("Error updating application", err.Error())
+		resp.Diagnostics.AddError("Error updating application", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
 	app, err := c.GetApplication(ctx, uuid)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading application after update", err.Error())
+		resp.Diagnostics.AddError("Error reading application after update", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
 	flatten(app)

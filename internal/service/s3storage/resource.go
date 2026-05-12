@@ -145,7 +145,7 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 	// Read back for full state.
 	s, err := r.client.GetS3Storage(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading S3 storage after create", err.Error())
+		resp.Diagnostics.AddError("Error reading S3 storage after create", fmt.Sprintf("S3 storage %s: %s", created.UUID, err))
 		return
 	}
 
@@ -166,7 +166,7 @@ func (r *s3StorageResource) Read(ctx context.Context, req resource.ReadRequest, 
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading S3 storage", err.Error())
+		resp.Diagnostics.AddError("Error reading S3 storage", fmt.Sprintf("S3 storage %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -198,14 +198,14 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 
 	_, err := r.client.UpdateS3Storage(ctx, state.UUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error updating S3 storage", err.Error())
+		resp.Diagnostics.AddError("Error updating S3 storage", fmt.Sprintf("S3 storage %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
 	// Read back for full state.
 	s, err := r.client.GetS3Storage(ctx, state.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading S3 storage after update", err.Error())
+		resp.Diagnostics.AddError("Error reading S3 storage after update", fmt.Sprintf("S3 storage %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -224,7 +224,7 @@ func (r *s3StorageResource) Delete(ctx context.Context, req resource.DeleteReque
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting S3 storage", err.Error())
+		resp.Diagnostics.AddError("Error deleting S3 storage", fmt.Sprintf("S3 storage %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

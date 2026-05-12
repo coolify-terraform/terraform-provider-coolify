@@ -166,7 +166,7 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating environment variable", err.Error())
+		resp.Diagnostics.AddError("Error creating environment variable", fmt.Sprintf("env var %s: %s", plan.Key.ValueString(), err))
 		return
 	}
 
@@ -201,7 +201,7 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading environment variables", err.Error())
+		resp.Diagnostics.AddError("Error reading environment variables", fmt.Sprintf("env var %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -255,7 +255,7 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error updating environment variable", err.Error())
+		resp.Diagnostics.AddError("Error updating environment variable", fmt.Sprintf("env var %s: %s", plan.UUID.ValueString(), err))
 		return
 	}
 
@@ -287,7 +287,7 @@ func (r *environmentVariableResource) Delete(ctx context.Context, req resource.D
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting environment variable", err.Error())
+		resp.Diagnostics.AddError("Error deleting environment variable", fmt.Sprintf("env var %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

@@ -166,7 +166,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	// Read back for full state.
 	srv, err := r.client.GetServer(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading server after create", err.Error())
+		resp.Diagnostics.AddError("Error reading server after create", fmt.Sprintf("server %s: %s", created.UUID, err))
 		return
 	}
 
@@ -187,7 +187,7 @@ func (r *serverResource) Read(ctx context.Context, req resource.ReadRequest, res
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading server", err.Error())
+		resp.Diagnostics.AddError("Error reading server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -223,14 +223,14 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	_, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error updating server", err.Error())
+		resp.Diagnostics.AddError("Error updating server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
 	// Read back for full state.
 	srv, err := r.client.GetServer(ctx, state.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading server after update", err.Error())
+		resp.Diagnostics.AddError("Error reading server after update", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -249,7 +249,7 @@ func (r *serverResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting server", err.Error())
+		resp.Diagnostics.AddError("Error deleting server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

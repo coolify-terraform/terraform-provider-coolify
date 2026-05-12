@@ -88,7 +88,7 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 
 	svc, err := r.client.GetService(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading service after creation", err.Error())
+		resp.Diagnostics.AddError("Error reading service after creation", fmt.Sprintf("service %s: %s", created.UUID, err))
 		return
 	}
 	flattenService(svc, &plan)
@@ -106,7 +106,7 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading service", err.Error())
+		resp.Diagnostics.AddError("Error reading service", fmt.Sprintf("service %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 	flattenService(svc, &state)
@@ -122,12 +122,12 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	flex.SetStrPtr(&input.Name, plan.Name)
 	flex.SetStrPtr(&input.Description, plan.Description)
 	if _, err := r.client.UpdateService(ctx, plan.UUID.ValueString(), input); err != nil {
-		resp.Diagnostics.AddError("Error updating service", err.Error())
+		resp.Diagnostics.AddError("Error updating service", fmt.Sprintf("service %s: %s", plan.UUID.ValueString(), err))
 		return
 	}
 	svc, err := r.client.GetService(ctx, plan.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading service after update", err.Error())
+		resp.Diagnostics.AddError("Error reading service after update", fmt.Sprintf("service %s: %s", plan.UUID.ValueString(), err))
 		return
 	}
 	flattenService(svc, &plan)
@@ -143,7 +143,7 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting service", err.Error())
+		resp.Diagnostics.AddError("Error deleting service", fmt.Sprintf("service %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

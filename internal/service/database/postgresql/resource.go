@@ -116,7 +116,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 
 	db, err := r.client.GetDatabase(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading PostgreSQL database after creation", err.Error())
+		resp.Diagnostics.AddError("Error reading PostgreSQL database after creation", fmt.Sprintf("PostgreSQL database %s: %s", created.UUID, err))
 		return
 	}
 	flattenDatabase(db, &plan)
@@ -135,7 +135,7 @@ func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.Read
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading PostgreSQL database", err.Error())
+		resp.Diagnostics.AddError("Error reading PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 	flattenDatabase(db, &state)
@@ -164,12 +164,12 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 	flex.SetStrPtr(&input.PostgresPassword, plan.PostgresPassword)
 	flex.SetStrPtr(&input.PostgresDB, plan.PostgresDB)
 	if _, err := r.client.UpdateDatabase(ctx, uuid, input); err != nil {
-		resp.Diagnostics.AddError("Error updating PostgreSQL database", err.Error())
+		resp.Diagnostics.AddError("Error updating PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", uuid, err))
 		return
 	}
 	db, err := r.client.GetDatabase(ctx, uuid)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading PostgreSQL database after update", err.Error())
+		resp.Diagnostics.AddError("Error reading PostgreSQL database after update", fmt.Sprintf("PostgreSQL database %s: %s", uuid, err))
 		return
 	}
 	flattenDatabase(db, &plan)
@@ -186,7 +186,7 @@ func (r *postgresqlDatabaseResource) Delete(ctx context.Context, req resource.De
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting PostgreSQL database", err.Error())
+		resp.Diagnostics.AddError("Error deleting PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

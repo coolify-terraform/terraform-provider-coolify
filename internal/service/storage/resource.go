@@ -158,7 +158,7 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 
 	createResp, err := r.client.CreateStorage(ctx, parentType, parentUUID, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating persistent storage", err.Error())
+		resp.Diagnostics.AddError("Error creating persistent storage", fmt.Sprintf("storage on %s: %s", parentUUID, err))
 		return
 	}
 
@@ -185,7 +185,7 @@ func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, re
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading persistent storages", err.Error())
+		resp.Diagnostics.AddError("Error reading persistent storages", fmt.Sprintf("storage %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -250,7 +250,7 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	err := r.client.UpdateStorage(ctx, parentType, parentUUID, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error updating persistent storage", err.Error())
+		resp.Diagnostics.AddError("Error updating persistent storage", fmt.Sprintf("storage %s: %s", plan.UUID.ValueString(), err))
 		return
 	}
 
@@ -275,7 +275,7 @@ func (r *storageResource) Delete(ctx context.Context, req resource.DeleteRequest
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting persistent storage", err.Error())
+		resp.Diagnostics.AddError("Error deleting persistent storage", fmt.Sprintf("storage %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }

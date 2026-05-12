@@ -124,7 +124,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	// Read back for full state.
 	key, err := r.client.GetPrivateKey(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading private key after create", err.Error())
+		resp.Diagnostics.AddError("Error reading private key after create", fmt.Sprintf("private key %s: %s", created.UUID, err))
 		return
 	}
 
@@ -145,7 +145,7 @@ func (r *privateKeyResource) Read(ctx context.Context, req resource.ReadRequest,
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading private key", err.Error())
+		resp.Diagnostics.AddError("Error reading private key", fmt.Sprintf("private key %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -173,14 +173,14 @@ func (r *privateKeyResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	_, err := r.client.UpdatePrivateKey(ctx, state.UUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error updating private key", err.Error())
+		resp.Diagnostics.AddError("Error updating private key", fmt.Sprintf("private key %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
 	// Read back for full state.
 	key, err := r.client.GetPrivateKey(ctx, state.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading private key after update", err.Error())
+		resp.Diagnostics.AddError("Error reading private key after update", fmt.Sprintf("private key %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
@@ -199,7 +199,7 @@ func (r *privateKeyResource) Delete(ctx context.Context, req resource.DeleteRequ
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting private key", err.Error())
+		resp.Diagnostics.AddError("Error deleting private key", fmt.Sprintf("private key %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }
