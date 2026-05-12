@@ -57,11 +57,15 @@ output "app_uuid" {
 ```
 
 Replace `your-server-uuid` with the UUID of a server registered in Coolify.
-Find it via the UI or with:
+The server must be SSH-reachable and validated (status: `is_usable: true`).
+Coolify manages Docker containers by SSHing into servers, so applications
+created on unreachable servers will silently fail.
+
+Find your server UUID via the UI or with:
 
 ```bash
 curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" \
-  "$COOLIFY_ENDPOINT/api/v1/servers" | jq '.[].uuid'
+  "$COOLIFY_ENDPOINT/api/v1/servers" | jq '.[] | {uuid, name, is_usable: .settings.is_usable}'
 ```
 
 ## 3. Initialize and apply

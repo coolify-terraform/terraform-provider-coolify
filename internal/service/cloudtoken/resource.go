@@ -67,7 +67,7 @@ func (r *cloudTokenResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"token": schema.StringAttribute{
-				MarkdownDescription: "The cloud provider token.",
+				MarkdownDescription: "The cloud provider token. Coolify validates this against the cloud provider's API on creation; placeholder values will be rejected.",
 				Required:            true,
 				Sensitive:           true,
 			},

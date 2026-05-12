@@ -75,7 +75,9 @@ automatically, but they are worth knowing:
 | **Port override** | `coolify_dockerfile_application` | Coolify may return a different port than configured |
 | **Immutable fields omitted** | All databases, apps, services | `project_uuid`, `server_uuid`, `environment_name` not returned by GET |
 | **Storage name prefixing** | `coolify_storage` | Coolify prepends the application UUID to the storage name |
-| **Base64 encoding required** | `coolify_docker_compose_application` | `docker_compose_raw` must be base64-encoded despite the field name |
+| **Base64 encoding required** | `coolify_dockerfile_application`, `coolify_docker_compose_application` | `dockerfile_location` and `docker_compose_raw` must be base64-encoded despite the field names; use `base64encode()` |
+| **Server must be reachable** | All applications, databases, services | Resources created on unreachable servers return a UUID but silently fail to persist |
+| **Cloud token validation** | `coolify_cloud_token` | Coolify validates the token against the cloud provider's API on creation (cannot use placeholder values) |
 | **Async deletion** | `coolify_project` | Child resources are deleted asynchronously; project delete retries automatically |
 
 The provider preserves your configured values for all normalized fields.

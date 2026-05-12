@@ -116,7 +116,7 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 				},
 			},
 			"dockerfile_location": schema.StringAttribute{
-				MarkdownDescription: "The path to the Dockerfile (e.g. `/Dockerfile`).",
+				MarkdownDescription: "The Dockerfile content, **base64-encoded**. Use `base64encode(<<-DOCKERFILE ... DOCKERFILE)` in your configuration. Despite the field name, this is not a file path.",
 				Required:            true,
 			},
 			"ports_exposes": schema.StringAttribute{
