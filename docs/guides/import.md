@@ -81,7 +81,7 @@ must be set in your `.tf` configuration before running `terraform plan`:
 |---|---|
 | All databases | `project_uuid`, `server_uuid`, `environment_name` |
 | All applications | `project_uuid`, `server_uuid`, `environment_name` |
-| `coolify_github_app` | `client_secret`, `private_key` (write-only, never returned by the API) |
+| `coolify_github_app` | `client_secret`, `private_key_uuid` (write-only, never returned by the API) |
 | Database backups | `database_uuid` |
 
 If these fields are missing, `terraform plan` will either show a diff
