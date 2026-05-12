@@ -3,15 +3,18 @@ package dragonfly
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -22,7 +25,8 @@ var (
 
 type res struct{ client *client.Client }
 type model struct {
-	UUID            types.String `tfsdk:"uuid"`
+	Timeouts        timeouts.Value `tfsdk:"timeouts"`
+	UUID            types.String   `tfsdk:"uuid"`
 	Name            types.String `tfsdk:"name"`
 	Description     types.String `tfsdk:"description"`
 	ProjectUUID     types.String `tfsdk:"project_uuid"`
@@ -37,8 +41,8 @@ func NewResource() resource.Resource { return &res{} }
 func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_dragonfly_database"
 }
-func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Dragonfly database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(nil)}
+func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Dragonfly database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, nil)}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
@@ -57,6 +61,15 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	createTimeout, diags := p.Timeouts.Create(ctx, 10*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_dragonfly_database"})
+
 	in := client.CreateDragonflyInput{ServerUUID: p.ServerUUID.ValueString(), ProjectUUID: p.ProjectUUID.ValueString(), EnvironmentName: p.EnvironmentName.ValueString()}
 	flex.SetIfKnown(&in.Name, p.Name)
 	flex.SetIfKnown(&in.Description, p.Description)
@@ -89,6 +102,8 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_dragonfly_database", "uuid": s.UUID.ValueString()})
+
 	db, err := r.client.GetDatabase(ctx, s.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -112,6 +127,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_dragonfly_database", "uuid": s.UUID.ValueString()})
+
 	u := client.UpdateDatabaseInput{}
 	flex.SetStrPtr(&u.Name, p.Name)
 	flex.SetStrPtr(&u.Description, p.Description)
@@ -136,6 +153,8 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_dragonfly_database", "uuid": s.UUID.ValueString()})
+
 	if err := r.client.DeleteDatabase(ctx, s.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {
 			return

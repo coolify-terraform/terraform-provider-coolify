@@ -3,10 +3,12 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -25,7 +27,8 @@ var (
 type mysqlDatabaseResource struct{ client *client.Client }
 
 type mysqlDatabaseResourceModel struct {
-	UUID              types.String `tfsdk:"uuid"`
+	Timeouts          timeouts.Value `tfsdk:"timeouts"`
+	UUID              types.String   `tfsdk:"uuid"`
 	Name              types.String `tfsdk:"name"`
 	Description       types.String `tfsdk:"description"`
 	ProjectUUID       types.String `tfsdk:"project_uuid"`
@@ -46,10 +49,10 @@ func (r *mysqlDatabaseResource) Metadata(_ context.Context, req resource.Metadat
 	resp.TypeName = req.ProviderTypeName + "_mysql_database"
 }
 
-func (r *mysqlDatabaseResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *mysqlDatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a MySQL database resource on Coolify.",
-		Attributes: postgresql.CommonDatabaseAttrs(map[string]schema.Attribute{
+		Attributes: postgresql.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 			"mysql_user":          schema.StringAttribute{MarkdownDescription: "The MySQL user name (maps to `MYSQL_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_password":      schema.StringAttribute{MarkdownDescription: "The MySQL user password (maps to `MYSQL_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_database":      schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MYSQL_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
@@ -76,6 +79,15 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_mysql_database"})
+
 	input := client.CreateMysqlInput{ServerUUID: plan.ServerUUID.ValueString(), ProjectUUID: plan.ProjectUUID.ValueString(), EnvironmentName: plan.EnvironmentName.ValueString()}
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
@@ -113,6 +125,8 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
+
 	db, err := r.client.GetDatabase(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -138,6 +152,9 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 	uuid := state.UUID.ValueString()
+
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": uuid})
+
 	input := client.UpdateDatabaseInput{}
 	flex.SetStrPtr(&input.Name, plan.Name)
 	flex.SetStrPtr(&input.Description, plan.Description)
@@ -167,6 +184,8 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
+
 	if err := r.client.DeleteDatabase(ctx, state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {
 			return

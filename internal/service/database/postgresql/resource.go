@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -29,7 +31,8 @@ var (
 type postgresqlDatabaseResource struct{ client *client.Client }
 
 type postgresqlDatabaseResourceModel struct {
-	UUID             types.String `tfsdk:"uuid"`
+	Timeouts         timeouts.Value `tfsdk:"timeouts"`
+	UUID             types.String   `tfsdk:"uuid"`
 	Name             types.String `tfsdk:"name"`
 	Description      types.String `tfsdk:"description"`
 	ProjectUUID      types.String `tfsdk:"project_uuid"`
@@ -49,10 +52,10 @@ func (r *postgresqlDatabaseResource) Metadata(_ context.Context, req resource.Me
 	resp.TypeName = req.ProviderTypeName + "_postgresql_database"
 }
 
-func (r *postgresqlDatabaseResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *postgresqlDatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a PostgreSQL database resource on Coolify.",
-		Attributes: CommonDatabaseAttrs(map[string]schema.Attribute{
+		Attributes: CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 			"postgres_user": schema.StringAttribute{
 				MarkdownDescription: "The PostgreSQL superuser name (maps to `POSTGRES_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
@@ -87,6 +90,16 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
+
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_postgresql_database"})
 
 	input := client.CreatePostgresqlInput{
 		ServerUUID:      plan.ServerUUID.ValueString(),
@@ -129,6 +142,8 @@ func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": state.UUID.ValueString()})
+
 	db, err := r.client.GetDatabase(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -225,8 +240,9 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 // --- shared helpers ---
 
 // CommonDatabaseAttrs returns the shared schema attributes for all database types.
-func CommonDatabaseAttrs(extra map[string]schema.Attribute) map[string]schema.Attribute {
+func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute) map[string]schema.Attribute {
 	attrs := map[string]schema.Attribute{
+		"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 		"uuid":             schema.StringAttribute{MarkdownDescription: "The UUID of the database.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"name":             schema.StringAttribute{MarkdownDescription: "The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"description":      schema.StringAttribute{MarkdownDescription: "A description of the database.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
