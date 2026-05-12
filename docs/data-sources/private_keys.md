@@ -33,6 +33,8 @@ output "key_names" {
 Read-Only:
 
 - `description` (String) A description of the private key.
+- `fingerprint` (String) The fingerprint of the private key.
 - `is_git_related` (Boolean) Whether this key is used for Git operations.
 - `name` (String) The name of the private key.
+- `public_key` (String) The public key derived from the private key.
 - `uuid` (String) The unique identifier of the private key.

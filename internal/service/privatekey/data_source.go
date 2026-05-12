@@ -27,6 +27,8 @@ type privateKeyDataSourceModel struct {
 	Name         types.String `tfsdk:"name"`
 	Description  types.String `tfsdk:"description"`
 	PrivateKey   types.String `tfsdk:"private_key"`
+	PublicKey    types.String `tfsdk:"public_key"`
+	Fingerprint  types.String `tfsdk:"fingerprint"`
 	IsGitRelated types.Bool   `tfsdk:"is_git_related"`
 }
 
@@ -60,6 +62,14 @@ func (d *privateKeyDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				MarkdownDescription: "The PEM-encoded private key content.",
 				Computed:            true,
 				Sensitive:           true,
+			},
+			"public_key": schema.StringAttribute{
+				MarkdownDescription: "The public key derived from the private key.",
+				Computed:            true,
+			},
+			"fingerprint": schema.StringAttribute{
+				MarkdownDescription: "The fingerprint of the private key.",
+				Computed:            true,
 			},
 			"is_git_related": schema.BoolAttribute{
 				MarkdownDescription: "Whether this key is used for Git operations.",
@@ -103,6 +113,8 @@ func (d *privateKeyDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	config.Name = types.StringValue(key.Name)
 	config.Description = flex.StringToFramework(key.Description)
 	config.PrivateKey = types.StringValue(key.PrivateKey)
+	config.PublicKey = flex.StringToFramework(key.PublicKey)
+	config.Fingerprint = flex.StringToFramework(key.Fingerprint)
 	config.IsGitRelated = types.BoolValue(key.IsGitRelated)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)

@@ -31,6 +31,8 @@ type privateKeyItemModel struct {
 	UUID         types.String `tfsdk:"uuid"`
 	Name         types.String `tfsdk:"name"`
 	Description  types.String `tfsdk:"description"`
+	PublicKey    types.String `tfsdk:"public_key"`
+	Fingerprint  types.String `tfsdk:"fingerprint"`
 	IsGitRelated types.Bool   `tfsdk:"is_git_related"`
 }
 
@@ -62,6 +64,14 @@ func (d *privateKeyListDataSource) Schema(_ context.Context, _ datasource.Schema
 						},
 						"description": schema.StringAttribute{
 							MarkdownDescription: "A description of the private key.",
+							Computed:            true,
+						},
+						"public_key": schema.StringAttribute{
+							MarkdownDescription: "The public key derived from the private key.",
+							Computed:            true,
+						},
+						"fingerprint": schema.StringAttribute{
+							MarkdownDescription: "The fingerprint of the private key.",
 							Computed:            true,
 						},
 						"is_git_related": schema.BoolAttribute{
@@ -105,6 +115,8 @@ func (d *privateKeyListDataSource) Read(ctx context.Context, _ datasource.ReadRe
 			IsGitRelated: types.BoolValue(k.IsGitRelated),
 		}
 		item.Description = flex.StringToFramework(k.Description)
+		item.PublicKey = flex.StringToFramework(k.PublicKey)
+		item.Fingerprint = flex.StringToFramework(k.Fingerprint)
 		state.PrivateKeys = append(state.PrivateKeys, item)
 	}
 

@@ -12,6 +12,8 @@ type PrivateKey struct {
 	Name         string `json:"name"`
 	Description  string `json:"description,omitempty"`
 	PrivateKey   string `json:"private_key"`
+	PublicKey    string `json:"public_key,omitempty"`
+	Fingerprint  string `json:"fingerprint,omitempty"`
 	IsGitRelated bool   `json:"is_git_related"`
 }
 type CreatePrivateKeyInput struct {

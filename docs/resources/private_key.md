@@ -34,7 +34,9 @@ resource "coolify_private_key" "example" {
 
 ### Read-Only
 
+- `fingerprint` (String) The fingerprint of the private key. Read-only.
 - `is_git_related` (Boolean) Whether this key is used for Git operations. Determined by the server.
+- `public_key` (String) The public key derived from the private key. Read-only.
 - `uuid` (String) The unique identifier of the private key.
 
 ## Import
