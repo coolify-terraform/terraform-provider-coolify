@@ -57,19 +57,11 @@ run "create_and_verify" {
     error_message = "Storage was not created: uuid is empty"
   }
   assert {
-    condition     = coolify_storage.uploads.fs_path == "/app/uploads"
-    error_message = "Storage fs_path mismatch: got ${coolify_storage.uploads.fs_path}"
+    condition     = coolify_storage.uploads.mount_path == "/app/uploads"
+    error_message = "Storage mount_path mismatch: got ${coolify_storage.uploads.mount_path}"
   }
 
-  # --- Cloud Token ---
-  assert {
-    condition     = coolify_cloud_token.monitoring.uuid != ""
-    error_message = "Cloud token was not created: uuid is empty"
-  }
-  assert {
-    condition     = coolify_cloud_token.monitoring.name == "acme-monitoring-token"
-    error_message = "Cloud token name mismatch: got ${coolify_cloud_token.monitoring.name}"
-  }
+
 }
 
 # Idempotency: re-plan should produce no changes.

@@ -3,7 +3,7 @@ output "coolify_version" {
 }
 
 output "server_is_usable" {
-  value = data.coolify_server.target.settings_is_usable
+  value = data.coolify_server.target.is_usable
 }
 
 output "private_key_uuid" {
@@ -18,6 +18,3 @@ output "storage_uuid" {
   value = coolify_storage.uploads.uuid
 }
 
-output "cloud_token_uuid" {
-  value = coolify_cloud_token.monitoring.uuid
-}

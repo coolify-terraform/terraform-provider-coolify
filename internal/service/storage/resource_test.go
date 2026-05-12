@@ -43,9 +43,9 @@ func TestStorageResource_Create(t *testing.T) {
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		if deleted {
-			json.NewEncoder(w).Encode([]client.Storage{})
+			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {}, "file_storages": {}})
 		} else {
-			json.NewEncoder(w).Encode([]client.Storage{stor})
+			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
 		}
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
@@ -112,7 +112,7 @@ func TestStorageResource_Update(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.Storage{currentStor})
+		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {currentStor}, "file_storages": {}})
 	})
 	mux.HandleFunc("PATCH /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
@@ -217,7 +217,7 @@ func TestStorageResource_Import(t *testing.T) {
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.Storage{stor})
+		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
@@ -263,7 +263,7 @@ func TestStorageResource_ImportBadFormat(t *testing.T) {
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.Storage{{UUID: "stor-err-uuid", Name: "n", MountPath: "/m"}})
+		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {{UUID: "stor-err-uuid", Name: "n", MountPath: "/m"}}, "file_storages": {}})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
@@ -305,7 +305,7 @@ func TestStorageResource_ImportBadType(t *testing.T) {
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.Storage{{UUID: "stor-err2-uuid", Name: "n", MountPath: "/m"}})
+		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {{UUID: "stor-err2-uuid", Name: "n", MountPath: "/m"}}, "file_storages": {}})
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
@@ -359,9 +359,9 @@ func TestStorageResource_Disappears(t *testing.T) {
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		if deleted {
-			json.NewEncoder(w).Encode([]client.Storage{})
+			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {}, "file_storages": {}})
 		} else {
-			json.NewEncoder(w).Encode([]client.Storage{stor})
+			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
 		}
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {

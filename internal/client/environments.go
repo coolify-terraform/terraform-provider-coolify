@@ -18,9 +18,10 @@ type Environment struct {
 }
 
 // CreateEnvironmentInput is the input for creating an environment.
+// Note: Coolify's Create endpoint rejects "description" with 422.
+// Description is a state-only field managed by the provider.
 type CreateEnvironmentInput struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	Name string `json:"name"`
 }
 
 // ListEnvironments returns all environments for the given project.

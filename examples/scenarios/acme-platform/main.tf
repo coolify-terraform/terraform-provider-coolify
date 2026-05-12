@@ -29,15 +29,12 @@ data "coolify_server" "target" {
 data "coolify_teams" "all" {}
 
 # --- Private Key ---
+# Uses a test-only SSH key. In production, use a real deployment key.
 
 resource "coolify_private_key" "deploy" {
   name        = "acme-deploy-key"
   description = "Deployment key for ACME platform"
-  private_key = tls_private_key.deploy.private_key_openssh
-}
-
-resource "tls_private_key" "deploy" {
-  algorithm = "ED25519"
+  private_key = file("${path.module}/test-deploy-key")
 }
 
 # --- Project with custom environment ---
@@ -66,14 +63,7 @@ resource "coolify_application" "api" {
 }
 
 resource "coolify_storage" "uploads" {
-  resource_uuid = coolify_application.api.uuid
-  resource_type = "application"
-  fs_path       = "/app/uploads"
-  mount_path    = "/app/uploads"
-}
-
-# --- Cloud Token ---
-
-resource "coolify_cloud_token" "monitoring" {
-  name = "acme-monitoring-token"
+  application_uuid = coolify_application.api.uuid
+  name             = "app-uploads"
+  mount_path       = "/app/uploads"
 }

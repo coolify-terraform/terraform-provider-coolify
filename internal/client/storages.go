@@ -15,8 +15,15 @@ type Storage struct {
 	HostPath  string `json:"host_path,omitempty"`
 }
 
+// storageListResponse wraps the API response which nests storages by type.
+type storageListResponse struct {
+	PersistentStorages []Storage `json:"persistent_storages"`
+	FileStorages       []Storage `json:"file_storages"`
+}
+
 // CreateStorageInput is the payload for creating a new persistent storage.
 type CreateStorageInput struct {
+	Type      string `json:"type"`
 	Name      string `json:"name"`
 	MountPath string `json:"mount_path"`
 	HostPath  string `json:"host_path,omitempty"`
@@ -42,11 +49,11 @@ func (c *Client) ListStorages(ctx context.Context, parentType, parentUUID string
 	if err := validateParentType(parentType); err != nil {
 		return nil, err
 	}
-	var v []Storage
+	var v storageListResponse
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID)), nil, &v); err != nil {
 		return nil, fmt.Errorf("listing storages for %s %s: %w", parentType, parentUUID, err)
 	}
-	return v, nil
+	return append(v.PersistentStorages, v.FileStorages...), nil
 }
 
 // CreateStorage creates a new persistent storage on a parent resource.

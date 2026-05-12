@@ -150,6 +150,7 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	input := client.CreateStorageInput{
+		Type:      "persistent",
 		Name:      plan.Name.ValueString(),
 		MountPath: plan.MountPath.ValueString(),
 	}

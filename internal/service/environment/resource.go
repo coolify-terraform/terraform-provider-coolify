@@ -112,9 +112,6 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 	input := client.CreateEnvironmentInput{
 		Name: plan.Name.ValueString(),
 	}
-	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
-		input.Description = plan.Description.ValueString()
-	}
 
 	_, err := r.client.CreateEnvironment(ctx, plan.ProjectUUID.ValueString(), input)
 	if err != nil {
@@ -223,7 +220,11 @@ func (r *environmentResource) readEnvironment(ctx context.Context, projectUUID, 
 
 	model.ID = types.Int64Value(env.ID)
 	model.Name = types.StringValue(env.Name)
-	model.Description = flex.StringToFramework(env.Description)
+	// Coolify does not store or return description via the API.
+	// Preserve the value from plan/state if the API returns empty.
+	if env.Description != "" {
+		model.Description = flex.StringToFramework(env.Description)
+	}
 
 	return diags
 }
