@@ -118,6 +118,21 @@ func (s *mockGitHubAppStore) List() []*mockGitHubApp {
 	return result
 }
 
+func requireMockGitHubApp(w http.ResponseWriter, r *http.Request, store *mockGitHubAppStore) bool {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+		return false
+	}
+
+	if _, ok := store.Get(id); !ok {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		return false
+	}
+
+	return true
+}
+
 // newMockCoolifyServer creates an httptest.Server that simulates the Coolify API for GitHub Apps.
 func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAppStore) {
 	store := &mockGitHubAppStore{
@@ -199,6 +214,9 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 	})
 
 	mux.HandleFunc("GET /api/v1/github-apps/{id}/repositories", func(w http.ResponseWriter, r *http.Request) {
+		if !requireMockGitHubApp(w, r, store) {
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.GitHubRepository{
 			{Name: "repo-1", FullName: "testowner/repo-1", Private: false},
@@ -207,6 +225,13 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 	})
 
 	mux.HandleFunc("GET /api/v1/github-apps/{id}/repositories/{owner}/{repo}/branches", func(w http.ResponseWriter, r *http.Request) {
+		if !requireMockGitHubApp(w, r, store) {
+			return
+		}
+		if r.PathValue("owner") != "testowner" || r.PathValue("repo") != "repo-1" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.GitHubBranch{
 			{Name: "main"},

@@ -14,6 +14,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
+func requireRestartApplicationUUID(w http.ResponseWriter, r *http.Request, expectedAppUUID string) bool {
+	if r.PathValue("uuid") == expectedAppUUID {
+		return true
+	}
+
+	http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	return false
+}
+
 func TestDeploymentResource_Create(t *testing.T) {
 	t.Parallel()
 	deploymentUUID := "aaaa0001-0001-4000-8000-000000000001"
@@ -21,6 +30,9 @@ func TestDeploymentResource_Create(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"deployment_uuid": deploymentUUID,
@@ -86,11 +98,15 @@ resource "coolify_deployment" "test" {
 
 func TestDeploymentResource_TriggersForceNew(t *testing.T) {
 	t.Parallel()
+	appUUID := "cccc0001-0001-4000-8000-000000000001"
 	mu := sync.Mutex{}
 	deploymentCount := 0
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
 		mu.Lock()
 		deploymentCount++
 		uuid := fmt.Sprintf("dep-uuid-%d", deploymentCount)
@@ -124,12 +140,12 @@ provider "coolify" {
 }
 
 resource "coolify_deployment" "test" {
-  application_uuid = "cccc0001-0001-4000-8000-000000000001"
+  application_uuid = %q
   triggers = {
     version = "1"
   }
 }
-`, srv.URL),
+`, srv.URL, appUUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", "dep-uuid-1"),
 					resource.TestCheckResourceAttr("coolify_deployment.test", "triggers.version", "1"),
@@ -143,12 +159,12 @@ provider "coolify" {
 }
 
 resource "coolify_deployment" "test" {
-  application_uuid = "cccc0001-0001-4000-8000-000000000001"
+  application_uuid = %q
   triggers = {
     version = "2"
   }
 }
-`, srv.URL),
+`, srv.URL, appUUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", "dep-uuid-2"),
 					resource.TestCheckResourceAttr("coolify_deployment.test", "triggers.version", "2"),
@@ -165,6 +181,9 @@ func TestDeploymentResource_Import(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"deployment_uuid": deploymentUUID,
@@ -213,6 +232,7 @@ resource "coolify_deployment" "test" {
 
 func TestDeploymentResource_Disappears(t *testing.T) {
 	t.Parallel()
+	appUUID := "cccc0001-0001-4000-8000-000000000001"
 	deploymentUUID := "dep-disappear-uuid"
 
 	mu := sync.Mutex{}
@@ -220,6 +240,9 @@ func TestDeploymentResource_Disappears(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"deployment_uuid": deploymentUUID,
@@ -255,9 +278,9 @@ provider "coolify" {
 }
 
 resource "coolify_deployment" "test" {
-  application_uuid = "cccc0001-0001-4000-8000-000000000001"
+  application_uuid = %q
 }
-`, srv.URL),
+`, srv.URL, appUUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", deploymentUUID),
 					func(s *terraform.State) error {
