@@ -4,7 +4,7 @@
 ![Go Version](https://img.shields.io/github/go-mod/go-version/SebTardif/terraform-provider-coolify)
 ![License](https://img.shields.io/github/license/SebTardif/terraform-provider-coolify)
 
-A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 27 resources, 42 data sources, 400+ tests, 100% API coverage.
+A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 27 resources, 46 data sources, 400+ tests, 100% API coverage.
 
 ## Getting Started
 
