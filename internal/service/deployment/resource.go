@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -102,6 +103,8 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_deployment"})
+
 	appUUID := plan.ApplicationUUID.ValueString()
 	result, err := r.client.RestartApplication(ctx, appUUID)
 	if err != nil {
@@ -129,6 +132,8 @@ func (r *deploymentResource) Read(ctx context.Context, req resource.ReadRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_deployment", "uuid": state.UUID.ValueString()})
 
 	dep, err := r.client.GetDeployment(ctx, state.UUID.ValueString())
 	if err != nil {

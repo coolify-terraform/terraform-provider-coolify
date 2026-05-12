@@ -130,5 +130,5 @@ resource "coolify_database_backup" "orders" {
   database_uuid = coolify_postgresql_database.orders.uuid
   frequency     = "@daily"
   enabled       = true
-  retain_days   = 7
+  retain_amount_locally   = 7
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -139,6 +140,8 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server"})
+
 	input := client.CreateServerInput{
 		Name:           plan.Name.ValueString(),
 		Description:    plan.Description.ValueString(),
@@ -181,6 +184,8 @@ func (r *serverResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": state.UUID.ValueString()})
+
 	srv, err := r.client.GetServer(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -207,6 +212,8 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": state.UUID.ValueString()})
 
 	port := int(plan.Port.ValueInt64())
 	buildSrv := plan.IsBuildServer.ValueBool()
@@ -244,6 +251,8 @@ func (r *serverResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": state.UUID.ValueString()})
 
 	if err := r.client.DeleteServer(ctx, state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {

@@ -27,7 +27,7 @@ func TestAccDatabaseBackupResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_database_backup.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "0 2 * * *"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_days", "7"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_amount_locally", "7"),
 				),
 			},
 			// Update frequency
@@ -71,7 +71,7 @@ resource "coolify_database_backup" "test" {
   database_uuid = coolify_postgresql_database.test.uuid
   frequency     = %[3]q
   enabled       = true
-  retain_days   = 7
+  retain_amount_locally   = 7
 }
 `, name, serverUUID, frequency)
 }

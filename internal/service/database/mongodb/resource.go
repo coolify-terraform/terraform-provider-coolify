@@ -8,8 +8,8 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
-	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -29,17 +29,17 @@ type res struct{ client *client.Client }
 type model struct {
 	Timeouts                timeouts.Value `tfsdk:"timeouts"`
 	UUID                    types.String   `tfsdk:"uuid"`
-	Name                    types.String `tfsdk:"name"`
-	Description             types.String `tfsdk:"description"`
-	ProjectUUID             types.String `tfsdk:"project_uuid"`
-	ServerUUID              types.String `tfsdk:"server_uuid"`
-	EnvironmentName         types.String `tfsdk:"environment_name"`
-	Image                   types.String `tfsdk:"image"`
-	IsPublic                types.Bool   `tfsdk:"is_public"`
-	PublicPort              types.Int64  `tfsdk:"public_port"`
-	MongoInitdbRootUsername types.String `tfsdk:"mongo_initdb_root_username"`
-	MongoInitdbRootPassword types.String `tfsdk:"mongo_initdb_root_password"`
-	MongoInitdbDatabase     types.String `tfsdk:"mongo_initdb_database"`
+	Name                    types.String   `tfsdk:"name"`
+	Description             types.String   `tfsdk:"description"`
+	ProjectUUID             types.String   `tfsdk:"project_uuid"`
+	ServerUUID              types.String   `tfsdk:"server_uuid"`
+	EnvironmentName         types.String   `tfsdk:"environment_name"`
+	Image                   types.String   `tfsdk:"image"`
+	IsPublic                types.Bool     `tfsdk:"is_public"`
+	PublicPort              types.Int64    `tfsdk:"public_port"`
+	MongoInitdbRootUsername types.String   `tfsdk:"mongo_initdb_root_username"`
+	MongoInitdbRootPassword types.String   `tfsdk:"mongo_initdb_root_password"`
+	MongoInitdbDatabase     types.String   `tfsdk:"mongo_initdb_database"`
 }
 
 func NewResource() resource.Resource { return &res{} }

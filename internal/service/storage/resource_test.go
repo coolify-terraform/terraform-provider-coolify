@@ -34,11 +34,19 @@ func TestStorageResource_Create(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -48,7 +56,11 @@ func TestStorageResource_Create(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("storUUID") != stor.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		deleted = true
 		mu.Unlock()
@@ -104,17 +116,29 @@ func TestStorageResource_Update(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": currentStor.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {currentStor}, "file_storages": {}})
 	})
 	mux.HandleFunc("PATCH /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]interface{}
@@ -132,7 +156,11 @@ func TestStorageResource_Update(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("storUUID") != currentStor.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -211,15 +239,27 @@ func TestStorageResource_Import(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("storUUID") != stor.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -350,11 +390,19 @@ func TestStorageResource_Disappears(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -364,7 +412,11 @@ func TestStorageResource_Disappears(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("storUUID") != stor.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		deleted = true
@@ -443,11 +495,19 @@ func TestStorageResource_NamePrefixStripping(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": storUUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -461,7 +521,11 @@ func TestStorageResource_NamePrefixStripping(t *testing.T) {
 			})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != appUUID || r.PathValue("storUUID") != storUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		deleted = true
 		mu.Unlock()

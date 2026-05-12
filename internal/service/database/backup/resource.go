@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -34,13 +35,23 @@ type databaseBackupResource struct {
 }
 
 type databaseBackupResourceModel struct {
-	ID           types.Int64  `tfsdk:"id"`
-	UUID         types.String `tfsdk:"uuid"`
-	DatabaseUUID types.String `tfsdk:"database_uuid"`
-	Frequency    types.String `tfsdk:"frequency"`
-	Enabled      types.Bool   `tfsdk:"enabled"`
-	S3StorageID  types.String `tfsdk:"s3_storage_id"`
-	RetainDays   types.Int64  `tfsdk:"retain_days"`
+	ID                    types.Int64  `tfsdk:"id"`
+	UUID                  types.String `tfsdk:"uuid"`
+	DatabaseUUID          types.String `tfsdk:"database_uuid"`
+	Frequency             types.String `tfsdk:"frequency"`
+	Enabled               types.Bool   `tfsdk:"enabled"`
+	SaveS3                types.Bool   `tfsdk:"save_s3"`
+	S3StorageID           types.String `tfsdk:"s3_storage_id"`
+	DatabasesToBackup     types.String `tfsdk:"databases_to_backup"`
+	DumpAll               types.Bool   `tfsdk:"dump_all"`
+	BackupNow             types.Bool   `tfsdk:"backup_now"`
+	RetainAmountLocally   types.Int64  `tfsdk:"retain_amount_locally"`
+	RetainDaysLocally     types.Int64  `tfsdk:"retain_days_locally"`
+	RetainMaxStorageLocal types.Int64  `tfsdk:"retain_max_storage_locally"`
+	RetainAmountS3        types.Int64  `tfsdk:"retain_amount_s3"`
+	RetainDaysS3          types.Int64  `tfsdk:"retain_days_s3"`
+	RetainMaxStorageS3    types.Int64  `tfsdk:"retain_max_storage_s3"`
+	Timeout               types.Int64  `tfsdk:"timeout"`
 }
 
 func NewResource() resource.Resource { return &databaseBackupResource{} }
@@ -91,16 +102,64 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Computed:            true,
 				Default:             booldefault.StaticBool(true),
 			},
+			"save_s3": schema.BoolAttribute{
+				MarkdownDescription: "Whether to save backups to S3 storage.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
 			"s3_storage_id": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the S3 storage destination for off-site backups. Use the `uuid` output of a `coolify_s3_storage` resource. When omitted, backups are stored locally on the server.",
+				MarkdownDescription: "The UUID of the S3 storage destination for off-site backups. Required when `save_s3` is `true`.",
 				Optional:            true,
 			},
-			"retain_days": schema.Int64Attribute{
-				MarkdownDescription: "Number of backup copies to retain locally (not days). For example, `7` keeps the last 7 backups regardless of their age.",
+			"databases_to_backup": schema.StringAttribute{
+				MarkdownDescription: "Comma-separated list of database names to back up selectively.",
 				Optional:            true,
-				Validators: []validator.Int64{
-					int64validator.AtLeast(0),
-				},
+			},
+			"dump_all": schema.BoolAttribute{
+				MarkdownDescription: "Whether to dump all databases.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"backup_now": schema.BoolAttribute{
+				MarkdownDescription: "Trigger an immediate backup after creation. Only used during create, ignored on updates.",
+				Optional:            true,
+			},
+			"retain_amount_locally": schema.Int64Attribute{
+				MarkdownDescription: "Number of backup copies to retain locally.",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.AtLeast(0)},
+			},
+			"retain_days_locally": schema.Int64Attribute{
+				MarkdownDescription: "Number of days to retain backups locally.",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.AtLeast(0)},
+			},
+			"retain_max_storage_locally": schema.Int64Attribute{
+				MarkdownDescription: "Maximum storage in MB for local backups.",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.AtLeast(0)},
+			},
+			"retain_amount_s3": schema.Int64Attribute{
+				MarkdownDescription: "Number of backup copies to retain in S3.",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.AtLeast(0)},
+			},
+			"retain_days_s3": schema.Int64Attribute{
+				MarkdownDescription: "Number of days to retain backups in S3.",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.AtLeast(0)},
+			},
+			"retain_max_storage_s3": schema.Int64Attribute{
+				MarkdownDescription: "Maximum storage in MB for S3 backups.",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.AtLeast(0)},
+			},
+			"timeout": schema.Int64Attribute{
+				MarkdownDescription: "Backup job timeout in seconds (60-36000).",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.Between(60, 36000)},
 			},
 		},
 	}
@@ -125,12 +184,24 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_backup"})
+
 	input := client.CreateDatabaseBackupInput{
 		Frequency: plan.Frequency.ValueString(),
 		Enabled:   plan.Enabled.ValueBool(),
 	}
+	flex.SetBoolPtr(&input.SaveS3, plan.SaveS3)
 	flex.SetIfKnown(&input.S3StorageID, plan.S3StorageID)
-	flex.SetInt64Ptr(&input.RetainDays, plan.RetainDays)
+	flex.SetIfKnown(&input.DatabasesToBackup, plan.DatabasesToBackup)
+	flex.SetBoolPtr(&input.DumpAll, plan.DumpAll)
+	flex.SetBoolPtr(&input.BackupNow, plan.BackupNow)
+	input.RetainAmountLocally = flex.Int64PtrFromFramework(plan.RetainAmountLocally)
+	input.RetainDaysLocally = flex.Int64PtrFromFramework(plan.RetainDaysLocally)
+	input.RetainMaxStorageLocal = flex.Int64PtrFromFramework(plan.RetainMaxStorageLocal)
+	input.RetainAmountS3 = flex.Int64PtrFromFramework(plan.RetainAmountS3)
+	input.RetainDaysS3 = flex.Int64PtrFromFramework(plan.RetainDaysS3)
+	input.RetainMaxStorageS3 = flex.Int64PtrFromFramework(plan.RetainMaxStorageS3)
+	input.Timeout = flex.Int64PtrFromFramework(plan.Timeout)
 
 	created, err := r.client.CreateDatabaseBackup(ctx, plan.DatabaseUUID.ValueString(), input)
 	if err != nil {
@@ -171,6 +242,8 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_backup", "uuid": state.UUID.ValueString()})
+
 	dbUUID := state.DatabaseUUID.ValueString()
 	backupID := int(state.ID.ValueInt64())
 
@@ -204,14 +277,25 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_database_backup", "uuid": state.UUID.ValueString()})
+
 	dbUUID := state.DatabaseUUID.ValueString()
 	backupID := int(state.ID.ValueInt64())
 
 	input := client.UpdateDatabaseBackupInput{}
 	flex.SetStrPtr(&input.Frequency, plan.Frequency)
 	flex.SetBoolPtr(&input.Enabled, plan.Enabled)
+	flex.SetBoolPtr(&input.SaveS3, plan.SaveS3)
 	input.S3StorageID = flex.StringPtrForUpdate(plan.S3StorageID, state.S3StorageID)
-	input.RetainDays = flex.Int64PtrForUpdate(plan.RetainDays, state.RetainDays)
+	flex.SetStrPtr(&input.DatabasesToBackup, plan.DatabasesToBackup)
+	flex.SetBoolPtr(&input.DumpAll, plan.DumpAll)
+	input.RetainAmountLocally = flex.Int64PtrForUpdate(plan.RetainAmountLocally, state.RetainAmountLocally)
+	input.RetainDaysLocally = flex.Int64PtrForUpdate(plan.RetainDaysLocally, state.RetainDaysLocally)
+	input.RetainMaxStorageLocal = flex.Int64PtrForUpdate(plan.RetainMaxStorageLocal, state.RetainMaxStorageLocal)
+	input.RetainAmountS3 = flex.Int64PtrForUpdate(plan.RetainAmountS3, state.RetainAmountS3)
+	input.RetainDaysS3 = flex.Int64PtrForUpdate(plan.RetainDaysS3, state.RetainDaysS3)
+	input.RetainMaxStorageS3 = flex.Int64PtrForUpdate(plan.RetainMaxStorageS3, state.RetainMaxStorageS3)
+	input.Timeout = flex.Int64PtrForUpdate(plan.Timeout, state.Timeout)
 
 	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, backupID, input); err != nil {
 		resp.Diagnostics.AddError("Error updating database backup", fmt.Sprintf("backup %d for database %s: %s", backupID, dbUUID, err))
@@ -234,6 +318,8 @@ func (r *databaseBackupResource) Delete(ctx context.Context, req resource.Delete
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_backup", "uuid": state.UUID.ValueString()})
+
 	if err := r.client.DeleteDatabaseBackup(ctx, state.DatabaseUUID.ValueString(), int(state.ID.ValueInt64())); err != nil {
 		if client.IsNotFound(err) {
 			return
@@ -299,13 +385,15 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 		m.Frequency = types.StringValue(b.Frequency)
 	}
 	m.Enabled = types.BoolValue(b.Enabled)
+	m.SaveS3 = types.BoolValue(b.SaveS3)
 	m.S3StorageID = flex.StringToFramework(b.S3StorageID)
-	switch {
-	case b.RetainDays != nil:
-		m.RetainDays = types.Int64Value(*b.RetainDays)
-	case !m.RetainDays.IsNull():
-		// Preserve existing state value when API returns nil
-	default:
-		m.RetainDays = types.Int64Null()
-	}
+	m.DatabasesToBackup = flex.StringToFramework(b.DatabasesToBackup)
+	m.DumpAll = types.BoolValue(b.DumpAll)
+	m.RetainAmountLocally = flex.Int64PtrToFramework(b.RetainAmountLocally)
+	m.RetainDaysLocally = flex.Int64PtrToFramework(b.RetainDaysLocally)
+	m.RetainMaxStorageLocal = flex.Int64PtrToFramework(b.RetainMaxStorageLocal)
+	m.RetainAmountS3 = flex.Int64PtrToFramework(b.RetainAmountS3)
+	m.RetainDaysS3 = flex.Int64PtrToFramework(b.RetainDaysS3)
+	m.RetainMaxStorageS3 = flex.Int64PtrToFramework(b.RetainMaxStorageS3)
+	m.Timeout = flex.Int64PtrToFramework(b.Timeout)
 }

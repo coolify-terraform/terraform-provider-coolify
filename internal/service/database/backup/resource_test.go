@@ -163,7 +163,7 @@ func TestDatabaseBackupResource_Create(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "id", "42"),
@@ -171,7 +171,7 @@ func TestDatabaseBackupResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "database_uuid", "eeee0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "0 2 * * *"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_days", "7"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_amount_locally", "7"),
 				),
 			},
 			{
@@ -179,7 +179,7 @@ func TestDatabaseBackupResource_Create(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
@@ -201,12 +201,12 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "0 2 * * *"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_days", "7"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_amount_locally", "7"),
 				),
 			},
 			{
@@ -214,22 +214,22 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 4 * * *"
 					enabled       = false
-					retain_days   = 14
+					retain_amount_locally   = 14
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "0 4 * * *"),
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_days", "14"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_amount_locally", "14"),
 				),
 			},
-			// Remove retain_days from config: should clear to 0, not perpetual diff
+			// Remove retain_amount_locally from config: should clear to 0, not perpetual diff
 			{
 				Config: testBackupConfig(srv.URL, `
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 4 * * *"
 					enabled       = false
 				`),
-				Check: resource.TestCheckNoResourceAttr("coolify_database_backup.test", "retain_days"),
+				Check: resource.TestCheckNoResourceAttr("coolify_database_backup.test", "retain_amount_locally"),
 			},
 			// Plan idempotency after removal
 			{
@@ -258,7 +258,7 @@ func TestDatabaseBackupResource_Import(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`),
 			},
 			{
@@ -319,7 +319,7 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 					database_uuid = "eeee0002-0002-4000-8000-000000000002"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_database_backup.test", "uuid"),
@@ -353,7 +353,7 @@ func TestDatabaseBackupResource_ImportBadFormat(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`),
 			},
 			{
@@ -379,7 +379,7 @@ func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`),
 			},
 			{
@@ -392,7 +392,7 @@ func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
 	})
 }
 
-func TestDatabaseBackupResource_InvalidRetainDays(t *testing.T) {
+func TestDatabaseBackupResource_InvalidRetainAmountLocally(t *testing.T) {
 	t.Parallel()
 	srv, _ := newMockBackupServer()
 	defer srv.Close()
@@ -405,7 +405,7 @@ func TestDatabaseBackupResource_InvalidRetainDays(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = -1
+					retain_amount_locally   = -1
 				`),
 				ExpectError: regexp.MustCompile(`must be at least 0`),
 			},
@@ -426,7 +426,7 @@ func TestDatabaseBackupResource_CronAlias(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "@daily"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`),
 				Check: resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "@daily"),
 			},
@@ -521,7 +521,7 @@ func TestDatabaseBackupResource_CreateWithZeroID(t *testing.T) {
 					database_uuid = "%s"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`, dbUUID)),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "id", fmt.Sprintf("%d", realID)),
@@ -533,7 +533,7 @@ func TestDatabaseBackupResource_CreateWithZeroID(t *testing.T) {
 					database_uuid = "%s"
 					frequency     = "0 2 * * *"
 					enabled       = true
-					retain_days   = 7
+					retain_amount_locally   = 7
 				`, dbUUID)),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,

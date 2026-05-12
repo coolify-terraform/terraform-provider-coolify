@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -141,6 +142,8 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_scheduled_task"})
+
 	parentType, parentUUID := plan.parentInfo()
 
 	input := client.CreateScheduledTaskInput{
@@ -166,6 +169,8 @@ func (r *scheduledTaskResource) Read(ctx context.Context, req resource.ReadReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": state.UUID.ValueString()})
 
 	parentType, parentUUID := state.parentInfo()
 
@@ -206,6 +211,8 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString()})
+
 	parentType, parentUUID := plan.parentInfo()
 
 	input := client.UpdateScheduledTaskInput{
@@ -229,6 +236,8 @@ func (r *scheduledTaskResource) Delete(ctx context.Context, req resource.DeleteR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": state.UUID.ValueString()})
 
 	parentType, parentUUID := state.parentInfo()
 

@@ -8,11 +8,11 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -33,17 +34,17 @@ type postgresqlDatabaseResource struct{ client *client.Client }
 type postgresqlDatabaseResourceModel struct {
 	Timeouts         timeouts.Value `tfsdk:"timeouts"`
 	UUID             types.String   `tfsdk:"uuid"`
-	Name             types.String `tfsdk:"name"`
-	Description      types.String `tfsdk:"description"`
-	ProjectUUID      types.String `tfsdk:"project_uuid"`
-	ServerUUID       types.String `tfsdk:"server_uuid"`
-	EnvironmentName  types.String `tfsdk:"environment_name"`
-	Image            types.String `tfsdk:"image"`
-	IsPublic         types.Bool   `tfsdk:"is_public"`
-	PublicPort       types.Int64  `tfsdk:"public_port"`
-	PostgresUser     types.String `tfsdk:"postgres_user"`
-	PostgresPassword types.String `tfsdk:"postgres_password"`
-	PostgresDB       types.String `tfsdk:"postgres_db"`
+	Name             types.String   `tfsdk:"name"`
+	Description      types.String   `tfsdk:"description"`
+	ProjectUUID      types.String   `tfsdk:"project_uuid"`
+	ServerUUID       types.String   `tfsdk:"server_uuid"`
+	EnvironmentName  types.String   `tfsdk:"environment_name"`
+	Image            types.String   `tfsdk:"image"`
+	IsPublic         types.Bool     `tfsdk:"is_public"`
+	PublicPort       types.Int64    `tfsdk:"public_port"`
+	PostgresUser     types.String   `tfsdk:"postgres_user"`
+	PostgresPassword types.String   `tfsdk:"postgres_password"`
+	PostgresDB       types.String   `tfsdk:"postgres_db"`
 }
 
 func NewResource() resource.Resource { return &postgresqlDatabaseResource{} }
@@ -169,6 +170,9 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 	uuid := state.UUID.ValueString()
+
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": uuid})
+
 	input := client.UpdateDatabaseInput{}
 	flex.SetStrPtr(&input.Name, plan.Name)
 	flex.SetStrPtr(&input.Description, plan.Description)
@@ -197,6 +201,8 @@ func (r *postgresqlDatabaseResource) Delete(ctx context.Context, req resource.De
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": state.UUID.ValueString()})
+
 	if err := r.client.DeleteDatabase(ctx, state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {
 			return
@@ -242,7 +248,7 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 // CommonDatabaseAttrs returns the shared schema attributes for all database types.
 func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute) map[string]schema.Attribute {
 	attrs := map[string]schema.Attribute{
-		"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
+		"timeouts":         timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 		"uuid":             schema.StringAttribute{MarkdownDescription: "The UUID of the database.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"name":             schema.StringAttribute{MarkdownDescription: "The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"description":      schema.StringAttribute{MarkdownDescription: "A description of the database.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},

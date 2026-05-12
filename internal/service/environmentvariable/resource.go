@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -143,6 +144,8 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_environment_variable"})
+
 	ev := client.EnvironmentVariable{
 		Key:       plan.Key.ValueString(),
 		Value:     plan.Value.ValueString(),
@@ -180,6 +183,8 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": state.UUID.ValueString()})
 
 	var envVars []client.EnvironmentVariable
 	var err error
@@ -232,6 +237,8 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": plan.UUID.ValueString()})
+
 	ev := client.EnvironmentVariable{
 		UUID:      plan.UUID.ValueString(),
 		Key:       plan.Key.ValueString(),
@@ -268,6 +275,8 @@ func (r *environmentVariableResource) Delete(ctx context.Context, req resource.D
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": state.UUID.ValueString()})
 
 	var err error
 

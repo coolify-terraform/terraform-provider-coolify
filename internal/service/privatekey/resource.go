@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -111,6 +112,8 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_private_key"})
+
 	input := client.CreatePrivateKeyInput{
 		Name:        plan.Name.ValueString(),
 		Description: plan.Description.ValueString(),
@@ -149,6 +152,8 @@ func (r *privateKeyResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_private_key", "uuid": state.UUID.ValueString()})
+
 	key, err := r.client.GetPrivateKey(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -175,6 +180,8 @@ func (r *privateKeyResource) Update(ctx context.Context, req resource.UpdateRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_private_key", "uuid": state.UUID.ValueString()})
 
 	input := client.UpdatePrivateKeyInput{}
 	flex.SetStrPtr(&input.Name, plan.Name)
@@ -204,6 +211,8 @@ func (r *privateKeyResource) Delete(ctx context.Context, req resource.DeleteRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_private_key", "uuid": state.UUID.ValueString()})
 
 	if err := r.client.DeletePrivateKey(ctx, state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {

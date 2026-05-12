@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -132,6 +133,8 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_github_app"})
+
 	input := client.CreateGitHubAppIntegrationInput{
 		Name:           plan.Name.ValueString(),
 		AppID:          plan.AppID.ValueInt64(),
@@ -174,6 +177,8 @@ func (r *gitHubAppResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_github_app", "id": state.ID.ValueInt64()})
+
 	app, err := r.client.GetGitHubApp(ctx, state.ID.ValueInt64())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -202,6 +207,8 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_github_app", "id": state.ID.ValueInt64()})
 
 	input := client.UpdateGitHubAppIntegrationInput{}
 	flex.SetStrPtr(&input.Name, plan.Name)
@@ -233,6 +240,8 @@ func (r *gitHubAppResource) Delete(ctx context.Context, req resource.DeleteReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_github_app", "id": state.ID.ValueInt64()})
 
 	err := r.client.DeleteGitHubApp(ctx, state.ID.ValueInt64())
 	if err != nil {

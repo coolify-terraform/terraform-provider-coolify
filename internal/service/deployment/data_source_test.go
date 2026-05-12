@@ -55,6 +55,10 @@ func TestDeploymentsDataSource_ReadByApplication(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/deployments/applications/{appUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(appDeployments)
 	})

@@ -8,14 +8,15 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
-	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -29,18 +30,18 @@ type mysqlDatabaseResource struct{ client *client.Client }
 type mysqlDatabaseResourceModel struct {
 	Timeouts          timeouts.Value `tfsdk:"timeouts"`
 	UUID              types.String   `tfsdk:"uuid"`
-	Name              types.String `tfsdk:"name"`
-	Description       types.String `tfsdk:"description"`
-	ProjectUUID       types.String `tfsdk:"project_uuid"`
-	ServerUUID        types.String `tfsdk:"server_uuid"`
-	EnvironmentName   types.String `tfsdk:"environment_name"`
-	Image             types.String `tfsdk:"image"`
-	IsPublic          types.Bool   `tfsdk:"is_public"`
-	PublicPort        types.Int64  `tfsdk:"public_port"`
-	MysqlUser         types.String `tfsdk:"mysql_user"`
-	MysqlPassword     types.String `tfsdk:"mysql_password"`
-	MysqlDatabase     types.String `tfsdk:"mysql_database"`
-	MysqlRootPassword types.String `tfsdk:"mysql_root_password"`
+	Name              types.String   `tfsdk:"name"`
+	Description       types.String   `tfsdk:"description"`
+	ProjectUUID       types.String   `tfsdk:"project_uuid"`
+	ServerUUID        types.String   `tfsdk:"server_uuid"`
+	EnvironmentName   types.String   `tfsdk:"environment_name"`
+	Image             types.String   `tfsdk:"image"`
+	IsPublic          types.Bool     `tfsdk:"is_public"`
+	PublicPort        types.Int64    `tfsdk:"public_port"`
+	MysqlUser         types.String   `tfsdk:"mysql_user"`
+	MysqlPassword     types.String   `tfsdk:"mysql_password"`
+	MysqlDatabase     types.String   `tfsdk:"mysql_database"`
+	MysqlRootPassword types.String   `tfsdk:"mysql_root_password"`
 }
 
 func NewResource() resource.Resource { return &mysqlDatabaseResource{} }

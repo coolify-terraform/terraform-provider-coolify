@@ -34,11 +34,19 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -48,7 +56,11 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != envVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		deleted = true
@@ -106,17 +118,29 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": currentEnvVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.EnvironmentVariable{currentEnvVar})
 	})
 	mux.HandleFunc("PATCH /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]interface{}
@@ -129,7 +153,11 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != currentEnvVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -182,15 +210,27 @@ func TestEnvironmentVariableResource_Import(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != envVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -240,11 +280,19 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -254,7 +302,11 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != envVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		deleted = true
@@ -301,17 +353,29 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": currentEnvVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.EnvironmentVariable{currentEnvVar})
 	})
 	mux.HandleFunc("PATCH /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]interface{}
@@ -321,7 +385,11 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
-	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != currentEnvVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -363,15 +431,27 @@ func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
 	})
-	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != envVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -499,11 +579,19 @@ func TestEnvironmentVariableResource_Disappears(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -513,7 +601,11 @@ func TestEnvironmentVariableResource_Disappears(t *testing.T) {
 			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != envVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		deleted = true
@@ -557,11 +649,19 @@ func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -571,7 +671,11 @@ func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
 			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != envVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		deleted = true
@@ -652,11 +756,19 @@ func TestEnvironmentVariableResource_DatabaseDisappears(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -666,7 +778,11 @@ func TestEnvironmentVariableResource_DatabaseDisappears(t *testing.T) {
 			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != envVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		deleted = true
@@ -727,11 +843,19 @@ func TestEnvironmentVariableResource_CreateDatabase(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -741,7 +865,11 @@ func TestEnvironmentVariableResource_CreateDatabase(t *testing.T) {
 			json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != envVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		deleted = true
@@ -786,17 +914,29 @@ func TestEnvironmentVariableResource_DatabaseUpdate(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": currentEnvVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.EnvironmentVariable{currentEnvVar})
 	})
 	mux.HandleFunc("PATCH /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]interface{}
@@ -806,7 +946,11 @@ func TestEnvironmentVariableResource_DatabaseUpdate(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
-	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != currentEnvVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -848,15 +992,27 @@ func TestEnvironmentVariableResource_DatabaseImport(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
 	})
-	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != envVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 

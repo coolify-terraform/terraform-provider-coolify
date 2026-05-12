@@ -27,14 +27,14 @@ type res struct{ client *client.Client }
 type model struct {
 	Timeouts        timeouts.Value `tfsdk:"timeouts"`
 	UUID            types.String   `tfsdk:"uuid"`
-	Name            types.String `tfsdk:"name"`
-	Description     types.String `tfsdk:"description"`
-	ProjectUUID     types.String `tfsdk:"project_uuid"`
-	ServerUUID      types.String `tfsdk:"server_uuid"`
-	EnvironmentName types.String `tfsdk:"environment_name"`
-	Image           types.String `tfsdk:"image"`
-	IsPublic        types.Bool   `tfsdk:"is_public"`
-	PublicPort      types.Int64  `tfsdk:"public_port"`
+	Name            types.String   `tfsdk:"name"`
+	Description     types.String   `tfsdk:"description"`
+	ProjectUUID     types.String   `tfsdk:"project_uuid"`
+	ServerUUID      types.String   `tfsdk:"server_uuid"`
+	EnvironmentName types.String   `tfsdk:"environment_name"`
+	Image           types.String   `tfsdk:"image"`
+	IsPublic        types.Bool     `tfsdk:"is_public"`
+	PublicPort      types.Int64    `tfsdk:"public_port"`
 }
 
 func NewResource() resource.Resource { return &res{} }

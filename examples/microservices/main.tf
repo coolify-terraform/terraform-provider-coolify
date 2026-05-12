@@ -79,7 +79,7 @@ resource "coolify_database_backup" "daily" {
   database_uuid = coolify_postgresql_database.api_db.uuid
   frequency     = "0 3 * * *"
   enabled       = true
-  retain_days   = 14
+  retain_amount_locally   = 14
 }
 
 # --- Applications ---

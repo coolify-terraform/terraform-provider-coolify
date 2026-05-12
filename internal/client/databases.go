@@ -228,28 +228,56 @@ func (c *Client) RestartDatabase(ctx context.Context, uuid string) error {
 // --- Database Backup types ---
 
 type DatabaseBackup struct {
-	ID           int    `json:"id"`
-	UUID         string `json:"uuid"`
-	DatabaseUUID string `json:"database_uuid"`
-	Frequency    string `json:"frequency"`
-	Enabled      bool   `json:"enabled"`
-	S3StorageID  string `json:"s3_storage_uuid,omitempty"`
-	DatabaseType string `json:"database_type,omitempty"`
-	RetainDays   *int64 `json:"database_backup_retention_amount_locally,omitempty"`
+	ID                    int    `json:"id"`
+	UUID                  string `json:"uuid"`
+	DatabaseUUID          string `json:"database_uuid"`
+	Frequency             string `json:"frequency"`
+	Enabled               bool   `json:"enabled"`
+	SaveS3                bool   `json:"save_s3,omitempty"`
+	S3StorageID           string `json:"s3_storage_uuid,omitempty"`
+	DatabaseType          string `json:"database_type,omitempty"`
+	DatabasesToBackup     string `json:"databases_to_backup,omitempty"`
+	DumpAll               bool   `json:"dump_all,omitempty"`
+	RetainAmountLocally   *int64 `json:"database_backup_retention_amount_locally,omitempty"`
+	RetainDaysLocally     *int64 `json:"database_backup_retention_days_locally,omitempty"`
+	RetainMaxStorageLocal *int64 `json:"database_backup_retention_max_storage_locally,omitempty"`
+	RetainAmountS3        *int64 `json:"database_backup_retention_amount_s3,omitempty"`
+	RetainDaysS3          *int64 `json:"database_backup_retention_days_s3,omitempty"`
+	RetainMaxStorageS3    *int64 `json:"database_backup_retention_max_storage_s3,omitempty"`
+	Timeout               *int64 `json:"timeout,omitempty"`
 }
 
 type CreateDatabaseBackupInput struct {
-	Frequency   string `json:"frequency"`
-	Enabled     bool   `json:"enabled"`
-	S3StorageID string `json:"s3_storage_uuid,omitempty"`
-	RetainDays  *int64 `json:"database_backup_retention_amount_locally,omitempty"`
+	Frequency             string `json:"frequency"`
+	Enabled               bool   `json:"enabled"`
+	SaveS3                *bool  `json:"save_s3,omitempty"`
+	S3StorageID           string `json:"s3_storage_uuid,omitempty"`
+	DatabasesToBackup     string `json:"databases_to_backup,omitempty"`
+	DumpAll               *bool  `json:"dump_all,omitempty"`
+	BackupNow             *bool  `json:"backup_now,omitempty"`
+	RetainAmountLocally   *int64 `json:"database_backup_retention_amount_locally,omitempty"`
+	RetainDaysLocally     *int64 `json:"database_backup_retention_days_locally,omitempty"`
+	RetainMaxStorageLocal *int64 `json:"database_backup_retention_max_storage_locally,omitempty"`
+	RetainAmountS3        *int64 `json:"database_backup_retention_amount_s3,omitempty"`
+	RetainDaysS3          *int64 `json:"database_backup_retention_days_s3,omitempty"`
+	RetainMaxStorageS3    *int64 `json:"database_backup_retention_max_storage_s3,omitempty"`
+	Timeout               *int64 `json:"timeout,omitempty"`
 }
 
 type UpdateDatabaseBackupInput struct {
-	Frequency   *string `json:"frequency,omitempty"`
-	Enabled     *bool   `json:"enabled,omitempty"`
-	S3StorageID *string `json:"s3_storage_uuid,omitempty"`
-	RetainDays  *int64  `json:"database_backup_retention_amount_locally,omitempty"`
+	Frequency             *string `json:"frequency,omitempty"`
+	Enabled               *bool   `json:"enabled,omitempty"`
+	SaveS3                *bool   `json:"save_s3,omitempty"`
+	S3StorageID           *string `json:"s3_storage_uuid,omitempty"`
+	DatabasesToBackup     *string `json:"databases_to_backup,omitempty"`
+	DumpAll               *bool   `json:"dump_all,omitempty"`
+	RetainAmountLocally   *int64  `json:"database_backup_retention_amount_locally,omitempty"`
+	RetainDaysLocally     *int64  `json:"database_backup_retention_days_locally,omitempty"`
+	RetainMaxStorageLocal *int64  `json:"database_backup_retention_max_storage_locally,omitempty"`
+	RetainAmountS3        *int64  `json:"database_backup_retention_amount_s3,omitempty"`
+	RetainDaysS3          *int64  `json:"database_backup_retention_days_s3,omitempty"`
+	RetainMaxStorageS3    *int64  `json:"database_backup_retention_max_storage_s3,omitempty"`
+	Timeout               *int64  `json:"timeout,omitempty"`
 }
 
 func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]DatabaseBackup, error) {

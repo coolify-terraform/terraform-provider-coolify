@@ -8,15 +8,16 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -29,12 +30,12 @@ type serviceResource struct{ client *client.Client }
 type serviceResourceModel struct {
 	Timeouts        timeouts.Value `tfsdk:"timeouts"`
 	UUID            types.String   `tfsdk:"uuid"`
-	Name            types.String `tfsdk:"name"`
-	Description     types.String `tfsdk:"description"`
-	ProjectUUID     types.String `tfsdk:"project_uuid"`
-	ServerUUID      types.String `tfsdk:"server_uuid"`
-	EnvironmentName types.String `tfsdk:"environment_name"`
-	Type            types.String `tfsdk:"type"`
+	Name            types.String   `tfsdk:"name"`
+	Description     types.String   `tfsdk:"description"`
+	ProjectUUID     types.String   `tfsdk:"project_uuid"`
+	ServerUUID      types.String   `tfsdk:"server_uuid"`
+	EnvironmentName types.String   `tfsdk:"environment_name"`
+	Type            types.String   `tfsdk:"type"`
 }
 
 func NewResource() resource.Resource { return &serviceResource{} }
@@ -45,7 +46,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g. plausible, uptime-kuma, minio).",
 		Attributes: map[string]schema.Attribute{
-			"timeouts":          timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
+			"timeouts":         timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"uuid":             schema.StringAttribute{MarkdownDescription: "The UUID of the service.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"name":             schema.StringAttribute{MarkdownDescription: "The name of the service.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"description":      schema.StringAttribute{MarkdownDescription: "A description of the service.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
@@ -80,6 +81,8 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_service"})
+
 	input := client.CreateServiceInput{ServerUUID: plan.ServerUUID.ValueString(), ProjectUUID: plan.ProjectUUID.ValueString(), EnvironmentName: plan.EnvironmentName.ValueString(), Type: plan.Type.ValueString()}
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
@@ -111,6 +114,8 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": state.UUID.ValueString()})
+
 	svc, err := r.client.GetService(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -129,6 +134,8 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": plan.UUID.ValueString()})
+
 	input := client.UpdateServiceInput{}
 	flex.SetStrPtr(&input.Name, plan.Name)
 	flex.SetStrPtr(&input.Description, plan.Description)
@@ -150,6 +157,8 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": state.UUID.ValueString()})
+
 	if err := r.client.DeleteService(ctx, state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {
 			return

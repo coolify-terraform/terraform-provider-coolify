@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -118,6 +119,8 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_s3_storage"})
+
 	input := client.CreateS3StorageInput{
 		Name:        plan.Name.ValueString(),
 		Description: plan.Description.ValueString(),
@@ -160,6 +163,8 @@ func (r *s3StorageResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_s3_storage", "uuid": state.UUID.ValueString()})
+
 	s, err := r.client.GetS3Storage(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -186,6 +191,8 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_s3_storage", "uuid": state.UUID.ValueString()})
 
 	input := client.UpdateS3StorageInput{}
 	flex.SetStrPtr(&input.Name, plan.Name)
@@ -219,6 +226,8 @@ func (r *s3StorageResource) Delete(ctx context.Context, req resource.DeleteReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_s3_storage", "uuid": state.UUID.ValueString()})
 
 	if err := r.client.DeleteS3Storage(ctx, state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {

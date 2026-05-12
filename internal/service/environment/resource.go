@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -108,6 +109,8 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_environment"})
+
 	input := client.CreateEnvironmentInput{
 		Name: plan.Name.ValueString(),
 	}
@@ -141,6 +144,8 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_environment", "name": state.Name.ValueString()})
+
 	env, err := r.client.GetEnvironment(ctx, state.ProjectUUID.ValueString(), state.Name.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -168,6 +173,8 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_environment", "name": plan.Name.ValueString()})
+
 	// The Coolify API has no PATCH endpoint for environments, so we persist
 	// the updated description to state without an API call.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -179,6 +186,8 @@ func (r *environmentResource) Delete(ctx context.Context, req resource.DeleteReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_environment", "name": state.Name.ValueString()})
 
 	err := r.client.DeleteEnvironment(ctx, state.ProjectUUID.ValueString(), state.Name.ValueString())
 	if err != nil {

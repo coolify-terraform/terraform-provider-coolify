@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -168,6 +169,8 @@ func (r *dockerImageApplicationResource) Create(ctx context.Context, req resourc
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_docker_image_application"})
+
 	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -220,6 +223,8 @@ func (r *dockerImageApplicationResource) Read(ctx context.Context, req resource.
 		return
 	}
 
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_docker_image_application", "uuid": state.UUID.ValueString()})
+
 	app, err := r.client.GetApplication(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -240,6 +245,8 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_docker_image_application", "uuid": plan.UUID.ValueString()})
 
 	input := client.UpdateApplicationInput{}
 	strPtr := flex.StringValueOrNull
@@ -266,6 +273,8 @@ func (r *dockerImageApplicationResource) Delete(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_docker_image_application", "uuid": state.UUID.ValueString()})
 
 	if err := r.client.DeleteApplication(ctx, state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {

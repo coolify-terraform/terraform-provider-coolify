@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -94,6 +95,8 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_project"})
+
 	input := client.CreateProjectInput{
 		Name: plan.Name.ValueString(),
 	}
@@ -134,6 +137,8 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_project", "uuid": state.UUID.ValueString()})
+
 	project, err := r.client.GetProject(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -164,6 +169,8 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_project", "uuid": state.UUID.ValueString()})
 
 	name := plan.Name.ValueString()
 	input := client.UpdateProjectInput{
@@ -202,14 +209,18 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_project", "uuid": state.UUID.ValueString()})
+
 	// Coolify deletes applications and databases asynchronously. When
 	// terraform destroy runs, child resources are deleted first but
 	// Coolify may not have finished removing them by the time the project
 	// delete is attempted. Retry for up to 30 seconds.
 	uuid := state.UUID.ValueString()
 	var err error
+	attempt := 0
 retryLoop:
 	for range 6 {
+		attempt++
 		err = r.client.DeleteProject(ctx, uuid)
 		if err == nil {
 			return
@@ -220,6 +231,7 @@ retryLoop:
 		if !strings.Contains(err.Error(), "has resources") {
 			break
 		}
+		tflog.Debug(ctx, "retrying project delete", map[string]interface{}{"attempt": attempt, "uuid": uuid})
 		select {
 		case <-ctx.Done():
 			err = ctx.Err()

@@ -36,11 +36,19 @@ func TestScheduledTaskResource_Create(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != task.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		if deleted {
@@ -51,6 +59,10 @@ func TestScheduledTaskResource_Create(t *testing.T) {
 		json.NewEncoder(w).Encode(task)
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -60,7 +72,11 @@ func TestScheduledTaskResource_Create(t *testing.T) {
 			json.NewEncoder(w).Encode([]client.ScheduledTask{task})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != task.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		deleted = true
 		mu.Unlock()
@@ -124,11 +140,19 @@ func TestScheduledTaskResource_Update(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": currentTask.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != currentTask.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		if deleted {
@@ -139,6 +163,10 @@ func TestScheduledTaskResource_Update(t *testing.T) {
 		json.NewEncoder(w).Encode(currentTask)
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -149,6 +177,10 @@ func TestScheduledTaskResource_Update(t *testing.T) {
 		}
 	})
 	mux.HandleFunc("PATCH /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != currentTask.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]interface{}
@@ -167,7 +199,11 @@ func TestScheduledTaskResource_Update(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusOK)
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != currentTask.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		deleted = true
 		mu.Unlock()
@@ -230,15 +266,27 @@ func TestScheduledTaskResource_Import(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.ScheduledTask{task})
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != task.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -286,15 +334,27 @@ func TestScheduledTaskResource_ImportService(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/services/{svcUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.ScheduledTask{task})
 	})
-	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != task.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -433,11 +493,19 @@ func TestScheduledTaskResource_Disappears(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -447,7 +515,11 @@ func TestScheduledTaskResource_Disappears(t *testing.T) {
 			json.NewEncoder(w).Encode([]client.ScheduledTask{task})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != task.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		deleted = true
@@ -494,15 +566,27 @@ func TestScheduledTaskResource_CreateWithServiceUUID(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/services/{svcUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode([]client.ScheduledTask{task})
 	})
-	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != task.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -599,11 +683,19 @@ func TestScheduledTaskResource_ServiceDisappears(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/services/{svcUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -613,7 +705,11 @@ func TestScheduledTaskResource_ServiceDisappears(t *testing.T) {
 			json.NewEncoder(w).Encode([]client.ScheduledTask{task})
 		}
 	})
-	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != task.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		deleted = true

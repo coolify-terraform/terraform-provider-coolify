@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -97,6 +98,8 @@ func (r *cloudTokenResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_cloud_token"})
+
 	input := client.CreateCloudTokenInput{
 		Name:     plan.Name.ValueString(),
 		Provider: plan.CloudProvider.ValueString(),
@@ -134,6 +137,8 @@ func (r *cloudTokenResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_cloud_token", "uuid": state.UUID.ValueString()})
+
 	ct, err := r.client.GetCloudToken(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -169,6 +174,8 @@ func (r *cloudTokenResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_cloud_token", "uuid": state.UUID.ValueString()})
+
 	input := client.UpdateCloudTokenInput{
 		Name:  flex.StringValueOrNull(plan.Name),
 		Token: flex.StringValueOrNull(plan.Token),
@@ -198,6 +205,8 @@ func (r *cloudTokenResource) Delete(ctx context.Context, req resource.DeleteRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_cloud_token", "uuid": state.UUID.ValueString()})
 
 	err := r.client.DeleteCloudToken(ctx, state.UUID.ValueString())
 	if err != nil {
