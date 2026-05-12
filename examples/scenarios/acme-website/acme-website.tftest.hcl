@@ -1,12 +1,5 @@
 # Acceptance test for the ACME Corp Marketing Website scenario.
 #
-# Defaults below are placeholders that will not connect to a real Coolify
-# instance. For CI, override them with TF_VAR_* environment variables:
-#
-#   export TF_VAR_coolify_endpoint="https://coolify.example.com"
-#   export TF_VAR_coolify_token="your-api-token"
-#   export TF_VAR_server_uuid="your-server-uuid"
-
 # Required variables are provided via TF_VAR_* environment variables:
 #   TF_VAR_coolify_endpoint, TF_VAR_coolify_token, TF_VAR_server_uuid
 
@@ -17,28 +10,79 @@ variables {
 run "create_and_verify" {
   command = apply
 
+  # --- Project ---
   assert {
     condition     = coolify_project.acme.uuid != ""
     error_message = "Project was not created: uuid is empty"
   }
+  assert {
+    condition     = coolify_project.acme.name == "acme-website"
+    error_message = "Project name mismatch: got ${coolify_project.acme.name}"
+  }
 
+  # --- Database ---
   assert {
     condition     = coolify_postgresql_database.content.uuid != ""
     error_message = "PostgreSQL database was not created: uuid is empty"
   }
+  assert {
+    condition     = coolify_postgresql_database.content.name == "acme-content"
+    error_message = "Database name mismatch: got ${coolify_postgresql_database.content.name}"
+  }
+  assert {
+    condition     = coolify_postgresql_database.content.postgres_user == "acme"
+    error_message = "Database user mismatch: got ${coolify_postgresql_database.content.postgres_user}"
+  }
+  assert {
+    condition     = coolify_postgresql_database.content.postgres_db == "acme_content"
+    error_message = "Database name mismatch: got ${coolify_postgresql_database.content.postgres_db}"
+  }
 
+  # --- Application ---
   assert {
     condition     = coolify_application.website.uuid != ""
     error_message = "Application was not created: uuid is empty"
   }
-
   assert {
-    condition     = coolify_environment_variable.database_url.uuid != ""
-    error_message = "DATABASE_URL environment variable was not created: uuid is empty"
+    condition     = coolify_application.website.name == "acme-website"
+    error_message = "Application name mismatch: got ${coolify_application.website.name}"
+  }
+  assert {
+    condition     = coolify_application.website.build_pack == "nixpacks"
+    error_message = "Build pack not preserved: got ${coolify_application.website.build_pack}"
+  }
+  # Quirk #1: Coolify strips https://github.com/ prefix. Provider must preserve original.
+  assert {
+    condition     = coolify_application.website.git_repository == "https://github.com/coollabsio/coolify-examples"
+    error_message = "Git repository URL was normalized: got ${coolify_application.website.git_repository}"
+  }
+  assert {
+    condition     = coolify_application.website.ports_exposes == "3000"
+    error_message = "Ports exposes mismatch: got ${coolify_application.website.ports_exposes}"
   }
 
+  # --- Environment Variables ---
   assert {
-    condition     = coolify_environment_variable.node_env.uuid != ""
-    error_message = "NODE_ENV environment variable was not created: uuid is empty"
+    condition     = coolify_environment_variable.database_url.key == "DATABASE_URL"
+    error_message = "Env var key mismatch: got ${coolify_environment_variable.database_url.key}"
+  }
+  assert {
+    condition     = coolify_environment_variable.node_env.key == "NODE_ENV"
+    error_message = "Env var key mismatch: got ${coolify_environment_variable.node_env.key}"
+  }
+  assert {
+    condition     = coolify_environment_variable.node_env.value == "production"
+    error_message = "Env var value mismatch: got ${coolify_environment_variable.node_env.value}"
+  }
+}
+
+# Idempotency: re-plan should produce no changes.
+# Catches normalization bugs where flatten returns different values than config.
+run "idempotency" {
+  command = plan
+
+  assert {
+    condition     = !run.create_and_verify.incomplete
+    error_message = "Previous run did not complete successfully"
   }
 }

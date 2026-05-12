@@ -1,0 +1,3 @@
+coolify_endpoint = "http://localhost:8000"
+coolify_token    = "your-api-token"
+server_uuid      = "your-server-uuid"
