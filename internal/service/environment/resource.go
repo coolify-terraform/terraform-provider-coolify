@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
-	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -154,10 +153,10 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 
 	state.ID = types.Int64Value(env.ID)
 	state.Name = types.StringValue(env.Name)
-	// Preserve state description value: the API has no PATCH endpoint for
-	// environments, so we can only read the description on first import.
-	if state.Description.IsNull() {
-		state.Description = flex.StringToFramework(env.Description)
+	// Coolify does not store or return description via the API.
+	// Preserve state value; resolve null (e.g. after import) to empty.
+	if state.Description.IsNull() || state.Description.IsUnknown() {
+		state.Description = types.StringValue("")
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -221,9 +220,9 @@ func (r *environmentResource) readEnvironment(ctx context.Context, projectUUID, 
 	model.ID = types.Int64Value(env.ID)
 	model.Name = types.StringValue(env.Name)
 	// Coolify does not store or return description via the API.
-	// Preserve the value from plan/state if the API returns empty.
-	if env.Description != "" {
-		model.Description = flex.StringToFramework(env.Description)
+	// Keep the plan/state value; only resolve Unknown to empty.
+	if model.Description.IsUnknown() {
+		model.Description = types.StringValue("")
 	}
 
 	return diags

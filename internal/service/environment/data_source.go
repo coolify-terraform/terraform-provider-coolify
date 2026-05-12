@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
-	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -95,7 +94,7 @@ func (d *environmentDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	config.ID = types.Int64Value(env.ID)
 	config.Name = types.StringValue(env.Name)
-	config.Description = flex.StringToFramework(env.Description)
+	config.Description = types.StringValue(env.Description)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

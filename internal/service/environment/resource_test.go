@@ -264,10 +264,11 @@ resource "coolify_environment" "test" {
 `,
 			},
 			{
-				ResourceName:      "coolify_environment.test",
-				ImportState:       true,
-				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001:import-env",
-				ImportStateVerify: true,
+				ResourceName:            "coolify_environment.test",
+				ImportState:             true,
+				ImportStateId:           "aaaa0001-0001-4000-8000-000000000001:import-env",
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"description"},
 			},
 		},
 	})
