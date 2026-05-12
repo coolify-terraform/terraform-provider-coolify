@@ -8,9 +8,9 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
@@ -150,28 +150,31 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	if plan.WaitForCompletion.ValueBool() {
-		tflog.Debug(ctx, "waiting for deployment completion", map[string]interface{}{"uuid": result.DeploymentUUID})
-		for {
-			select {
-			case <-ctx.Done():
-				resp.Diagnostics.AddError("Deployment timed out", fmt.Sprintf("Deployment %s did not complete within the configured timeout. Last status: %s", result.DeploymentUUID, plan.Status.ValueString()))
-				return
-			case <-time.After(5 * time.Second):
-			}
-			dep, err := r.client.GetDeployment(ctx, result.DeploymentUUID)
-			if err != nil {
-				resp.Diagnostics.AddError("Error polling deployment", fmt.Sprintf("Could not read deployment %s: %s", result.DeploymentUUID, err))
-				return
-			}
-			plan.Status = types.StringValue(dep.Status)
-			resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-			if dep.Status == "finished" {
-				break
-			}
+		r.pollDeployment(ctx, result.DeploymentUUID, &plan, resp)
+	}
+}
+
+func (r *deploymentResource) pollDeployment(ctx context.Context, uuid string, plan *deploymentResourceModel, resp *resource.CreateResponse) {
+	tflog.Debug(ctx, "waiting for deployment completion", map[string]interface{}{"uuid": uuid})
+	for {
+		select {
+		case <-ctx.Done():
+			resp.Diagnostics.AddError("Deployment timed out", fmt.Sprintf("Deployment %s did not complete within the configured timeout. Last status: %s", uuid, plan.Status.ValueString()))
+			return
+		case <-time.After(5 * time.Second):
+		}
+		dep, err := r.client.GetDeployment(ctx, uuid)
+		if err != nil {
+			resp.Diagnostics.AddError("Error polling deployment", fmt.Sprintf("Could not read deployment %s: %s", uuid, err))
+			return
+		}
+		plan.Status = types.StringValue(dep.Status)
+		resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+		if dep.Status == "finished" || dep.Status == "error" {
 			if dep.Status == "error" {
-				resp.Diagnostics.AddError("Deployment failed", fmt.Sprintf("Deployment %s finished with status 'error'", result.DeploymentUUID))
-				return
+				resp.Diagnostics.AddError("Deployment failed", fmt.Sprintf("Deployment %s finished with status 'error'", uuid))
 			}
+			return
 		}
 	}
 }

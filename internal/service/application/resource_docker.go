@@ -301,50 +301,15 @@ func flattenDockerImageApplication(app *client.Application, state *dockerImageAp
 	if app.EnvironmentName != "" {
 		state.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
 	}
-	// Resource limits – only overwrite state when the API returns a value.
-	if app.LimitsMemory != "" {
-		state.LimitsMemory = types.StringValue(app.LimitsMemory)
-	}
-	if app.LimitsMemorySwap != "" {
-		state.LimitsMemorySwap = types.StringValue(app.LimitsMemorySwap)
-	}
-	if app.LimitsMemorySwappiness != nil {
-		state.LimitsMemorySwappiness = types.Int64Value(*app.LimitsMemorySwappiness)
-	}
-	if app.LimitsMemoryReservation != "" {
-		state.LimitsMemoryReservation = types.StringValue(app.LimitsMemoryReservation)
-	}
-	if app.LimitsCPUs != "" {
-		state.LimitsCPUs = types.StringValue(app.LimitsCPUs)
-	}
-	if app.LimitsCPUSet != "" {
-		state.LimitsCPUSet = types.StringValue(app.LimitsCPUSet)
-	}
-	if app.LimitsCPUShares != nil {
-		state.LimitsCPUShares = types.Int64Value(*app.LimitsCPUShares)
-	}
-	// Health checks
-	if app.HealthCheckEnabled != nil {
-		state.HealthCheckEnabled = types.BoolValue(*app.HealthCheckEnabled)
-	}
-	if app.HealthCheckPath != "" {
-		state.HealthCheckPath = types.StringValue(app.HealthCheckPath)
-	}
-	if app.HealthCheckPort != "" {
-		state.HealthCheckPort = types.StringValue(app.HealthCheckPort)
-	}
-	if app.HealthCheckInterval != nil {
-		state.HealthCheckInterval = types.Int64Value(*app.HealthCheckInterval)
-	}
-	if app.HealthCheckTimeout != nil {
-		state.HealthCheckTimeout = types.Int64Value(*app.HealthCheckTimeout)
-	}
-	if app.HealthCheckRetries != nil {
-		state.HealthCheckRetries = types.Int64Value(*app.HealthCheckRetries)
-	}
-	if app.HealthCheckStartPeriod != nil {
-		state.HealthCheckStartPeriod = types.Int64Value(*app.HealthCheckStartPeriod)
-	}
+	flattenLimitsAndHealth(app, commonAppFields{
+		LimitsMemory: &state.LimitsMemory, LimitsMemorySwap: &state.LimitsMemorySwap,
+		LimitsMemorySwappiness: &state.LimitsMemorySwappiness, LimitsMemoryReservation: &state.LimitsMemoryReservation,
+		LimitsCPUs: &state.LimitsCPUs, LimitsCPUSet: &state.LimitsCPUSet, LimitsCPUShares: &state.LimitsCPUShares,
+		HealthCheckEnabled: &state.HealthCheckEnabled, HealthCheckPath: &state.HealthCheckPath,
+		HealthCheckPort: &state.HealthCheckPort, HealthCheckInterval: &state.HealthCheckInterval,
+		HealthCheckTimeout: &state.HealthCheckTimeout, HealthCheckRetries: &state.HealthCheckRetries,
+		HealthCheckStartPeriod: &state.HealthCheckStartPeriod, IsAutoDeployEnabled: &state.IsAutoDeployEnabled,
+	})
 	// Auto-deploy
 	if app.IsAutoDeployEnabled != nil {
 		state.IsAutoDeployEnabled = types.BoolValue(*app.IsAutoDeployEnabled)

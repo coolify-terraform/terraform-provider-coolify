@@ -102,38 +102,33 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	if app.EnvironmentName != "" {
 		*f.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
 	}
-	// Resource limits – only overwrite state when the API returns a value;
-	// Coolify may omit these fields from the GET response.
-	if app.LimitsMemory != "" {
-		*f.LimitsMemory = types.StringValue(app.LimitsMemory)
+	flattenLimitsAndHealth(app, f)
+}
+
+// flattenLimitsAndHealth sets resource limits, health checks, and auto-deploy
+// fields from the API response. Extracted to keep flattenApplicationCommon
+// under the gocognit complexity threshold.
+func flattenLimitsAndHealth(app *client.Application, f commonAppFields) {
+	setStringIfNonEmpty := func(dst *types.String, v string) {
+		if v != "" {
+			*dst = types.StringValue(v)
+		}
 	}
-	if app.LimitsMemorySwap != "" {
-		*f.LimitsMemorySwap = types.StringValue(app.LimitsMemorySwap)
-	}
+	setStringIfNonEmpty(f.LimitsMemory, app.LimitsMemory)
+	setStringIfNonEmpty(f.LimitsMemorySwap, app.LimitsMemorySwap)
+	setStringIfNonEmpty(f.LimitsMemoryReservation, app.LimitsMemoryReservation)
+	setStringIfNonEmpty(f.LimitsCPUs, app.LimitsCPUs)
+	setStringIfNonEmpty(f.LimitsCPUSet, app.LimitsCPUSet)
+	setStringIfNonEmpty(f.HealthCheckPath, app.HealthCheckPath)
+	setStringIfNonEmpty(f.HealthCheckPort, app.HealthCheckPort)
 	if app.LimitsMemorySwappiness != nil {
 		*f.LimitsMemorySwappiness = types.Int64Value(*app.LimitsMemorySwappiness)
-	}
-	if app.LimitsMemoryReservation != "" {
-		*f.LimitsMemoryReservation = types.StringValue(app.LimitsMemoryReservation)
-	}
-	if app.LimitsCPUs != "" {
-		*f.LimitsCPUs = types.StringValue(app.LimitsCPUs)
-	}
-	if app.LimitsCPUSet != "" {
-		*f.LimitsCPUSet = types.StringValue(app.LimitsCPUSet)
 	}
 	if app.LimitsCPUShares != nil {
 		*f.LimitsCPUShares = types.Int64Value(*app.LimitsCPUShares)
 	}
-	// Health checks
 	if app.HealthCheckEnabled != nil {
 		*f.HealthCheckEnabled = types.BoolValue(*app.HealthCheckEnabled)
-	}
-	if app.HealthCheckPath != "" {
-		*f.HealthCheckPath = types.StringValue(app.HealthCheckPath)
-	}
-	if app.HealthCheckPort != "" {
-		*f.HealthCheckPort = types.StringValue(app.HealthCheckPort)
 	}
 	if app.HealthCheckInterval != nil {
 		*f.HealthCheckInterval = types.Int64Value(*app.HealthCheckInterval)
@@ -147,7 +142,6 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	if app.HealthCheckStartPeriod != nil {
 		*f.HealthCheckStartPeriod = types.Int64Value(*app.HealthCheckStartPeriod)
 	}
-	// Auto-deploy
 	if app.IsAutoDeployEnabled != nil {
 		*f.IsAutoDeployEnabled = types.BoolValue(*app.IsAutoDeployEnabled)
 	}
