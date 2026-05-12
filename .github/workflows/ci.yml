@@ -87,7 +87,7 @@ jobs:
             --rerun-fails \
             --rerun-fails-max-failures=5 \
             --packages ./... \
-            -- -race -cover -coverprofile=coverage.out -timeout=10m -parallel=10
+            -- -race -cover -coverprofile=coverage.out -count=1 -p 10 -timeout=10m -parallel=10
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
       - name: Upload test results
@@ -125,6 +125,8 @@ jobs:
           version: v2.12.2
       - name: Check go mod tidy
         run: go mod tidy && git diff --exit-code go.mod go.sum
+      - name: Verify module checksums
+        run: go mod verify
 
   validate-examples:
     name: Validate Examples
