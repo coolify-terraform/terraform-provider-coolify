@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 

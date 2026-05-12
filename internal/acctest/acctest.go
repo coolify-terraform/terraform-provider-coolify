@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/SebTardif/terraform-provider-coolify/internal/client"
-	"github.com/SebTardif/terraform-provider-coolify/internal/provider"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"

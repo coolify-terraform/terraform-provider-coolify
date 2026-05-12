@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/SebTardif/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"

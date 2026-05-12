@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/SebTardif/terraform-provider-coolify/internal/validate"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )

@@ -3,7 +3,7 @@ package flex_test
 import (
 	"testing"
 
-	"github.com/SebTardif/terraform-provider-coolify/internal/flex"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 

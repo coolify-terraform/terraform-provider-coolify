@@ -1,4 +1,4 @@
-module github.com/SebTardif/terraform-provider-coolify
+module github.com/SebTardifLabs/terraform-provider-coolify
 
 go 1.26.3
 
