@@ -110,17 +110,17 @@ type ServerDomain struct {
 }
 
 type CreateHetznerServerInput struct {
-	Name                  string `json:"name"`
+	Name                   string `json:"name"`
 	CloudProviderTokenUUID string `json:"cloud_provider_token_uuid"`
-	ServerType            string `json:"server_type"`
-	Location              string `json:"location"`
-	Image                 string `json:"image"`
-	PrivateKeyUUID        string `json:"private_key_uuid"`
-	EnableIPv4            *bool  `json:"enable_ipv4,omitempty"`
-	EnableIPv6            *bool  `json:"enable_ipv6,omitempty"`
-	HetznerSSHKeyIDs      string `json:"hetzner_ssh_key_ids,omitempty"`
-	CloudInitScript       string `json:"cloud_init_script,omitempty"`
-	InstantValidate       *bool  `json:"instant_validate,omitempty"`
+	ServerType             string `json:"server_type"`
+	Location               string `json:"location"`
+	Image                  string `json:"image"`
+	PrivateKeyUUID         string `json:"private_key_uuid"`
+	EnableIPv4             *bool  `json:"enable_ipv4,omitempty"`
+	EnableIPv6             *bool  `json:"enable_ipv6,omitempty"`
+	HetznerSSHKeyIDs       string `json:"hetzner_ssh_key_ids,omitempty"`
+	CloudInitScript        string `json:"cloud_init_script,omitempty"`
+	InstantValidate        *bool  `json:"instant_validate,omitempty"`
 }
 
 func (c *Client) CreateHetznerServer(ctx context.Context, input CreateHetznerServerInput) (*Server, error) {
