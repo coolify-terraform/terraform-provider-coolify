@@ -192,10 +192,22 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_CONFIG: .gitleaks.toml
+      - name: Install gitleaks
+        run: |
+          VER="8.24.3"
+          if ! command -v gitleaks >/dev/null 2>&1 || ! gitleaks version 2>/dev/null | grep -q "$VER"; then
+            curl -sfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" \
+              | sudo tar xz -C /usr/local/bin gitleaks
+          fi
+      - name: Run gitleaks
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            gitleaks detect --source . --config .gitleaks.toml --log-opts="origin/main..HEAD" --exit-code 1
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            gitleaks detect --source . --config .gitleaks.toml --log-opts="${{ github.event.before }}..${{ github.event.after }}" --exit-code 1
+          else
+            gitleaks detect --source . --config .gitleaks.toml --exit-code 1
+          fi
 
   goreleaser-check:
     name: GoReleaser Check
