@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/SebTardif/terraform-provider-coolify/internal/client"
@@ -296,16 +297,24 @@ func flattenDockerImageApplication(app *client.Application, state *dockerImageAp
 	state.UUID = types.StringValue(app.UUID)
 	state.Name = types.StringValue(app.Name)
 	state.Description = flex.StringToFramework(app.Description)
-	// Coolify may strip the ":latest" tag from Docker image names (e.g.
-	// "alpine:latest" becomes "alpine"). Preserve the user's original value
-	// if the API value matches without the tag.
-	if prior := state.DockerImage; !prior.IsNull() && !prior.IsUnknown() &&
-		(prior.ValueString() == app.DockerRegistryImageName || prior.ValueString() == app.DockerRegistryImageName+":latest") {
-		// keep existing state value
+	// Coolify may strip the tag from Docker image names (e.g.
+	// "redis:7-alpine" becomes "redis"). Preserve the user's original value
+	// if the API value matches the image name without the tag.
+	if prior := state.DockerImage; !prior.IsNull() && !prior.IsUnknown() {
+		priorVal := prior.ValueString()
+		apiVal := app.DockerRegistryImageName
+		if priorVal == apiVal || strings.SplitN(priorVal, ":", 2)[0] == apiVal {
+			// keep existing state value (user's image:tag is preserved)
+		} else {
+			state.DockerImage = types.StringValue(apiVal)
+		}
 	} else {
 		state.DockerImage = types.StringValue(app.DockerRegistryImageName)
 	}
-	state.PortsExposes = types.StringValue(app.PortsExposes)
+	// Coolify may override ports_exposes. Preserve the user's configured value.
+	if state.PortsExposes.IsNull() || state.PortsExposes.IsUnknown() {
+		state.PortsExposes = types.StringValue(app.PortsExposes)
+	}
 	state.FQDN = flex.StringToFramework(app.FQDN)
 	state.InstallCommand = flex.StringToFramework(app.InstallCommand)
 	state.StartCommand = flex.StringToFramework(app.StartCommand)

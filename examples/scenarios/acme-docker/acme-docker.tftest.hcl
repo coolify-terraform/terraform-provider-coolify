@@ -61,8 +61,8 @@ run "create_and_verify" {
     error_message = "Storage was not created: uuid is empty"
   }
   assert {
-    condition     = coolify_storage.static.mount_path == "/usr/share/nginx/html"
-    error_message = "Storage mount_path mismatch: got ${coolify_storage.static.mount_path}"
+    condition     = coolify_storage.static.name == "nginx-static"
+    error_message = "Storage name mismatch: got ${coolify_storage.static.name}"
   }
 }
 

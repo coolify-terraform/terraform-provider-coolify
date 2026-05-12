@@ -52,14 +52,14 @@ resource "coolify_docker_compose_application" "stack" {
   project_uuid     = coolify_project.docker.uuid
   server_uuid      = var.server_uuid
   environment_name = "production"
-  docker_compose_raw = yamlencode({
-    services = {
-      web = {
-        image = "nginx:alpine"
-        ports = ["8080:80"]
-      }
-    }
-  })
+  docker_compose_raw = base64encode(<<-YAML
+    services:
+      web:
+        image: nginx:alpine
+        ports:
+          - "8080:80"
+  YAML
+  )
 }
 
 # --- Scheduled Task (attached to nginx app) ---
@@ -75,8 +75,7 @@ resource "coolify_scheduled_task" "cleanup" {
 # --- Persistent Storage (attached to nginx app) ---
 
 resource "coolify_storage" "static" {
-  resource_uuid = coolify_docker_image_application.nginx.uuid
-  resource_type = "application"
-  fs_path       = "/data/static"
-  mount_path    = "/usr/share/nginx/html"
+  application_uuid = coolify_docker_image_application.nginx.uuid
+  name             = "nginx-static"
+  mount_path       = "/usr/share/nginx/html"
 }
