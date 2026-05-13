@@ -3,6 +3,8 @@ package privatekey
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
@@ -214,13 +216,32 @@ func (r *privateKeyResource) Delete(ctx context.Context, req resource.DeleteRequ
 
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_private_key", "uuid": state.UUID.ValueString()})
 
-	if err := r.client.DeletePrivateKey(ctx, state.UUID.ValueString()); err != nil {
+	// Coolify deletes applications asynchronously. When terraform destroy
+	// runs, the app referencing this key may still be deleting. Retry for
+	// up to 30 seconds on "in use" errors.
+	uuid := state.UUID.ValueString()
+	var err error
+retryLoop:
+	for attempt := range 6 {
+		err = r.client.DeletePrivateKey(ctx, uuid)
+		if err == nil {
+			return
+		}
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting private key", fmt.Sprintf("private key %s: %s", state.UUID.ValueString(), err))
-		return
+		if !strings.Contains(err.Error(), "in use") && !strings.Contains(err.Error(), "cannot be deleted") {
+			break
+		}
+		tflog.Debug(ctx, "retrying private key delete", map[string]interface{}{"attempt": attempt + 1, "uuid": uuid})
+		select {
+		case <-ctx.Done():
+			err = ctx.Err()
+			break retryLoop
+		case <-time.After(5 * time.Second):
+		}
 	}
+	resp.Diagnostics.AddError("Error deleting private key", fmt.Sprintf("private key %s: %s", uuid, err))
 }
 
 func (r *privateKeyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

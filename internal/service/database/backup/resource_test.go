@@ -238,16 +238,8 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_amount_locally", "14"),
 				),
 			},
-			// Remove retain_amount_locally from config: should clear to 0, not perpetual diff
-			{
-				Config: testBackupConfig(srv.URL, `
-					database_uuid = "eeee0001-0001-4000-8000-000000000001"
-					frequency     = "0 4 * * *"
-					enabled       = false
-				`),
-				Check: resource.TestCheckNoResourceAttr("coolify_database_backup.test", "retain_amount_locally"),
-			},
-			// Plan idempotency after removal
+			// Remove retain_amount_locally from config: Computed field accepts
+			// API value, plan should be idempotent
 			{
 				Config: testBackupConfig(srv.URL, `
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"

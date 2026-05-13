@@ -129,36 +129,43 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 			"retain_amount_locally": schema.Int64Attribute{
 				MarkdownDescription: "Number of backup copies to retain locally.",
 				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"retain_days_locally": schema.Int64Attribute{
 				MarkdownDescription: "Number of days to retain backups locally.",
 				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"retain_max_storage_locally": schema.Int64Attribute{
 				MarkdownDescription: "Maximum storage in MB for local backups.",
 				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"retain_amount_s3": schema.Int64Attribute{
 				MarkdownDescription: "Number of backup copies to retain in S3.",
 				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"retain_days_s3": schema.Int64Attribute{
 				MarkdownDescription: "Number of days to retain backups in S3.",
 				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"retain_max_storage_s3": schema.Int64Attribute{
 				MarkdownDescription: "Maximum storage in MB for S3 backups.",
 				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"timeout": schema.Int64Attribute{
 				MarkdownDescription: "Backup job timeout in seconds (60-36000).",
 				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.Int64{int64validator.Between(60, 36000)},
 			},
 		},
@@ -291,13 +298,13 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 	input.S3StorageID = flex.StringPtrForUpdate(plan.S3StorageID, state.S3StorageID)
 	flex.SetStrPtr(&input.DatabasesToBackup, plan.DatabasesToBackup)
 	flex.SetBoolPtr(&input.DumpAll, plan.DumpAll)
-	input.RetainAmountLocally = flex.Int64PtrForUpdate(plan.RetainAmountLocally, state.RetainAmountLocally)
-	input.RetainDaysLocally = flex.Int64PtrForUpdate(plan.RetainDaysLocally, state.RetainDaysLocally)
-	input.RetainMaxStorageLocal = flex.Int64PtrForUpdate(plan.RetainMaxStorageLocal, state.RetainMaxStorageLocal)
-	input.RetainAmountS3 = flex.Int64PtrForUpdate(plan.RetainAmountS3, state.RetainAmountS3)
-	input.RetainDaysS3 = flex.Int64PtrForUpdate(plan.RetainDaysS3, state.RetainDaysS3)
-	input.RetainMaxStorageS3 = flex.Int64PtrForUpdate(plan.RetainMaxStorageS3, state.RetainMaxStorageS3)
-	input.Timeout = flex.Int64PtrForUpdate(plan.Timeout, state.Timeout)
+	input.RetainAmountLocally = flex.Int64PtrFromFramework(plan.RetainAmountLocally)
+	input.RetainDaysLocally = flex.Int64PtrFromFramework(plan.RetainDaysLocally)
+	input.RetainMaxStorageLocal = flex.Int64PtrFromFramework(plan.RetainMaxStorageLocal)
+	input.RetainAmountS3 = flex.Int64PtrFromFramework(plan.RetainAmountS3)
+	input.RetainDaysS3 = flex.Int64PtrFromFramework(plan.RetainDaysS3)
+	input.RetainMaxStorageS3 = flex.Int64PtrFromFramework(plan.RetainMaxStorageS3)
+	input.Timeout = flex.Int64PtrFromFramework(plan.Timeout)
 
 	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, state.UUID.ValueString(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating database backup", fmt.Sprintf("backup %s for database %s: %s", state.UUID.ValueString(), dbUUID, err))
@@ -397,19 +404,11 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 		m.DatabasesToBackup = flex.StringToFramework(b.DatabasesToBackup)
 	}
 	m.DumpAll = types.BoolValue(b.DumpAll)
-	setInt64IfConfigured := func(dst *types.Int64, v *int64) {
-		if dst.IsNull() || dst.IsUnknown() {
-			return
-		}
-		if v != nil {
-			*dst = types.Int64Value(*v)
-		}
-	}
-	setInt64IfConfigured(&m.RetainAmountLocally, b.RetainAmountLocally)
-	setInt64IfConfigured(&m.RetainDaysLocally, b.RetainDaysLocally)
-	setInt64IfConfigured(&m.RetainMaxStorageLocal, b.RetainMaxStorageLocal)
-	setInt64IfConfigured(&m.RetainAmountS3, b.RetainAmountS3)
-	setInt64IfConfigured(&m.RetainDaysS3, b.RetainDaysS3)
-	setInt64IfConfigured(&m.RetainMaxStorageS3, b.RetainMaxStorageS3)
-	setInt64IfConfigured(&m.Timeout, b.Timeout)
+	m.RetainAmountLocally = flex.Int64PtrToFramework(b.RetainAmountLocally)
+	m.RetainDaysLocally = flex.Int64PtrToFramework(b.RetainDaysLocally)
+	m.RetainMaxStorageLocal = flex.Int64PtrToFramework(b.RetainMaxStorageLocal)
+	m.RetainAmountS3 = flex.Int64PtrToFramework(b.RetainAmountS3)
+	m.RetainDaysS3 = flex.Int64PtrToFramework(b.RetainDaysS3)
+	m.RetainMaxStorageS3 = flex.Int64PtrToFramework(b.RetainMaxStorageS3)
+	m.Timeout = flex.Int64PtrToFramework(b.Timeout)
 }
