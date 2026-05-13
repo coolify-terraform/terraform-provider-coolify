@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
@@ -95,6 +96,11 @@ func (d *applicationLogsDataSource) Read(ctx context.Context, req datasource.Rea
 
 	logs, err := d.client.GetApplicationLogs(ctx, config.UUID.ValueString())
 	if err != nil {
+		if strings.Contains(err.Error(), "status 400") {
+			config.Logs = []applicationLogModel{}
+			resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading application logs", err.Error())
 		return
 	}

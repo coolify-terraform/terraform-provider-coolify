@@ -253,6 +253,7 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	input := client.UpdateStorageInput{
 		UUID:      flex.StringValueOrNull(plan.UUID),
+		Type:      "persistent",
 		Name:      flex.StringValueOrNull(plan.Name),
 		MountPath: flex.StringValueOrNull(plan.MountPath),
 		HostPath:  flex.StringPtrForUpdate(plan.HostPath, state.HostPath),

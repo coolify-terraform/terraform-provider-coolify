@@ -208,9 +208,17 @@ func validateParentType(pt string) error {
 // body if parsing fails or no message field is present.
 func extractAPIMessage(body []byte) string {
 	var parsed struct {
-		Message string `json:"message"`
+		Message string                     `json:"message"`
+		Errors  map[string]json.RawMessage `json:"errors"`
 	}
 	if json.Unmarshal(body, &parsed) == nil && parsed.Message != "" {
+		if len(parsed.Errors) > 0 {
+			parts := make([]string, 0, len(parsed.Errors))
+			for field, detail := range parsed.Errors {
+				parts = append(parts, field+": "+string(detail))
+			}
+			return parsed.Message + " " + strings.Join(parts, "; ")
+		}
 		return parsed.Message
 	}
 	s := strings.Map(func(r rune) rune {

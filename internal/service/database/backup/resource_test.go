@@ -280,6 +280,11 @@ func TestDatabaseBackupResource_Import(t *testing.T) {
 				ImportStateId:                        "eeee0001-0001-4000-8000-000000000001:42",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateVerifyIgnore: []string{
+					"retain_amount_locally", "retain_days_locally", "retain_max_storage_locally",
+					"retain_amount_s3", "retain_days_s3", "retain_max_storage_s3",
+					"timeout", "databases_to_backup",
+				},
 			},
 		},
 	})

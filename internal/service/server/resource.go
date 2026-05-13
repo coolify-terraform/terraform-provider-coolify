@@ -140,10 +140,10 @@ func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"deployment_queue_limit": schema.Int64Attribute{
-				MarkdownDescription: "Maximum number of queued deployments. 0 means unlimited.",
+				MarkdownDescription: "Maximum number of queued deployments (default 25).",
 				Optional:            true,
 				Computed:            true,
-				Default:             int64default.StaticInt64(0),
+				Default:             int64default.StaticInt64(25),
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},
 			"server_disk_usage_notification_threshold": schema.Int64Attribute{

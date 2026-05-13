@@ -30,7 +30,7 @@ resource "coolify_project" "test" {
 resource "coolify_service" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
-  type         = "plausible"
+  type         = "uptime-kuma"
 }
 `, name, serverUUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -72,7 +72,7 @@ resource "coolify_project" "test" {
 resource "coolify_service" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
-  type         = "plausible"
+  type         = "uptime-kuma"
 }
 
 data "coolify_service" "by_uuid" {

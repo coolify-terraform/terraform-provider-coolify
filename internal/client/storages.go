@@ -38,6 +38,7 @@ type CreateStorageResponse struct {
 // All fields are optional; only non-nil fields are sent.
 type UpdateStorageInput struct {
 	UUID      *string `json:"uuid,omitempty"`
+	Type      string  `json:"type"`
 	Name      *string `json:"name,omitempty"`
 	MountPath *string `json:"mount_path,omitempty"`
 	HostPath  *string `json:"host_path,omitempty"`

@@ -157,12 +157,8 @@ func TestDockerfileApplicationResource_Update(t *testing.T) {
 		if v, ok := body["build_command"].(string); ok {
 			app.BuildCommand = v
 		}
-		// Dockerfile apps send content via "dockerfile", not "dockerfile_location".
-		if v, ok := body["dockerfile"].(string); ok {
-			app.Dockerfile = v
-		}
-		if _, hasLoc := body["dockerfile_location"]; hasLoc {
-			t.Error("PATCH should not send 'dockerfile_location' for dockerfile apps; expected 'dockerfile'")
+		if _, has := body["dockerfile"]; has {
+			t.Error("PATCH should not send 'dockerfile' (not accepted by Coolify v4 update API)")
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})

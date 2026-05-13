@@ -393,13 +393,23 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 	m.Enabled = types.BoolValue(b.Enabled)
 	m.SaveS3 = types.BoolValue(b.SaveS3)
 	m.S3StorageID = flex.StringToFramework(b.S3StorageID)
-	m.DatabasesToBackup = flex.StringToFramework(b.DatabasesToBackup)
+	if !m.DatabasesToBackup.IsNull() {
+		m.DatabasesToBackup = flex.StringToFramework(b.DatabasesToBackup)
+	}
 	m.DumpAll = types.BoolValue(b.DumpAll)
-	m.RetainAmountLocally = flex.Int64PtrToFramework(b.RetainAmountLocally)
-	m.RetainDaysLocally = flex.Int64PtrToFramework(b.RetainDaysLocally)
-	m.RetainMaxStorageLocal = flex.Int64PtrToFramework(b.RetainMaxStorageLocal)
-	m.RetainAmountS3 = flex.Int64PtrToFramework(b.RetainAmountS3)
-	m.RetainDaysS3 = flex.Int64PtrToFramework(b.RetainDaysS3)
-	m.RetainMaxStorageS3 = flex.Int64PtrToFramework(b.RetainMaxStorageS3)
-	m.Timeout = flex.Int64PtrToFramework(b.Timeout)
+	setInt64IfConfigured := func(dst *types.Int64, v *int64) {
+		if dst.IsNull() || dst.IsUnknown() {
+			return
+		}
+		if v != nil {
+			*dst = types.Int64Value(*v)
+		}
+	}
+	setInt64IfConfigured(&m.RetainAmountLocally, b.RetainAmountLocally)
+	setInt64IfConfigured(&m.RetainDaysLocally, b.RetainDaysLocally)
+	setInt64IfConfigured(&m.RetainMaxStorageLocal, b.RetainMaxStorageLocal)
+	setInt64IfConfigured(&m.RetainAmountS3, b.RetainAmountS3)
+	setInt64IfConfigured(&m.RetainDaysS3, b.RetainDaysS3)
+	setInt64IfConfigured(&m.RetainMaxStorageS3, b.RetainMaxStorageS3)
+	setInt64IfConfigured(&m.Timeout, b.Timeout)
 }

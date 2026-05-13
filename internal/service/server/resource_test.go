@@ -46,7 +46,7 @@ func newServerMockServer() *httptest.Server {
 				Settings: &client.ServerSettings{
 					ConcurrentBuilds:                     2,
 					DynamicTimeout:                       3600,
-					DeploymentQueueLimit:                 0,
+					DeploymentQueueLimit:                 25,
 					ServerDiskUsageNotificationThreshold: 80,
 					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
 				},
@@ -168,7 +168,7 @@ resource "coolify_server" "test" {
 					resource.TestCheckResourceAttr("coolify_server.test", "is_usable", "true"),
 					resource.TestCheckResourceAttr("coolify_server.test", "concurrent_builds", "2"),
 					resource.TestCheckResourceAttr("coolify_server.test", "dynamic_timeout", "3600"),
-					resource.TestCheckResourceAttr("coolify_server.test", "deployment_queue_limit", "0"),
+					resource.TestCheckResourceAttr("coolify_server.test", "deployment_queue_limit", "25"),
 					resource.TestCheckResourceAttr("coolify_server.test", "server_disk_usage_notification_threshold", "80"),
 					resource.TestCheckResourceAttr("coolify_server.test", "server_disk_usage_check_frequency", "*/5 * * * *"),
 				),

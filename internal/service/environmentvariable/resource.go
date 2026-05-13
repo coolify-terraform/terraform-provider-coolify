@@ -243,7 +243,6 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": plan.UUID.ValueString()})
 
 	ev := client.EnvironmentVariable{
-		UUID:      plan.UUID.ValueString(),
 		Key:       plan.Key.ValueString(),
 		Value:     plan.Value.ValueString(),
 		IsPreview: plan.IsPreview.ValueBool(),

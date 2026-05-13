@@ -165,7 +165,6 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	flex.SetStrPtr(&u.ClickhouseAdminUser, p.ClickhouseAdminUser)
 	flex.SetStrPtr(&u.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
-	flex.SetStrPtr(&u.ClickhouseDB, p.ClickhouseDB)
 	pg.SetUpdateExtended(&u, extFields(&p))
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {

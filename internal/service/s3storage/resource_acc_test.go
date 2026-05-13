@@ -10,6 +10,7 @@ import (
 )
 
 func TestAccS3StorageResource_CRUD(t *testing.T) {
+	t.Skip("S3 storage API does not exist in Coolify v4 (web-only feature)")
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
@@ -75,6 +76,7 @@ resource "coolify_s3_storage" "test" {
 }
 
 func TestAccS3StorageDataSources(t *testing.T) {
+	t.Skip("S3 storage API does not exist in Coolify v4 (web-only feature)")
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)

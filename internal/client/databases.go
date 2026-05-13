@@ -382,11 +382,13 @@ type BackupExecution struct {
 
 // ListBackupExecutions returns all executions for a database backup.
 func (c *Client) ListBackupExecutions(ctx context.Context, dbUUID, backupUUID string) ([]BackupExecution, error) {
-	var execs []BackupExecution
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups/%s/executions", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), nil, &execs); err != nil {
+	var wrapper struct {
+		Executions []BackupExecution `json:"executions"`
+	}
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups/%s/executions", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), nil, &wrapper); err != nil {
 		return nil, fmt.Errorf("listing backup executions for database %s backup %s: %w", dbUUID, backupUUID, err)
 	}
-	return execs, nil
+	return wrapper.Executions, nil
 }
 
 // DeleteBackupExecution deletes a specific backup execution.

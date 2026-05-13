@@ -403,12 +403,11 @@ func addExtendedUpdateFields(f commonAppFields, input *client.UpdateApplicationI
 	// Build/deploy
 	input.BaseDirectory = strPtr(*f.BaseDirectory)
 	input.PublishDirectory = strPtr(*f.PublishDirectory)
-	input.Dockerfile = strPtr(*f.Dockerfile)
 	input.DockerRegistryImageTag = strPtr(*f.DockerRegistryImageTag)
 	input.DockerComposeDomains = strPtr(*f.DockerComposeDomains)
 	input.GitCommitSha = strPtr(*f.GitCommitSha)
 	input.WatchPaths = strPtr(*f.WatchPaths)
-	input.PreviewURLTemplate = strPtr(*f.PreviewURLTemplate)
+	// preview_url_template is not in Coolify v4's update $allowedFields.
 	// Container/Network
 	input.CustomDockerRunOptions = strPtr(*f.CustomDockerRunOptions)
 	input.CustomLabels = strPtr(*f.CustomLabels)

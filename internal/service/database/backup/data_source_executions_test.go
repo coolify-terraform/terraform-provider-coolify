@@ -22,7 +22,7 @@ func TestBackupExecutionsDataSource(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/backups/{backupUUID}/executions", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(executions)
+		json.NewEncoder(w).Encode(map[string]interface{}{"executions": executions})
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()

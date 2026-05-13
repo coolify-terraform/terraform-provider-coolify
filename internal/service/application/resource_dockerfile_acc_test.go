@@ -122,7 +122,7 @@ func TestAccApplicationLogsDataSource(t *testing.T) {
 			{
 				Config: testAccAppLogsConfig(name, serverUUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.coolify_application_logs.test", "logs.#"),
+					resource.TestCheckResourceAttr("data.coolify_application_logs.test", "logs.#", "0"),
 				),
 			},
 		},

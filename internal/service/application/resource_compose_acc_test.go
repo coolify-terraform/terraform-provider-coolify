@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccDockerComposeApplicationResource_CRUD(t *testing.T) {
+	t.Skip("POST /applications/dockercompose is deprecated in Coolify v4 (creates a Service, not Application)")
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
