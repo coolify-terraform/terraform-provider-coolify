@@ -16,6 +16,27 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 27 resources, 46 data sources, 509 tests (unit + acceptance), 13 CI jobs.
 7 ACME Corp scenario examples with `terraform test` integration tests.
 
+## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
+
+**Never guess Coolify API behavior.** The real contracts are extracted from the
+Coolify Laravel source code (models, controllers, migrations) and stored in
+`testdata/contracts/coolify-v4.json`. The OpenAPI spec at `testdata/specs/` is
+generated FROM the contract, not manually maintained.
+
+When you need to know a field's type, default, nullability, validation rules,
+or whether it's returned on GET: check the contract JSON first. If the contract
+doesn't have the answer, clone the Coolify source and read the PHP directly:
+
+```bash
+git clone --depth 1 https://github.com/coollabsio/coolify.git /tmp/coolify
+# Models: /tmp/coolify/app/Models/Application.php ($fillable, $casts, $attributes)
+# Controllers: /tmp/coolify/app/Http/Controllers/Api/ApplicationsController.php (validation rules)
+# Migrations: /tmp/coolify/database/migrations/ (column types, defaults, nullable)
+```
+
+Do NOT rely on the OpenAPI spec for field definitions. It has wrong nullability
+on 22+ fields, missing defaults, and zero validation rules.
+
 ## Commands
 
 - **Run all checks before pushing**: `make ci`
