@@ -1,10 +1,10 @@
 # Terraform Provider for Coolify
 
-[![CI](https://github.com/SebTardif/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/SebTardif/terraform-provider-coolify/actions/workflows/ci.yml)
-![Go Version](https://img.shields.io/github/go-mod/go-version/SebTardif/terraform-provider-coolify)
-![License](https://img.shields.io/github/license/SebTardif/terraform-provider-coolify)
+[![CI](https://github.com/SebTardifLabs/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/SebTardifLabs/terraform-provider-coolify/actions/workflows/ci.yml)
+![Go Version](https://img.shields.io/github/go-mod/go-version/SebTardifLabs/terraform-provider-coolify)
+![License](https://img.shields.io/github/license/SebTardifLabs/terraform-provider-coolify)
 
-A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 27 resources, 46 data sources, 420+ tests, 100% API coverage.
+A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 27 resources, 46 data sources, 570+ tests, 100% API coverage.
 
 ## Getting Started
 
@@ -156,7 +156,7 @@ The provider requires a Coolify API token. Generate one in the Coolify UI under 
 
 ```bash
 make build       # Compile the provider
-make test        # Run unit tests (420+ tests, race detector enabled)
+make test        # Run unit tests (570+ tests, race detector enabled)
 make testacc     # Run acceptance tests (needs running Coolify instance)
 make lint        # Run golangci-lint
 make fmt         # Format code (gofmt + go mod tidy)
@@ -171,9 +171,9 @@ project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ### CI Pipeline
 
-12 jobs in the CI workflow: Detect Changes, Test, Lint, Validate Examples,
+13 jobs in the CI workflow: Detect Changes, Test, Lint, Validate Examples,
 Docs, Govulncheck, Trivy, Gitleaks, GoReleaser Check, Scenario Tests,
-Spec Freshness (weekly), and a CI gate job.
+Acceptance Tests, Spec Freshness (weekly), and a CI gate job.
 
 ## License
 
