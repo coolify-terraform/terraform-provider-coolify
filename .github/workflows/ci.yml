@@ -430,7 +430,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [test, lint, validate-examples, govulncheck, trivy, gitleaks, goreleaser-check, docs, scenario-tests]
+    needs: [test, lint, validate-examples, govulncheck, trivy, gitleaks, goreleaser-check, docs, scenario-tests, acceptance-tests]
     steps:
       - name: Check results
         run: |

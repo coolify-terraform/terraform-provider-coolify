@@ -32,8 +32,7 @@ export COOLIFY_TOKEN="your-api-token"
 make testacc
 ```
 
-**Note**: The repo's `docker-compose.yml` is not a working Coolify setup.
-See [TESTING.md](TESTING.md) for the full local Coolify installation
+**Note**: See [TESTING.md](TESTING.md) for the full local Coolify installation
 procedure, API token creation, and server validation steps.
 
 ### Code Quality
@@ -125,8 +124,7 @@ To test the provider against a real Coolify instance without publishing:
    ```
 
 4. Start a local Coolify instance for testing (see [TESTING.md](TESTING.md)
-   for the full setup procedure; the repo's `docker-compose.yml` is not a
-   working Coolify setup).
+   for the full setup procedure).
 
 ## Pull Requests
 

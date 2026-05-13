@@ -39,8 +39,7 @@ full Terraform lifecycle: `plan` -> `apply` -> `read` -> `update` ->
 
 ### Prerequisites
 
-The repo's `docker-compose.yml` is not a working Coolify setup. Use the
-official multi-service installation instead:
+Use the official multi-service installation to set up a local Coolify instance:
 
 ```bash
 # 1. Create directories (needs sudo)
