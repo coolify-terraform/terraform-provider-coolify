@@ -16,6 +16,7 @@ func TestAccMysqlDatabaseResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_mysql_database", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{

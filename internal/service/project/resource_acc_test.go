@@ -16,6 +16,7 @@ func TestAccProjectResource_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
@@ -60,6 +61,7 @@ func TestAccProjectDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`

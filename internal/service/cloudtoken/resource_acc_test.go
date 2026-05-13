@@ -20,6 +20,7 @@ func TestAccCloudTokenResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
@@ -62,6 +63,7 @@ func TestAccCloudTokenDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCloudTokenWithDataSourcesConfig(name),

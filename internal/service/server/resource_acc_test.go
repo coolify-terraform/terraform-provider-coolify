@@ -16,6 +16,7 @@ func TestAccServerResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_server", "/api/v1/servers/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{

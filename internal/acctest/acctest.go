@@ -152,6 +152,39 @@ func CheckDestroy(serverURL, resourceType, apiPathPrefix string) resource.TestCh
 	}
 }
 
+// AccCheckDestroy returns a TestCheckFunc that verifies a resource no longer
+// exists via the real Coolify API after the test completes. Unlike CheckDestroy
+// (for mock servers), this includes Bearer token authentication.
+func AccCheckDestroy(resourceType, apiPathPrefix string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		endpoint := os.Getenv("COOLIFY_ENDPOINT")
+		token := os.Getenv("COOLIFY_TOKEN")
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != resourceType {
+				continue
+			}
+			uuid := rs.Primary.Attributes["uuid"]
+			if uuid == "" {
+				continue
+			}
+			req, err := http.NewRequest(http.MethodGet, endpoint+apiPathPrefix+uuid, nil)
+			if err != nil {
+				return err
+			}
+			req.Header.Set("Authorization", "Bearer "+token)
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return fmt.Errorf("error checking destroy for %s/%s: %w", resourceType, uuid, err)
+			}
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusNotFound {
+				return fmt.Errorf("%s %s still exists (status %d)", resourceType, uuid, resp.StatusCode)
+			}
+		}
+		return nil
+	}
+}
+
 // AccTestClient returns a Coolify API client configured from environment
 // variables. Skips the test if COOLIFY_ENDPOINT or COOLIFY_TOKEN are not set.
 func AccTestClient(t *testing.T) *client.Client {

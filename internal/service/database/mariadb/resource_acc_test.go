@@ -16,11 +16,13 @@ func TestAccMariadbDatabaseResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_mariadb_database", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_mariadb_database", name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_mariadb_database.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "name", name),
 					resource.TestCheckResourceAttrSet("coolify_mariadb_database.test", "image"),
 				),
 			},

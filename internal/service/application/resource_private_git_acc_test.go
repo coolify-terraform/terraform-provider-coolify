@@ -17,6 +17,7 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_private_git_application", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{

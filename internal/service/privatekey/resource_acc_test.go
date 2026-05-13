@@ -27,6 +27,7 @@ func TestAccPrivateKeyResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_private_key", "/api/v1/security/keys/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
@@ -85,6 +86,7 @@ func TestAccPrivateKeyDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_private_key", "/api/v1/security/keys/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`

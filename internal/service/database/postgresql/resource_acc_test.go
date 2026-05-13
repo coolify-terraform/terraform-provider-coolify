@@ -16,12 +16,14 @@ func TestAccPostgresqlDatabaseResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_postgresql_database", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create and verify
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "name", name),
 					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "image"),
 				),
 			},
@@ -51,6 +53,7 @@ func TestAccPostgresqlDatabaseDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_postgresql_database", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, "") + `

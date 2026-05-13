@@ -18,6 +18,7 @@ func TestAccGitHubAppResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_github_app", "/api/v1/github-apps/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
@@ -57,6 +58,7 @@ func TestAccGitHubAppDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_github_app", "/api/v1/github-apps/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccGitHubAppConfig(name) + `

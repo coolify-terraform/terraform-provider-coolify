@@ -21,6 +21,7 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_dockerfile_application", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
@@ -63,6 +64,7 @@ func TestAccDockerfileApplicationDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_dockerfile_application", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDockerfileAppWithDataSourcesConfig(name, serverUUID),
@@ -144,6 +146,7 @@ func TestAccApplicationLogsDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_dockerfile_application", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAppLogsConfig(name, serverUUID),

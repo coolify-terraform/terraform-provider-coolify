@@ -16,11 +16,13 @@ func TestAccClickhouseDatabaseResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_clickhouse_database", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_clickhouse_database", name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_clickhouse_database.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "name", name),
 					resource.TestCheckResourceAttrSet("coolify_clickhouse_database.test", "image"),
 				),
 			},
