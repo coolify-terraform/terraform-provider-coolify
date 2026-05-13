@@ -147,7 +147,10 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 		}
 	}
 	*f.FQDN = flex.StringToFramework(app.FQDN)
-	if f.DockerfileLocation != nil {
+	// Coolify does not return dockerfile_location on GET for most app types.
+	// Preserve the user's configured value to avoid "inconsistent result after apply".
+	// The value IS sent on Create/Update, just not returned on read-back.
+	if f.DockerfileLocation != nil && app.DockerfileLocation != "" {
 		*f.DockerfileLocation = flex.StringToFramework(app.DockerfileLocation)
 	}
 	if f.InstallCommand != nil {
@@ -412,7 +415,6 @@ func addExtendedUpdateFields(f commonAppFields, input *client.UpdateApplicationI
 	input.CustomNetworkAliases = strPtr(*f.CustomNetworkAliases)
 	input.CustomNginxConfiguration = strPtr(*f.CustomNginxConfiguration)
 	input.PortsMappings = strPtr(*f.PortsMappings)
-	input.ConnectToDockerNetwork = boolPtr(*f.ConnectToDockerNetwork)
 	// Redirect & static
 	input.Redirect = strPtr(*f.Redirect)
 	input.StaticImage = strPtr(*f.StaticImage)
@@ -434,6 +436,7 @@ func addExtendedUpdateFields(f commonAppFields, input *client.UpdateApplicationI
 	input.ManualWebhookSecretGitHub = strPtr(*f.ManualWebhookSecretGitHub)
 	input.ManualWebhookSecretGitLab = strPtr(*f.ManualWebhookSecretGitLab)
 	// Other settings
+	input.ConnectToDockerNetwork = boolPtr(*f.ConnectToDockerNetwork)
 	input.IsContainerLabelEscapeEnabled = boolPtr(*f.IsContainerLabelEscapeEnabled)
 	input.IsPreserveRepositoryEnabled = boolPtr(*f.IsPreserveRepositoryEnabled)
 	input.UseBuildServer = boolPtr(*f.UseBuildServer)

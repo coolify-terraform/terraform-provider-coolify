@@ -106,7 +106,11 @@ def _format_default(val) -> str:
         return "-"
     if isinstance(val, bool):
         return str(val).lower()
-    return str(val)
+    s = str(val)
+    # Escape Go template syntax so tfplugindocs doesn't try to evaluate it
+    if "{{" in s:
+        s = s.replace("{{", "{ {").replace("}}", "} }")
+    return s
 
 
 def _compare_field(
