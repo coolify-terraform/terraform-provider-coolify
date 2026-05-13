@@ -15,4 +15,7 @@ resource "coolify_dockerfile_application" "app" {
   )
   ports_exposes = "3000"
   fqdn          = "https://app.example.com"
+
+  # Optional fields (uncomment as needed):
+  # dockerfile_target_build = "production"  # Target stage for multi-stage Docker builds
 }

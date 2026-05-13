@@ -12,4 +12,8 @@ resource "coolify_docker_compose_application" "example" {
   YAML
   )
   fqdn = "https://compose.example.com"
+
+  # Optional fields (uncomment as needed):
+  # docker_compose_location             = "/docker-compose.prod.yml"  # Compose file path relative to repo root
+  # docker_compose_custom_start_command = "up -d --build"             # Custom start command for Docker Compose
 }
