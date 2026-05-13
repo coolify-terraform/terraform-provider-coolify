@@ -6,13 +6,14 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // ---------------------------------------------------------------------------
 // TestAccDeploymentResource_Create
 // ---------------------------------------------------------------------------
 
-func TestAccDeploymentResource_Create(t *testing.T) {
+func TestAccDeploymentResource_CreateImport(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
@@ -28,6 +29,18 @@ func TestAccDeploymentResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_deployment.test", "uuid"),
 					resource.TestCheckResourceAttrSet("coolify_deployment.test", "status"),
 				),
+			},
+			// Import
+			{
+				ResourceName:                         "coolify_deployment.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateVerifyIgnore:              []string{"triggers", "wait_for_completion"},
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs := s.RootModule().Resources["coolify_deployment.test"]
+					return rs.Primary.Attributes["application_uuid"] + ":" + rs.Primary.Attributes["uuid"], nil
+				},
 			},
 		},
 	})

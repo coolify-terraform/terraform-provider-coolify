@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-func TestAccEnvironmentResource_CreateImport(t *testing.T) {
+func TestAccEnvironmentResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
@@ -37,6 +37,21 @@ resource "coolify_environment" "test" {
 					resource.TestCheckResourceAttr("coolify_environment.test", "name", "staging"),
 					resource.TestCheckResourceAttr("coolify_environment.test", "description", "Staging environment"),
 				),
+			},
+			// Update description
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_environment" "test" {
+  project_uuid = coolify_project.test.uuid
+  name         = "staging"
+  description  = "Updated staging environment"
+}
+`, name),
+				Check: resource.TestCheckResourceAttr("coolify_environment.test", "description", "Updated staging environment"),
 			},
 			// Import
 			{

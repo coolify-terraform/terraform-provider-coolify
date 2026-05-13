@@ -53,6 +53,76 @@ func TestAccCoverage_AllDataSourcesHaveAccTests(t *testing.T) {
 	}
 }
 
+// TestAccCoverage_ResourcesHaveCRUDSteps verifies that each resource's
+// acceptance test includes Create (Config), Update (second Config), and
+// Import (ImportState) steps. Resources with known exceptions (e.g.,
+// deployment has no Update because it's replace-only) are explicitly listed.
+func TestAccCoverage_ResourcesHaveCRUDSteps(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	p := &coolifyProvider{version: "test"}
+
+	// Resources where Update is not applicable (all mutable fields use RequiresReplace).
+	noUpdate := map[string]bool{
+		"coolify_deployment": true,
+	}
+	// Resources where Import is not applicable.
+	noImport := map[string]bool{}
+
+	accFiles := loadAccTestFiles(t)
+
+	for _, factory := range p.Resources(ctx) {
+		r := factory()
+		resp := resource.MetadataResponse{}
+		r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "coolify"}, &resp)
+		typeName := resp.TypeName
+
+		// Find acc test files that reference this resource type.
+		var content string
+		for path, data := range accFiles {
+			if strings.Contains(data, `"`+typeName+`"`) {
+				content += data
+				_ = path
+			}
+		}
+		if content == "" {
+			continue // Already caught by TestAccCoverage_AllResourcesHaveAccTests.
+		}
+
+		configCount := strings.Count(content, "Config:")
+		hasImport := strings.Contains(content, "ImportState:")
+
+		if !noUpdate[typeName] && configCount < 2 {
+			t.Errorf("resource %s acc test has only %d Config step(s); need >= 2 for Update coverage", typeName, configCount)
+		}
+		if !noImport[typeName] && !hasImport {
+			t.Errorf("resource %s acc test missing ImportState step", typeName)
+		}
+	}
+}
+
+func loadAccTestFiles(t *testing.T) map[string]string {
+	t.Helper()
+	files := make(map[string]string)
+	err := filepath.Walk(filepath.Join("..", "service"), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(path, "_acc_test.go") {
+			data, readErr := os.ReadFile(path)
+			if readErr != nil {
+				return readErr
+			}
+			files[path] = string(data)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("failed to scan acc test files: %v", err)
+	}
+	return files
+}
+
 func loadAccTestContent(t *testing.T) string {
 	t.Helper()
 	var b strings.Builder

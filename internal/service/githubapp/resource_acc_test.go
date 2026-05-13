@@ -31,7 +31,15 @@ func TestAccGitHubAppResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_github_app.test", "client_id", "Iv1.fake123456789"),
 				),
 			},
-			// Step 2: Import by ID
+			// Step 2: Update name
+			{
+				Config: testAccGitHubAppConfig(name + "-updated"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_github_app.test", "name", name+"-updated"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "app_id", "12345"),
+				),
+			},
+			// Step 3: Import by ID
 			{
 				ResourceName:                         "coolify_github_app.test",
 				ImportState:                          true,
