@@ -4,8 +4,8 @@
 <!-- Run: make api-coverage -->
 
 **Spec**: Coolify v4 (pinned in `testdata/specs/coolify-v4.json`)  
-**Coverage**: 135 / 135 endpoints (100.0%)  
-**Planned**: 0 | **Skipped**: 0
+**Coverage**: 134 / 135 endpoints (99.3%)  
+**Planned**: 0 | **Skipped**: 1
 
 ## Covered
 
@@ -113,7 +113,6 @@
 | `PATCH /services/{uuid}/envs/bulk` | `client.BulkUpdateServiceEnvVars` | v0.2.0 |
 | `PATCH /services/{uuid}/scheduled-tasks/{task_uuid}` | `coolify_scheduled_task` | v0.2.0 |
 | `PATCH /services/{uuid}/storages` | `coolify_storage` | v0.2.0 |
-| `POST /applications/dockercompose` | `coolify_docker_compose_application` | v0.1.0 |
 | `POST /applications/dockerfile` | `coolify_dockerfile_application` | v0.2.0 |
 | `POST /applications/dockerimage` | `coolify_docker_image_application` | v0.1.0 |
 | `POST /applications/private-deploy-key` | `coolify_private_git_application` | v0.1.0 |
@@ -160,6 +159,7 @@ These endpoints are not appropriate for Terraform resource management.
 
 | Endpoint | Reason |
 |----------|--------|
+| `POST /applications/dockercompose` | Removed: Coolify v4 endpoint creates a Service, not an Application |
 
 ## New in Spec (Unclassified)
 

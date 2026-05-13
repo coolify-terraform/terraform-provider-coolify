@@ -348,6 +348,7 @@ jobs:
       - name: Generate deploy key for scenarios
         if: steps.secrets.outputs.configured == 'true'
         run: |
+          rm -f /tmp/scenario-deploy-key /tmp/scenario-deploy-key.pub
           ssh-keygen -t rsa -b 2048 -f /tmp/scenario-deploy-key -N "" -q
           echo "TF_VAR_deploy_key<<EOFKEY" >> "$GITHUB_ENV"
           cat /tmp/scenario-deploy-key >> "$GITHUB_ENV"
