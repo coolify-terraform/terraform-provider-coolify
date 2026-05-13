@@ -42,6 +42,7 @@ func TestAccServerResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_server.test", "uuid"),
 			},
 		},
 	})

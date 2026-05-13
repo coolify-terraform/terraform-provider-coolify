@@ -1,6 +1,10 @@
 package application_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"testing"
 
@@ -14,6 +18,7 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 	acctest.TestAccPreCheck(t)
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-privgit")
+	privKey := generateTestRSAKey(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
@@ -21,7 +26,7 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: testAccPrivateGitAppConfig(name, serverUUID, ""),
+				Config: testAccPrivateGitAppConfig(name, serverUUID, privKey, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_private_git_application.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_private_git_application.test", "git_repository", "git@github.com:coollabsio/coolify-examples.git"),
@@ -31,7 +36,7 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 			},
 			// Step 2: Update description
 			{
-				Config: testAccPrivateGitAppConfig(name, serverUUID, `description = "Updated private git app"`),
+				Config: testAccPrivateGitAppConfig(name, serverUUID, privKey, `description = "Updated private git app"`),
 				Check:  resource.TestCheckResourceAttr("coolify_private_git_application.test", "description", "Updated private git app"),
 			},
 			// Step 3: Import by UUID
@@ -40,13 +45,26 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_private_git_application.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"environment_name", "private_key_uuid"},
 			},
 		},
 	})
 }
 
-func testAccPrivateGitAppConfig(name, serverUUID, extra string) string {
+func generateTestRSAKey(t *testing.T) string {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generating RSA key: %s", err)
+	}
+	return string(pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	}))
+}
+
+func testAccPrivateGitAppConfig(name, serverUUID, privKey, extra string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {
   name = %[1]q
@@ -54,17 +72,7 @@ resource "coolify_project" "test" {
 
 resource "coolify_private_key" "test" {
   name        = "%[1]s-key"
-  private_key = <<-EOT
------BEGIN RSA PRIVATE KEY-----
-MIIBogIBAAJBALRiMLH00a6VK6aBIOxSjDQ3cBcVSaDXGfhLzJRNFp+t4/AOeDmR
-5jXIx7DKXAIF9LRPz2gMjTb4i/r20hEh4cUCAwEAAQJBAJmHpJzk0fzYIYv3ihEE
-3Ni7SIsMFCEzW0MREqYoLfpyBenGChQVqBqy9XAEiTHDhVsMb0ygDVRGGBGk0nkC
-IQDjBCIEaeWV//pZGeJBU6o3JRxJV0rYpAf+0JCuXxvhfwIhAMuaVUIzMgEeClUH
-7MYhb91EjG7RQcU0fYq+mUKPXaQfAiAXgdSDZvGhRHrFHGMLCcGI0EdCxKNcUmOb
-sDijzrCVlQIgbbsHtPPG0oFkkRe8Y+FRZFyJBLlaCRxNyOWLzRYW/BsCIBFJ2Pla
-0EQ2/JWFj1fOfsMnVMxOa2A1SL4lXEm6iNgV
------END RSA PRIVATE KEY-----
-EOT
+  private_key = %[3]q
 }
 
 resource "coolify_private_git_application" "test" {
@@ -74,7 +82,7 @@ resource "coolify_private_git_application" "test" {
   git_repository   = "git@github.com:coollabsio/coolify-examples.git"
   build_pack       = "nixpacks"
   ports_exposes    = "3000"
-  %[3]s
+  %[4]s
 }
-`, name, serverUUID, extra)
+`, name, serverUUID, privKey, extra)
 }

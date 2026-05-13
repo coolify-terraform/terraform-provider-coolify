@@ -235,6 +235,23 @@ func checkNestedResourceGone(parentUUID, uuid, resourceType, listPath string) er
 	return nil
 }
 
+// ImportStateIDFunc returns an ImportStateIdFunc that reads a given attribute
+// from the resource state. Use for resources whose import ID is stored in
+// an attribute other than "id" (e.g., "uuid").
+func ImportStateIDFunc(resourceAddr, attrName string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		rs, ok := s.RootModule().Resources[resourceAddr]
+		if !ok {
+			return "", fmt.Errorf("resource %s not found in state", resourceAddr)
+		}
+		v := rs.Primary.Attributes[attrName]
+		if v == "" {
+			return "", fmt.Errorf("attribute %s is empty on %s", attrName, resourceAddr)
+		}
+		return v, nil
+	}
+}
+
 // AccTestClient returns a Coolify API client configured from environment
 // variables. Skips the test if COOLIFY_ENDPOINT or COOLIFY_TOKEN are not set.
 func AccTestClient(t *testing.T) *client.Client {

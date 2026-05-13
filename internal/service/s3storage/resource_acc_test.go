@@ -67,6 +67,7 @@ resource "coolify_s3_storage" "test" {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_s3_storage.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"access_key", "secret_key"},
 			},
 		},

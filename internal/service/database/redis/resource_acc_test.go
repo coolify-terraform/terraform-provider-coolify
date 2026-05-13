@@ -35,6 +35,7 @@ func TestAccRedisDatabaseResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_redis_database.test", "uuid"),
 			},
 		},
 	})

@@ -38,6 +38,7 @@ func TestAccKeydbDatabaseResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_keydb_database.test", "uuid"),
 			},
 		},
 	})

@@ -2,6 +2,7 @@ package application_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -12,6 +13,9 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	if os.Getenv("COOLIFY_GITHUB_APP_UUID") == "" {
+		t.Skip("COOLIFY_GITHUB_APP_UUID not set, skipping (real GitHub App credentials required)")
+	}
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-ghapp-app")
 
@@ -39,6 +43,7 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_github_app_application.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"environment_name", "github_app_uuid"},
 			},
 		},

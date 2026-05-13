@@ -38,6 +38,7 @@ func TestAccPostgresqlDatabaseResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_postgresql_database.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"postgres_password"},
 			},
 		},

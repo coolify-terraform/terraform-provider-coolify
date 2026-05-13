@@ -45,6 +45,7 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_dockerfile_application.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"environment_name"},
 			},
 		},
@@ -99,11 +100,15 @@ resource "coolify_project" "test" {
 }
 
 resource "coolify_dockerfile_application" "test" {
-  project_uuid        = coolify_project.test.uuid
-  server_uuid         = %[2]q
-  name                = %[1]q
-  dockerfile_location = "/Dockerfile"
-  ports_exposes       = "80"
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  name         = %[1]q
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
+  ports_exposes = "80"
   %[3]s
 }
 `, name, serverUUID, extra)
@@ -116,11 +121,15 @@ resource "coolify_project" "test" {
 }
 
 resource "coolify_dockerfile_application" "test" {
-  project_uuid        = coolify_project.test.uuid
-  server_uuid         = %[2]q
-  name                = %[1]q
-  dockerfile_location = "/Dockerfile"
-  ports_exposes       = "80"
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  name         = %[1]q
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
+  ports_exposes = "80"
 }
 
 data "coolify_application" "test" {
@@ -164,11 +173,15 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 resource "coolify_dockerfile_application" "test" {
-  project_uuid        = coolify_project.test.uuid
-  server_uuid         = %[2]q
-  name                = %[1]q
-  dockerfile_location = "/Dockerfile"
-  ports_exposes       = "80"
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  name         = %[1]q
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
+  ports_exposes = "80"
 }
 data "coolify_application_logs" "test" {
   uuid = coolify_dockerfile_application.test.uuid

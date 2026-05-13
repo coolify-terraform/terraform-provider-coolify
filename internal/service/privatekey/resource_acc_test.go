@@ -1,6 +1,10 @@
 package privatekey_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"regexp"
 	"testing"
@@ -9,21 +13,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-const testAccPrivateKeyPEM = `-----BEGIN RSA PRIVATE KEY-----
-MIIBogIBAAJBALRiMLH00a6VK6aBIOxSjDQ3cBcVSaDXGfhLzJRNFp+t4/AOeDmR
-5jXIx7DKXAIF9LRPz2gMjTb4i/r20hEh4cUCAwEAAQJBAJmHpJzk0fzYIYv3ihEE
-3Ni7SIsMFCEzW0MREqYoLfpyBenGChQVqBqy9XAEiTHDhVsMb0ygDVRGGBGk0nkC
-IQDjBCIEaeWV//pZGeJBU6o3JRxJV0rYpAf+0JCuXxvhfwIhAMuaVUIzMgEeClUH
-7MYhb91EjG7RQcU0fYq+mUKPXaQfAiAXgdSDZvGhRHrFHGMLCcGI0EdCxKNcUmOb
-sDijzrCVlQIgbbsHtPPG0oFkkRe8Y+FRZFyJBLlaCRxNyOWLzRYW/BsCIBFJ2Pla
-0EQ2/JWFj1fOfsMnVMxOa2A1SL4lXEm6iNgV
------END RSA PRIVATE KEY-----`
+func generateTestPrivateKey(t *testing.T) string {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generating RSA key: %s", err)
+	}
+	return string(pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	}))
+}
 
 func TestAccPrivateKeyResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	name := acctest.RandomWithPrefix("tf-acc-pk")
+	privKey := generateTestPrivateKey(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
@@ -33,12 +40,11 @@ func TestAccPrivateKeyResource_CRUD(t *testing.T) {
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_private_key" "test" {
-  name        = %q
+  name        = %[1]q
   description = "acc test key"
-  private_key = <<-EOT
-%sEOT
+  private_key = %[2]q
 }
-`, name, testAccPrivateKeyPEM),
+`, name, privKey),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_private_key.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "name", name),
@@ -52,12 +58,11 @@ resource "coolify_private_key" "test" {
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_private_key" "test" {
-  name        = %q
+  name        = %[1]q
   description = "updated acc test key"
-  private_key = <<-EOT
-%sEOT
+  private_key = %[2]q
 }
-`, name+"-updated", testAccPrivateKeyPEM),
+`, name+"-updated", privKey),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_private_key.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_private_key.test", "name", name+"-updated"),
@@ -72,6 +77,7 @@ resource "coolify_private_key" "test" {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_private_key.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"private_key"},
 			},
 		},
@@ -83,6 +89,7 @@ func TestAccPrivateKeyDataSources(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	name := acctest.RandomWithPrefix("tf-acc-pk-ds")
+	privKey := generateTestPrivateKey(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
@@ -93,8 +100,7 @@ func TestAccPrivateKeyDataSources(t *testing.T) {
 resource "coolify_private_key" "test" {
   name        = %[1]q
   description = "acc test key for data sources"
-  private_key = <<-EOT
-%[2]sEOT
+  private_key = %[2]q
 }
 
 data "coolify_private_key" "by_uuid" {
@@ -104,7 +110,7 @@ data "coolify_private_key" "by_uuid" {
 data "coolify_private_keys" "all" {
   depends_on = [coolify_private_key.test]
 }
-`, name, testAccPrivateKeyPEM),
+`, name, privKey),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify singular data source
 					resource.TestCheckResourceAttrPair("data.coolify_private_key.by_uuid", "uuid", "coolify_private_key.test", "uuid"),

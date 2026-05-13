@@ -48,6 +48,7 @@ resource "coolify_project" "test" {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_project.test", "uuid"),
 			},
 		},
 	})

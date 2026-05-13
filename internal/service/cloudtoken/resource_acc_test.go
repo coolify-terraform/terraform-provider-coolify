@@ -2,6 +2,7 @@ package cloudtoken_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -16,6 +17,10 @@ func TestAccCloudTokenResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	token := os.Getenv("COOLIFY_HETZNER_TOKEN")
+	if token == "" {
+		t.Skip("COOLIFY_HETZNER_TOKEN not set, skipping (Coolify validates token against Hetzner API)")
+	}
 	name := acctest.RandomWithPrefix("tf-acc-ctoken")
 
 	resource.Test(t, resource.TestCase{
@@ -24,7 +29,7 @@ func TestAccCloudTokenResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: testAccCloudTokenConfig(name, "hetzner", "test-token-value"),
+				Config: testAccCloudTokenConfig(name, "hetzner", token),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_cloud_token.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_cloud_token.test", "name", name),
@@ -33,7 +38,7 @@ func TestAccCloudTokenResource_CRUD(t *testing.T) {
 			},
 			// Step 2: Update name
 			{
-				Config: testAccCloudTokenConfig(name+"-updated", "hetzner", "test-token-value"),
+				Config: testAccCloudTokenConfig(name+"-updated", "hetzner", token),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_cloud_token.test", "name", name+"-updated"),
 					resource.TestCheckResourceAttr("coolify_cloud_token.test", "cloud_provider", "hetzner"),
@@ -45,6 +50,7 @@ func TestAccCloudTokenResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_cloud_token.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"token"},
 			},
 		},
@@ -59,6 +65,9 @@ func TestAccCloudTokenDataSources(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	if os.Getenv("COOLIFY_HETZNER_TOKEN") == "" {
+		t.Skip("COOLIFY_HETZNER_TOKEN not set, skipping (Coolify validates token against Hetzner API)")
+	}
 	name := acctest.RandomWithPrefix("tf-acc-ctoken-ds")
 
 	resource.Test(t, resource.TestCase{
@@ -106,11 +115,12 @@ resource "coolify_cloud_token" "test" {
 }
 
 func testAccCloudTokenWithDataSourcesConfig(name string) string {
+	token := os.Getenv("COOLIFY_HETZNER_TOKEN")
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_cloud_token" "test" {
   name           = %[1]q
   cloud_provider = "hetzner"
-  token          = "test-token-value"
+  token          = %[2]q
 }
 
 data "coolify_cloud_token" "test" {
@@ -120,5 +130,5 @@ data "coolify_cloud_token" "test" {
 data "coolify_cloud_tokens" "test" {
   depends_on = [coolify_cloud_token.test]
 }
-`, name)
+`, name, token)
 }

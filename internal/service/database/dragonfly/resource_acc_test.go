@@ -38,6 +38,7 @@ func TestAccDragonflyDatabaseResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_dragonfly_database.test", "uuid"),
 			},
 		},
 	})

@@ -109,38 +109,44 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 // fields from the API response. Extracted to keep flattenApplicationCommon
 // under the gocognit complexity threshold.
 func flattenLimitsAndHealth(app *client.Application, f commonAppFields) {
-	setStringIfNonEmpty := func(dst *types.String, v string) {
+	// Only update optional fields when the user configured them (state is
+	// not null/unknown). Coolify returns API defaults ("0", 30, etc.) for
+	// unconfigured fields. Setting those would cause "Provider produced
+	// inconsistent result after apply" because the plan has null but the
+	// read-back would return a value.
+	setStringIfConfigured := func(dst *types.String, v string) {
+		if dst.IsNull() || dst.IsUnknown() {
+			return
+		}
 		if v != "" {
 			*dst = types.StringValue(v)
 		}
 	}
-	setStringIfNonEmpty(f.LimitsMemory, app.LimitsMemory)
-	setStringIfNonEmpty(f.LimitsMemorySwap, app.LimitsMemorySwap)
-	setStringIfNonEmpty(f.LimitsMemoryReservation, app.LimitsMemoryReservation)
-	setStringIfNonEmpty(f.LimitsCPUs, app.LimitsCPUs)
-	setStringIfNonEmpty(f.LimitsCPUSet, app.LimitsCPUSet)
-	setStringIfNonEmpty(f.HealthCheckPath, app.HealthCheckPath)
-	setStringIfNonEmpty(f.HealthCheckPort, app.HealthCheckPort)
-	if app.LimitsMemorySwappiness != nil {
-		*f.LimitsMemorySwappiness = types.Int64Value(*app.LimitsMemorySwappiness)
+	setInt64IfConfigured := func(dst *types.Int64, v *int64) {
+		if dst.IsNull() || dst.IsUnknown() {
+			return
+		}
+		if v != nil {
+			*dst = types.Int64Value(*v)
+		}
 	}
-	if app.LimitsCPUShares != nil {
-		*f.LimitsCPUShares = types.Int64Value(*app.LimitsCPUShares)
-	}
+	setStringIfConfigured(f.LimitsMemory, app.LimitsMemory)
+	setStringIfConfigured(f.LimitsMemorySwap, app.LimitsMemorySwap)
+	setStringIfConfigured(f.LimitsMemoryReservation, app.LimitsMemoryReservation)
+	setStringIfConfigured(f.LimitsCPUs, app.LimitsCPUs)
+	setStringIfConfigured(f.LimitsCPUSet, app.LimitsCPUSet)
+	setStringIfConfigured(f.HealthCheckPath, app.HealthCheckPath)
+	setStringIfConfigured(f.HealthCheckPort, app.HealthCheckPort)
+	setInt64IfConfigured(f.LimitsMemorySwappiness, app.LimitsMemorySwappiness)
+	setInt64IfConfigured(f.LimitsCPUShares, app.LimitsCPUShares)
+	setInt64IfConfigured(f.HealthCheckInterval, app.HealthCheckInterval)
+	setInt64IfConfigured(f.HealthCheckTimeout, app.HealthCheckTimeout)
+	setInt64IfConfigured(f.HealthCheckRetries, app.HealthCheckRetries)
+	setInt64IfConfigured(f.HealthCheckStartPeriod, app.HealthCheckStartPeriod)
+	// health_check_enabled and is_auto_deploy_enabled have schema defaults
+	// (Computed+Default), so they are never null in plan. Safe to always set.
 	if app.HealthCheckEnabled != nil {
 		*f.HealthCheckEnabled = types.BoolValue(*app.HealthCheckEnabled)
-	}
-	if app.HealthCheckInterval != nil {
-		*f.HealthCheckInterval = types.Int64Value(*app.HealthCheckInterval)
-	}
-	if app.HealthCheckTimeout != nil {
-		*f.HealthCheckTimeout = types.Int64Value(*app.HealthCheckTimeout)
-	}
-	if app.HealthCheckRetries != nil {
-		*f.HealthCheckRetries = types.Int64Value(*app.HealthCheckRetries)
-	}
-	if app.HealthCheckStartPeriod != nil {
-		*f.HealthCheckStartPeriod = types.Int64Value(*app.HealthCheckStartPeriod)
 	}
 	if app.IsAutoDeployEnabled != nil {
 		*f.IsAutoDeployEnabled = types.BoolValue(*app.IsAutoDeployEnabled)

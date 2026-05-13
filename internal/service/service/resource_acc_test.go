@@ -45,6 +45,7 @@ resource "coolify_service" "test" {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_service.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"project_uuid", "server_uuid", "environment_name", "type"},
 			},
 		},

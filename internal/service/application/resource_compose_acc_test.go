@@ -35,6 +35,7 @@ func TestAccDockerComposeApplicationResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_docker_compose_application.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"environment_name"},
 			},
 		},
@@ -42,18 +43,24 @@ func TestAccDockerComposeApplicationResource_CRUD(t *testing.T) {
 }
 
 func testAccDockerComposeAppConfig(name, serverUUID, extra string) string {
-	compose := `services:\n  web:\n    image: nginx:alpine\n    ports:\n      - \"80:80\"`
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {
   name = %[1]q
 }
 
 resource "coolify_docker_compose_application" "test" {
-  project_uuid     = coolify_project.test.uuid
-  server_uuid      = %[2]q
-  name             = %[1]q
-  docker_compose_raw = %[3]q
-  %[4]s
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  name         = %[1]q
+  docker_compose_raw = base64encode(<<-YAML
+    services:
+      web:
+        image: nginx:alpine
+        ports:
+          - "80:80"
+  YAML
+  )
+  %[3]s
 }
-`, name, serverUUID, compose, extra)
+`, name, serverUUID, extra)
 }

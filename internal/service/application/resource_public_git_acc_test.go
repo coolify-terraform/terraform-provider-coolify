@@ -36,6 +36,7 @@ func TestAccApplicationResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"environment_name"},
 			},
 		},

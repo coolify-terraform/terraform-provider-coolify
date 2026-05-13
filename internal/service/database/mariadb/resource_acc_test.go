@@ -35,6 +35,7 @@ func TestAccMariadbDatabaseResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_mariadb_database.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"mariadb_password", "mariadb_root_password"},
 			},
 		},
