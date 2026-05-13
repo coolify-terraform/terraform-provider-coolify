@@ -193,7 +193,7 @@ func (r *privateKeyResource) Update(ctx context.Context, req resource.UpdateRequ
 	input := client.UpdatePrivateKeyInput{
 		Name:        flex.StringIfChanged(plan.Name, state.Name),
 		Description: flex.StringIfChanged(plan.Description, state.Description),
-		PrivateKey:  flex.StringIfChanged(plan.PrivateKey, state.PrivateKey),
+		PrivateKey:  flex.StringValueOrNull(plan.PrivateKey), // Required by Coolify on every PATCH
 	}
 
 	_, err := r.client.UpdatePrivateKey(ctx, state.UUID.ValueString(), input)
