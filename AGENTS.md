@@ -1,5 +1,13 @@
 # AGENTS.md
 
+## Skills
+
+Read these skills when working in this repo:
+
+- `~/.grok/skills/terraform-provider-coolify-contrib/SKILL.md` — Local Coolify setup for testing, API quirks, Playwright automation, flatten patterns. **Read first** when setting up a test instance or debugging real-API failures.
+- `~/.grok/skills/terraform-provider/SKILL.md` — General Terraform provider patterns (resource implementation, testing, CI, releases).
+- `~/.grok/skills/self-hosted-runner/SKILL.md` — CI runner setup, Trivy DB mirrors, tool installation gotchas.
+
 ## Project
 
 Terraform provider for [Coolify](https://coolify.io/), the open-source self-hosted PaaS.
