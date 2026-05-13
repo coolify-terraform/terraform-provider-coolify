@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -561,6 +562,62 @@ func TestDatabaseBackupResource_CreateWithZeroID(t *testing.T) {
 				`, dbUUID)),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// TestBackupResource_PartialStateOnListFailure verifies that when Create
+// succeeds but the follow-up list call fails, the error message includes
+// the backup UUID (proving partial state was saved before the error).
+func TestBackupResource_PartialStateOnListFailure(t *testing.T) {
+	t.Parallel()
+	dbUUID := "eeee0001-0001-4000-8000-000000000001"
+	backupUUID := "partial-state-bkp-001"
+	var listCallCount atomic.Int32
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":    backupUUID,
+				"message": "Backup configuration created successfully.",
+			})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
+			count := listCallCount.Add(1)
+			if count == 1 {
+				// First list call (during Create read-back) fails.
+				http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+				return
+			}
+			// Subsequent calls succeed (during destroy cleanup).
+			json.NewEncoder(w).Encode([]map[string]interface{}{})
+
+		case r.Method == http.MethodDelete:
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, fmt.Sprintf(`
+					database_uuid = "%s"
+					frequency     = "0 2 * * *"
+					enabled       = true
+				`, dbUUID)),
+				// The error message must include the backup UUID, proving
+				// partial state was set before the list failure.
+				ExpectError: regexp.MustCompile(backupUUID),
 			},
 		},
 	})

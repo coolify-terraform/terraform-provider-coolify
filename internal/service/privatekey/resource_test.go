@@ -2,15 +2,18 @@ package privatekey_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func newPrivateKeyMockServer() *httptest.Server {
@@ -186,6 +189,80 @@ resource "coolify_private_key" "test" {
 				ImportStateId:                        "cccc0002-0002-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+			},
+		},
+	})
+}
+
+// TestPrivateKeyResource_DeleteRetry verifies that private key deletion
+// retries on "in use" errors (Coolify's async app cleanup).
+func TestPrivateKeyResource_DeleteRetry(t *testing.T) {
+	t.Parallel()
+	var deleteAttempts atomic.Int32
+	keys := make(map[string]*client.PrivateKey)
+	var mu sync.Mutex
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/security/keys":
+			var input client.CreatePrivateKeyInput
+			json.NewDecoder(r.Body).Decode(&input)
+			key := &client.PrivateKey{
+				UUID:        "retry-key-uuid-001",
+				Name:        input.Name,
+				PrivateKey:  input.PrivateKey,
+				PublicKey:   "ssh-ed25519 AAAA-public",
+				Fingerprint: "SHA256:test",
+			}
+			keys[key.UUID] = key
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(key)
+
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/security/keys/")
+			key, ok := keys[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(key)
+
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/"):
+			attempt := deleteAttempts.Add(1)
+			if attempt <= 2 {
+				http.Error(w, `{"message":"This key is in use and cannot be deleted."}`, http.StatusUnprocessableEntity)
+				return
+			}
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/security/keys/")
+			delete(keys, uuid)
+			w.WriteHeader(http.StatusOK)
+
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(s *terraform.State) error {
+			if got := int(deleteAttempts.Load()); got < 3 {
+				return fmt.Errorf("expected at least 3 delete attempts, got %d", got)
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_private_key" "test" {
+  name        = "retry-test-key"
+  private_key = "ssh-ed25519 AAAA-retry"
+}`,
+				Check: resource.TestCheckResourceAttrSet("coolify_private_key.test", "uuid"),
 			},
 		},
 	})

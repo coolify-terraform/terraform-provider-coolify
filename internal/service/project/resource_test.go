@@ -471,3 +471,71 @@ resource "coolify_project" "test" {
 		},
 	})
 }
+
+// TestProjectResource_DeleteRetry verifies that project deletion retries
+// on "has resources" errors (Coolify's async child-resource cleanup).
+func TestProjectResource_DeleteRetry(t *testing.T) {
+	t.Parallel()
+	var deleteAttempts atomic.Int32
+
+	store := &mockProjectStore{
+		projects: make(map[string]*mockProject),
+		counter:  0,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/projects", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		p := store.Create(body.Name, body.Description)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": p.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		p, ok := store.Get(r.PathValue("uuid"))
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(p)
+	})
+	mux.HandleFunc("DELETE /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		attempt := deleteAttempts.Add(1)
+		if attempt <= 2 {
+			http.Error(w, `{"message":"Project has resources, so it cannot be deleted. Delete the resources first."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		uuid := r.PathValue("uuid")
+		store.Delete(uuid)
+		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+	})
+	mux.HandleFunc("GET /api/v1/projects", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(store.List())
+	})
+
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(s *terraform.State) error {
+			if got := int(deleteAttempts.Load()); got < 3 {
+				return fmt.Errorf("expected at least 3 delete attempts, got %d", got)
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_project" "test" {
+  name = "retry-test-project"
+}
+`,
+				Check: resource.TestCheckResourceAttrSet("coolify_project.test", "uuid"),
+			},
+		},
+	})
+}
