@@ -70,8 +70,9 @@ mismatches, and zero validation rules when we compared it against the source.
 
 ## Commands
 
-- **Run all checks before pushing**: `make ci && make testacc`
-- **Note**: `make ci` does NOT include acceptance tests. Always run `make testacc` too if Coolify is available.
+- **Run all checks before pushing**: `make ci` + targeted acceptance tests
+- **Note**: `make ci` does NOT include acceptance tests. Run acc tests for changed packages: `TF_ACC=1 go test -race -v -count=1 -timeout=10m ./internal/service/<changed-package>/`
+- Use `make testacc` for the full suite when changing shared code (client, provider, flex, validate)
 - Build: `make build`
 - Test (all, with race detector): `make test`
 - Test (single package): `go test -race -count=1 -timeout=5m ./internal/service/project/`
