@@ -174,7 +174,10 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
-      - uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+      - name: Run Trivy scan
+        id: trivy
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -184,6 +187,15 @@ jobs:
           ignore-unfixed: true
         env:
           TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2
+      - name: Retry Trivy with cached DB
+        if: steps.trivy.outcome == 'failure'
+        run: |
+          if trivy fs . --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed --skip-db-update 2>/dev/null; then
+            echo "::warning::Trivy DB download failed but scan passed with cached DB"
+          else
+            echo "::error::Trivy scan failed (tried fresh download and cached DB)"
+            exit 1
+          fi
 
   gitleaks:
     name: Gitleaks

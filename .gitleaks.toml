@@ -6,4 +6,5 @@ paths = [
   '''_test\.go$''',
   '''examples/.*\.tf$''',
   '''examples/.*\.tfvars\.example$''',
+  '''examples/scenarios/.*/test-deploy-key$''',
 ]
