@@ -280,10 +280,6 @@ def extract_validation_rules(content: str) -> dict[str, dict]:
             r"'([^']+)'\s*=>\s*(?:\[([^\]]*)\]|'([^']*)'|\"([^\"]*)\")",
             block,
         ):
-            rule_str = rule or ""
-            # Pick whichever capture group matched
-            for r in (rule, match.group(2)):
-                pass
             field_rules[field] = _clean_rule(rule)
         if field_rules:
             rules[method] = field_rules

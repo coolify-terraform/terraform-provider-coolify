@@ -185,7 +185,7 @@ func flattenLimitsAndHealth(app *client.Application, f commonAppFields) {
 	// inconsistent result after apply" because the plan has null but the
 	// read-back would return a value.
 	setStringIfConfigured := func(dst *types.String, v string) {
-		if dst.IsNull() || dst.IsUnknown() {
+		if dst == nil || dst.IsNull() || dst.IsUnknown() {
 			return
 		}
 		if v != "" {
@@ -193,7 +193,7 @@ func flattenLimitsAndHealth(app *client.Application, f commonAppFields) {
 		}
 	}
 	setInt64IfConfigured := func(dst *types.Int64, v *int64) {
-		if dst.IsNull() || dst.IsUnknown() {
+		if dst == nil || dst.IsNull() || dst.IsUnknown() {
 			return
 		}
 		if v != nil {
@@ -283,16 +283,24 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 // flattenExtendedDefaults sets fields with Computed+Default and sensitive fields.
 func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	// Computed+Default string fields (always set from API)
-	*f.Redirect = flex.StringValueOrDefault(app.Redirect, "both")
-	*f.StaticImage = flex.StringValueOrDefault(app.StaticImage, "nginx:alpine")
+	setStr := func(dst *types.String, v types.String) {
+		if dst != nil {
+			*dst = v
+		}
+	}
+	setStr(f.Redirect, flex.StringValueOrDefault(app.Redirect, "both"))
+	setStr(f.StaticImage, flex.StringValueOrDefault(app.StaticImage, "nginx:alpine"))
 	// Computed+Default+Sensitive fields (server-generated, always set)
-	*f.PreviewURLTemplate = flex.StringToFramework(app.PreviewURLTemplate)
-	*f.ManualWebhookSecretBitbucket = flex.StringToFramework(app.ManualWebhookSecretBitbucket)
-	*f.ManualWebhookSecretGitea = flex.StringToFramework(app.ManualWebhookSecretGitea)
-	*f.ManualWebhookSecretGitHub = flex.StringToFramework(app.ManualWebhookSecretGitHub)
-	*f.ManualWebhookSecretGitLab = flex.StringToFramework(app.ManualWebhookSecretGitLab)
+	setStr(f.PreviewURLTemplate, flex.StringToFramework(app.PreviewURLTemplate))
+	setStr(f.ManualWebhookSecretBitbucket, flex.StringToFramework(app.ManualWebhookSecretBitbucket))
+	setStr(f.ManualWebhookSecretGitea, flex.StringToFramework(app.ManualWebhookSecretGitea))
+	setStr(f.ManualWebhookSecretGitHub, flex.StringToFramework(app.ManualWebhookSecretGitHub))
+	setStr(f.ManualWebhookSecretGitLab, flex.StringToFramework(app.ManualWebhookSecretGitLab))
 	// Computed+Default bool fields (always set from API)
 	setBoolDefault := func(dst *types.Bool, v *bool, def bool) {
+		if dst == nil {
+			return
+		}
 		if v != nil {
 			*dst = types.BoolValue(*v)
 		} else {
@@ -386,8 +394,6 @@ func buildCoreUpdateFields(f commonAppFields) client.UpdateApplicationInput {
 }
 
 // addExtendedUpdateFields adds extended fields to an UpdateApplicationInput.
-//
-//nolint:funlen // struct field mapping is inherently verbose
 func addExtendedUpdateFields(f commonAppFields, input *client.UpdateApplicationInput) {
 	strPtr := flex.StringValueOrNull
 	boolPtr := flex.BoolValueOrNull
