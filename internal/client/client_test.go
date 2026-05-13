@@ -1143,6 +1143,44 @@ func TestClient_ListDeployments(t *testing.T) {
 	assert.Equal(t, "in_progress", deps[1].Status)
 }
 
+func TestClient_ListDeployments_ObjectFallback(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/deployments", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		// Simulate Coolify sortBy('id') bug: non-sequential keys produce a JSON object.
+		w.Write([]byte(`{"0":{"deployment_uuid":"dep-1","status":"finished"},"2":{"deployment_uuid":"dep-2","status":"queued"}}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	deps, err := c.ListDeployments(context.Background())
+	require.NoError(t, err)
+	require.Len(t, deps, 2)
+
+	uuids := map[string]bool{}
+	for _, d := range deps {
+		uuids[d.UUID] = true
+	}
+	assert.True(t, uuids["dep-1"], "dep-1 should be in results")
+	assert.True(t, uuids["dep-2"], "dep-2 should be in results")
+}
+
+func TestClient_ListDeployments_InvalidJSON(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`not valid json`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListDeployments(context.Background())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "listing deployments")
+}
+
 func TestClient_DeployByTag(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
