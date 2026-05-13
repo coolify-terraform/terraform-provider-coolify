@@ -1978,38 +1978,6 @@ func TestClient_ListServerDomains(t *testing.T) {
 	assert.Equal(t, "api.example.com", got[1].Domain)
 }
 
-func TestClient_CreateDockerComposeApplication(t *testing.T) {
-	t.Parallel()
-	expected := Application{UUID: "compose-1", Name: "my-compose-app", BuildPack: "dockercompose"}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodPost, r.Method)
-		assert.Equal(t, "/api/v1/applications/dockercompose", r.URL.Path)
-
-		body, _ := io.ReadAll(r.Body)
-		var input CreateDockerComposeAppInput
-		require.NoError(t, json.Unmarshal(body, &input))
-		assert.Equal(t, "proj-1", input.ProjectUUID)
-		assert.Equal(t, "srv-1", input.ServerUUID)
-		assert.Contains(t, input.DockerComposeRaw, "version:")
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(expected)
-	}))
-	defer srv.Close()
-
-	c := New(srv.URL, "test-token")
-	got, err := c.CreateDockerComposeApplication(context.Background(), CreateDockerComposeAppInput{
-		ProjectUUID:      "proj-1",
-		ServerUUID:       "srv-1",
-		EnvironmentName:  "production",
-		DockerComposeRaw: "version: '3'\nservices:\n  web:\n    image: nginx",
-	})
-	require.NoError(t, err)
-	assert.Equal(t, "compose-1", got.UUID)
-	assert.Equal(t, "dockercompose", got.BuildPack)
-}
-
 func TestClient_CreateDatabase_Keydb(t *testing.T) {
 	t.Parallel()
 	expected := Database{UUID: "keydb-1", Name: "cache", Type: "keydb"}

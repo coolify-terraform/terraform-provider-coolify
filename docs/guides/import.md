@@ -67,9 +67,8 @@ terraform import coolify_environment.staging <project-uuid>:staging
 ~> **Important:** Application imports default to `environment_name = "production"`. If your
 application is in a different environment, set `environment_name` in your `.tf` file to match
 **before** running `terraform plan`, otherwise Terraform will propose replacing the resource.
-This applies to all 6 application types: `coolify_application`, `coolify_docker_image_application`,
-`coolify_dockerfile_application`, `coolify_docker_compose_application`,
-`coolify_github_app_application`, and `coolify_private_git_application`.
+This applies to all 5 application types: `coolify_application`, `coolify_docker_image_application`,
+`coolify_dockerfile_application`, `coolify_github_app_application`, and `coolify_private_git_application`.
 
 ## Known Limitations
 
@@ -94,7 +93,6 @@ Additionally, Coolify normalizes some input values:
 |---|---|
 | `git_repository` | Strips `https://github.com/` prefix (e.g. `https://github.com/org/repo` becomes `org/repo`) |
 | `docker_image` | Strips image tags (e.g. `redis:7-alpine` becomes `redis`, `nginx:latest` becomes `nginx`) |
-| `docker_compose_raw` | Must be base64-encoded; use `base64encode(<<-YAML ... YAML)` in your config |
 | `dockerfile_location` | Must be base64-encoded Dockerfile content (not a file path); not returned on GET |
 | `ports_exposes` | May be overridden by Coolify for Dockerfile apps (e.g. returns `80` instead of configured `3000`) |
 | Storage `name` | Coolify prepends the application UUID (e.g. `my-vol` becomes `{app-uuid}-my-vol`) |

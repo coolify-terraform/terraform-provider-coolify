@@ -1,7 +1,7 @@
 # ACME Corp Docker Deployments
 #
 # Tests Docker-based resources: Docker Image apps (with :latest normalization),
-# Docker Compose apps, scheduled tasks, and persistent storage.
+# scheduled tasks, and persistent storage.
 
 terraform {
   required_providers {
@@ -44,13 +44,6 @@ resource "coolify_docker_image_application" "redis" {
   docker_image     = "redis:7-alpine"
   ports_exposes    = "6379"
 }
-
-# --- Docker Compose Application ---
-# Temporarily removed: Coolify's compose endpoint has multiple issues:
-# - Requires base64-encoded docker_compose_raw (filed #42)
-# - Returns 404 on read-back after successful create (silent failure)
-# - Leaves unknown values for computed fields (description, fqdn, status)
-# See issue #43 for tracking.
 
 # --- Scheduled Task (attached to nginx app) ---
 

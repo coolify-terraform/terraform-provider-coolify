@@ -1,7 +1,7 @@
 # Acceptance test for ACME Corp Docker deployments.
 #
 # Tests: docker_image_application (with :latest normalization),
-# docker_compose_application, scheduled_task, storage.
+# scheduled_task, storage.
 #
 # Required variables via TF_VAR_*:
 #   TF_VAR_coolify_endpoint, TF_VAR_coolify_token, TF_VAR_server_uuid

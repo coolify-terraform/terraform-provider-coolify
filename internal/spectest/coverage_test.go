@@ -56,7 +56,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		// ── Applications ──
 		"GET /applications":                                               covered("data.coolify_applications", "v0.1.0"),
 		"POST /applications/public":                                       covered("coolify_application", "v0.1.0"),
-		"POST /applications/dockercompose":                                covered("coolify_docker_compose_application", "v0.1.0"),
+		"POST /applications/dockercompose":                                {category: "skipped", resource: "Removed: Coolify v4 endpoint creates a Service, not an Application"},
 		"POST /applications/dockerimage":                                  covered("coolify_docker_image_application", "v0.1.0"),
 		"POST /applications/private-deploy-key":                           covered("coolify_private_git_application", "v0.1.0"),
 		"GET /applications/{uuid}":                                        covered("data.coolify_application", "v0.1.0"),

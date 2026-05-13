@@ -249,7 +249,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (27 total)
+### Resources (26 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -269,7 +269,6 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_storage` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
 | `coolify_mysql_database` | Yes | Yes | Yes | Yes | Second DB type for coverage |
 | `coolify_application` | Yes | Yes | Yes | Yes | Public git with coollabsio/coolify-examples |
-| `coolify_docker_compose_application` | Yes | Yes | Yes | Yes | Inline compose YAML |
 | `coolify_private_git_application` | Yes | Yes | Yes | Yes | SSH URL, dummy key |
 | `coolify_github_app_application` | N/A | | | | Tested via `coolify_application` variants |
 | `coolify_github_app` | Yes | Yes | N/A | Yes | Dummy credentials (metadata only) |
@@ -330,7 +329,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ### Coverage Summary
 
-- **Resources**: 27/27 tested (100%)
+- **Resources**: 26/26 tested (100%)
 - **Data Sources**: 42/42 tested (100%)
 - **Total acceptance test functions**: 59
 

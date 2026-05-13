@@ -294,26 +294,6 @@ func (c *Client) CreatePrivateGitApplication(ctx context.Context, input CreatePr
 	return &a, nil
 }
 
-type CreateDockerComposeAppInput struct {
-	ProjectUUID      string `json:"project_uuid"`
-	ServerUUID       string `json:"server_uuid"`
-	EnvironmentName  string `json:"environment_name"`
-	EnvironmentUUID  string `json:"environment_uuid,omitempty"`
-	DockerComposeRaw string `json:"docker_compose_raw"`
-	Name             string `json:"name,omitempty"`
-	Description      string `json:"description,omitempty"`
-	FQDN             string `json:"domains,omitempty"`
-	InstantDeploy    bool   `json:"instant_deploy,omitempty"`
-}
-
-func (c *Client) CreateDockerComposeApplication(ctx context.Context, input CreateDockerComposeAppInput) (*Application, error) {
-	var a Application
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockercompose", input, &a, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating docker compose application: %w", err)
-	}
-	return &a, nil
-}
-
 type CreateDockerImageAppInput struct {
 	ProjectUUID     string `json:"project_uuid"`
 	ServerUUID      string `json:"server_uuid"`
