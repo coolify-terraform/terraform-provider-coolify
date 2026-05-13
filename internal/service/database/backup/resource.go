@@ -376,23 +376,20 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), int64(backupID))...)
 }
 
-// readBackup retrieves a single backup. Uses the direct GET endpoint when
-// the numeric ID is known, falls back to list-and-match for import or
-// first read after create.
+// readBackup looks up a backup by listing all backups and matching by UUID or
+// numeric ID. The individual GET endpoint (/api/v1/databases/{uuid}/backups/{id})
+// exists in the client but returns 404 on some Coolify versions, so we use the
+// list approach for reliability.
 func (r *databaseBackupResource) readBackup(ctx context.Context, dbUUID string, backupID int, uuid types.String) (*client.DatabaseBackup, error) {
-	if backupID != 0 {
-		b, err := r.client.GetDatabaseBackup(ctx, dbUUID, backupID)
-		if err != nil {
-			return nil, err
-		}
-		return b, nil
-	}
 	backups, err := r.client.ListDatabaseBackups(ctx, dbUUID)
 	if err != nil {
 		return nil, err
 	}
 	for i := range backups {
 		if !uuid.IsNull() && !uuid.IsUnknown() && backups[i].UUID == uuid.ValueString() {
+			return &backups[i], nil
+		}
+		if backupID != 0 && backups[i].ID == backupID {
 			return &backups[i], nil
 		}
 	}
