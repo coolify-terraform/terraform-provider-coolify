@@ -26,10 +26,26 @@ type Client struct {
 	UserAgent  string
 }
 
+// RetryConfig holds user-configurable retry settings.
+type RetryConfig struct {
+	Attempts int
+	MinWait  time.Duration
+	MaxWait  time.Duration
+}
+
 // New creates a new Coolify API client.
-func New(baseURL, apiToken string) *Client {
+func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 	rc := retryablehttp.NewClient()
 	rc.RetryMax = 3
+	if len(opts) > 0 && opts[0].Attempts > 0 {
+		rc.RetryMax = opts[0].Attempts
+	}
+	if len(opts) > 0 && opts[0].MinWait > 0 {
+		rc.RetryWaitMin = opts[0].MinWait
+	}
+	if len(opts) > 0 && opts[0].MaxWait > 0 {
+		rc.RetryWaitMax = opts[0].MaxWait
+	}
 	rc.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if err != nil {
 			return retryablehttp.DefaultRetryPolicy(ctx, resp, err)

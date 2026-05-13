@@ -4,6 +4,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/application"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/cloudtoken"
@@ -49,8 +51,11 @@ var _ provider.Provider = (*coolifyProvider)(nil)
 
 type coolifyProvider struct{ version string }
 type coolifyProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
-	Token    types.String `tfsdk:"token"`
+	Endpoint     types.String `tfsdk:"endpoint"`
+	Token        types.String `tfsdk:"token"`
+	RetryMax     types.Int64  `tfsdk:"retry_max"`
+	RetryMinWait types.Int64  `tfsdk:"retry_min_wait"`
+	RetryMaxWait types.Int64  `tfsdk:"retry_max_wait"`
 }
 
 func New(version string) func() provider.Provider {
@@ -62,8 +67,11 @@ func (p *coolifyProvider) Metadata(_ context.Context, _ provider.MetadataRequest
 }
 func (p *coolifyProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "The Coolify provider manages resources in a Coolify instance.", Attributes: map[string]schema.Attribute{
-		"endpoint": schema.StringAttribute{MarkdownDescription: "Coolify API endpoint. Env: COOLIFY_ENDPOINT.", Optional: true},
-		"token":    schema.StringAttribute{MarkdownDescription: "Coolify API token. Env: COOLIFY_TOKEN.", Optional: true, Sensitive: true},
+		"endpoint":       schema.StringAttribute{MarkdownDescription: "Coolify API endpoint. Env: COOLIFY_ENDPOINT.", Optional: true},
+		"token":          schema.StringAttribute{MarkdownDescription: "Coolify API token. Env: COOLIFY_TOKEN.", Optional: true, Sensitive: true},
+		"retry_max":      schema.Int64Attribute{MarkdownDescription: "Maximum number of API request retries (default: 3).", Optional: true},
+		"retry_min_wait": schema.Int64Attribute{MarkdownDescription: "Minimum wait between retries in seconds (default: 1).", Optional: true},
+		"retry_max_wait": schema.Int64Attribute{MarkdownDescription: "Maximum wait between retries in seconds (default: 30).", Optional: true},
 	}}
 }
 func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
@@ -103,7 +111,17 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 	endpoint = strings.TrimRight(endpoint, "/")
-	c := client.New(endpoint, token)
+	var retryCfg client.RetryConfig
+	if !config.RetryMax.IsNull() {
+		retryCfg.Attempts = int(config.RetryMax.ValueInt64())
+	}
+	if !config.RetryMinWait.IsNull() {
+		retryCfg.MinWait = time.Duration(config.RetryMinWait.ValueInt64()) * time.Second
+	}
+	if !config.RetryMaxWait.IsNull() {
+		retryCfg.MaxWait = time.Duration(config.RetryMaxWait.ValueInt64()) * time.Second
+	}
+	c := client.New(endpoint, token, retryCfg)
 	if p.version != "" {
 		c.UserAgent = "terraform-provider-coolify/" + p.version
 	}
