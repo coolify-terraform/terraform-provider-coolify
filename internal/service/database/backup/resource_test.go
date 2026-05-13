@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
 	"sync"
 	"testing"
 
@@ -77,7 +78,8 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			}
 			json.NewEncoder(w).Encode(backupResponse(state))
 
-		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id):
+		case r.Method == http.MethodPatch && (r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id) ||
+			r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%s", state.dbUUID, state.uuid)):
 			var body map[string]interface{}
 			json.NewDecoder(r.Body).Decode(&body)
 			if v, ok := body["frequency"].(string); ok {
@@ -104,7 +106,8 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			// Real Coolify API returns only message on update.
 			json.NewEncoder(w).Encode(map[string]string{"message": "Database backup configuration updated"})
 
-		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id):
+		case r.Method == http.MethodDelete && (r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id) ||
+			r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%s", state.dbUUID, state.uuid)):
 			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
@@ -145,17 +148,17 @@ func checkBackupDestroy(serverURL string) resource.TestCheckFunc {
 				continue
 			}
 			dbUUID := rs.Primary.Attributes["database_uuid"]
-			backupID := rs.Primary.Attributes["id"]
-			if dbUUID == "" || backupID == "" {
+			backupUUID := rs.Primary.Attributes["uuid"]
+			if dbUUID == "" || backupUUID == "" {
 				continue
 			}
-			resp, err := http.Get(fmt.Sprintf("%s/api/v1/databases/%s/backups/%s", serverURL, dbUUID, backupID))
+			resp, err := http.Get(fmt.Sprintf("%s/api/v1/databases/%s/backups/%s", serverURL, dbUUID, backupUUID))
 			if err != nil {
 				return fmt.Errorf("checking backup destroy: %w", err)
 			}
 			resp.Body.Close()
 			if resp.StatusCode != http.StatusNotFound {
-				return fmt.Errorf("coolify_database_backup %s/%s still exists (status %d)", dbUUID, backupID, resp.StatusCode)
+				return fmt.Errorf("coolify_database_backup %s/%s still exists (status %d)", dbUUID, backupUUID, resp.StatusCode)
 			}
 		}
 		return nil
@@ -319,7 +322,8 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 				"database_uuid": dbUUID, "frequency": "0 2 * * *",
 				"enabled": true, "database_backup_retention_amount_locally": 7,
 			}})
-		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID):
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID),
+			r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/bkp-disappear-uuid", dbUUID):
 			if deleted {
 				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
@@ -329,7 +333,8 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 				"database_uuid": dbUUID, "frequency": "0 2 * * *",
 				"enabled": true, "database_backup_retention_amount_locally": 7,
 			})
-		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID):
+		case r.Method == http.MethodDelete && (r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID) ||
+			r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/bkp-disappear-uuid", dbUUID)):
 			deleted = true
 			w.WriteHeader(http.StatusOK)
 		default:
@@ -352,7 +357,7 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_database_backup.test", "uuid"),
 					func(s *terraform.State) error {
 						req, _ := http.NewRequest(http.MethodDelete,
-							fmt.Sprintf("%s/api/v1/databases/%s/backups/%d", srv.URL, dbUUID, backupID), nil)
+							fmt.Sprintf("%s/api/v1/databases/%s/backups/bkp-disappear-uuid", srv.URL, dbUUID), nil)
 						resp, err := http.DefaultClient.Do(req)
 						if err != nil {
 							return err
@@ -528,7 +533,8 @@ func TestDatabaseBackupResource_CreateWithZeroID(t *testing.T) {
 				"enabled": true, "database_backup_retention_amount_locally": 7,
 			})
 
-		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, realID):
+		case r.Method == http.MethodDelete && (r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, realID) ||
+			strings.HasPrefix(r.URL.Path, fmt.Sprintf("/api/v1/databases/%s/backups/", dbUUID))):
 			deleted = true
 			w.WriteHeader(http.StatusOK)
 

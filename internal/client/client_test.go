@@ -1869,7 +1869,7 @@ func TestClient_UpdateDatabaseBackup(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
-		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/10", r.URL.Path)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/backup-uuid-10", r.URL.Path)
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
@@ -1888,7 +1888,7 @@ func TestClient_UpdateDatabaseBackup(t *testing.T) {
 	c := New(srv.URL, "test-token")
 	freq := "0 0 * * *"
 	enabled := false
-	b, err := c.UpdateDatabaseBackup(context.Background(), "db-uuid-1", 10, UpdateDatabaseBackupInput{
+	b, err := c.UpdateDatabaseBackup(context.Background(), "db-uuid-1", "backup-uuid-10", UpdateDatabaseBackupInput{
 		Frequency: &freq,
 		Enabled:   &enabled,
 	})
@@ -1903,13 +1903,13 @@ func TestClient_DeleteDatabaseBackup(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
-		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/5", r.URL.Path)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/backup-uuid-5", r.URL.Path)
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.DeleteDatabaseBackup(context.Background(), "db-uuid-1", 5)
+	err := c.DeleteDatabaseBackup(context.Background(), "db-uuid-1", "backup-uuid-5")
 	require.NoError(t, err)
 }
 

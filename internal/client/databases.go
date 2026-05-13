@@ -355,17 +355,17 @@ func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input 
 	return &b, nil
 }
 
-func (c *Client) UpdateDatabaseBackup(ctx context.Context, dbUUID string, backupID int, input UpdateDatabaseBackupInput) (*DatabaseBackup, error) {
+func (c *Client) UpdateDatabaseBackup(ctx context.Context, dbUUID string, backupUUID string, input UpdateDatabaseBackupInput) (*DatabaseBackup, error) {
 	var b DatabaseBackup
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/backups/%d", url.PathEscape(dbUUID), backupID), input, &b); err != nil {
-		return nil, fmt.Errorf("updating backup %d for database %s: %w", backupID, dbUUID, err)
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/backups/%s", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), input, &b); err != nil {
+		return nil, fmt.Errorf("updating backup %s for database %s: %w", backupUUID, dbUUID, err)
 	}
 	return &b, nil
 }
 
-func (c *Client) DeleteDatabaseBackup(ctx context.Context, dbUUID string, backupID int) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/backups/%d", url.PathEscape(dbUUID), backupID), nil, nil); err != nil {
-		return fmt.Errorf("deleting backup %d for database %s: %w", backupID, dbUUID, err)
+func (c *Client) DeleteDatabaseBackup(ctx context.Context, dbUUID string, backupUUID string) error {
+	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/backups/%s", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), nil, nil); err != nil {
+		return fmt.Errorf("deleting backup %s for database %s: %w", backupUUID, dbUUID, err)
 	}
 	return nil
 }

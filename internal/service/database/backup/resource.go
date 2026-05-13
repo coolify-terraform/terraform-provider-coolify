@@ -299,8 +299,8 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 	input.RetainMaxStorageS3 = flex.Int64PtrForUpdate(plan.RetainMaxStorageS3, state.RetainMaxStorageS3)
 	input.Timeout = flex.Int64PtrForUpdate(plan.Timeout, state.Timeout)
 
-	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, backupID, input); err != nil {
-		resp.Diagnostics.AddError("Error updating database backup", fmt.Sprintf("backup %d for database %s: %s", backupID, dbUUID, err))
+	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, state.UUID.ValueString(), input); err != nil {
+		resp.Diagnostics.AddError("Error updating database backup", fmt.Sprintf("backup %s for database %s: %s", state.UUID.ValueString(), dbUUID, err))
 		return
 	}
 
@@ -326,7 +326,7 @@ func (r *databaseBackupResource) Delete(ctx context.Context, req resource.Delete
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_backup", "uuid": state.UUID.ValueString()})
 
-	if err := r.client.DeleteDatabaseBackup(ctx, state.DatabaseUUID.ValueString(), int(state.ID.ValueInt64())); err != nil {
+	if err := r.client.DeleteDatabaseBackup(ctx, state.DatabaseUUID.ValueString(), state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {
 			return
 		}
