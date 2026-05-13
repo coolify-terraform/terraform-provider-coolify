@@ -8,7 +8,6 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
-	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -26,28 +25,7 @@ var (
 type mysqlDatabaseResource struct{ client *client.Client }
 
 type mysqlDatabaseResourceModel struct {
-	Timeouts        timeouts.Value `tfsdk:"timeouts"`
-	UUID            types.String   `tfsdk:"uuid"`
-	Name            types.String   `tfsdk:"name"`
-	Description     types.String   `tfsdk:"description"`
-	ProjectUUID     types.String   `tfsdk:"project_uuid"`
-	ServerUUID      types.String   `tfsdk:"server_uuid"`
-	EnvironmentName types.String   `tfsdk:"environment_name"`
-	Image           types.String   `tfsdk:"image"`
-	IsPublic        types.Bool     `tfsdk:"is_public"`
-	PublicPort      types.Int64    `tfsdk:"public_port"`
-	// Shared extended fields
-	LimitsMemory            types.String `tfsdk:"limits_memory"`
-	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
-	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
-	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
-	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
-	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
-	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
-	PortsMappings           types.String `tfsdk:"ports_mappings"`
-	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
-	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
-	Status                  types.String `tfsdk:"status"`
+	pg.CommonModel
 	// Type-specific
 	MysqlUser         types.String `tfsdk:"mysql_user"`
 	MysqlPassword     types.String `tfsdk:"mysql_password"`
@@ -116,7 +94,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	ext := extFields(&plan)
+	ext := plan.ExtFields()
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
 	if pg.HasExtendedFields(ext) || strSet(plan.MysqlConf) {
 		update := client.UpdateDatabaseInput{}
@@ -184,7 +162,7 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 	flex.SetStrPtr(&input.MysqlDatabase, plan.MysqlDatabase)
 	flex.SetStrPtr(&input.MysqlRootPassword, plan.MysqlRootPassword)
 	flex.SetStrPtr(&input.MysqlConf, plan.MysqlConf)
-	pg.SetUpdateExtended(&input, extFields(&plan))
+	pg.SetUpdateExtended(&input, plan.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MySQL database", fmt.Sprintf("MySQL database %s: %s", uuid, err))
@@ -213,27 +191,11 @@ func (r *mysqlDatabaseResource) ImportState(ctx context.Context, req resource.Im
 }
 
 func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
-	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
-	pg.FlattenDatabaseExtended(db, extFields(m))
+	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
+	pg.FlattenDatabaseExtended(db, m.ExtFields())
 	m.MysqlUser = flex.StringToFramework(db.MysqlUser)
 	m.MysqlPassword = flex.StringToFramework(db.MysqlPassword)
 	m.MysqlDatabase = flex.StringToFramework(db.MysqlDatabase)
 	m.MysqlRootPassword = flex.StringToFramework(db.MysqlRootPassword)
 	flex.SetStringIfConfigured(&m.MysqlConf, db.MysqlConf)
-}
-
-func extFields(m *mysqlDatabaseResourceModel) pg.DatabaseExtendedPtrs {
-	return pg.DatabaseExtendedPtrs{
-		LimitsMemory:            &m.LimitsMemory,
-		LimitsMemorySwap:        &m.LimitsMemorySwap,
-		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
-		LimitsMemoryReservation: &m.LimitsMemoryReservation,
-		LimitsCPUs:              &m.LimitsCPUs,
-		LimitsCPUSet:            &m.LimitsCPUSet,
-		LimitsCPUShares:         &m.LimitsCPUShares,
-		PortsMappings:           &m.PortsMappings,
-		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
-		PublicPortTimeout:       &m.PublicPortTimeout,
-		Status:                  &m.Status,
-	}
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
-	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -25,28 +24,7 @@ var (
 
 type res struct{ client *client.Client }
 type model struct {
-	Timeouts        timeouts.Value `tfsdk:"timeouts"`
-	UUID            types.String   `tfsdk:"uuid"`
-	Name            types.String   `tfsdk:"name"`
-	Description     types.String   `tfsdk:"description"`
-	ProjectUUID     types.String   `tfsdk:"project_uuid"`
-	ServerUUID      types.String   `tfsdk:"server_uuid"`
-	EnvironmentName types.String   `tfsdk:"environment_name"`
-	Image           types.String   `tfsdk:"image"`
-	IsPublic        types.Bool     `tfsdk:"is_public"`
-	PublicPort      types.Int64    `tfsdk:"public_port"`
-	// Shared extended fields
-	LimitsMemory            types.String `tfsdk:"limits_memory"`
-	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
-	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
-	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
-	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
-	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
-	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
-	PortsMappings           types.String `tfsdk:"ports_mappings"`
-	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
-	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
-	Status                  types.String `tfsdk:"status"`
+	pg.CommonModel
 	// Type-specific
 	DragonflyPassword types.String `tfsdk:"dragonfly_password"`
 }
@@ -96,7 +74,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		return
 	}
 
-	ext := extFields(&p)
+	ext := p.ExtFields()
 	if pg.HasExtendedFields(ext) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
@@ -155,7 +133,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	flex.SetBoolPtr(&u.IsPublic, p.IsPublic)
 	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	flex.SetStrPtr(&u.DragonflyPassword, p.DragonflyPassword)
-	pg.SetUpdateExtended(&u, extFields(&p))
+	pg.SetUpdateExtended(&u, p.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Dragonfly database", fmt.Sprintf("Dragonfly database %s: %s", s.UUID.ValueString(), err))
@@ -181,23 +159,7 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 	pg.ImportDatabaseState(ctx, req, resp)
 }
 func flattenDatabase(db *client.Database, m *model) {
-	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
-	pg.FlattenDatabaseExtended(db, extFields(m))
+	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
+	pg.FlattenDatabaseExtended(db, m.ExtFields())
 	m.DragonflyPassword = flex.StringToFramework(db.DragonflyPassword)
-}
-
-func extFields(m *model) pg.DatabaseExtendedPtrs {
-	return pg.DatabaseExtendedPtrs{
-		LimitsMemory:            &m.LimitsMemory,
-		LimitsMemorySwap:        &m.LimitsMemorySwap,
-		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
-		LimitsMemoryReservation: &m.LimitsMemoryReservation,
-		LimitsCPUs:              &m.LimitsCPUs,
-		LimitsCPUSet:            &m.LimitsCPUSet,
-		LimitsCPUShares:         &m.LimitsCPUShares,
-		PortsMappings:           &m.PortsMappings,
-		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
-		PublicPortTimeout:       &m.PublicPortTimeout,
-		Status:                  &m.Status,
-	}
 }

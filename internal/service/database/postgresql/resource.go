@@ -31,29 +31,71 @@ var (
 
 type postgresqlDatabaseResource struct{ client *client.Client }
 
+// CommonModel contains the fields shared by all database resource types.
+type CommonModel struct {
+	Timeouts                timeouts.Value `tfsdk:"timeouts"`
+	UUID                    types.String   `tfsdk:"uuid"`
+	Name                    types.String   `tfsdk:"name"`
+	Description             types.String   `tfsdk:"description"`
+	ProjectUUID             types.String   `tfsdk:"project_uuid"`
+	ServerUUID              types.String   `tfsdk:"server_uuid"`
+	EnvironmentName         types.String   `tfsdk:"environment_name"`
+	Image                   types.String   `tfsdk:"image"`
+	IsPublic                types.Bool     `tfsdk:"is_public"`
+	PublicPort              types.Int64    `tfsdk:"public_port"`
+	LimitsMemory            types.String   `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String   `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64    `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String   `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String   `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String   `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64    `tfsdk:"limits_cpu_shares"`
+	PortsMappings           types.String   `tfsdk:"ports_mappings"`
+	CustomDockerRunOptions  types.String   `tfsdk:"custom_docker_run_options"`
+	PublicPortTimeout       types.Int64    `tfsdk:"public_port_timeout"`
+	Status                  types.String   `tfsdk:"status"`
+}
+
+// DatabaseCommonPtrs groups pointers to the core database model fields
+// used by FlattenDatabaseCommon.
+type DatabaseCommonPtrs struct {
+	UUID, Name, Description, Image   *types.String
+	ProjectUUID, ServerUUID, EnvName *types.String
+	IsPublic                         *types.Bool
+	PublicPort                       *types.Int64
+}
+
+// ExtFields returns a DatabaseExtendedPtrs pointing to the extended fields
+// in this CommonModel.
+func (m *CommonModel) ExtFields() DatabaseExtendedPtrs {
+	return DatabaseExtendedPtrs{
+		LimitsMemory:            &m.LimitsMemory,
+		LimitsMemorySwap:        &m.LimitsMemorySwap,
+		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
+		LimitsMemoryReservation: &m.LimitsMemoryReservation,
+		LimitsCPUs:              &m.LimitsCPUs,
+		LimitsCPUSet:            &m.LimitsCPUSet,
+		LimitsCPUShares:         &m.LimitsCPUShares,
+		PortsMappings:           &m.PortsMappings,
+		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
+		PublicPortTimeout:       &m.PublicPortTimeout,
+		Status:                  &m.Status,
+	}
+}
+
+// CommonPtrs returns a DatabaseCommonPtrs pointing to the core fields
+// in this CommonModel.
+func (m *CommonModel) CommonPtrs() DatabaseCommonPtrs {
+	return DatabaseCommonPtrs{
+		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
+		Image: &m.Image, ProjectUUID: &m.ProjectUUID,
+		ServerUUID: &m.ServerUUID, EnvName: &m.EnvironmentName,
+		IsPublic: &m.IsPublic, PublicPort: &m.PublicPort,
+	}
+}
+
 type postgresqlDatabaseResourceModel struct {
-	Timeouts        timeouts.Value `tfsdk:"timeouts"`
-	UUID            types.String   `tfsdk:"uuid"`
-	Name            types.String   `tfsdk:"name"`
-	Description     types.String   `tfsdk:"description"`
-	ProjectUUID     types.String   `tfsdk:"project_uuid"`
-	ServerUUID      types.String   `tfsdk:"server_uuid"`
-	EnvironmentName types.String   `tfsdk:"environment_name"`
-	Image           types.String   `tfsdk:"image"`
-	IsPublic        types.Bool     `tfsdk:"is_public"`
-	PublicPort      types.Int64    `tfsdk:"public_port"`
-	// Shared extended fields
-	LimitsMemory            types.String `tfsdk:"limits_memory"`
-	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
-	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
-	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
-	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
-	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
-	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
-	PortsMappings           types.String `tfsdk:"ports_mappings"`
-	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
-	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
-	Status                  types.String `tfsdk:"status"`
+	CommonModel
 	// Type-specific
 	PostgresUser           types.String `tfsdk:"postgres_user"`
 	PostgresPassword       types.String `tfsdk:"postgres_password"`
@@ -154,7 +196,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	// Apply extended fields that cannot be set during creation.
-	ext := extFields(&plan)
+	ext := plan.ExtFields()
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
 	needsUpdate := HasExtendedFields(ext) || strSet(plan.PostgresConf) || strSet(plan.PostgresInitdbArgs) || strSet(plan.PostgresHostAuthMethod) || strSet(plan.InitScripts)
 	if needsUpdate {
@@ -228,7 +270,7 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 	flex.SetStrPtr(&input.PostgresInitdbArgs, plan.PostgresInitdbArgs)
 	flex.SetStrPtr(&input.PostgresHostAuthMethod, plan.PostgresHostAuthMethod)
 	flex.SetStrPtr(&input.InitScripts, plan.InitScripts)
-	SetUpdateExtended(&input, extFields(&plan))
+	SetUpdateExtended(&input, plan.ExtFields())
 	db, err := UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", uuid, err))
@@ -257,8 +299,8 @@ func (r *postgresqlDatabaseResource) ImportState(ctx context.Context, req resour
 }
 
 func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
-	FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
-	FlattenDatabaseExtended(db, extFields(m))
+	FlattenDatabaseCommon(db, m.CommonPtrs())
+	FlattenDatabaseExtended(db, m.ExtFields())
 	m.PostgresUser = flex.StringToFramework(db.PostgresUser)
 	m.PostgresPassword = flex.StringToFramework(db.PostgresPassword)
 	m.PostgresDB = flex.StringToFramework(db.PostgresDB)
@@ -266,22 +308,6 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	flex.SetStringIfConfigured(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
 	flex.SetStringIfConfigured(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
 	flex.SetStringIfConfigured(&m.InitScripts, db.InitScripts)
-}
-
-func extFields(m *postgresqlDatabaseResourceModel) DatabaseExtendedPtrs {
-	return DatabaseExtendedPtrs{
-		LimitsMemory:            &m.LimitsMemory,
-		LimitsMemorySwap:        &m.LimitsMemorySwap,
-		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
-		LimitsMemoryReservation: &m.LimitsMemoryReservation,
-		LimitsCPUs:              &m.LimitsCPUs,
-		LimitsCPUSet:            &m.LimitsCPUSet,
-		LimitsCPUShares:         &m.LimitsCPUShares,
-		PortsMappings:           &m.PortsMappings,
-		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
-		PublicPortTimeout:       &m.PublicPortTimeout,
-		Status:                  &m.Status,
-	}
 }
 
 // --- shared helpers ---
@@ -441,20 +467,20 @@ func HasExtendedFields(f DatabaseExtendedPtrs) bool {
 }
 
 // FlattenDatabaseCommon sets the fields shared by all database resource types.
-func FlattenDatabaseCommon(db *client.Database, uuid, name, description, image, projectUUID, serverUUID, envName *types.String, isPublic *types.Bool, publicPort *types.Int64) {
-	*uuid = types.StringValue(db.UUID)
-	*name = types.StringValue(db.Name)
-	*image = flex.StringToFramework(db.Image)
-	*isPublic = types.BoolValue(db.IsPublic)
-	*publicPort = flex.Int64PtrToFramework(db.PublicPort)
-	*description = flex.StringToFramework(db.Description)
+func FlattenDatabaseCommon(db *client.Database, f DatabaseCommonPtrs) {
+	*f.UUID = types.StringValue(db.UUID)
+	*f.Name = types.StringValue(db.Name)
+	*f.Image = flex.StringToFramework(db.Image)
+	*f.IsPublic = types.BoolValue(db.IsPublic)
+	*f.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
+	*f.Description = flex.StringToFramework(db.Description)
 	if db.ProjectUUID != "" {
-		*projectUUID = types.StringValue(db.ProjectUUID)
+		*f.ProjectUUID = types.StringValue(db.ProjectUUID)
 	}
 	if db.ServerUUID != "" {
-		*serverUUID = types.StringValue(db.ServerUUID)
+		*f.ServerUUID = types.StringValue(db.ServerUUID)
 	}
 	if db.EnvironmentName != "" {
-		*envName = flex.StringToFramework(db.EnvironmentName)
+		*f.EnvName = flex.StringToFramework(db.EnvironmentName)
 	}
 }
