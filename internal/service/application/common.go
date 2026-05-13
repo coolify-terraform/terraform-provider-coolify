@@ -187,38 +187,22 @@ func flattenLimitsAndHealth(app *client.Application, f commonAppFields) {
 	// unconfigured fields. Setting those would cause "Provider produced
 	// inconsistent result after apply" because the plan has null but the
 	// read-back would return a value.
-	setStringIfConfigured := func(dst *types.String, v string) {
-		if dst == nil || dst.IsNull() || dst.IsUnknown() {
-			return
-		}
-		if v != "" {
-			*dst = types.StringValue(v)
-		}
-	}
-	setInt64IfConfigured := func(dst *types.Int64, v *int64) {
-		if dst == nil || dst.IsNull() || dst.IsUnknown() {
-			return
-		}
-		if v != nil {
-			*dst = types.Int64Value(*v)
-		}
-	}
-	setStringIfConfigured(f.LimitsMemory, app.LimitsMemory)
-	setStringIfConfigured(f.LimitsMemorySwap, app.LimitsMemorySwap)
-	setStringIfConfigured(f.LimitsMemoryReservation, app.LimitsMemoryReservation)
-	setStringIfConfigured(f.LimitsCPUs, app.LimitsCPUs)
-	setStringIfConfigured(f.LimitsCPUSet, app.LimitsCPUSet)
-	setStringIfConfigured(f.HealthCheckPath, app.HealthCheckPath)
-	setStringIfConfigured(f.HealthCheckPort, app.HealthCheckPort)
-	setInt64IfConfigured(f.LimitsMemorySwappiness, app.LimitsMemorySwappiness)
-	setInt64IfConfigured(f.LimitsCPUShares, app.LimitsCPUShares)
-	setInt64IfConfigured(f.HealthCheckInterval, app.HealthCheckInterval)
-	setInt64IfConfigured(f.HealthCheckTimeout, app.HealthCheckTimeout)
-	setInt64IfConfigured(f.HealthCheckRetries, app.HealthCheckRetries)
-	setInt64IfConfigured(f.HealthCheckStartPeriod, app.HealthCheckStartPeriod)
+	flex.SetStringIfConfigured(f.LimitsMemory, app.LimitsMemory)
+	flex.SetStringIfConfigured(f.LimitsMemorySwap, app.LimitsMemorySwap)
+	flex.SetStringIfConfigured(f.LimitsMemoryReservation, app.LimitsMemoryReservation)
+	flex.SetStringIfConfigured(f.LimitsCPUs, app.LimitsCPUs)
+	flex.SetStringIfConfigured(f.LimitsCPUSet, app.LimitsCPUSet)
+	flex.SetStringIfConfigured(f.HealthCheckPath, app.HealthCheckPath)
+	flex.SetStringIfConfigured(f.HealthCheckPort, app.HealthCheckPort)
+	flex.SetInt64IfConfigured(f.LimitsMemorySwappiness, app.LimitsMemorySwappiness)
+	flex.SetInt64IfConfigured(f.LimitsCPUShares, app.LimitsCPUShares)
+	flex.SetInt64IfConfigured(f.HealthCheckInterval, app.HealthCheckInterval)
+	flex.SetInt64IfConfigured(f.HealthCheckTimeout, app.HealthCheckTimeout)
+	flex.SetInt64IfConfigured(f.HealthCheckRetries, app.HealthCheckRetries)
+	flex.SetInt64IfConfigured(f.HealthCheckStartPeriod, app.HealthCheckStartPeriod)
 	// Extended health check fields (optional, no defaults)
-	setStringIfConfigured(f.HealthCheckCommand, app.HealthCheckCommand)
-	setStringIfConfigured(f.HealthCheckResponseText, app.HealthCheckResponseText)
+	flex.SetStringIfConfigured(f.HealthCheckCommand, app.HealthCheckCommand)
+	flex.SetStringIfConfigured(f.HealthCheckResponseText, app.HealthCheckResponseText)
 	// Extended health check fields with defaults (always set from API)
 	*f.HealthCheckHost = flex.StringValueOrDefault(app.HealthCheckHost, "localhost")
 	*f.HealthCheckMethod = flex.StringValueOrDefault(app.HealthCheckMethod, "GET")
@@ -240,45 +224,37 @@ func flattenLimitsAndHealth(app *client.Application, f commonAppFields) {
 // flattenExtendedFields sets extended application fields from the API response.
 // Extracted to keep flattenApplicationCommon under the gocognit complexity threshold.
 func flattenExtendedFields(app *client.Application, f commonAppFields) {
-	setIfCfg := func(dst *types.String, v string) {
-		if dst == nil || dst.IsNull() || dst.IsUnknown() {
-			return
-		}
-		if v != "" {
-			*dst = types.StringValue(v)
-		}
-	}
 	// Optional string fields (set only if user configured them)
-	setIfCfg(f.BaseDirectory, app.BaseDirectory)
-	setIfCfg(f.PublishDirectory, app.PublishDirectory)
-	setIfCfg(f.Dockerfile, app.Dockerfile)
-	setIfCfg(f.DockerRegistryImageTag, app.DockerRegistryImageTag)
-	setIfCfg(f.DockerComposeDomains, app.DockerComposeDomains)
-	setIfCfg(f.GitCommitSha, app.GitCommitSha)
-	setIfCfg(f.WatchPaths, app.WatchPaths)
-	setIfCfg(f.CustomDockerRunOptions, app.CustomDockerRunOptions)
-	setIfCfg(f.CustomLabels, app.CustomLabels)
-	setIfCfg(f.CustomNetworkAliases, app.CustomNetworkAliases)
-	setIfCfg(f.CustomNginxConfiguration, app.CustomNginxConfiguration)
-	setIfCfg(f.PortsMappings, app.PortsMappings)
-	setIfCfg(f.HTTPBasicAuthUsername, app.HTTPBasicAuthUsername)
-	setIfCfg(f.HTTPBasicAuthPassword, app.HTTPBasicAuthPassword)
-	setIfCfg(f.PreDeploymentCommand, app.PreDeploymentCommand)
-	setIfCfg(f.PreDeploymentCommandContainer, app.PreDeploymentCommandContainer)
-	setIfCfg(f.PostDeploymentCommand, app.PostDeploymentCommand)
-	setIfCfg(f.PostDeploymentCommandContainer, app.PostDeploymentCommandContainer)
+	flex.SetStringIfConfigured(f.BaseDirectory, app.BaseDirectory)
+	flex.SetStringIfConfigured(f.PublishDirectory, app.PublishDirectory)
+	flex.SetStringIfConfigured(f.Dockerfile, app.Dockerfile)
+	flex.SetStringIfConfigured(f.DockerRegistryImageTag, app.DockerRegistryImageTag)
+	flex.SetStringIfConfigured(f.DockerComposeDomains, app.DockerComposeDomains)
+	flex.SetStringIfConfigured(f.GitCommitSha, app.GitCommitSha)
+	flex.SetStringIfConfigured(f.WatchPaths, app.WatchPaths)
+	flex.SetStringIfConfigured(f.CustomDockerRunOptions, app.CustomDockerRunOptions)
+	flex.SetStringIfConfigured(f.CustomLabels, app.CustomLabels)
+	flex.SetStringIfConfigured(f.CustomNetworkAliases, app.CustomNetworkAliases)
+	flex.SetStringIfConfigured(f.CustomNginxConfiguration, app.CustomNginxConfiguration)
+	flex.SetStringIfConfigured(f.PortsMappings, app.PortsMappings)
+	flex.SetStringIfConfigured(f.HTTPBasicAuthUsername, app.HTTPBasicAuthUsername)
+	flex.SetStringIfConfigured(f.HTTPBasicAuthPassword, app.HTTPBasicAuthPassword)
+	flex.SetStringIfConfigured(f.PreDeploymentCommand, app.PreDeploymentCommand)
+	flex.SetStringIfConfigured(f.PreDeploymentCommandContainer, app.PreDeploymentCommandContainer)
+	flex.SetStringIfConfigured(f.PostDeploymentCommand, app.PostDeploymentCommand)
+	flex.SetStringIfConfigured(f.PostDeploymentCommandContainer, app.PostDeploymentCommandContainer)
 	// Nil-safe optional string fields (resource-specific extras)
 	if f.DockerfileTargetBuild != nil {
-		setIfCfg(f.DockerfileTargetBuild, app.DockerfileTargetBuild)
+		flex.SetStringIfConfigured(f.DockerfileTargetBuild, app.DockerfileTargetBuild)
 	}
 	if f.DockerComposeLocation != nil {
-		setIfCfg(f.DockerComposeLocation, app.DockerComposeLocation)
+		flex.SetStringIfConfigured(f.DockerComposeLocation, app.DockerComposeLocation)
 	}
 	if f.DockerComposeCustomBuildCommand != nil {
-		setIfCfg(f.DockerComposeCustomBuildCommand, app.DockerComposeCustomBuildCommand)
+		flex.SetStringIfConfigured(f.DockerComposeCustomBuildCommand, app.DockerComposeCustomBuildCommand)
 	}
 	if f.DockerComposeCustomStartCommand != nil {
-		setIfCfg(f.DockerComposeCustomStartCommand, app.DockerComposeCustomStartCommand)
+		flex.SetStringIfConfigured(f.DockerComposeCustomStartCommand, app.DockerComposeCustomStartCommand)
 	}
 	flattenExtendedDefaults(app, f)
 }

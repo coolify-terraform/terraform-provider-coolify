@@ -440,28 +440,16 @@ func HasExtendedFields(f DatabaseExtendedPtrs) bool {
 		intSet(f.PublicPortTimeout)
 }
 
-// SetStringIfConfigured sets dst to the API value only when the Terraform
-// model already has a configured value (not null/unknown). This prevents
-// "Provider produced inconsistent result after apply" when the API returns
-// default values for fields the user did not set.
+// SetStringIfConfigured delegates to flex.SetStringIfConfigured.
+// Deprecated: Use flex.SetStringIfConfigured directly.
 func SetStringIfConfigured(dst *types.String, v string) {
-	if dst == nil || dst.IsNull() || dst.IsUnknown() {
-		return
-	}
-	if v != "" {
-		*dst = types.StringValue(v)
-	}
+	flex.SetStringIfConfigured(dst, v)
 }
 
-// SetInt64IfConfigured sets dst to the API value only when the Terraform
-// model already has a configured value (not null/unknown).
+// SetInt64IfConfigured delegates to flex.SetInt64IfConfigured.
+// Deprecated: Use flex.SetInt64IfConfigured directly.
 func SetInt64IfConfigured(dst *types.Int64, v *int64) {
-	if dst == nil || dst.IsNull() || dst.IsUnknown() {
-		return
-	}
-	if v != nil {
-		*dst = types.Int64Value(*v)
-	}
+	flex.SetInt64IfConfigured(dst, v)
 }
 
 // FlattenDatabaseCommon sets the fields shared by all database resource types.

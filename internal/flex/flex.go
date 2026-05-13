@@ -121,6 +121,30 @@ func StringPtrForUpdate(plan, state types.String) *string {
 	return nil
 }
 
+// SetStringIfConfigured sets dst to the string value only if dst was
+// configured by the user (non-null, non-unknown) and v is non-empty.
+// Prevents "inconsistent result after apply" errors when the API
+// returns empty/default values for fields the user didn't set.
+func SetStringIfConfigured(dst *types.String, v string) {
+	if dst == nil || dst.IsNull() || dst.IsUnknown() {
+		return
+	}
+	if v != "" {
+		*dst = types.StringValue(v)
+	}
+}
+
+// SetInt64IfConfigured sets dst to the int64 value only if dst was
+// configured by the user (non-null, non-unknown) and v is non-nil.
+func SetInt64IfConfigured(dst *types.Int64, v *int64) {
+	if dst == nil || dst.IsNull() || dst.IsUnknown() {
+		return
+	}
+	if v != nil {
+		*dst = types.Int64Value(*v)
+	}
+}
+
 // Int64PtrForUpdate returns a *int64 suitable for a JSON PATCH body.
 // If the plan has a value, returns a pointer to it. If the plan is null
 // but the prior state had a value, returns a pointer to 0 (explicit clear).
