@@ -1,10 +1,6 @@
 package server_test
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"testing"
 
@@ -17,7 +13,7 @@ func TestAccServerResource_CRUD(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	name := acctest.RandomWithPrefix("tf-acc-srv")
-	privKey := generateServerTestKey(t)
+	privKey := acctest.GenerateTestRSAKey(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
@@ -52,18 +48,6 @@ func TestAccServerResource_CRUD(t *testing.T) {
 			},
 		},
 	})
-}
-
-func generateServerTestKey(t *testing.T) string {
-	t.Helper()
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("generating RSA key: %s", err)
-	}
-	return string(pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
-	}))
 }
 
 func testAccServerConfig(name, privKey, extra string) string {

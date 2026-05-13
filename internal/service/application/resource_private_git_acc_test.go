@@ -1,10 +1,6 @@
 package application_test
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"testing"
 
@@ -18,7 +14,7 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 	acctest.TestAccPreCheck(t)
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-privgit")
-	privKey := generateTestRSAKey(t)
+	privKey := acctest.GenerateTestRSAKey(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
@@ -50,18 +46,6 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 			},
 		},
 	})
-}
-
-func generateTestRSAKey(t *testing.T) string {
-	t.Helper()
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("generating RSA key: %s", err)
-	}
-	return string(pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
-	}))
 }
 
 func testAccPrivateGitAppConfig(name, serverUUID, privKey, extra string) string {

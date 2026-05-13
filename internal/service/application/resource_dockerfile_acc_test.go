@@ -1,7 +1,6 @@
 package application_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -25,7 +24,7 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: testAccDockerfileAppConfig(name, serverUUID, ""),
+				Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_dockerfile_application.test", "uuid"),
 					resource.TestCheckResourceAttrSet("coolify_dockerfile_application.test", "dockerfile_location"),
@@ -34,7 +33,7 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 			},
 			// Step 2: Update description
 			{
-				Config: testAccDockerfileAppConfig(name, serverUUID, `description = "Updated via acc test"`),
+				Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, `description = "Updated via acc test"`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "description", "Updated via acc test"),
 				),
@@ -93,45 +92,8 @@ func TestAccDockerfileApplicationDataSources(t *testing.T) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-func testAccDockerfileAppConfig(name, serverUUID, extra string) string {
-	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
-resource "coolify_project" "test" {
-  name = %[1]q
-}
-
-resource "coolify_dockerfile_application" "test" {
-  project_uuid = coolify_project.test.uuid
-  server_uuid  = %[2]q
-  name         = %[1]q
-  dockerfile_location = base64encode(<<-DOCKERFILE
-    FROM nginx:alpine
-    EXPOSE 80
-  DOCKERFILE
-  )
-  ports_exposes = "80"
-  %[3]s
-}
-`, name, serverUUID, extra)
-}
-
 func testAccDockerfileAppWithDataSourcesConfig(name, serverUUID string) string {
-	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
-resource "coolify_project" "test" {
-  name = %[1]q
-}
-
-resource "coolify_dockerfile_application" "test" {
-  project_uuid = coolify_project.test.uuid
-  server_uuid  = %[2]q
-  name         = %[1]q
-  dockerfile_location = base64encode(<<-DOCKERFILE
-    FROM nginx:alpine
-    EXPOSE 80
-  DOCKERFILE
-  )
-  ports_exposes = "80"
-}
-
+	return acctest.AccTestDockerfileAppConfig(name, serverUUID, "") + `
 data "coolify_application" "test" {
   uuid = coolify_dockerfile_application.test.uuid
 }
@@ -139,7 +101,7 @@ data "coolify_application" "test" {
 data "coolify_applications" "test" {
   depends_on = [coolify_dockerfile_application.test]
 }
-`, name, serverUUID)
+`
 }
 
 // ---------------------------------------------------------------------------
@@ -168,23 +130,9 @@ func TestAccApplicationLogsDataSource(t *testing.T) {
 }
 
 func testAccAppLogsConfig(name, serverUUID string) string {
-	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
-resource "coolify_project" "test" {
-  name = %[1]q
-}
-resource "coolify_dockerfile_application" "test" {
-  project_uuid = coolify_project.test.uuid
-  server_uuid  = %[2]q
-  name         = %[1]q
-  dockerfile_location = base64encode(<<-DOCKERFILE
-    FROM nginx:alpine
-    EXPOSE 80
-  DOCKERFILE
-  )
-  ports_exposes = "80"
-}
+	return acctest.AccTestDockerfileAppConfig(name, serverUUID, "") + `
 data "coolify_application_logs" "test" {
   uuid = coolify_dockerfile_application.test.uuid
 }
-`, name, serverUUID)
+`
 }

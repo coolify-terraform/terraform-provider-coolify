@@ -147,8 +147,7 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 		}
 	}
 	*f.FQDN = flex.StringToFramework(app.FQDN)
-	// Coolify does not return dockerfile_location on GET. Preserve from state.
-	if f.DockerfileLocation != nil && app.DockerfileLocation != "" {
+	if f.DockerfileLocation != nil {
 		*f.DockerfileLocation = flex.StringToFramework(app.DockerfileLocation)
 	}
 	if f.InstallCommand != nil {

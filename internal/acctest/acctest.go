@@ -2,6 +2,10 @@ package acctest
 
 import (
 	"context"
+	crand "crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"math/rand/v2"
@@ -303,4 +307,42 @@ func AccTestSkipIfNoTFAcc(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("TF_ACC not set, skipping acceptance test")
 	}
+}
+
+// GenerateTestRSAKey generates a 2048-bit RSA private key in PEM format
+// for use in acceptance tests. Fails the test on error.
+func GenerateTestRSAKey(t *testing.T) string {
+	t.Helper()
+	key, err := rsa.GenerateKey(crand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generating RSA key: %s", err)
+	}
+	return string(pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	}))
+}
+
+// AccTestDockerfileAppConfig returns a Terraform config for an acceptance test
+// of a Dockerfile application resource, including a project dependency. The
+// extra parameter allows injecting additional HCL attributes.
+func AccTestDockerfileAppConfig(name, serverUUID, extra string) string {
+	return ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_dockerfile_application" "test" {
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  name         = %[1]q
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
+  ports_exposes = "80"
+  %[3]s
+}
+`, name, serverUUID, extra)
 }

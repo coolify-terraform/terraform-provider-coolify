@@ -1,10 +1,6 @@
 package privatekey_test
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"regexp"
 	"testing"
@@ -13,24 +9,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func generateTestPrivateKey(t *testing.T) string {
-	t.Helper()
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("generating RSA key: %s", err)
-	}
-	return string(pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
-	}))
-}
-
 func TestAccPrivateKeyResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	name := acctest.RandomWithPrefix("tf-acc-pk")
-	privKey := generateTestPrivateKey(t)
+	privKey := acctest.GenerateTestRSAKey(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
@@ -89,7 +73,7 @@ func TestAccPrivateKeyDataSources(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	name := acctest.RandomWithPrefix("tf-acc-pk-ds")
-	privKey := generateTestPrivateKey(t)
+	privKey := acctest.GenerateTestRSAKey(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
