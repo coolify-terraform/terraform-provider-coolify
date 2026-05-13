@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,9 +19,25 @@ type DeployByTagInput struct {
 }
 
 func (c *Client) ListDeployments(ctx context.Context) ([]Deployment, error) {
-	var r []Deployment
-	if err := c.do(ctx, http.MethodGet, "/api/v1/deployments", nil, &r); err != nil {
+	// Coolify bug: sortBy('id') without values() produces a JSON object
+	// with non-sequential keys instead of an array when deployments have
+	// gaps in their indices. Try array first, fall back to object.
+	// See: https://github.com/coollabsio/coolify/issues/10077
+	var raw json.RawMessage
+	if err := c.do(ctx, http.MethodGet, "/api/v1/deployments", nil, &raw); err != nil {
 		return nil, fmt.Errorf("listing deployments: %w", err)
+	}
+	var r []Deployment
+	if err := json.Unmarshal(raw, &r); err == nil {
+		return r, nil
+	}
+	var m map[string]Deployment
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return nil, fmt.Errorf("listing deployments: decoding response: %w", err)
+	}
+	r = make([]Deployment, 0, len(m))
+	for _, d := range m {
+		r = append(r, d)
 	}
 	return r, nil
 }
