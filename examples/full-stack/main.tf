@@ -51,6 +51,12 @@ variable "app_domain" {
   default     = ""
 }
 
+variable "postgres_password" {
+  description = "PostgreSQL database password"
+  type        = string
+  sensitive   = true
+}
+
 # --- Project ---
 
 resource "coolify_project" "main" {
@@ -84,7 +90,7 @@ resource "coolify_postgresql_database" "app_db" {
   environment_name  = "production"
   image             = "postgres:16"
   postgres_user     = "app"
-  postgres_password = "change-me-in-production"
+  postgres_password = var.postgres_password
   postgres_db       = "myapp"
   is_public         = false
 }
