@@ -2,6 +2,7 @@ package githubapp_test
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
@@ -14,6 +15,9 @@ func TestAccGitHubAppResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	if os.Getenv("COOLIFY_GITHUB_APP_UUID") == "" {
+		t.Skip("COOLIFY_GITHUB_APP_UUID not set, skipping (real GitHub App credentials required)")
+	}
 	name := acctest.RandomWithPrefix("tf-acc-ghapp")
 
 	resource.Test(t, resource.TestCase{
@@ -62,6 +66,9 @@ func TestAccGitHubAppDataSources(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	if os.Getenv("COOLIFY_GITHUB_APP_UUID") == "" {
+		t.Skip("COOLIFY_GITHUB_APP_UUID not set, skipping (real GitHub App credentials required)")
+	}
 	name := acctest.RandomWithPrefix("tf-acc-ghapp-ds")
 
 	resource.Test(t, resource.TestCase{

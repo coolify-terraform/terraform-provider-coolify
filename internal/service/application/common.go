@@ -159,17 +159,16 @@ func buildUpdateInput(f commonAppFields) client.UpdateApplicationInput {
 	int64Ptr := flex.Int64PtrFromFramework
 	boolPtr := flex.BoolValueOrNull
 	return client.UpdateApplicationInput{
-		Name:               strPtr(*f.Name),
-		Description:        strPtr(*f.Description),
-		GitRepository:      strPtr(*f.GitRepository),
-		GitBranch:          strPtr(*f.GitBranch),
-		BuildPack:          strPtr(*f.BuildPack),
-		PortsExposes:       strPtr(*f.PortsExposes),
-		FQDN:               strPtr(*f.FQDN),
-		DockerfileLocation: strPtr(*f.DockerfileLocation),
-		InstallCommand:     strPtr(*f.InstallCommand),
-		BuildCommand:       strPtr(*f.BuildCommand),
-		StartCommand:       strPtr(*f.StartCommand),
+		Name:           strPtr(*f.Name),
+		Description:    strPtr(*f.Description),
+		GitRepository:  strPtr(*f.GitRepository),
+		GitBranch:      strPtr(*f.GitBranch),
+		BuildPack:      strPtr(*f.BuildPack),
+		PortsExposes:   strPtr(*f.PortsExposes),
+		FQDN:           strPtr(*f.FQDN),
+		InstallCommand: strPtr(*f.InstallCommand),
+		BuildCommand:   strPtr(*f.BuildCommand),
+		StartCommand:   strPtr(*f.StartCommand),
 		// Resource limits
 		LimitsMemory:            strPtr(*f.LimitsMemory),
 		LimitsMemorySwap:        strPtr(*f.LimitsMemorySwap),

@@ -278,7 +278,12 @@ func flattenServer(srv *client.Server, model *serverResourceModel) {
 	model.IP = types.StringValue(srv.IP)
 	model.Port = types.Int64Value(int64(srv.Port))
 	model.User = types.StringValue(srv.User)
-	model.PrivateKeyUUID = types.StringValue(srv.PrivateKeyUUID)
+	// Only overwrite private_key_uuid when the API returns a non-empty
+	// value. The GET response omits this field, which would cause
+	// "inconsistent result after apply" if we set it to "".
+	if srv.PrivateKeyUUID != "" {
+		model.PrivateKeyUUID = types.StringValue(srv.PrivateKeyUUID)
+	}
 	model.IsBuildServer = types.BoolValue(srv.IsBuildServer)
 	model.IsReachable = types.BoolValue(srv.IsReachable)
 	model.IsUsable = types.BoolValue(srv.IsUsable)
