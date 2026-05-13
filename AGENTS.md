@@ -29,6 +29,9 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 - Install locally: `make install`
 - Spec compliance: `make spec-check`
 - API coverage doc: `make api-coverage`
+- Extract contract from Coolify source: `make contract-extract VERSION=v4.0.1`
+- Verify client structs cover contract: `make contract-check`
+- Regenerate OpenAPI spec from contract: `make spec-generate`
 
 ## Structure
 
@@ -39,7 +42,9 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 - `internal/flex/` - Type conversion helpers between Go and Terraform Framework types
 - `internal/acctest/` - Shared test utilities (provider factories, mock server wrappers, acceptance test helpers)
 - `internal/validate/` - Input validators (UUID format, FQDN URL)
-- `internal/spectest/` - OpenAPI spec compliance tests and API coverage tracking
+- `internal/spectest/` - OpenAPI spec compliance tests, API coverage tracking, and contract coverage tests
+- `scripts/` - Contract extraction (`extract-contract.py`), OpenAPI generation (`generate-openapi.py`), contract diff (`diff-contracts.sh`)
+- `testdata/contracts/` - Versioned contract JSON files extracted from Coolify source (source of truth for API field definitions)
 - `examples/` - Working HCL examples per resource + multi-resource scenarios
 - `examples/scenarios/` - ACME Corp real-world scenarios with .tftest.hcl (tested against real Coolify)
 - `templates/` - tfplugindocs templates (index.md.tmpl, guides/)
