@@ -345,6 +345,13 @@ jobs:
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Generate deploy key for scenarios
+        if: steps.secrets.outputs.configured == 'true'
+        run: |
+          ssh-keygen -t rsa -b 2048 -f /tmp/scenario-deploy-key -N "" -q
+          echo "TF_VAR_deploy_key<<EOFKEY" >> "$GITHUB_ENV"
+          cat /tmp/scenario-deploy-key >> "$GITHUB_ENV"
+          echo "EOFKEY" >> "$GITHUB_ENV"
       - name: Run scenario tests
         if: steps.secrets.outputs.configured == 'true'
         env:

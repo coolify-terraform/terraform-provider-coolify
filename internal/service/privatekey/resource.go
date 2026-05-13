@@ -143,7 +143,12 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	// Preserve the user's original private key value. Coolify encrypts
+	// the key and may return it in a different format, causing a
+	// sensitive attribute mismatch.
+	plannedKey := plan.PrivateKey
 	flattenPrivateKey(key, &plan)
+	plan.PrivateKey = plannedKey
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
