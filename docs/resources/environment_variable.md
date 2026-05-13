@@ -4,11 +4,14 @@ page_title: "coolify_environment_variable Resource - coolify"
 subcategory: ""
 description: |-
   Manages an environment variable on a Coolify application, service, or database.
+  ~> Note: Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for environment variables. Large numbers of these resources on a single application may cause slower plan/apply times due to this API limitation.
 ---
 
 # coolify_environment_variable (Resource)
 
 Manages an environment variable on a Coolify application, service, or database.
+
+~> **Note:** Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for environment variables. Large numbers of these resources on a single application may cause slower plan/apply times due to this API limitation.
 
 ## Example Usage
 

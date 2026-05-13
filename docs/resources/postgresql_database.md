@@ -40,19 +40,34 @@ resource "coolify_postgresql_database" "example" {
 
 ### Optional
 
+- `custom_docker_run_options` (String) Custom Docker run options passed to the container.
 - `description` (String) A description of the database.
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `image` (String) The Docker image to use.
+- `init_scripts` (String) Initialization scripts as a JSON array.
 - `is_public` (Boolean) When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.
+- `limits_cpu_shares` (Number) CPU shares (relative weight).
+- `limits_cpus` (String) CPU limit (e.g., `0.5`, `2`).
+- `limits_cpuset` (String) CPU set restriction (e.g., `0-3`, `0,2`).
+- `limits_memory` (String) Memory limit (e.g., `512m`, `2g`).
+- `limits_memory_reservation` (String) Memory reservation (e.g., `256m`).
+- `limits_memory_swap` (String) Memory swap limit (e.g., `1g`).
+- `limits_memory_swappiness` (Number) Memory swappiness (0-100).
 - `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
+- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g. `8080:5432`).
+- `postgres_conf` (String) Custom PostgreSQL configuration (base64-encoded `postgresql.conf` content).
 - `postgres_db` (String) The default database name (maps to `POSTGRES_DB`). If omitted, Coolify auto-generates a value readable from state after creation.
+- `postgres_host_auth_method` (String) Host authentication method (maps to `POSTGRES_HOST_AUTH_METHOD`, e.g. `trust`, `scram-sha-256`).
+- `postgres_initdb_args` (String) Additional arguments passed to `initdb` (maps to `POSTGRES_INITDB_ARGS`).
 - `postgres_password` (String, Sensitive) The PostgreSQL superuser password (maps to `POSTGRES_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `postgres_user` (String) The PostgreSQL superuser name (maps to `POSTGRES_USER`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
+- `public_port_timeout` (Number) Timeout in seconds for public port allocation.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only
 
+- `status` (String) The current status of the database (e.g. `running`, `exited`).
 - `uuid` (String) The UUID of the database.
 
 <a id="nestedatt--timeouts"></a>

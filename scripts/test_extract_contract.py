@@ -519,7 +519,6 @@ class TestCleanRule(unittest.TestCase):
 
 
 class TestExtractValidationRules(unittest.TestCase):
-    @unittest.expectedFailure  # BUG: regex has 4 capture groups but unpacks into 2 → ValueError
     def test_basic(self):
         php = """<?php
 class Ctrl {

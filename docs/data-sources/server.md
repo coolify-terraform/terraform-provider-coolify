@@ -27,7 +27,10 @@ data "coolify_server" "example" {
 
 ### Read-Only
 
+- `concurrent_builds` (Number) How many deployments can run in parallel on this server.
+- `deployment_queue_limit` (Number) Maximum number of queued deployments. 0 means unlimited.
 - `description` (String) A description of the server.
+- `dynamic_timeout` (Number) Deployment timeout in seconds.
 - `ip` (String) The IP address of the server.
 - `is_build_server` (Boolean) Whether this server is used for building applications.
 - `is_reachable` (Boolean) Whether the server is currently reachable.
@@ -35,4 +38,6 @@ data "coolify_server" "example" {
 - `name` (String) The name of the server.
 - `port` (Number) The SSH port of the server.
 - `private_key_uuid` (String) The UUID of the private key used for SSH authentication.
+- `server_disk_usage_check_frequency` (String) Cron expression for how often disk usage is checked.
+- `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
 - `user` (String) The SSH user for connecting to the server.

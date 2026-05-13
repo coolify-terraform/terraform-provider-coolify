@@ -4,11 +4,14 @@ page_title: "coolify_storage Resource - coolify"
 subcategory: ""
 description: |-
   Manages a persistent storage volume on a Coolify application, service, or database.
+  ~> Note: Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for storage volumes. Large numbers of these resources on a single application may cause slower plan/apply times due to this API limitation.
 ---
 
 # coolify_storage (Resource)
 
 Manages a persistent storage volume on a Coolify application, service, or database.
+
+~> **Note:** Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for storage volumes. Large numbers of these resources on a single application may cause slower plan/apply times due to this API limitation.
 
 ## Example Usage
 

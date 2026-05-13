@@ -9,3 +9,5 @@ terraform-provider-coolify
 .terraform.lock.hcl
 cover.out
 .env
+__pycache__/
+*.pyc

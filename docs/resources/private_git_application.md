@@ -40,21 +40,47 @@ resource "coolify_private_git_application" "api" {
 
 ### Optional
 
+- `base_directory` (String) The base directory for the application source code.
 - `build_command` (String) The command to run during the build phase.
+- `connect_to_docker_network` (Boolean) Whether to connect the application to the Docker network.
+- `custom_docker_run_options` (String) Custom Docker run options passed to the container.
+- `custom_labels` (String) Custom Docker labels for the container, **base64-encoded**. Use `base64encode()` in your configuration.
+- `custom_network_aliases` (String) Custom network aliases for the container.
+- `custom_nginx_configuration` (String) Custom Nginx configuration for the application, **base64-encoded**. Use `base64encode()` in your configuration.
 - `description` (String) A description of the application.
+- `docker_compose_domains` (String) Domain mappings for Docker Compose services.
+- `docker_registry_image_tag` (String) The Docker registry image tag.
+- `dockerfile` (String) Inline Dockerfile content (base64 encoded).
 - `dockerfile_location` (String) The path to the Dockerfile, relative to the repository root.
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
+- `force_domain_override` (Boolean) Whether to force domain override.
 - `fqdn` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `git_branch` (String) The Git branch to deploy (defaults to `main`).
+- `git_commit_sha` (String) The specific Git commit SHA to deploy.
+- `health_check_command` (String) Custom health check command (used when type is `cmd`).
 - `health_check_enabled` (Boolean) Whether health checks are enabled.
+- `health_check_host` (String) The host for health checks.
 - `health_check_interval` (Number) Health check interval in seconds.
+- `health_check_method` (String) The HTTP method for health checks.
 - `health_check_path` (String) The URL path for health checks.
 - `health_check_port` (String) The port for health checks.
+- `health_check_response_text` (String) Expected response text for health check validation.
 - `health_check_retries` (Number) Number of health check retries.
+- `health_check_return_code` (Number) Expected HTTP return code for health checks.
+- `health_check_scheme` (String) The URL scheme for health checks.
 - `health_check_start_period` (Number) Health check start period in seconds.
 - `health_check_timeout` (Number) Health check timeout in seconds.
+- `health_check_type` (String) The type of health check. Valid values: `http`, `cmd`.
+- `http_basic_auth_password` (String, Sensitive) Password for HTTP Basic Authentication.
+- `http_basic_auth_username` (String) Username for HTTP Basic Authentication.
 - `install_command` (String) The command to run during the install phase.
 - `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled.
+- `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled.
+- `is_force_https_enabled` (Boolean) Whether to force HTTPS for the application.
+- `is_http_basic_auth_enabled` (Boolean) Whether HTTP Basic Authentication is enabled.
+- `is_preserve_repository_enabled` (Boolean) Whether to preserve the full Git repository (instead of shallow clone).
+- `is_spa` (Boolean) Whether the application is a single-page application.
+- `is_static` (Boolean) Whether the application is a static site.
 - `limits_cpu_shares` (Number) CPU shares (relative weight).
 - `limits_cpus` (String) CPU limit (e.g., `0.5`, `2`).
 - `limits_cpuset` (String) CPU set restriction (e.g., `0-3`, `0,2`).
@@ -62,9 +88,24 @@ resource "coolify_private_git_application" "api" {
 - `limits_memory_reservation` (String) Memory reservation (e.g., `256m`).
 - `limits_memory_swap` (String) Memory swap limit (e.g., `1g`).
 - `limits_memory_swappiness` (Number) Memory swappiness (0-100).
+- `manual_webhook_secret_bitbucket` (String, Sensitive) Manual webhook secret for Bitbucket.
+- `manual_webhook_secret_gitea` (String, Sensitive) Manual webhook secret for Gitea.
+- `manual_webhook_secret_github` (String, Sensitive) Manual webhook secret for GitHub.
+- `manual_webhook_secret_gitlab` (String, Sensitive) Manual webhook secret for GitLab.
 - `name` (String) The name of the application.
+- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g. `8080:80` or `8080:80,8443:443`).
+- `post_deployment_command` (String) Command to run after deployment.
+- `post_deployment_command_container` (String) Container to run the post-deployment command in.
+- `pre_deployment_command` (String) Command to run before deployment.
+- `pre_deployment_command_container` (String) Container to run the pre-deployment command in.
+- `preview_url_template` (String) The URL template for preview deployments.
+- `publish_directory` (String) The directory to publish for static sites.
+- `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
 - `start_command` (String) The command to run to start the application.
+- `static_image` (String) The Docker image to use for serving static sites.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
+- `use_build_server` (Boolean) Whether to use a build server for building the application.
+- `watch_paths` (String) Paths to watch for changes (triggers auto-deploy).
 
 ### Read-Only
 

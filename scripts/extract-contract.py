@@ -276,10 +276,11 @@ def extract_validation_rules(content: str) -> dict[str, dict]:
         method = match.group(1) or "unknown"
         block = match.group(2)
         field_rules = {}
-        for field, rule in re.findall(
+        for field, rule_array, rule_single, rule_double in re.findall(
             r"'([^']+)'\s*=>\s*(?:\[([^\]]*)\]|'([^']*)'|\"([^\"]*)\")",
             block,
         ):
+            rule = rule_array or rule_single or rule_double
             field_rules[field] = _clean_rule(rule)
         if field_rules:
             rules[method] = field_rules
