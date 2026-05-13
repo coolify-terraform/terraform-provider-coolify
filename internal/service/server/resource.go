@@ -4,15 +4,19 @@ import (
 	"context"
 	"fmt"
 
+	"regexp"
+
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -32,16 +36,21 @@ type serverResource struct {
 }
 
 type serverResourceModel struct {
-	UUID           types.String `tfsdk:"uuid"`
-	Name           types.String `tfsdk:"name"`
-	Description    types.String `tfsdk:"description"`
-	IP             types.String `tfsdk:"ip"`
-	Port           types.Int64  `tfsdk:"port"`
-	User           types.String `tfsdk:"user"`
-	PrivateKeyUUID types.String `tfsdk:"private_key_uuid"`
-	IsBuildServer  types.Bool   `tfsdk:"is_build_server"`
-	IsReachable    types.Bool   `tfsdk:"is_reachable"`
-	IsUsable       types.Bool   `tfsdk:"is_usable"`
+	UUID                                 types.String `tfsdk:"uuid"`
+	Name                                 types.String `tfsdk:"name"`
+	Description                          types.String `tfsdk:"description"`
+	IP                                   types.String `tfsdk:"ip"`
+	Port                                 types.Int64  `tfsdk:"port"`
+	User                                 types.String `tfsdk:"user"`
+	PrivateKeyUUID                       types.String `tfsdk:"private_key_uuid"`
+	IsBuildServer                        types.Bool   `tfsdk:"is_build_server"`
+	IsReachable                          types.Bool   `tfsdk:"is_reachable"`
+	IsUsable                             types.Bool   `tfsdk:"is_usable"`
+	ConcurrentBuilds                     types.Int64  `tfsdk:"concurrent_builds"`
+	DynamicTimeout                       types.Int64  `tfsdk:"dynamic_timeout"`
+	DeploymentQueueLimit                 types.Int64  `tfsdk:"deployment_queue_limit"`
+	ServerDiskUsageNotificationThreshold types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
+	ServerDiskUsageCheckFrequency        types.String `tfsdk:"server_disk_usage_check_frequency"`
 }
 
 // NewResource returns a new server resource.
@@ -111,6 +120,52 @@ func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"is_usable": schema.BoolAttribute{
 				MarkdownDescription: "Whether the server is currently usable for deployments.",
 				Computed:            true,
+			},
+			"concurrent_builds": schema.Int64Attribute{
+				MarkdownDescription: "How many deployments can run in parallel on this server.",
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(2),
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1),
+				},
+			},
+			"dynamic_timeout": schema.Int64Attribute{
+				MarkdownDescription: "Deployment timeout in seconds.",
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(3600),
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1),
+				},
+			},
+			"deployment_queue_limit": schema.Int64Attribute{
+				MarkdownDescription: "Maximum number of queued deployments. 0 means unlimited.",
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(0),
+				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+			},
+			"server_disk_usage_notification_threshold": schema.Int64Attribute{
+				MarkdownDescription: "Disk usage percentage at which a notification is sent.",
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(80),
+				Validators: []validator.Int64{
+					int64validator.Between(1, 100),
+				},
+			},
+			"server_disk_usage_check_frequency": schema.StringAttribute{
+				MarkdownDescription: "Cron expression for how often disk usage is checked (e.g. `*/5 * * * *` or `@daily`).",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^(\S+\s+){4}\S+$|^@(annually|yearly|monthly|weekly|daily|hourly)$`),
+						"must be a valid cron expression (e.g. \"*/5 * * * *\" or \"@daily\")",
+					),
+				},
 			},
 		},
 	}
@@ -217,16 +272,25 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	port := int(plan.Port.ValueInt64())
 	buildSrv := plan.IsBuildServer.ValueBool()
+	concBuilds := int(plan.ConcurrentBuilds.ValueInt64())
+	dynTimeout := int(plan.DynamicTimeout.ValueInt64())
+	queueLimit := int(plan.DeploymentQueueLimit.ValueInt64())
+	diskThresh := int(plan.ServerDiskUsageNotificationThreshold.ValueInt64())
 
 	input := client.UpdateServerInput{
-		Port:          &port,
-		IsBuildServer: &buildSrv,
+		Port:                                 &port,
+		IsBuildServer:                        &buildSrv,
+		ConcurrentBuilds:                     &concBuilds,
+		DynamicTimeout:                       &dynTimeout,
+		DeploymentQueueLimit:                 &queueLimit,
+		ServerDiskUsageNotificationThreshold: &diskThresh,
 	}
 	flex.SetStrPtr(&input.Name, plan.Name)
 	flex.SetStrPtr(&input.Description, plan.Description)
 	flex.SetStrPtr(&input.IP, plan.IP)
 	flex.SetStrPtr(&input.User, plan.User)
 	flex.SetStrPtr(&input.PrivateKeyUUID, plan.PrivateKeyUUID)
+	flex.SetStrPtr(&input.ServerDiskUsageCheckFrequency, plan.ServerDiskUsageCheckFrequency)
 
 	_, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input)
 	if err != nil {
@@ -287,4 +351,12 @@ func flattenServer(srv *client.Server, model *serverResourceModel) {
 	model.IsBuildServer = types.BoolValue(srv.IsBuildServer)
 	model.IsReachable = types.BoolValue(srv.IsReachable)
 	model.IsUsable = types.BoolValue(srv.IsUsable)
+
+	if srv.Settings != nil {
+		model.ConcurrentBuilds = types.Int64Value(int64(srv.Settings.ConcurrentBuilds))
+		model.DynamicTimeout = types.Int64Value(int64(srv.Settings.DynamicTimeout))
+		model.DeploymentQueueLimit = types.Int64Value(int64(srv.Settings.DeploymentQueueLimit))
+		model.ServerDiskUsageNotificationThreshold = types.Int64Value(int64(srv.Settings.ServerDiskUsageNotificationThreshold))
+		model.ServerDiskUsageCheckFrequency = flex.StringToFramework(srv.Settings.ServerDiskUsageCheckFrequency)
+	}
 }

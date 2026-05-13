@@ -4,7 +4,8 @@
 
 Read these skills when working in this repo:
 
-- `~/.grok/skills/terraform-provider-coolify-contrib/SKILL.md` — Local Coolify setup for testing, API quirks, Playwright automation, flatten patterns. **Read first** when setting up a test instance or debugging real-API failures.
+- `~/.grok/skills/coolify-test-instance/SKILL.md` — Local Coolify setup, API quirks, SSH validation, acc test troubleshooting. **Read first** when setting up a test instance or debugging real-API failures.
+- `~/.grok/skills/terraform-provider-coolify-contrib/SKILL.md` — Contributing conventions for the Coolify upstream project, repo namespace notes, CI gotchas.
 - `~/.grok/skills/terraform-provider/SKILL.md` — General Terraform provider patterns (resource implementation, testing, CI, releases).
 - `~/.grok/skills/self-hosted-runner/SKILL.md` — CI runner setup, Trivy DB mirrors, tool installation gotchas.
 

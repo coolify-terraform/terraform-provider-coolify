@@ -7,17 +7,28 @@ import (
 	"net/url"
 )
 
+// ServerSettings holds the nested settings returned by the Coolify API
+// inside the "settings" key of a Server object.
+type ServerSettings struct {
+	ConcurrentBuilds                     int    `json:"concurrent_builds"`
+	DynamicTimeout                       int    `json:"dynamic_timeout"`
+	DeploymentQueueLimit                 int    `json:"deployment_queue_limit"`
+	ServerDiskUsageNotificationThreshold int    `json:"server_disk_usage_notification_threshold"`
+	ServerDiskUsageCheckFrequency        string `json:"server_disk_usage_check_frequency"`
+}
+
 type Server struct {
-	UUID           string `json:"uuid,omitempty"`
-	Name           string `json:"name"`
-	Description    string `json:"description,omitempty"`
-	IP             string `json:"ip"`
-	Port           int    `json:"port,omitempty"`
-	User           string `json:"user,omitempty"`
-	PrivateKeyUUID string `json:"private_key_uuid,omitempty"`
-	IsBuildServer  bool   `json:"is_build_server"`
-	IsReachable    bool   `json:"is_reachable"`
-	IsUsable       bool   `json:"is_usable"`
+	UUID           string          `json:"uuid,omitempty"`
+	Name           string          `json:"name"`
+	Description    string          `json:"description,omitempty"`
+	IP             string          `json:"ip"`
+	Port           int             `json:"port,omitempty"`
+	User           string          `json:"user,omitempty"`
+	PrivateKeyUUID string          `json:"private_key_uuid,omitempty"`
+	IsBuildServer  bool            `json:"is_build_server"`
+	IsReachable    bool            `json:"is_reachable"`
+	IsUsable       bool            `json:"is_usable"`
+	Settings       *ServerSettings `json:"settings,omitempty"`
 }
 type CreateServerInput struct {
 	Name           string `json:"name"`
@@ -29,13 +40,18 @@ type CreateServerInput struct {
 	IsBuildServer  *bool  `json:"is_build_server,omitempty"`
 }
 type UpdateServerInput struct {
-	Name           *string `json:"name,omitempty"`
-	Description    *string `json:"description,omitempty"`
-	IP             *string `json:"ip,omitempty"`
-	Port           *int    `json:"port,omitempty"`
-	User           *string `json:"user,omitempty"`
-	PrivateKeyUUID *string `json:"private_key_uuid,omitempty"`
-	IsBuildServer  *bool   `json:"is_build_server,omitempty"`
+	Name                                 *string `json:"name,omitempty"`
+	Description                          *string `json:"description,omitempty"`
+	IP                                   *string `json:"ip,omitempty"`
+	Port                                 *int    `json:"port,omitempty"`
+	User                                 *string `json:"user,omitempty"`
+	PrivateKeyUUID                       *string `json:"private_key_uuid,omitempty"`
+	IsBuildServer                        *bool   `json:"is_build_server,omitempty"`
+	ConcurrentBuilds                     *int    `json:"concurrent_builds,omitempty"`
+	DynamicTimeout                       *int    `json:"dynamic_timeout,omitempty"`
+	DeploymentQueueLimit                 *int    `json:"deployment_queue_limit,omitempty"`
+	ServerDiskUsageNotificationThreshold *int    `json:"server_disk_usage_notification_threshold,omitempty"`
+	ServerDiskUsageCheckFrequency        *string `json:"server_disk_usage_check_frequency,omitempty"`
 }
 
 func (c *Client) ListServers(ctx context.Context) ([]Server, error) {

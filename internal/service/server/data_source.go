@@ -23,16 +23,21 @@ type serverDataSource struct {
 }
 
 type serverDataSourceModel struct {
-	UUID           types.String `tfsdk:"uuid"`
-	Name           types.String `tfsdk:"name"`
-	Description    types.String `tfsdk:"description"`
-	IP             types.String `tfsdk:"ip"`
-	Port           types.Int64  `tfsdk:"port"`
-	User           types.String `tfsdk:"user"`
-	PrivateKeyUUID types.String `tfsdk:"private_key_uuid"`
-	IsBuildServer  types.Bool   `tfsdk:"is_build_server"`
-	IsReachable    types.Bool   `tfsdk:"is_reachable"`
-	IsUsable       types.Bool   `tfsdk:"is_usable"`
+	UUID                                 types.String `tfsdk:"uuid"`
+	Name                                 types.String `tfsdk:"name"`
+	Description                          types.String `tfsdk:"description"`
+	IP                                   types.String `tfsdk:"ip"`
+	Port                                 types.Int64  `tfsdk:"port"`
+	User                                 types.String `tfsdk:"user"`
+	PrivateKeyUUID                       types.String `tfsdk:"private_key_uuid"`
+	IsBuildServer                        types.Bool   `tfsdk:"is_build_server"`
+	IsReachable                          types.Bool   `tfsdk:"is_reachable"`
+	IsUsable                             types.Bool   `tfsdk:"is_usable"`
+	ConcurrentBuilds                     types.Int64  `tfsdk:"concurrent_builds"`
+	DynamicTimeout                       types.Int64  `tfsdk:"dynamic_timeout"`
+	DeploymentQueueLimit                 types.Int64  `tfsdk:"deployment_queue_limit"`
+	ServerDiskUsageNotificationThreshold types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
+	ServerDiskUsageCheckFrequency        types.String `tfsdk:"server_disk_usage_check_frequency"`
 }
 
 // NewDataSource returns a new server data source.
@@ -89,6 +94,26 @@ func (d *serverDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				MarkdownDescription: "Whether the server is currently usable for deployments.",
 				Computed:            true,
 			},
+			"concurrent_builds": schema.Int64Attribute{
+				MarkdownDescription: "How many deployments can run in parallel on this server.",
+				Computed:            true,
+			},
+			"dynamic_timeout": schema.Int64Attribute{
+				MarkdownDescription: "Deployment timeout in seconds.",
+				Computed:            true,
+			},
+			"deployment_queue_limit": schema.Int64Attribute{
+				MarkdownDescription: "Maximum number of queued deployments. 0 means unlimited.",
+				Computed:            true,
+			},
+			"server_disk_usage_notification_threshold": schema.Int64Attribute{
+				MarkdownDescription: "Disk usage percentage at which a notification is sent.",
+				Computed:            true,
+			},
+			"server_disk_usage_check_frequency": schema.StringAttribute{
+				MarkdownDescription: "Cron expression for how often disk usage is checked.",
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -133,6 +158,14 @@ func (d *serverDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	config.IsBuildServer = types.BoolValue(srv.IsBuildServer)
 	config.IsReachable = types.BoolValue(srv.IsReachable)
 	config.IsUsable = types.BoolValue(srv.IsUsable)
+
+	if srv.Settings != nil {
+		config.ConcurrentBuilds = types.Int64Value(int64(srv.Settings.ConcurrentBuilds))
+		config.DynamicTimeout = types.Int64Value(int64(srv.Settings.DynamicTimeout))
+		config.DeploymentQueueLimit = types.Int64Value(int64(srv.Settings.DeploymentQueueLimit))
+		config.ServerDiskUsageNotificationThreshold = types.Int64Value(int64(srv.Settings.ServerDiskUsageNotificationThreshold))
+		config.ServerDiskUsageCheckFrequency = flex.StringToFramework(srv.Settings.ServerDiskUsageCheckFrequency)
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

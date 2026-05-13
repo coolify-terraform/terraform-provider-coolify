@@ -43,6 +43,13 @@ func newServerMockServer() *httptest.Server {
 				IsBuildServer:  input.IsBuildServer != nil && *input.IsBuildServer,
 				IsReachable:    true,
 				IsUsable:       true,
+				Settings: &client.ServerSettings{
+					ConcurrentBuilds:                     2,
+					DynamicTimeout:                       3600,
+					DeploymentQueueLimit:                 0,
+					ServerDiskUsageNotificationThreshold: 80,
+					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+				},
 			}
 			servers[srv.UUID] = srv
 			w.WriteHeader(http.StatusCreated)
@@ -97,6 +104,29 @@ func newServerMockServer() *httptest.Server {
 			if update.IsBuildServer != nil {
 				srv.IsBuildServer = *update.IsBuildServer
 			}
+			if srv.Settings == nil {
+				srv.Settings = &client.ServerSettings{
+					ConcurrentBuilds:                     2,
+					DynamicTimeout:                       3600,
+					ServerDiskUsageNotificationThreshold: 80,
+					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+				}
+			}
+			if update.ConcurrentBuilds != nil {
+				srv.Settings.ConcurrentBuilds = *update.ConcurrentBuilds
+			}
+			if update.DynamicTimeout != nil {
+				srv.Settings.DynamicTimeout = *update.DynamicTimeout
+			}
+			if update.DeploymentQueueLimit != nil {
+				srv.Settings.DeploymentQueueLimit = *update.DeploymentQueueLimit
+			}
+			if update.ServerDiskUsageNotificationThreshold != nil {
+				srv.Settings.ServerDiskUsageNotificationThreshold = *update.ServerDiskUsageNotificationThreshold
+			}
+			if update.ServerDiskUsageCheckFrequency != nil {
+				srv.Settings.ServerDiskUsageCheckFrequency = *update.ServerDiskUsageCheckFrequency
+			}
 			json.NewEncoder(w).Encode(srv)
 
 		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
@@ -136,6 +166,11 @@ resource "coolify_server" "test" {
 					resource.TestCheckResourceAttr("coolify_server.test", "is_build_server", "false"),
 					resource.TestCheckResourceAttr("coolify_server.test", "is_reachable", "true"),
 					resource.TestCheckResourceAttr("coolify_server.test", "is_usable", "true"),
+					resource.TestCheckResourceAttr("coolify_server.test", "concurrent_builds", "2"),
+					resource.TestCheckResourceAttr("coolify_server.test", "dynamic_timeout", "3600"),
+					resource.TestCheckResourceAttr("coolify_server.test", "deployment_queue_limit", "0"),
+					resource.TestCheckResourceAttr("coolify_server.test", "server_disk_usage_notification_threshold", "80"),
+					resource.TestCheckResourceAttr("coolify_server.test", "server_disk_usage_check_frequency", "*/5 * * * *"),
 				),
 			},
 			{
@@ -175,13 +210,18 @@ resource "coolify_server" "test" {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + fmt.Sprintf(`
 resource "coolify_server" "test" {
-  name             = "updated-server"
-  description      = "Updated desc"
-  ip               = "10.0.0.2"
-  port             = %d
-  user             = "deploy"
-  private_key_uuid = "dddd0003-0003-4000-8000-000000000003"
-  is_build_server  = true
+  name                                      = "updated-server"
+  description                               = "Updated desc"
+  ip                                        = "10.0.0.2"
+  port                                      = %d
+  user                                      = "deploy"
+  private_key_uuid                          = "dddd0003-0003-4000-8000-000000000003"
+  is_build_server                           = true
+  concurrent_builds                         = 4
+  dynamic_timeout                           = 7200
+  deployment_queue_limit                    = 10
+  server_disk_usage_notification_threshold  = 90
+  server_disk_usage_check_frequency         = "0 * * * *"
 }`, 2222),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_server.test", "uuid", "bbbb0001-0001-4000-8000-000000000001"),
@@ -192,6 +232,11 @@ resource "coolify_server" "test" {
 					resource.TestCheckResourceAttr("coolify_server.test", "user", "deploy"),
 					resource.TestCheckResourceAttr("coolify_server.test", "private_key_uuid", "dddd0003-0003-4000-8000-000000000003"),
 					resource.TestCheckResourceAttr("coolify_server.test", "is_build_server", "true"),
+					resource.TestCheckResourceAttr("coolify_server.test", "concurrent_builds", "4"),
+					resource.TestCheckResourceAttr("coolify_server.test", "dynamic_timeout", "7200"),
+					resource.TestCheckResourceAttr("coolify_server.test", "deployment_queue_limit", "10"),
+					resource.TestCheckResourceAttr("coolify_server.test", "server_disk_usage_notification_threshold", "90"),
+					resource.TestCheckResourceAttr("coolify_server.test", "server_disk_usage_check_frequency", "0 * * * *"),
 				),
 			},
 		},

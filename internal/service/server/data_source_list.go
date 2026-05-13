@@ -82,6 +82,26 @@ func (d *serversDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 							MarkdownDescription: "Whether the server is currently usable for deployments.",
 							Computed:            true,
 						},
+						"concurrent_builds": schema.Int64Attribute{
+							MarkdownDescription: "How many deployments can run in parallel on this server.",
+							Computed:            true,
+						},
+						"dynamic_timeout": schema.Int64Attribute{
+							MarkdownDescription: "Deployment timeout in seconds.",
+							Computed:            true,
+						},
+						"deployment_queue_limit": schema.Int64Attribute{
+							MarkdownDescription: "Maximum number of queued deployments. 0 means unlimited.",
+							Computed:            true,
+						},
+						"server_disk_usage_notification_threshold": schema.Int64Attribute{
+							MarkdownDescription: "Disk usage percentage at which a notification is sent.",
+							Computed:            true,
+						},
+						"server_disk_usage_check_frequency": schema.StringAttribute{
+							MarkdownDescription: "Cron expression for how often disk usage is checked.",
+							Computed:            true,
+						},
 					},
 				},
 			},
@@ -115,7 +135,7 @@ func (d *serversDataSource) Read(ctx context.Context, _ datasource.ReadRequest, 
 
 	var state serversDataSourceModel
 	for _, srv := range servers {
-		state.Servers = append(state.Servers, serverDataSourceModel{
+		m := serverDataSourceModel{
 			UUID:           types.StringValue(srv.UUID),
 			Name:           types.StringValue(srv.Name),
 			Description:    flex.StringToFramework(srv.Description),
@@ -126,7 +146,15 @@ func (d *serversDataSource) Read(ctx context.Context, _ datasource.ReadRequest, 
 			IsBuildServer:  types.BoolValue(srv.IsBuildServer),
 			IsReachable:    types.BoolValue(srv.IsReachable),
 			IsUsable:       types.BoolValue(srv.IsUsable),
-		})
+		}
+		if srv.Settings != nil {
+			m.ConcurrentBuilds = types.Int64Value(int64(srv.Settings.ConcurrentBuilds))
+			m.DynamicTimeout = types.Int64Value(int64(srv.Settings.DynamicTimeout))
+			m.DeploymentQueueLimit = types.Int64Value(int64(srv.Settings.DeploymentQueueLimit))
+			m.ServerDiskUsageNotificationThreshold = types.Int64Value(int64(srv.Settings.ServerDiskUsageNotificationThreshold))
+			m.ServerDiskUsageCheckFrequency = flex.StringToFramework(srv.Settings.ServerDiskUsageCheckFrequency)
+		}
+		state.Servers = append(state.Servers, m)
 	}
 
 	if state.Servers == nil {

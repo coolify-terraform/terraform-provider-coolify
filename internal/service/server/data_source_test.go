@@ -26,6 +26,13 @@ func TestServerDataSource(t *testing.T) {
 		IsBuildServer:  false,
 		IsReachable:    true,
 		IsUsable:       true,
+		Settings: &client.ServerSettings{
+			ConcurrentBuilds:                     2,
+			DynamicTimeout:                       3600,
+			DeploymentQueueLimit:                 0,
+			ServerDiskUsageNotificationThreshold: 80,
+			ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+		},
 	}
 
 	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +68,11 @@ data "coolify_server" "test" {
 					resource.TestCheckResourceAttr("data.coolify_server.test", "is_build_server", "false"),
 					resource.TestCheckResourceAttr("data.coolify_server.test", "is_reachable", "true"),
 					resource.TestCheckResourceAttr("data.coolify_server.test", "is_usable", "true"),
+					resource.TestCheckResourceAttr("data.coolify_server.test", "concurrent_builds", "2"),
+					resource.TestCheckResourceAttr("data.coolify_server.test", "dynamic_timeout", "3600"),
+					resource.TestCheckResourceAttr("data.coolify_server.test", "deployment_queue_limit", "0"),
+					resource.TestCheckResourceAttr("data.coolify_server.test", "server_disk_usage_notification_threshold", "80"),
+					resource.TestCheckResourceAttr("data.coolify_server.test", "server_disk_usage_check_frequency", "*/5 * * * *"),
 				),
 			},
 		},
