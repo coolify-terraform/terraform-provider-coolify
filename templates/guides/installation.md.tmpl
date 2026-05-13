@@ -38,6 +38,20 @@ terraform init
 
 Generate an API token in the Coolify UI: **Security > API Tokens**.
 
+### Token permissions
+
+For full functionality, create a token with **root** permission. Without
+`root` or `read:sensitive`, the Coolify API hides sensitive fields
+(Dockerfiles, compose files, private keys, database passwords) from API
+responses. This causes empty state values and unexpected diffs during
+`terraform plan` and `terraform import`.
+
+| Permission | What it unlocks |
+|------------|-----------------|
+| `root` | Full access to all fields (recommended for Terraform) |
+| `read:sensitive` | Read-only access to sensitive fields |
+| Default | Sensitive fields are hidden from responses |
+
 Set the credentials as environment variables (recommended):
 
 ```bash

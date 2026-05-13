@@ -209,28 +209,30 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	// Save the user's planned enabled value before flattening, because
-	// Coolify may return enabled=false immediately after creation even
-	// when true was sent. The next Read will pick up the real value.
-	plannedEnabled := plan.Enabled
-	flattenDatabaseBackup(created, &plan)
-	if plannedEnabled.ValueBool() && !plan.Enabled.ValueBool() {
-		plan.Enabled = plannedEnabled
-	}
+	// The Coolify Create endpoint returns only {"uuid", "message"}, not
+	// the full backup object. Resolve the real ID by listing backups and
+	// matching by UUID, then do a full GET to populate all fields.
+	plan.UUID = types.StringValue(created.UUID)
+	dbUUID := plan.DatabaseUUID.ValueString()
 
-	// Coolify may return id=0 for a newly created backup. Resolve the
-	// real ID by listing backups and matching by UUID.
-	if plan.ID.ValueInt64() == 0 && !plan.UUID.IsNull() && !plan.UUID.IsUnknown() {
-		backups, listErr := r.client.ListDatabaseBackups(ctx, plan.DatabaseUUID.ValueString())
-		if listErr == nil {
-			for _, b := range backups {
-				if b.UUID == plan.UUID.ValueString() {
-					plan.ID = types.Int64Value(int64(b.ID))
-					break
-				}
-			}
+	backups, listErr := r.client.ListDatabaseBackups(ctx, dbUUID)
+	if listErr != nil {
+		resp.Diagnostics.AddError("Error listing database backups after create", fmt.Sprintf("database %s: %s", dbUUID, listErr))
+		return
+	}
+	var found *client.DatabaseBackup
+	for i := range backups {
+		if backups[i].UUID == created.UUID {
+			found = &backups[i]
+			break
 		}
 	}
+	if found == nil {
+		resp.Diagnostics.AddError("Error resolving database backup", fmt.Sprintf("backup %s not found in list for database %s", created.UUID, dbUUID))
+		return
+	}
+
+	flattenDatabaseBackup(found, &plan)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -302,9 +304,13 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	b, err := r.client.GetDatabaseBackup(ctx, dbUUID, backupID)
+	b, err := r.readBackup(ctx, dbUUID, backupID, state.UUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading database backup after update", fmt.Sprintf("backup %d for database %s: %s", backupID, dbUUID, err))
+		return
+	}
+	if b == nil {
+		resp.Diagnostics.AddError("Error reading database backup after update", fmt.Sprintf("backup %d not found for database %s", backupID, dbUUID))
 		return
 	}
 
@@ -357,18 +363,18 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), int64(backupID))...)
 }
 
-// readBackup looks up a backup by numeric ID, or falls back to UUID-based
-// search when the ID is zero (Coolify hasn't assigned one yet).
+// readBackup looks up a backup by listing all backups and matching by UUID or
+// numeric ID. Coolify v4 has no individual GET endpoint for backups.
 func (r *databaseBackupResource) readBackup(ctx context.Context, dbUUID string, backupID int, uuid types.String) (*client.DatabaseBackup, error) {
-	if backupID != 0 || uuid.IsNull() || uuid.IsUnknown() {
-		return r.client.GetDatabaseBackup(ctx, dbUUID, backupID)
-	}
 	backups, err := r.client.ListDatabaseBackups(ctx, dbUUID)
 	if err != nil {
 		return nil, err
 	}
 	for i := range backups {
-		if backups[i].UUID == uuid.ValueString() {
+		if !uuid.IsNull() && !uuid.IsUnknown() && backups[i].UUID == uuid.ValueString() {
+			return &backups[i], nil
+		}
+		if backupID != 0 && backups[i].ID == backupID {
 			return &backups[i], nil
 		}
 	}

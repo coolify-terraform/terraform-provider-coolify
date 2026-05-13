@@ -63,16 +63,22 @@ modverify: ## Verify module cache integrity against go.sum
 docs-check: ## Check generated docs are up to date
 	@go generate ./... && git diff --exit-code || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
 
-counts-check: ## Verify AGENTS.md resource/data source counts match provider.go
+counts-check: ## Verify AGENTS.md and README.md resource/data source/test counts
 	@r_actual=$$(sed -n '/func.*Resources.*\[\]func.*resource\.Resource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
 	d_actual=$$(sed -n '/func.*DataSources.*\[\]func.*datasource\.DataSource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
 	r_doc=$$(grep -Eo '^[0-9]+ resources' AGENTS.md | grep -Eo '^[0-9]+'); \
 	d_doc=$$(grep -Eo '[0-9]+ data sources' AGENTS.md | grep -Eo '^[0-9]+'); \
+	t_actual=$$(grep -r 'func Test' --include='*_test.go' . | wc -l | tr -d ' '); \
+	t_floor=$$(( (t_actual / 10) * 10 )); \
+	t_agents=$$(grep -Eo '[0-9]+\+ tests' AGENTS.md | head -1 | grep -Eo '^[0-9]+'); \
+	t_readme=$$(grep -Eo '[0-9]+\+ tests' README.md | head -1 | grep -Eo '^[0-9]+'); \
 	ok=true; \
 	if [ "$$r_actual" != "$$r_doc" ]; then echo "AGENTS.md says $$r_doc resources but provider.go has $$r_actual"; ok=false; fi; \
 	if [ "$$d_actual" != "$$d_doc" ]; then echo "AGENTS.md says $$d_doc data sources but provider.go has $$d_actual"; ok=false; fi; \
-	$$ok || (echo "Run: update AGENTS.md counts to match provider.go"; exit 1); \
-	echo "Counts OK: $$r_actual resources, $$d_actual data sources"
+	if [ -n "$$t_agents" ] && [ "$$t_agents" -gt "$$t_floor" ]; then echo "AGENTS.md says $$t_agents+ tests but actual is $$t_actual (floor $$t_floor)"; ok=false; fi; \
+	if [ -n "$$t_readme" ] && [ "$$t_readme" -gt "$$t_floor" ]; then echo "README.md says $$t_readme+ tests but actual is $$t_actual (floor $$t_floor)"; ok=false; fi; \
+	$$ok || (echo "Run: update test counts (actual: $$t_actual, floor: $$t_floor+)"; exit 1); \
+	echo "Counts OK: $$r_actual resources, $$d_actual data sources, $$t_actual tests ($$t_floor+ documented)"
 
 api-coverage-check: ## Check API_COVERAGE.md is up to date
 	@$(MAKE) api-coverage && git diff --exit-code API_COVERAGE.md || (echo "API_COVERAGE.md out of date: run 'make api-coverage' and commit"; exit 1)

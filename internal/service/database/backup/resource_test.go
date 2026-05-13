@@ -55,8 +55,20 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 				i := int64(v)
 				state.retainDays = &i
 			}
+			// Real Coolify API returns only uuid+message on create.
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(backupResponse(state))
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":    state.uuid,
+				"message": "Backup configuration created successfully.",
+			})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", state.dbUUID):
+			// List endpoint used by Create to resolve the backup ID.
+			if state.deleted {
+				json.NewEncoder(w).Encode([]map[string]interface{}{})
+				return
+			}
+			json.NewEncoder(w).Encode([]map[string]interface{}{backupResponse(state)})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id):
 			if state.deleted {
@@ -89,7 +101,8 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 					}
 				}
 			}
-			json.NewEncoder(w).Encode(backupResponse(state))
+			// Real Coolify API returns only message on update.
+			json.NewEncoder(w).Encode(map[string]string{"message": "Database backup configuration updated"})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id):
 			state.deleted = true
@@ -288,10 +301,19 @@ func TestDatabaseBackupResource_Disappears(t *testing.T) {
 		case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":    "bkp-disappear-uuid",
+				"message": "Backup configuration created successfully.",
+			})
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
+			if deleted {
+				json.NewEncoder(w).Encode([]map[string]interface{}{})
+				return
+			}
+			json.NewEncoder(w).Encode([]map[string]interface{}{{
 				"id": backupID, "uuid": "bkp-disappear-uuid",
 				"database_uuid": dbUUID, "frequency": "0 2 * * *",
 				"enabled": true, "database_backup_retention_amount_locally": 7,
-			})
+			}})
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", dbUUID, backupID):
 			if deleted {
 				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
@@ -473,12 +495,11 @@ func TestDatabaseBackupResource_CreateWithZeroID(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
-			// Return id=0 to simulate the Coolify bug.
+			// Real Coolify API returns only uuid+message on create.
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"id": 0, "uuid": backupUUID,
-				"database_uuid": dbUUID, "frequency": "0 2 * * *",
-				"enabled": true, "database_backup_retention_amount_locally": 7,
+				"uuid":    backupUUID,
+				"message": "Backup configuration created successfully.",
 			})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):

@@ -229,6 +229,11 @@ func (r *privateKeyResource) ImportState(ctx context.Context, req resource.Impor
 		return
 	}
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+	resp.Diagnostics.AddWarning(
+		"Sensitive fields require token permissions",
+		"The Coolify API hides the private_key field unless the API token has \"root\" or \"read:sensitive\" permission. "+
+			"If you see unexpected diffs after import, check your token's permissions in the Coolify dashboard under Security > API Tokens.",
+	)
 }
 
 func flattenPrivateKey(key *client.PrivateKey, model *privateKeyResourceModel) {

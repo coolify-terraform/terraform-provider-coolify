@@ -271,14 +271,10 @@ func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_dockerfile_application", "uuid": plan.UUID.ValueString()})
 
 	input := buildUpdateInput(plan.common())
-	// For dockerfile apps, the API expects Dockerfile content via the
-	// "dockerfile" JSON key, not "dockerfile_location". The shared
-	// buildUpdateInput sets DockerfileLocation (correct for git-based apps),
-	// so we move the value to the Dockerfile field.
-	if input.DockerfileLocation != nil {
-		input.Dockerfile = input.DockerfileLocation
-		input.DockerfileLocation = nil
-	}
+	// Coolify v4 does not accept "dockerfile" on update; only "dockerfile_location" (a path).
+	// For dockerfile apps, the content is set at creation time only, so clear the path field
+	// to avoid sending base64 content as a path.
+	input.DockerfileLocation = nil
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenDockerfileApplication(app, &plan)
 	})
@@ -314,6 +310,11 @@ func (r *dockerfileApplicationResource) ImportState(ctx context.Context, req res
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 	setImportDefaults(ctx, resp)
+	resp.Diagnostics.AddWarning(
+		"Sensitive fields require token permissions",
+		"The Coolify API hides dockerfile, custom_labels, and docker_compose unless the API token has \"root\" or \"read:sensitive\" permission. "+
+			"If you see unexpected diffs after import, check your token's permissions in the Coolify dashboard under Security > API Tokens.",
+	)
 }
 
 // flattenDockerfileApplication copies API fields into the Terraform state model.
