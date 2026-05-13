@@ -89,4 +89,7 @@ You should not see diffs on `terraform plan` after the initial apply.
 ### Optional
 
 - `endpoint` (String) Coolify API endpoint. Env: COOLIFY_ENDPOINT.
+- `retry_max` (Number) Maximum number of API request retries (default: 3).
+- `retry_max_wait` (Number) Maximum wait between retries in seconds (default: 30).
+- `retry_min_wait` (Number) Minimum wait between retries in seconds (default: 1).
 - `token` (String, Sensitive) Coolify API token. Env: COOLIFY_TOKEN.

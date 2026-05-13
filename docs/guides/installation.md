@@ -68,6 +68,33 @@ provider "coolify" {
 }
 ```
 
+## Version requirements
+
+The provider validates the Coolify version on `terraform init` /
+`terraform plan`. If your instance is older than **v4.0.0**, the provider
+will return an error and refuse to continue. Upgrade your Coolify instance
+before using the provider.
+
+## Retry configuration
+
+API requests are retried automatically on transient failures (HTTP 429,
+5xx, network errors). The defaults work for most setups, but you can tune
+them:
+
+```hcl
+provider "coolify" {
+  retry_max      = 5   # max attempts (default: 3)
+  retry_min_wait = 2   # seconds between first retries (default: 1)
+  retry_max_wait = 60  # max backoff cap in seconds (default: 30)
+}
+```
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `retry_max` | 3 | Maximum number of retry attempts |
+| `retry_min_wait` | 1 | Minimum wait between retries (seconds) |
+| `retry_max_wait` | 30 | Maximum wait between retries (seconds) |
+
 ## Verify the connection
 
 Create a file called `main.tf`:

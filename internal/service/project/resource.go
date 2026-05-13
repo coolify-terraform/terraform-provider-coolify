@@ -214,12 +214,12 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	// Coolify deletes applications and databases asynchronously. When
 	// terraform destroy runs, child resources are deleted first but
 	// Coolify may not have finished removing them by the time the project
-	// delete is attempted. Retry for up to 30 seconds.
+	// delete is attempted. Retry for up to 60 seconds.
 	uuid := state.UUID.ValueString()
 	var err error
 	attempt := 0
 retryLoop:
-	for range 6 {
+	for range 12 {
 		attempt++
 		err = r.client.DeleteProject(ctx, uuid)
 		if err == nil {
