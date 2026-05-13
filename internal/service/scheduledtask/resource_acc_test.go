@@ -94,8 +94,12 @@ resource "coolify_project" "test" {
 resource "coolify_dockerfile_application" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
-  dockerfile_location = "/Dockerfile"
-  ports_exposes       = "80"
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
+  ports_exposes = "80"
 }
 
 resource "coolify_scheduled_task" "test" {
@@ -116,8 +120,12 @@ resource "coolify_project" "test" {
 resource "coolify_dockerfile_application" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
-  dockerfile_location = "/Dockerfile"
-  ports_exposes       = "80"
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
+  ports_exposes = "80"
 }
 
 resource "coolify_scheduled_task" "test" {
@@ -167,8 +175,12 @@ resource "coolify_project" "test" {
 resource "coolify_dockerfile_application" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
-  dockerfile_location = "/Dockerfile"
-  ports_exposes       = "80"
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
+  ports_exposes = "80"
 }
 resource "coolify_scheduled_task" "test" {
   application_uuid = coolify_dockerfile_application.test.uuid

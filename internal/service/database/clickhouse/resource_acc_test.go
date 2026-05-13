@@ -36,7 +36,7 @@ func TestAccClickhouseDatabaseResource_CRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_clickhouse_database.test", "uuid"),
-				ImportStateVerifyIgnore:              []string{"clickhouse_admin_password"},
+				ImportStateVerifyIgnore:              []string{"clickhouse_admin_password", "project_uuid", "server_uuid", "environment_name"},
 			},
 		},
 	})

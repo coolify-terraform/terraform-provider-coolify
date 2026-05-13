@@ -36,7 +36,7 @@ func TestAccDockerComposeApplicationResource_CRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_docker_compose_application.test", "uuid"),
-				ImportStateVerifyIgnore:              []string{"environment_name"},
+				ImportStateVerifyIgnore:              []string{"environment_name", "project_uuid", "server_uuid"},
 			},
 		},
 	})

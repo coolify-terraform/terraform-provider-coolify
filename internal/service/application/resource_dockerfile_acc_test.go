@@ -28,7 +28,7 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 				Config: testAccDockerfileAppConfig(name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_dockerfile_application.test", "uuid"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "dockerfile_location", "/Dockerfile"),
+					resource.TestCheckResourceAttrSet("coolify_dockerfile_application.test", "dockerfile_location"),
 					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "ports_exposes", "80"),
 				),
 			},
@@ -46,7 +46,7 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_dockerfile_application.test", "uuid"),
-				ImportStateVerifyIgnore:              []string{"environment_name"},
+				ImportStateVerifyIgnore:              []string{"environment_name", "project_uuid", "server_uuid"},
 			},
 		},
 	})

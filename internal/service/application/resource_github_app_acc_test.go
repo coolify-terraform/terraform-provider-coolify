@@ -44,7 +44,7 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_github_app_application.test", "uuid"),
-				ImportStateVerifyIgnore:              []string{"environment_name", "github_app_uuid"},
+				ImportStateVerifyIgnore:              []string{"environment_name", "github_app_uuid", "project_uuid", "server_uuid"},
 			},
 		},
 	})

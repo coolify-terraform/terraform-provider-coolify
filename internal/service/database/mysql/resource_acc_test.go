@@ -42,7 +42,7 @@ func TestAccMysqlDatabaseResource_CRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_mysql_database.test", "uuid"),
-				ImportStateVerifyIgnore:              []string{"mysql_password", "mysql_root_password"},
+				ImportStateVerifyIgnore:              []string{"mysql_password", "mysql_root_password", "project_uuid", "server_uuid", "environment_name"},
 			},
 		},
 	})

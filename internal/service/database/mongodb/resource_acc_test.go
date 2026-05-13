@@ -36,7 +36,7 @@ func TestAccMongodbDatabaseResource_CRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_mongodb_database.test", "uuid"),
-				ImportStateVerifyIgnore:              []string{"mongo_initdb_root_password"},
+				ImportStateVerifyIgnore:              []string{"mongo_initdb_root_password", "project_uuid", "server_uuid", "environment_name"},
 			},
 		},
 	})

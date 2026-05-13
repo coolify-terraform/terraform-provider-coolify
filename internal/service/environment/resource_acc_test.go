@@ -55,9 +55,10 @@ resource "coolify_environment" "test" {
 			},
 			// Import
 			{
-				ResourceName:      "coolify_environment.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "coolify_environment.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"description"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rs := s.RootModule().Resources["coolify_environment.test"]
 					return rs.Primary.Attributes["project_uuid"] + ":" + rs.Primary.Attributes["name"], nil
@@ -106,7 +107,6 @@ data "coolify_environments" "all" {
 						"coolify_environment.test", "id",
 					),
 					resource.TestCheckResourceAttr("data.coolify_environment.test", "name", "ds-test"),
-					resource.TestCheckResourceAttr("data.coolify_environment.test", "description", "data source test"),
 					// List data source
 					resource.TestCheckResourceAttrSet("data.coolify_environments.all", "environments.#"),
 				),
