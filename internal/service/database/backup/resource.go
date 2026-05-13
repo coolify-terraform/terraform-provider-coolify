@@ -217,14 +217,20 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// The Coolify Create endpoint returns only {"uuid", "message"}, not
-	// the full backup object. Resolve the real ID by listing backups and
-	// matching by UUID, then do a full GET to populate all fields.
+	// the full backup object. Save partial state immediately so the
+	// resource is tracked even if the follow-up read fails.
 	plan.UUID = types.StringValue(created.UUID)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	dbUUID := plan.DatabaseUUID.ValueString()
 
+	// Resolve the real numeric ID by listing backups and matching by UUID,
+	// then do a full GET to populate all fields.
 	backups, listErr := r.client.ListDatabaseBackups(ctx, dbUUID)
 	if listErr != nil {
-		resp.Diagnostics.AddError("Error listing database backups after create", fmt.Sprintf("database %s: %s", dbUUID, listErr))
+		resp.Diagnostics.AddError("Error listing database backups after create", fmt.Sprintf("backup %s for database %s: %s", created.UUID, dbUUID, listErr))
 		return
 	}
 	var found *client.DatabaseBackup
@@ -370,18 +376,23 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), int64(backupID))...)
 }
 
-// readBackup looks up a backup by listing all backups and matching by UUID or
-// numeric ID. Coolify v4 has no individual GET endpoint for backups.
+// readBackup retrieves a single backup. Uses the direct GET endpoint when
+// the numeric ID is known, falls back to list-and-match for import or
+// first read after create.
 func (r *databaseBackupResource) readBackup(ctx context.Context, dbUUID string, backupID int, uuid types.String) (*client.DatabaseBackup, error) {
+	if backupID != 0 {
+		b, err := r.client.GetDatabaseBackup(ctx, dbUUID, backupID)
+		if err != nil {
+			return nil, err
+		}
+		return b, nil
+	}
 	backups, err := r.client.ListDatabaseBackups(ctx, dbUUID)
 	if err != nil {
 		return nil, err
 	}
 	for i := range backups {
 		if !uuid.IsNull() && !uuid.IsUnknown() && backups[i].UUID == uuid.ValueString() {
-			return &backups[i], nil
-		}
-		if backupID != 0 && backups[i].ID == backupID {
 			return &backups[i], nil
 		}
 	}

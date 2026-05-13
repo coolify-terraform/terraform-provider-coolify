@@ -80,10 +80,11 @@ internal/
 2. Implement the resource (resource.go) following existing patterns
 3. Add data source(s) if applicable
 4. Write unit tests with httptest mock servers
-5. Add client methods in `internal/client/`
-6. Register the resource in `internal/provider/provider.go`
-7. Add an example in `examples/resources/`
-8. Run `make docs` to generate documentation
+5. Write acceptance tests in `resource_acc_test.go` (see [TESTING.md](TESTING.md))
+6. Add client methods in `internal/client/`
+7. Register the resource in `internal/provider/provider.go`
+8. Add an example in `examples/resources/`
+9. Run `make docs` to generate documentation
 
 ## Style Guide
 
