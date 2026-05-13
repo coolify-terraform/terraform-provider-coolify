@@ -148,7 +148,7 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 
 	app, err := r.client.CreateGitHubApp(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating GitHub App", fmt.Sprintf("Could not create GitHub App: %s", err))
+		resp.Diagnostics.AddError("Error creating GitHub App", err.Error())
 		return
 	}
 
@@ -249,7 +249,7 @@ func (r *gitHubAppResource) Delete(ctx context.Context, req resource.DeleteReque
 			// Already deleted; nothing to do.
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting GitHub App", fmt.Sprintf("Could not delete GitHub App %d: %s", state.ID.ValueInt64(), err))
+		resp.Diagnostics.AddError("Error deleting GitHub App", err.Error())
 	}
 }
 

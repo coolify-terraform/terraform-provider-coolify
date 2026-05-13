@@ -117,7 +117,7 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 
 	_, err := r.client.CreateEnvironment(ctx, plan.ProjectUUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating environment", fmt.Sprintf("Could not create environment %s/%s: %s", plan.ProjectUUID.ValueString(), plan.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Error creating environment", err.Error())
 		return
 	}
 
@@ -194,7 +194,7 @@ func (r *environmentResource) Delete(ctx context.Context, req resource.DeleteReq
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting environment", fmt.Sprintf("Could not delete environment %s/%s: %s", state.ProjectUUID.ValueString(), state.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Error deleting environment", err.Error())
 	}
 }
 

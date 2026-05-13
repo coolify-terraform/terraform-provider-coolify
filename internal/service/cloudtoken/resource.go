@@ -108,7 +108,7 @@ func (r *cloudTokenResource) Create(ctx context.Context, req resource.CreateRequ
 
 	ct, err := r.client.CreateCloudToken(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating cloud token", fmt.Sprintf("Could not create cloud token: %s", err))
+		resp.Diagnostics.AddError("Error creating cloud token", err.Error())
 		return
 	}
 
@@ -214,7 +214,7 @@ func (r *cloudTokenResource) Delete(ctx context.Context, req resource.DeleteRequ
 			// Already deleted; nothing to do.
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting cloud token", fmt.Sprintf("Could not delete cloud token %s: %s", state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error deleting cloud token", err.Error())
 	}
 }
 

@@ -106,7 +106,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 
 	project, err := r.client.CreateProject(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating project", fmt.Sprintf("Could not create project: %s", err))
+		resp.Diagnostics.AddError("Error creating project", err.Error())
 		return
 	}
 
@@ -240,7 +240,7 @@ retryLoop:
 		}
 	}
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting project", fmt.Sprintf("Could not delete project: %s", err))
+		resp.Diagnostics.AddError("Error deleting project", err.Error())
 	}
 }
 
