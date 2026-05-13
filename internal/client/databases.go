@@ -339,14 +339,6 @@ func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]Data
 	return backups, nil
 }
 
-func (c *Client) GetDatabaseBackup(ctx context.Context, dbUUID string, backupID int) (*DatabaseBackup, error) {
-	var b DatabaseBackup
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups/%d", url.PathEscape(dbUUID), backupID), nil, &b); err != nil {
-		return nil, fmt.Errorf("getting backup %d for database %s: %w", backupID, dbUUID, err)
-	}
-	return &b, nil
-}
-
 func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input CreateDatabaseBackupInput) (*DatabaseBackup, error) {
 	var b DatabaseBackup
 	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)), input, &b, http.StatusCreated); err != nil {

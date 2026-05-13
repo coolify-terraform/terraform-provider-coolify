@@ -1840,34 +1840,6 @@ func TestClient_ListDatabaseBackups(t *testing.T) {
 	assert.False(t, backups[1].Enabled)
 }
 
-func TestClient_GetDatabaseBackup(t *testing.T) {
-	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
-		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/42", r.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(DatabaseBackup{
-			ID:           42,
-			UUID:         "bk-42",
-			DatabaseUUID: "db-uuid-1",
-			Frequency:    "0 0 * * *",
-			Enabled:      true,
-			DatabaseType: "postgresql",
-		})
-	}))
-	defer srv.Close()
-
-	c := New(srv.URL, "test-token")
-	b, err := c.GetDatabaseBackup(context.Background(), "db-uuid-1", 42)
-	require.NoError(t, err)
-	assert.Equal(t, 42, b.ID)
-	assert.Equal(t, "bk-42", b.UUID)
-	assert.Equal(t, "db-uuid-1", b.DatabaseUUID)
-	assert.Equal(t, "0 0 * * *", b.Frequency)
-	assert.True(t, b.Enabled)
-	assert.Equal(t, "postgresql", b.DatabaseType)
-}
-
 func TestClient_CreateDatabaseBackup(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
