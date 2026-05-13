@@ -33,6 +33,20 @@ type model struct {
 	Image           types.String   `tfsdk:"image"`
 	IsPublic        types.Bool     `tfsdk:"is_public"`
 	PublicPort      types.Int64    `tfsdk:"public_port"`
+	// Shared extended fields
+	LimitsMemory            types.String `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
+	PortsMappings           types.String `tfsdk:"ports_mappings"`
+	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
+	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
+	Status                  types.String `tfsdk:"status"`
+	// Type-specific
+	RedisConf types.String `tfsdk:"redis_conf"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -40,7 +54,9 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 	resp.TypeName = req.ProviderTypeName + "_redis_database"
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Redis database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, nil)}
+	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Redis database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
+		"redis_conf": schema.StringAttribute{MarkdownDescription: "Custom Redis configuration (base64-encoded `redis.conf` content).", Optional: true},
+	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.client = pg.ConfigureDatabase(req, resp)
@@ -76,6 +92,18 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	ext := extFields(&p)
+	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
+	if pg.HasExtendedFields(ext) || strSet(p.RedisConf) {
+		update := client.UpdateDatabaseInput{}
+		pg.SetUpdateExtended(&update, ext)
+		flex.SetStrPtr(&update.RedisConf, p.RedisConf)
+		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
+			resp.Diagnostics.AddError("Error setting Redis database extended fields", fmt.Sprintf("Redis database %s: %s", c.UUID, err))
+			return
+		}
 	}
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
@@ -125,6 +153,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	flex.SetStrPtr(&u.Image, p.Image)
 	flex.SetBoolPtr(&u.IsPublic, p.IsPublic)
 	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
+	flex.SetStrPtr(&u.RedisConf, p.RedisConf)
+	pg.SetUpdateExtended(&u, extFields(&p))
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Redis database", fmt.Sprintf("Redis database %s: %s", s.UUID.ValueString(), err))
@@ -151,4 +181,22 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 }
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
+	pg.FlattenDatabaseExtended(db, extFields(m))
+	pg.SetStringIfConfigured(&m.RedisConf, db.RedisConf)
+}
+
+func extFields(m *model) pg.DatabaseExtendedPtrs {
+	return pg.DatabaseExtendedPtrs{
+		LimitsMemory:            &m.LimitsMemory,
+		LimitsMemorySwap:        &m.LimitsMemorySwap,
+		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
+		LimitsMemoryReservation: &m.LimitsMemoryReservation,
+		LimitsCPUs:              &m.LimitsCPUs,
+		LimitsCPUSet:            &m.LimitsCPUSet,
+		LimitsCPUShares:         &m.LimitsCPUShares,
+		PortsMappings:           &m.PortsMappings,
+		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
+		PublicPortTimeout:       &m.PublicPortTimeout,
+		Status:                  &m.Status,
+	}
 }

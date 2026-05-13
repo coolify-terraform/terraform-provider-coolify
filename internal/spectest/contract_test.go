@@ -216,12 +216,7 @@ func TestContractCoverage_Application(t *testing.T) {
 }
 
 // TestContractCoverage_Databases checks all database model structs.
-// Skipped by default because database fields are not yet fully implemented.
-// Run with: CONTRACT_CHECK=1 go test -run TestContractCoverage_Databases ./internal/spectest/ -v
 func TestContractCoverage_Databases(t *testing.T) {
-	if os.Getenv("CONTRACT_CHECK") == "" {
-		t.Skip("set CONTRACT_CHECK=1 to run database contract coverage (fields not yet implemented)")
-	}
 	t.Parallel()
 	c := loadContract(t)
 	goTags := jsonTagsFromStruct(reflect.TypeOf(client.Database{}))

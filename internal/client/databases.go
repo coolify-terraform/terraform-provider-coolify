@@ -35,6 +35,32 @@ type Database struct {
 	MongoInitdbDatabase     string `json:"mongo_initdb_database,omitempty"`
 	ClickhouseAdminUser     string `json:"clickhouse_admin_user,omitempty"`
 	ClickhouseAdminPassword string `json:"clickhouse_admin_password,omitempty"`
+	// Resource limits (shared across all DB types)
+	LimitsMemory            string `json:"limits_memory,omitempty"`
+	LimitsMemorySwap        string `json:"limits_memory_swap,omitempty"`
+	LimitsMemorySwappiness  *int64 `json:"limits_memory_swappiness,omitempty"`
+	LimitsMemoryReservation string `json:"limits_memory_reservation,omitempty"`
+	LimitsCPUs              string `json:"limits_cpus,omitempty"`
+	LimitsCPUSet            string `json:"limits_cpuset,omitempty"`
+	LimitsCPUShares         *int64 `json:"limits_cpu_shares,omitempty"`
+	// Container/network settings
+	PortsMappings          string `json:"ports_mappings,omitempty"`
+	CustomDockerRunOptions string `json:"custom_docker_run_options,omitempty"`
+	PublicPortTimeout      *int64 `json:"public_port_timeout,omitempty"`
+	Status                 string `json:"status,omitempty"`
+	// Type-specific configs
+	PostgresConf           string `json:"postgres_conf,omitempty"`
+	PostgresInitdbArgs     string `json:"postgres_initdb_args,omitempty"`
+	PostgresHostAuthMethod string `json:"postgres_host_auth_method,omitempty"`
+	InitScripts            string `json:"init_scripts,omitempty"`
+	MysqlConf              string `json:"mysql_conf,omitempty"`
+	MariadbConf            string `json:"mariadb_conf,omitempty"`
+	MongoConf              string `json:"mongo_conf,omitempty"`
+	RedisConf              string `json:"redis_conf,omitempty"`
+	ClickhouseDB           string `json:"clickhouse_db,omitempty"`
+	KeydbConf              string `json:"keydb_conf,omitempty"`
+	KeydbPassword          string `json:"keydb_password,omitempty"`
+	DragonflyPassword      string `json:"dragonfly_password,omitempty"`
 }
 type CreatePostgresqlInput struct {
 	ServerUUID       string `json:"server_uuid"`
@@ -164,6 +190,31 @@ type UpdateDatabaseInput struct {
 	MongoInitdbDatabase     *string `json:"mongo_initdb_database,omitempty"`
 	ClickhouseAdminUser     *string `json:"clickhouse_admin_user,omitempty"`
 	ClickhouseAdminPassword *string `json:"clickhouse_admin_password,omitempty"`
+	// Resource limits
+	LimitsMemory            *string `json:"limits_memory,omitempty"`
+	LimitsMemorySwap        *string `json:"limits_memory_swap,omitempty"`
+	LimitsMemorySwappiness  *int64  `json:"limits_memory_swappiness,omitempty"`
+	LimitsMemoryReservation *string `json:"limits_memory_reservation,omitempty"`
+	LimitsCPUs              *string `json:"limits_cpus,omitempty"`
+	LimitsCPUSet            *string `json:"limits_cpuset,omitempty"`
+	LimitsCPUShares         *int64  `json:"limits_cpu_shares,omitempty"`
+	// Container/network settings
+	PortsMappings          *string `json:"ports_mappings,omitempty"`
+	CustomDockerRunOptions *string `json:"custom_docker_run_options,omitempty"`
+	PublicPortTimeout      *int64  `json:"public_port_timeout,omitempty"`
+	// Type-specific configs
+	PostgresConf           *string `json:"postgres_conf,omitempty"`
+	PostgresInitdbArgs     *string `json:"postgres_initdb_args,omitempty"`
+	PostgresHostAuthMethod *string `json:"postgres_host_auth_method,omitempty"`
+	InitScripts            *string `json:"init_scripts,omitempty"`
+	MysqlConf              *string `json:"mysql_conf,omitempty"`
+	MariadbConf            *string `json:"mariadb_conf,omitempty"`
+	MongoConf              *string `json:"mongo_conf,omitempty"`
+	RedisConf              *string `json:"redis_conf,omitempty"`
+	ClickhouseDB           *string `json:"clickhouse_db,omitempty"`
+	KeydbConf              *string `json:"keydb_conf,omitempty"`
+	KeydbPassword          *string `json:"keydb_password,omitempty"`
+	DragonflyPassword      *string `json:"dragonfly_password,omitempty"`
 }
 
 func (c *Client) ListDatabases(ctx context.Context) ([]Database, error) {

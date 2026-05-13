@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -33,6 +35,21 @@ type model struct {
 	Image           types.String   `tfsdk:"image"`
 	IsPublic        types.Bool     `tfsdk:"is_public"`
 	PublicPort      types.Int64    `tfsdk:"public_port"`
+	// Shared extended fields
+	LimitsMemory            types.String `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
+	PortsMappings           types.String `tfsdk:"ports_mappings"`
+	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
+	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
+	Status                  types.String `tfsdk:"status"`
+	// Type-specific
+	KeydbPassword types.String `tfsdk:"keydb_password"`
+	KeydbConf     types.String `tfsdk:"keydb_conf"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -40,7 +57,10 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 	resp.TypeName = req.ProviderTypeName + "_keydb_database"
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{MarkdownDescription: "Manages a KeyDB database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, nil)}
+	resp.Schema = schema.Schema{MarkdownDescription: "Manages a KeyDB database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
+		"keydb_password": schema.StringAttribute{MarkdownDescription: "The KeyDB password. If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"keydb_conf":     schema.StringAttribute{MarkdownDescription: "Custom KeyDB configuration (base64-encoded `keydb.conf` content).", Optional: true},
+	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.client = pg.ConfigureDatabase(req, resp)
@@ -76,6 +96,19 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	ext := extFields(&p)
+	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
+	if pg.HasExtendedFields(ext) || strSet(p.KeydbConf) {
+		update := client.UpdateDatabaseInput{}
+		pg.SetUpdateExtended(&update, ext)
+		flex.SetStrPtr(&update.KeydbPassword, p.KeydbPassword)
+		flex.SetStrPtr(&update.KeydbConf, p.KeydbConf)
+		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
+			resp.Diagnostics.AddError("Error setting KeyDB database extended fields", fmt.Sprintf("KeyDB database %s: %s", c.UUID, err))
+			return
+		}
 	}
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
@@ -125,6 +158,9 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	flex.SetStrPtr(&u.Image, p.Image)
 	flex.SetBoolPtr(&u.IsPublic, p.IsPublic)
 	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
+	flex.SetStrPtr(&u.KeydbPassword, p.KeydbPassword)
+	flex.SetStrPtr(&u.KeydbConf, p.KeydbConf)
+	pg.SetUpdateExtended(&u, extFields(&p))
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating KeyDB database", fmt.Sprintf("KeyDB database %s: %s", s.UUID.ValueString(), err))
@@ -151,4 +187,23 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 }
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
+	pg.FlattenDatabaseExtended(db, extFields(m))
+	m.KeydbPassword = flex.StringToFramework(db.KeydbPassword)
+	pg.SetStringIfConfigured(&m.KeydbConf, db.KeydbConf)
+}
+
+func extFields(m *model) pg.DatabaseExtendedPtrs {
+	return pg.DatabaseExtendedPtrs{
+		LimitsMemory:            &m.LimitsMemory,
+		LimitsMemorySwap:        &m.LimitsMemorySwap,
+		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
+		LimitsMemoryReservation: &m.LimitsMemoryReservation,
+		LimitsCPUs:              &m.LimitsCPUs,
+		LimitsCPUSet:            &m.LimitsCPUSet,
+		LimitsCPUShares:         &m.LimitsCPUShares,
+		PortsMappings:           &m.PortsMappings,
+		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
+		PublicPortTimeout:       &m.PublicPortTimeout,
+		Status:                  &m.Status,
+	}
 }

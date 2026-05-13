@@ -32,19 +32,36 @@ var (
 type postgresqlDatabaseResource struct{ client *client.Client }
 
 type postgresqlDatabaseResourceModel struct {
-	Timeouts         timeouts.Value `tfsdk:"timeouts"`
-	UUID             types.String   `tfsdk:"uuid"`
-	Name             types.String   `tfsdk:"name"`
-	Description      types.String   `tfsdk:"description"`
-	ProjectUUID      types.String   `tfsdk:"project_uuid"`
-	ServerUUID       types.String   `tfsdk:"server_uuid"`
-	EnvironmentName  types.String   `tfsdk:"environment_name"`
-	Image            types.String   `tfsdk:"image"`
-	IsPublic         types.Bool     `tfsdk:"is_public"`
-	PublicPort       types.Int64    `tfsdk:"public_port"`
-	PostgresUser     types.String   `tfsdk:"postgres_user"`
-	PostgresPassword types.String   `tfsdk:"postgres_password"`
-	PostgresDB       types.String   `tfsdk:"postgres_db"`
+	Timeouts        timeouts.Value `tfsdk:"timeouts"`
+	UUID            types.String   `tfsdk:"uuid"`
+	Name            types.String   `tfsdk:"name"`
+	Description     types.String   `tfsdk:"description"`
+	ProjectUUID     types.String   `tfsdk:"project_uuid"`
+	ServerUUID      types.String   `tfsdk:"server_uuid"`
+	EnvironmentName types.String   `tfsdk:"environment_name"`
+	Image           types.String   `tfsdk:"image"`
+	IsPublic        types.Bool     `tfsdk:"is_public"`
+	PublicPort      types.Int64    `tfsdk:"public_port"`
+	// Shared extended fields
+	LimitsMemory            types.String `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
+	PortsMappings           types.String `tfsdk:"ports_mappings"`
+	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
+	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
+	Status                  types.String `tfsdk:"status"`
+	// Type-specific
+	PostgresUser           types.String `tfsdk:"postgres_user"`
+	PostgresPassword       types.String `tfsdk:"postgres_password"`
+	PostgresDB             types.String `tfsdk:"postgres_db"`
+	PostgresConf           types.String `tfsdk:"postgres_conf"`
+	PostgresInitdbArgs     types.String `tfsdk:"postgres_initdb_args"`
+	PostgresHostAuthMethod types.String `tfsdk:"postgres_host_auth_method"`
+	InitScripts            types.String `tfsdk:"init_scripts"`
 }
 
 func NewResource() resource.Resource { return &postgresqlDatabaseResource{} }
@@ -68,6 +85,22 @@ func (r *postgresqlDatabaseResource) Schema(ctx context.Context, _ resource.Sche
 			"postgres_db": schema.StringAttribute{
 				MarkdownDescription: "The default database name (maps to `POSTGRES_DB`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"postgres_conf": schema.StringAttribute{
+				MarkdownDescription: "Custom PostgreSQL configuration (base64-encoded `postgresql.conf` content).",
+				Optional:            true,
+			},
+			"postgres_initdb_args": schema.StringAttribute{
+				MarkdownDescription: "Additional arguments passed to `initdb` (maps to `POSTGRES_INITDB_ARGS`).",
+				Optional:            true,
+			},
+			"postgres_host_auth_method": schema.StringAttribute{
+				MarkdownDescription: "Host authentication method (maps to `POSTGRES_HOST_AUTH_METHOD`, e.g. `trust`, `scram-sha-256`).",
+				Optional:            true,
+			},
+			"init_scripts": schema.StringAttribute{
+				MarkdownDescription: "Initialization scripts as a JSON array.",
+				Optional:            true,
 			},
 		}),
 	}
@@ -118,6 +151,23 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Apply extended fields that cannot be set during creation.
+	ext := extFields(&plan)
+	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
+	needsUpdate := HasExtendedFields(ext) || strSet(plan.PostgresConf) || strSet(plan.PostgresInitdbArgs) || strSet(plan.PostgresHostAuthMethod) || strSet(plan.InitScripts)
+	if needsUpdate {
+		update := client.UpdateDatabaseInput{}
+		SetUpdateExtended(&update, ext)
+		flex.SetStrPtr(&update.PostgresConf, plan.PostgresConf)
+		flex.SetStrPtr(&update.PostgresInitdbArgs, plan.PostgresInitdbArgs)
+		flex.SetStrPtr(&update.PostgresHostAuthMethod, plan.PostgresHostAuthMethod)
+		flex.SetStrPtr(&update.InitScripts, plan.InitScripts)
+		if _, err := r.client.UpdateDatabase(ctx, created.UUID, update); err != nil {
+			resp.Diagnostics.AddError("Error setting PostgreSQL database extended fields", fmt.Sprintf("PostgreSQL database %s: %s", created.UUID, err))
+			return
+		}
 	}
 
 	db, err := r.client.GetDatabase(ctx, created.UUID)
@@ -174,6 +224,11 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 	flex.SetStrPtr(&input.PostgresUser, plan.PostgresUser)
 	flex.SetStrPtr(&input.PostgresPassword, plan.PostgresPassword)
 	flex.SetStrPtr(&input.PostgresDB, plan.PostgresDB)
+	flex.SetStrPtr(&input.PostgresConf, plan.PostgresConf)
+	flex.SetStrPtr(&input.PostgresInitdbArgs, plan.PostgresInitdbArgs)
+	flex.SetStrPtr(&input.PostgresHostAuthMethod, plan.PostgresHostAuthMethod)
+	flex.SetStrPtr(&input.InitScripts, plan.InitScripts)
+	SetUpdateExtended(&input, extFields(&plan))
 	db, err := UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", uuid, err))
@@ -203,9 +258,30 @@ func (r *postgresqlDatabaseResource) ImportState(ctx context.Context, req resour
 
 func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
+	FlattenDatabaseExtended(db, extFields(m))
 	m.PostgresUser = flex.StringToFramework(db.PostgresUser)
 	m.PostgresPassword = flex.StringToFramework(db.PostgresPassword)
 	m.PostgresDB = flex.StringToFramework(db.PostgresDB)
+	SetStringIfConfigured(&m.PostgresConf, db.PostgresConf)
+	SetStringIfConfigured(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
+	SetStringIfConfigured(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
+	SetStringIfConfigured(&m.InitScripts, db.InitScripts)
+}
+
+func extFields(m *postgresqlDatabaseResourceModel) DatabaseExtendedPtrs {
+	return DatabaseExtendedPtrs{
+		LimitsMemory:            &m.LimitsMemory,
+		LimitsMemorySwap:        &m.LimitsMemorySwap,
+		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
+		LimitsMemoryReservation: &m.LimitsMemoryReservation,
+		LimitsCPUs:              &m.LimitsCPUs,
+		LimitsCPUSet:            &m.LimitsCPUSet,
+		LimitsCPUShares:         &m.LimitsCPUShares,
+		PortsMappings:           &m.PortsMappings,
+		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
+		PublicPortTimeout:       &m.PublicPortTimeout,
+		Status:                  &m.Status,
+	}
 }
 
 // --- shared helpers ---
@@ -225,6 +301,19 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"public_port": schema.Int64Attribute{MarkdownDescription: "The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{
 			int64validator.Between(1, 65535),
 		}},
+		// Resource limits
+		"limits_memory":             schema.StringAttribute{MarkdownDescription: "Memory limit (e.g., `512m`, `2g`).", Optional: true},
+		"limits_memory_swap":        schema.StringAttribute{MarkdownDescription: "Memory swap limit (e.g., `1g`).", Optional: true},
+		"limits_memory_swappiness":  schema.Int64Attribute{MarkdownDescription: "Memory swappiness (0-100).", Optional: true},
+		"limits_memory_reservation": schema.StringAttribute{MarkdownDescription: "Memory reservation (e.g., `256m`).", Optional: true},
+		"limits_cpus":               schema.StringAttribute{MarkdownDescription: "CPU limit (e.g., `0.5`, `2`).", Optional: true},
+		"limits_cpuset":             schema.StringAttribute{MarkdownDescription: "CPU set restriction (e.g., `0-3`, `0,2`).", Optional: true},
+		"limits_cpu_shares":         schema.Int64Attribute{MarkdownDescription: "CPU shares (relative weight).", Optional: true},
+		// Container/network settings
+		"ports_mappings":            schema.StringAttribute{MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g. `8080:5432`).", Optional: true},
+		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container.", Optional: true},
+		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
+		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g. `running`, `exited`).", Computed: true},
 	}
 	for k, v := range extra {
 		attrs[k] = v
@@ -288,6 +377,91 @@ func ImportDatabaseState(ctx context.Context, req resource.ImportStateRequest, r
 		return
 	}
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+}
+
+// DatabaseExtendedPtrs groups pointers to extended database model fields
+// shared across all database types.
+type DatabaseExtendedPtrs struct {
+	LimitsMemory            *types.String
+	LimitsMemorySwap        *types.String
+	LimitsMemorySwappiness  *types.Int64
+	LimitsMemoryReservation *types.String
+	LimitsCPUs              *types.String
+	LimitsCPUSet            *types.String
+	LimitsCPUShares         *types.Int64
+	PortsMappings           *types.String
+	CustomDockerRunOptions  *types.String
+	PublicPortTimeout       *types.Int64
+	Status                  *types.String
+}
+
+// FlattenDatabaseExtended sets the extended fields shared by all database types.
+// Optional-only fields use setIfConfigured to avoid "inconsistent result after
+// apply" errors when the API returns defaults for unconfigured fields.
+func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
+	SetStringIfConfigured(f.LimitsMemory, db.LimitsMemory)
+	SetStringIfConfigured(f.LimitsMemorySwap, db.LimitsMemorySwap)
+	SetStringIfConfigured(f.LimitsMemoryReservation, db.LimitsMemoryReservation)
+	SetStringIfConfigured(f.LimitsCPUs, db.LimitsCPUs)
+	SetStringIfConfigured(f.LimitsCPUSet, db.LimitsCPUSet)
+	SetStringIfConfigured(f.PortsMappings, db.PortsMappings)
+	SetStringIfConfigured(f.CustomDockerRunOptions, db.CustomDockerRunOptions)
+	SetInt64IfConfigured(f.LimitsMemorySwappiness, db.LimitsMemorySwappiness)
+	SetInt64IfConfigured(f.LimitsCPUShares, db.LimitsCPUShares)
+	SetInt64IfConfigured(f.PublicPortTimeout, db.PublicPortTimeout)
+	// Status is Computed — always set.
+	*f.Status = flex.StringToFramework(db.Status)
+}
+
+// SetUpdateExtended populates the extended fields in an UpdateDatabaseInput.
+func SetUpdateExtended(input *client.UpdateDatabaseInput, f DatabaseExtendedPtrs) {
+	flex.SetStrPtr(&input.LimitsMemory, *f.LimitsMemory)
+	flex.SetStrPtr(&input.LimitsMemorySwap, *f.LimitsMemorySwap)
+	flex.SetStrPtr(&input.LimitsMemoryReservation, *f.LimitsMemoryReservation)
+	flex.SetStrPtr(&input.LimitsCPUs, *f.LimitsCPUs)
+	flex.SetStrPtr(&input.LimitsCPUSet, *f.LimitsCPUSet)
+	flex.SetStrPtr(&input.PortsMappings, *f.PortsMappings)
+	flex.SetStrPtr(&input.CustomDockerRunOptions, *f.CustomDockerRunOptions)
+	flex.SetInt64Ptr(&input.LimitsMemorySwappiness, *f.LimitsMemorySwappiness)
+	flex.SetInt64Ptr(&input.LimitsCPUShares, *f.LimitsCPUShares)
+	input.PublicPortTimeout = flex.Int64PtrFromFramework(*f.PublicPortTimeout)
+}
+
+// HasExtendedFields returns true if any extended field is configured (not
+// null/unknown), indicating an Update is needed after Create.
+func HasExtendedFields(f DatabaseExtendedPtrs) bool {
+	strSet := func(v *types.String) bool { return v != nil && !v.IsNull() && !v.IsUnknown() }
+	intSet := func(v *types.Int64) bool { return v != nil && !v.IsNull() && !v.IsUnknown() }
+	return strSet(f.LimitsMemory) || strSet(f.LimitsMemorySwap) ||
+		strSet(f.LimitsMemoryReservation) || strSet(f.LimitsCPUs) ||
+		strSet(f.LimitsCPUSet) || strSet(f.PortsMappings) ||
+		strSet(f.CustomDockerRunOptions) ||
+		intSet(f.LimitsMemorySwappiness) || intSet(f.LimitsCPUShares) ||
+		intSet(f.PublicPortTimeout)
+}
+
+// SetStringIfConfigured sets dst to the API value only when the Terraform
+// model already has a configured value (not null/unknown). This prevents
+// "Provider produced inconsistent result after apply" when the API returns
+// default values for fields the user did not set.
+func SetStringIfConfigured(dst *types.String, v string) {
+	if dst == nil || dst.IsNull() || dst.IsUnknown() {
+		return
+	}
+	if v != "" {
+		*dst = types.StringValue(v)
+	}
+}
+
+// SetInt64IfConfigured sets dst to the API value only when the Terraform
+// model already has a configured value (not null/unknown).
+func SetInt64IfConfigured(dst *types.Int64, v *int64) {
+	if dst == nil || dst.IsNull() || dst.IsUnknown() {
+		return
+	}
+	if v != nil {
+		*dst = types.Int64Value(*v)
+	}
 }
 
 // FlattenDatabaseCommon sets the fields shared by all database resource types.

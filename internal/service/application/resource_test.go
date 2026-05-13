@@ -789,3 +789,228 @@ func TestApplicationResource_InvalidUUID(t *testing.T) {
 		},
 	})
 }
+
+// ---------------------------------------------------------------------------
+// TestApplicationResource_ExtendedFields
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_ExtendedFields(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+
+	isStatic := true
+	isForceHTTPS := false
+	hcReturnCode := int64(200)
+	autoDeployEnabled := true
+	hcEnabled := false
+	isSPA := false
+	isHTTPAuth := false
+	connectDocker := false
+	containerEscape := true
+	preserveRepo := false
+	useBuild := false
+
+	currentApp := client.Application{
+		UUID:            "ext-fields-uuid",
+		Name:            "ext-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
+		// Extended fields under test
+		Redirect:               "www",
+		BaseDirectory:          "/app",
+		HealthCheckType:        "cmd",
+		HealthCheckCommand:     "curl localhost",
+		HealthCheckHost:        "localhost",
+		HealthCheckMethod:      "GET",
+		HealthCheckScheme:      "http",
+		HealthCheckReturnCode:  &hcReturnCode,
+		IsStatic:               &isStatic,
+		IsForceHTTPSEnabled:    &isForceHTTPS,
+		PreDeploymentCommand:   "npm run migrate",
+		CustomDockerRunOptions: "--memory=512m",
+		StaticImage:            "nginx:alpine",
+		// Computed+Default bools (API returns these)
+		IsSPA:                         &isSPA,
+		IsHTTPBasicAuthEnabled:        &isHTTPAuth,
+		ConnectToDockerNetwork:        &connectDocker,
+		IsContainerLabelEscapeEnabled: &containerEscape,
+		IsPreserveRepositoryEnabled:   &preserveRepo,
+		UseBuildServer:                &useBuild,
+		IsAutoDeployEnabled:           &autoDeployEnabled,
+		HealthCheckEnabled:            &hcEnabled,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != currentApp.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != currentApp.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["redirect"].(string); ok {
+			currentApp.Redirect = v
+		}
+		if v, ok := body["base_directory"].(string); ok {
+			currentApp.BaseDirectory = v
+		}
+		if v, ok := body["is_static"].(bool); ok {
+			currentApp.IsStatic = &v
+		}
+		if v, ok := body["pre_deployment_command"].(string); ok {
+			currentApp.PreDeploymentCommand = v
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != currentApp.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			// Step 1: Create with extended fields.
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid              = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid               = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository            = "https://github.com/example/repo"
+					build_pack                = "nixpacks"
+					ports_exposes             = "3000"
+					redirect                  = "www"
+					base_directory            = "/app"
+					health_check_type         = "cmd"
+					health_check_command      = "curl localhost"
+					is_static                 = true
+					is_force_https_enabled    = false
+					pre_deployment_command    = "npm run migrate"
+					custom_docker_run_options = "--memory=512m"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "redirect", "www"),
+					resource.TestCheckResourceAttr("coolify_application.test", "base_directory", "/app"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_type", "cmd"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_command", "curl localhost"),
+					resource.TestCheckResourceAttr("coolify_application.test", "is_static", "true"),
+					resource.TestCheckResourceAttr("coolify_application.test", "is_force_https_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_application.test", "pre_deployment_command", "npm run migrate"),
+					resource.TestCheckResourceAttr("coolify_application.test", "custom_docker_run_options", "--memory=512m"),
+					// Verify computed defaults are populated
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_host", "localhost"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_method", "GET"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_scheme", "http"),
+					resource.TestCheckResourceAttr("coolify_application.test", "health_check_return_code", "200"),
+					resource.TestCheckResourceAttr("coolify_application.test", "static_image", "nginx:alpine"),
+				),
+			},
+			// Step 2: Update several extended fields.
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid              = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid               = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository            = "https://github.com/example/repo"
+					build_pack                = "nixpacks"
+					ports_exposes             = "3000"
+					redirect                  = "non-www"
+					base_directory            = "/src"
+					health_check_type         = "cmd"
+					health_check_command      = "curl localhost"
+					is_static                 = false
+					is_force_https_enabled    = false
+					pre_deployment_command    = "npm run seed"
+					custom_docker_run_options = "--memory=512m"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "redirect", "non-www"),
+					resource.TestCheckResourceAttr("coolify_application.test", "base_directory", "/src"),
+					resource.TestCheckResourceAttr("coolify_application.test", "is_static", "false"),
+					resource.TestCheckResourceAttr("coolify_application.test", "pre_deployment_command", "npm run seed"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestApplicationResource_ValidateRedirect
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_ValidateRedirect(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+					redirect       = "invalid"
+				`),
+				ExpectError: regexp.MustCompile(`www`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestApplicationResource_ValidatePortsMappings
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_ValidatePortsMappings(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+					ports_mappings = "abc"
+				`),
+				ExpectError: regexp.MustCompile(`host:container`),
+			},
+		},
+	})
+}

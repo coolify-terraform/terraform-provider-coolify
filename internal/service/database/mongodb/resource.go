@@ -25,19 +25,33 @@ var (
 
 type res struct{ client *client.Client }
 type model struct {
-	Timeouts                timeouts.Value `tfsdk:"timeouts"`
-	UUID                    types.String   `tfsdk:"uuid"`
-	Name                    types.String   `tfsdk:"name"`
-	Description             types.String   `tfsdk:"description"`
-	ProjectUUID             types.String   `tfsdk:"project_uuid"`
-	ServerUUID              types.String   `tfsdk:"server_uuid"`
-	EnvironmentName         types.String   `tfsdk:"environment_name"`
-	Image                   types.String   `tfsdk:"image"`
-	IsPublic                types.Bool     `tfsdk:"is_public"`
-	PublicPort              types.Int64    `tfsdk:"public_port"`
-	MongoInitdbRootUsername types.String   `tfsdk:"mongo_initdb_root_username"`
-	MongoInitdbRootPassword types.String   `tfsdk:"mongo_initdb_root_password"`
-	MongoInitdbDatabase     types.String   `tfsdk:"mongo_initdb_database"`
+	Timeouts        timeouts.Value `tfsdk:"timeouts"`
+	UUID            types.String   `tfsdk:"uuid"`
+	Name            types.String   `tfsdk:"name"`
+	Description     types.String   `tfsdk:"description"`
+	ProjectUUID     types.String   `tfsdk:"project_uuid"`
+	ServerUUID      types.String   `tfsdk:"server_uuid"`
+	EnvironmentName types.String   `tfsdk:"environment_name"`
+	Image           types.String   `tfsdk:"image"`
+	IsPublic        types.Bool     `tfsdk:"is_public"`
+	PublicPort      types.Int64    `tfsdk:"public_port"`
+	// Shared extended fields
+	LimitsMemory            types.String `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
+	PortsMappings           types.String `tfsdk:"ports_mappings"`
+	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
+	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
+	Status                  types.String `tfsdk:"status"`
+	// Type-specific
+	MongoInitdbRootUsername types.String `tfsdk:"mongo_initdb_root_username"`
+	MongoInitdbRootPassword types.String `tfsdk:"mongo_initdb_root_password"`
+	MongoInitdbDatabase     types.String `tfsdk:"mongo_initdb_database"`
+	MongoConf               types.String `tfsdk:"mongo_conf"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -49,6 +63,7 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 		"mongo_initdb_root_username": schema.StringAttribute{MarkdownDescription: "The MongoDB root username (maps to `MONGO_INITDB_ROOT_USERNAME`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"mongo_initdb_root_password": schema.StringAttribute{MarkdownDescription: "The MongoDB root password (maps to `MONGO_INITDB_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"mongo_initdb_database":      schema.StringAttribute{MarkdownDescription: "The initial database name (maps to `MONGO_INITDB_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"mongo_conf":                 schema.StringAttribute{MarkdownDescription: "Custom MongoDB configuration (base64-encoded `mongod.conf` content).", Optional: true},
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -88,6 +103,18 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	ext := extFields(&p)
+	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
+	if pg.HasExtendedFields(ext) || strSet(p.MongoConf) {
+		update := client.UpdateDatabaseInput{}
+		pg.SetUpdateExtended(&update, ext)
+		flex.SetStrPtr(&update.MongoConf, p.MongoConf)
+		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
+			resp.Diagnostics.AddError("Error setting MongoDB database extended fields", fmt.Sprintf("MongoDB database %s: %s", c.UUID, err))
+			return
+		}
 	}
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
@@ -140,6 +167,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	flex.SetStrPtr(&u.MongoInitdbRootUsername, p.MongoInitdbRootUsername)
 	flex.SetStrPtr(&u.MongoInitdbRootPassword, p.MongoInitdbRootPassword)
 	flex.SetStrPtr(&u.MongoInitdbDatabase, p.MongoInitdbDatabase)
+	flex.SetStrPtr(&u.MongoConf, p.MongoConf)
+	pg.SetUpdateExtended(&u, extFields(&p))
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MongoDB database", fmt.Sprintf("MongoDB database %s: %s", s.UUID.ValueString(), err))
@@ -166,7 +195,25 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 }
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
+	pg.FlattenDatabaseExtended(db, extFields(m))
 	m.MongoInitdbRootUsername = flex.StringToFramework(db.MongoInitdbRootUsername)
 	m.MongoInitdbRootPassword = flex.StringToFramework(db.MongoInitdbRootPassword)
 	m.MongoInitdbDatabase = flex.StringToFramework(db.MongoInitdbDatabase)
+	pg.SetStringIfConfigured(&m.MongoConf, db.MongoConf)
+}
+
+func extFields(m *model) pg.DatabaseExtendedPtrs {
+	return pg.DatabaseExtendedPtrs{
+		LimitsMemory:            &m.LimitsMemory,
+		LimitsMemorySwap:        &m.LimitsMemorySwap,
+		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
+		LimitsMemoryReservation: &m.LimitsMemoryReservation,
+		LimitsCPUs:              &m.LimitsCPUs,
+		LimitsCPUSet:            &m.LimitsCPUSet,
+		LimitsCPUShares:         &m.LimitsCPUShares,
+		PortsMappings:           &m.PortsMappings,
+		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
+		PublicPortTimeout:       &m.PublicPortTimeout,
+		Status:                  &m.Status,
+	}
 }

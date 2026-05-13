@@ -43,6 +43,9 @@ contract-extract: ## Extract contract from Coolify source (usage: make contract-
 contract-check: ## Verify client structs cover all contract fields
 	go test -race -count=1 -run 'TestContractCoverage' ./internal/spectest/ -v
 
+contract-matrix: ## Generate API contract accuracy matrix page
+	python3 scripts/generate-contract-matrix.py
+
 spec-generate: ## Regenerate OpenAPI spec from contract (idempotent: always patches from git baseline)
 	@git show HEAD:testdata/specs/coolify-v4.json > testdata/specs/coolify-v4.json.base 2>/dev/null || cp testdata/specs/coolify-v4.json testdata/specs/coolify-v4.json.base
 	python3 scripts/generate-openapi.py \
@@ -102,4 +105,4 @@ vulncheck: ## Run govulncheck for known vulnerabilities
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check spec-generate api-coverage contract-extract contract-check vulncheck check-golangci-lint-version check-goreleaser-version goreleaser-check modverify ci help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version goreleaser-check modverify ci help

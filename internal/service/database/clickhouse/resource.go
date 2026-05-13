@@ -25,18 +25,32 @@ var (
 
 type res struct{ client *client.Client }
 type model struct {
-	Timeouts                timeouts.Value `tfsdk:"timeouts"`
-	UUID                    types.String   `tfsdk:"uuid"`
-	Name                    types.String   `tfsdk:"name"`
-	Description             types.String   `tfsdk:"description"`
-	ProjectUUID             types.String   `tfsdk:"project_uuid"`
-	ServerUUID              types.String   `tfsdk:"server_uuid"`
-	EnvironmentName         types.String   `tfsdk:"environment_name"`
-	Image                   types.String   `tfsdk:"image"`
-	IsPublic                types.Bool     `tfsdk:"is_public"`
-	PublicPort              types.Int64    `tfsdk:"public_port"`
-	ClickhouseAdminUser     types.String   `tfsdk:"clickhouse_admin_user"`
-	ClickhouseAdminPassword types.String   `tfsdk:"clickhouse_admin_password"`
+	Timeouts        timeouts.Value `tfsdk:"timeouts"`
+	UUID            types.String   `tfsdk:"uuid"`
+	Name            types.String   `tfsdk:"name"`
+	Description     types.String   `tfsdk:"description"`
+	ProjectUUID     types.String   `tfsdk:"project_uuid"`
+	ServerUUID      types.String   `tfsdk:"server_uuid"`
+	EnvironmentName types.String   `tfsdk:"environment_name"`
+	Image           types.String   `tfsdk:"image"`
+	IsPublic        types.Bool     `tfsdk:"is_public"`
+	PublicPort      types.Int64    `tfsdk:"public_port"`
+	// Shared extended fields
+	LimitsMemory            types.String `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
+	PortsMappings           types.String `tfsdk:"ports_mappings"`
+	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
+	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
+	Status                  types.String `tfsdk:"status"`
+	// Type-specific
+	ClickhouseAdminUser     types.String `tfsdk:"clickhouse_admin_user"`
+	ClickhouseAdminPassword types.String `tfsdk:"clickhouse_admin_password"`
+	ClickhouseDB            types.String `tfsdk:"clickhouse_db"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -47,6 +61,7 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a ClickHouse database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 		"clickhouse_admin_user":     schema.StringAttribute{MarkdownDescription: "The ClickHouse admin user name (maps to `CLICKHOUSE_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"clickhouse_admin_password": schema.StringAttribute{MarkdownDescription: "The ClickHouse admin password (maps to `CLICKHOUSE_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"clickhouse_db":             schema.StringAttribute{MarkdownDescription: "The default ClickHouse database name. If omitted, Coolify uses `default`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -86,6 +101,17 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	ext := extFields(&p)
+	if pg.HasExtendedFields(ext) {
+		update := client.UpdateDatabaseInput{}
+		pg.SetUpdateExtended(&update, ext)
+		flex.SetStrPtr(&update.ClickhouseDB, p.ClickhouseDB)
+		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
+			resp.Diagnostics.AddError("Error setting ClickHouse database extended fields", fmt.Sprintf("ClickHouse database %s: %s", c.UUID, err))
+			return
+		}
 	}
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
@@ -139,6 +165,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	flex.SetStrPtr(&u.ClickhouseAdminUser, p.ClickhouseAdminUser)
 	flex.SetStrPtr(&u.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
+	flex.SetStrPtr(&u.ClickhouseDB, p.ClickhouseDB)
+	pg.SetUpdateExtended(&u, extFields(&p))
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
@@ -166,6 +194,24 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 }
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
+	pg.FlattenDatabaseExtended(db, extFields(m))
 	m.ClickhouseAdminUser = flex.StringToFramework(db.ClickhouseAdminUser)
 	m.ClickhouseAdminPassword = flex.StringToFramework(db.ClickhouseAdminPassword)
+	m.ClickhouseDB = flex.StringToFramework(db.ClickhouseDB)
+}
+
+func extFields(m *model) pg.DatabaseExtendedPtrs {
+	return pg.DatabaseExtendedPtrs{
+		LimitsMemory:            &m.LimitsMemory,
+		LimitsMemorySwap:        &m.LimitsMemorySwap,
+		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
+		LimitsMemoryReservation: &m.LimitsMemoryReservation,
+		LimitsCPUs:              &m.LimitsCPUs,
+		LimitsCPUSet:            &m.LimitsCPUSet,
+		LimitsCPUShares:         &m.LimitsCPUShares,
+		PortsMappings:           &m.PortsMappings,
+		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
+		PublicPortTimeout:       &m.PublicPortTimeout,
+		Status:                  &m.Status,
+	}
 }

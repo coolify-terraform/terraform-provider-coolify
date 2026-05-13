@@ -26,20 +26,34 @@ var (
 type mysqlDatabaseResource struct{ client *client.Client }
 
 type mysqlDatabaseResourceModel struct {
-	Timeouts          timeouts.Value `tfsdk:"timeouts"`
-	UUID              types.String   `tfsdk:"uuid"`
-	Name              types.String   `tfsdk:"name"`
-	Description       types.String   `tfsdk:"description"`
-	ProjectUUID       types.String   `tfsdk:"project_uuid"`
-	ServerUUID        types.String   `tfsdk:"server_uuid"`
-	EnvironmentName   types.String   `tfsdk:"environment_name"`
-	Image             types.String   `tfsdk:"image"`
-	IsPublic          types.Bool     `tfsdk:"is_public"`
-	PublicPort        types.Int64    `tfsdk:"public_port"`
-	MysqlUser         types.String   `tfsdk:"mysql_user"`
-	MysqlPassword     types.String   `tfsdk:"mysql_password"`
-	MysqlDatabase     types.String   `tfsdk:"mysql_database"`
-	MysqlRootPassword types.String   `tfsdk:"mysql_root_password"`
+	Timeouts        timeouts.Value `tfsdk:"timeouts"`
+	UUID            types.String   `tfsdk:"uuid"`
+	Name            types.String   `tfsdk:"name"`
+	Description     types.String   `tfsdk:"description"`
+	ProjectUUID     types.String   `tfsdk:"project_uuid"`
+	ServerUUID      types.String   `tfsdk:"server_uuid"`
+	EnvironmentName types.String   `tfsdk:"environment_name"`
+	Image           types.String   `tfsdk:"image"`
+	IsPublic        types.Bool     `tfsdk:"is_public"`
+	PublicPort      types.Int64    `tfsdk:"public_port"`
+	// Shared extended fields
+	LimitsMemory            types.String `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
+	PortsMappings           types.String `tfsdk:"ports_mappings"`
+	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
+	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
+	Status                  types.String `tfsdk:"status"`
+	// Type-specific
+	MysqlUser         types.String `tfsdk:"mysql_user"`
+	MysqlPassword     types.String `tfsdk:"mysql_password"`
+	MysqlDatabase     types.String `tfsdk:"mysql_database"`
+	MysqlRootPassword types.String `tfsdk:"mysql_root_password"`
+	MysqlConf         types.String `tfsdk:"mysql_conf"`
 }
 
 func NewResource() resource.Resource { return &mysqlDatabaseResource{} }
@@ -56,6 +70,7 @@ func (r *mysqlDatabaseResource) Schema(ctx context.Context, _ resource.SchemaReq
 			"mysql_password":      schema.StringAttribute{MarkdownDescription: "The MySQL user password (maps to `MYSQL_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_database":      schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MYSQL_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_root_password": schema.StringAttribute{MarkdownDescription: "The MySQL root password (maps to `MYSQL_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"mysql_conf":          schema.StringAttribute{MarkdownDescription: "Custom MySQL configuration (base64-encoded `my.cnf` content).", Optional: true},
 		}),
 	}
 }
@@ -99,6 +114,18 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	ext := extFields(&plan)
+	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
+	if pg.HasExtendedFields(ext) || strSet(plan.MysqlConf) {
+		update := client.UpdateDatabaseInput{}
+		pg.SetUpdateExtended(&update, ext)
+		flex.SetStrPtr(&update.MysqlConf, plan.MysqlConf)
+		if _, err := r.client.UpdateDatabase(ctx, created.UUID, update); err != nil {
+			resp.Diagnostics.AddError("Error setting MySQL database extended fields", fmt.Sprintf("MySQL database %s: %s", created.UUID, err))
+			return
+		}
 	}
 
 	db, err := r.client.GetDatabase(ctx, created.UUID)
@@ -156,6 +183,8 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 	flex.SetStrPtr(&input.MysqlPassword, plan.MysqlPassword)
 	flex.SetStrPtr(&input.MysqlDatabase, plan.MysqlDatabase)
 	flex.SetStrPtr(&input.MysqlRootPassword, plan.MysqlRootPassword)
+	flex.SetStrPtr(&input.MysqlConf, plan.MysqlConf)
+	pg.SetUpdateExtended(&input, extFields(&plan))
 	db, err := pg.UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MySQL database", fmt.Sprintf("MySQL database %s: %s", uuid, err))
@@ -185,8 +214,26 @@ func (r *mysqlDatabaseResource) ImportState(ctx context.Context, req resource.Im
 
 func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
 	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
+	pg.FlattenDatabaseExtended(db, extFields(m))
 	m.MysqlUser = flex.StringToFramework(db.MysqlUser)
 	m.MysqlPassword = flex.StringToFramework(db.MysqlPassword)
 	m.MysqlDatabase = flex.StringToFramework(db.MysqlDatabase)
 	m.MysqlRootPassword = flex.StringToFramework(db.MysqlRootPassword)
+	pg.SetStringIfConfigured(&m.MysqlConf, db.MysqlConf)
+}
+
+func extFields(m *mysqlDatabaseResourceModel) pg.DatabaseExtendedPtrs {
+	return pg.DatabaseExtendedPtrs{
+		LimitsMemory:            &m.LimitsMemory,
+		LimitsMemorySwap:        &m.LimitsMemorySwap,
+		LimitsMemorySwappiness:  &m.LimitsMemorySwappiness,
+		LimitsMemoryReservation: &m.LimitsMemoryReservation,
+		LimitsCPUs:              &m.LimitsCPUs,
+		LimitsCPUSet:            &m.LimitsCPUSet,
+		LimitsCPUShares:         &m.LimitsCPUShares,
+		PortsMappings:           &m.PortsMappings,
+		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
+		PublicPortTimeout:       &m.PublicPortTimeout,
+		Status:                  &m.Status,
+	}
 }

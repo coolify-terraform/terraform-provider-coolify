@@ -55,7 +55,10 @@ func (r *environmentVariableResource) Metadata(_ context.Context, req resource.M
 
 func (r *environmentVariableResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages an environment variable on a Coolify application, service, or database.",
+		MarkdownDescription: "Manages an environment variable on a Coolify application, service, or database.\n\n" +
+			"~> **Note:** Each instance requires a List API call to read because the Coolify API does not " +
+			"provide a singular GET endpoint for environment variables. Large numbers of these resources " +
+			"on a single application may cause slower plan/apply times due to this API limitation.",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the environment variable.",

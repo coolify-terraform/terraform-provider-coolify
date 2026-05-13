@@ -54,7 +54,10 @@ func (r *scheduledTaskResource) Metadata(_ context.Context, req resource.Metadat
 
 func (r *scheduledTaskResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a scheduled task on a Coolify application or service.",
+		MarkdownDescription: "Manages a scheduled task on a Coolify application or service.\n\n" +
+			"~> **Note:** Each instance requires a List API call to read because the Coolify API does not " +
+			"provide a singular GET endpoint for scheduled tasks. Large numbers of these resources " +
+			"on a single application may cause slower plan/apply times due to this API limitation.",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the scheduled task.",
