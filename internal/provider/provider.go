@@ -3,6 +3,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/application"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/cloudtoken"
@@ -38,8 +39,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"os"
+	"strconv"
 	"strings"
 )
+
+const minCoolifyVersion = "4.0.0"
 
 var _ provider.Provider = (*coolifyProvider)(nil)
 
@@ -104,13 +108,21 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		c.UserAgent = "terraform-provider-coolify/" + p.version
 	}
 
-	// Validate the connection by fetching the Coolify version.
-	if _, err := c.GetVersion(ctx); err != nil {
+	// Validate the connection and Coolify version.
+	coolifyVersion, err := c.GetVersion(ctx)
+	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to connect to Coolify",
 			"The provider could not reach the Coolify API at "+endpoint+". "+
 				"Verify that the endpoint is correct, the server is running, "+
 				"and the API token is valid.\n\nError: "+err.Error(),
+		)
+		return
+	}
+	if !isVersionAtLeast(coolifyVersion, minCoolifyVersion) {
+		resp.Diagnostics.AddError(
+			"Unsupported Coolify version",
+			fmt.Sprintf("The connected Coolify instance is running %s, but this provider requires %s or later. Please upgrade your Coolify instance.", coolifyVersion, minCoolifyVersion),
 		)
 		return
 	}
@@ -123,4 +135,41 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 }
 func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{application.NewDataSource, application.NewListDataSource, application.NewLogsDataSource, backup.NewExecutionsDataSource, cloudtoken.NewDataSource, cloudtoken.NewListDataSource, database.NewListDataSource, database.NewDataSource, deployment.NewDataSource, deployment.NewListDataSource, environment.NewDataSource, environment.NewListDataSource, environmentvariable.NewDataSource, environmentvariable.NewListDataSource, githubapp.NewDataSource, githubapp.NewListDataSource, githubapp.NewReposDataSource, githubapp.NewBranchesDataSource, health.NewDataSource, hetzner.NewImagesDataSource, hetzner.NewLocationsDataSource, hetzner.NewServerTypesDataSource, hetzner.NewSSHKeysDataSource, project.NewDataSource, project.NewListDataSource, resourcelist.NewDataSource, s3storage.NewDataSource, s3storage.NewListDataSource, scheduledtask.NewDataSource, scheduledtask.NewListDataSource, scheduledtask.NewExecutionsDataSource, server.NewDataSource, server.NewListDataSource, server.NewResourcesDataSource, server.NewDomainsDataSource, server.NewValidateDataSource, service.NewListDataSource, service.NewDataSource, privatekey.NewDataSource, privatekey.NewListDataSource, storage.NewDataSource, storage.NewListDataSource, team.NewDataSource, team.NewListDataSource, team.NewMembersDataSource, version.NewDataSource}
+}
+
+// isVersionAtLeast compares two semver-like version strings (e.g. "4.0.0").
+// Returns true if actual >= minimum. Non-parseable versions return true
+// to avoid blocking on unexpected version formats.
+func isVersionAtLeast(actual, minimum string) bool {
+	parse := func(v string) (int, int, int, bool) {
+		v = strings.TrimPrefix(v, "v")
+		parts := strings.SplitN(v, ".", 3)
+		if len(parts) < 2 {
+			return 0, 0, 0, false
+		}
+		major, err1 := strconv.Atoi(parts[0])
+		minor, err2 := strconv.Atoi(parts[1])
+		patch := 0
+		if len(parts) == 3 {
+			// Strip pre-release suffix (e.g. "0-beta.335")
+			p := strings.SplitN(parts[2], "-", 2)[0]
+			patch, _ = strconv.Atoi(p)
+		}
+		if err1 != nil || err2 != nil {
+			return 0, 0, 0, false
+		}
+		return major, minor, patch, true
+	}
+	aMaj, aMin, aPat, aOk := parse(actual)
+	mMaj, mMin, mPat, mOk := parse(minimum)
+	if !aOk || !mOk {
+		return true
+	}
+	if aMaj != mMaj {
+		return aMaj > mMaj
+	}
+	if aMin != mMin {
+		return aMin > mMin
+	}
+	return aPat >= mPat
 }

@@ -400,15 +400,29 @@ jobs:
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Run acceptance tests
+      - name: Health check
+        id: health
         if: steps.secrets.outputs.configured == 'true'
+        env:
+          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if curl -sf -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            "$COOLIFY_ENDPOINT/api/v1/version" > /dev/null 2>&1; then
+            echo "healthy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Coolify server not reachable, skipping acceptance tests"
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run acceptance tests
+        if: steps.secrets.outputs.configured == 'true' && steps.health.outputs.healthy == 'true'
         env:
           TF_ACC: "1"
           COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_SERVER_UUID: ${{ secrets.COOLIFY_SERVER_UUID }}
         run: |
-          go test -run TestAcc -race -count=1 -timeout=30m -p 1 ./...
+          go test -run TestAcc -race -count=1 -timeout=30m -p 4 ./...
 
   ci-pass:
     name: CI
