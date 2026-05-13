@@ -210,15 +210,16 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_github_app", "id": state.ID.ValueInt64()})
 
-	input := client.UpdateGitHubAppIntegrationInput{}
-	flex.SetStrPtr(&input.Name, plan.Name)
-	flex.SetStrPtr(&input.OrganizationName, plan.OrganizationName)
-	flex.SetInt64Ptr(&input.AppID, plan.AppID)
-	flex.SetInt64Ptr(&input.InstallationID, plan.InstallationID)
-	flex.SetStrPtr(&input.ClientID, plan.ClientID)
-	flex.SetStrPtr(&input.ClientSecret, plan.ClientSecret)
-	flex.SetStrPtr(&input.WebhookSecret, plan.WebhookSecret)
-	flex.SetStrPtr(&input.PrivateKeyUUID, plan.PrivateKeyUUID)
+	input := client.UpdateGitHubAppIntegrationInput{
+		Name:             flex.StringIfChanged(plan.Name, state.Name),
+		OrganizationName: flex.StringIfChanged(plan.OrganizationName, state.OrganizationName),
+		AppID:            flex.Int64IfChanged(plan.AppID, state.AppID),
+		InstallationID:   flex.Int64IfChanged(plan.InstallationID, state.InstallationID),
+		ClientID:         flex.StringIfChanged(plan.ClientID, state.ClientID),
+		ClientSecret:     flex.StringIfChanged(plan.ClientSecret, state.ClientSecret),
+		WebhookSecret:    flex.StringIfChanged(plan.WebhookSecret, state.WebhookSecret),
+		PrivateKeyUUID:   flex.StringIfChanged(plan.PrivateKeyUUID, state.PrivateKeyUUID),
+	}
 
 	// Use the PATCH response directly (returns the full object) instead of
 	// a separate GET read-back. This avoids the O(n) list-and-scan in

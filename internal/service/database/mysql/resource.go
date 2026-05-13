@@ -151,18 +151,19 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": uuid})
 
-	input := client.UpdateDatabaseInput{}
-	flex.SetStrPtr(&input.Name, plan.Name)
-	flex.SetStrPtr(&input.Description, plan.Description)
-	flex.SetStrPtr(&input.Image, plan.Image)
-	flex.SetBoolPtr(&input.IsPublic, plan.IsPublic)
-	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
-	flex.SetStrPtr(&input.MysqlUser, plan.MysqlUser)
-	flex.SetStrPtr(&input.MysqlPassword, plan.MysqlPassword)
-	flex.SetStrPtr(&input.MysqlDatabase, plan.MysqlDatabase)
-	flex.SetStrPtr(&input.MysqlRootPassword, plan.MysqlRootPassword)
-	flex.SetStrPtr(&input.MysqlConf, plan.MysqlConf)
-	pg.SetUpdateExtended(&input, plan.ExtFields())
+	input := client.UpdateDatabaseInput{
+		Name:              flex.StringIfChanged(plan.Name, state.Name),
+		Description:       flex.StringIfChanged(plan.Description, state.Description),
+		Image:             flex.StringIfChanged(plan.Image, state.Image),
+		IsPublic:          flex.BoolIfChanged(plan.IsPublic, state.IsPublic),
+		PublicPort:        flex.Int64IfChanged(plan.PublicPort, state.PublicPort),
+		MysqlUser:         flex.StringIfChanged(plan.MysqlUser, state.MysqlUser),
+		MysqlPassword:     flex.StringIfChanged(plan.MysqlPassword, state.MysqlPassword),
+		MysqlDatabase:     flex.StringIfChanged(plan.MysqlDatabase, state.MysqlDatabase),
+		MysqlRootPassword: flex.StringIfChanged(plan.MysqlRootPassword, state.MysqlRootPassword),
+		MysqlConf:         flex.StringIfChanged(plan.MysqlConf, state.MysqlConf),
+	}
+	pg.SetUpdateExtendedDiff(&input, plan.ExtFields(), state.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MySQL database", fmt.Sprintf("MySQL database %s: %s", uuid, err))

@@ -145,6 +145,43 @@ func SetInt64IfConfigured(dst *types.Int64, v *int64) {
 	}
 }
 
+// StringIfChanged returns a pointer to the plan value only if it differs
+// from state. Returns nil when unchanged (field omitted via omitempty).
+func StringIfChanged(plan, state types.String) *string {
+	if plan.Equal(state) {
+		return nil
+	}
+	return StringValueOrNull(plan)
+}
+
+// BoolIfChanged returns a pointer to the plan value only if it differs from state.
+func BoolIfChanged(plan, state types.Bool) *bool {
+	if plan.Equal(state) {
+		return nil
+	}
+	return BoolValueOrNull(plan)
+}
+
+// Int64IfChanged returns a pointer to the plan value only if it differs from state.
+func Int64IfChanged(plan, state types.Int64) *int64 {
+	if plan.Equal(state) {
+		return nil
+	}
+	return Int64PtrFromFramework(plan)
+}
+
+// IntIfChanged returns a pointer to the plan value (as int) only if it differs from state.
+func IntIfChanged(plan, state types.Int64) *int {
+	if plan.Equal(state) {
+		return nil
+	}
+	if plan.IsNull() || plan.IsUnknown() {
+		return nil
+	}
+	v := int(plan.ValueInt64())
+	return &v
+}
+
 // Int64PtrForUpdate returns a *int64 suitable for a JSON PATCH body.
 // If the plan has a value, returns a pointer to it. If the plan is null
 // but the prior state had a value, returns a pointer to 0 (explicit clear).

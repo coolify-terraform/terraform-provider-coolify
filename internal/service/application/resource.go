@@ -266,10 +266,15 @@ func (r *applicationResource) Update(ctx context.Context, req resource.UpdateReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var state applicationResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_application", "uuid": plan.UUID.ValueString()})
 
-	input := buildUpdateInput(plan.common())
+	input := buildUpdateInput(plan.common(), state.common())
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenApplication(app, &plan)
 	})

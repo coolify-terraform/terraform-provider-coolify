@@ -274,11 +274,16 @@ func (r *gitHubAppApplicationResource) Update(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var state gitHubAppApplicationResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_github_app_application", "uuid": plan.UUID.ValueString()})
 
-	input := buildUpdateInput(plan.common())
-	input.GitHubAppUUID = flex.StringValueOrNull(plan.GitHubAppUUID)
+	input := buildUpdateInput(plan.common(), state.common())
+	input.GitHubAppUUID = flex.StringIfChanged(plan.GitHubAppUUID, state.GitHubAppUUID)
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenGitHubAppApplication(app, &plan)
 	})

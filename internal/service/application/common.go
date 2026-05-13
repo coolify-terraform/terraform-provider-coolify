@@ -302,134 +302,137 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	}
 }
 
-// buildUpdateInput constructs the shared UpdateApplicationInput from field pointers.
-func buildUpdateInput(f commonAppFields) client.UpdateApplicationInput {
-	input := buildCoreUpdateFields(f)
-	addExtendedUpdateFields(f, &input)
+// buildUpdateInput constructs the shared UpdateApplicationInput from field pointers,
+// only including fields that differ between plan and state.
+func buildUpdateInput(plan, state commonAppFields) client.UpdateApplicationInput {
+	input := buildCoreUpdateFields(plan, state)
+	addExtendedUpdateFields(plan, state, &input)
 	return input
 }
 
-// buildCoreUpdateFields populates the core UpdateApplicationInput fields.
-func buildCoreUpdateFields(f commonAppFields) client.UpdateApplicationInput {
-	strPtr := flex.StringValueOrNull
-	int64Ptr := flex.Int64PtrFromFramework
-	boolPtr := flex.BoolValueOrNull
+// buildCoreUpdateFields populates the core UpdateApplicationInput fields,
+// only including fields that differ between plan and state.
+func buildCoreUpdateFields(plan, state commonAppFields) client.UpdateApplicationInput {
+	strDiff := flex.StringIfChanged
+	int64Diff := flex.Int64IfChanged
+	boolDiff := flex.BoolIfChanged
 	input := client.UpdateApplicationInput{
-		Name:        strPtr(*f.Name),
-		Description: strPtr(*f.Description),
-		FQDN:        strPtr(*f.FQDN),
+		Name:        strDiff(*plan.Name, *state.Name),
+		Description: strDiff(*plan.Description, *state.Description),
+		FQDN:        strDiff(*plan.FQDN, *state.FQDN),
 		// Resource limits
-		LimitsMemory:            strPtr(*f.LimitsMemory),
-		LimitsMemorySwap:        strPtr(*f.LimitsMemorySwap),
-		LimitsMemorySwappiness:  int64Ptr(*f.LimitsMemorySwappiness),
-		LimitsMemoryReservation: strPtr(*f.LimitsMemoryReservation),
-		LimitsCPUs:              strPtr(*f.LimitsCPUs),
-		LimitsCPUSet:            strPtr(*f.LimitsCPUSet),
-		LimitsCPUShares:         int64Ptr(*f.LimitsCPUShares),
+		LimitsMemory:            strDiff(*plan.LimitsMemory, *state.LimitsMemory),
+		LimitsMemorySwap:        strDiff(*plan.LimitsMemorySwap, *state.LimitsMemorySwap),
+		LimitsMemorySwappiness:  int64Diff(*plan.LimitsMemorySwappiness, *state.LimitsMemorySwappiness),
+		LimitsMemoryReservation: strDiff(*plan.LimitsMemoryReservation, *state.LimitsMemoryReservation),
+		LimitsCPUs:              strDiff(*plan.LimitsCPUs, *state.LimitsCPUs),
+		LimitsCPUSet:            strDiff(*plan.LimitsCPUSet, *state.LimitsCPUSet),
+		LimitsCPUShares:         int64Diff(*plan.LimitsCPUShares, *state.LimitsCPUShares),
 		// Health checks
-		HealthCheckEnabled:      boolPtr(*f.HealthCheckEnabled),
-		HealthCheckPath:         strPtr(*f.HealthCheckPath),
-		HealthCheckPort:         strPtr(*f.HealthCheckPort),
-		HealthCheckInterval:     int64Ptr(*f.HealthCheckInterval),
-		HealthCheckTimeout:      int64Ptr(*f.HealthCheckTimeout),
-		HealthCheckRetries:      int64Ptr(*f.HealthCheckRetries),
-		HealthCheckStartPeriod:  int64Ptr(*f.HealthCheckStartPeriod),
-		HealthCheckCommand:      strPtr(*f.HealthCheckCommand),
-		HealthCheckHost:         strPtr(*f.HealthCheckHost),
-		HealthCheckMethod:       strPtr(*f.HealthCheckMethod),
-		HealthCheckResponseText: strPtr(*f.HealthCheckResponseText),
-		HealthCheckReturnCode:   int64Ptr(*f.HealthCheckReturnCode),
-		HealthCheckScheme:       strPtr(*f.HealthCheckScheme),
-		HealthCheckType:         strPtr(*f.HealthCheckType),
+		HealthCheckEnabled:      boolDiff(*plan.HealthCheckEnabled, *state.HealthCheckEnabled),
+		HealthCheckPath:         strDiff(*plan.HealthCheckPath, *state.HealthCheckPath),
+		HealthCheckPort:         strDiff(*plan.HealthCheckPort, *state.HealthCheckPort),
+		HealthCheckInterval:     int64Diff(*plan.HealthCheckInterval, *state.HealthCheckInterval),
+		HealthCheckTimeout:      int64Diff(*plan.HealthCheckTimeout, *state.HealthCheckTimeout),
+		HealthCheckRetries:      int64Diff(*plan.HealthCheckRetries, *state.HealthCheckRetries),
+		HealthCheckStartPeriod:  int64Diff(*plan.HealthCheckStartPeriod, *state.HealthCheckStartPeriod),
+		HealthCheckCommand:      strDiff(*plan.HealthCheckCommand, *state.HealthCheckCommand),
+		HealthCheckHost:         strDiff(*plan.HealthCheckHost, *state.HealthCheckHost),
+		HealthCheckMethod:       strDiff(*plan.HealthCheckMethod, *state.HealthCheckMethod),
+		HealthCheckResponseText: strDiff(*plan.HealthCheckResponseText, *state.HealthCheckResponseText),
+		HealthCheckReturnCode:   int64Diff(*plan.HealthCheckReturnCode, *state.HealthCheckReturnCode),
+		HealthCheckScheme:       strDiff(*plan.HealthCheckScheme, *state.HealthCheckScheme),
+		HealthCheckType:         strDiff(*plan.HealthCheckType, *state.HealthCheckType),
 		// Auto-deploy
-		IsAutoDeployEnabled: boolPtr(*f.IsAutoDeployEnabled),
+		IsAutoDeployEnabled: boolDiff(*plan.IsAutoDeployEnabled, *state.IsAutoDeployEnabled),
 	}
 	// Nil-safe fields (not present in all resource models)
-	if f.GitRepository != nil {
-		input.GitRepository = strPtr(*f.GitRepository)
+	if plan.GitRepository != nil && state.GitRepository != nil {
+		input.GitRepository = strDiff(*plan.GitRepository, *state.GitRepository)
 	}
-	if f.GitBranch != nil {
-		input.GitBranch = strPtr(*f.GitBranch)
+	if plan.GitBranch != nil && state.GitBranch != nil {
+		input.GitBranch = strDiff(*plan.GitBranch, *state.GitBranch)
 	}
-	if f.BuildPack != nil {
-		input.BuildPack = strPtr(*f.BuildPack)
+	if plan.BuildPack != nil && state.BuildPack != nil {
+		input.BuildPack = strDiff(*plan.BuildPack, *state.BuildPack)
 	}
-	if f.PortsExposes != nil {
-		input.PortsExposes = strPtr(*f.PortsExposes)
+	if plan.PortsExposes != nil && state.PortsExposes != nil {
+		input.PortsExposes = strDiff(*plan.PortsExposes, *state.PortsExposes)
 	}
-	if f.InstallCommand != nil {
-		input.InstallCommand = strPtr(*f.InstallCommand)
+	if plan.InstallCommand != nil && state.InstallCommand != nil {
+		input.InstallCommand = strDiff(*plan.InstallCommand, *state.InstallCommand)
 	}
-	if f.BuildCommand != nil {
-		input.BuildCommand = strPtr(*f.BuildCommand)
+	if plan.BuildCommand != nil && state.BuildCommand != nil {
+		input.BuildCommand = strDiff(*plan.BuildCommand, *state.BuildCommand)
 	}
-	if f.StartCommand != nil {
-		input.StartCommand = strPtr(*f.StartCommand)
+	if plan.StartCommand != nil && state.StartCommand != nil {
+		input.StartCommand = strDiff(*plan.StartCommand, *state.StartCommand)
 	}
-	if f.DockerfileLocation != nil {
-		input.DockerfileLocation = strPtr(*f.DockerfileLocation)
+	if plan.DockerfileLocation != nil && state.DockerfileLocation != nil {
+		input.DockerfileLocation = strDiff(*plan.DockerfileLocation, *state.DockerfileLocation)
 	}
 	return input
 }
 
-// addExtendedUpdateFields adds extended fields to an UpdateApplicationInput.
-func addExtendedUpdateFields(f commonAppFields, input *client.UpdateApplicationInput) {
-	strPtr := flex.StringValueOrNull
-	boolPtr := flex.BoolValueOrNull
+// addExtendedUpdateFields adds extended fields to an UpdateApplicationInput,
+// only including fields that differ between plan and state.
+func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateApplicationInput) {
+	strDiff := flex.StringIfChanged
+	boolDiff := flex.BoolIfChanged
 	// Build/deploy
-	input.BaseDirectory = strPtr(*f.BaseDirectory)
-	input.PublishDirectory = strPtr(*f.PublishDirectory)
-	input.DockerRegistryImageTag = strPtr(*f.DockerRegistryImageTag)
-	input.DockerComposeDomains = strPtr(*f.DockerComposeDomains)
-	input.GitCommitSha = strPtr(*f.GitCommitSha)
-	input.WatchPaths = strPtr(*f.WatchPaths)
+	input.BaseDirectory = strDiff(*plan.BaseDirectory, *state.BaseDirectory)
+	input.PublishDirectory = strDiff(*plan.PublishDirectory, *state.PublishDirectory)
+	input.DockerRegistryImageTag = strDiff(*plan.DockerRegistryImageTag, *state.DockerRegistryImageTag)
+	input.DockerComposeDomains = strDiff(*plan.DockerComposeDomains, *state.DockerComposeDomains)
+	input.GitCommitSha = strDiff(*plan.GitCommitSha, *state.GitCommitSha)
+	input.WatchPaths = strDiff(*plan.WatchPaths, *state.WatchPaths)
 	// preview_url_template is not in Coolify v4's update $allowedFields.
 	// Container/Network
-	input.CustomDockerRunOptions = strPtr(*f.CustomDockerRunOptions)
-	input.CustomLabels = strPtr(*f.CustomLabels)
-	input.CustomNetworkAliases = strPtr(*f.CustomNetworkAliases)
-	input.CustomNginxConfiguration = strPtr(*f.CustomNginxConfiguration)
-	input.PortsMappings = strPtr(*f.PortsMappings)
+	input.CustomDockerRunOptions = strDiff(*plan.CustomDockerRunOptions, *state.CustomDockerRunOptions)
+	input.CustomLabels = strDiff(*plan.CustomLabels, *state.CustomLabels)
+	input.CustomNetworkAliases = strDiff(*plan.CustomNetworkAliases, *state.CustomNetworkAliases)
+	input.CustomNginxConfiguration = strDiff(*plan.CustomNginxConfiguration, *state.CustomNginxConfiguration)
+	input.PortsMappings = strDiff(*plan.PortsMappings, *state.PortsMappings)
 	// Redirect & static
-	input.Redirect = strPtr(*f.Redirect)
-	input.StaticImage = strPtr(*f.StaticImage)
-	input.IsStatic = boolPtr(*f.IsStatic)
-	input.IsSPA = boolPtr(*f.IsSPA)
+	input.Redirect = strDiff(*plan.Redirect, *state.Redirect)
+	input.StaticImage = strDiff(*plan.StaticImage, *state.StaticImage)
+	input.IsStatic = boolDiff(*plan.IsStatic, *state.IsStatic)
+	input.IsSPA = boolDiff(*plan.IsSPA, *state.IsSPA)
 	// Security & Auth
-	input.IsForceHTTPSEnabled = boolPtr(*f.IsForceHTTPSEnabled)
-	input.IsHTTPBasicAuthEnabled = boolPtr(*f.IsHTTPBasicAuthEnabled)
-	input.HTTPBasicAuthUsername = strPtr(*f.HTTPBasicAuthUsername)
-	input.HTTPBasicAuthPassword = strPtr(*f.HTTPBasicAuthPassword)
+	input.IsForceHTTPSEnabled = boolDiff(*plan.IsForceHTTPSEnabled, *state.IsForceHTTPSEnabled)
+	input.IsHTTPBasicAuthEnabled = boolDiff(*plan.IsHTTPBasicAuthEnabled, *state.IsHTTPBasicAuthEnabled)
+	input.HTTPBasicAuthUsername = strDiff(*plan.HTTPBasicAuthUsername, *state.HTTPBasicAuthUsername)
+	input.HTTPBasicAuthPassword = strDiff(*plan.HTTPBasicAuthPassword, *state.HTTPBasicAuthPassword)
 	// Deployment commands
-	input.PreDeploymentCommand = strPtr(*f.PreDeploymentCommand)
-	input.PreDeploymentCommandContainer = strPtr(*f.PreDeploymentCommandContainer)
-	input.PostDeploymentCommand = strPtr(*f.PostDeploymentCommand)
-	input.PostDeploymentCommandContainer = strPtr(*f.PostDeploymentCommandContainer)
+	input.PreDeploymentCommand = strDiff(*plan.PreDeploymentCommand, *state.PreDeploymentCommand)
+	input.PreDeploymentCommandContainer = strDiff(*plan.PreDeploymentCommandContainer, *state.PreDeploymentCommandContainer)
+	input.PostDeploymentCommand = strDiff(*plan.PostDeploymentCommand, *state.PostDeploymentCommand)
+	input.PostDeploymentCommandContainer = strDiff(*plan.PostDeploymentCommandContainer, *state.PostDeploymentCommandContainer)
 	// Webhook secrets
-	input.ManualWebhookSecretBitbucket = strPtr(*f.ManualWebhookSecretBitbucket)
-	input.ManualWebhookSecretGitea = strPtr(*f.ManualWebhookSecretGitea)
-	input.ManualWebhookSecretGitHub = strPtr(*f.ManualWebhookSecretGitHub)
-	input.ManualWebhookSecretGitLab = strPtr(*f.ManualWebhookSecretGitLab)
+	input.ManualWebhookSecretBitbucket = strDiff(*plan.ManualWebhookSecretBitbucket, *state.ManualWebhookSecretBitbucket)
+	input.ManualWebhookSecretGitea = strDiff(*plan.ManualWebhookSecretGitea, *state.ManualWebhookSecretGitea)
+	input.ManualWebhookSecretGitHub = strDiff(*plan.ManualWebhookSecretGitHub, *state.ManualWebhookSecretGitHub)
+	input.ManualWebhookSecretGitLab = strDiff(*plan.ManualWebhookSecretGitLab, *state.ManualWebhookSecretGitLab)
 	// Other settings
-	input.ConnectToDockerNetwork = boolPtr(*f.ConnectToDockerNetwork)
-	input.IsContainerLabelEscapeEnabled = boolPtr(*f.IsContainerLabelEscapeEnabled)
-	input.IsPreserveRepositoryEnabled = boolPtr(*f.IsPreserveRepositoryEnabled)
-	input.UseBuildServer = boolPtr(*f.UseBuildServer)
+	input.ConnectToDockerNetwork = boolDiff(*plan.ConnectToDockerNetwork, *state.ConnectToDockerNetwork)
+	input.IsContainerLabelEscapeEnabled = boolDiff(*plan.IsContainerLabelEscapeEnabled, *state.IsContainerLabelEscapeEnabled)
+	input.IsPreserveRepositoryEnabled = boolDiff(*plan.IsPreserveRepositoryEnabled, *state.IsPreserveRepositoryEnabled)
+	input.UseBuildServer = boolDiff(*plan.UseBuildServer, *state.UseBuildServer)
 	// Nil-safe resource-specific fields
-	if f.ForceDomainOverride != nil {
-		input.ForceDomainOverride = boolPtr(*f.ForceDomainOverride)
+	if plan.ForceDomainOverride != nil && state.ForceDomainOverride != nil {
+		input.ForceDomainOverride = boolDiff(*plan.ForceDomainOverride, *state.ForceDomainOverride)
 	}
-	if f.DockerfileTargetBuild != nil {
-		input.DockerfileTargetBuild = strPtr(*f.DockerfileTargetBuild)
+	if plan.DockerfileTargetBuild != nil && state.DockerfileTargetBuild != nil {
+		input.DockerfileTargetBuild = strDiff(*plan.DockerfileTargetBuild, *state.DockerfileTargetBuild)
 	}
-	if f.DockerComposeLocation != nil {
-		input.DockerComposeLocation = strPtr(*f.DockerComposeLocation)
+	if plan.DockerComposeLocation != nil && state.DockerComposeLocation != nil {
+		input.DockerComposeLocation = strDiff(*plan.DockerComposeLocation, *state.DockerComposeLocation)
 	}
-	if f.DockerComposeCustomBuildCommand != nil {
-		input.DockerComposeCustomBuildCommand = strPtr(*f.DockerComposeCustomBuildCommand)
+	if plan.DockerComposeCustomBuildCommand != nil && state.DockerComposeCustomBuildCommand != nil {
+		input.DockerComposeCustomBuildCommand = strDiff(*plan.DockerComposeCustomBuildCommand, *state.DockerComposeCustomBuildCommand)
 	}
-	if f.DockerComposeCustomStartCommand != nil {
-		input.DockerComposeCustomStartCommand = strPtr(*f.DockerComposeCustomStartCommand)
+	if plan.DockerComposeCustomStartCommand != nil && state.DockerComposeCustomStartCommand != nil {
+		input.DockerComposeCustomStartCommand = strDiff(*plan.DockerComposeCustomStartCommand, *state.DockerComposeCustomStartCommand)
 	}
 }
 

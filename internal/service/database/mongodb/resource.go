@@ -136,17 +136,18 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	}
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_mongodb_database", "uuid": s.UUID.ValueString()})
 
-	u := client.UpdateDatabaseInput{}
-	flex.SetStrPtr(&u.Name, p.Name)
-	flex.SetStrPtr(&u.Description, p.Description)
-	flex.SetStrPtr(&u.Image, p.Image)
-	flex.SetBoolPtr(&u.IsPublic, p.IsPublic)
-	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	flex.SetStrPtr(&u.MongoInitdbRootUsername, p.MongoInitdbRootUsername)
-	flex.SetStrPtr(&u.MongoInitdbRootPassword, p.MongoInitdbRootPassword)
-	flex.SetStrPtr(&u.MongoInitdbDatabase, p.MongoInitdbDatabase)
-	flex.SetStrPtr(&u.MongoConf, p.MongoConf)
-	pg.SetUpdateExtended(&u, p.ExtFields())
+	u := client.UpdateDatabaseInput{
+		Name:                    flex.StringIfChanged(p.Name, s.Name),
+		Description:             flex.StringIfChanged(p.Description, s.Description),
+		Image:                   flex.StringIfChanged(p.Image, s.Image),
+		IsPublic:                flex.BoolIfChanged(p.IsPublic, s.IsPublic),
+		PublicPort:              flex.Int64IfChanged(p.PublicPort, s.PublicPort),
+		MongoInitdbRootUsername: flex.StringIfChanged(p.MongoInitdbRootUsername, s.MongoInitdbRootUsername),
+		MongoInitdbRootPassword: flex.StringIfChanged(p.MongoInitdbRootPassword, s.MongoInitdbRootPassword),
+		MongoInitdbDatabase:     flex.StringIfChanged(p.MongoInitdbDatabase, s.MongoInitdbDatabase),
+		MongoConf:               flex.StringIfChanged(p.MongoConf, s.MongoConf),
+	}
+	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MongoDB database", fmt.Sprintf("MongoDB database %s: %s", s.UUID.ValueString(), err))

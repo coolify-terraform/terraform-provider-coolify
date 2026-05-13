@@ -139,18 +139,19 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	}
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_mariadb_database", "uuid": s.UUID.ValueString()})
 
-	u := client.UpdateDatabaseInput{}
-	flex.SetStrPtr(&u.Name, p.Name)
-	flex.SetStrPtr(&u.Description, p.Description)
-	flex.SetStrPtr(&u.Image, p.Image)
-	flex.SetBoolPtr(&u.IsPublic, p.IsPublic)
-	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	flex.SetStrPtr(&u.MariadbUser, p.MariadbUser)
-	flex.SetStrPtr(&u.MariadbPassword, p.MariadbPassword)
-	flex.SetStrPtr(&u.MariadbDatabase, p.MariadbDatabase)
-	flex.SetStrPtr(&u.MariadbRootPassword, p.MariadbRootPassword)
-	flex.SetStrPtr(&u.MariadbConf, p.MariadbConf)
-	pg.SetUpdateExtended(&u, p.ExtFields())
+	u := client.UpdateDatabaseInput{
+		Name:                flex.StringIfChanged(p.Name, s.Name),
+		Description:         flex.StringIfChanged(p.Description, s.Description),
+		Image:               flex.StringIfChanged(p.Image, s.Image),
+		IsPublic:            flex.BoolIfChanged(p.IsPublic, s.IsPublic),
+		PublicPort:          flex.Int64IfChanged(p.PublicPort, s.PublicPort),
+		MariadbUser:         flex.StringIfChanged(p.MariadbUser, s.MariadbUser),
+		MariadbPassword:     flex.StringIfChanged(p.MariadbPassword, s.MariadbPassword),
+		MariadbDatabase:     flex.StringIfChanged(p.MariadbDatabase, s.MariadbDatabase),
+		MariadbRootPassword: flex.StringIfChanged(p.MariadbRootPassword, s.MariadbRootPassword),
+		MariadbConf:         flex.StringIfChanged(p.MariadbConf, s.MariadbConf),
+	}
+	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MariaDB database", fmt.Sprintf("MariaDB database %s: %s", s.UUID.ValueString(), err))

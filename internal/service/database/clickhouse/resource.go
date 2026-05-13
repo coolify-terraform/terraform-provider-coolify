@@ -135,15 +135,16 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": s.UUID.ValueString()})
 
-	u := client.UpdateDatabaseInput{}
-	flex.SetStrPtr(&u.Name, p.Name)
-	flex.SetStrPtr(&u.Description, p.Description)
-	flex.SetStrPtr(&u.Image, p.Image)
-	flex.SetBoolPtr(&u.IsPublic, p.IsPublic)
-	u.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	flex.SetStrPtr(&u.ClickhouseAdminUser, p.ClickhouseAdminUser)
-	flex.SetStrPtr(&u.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
-	pg.SetUpdateExtended(&u, p.ExtFields())
+	u := client.UpdateDatabaseInput{
+		Name:                    flex.StringIfChanged(p.Name, s.Name),
+		Description:             flex.StringIfChanged(p.Description, s.Description),
+		Image:                   flex.StringIfChanged(p.Image, s.Image),
+		IsPublic:                flex.BoolIfChanged(p.IsPublic, s.IsPublic),
+		PublicPort:              flex.Int64IfChanged(p.PublicPort, s.PublicPort),
+		ClickhouseAdminUser:     flex.StringIfChanged(p.ClickhouseAdminUser, s.ClickhouseAdminUser),
+		ClickhouseAdminPassword: flex.StringIfChanged(p.ClickhouseAdminPassword, s.ClickhouseAdminPassword),
+	}
+	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))

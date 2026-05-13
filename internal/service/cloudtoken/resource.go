@@ -177,8 +177,8 @@ func (r *cloudTokenResource) Update(ctx context.Context, req resource.UpdateRequ
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_cloud_token", "uuid": state.UUID.ValueString()})
 
 	input := client.UpdateCloudTokenInput{
-		Name:  flex.StringValueOrNull(plan.Name),
-		Token: flex.StringValueOrNull(plan.Token),
+		Name:  flex.StringIfChanged(plan.Name, state.Name),
+		Token: flex.StringIfChanged(plan.Token, state.Token),
 	}
 
 	_, err := r.client.UpdateCloudToken(ctx, state.UUID.ValueString(), input)

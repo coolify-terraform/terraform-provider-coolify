@@ -172,16 +172,9 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_project", "uuid": state.UUID.ValueString()})
 
-	name := plan.Name.ValueString()
 	input := client.UpdateProjectInput{
-		Name: &name,
-	}
-	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
-		desc := plan.Description.ValueString()
-		input.Description = &desc
-	} else {
-		empty := ""
-		input.Description = &empty
+		Name:        flex.StringIfChanged(plan.Name, state.Name),
+		Description: flex.StringIfChanged(plan.Description, state.Description),
 	}
 
 	_, err := r.client.UpdateProject(ctx, state.UUID.ValueString(), input)

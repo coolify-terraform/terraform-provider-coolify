@@ -213,16 +213,21 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var state scheduledTaskResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString()})
 
 	parentType, parentUUID := plan.parentInfo()
 
 	input := client.UpdateScheduledTaskInput{
-		Name:      flex.StringValueOrNull(plan.Name),
-		Command:   flex.StringValueOrNull(plan.Command),
-		Frequency: flex.StringValueOrNull(plan.Frequency),
-		Enabled:   flex.BoolValueOrNull(plan.Enabled),
+		Name:      flex.StringIfChanged(plan.Name, state.Name),
+		Command:   flex.StringIfChanged(plan.Command, state.Command),
+		Frequency: flex.StringIfChanged(plan.Frequency, state.Frequency),
+		Enabled:   flex.BoolIfChanged(plan.Enabled, state.Enabled),
 	}
 
 	if err := r.client.UpdateScheduledTask(ctx, parentType, parentUUID, plan.UUID.ValueString(), input); err != nil {

@@ -299,20 +299,21 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 	dbUUID := state.DatabaseUUID.ValueString()
 	backupID := int(state.ID.ValueInt64())
 
-	input := client.UpdateDatabaseBackupInput{}
-	flex.SetStrPtr(&input.Frequency, plan.Frequency)
-	flex.SetBoolPtr(&input.Enabled, plan.Enabled)
-	flex.SetBoolPtr(&input.SaveS3, plan.SaveS3)
-	input.S3StorageID = flex.StringPtrForUpdate(plan.S3StorageUUID, state.S3StorageUUID)
-	flex.SetStrPtr(&input.DatabasesToBackup, plan.DatabasesToBackup)
-	flex.SetBoolPtr(&input.DumpAll, plan.DumpAll)
-	input.RetainAmountLocally = flex.Int64PtrFromFramework(plan.RetainAmountLocally)
-	input.RetainDaysLocally = flex.Int64PtrFromFramework(plan.RetainDaysLocally)
-	input.RetainMaxStorageLocal = flex.Int64PtrFromFramework(plan.RetainMaxStorageLocal)
-	input.RetainAmountS3 = flex.Int64PtrFromFramework(plan.RetainAmountS3)
-	input.RetainDaysS3 = flex.Int64PtrFromFramework(plan.RetainDaysS3)
-	input.RetainMaxStorageS3 = flex.Int64PtrFromFramework(plan.RetainMaxStorageS3)
-	input.Timeout = flex.Int64PtrFromFramework(plan.Timeout)
+	input := client.UpdateDatabaseBackupInput{
+		Frequency:             flex.StringIfChanged(plan.Frequency, state.Frequency),
+		Enabled:               flex.BoolIfChanged(plan.Enabled, state.Enabled),
+		SaveS3:                flex.BoolIfChanged(plan.SaveS3, state.SaveS3),
+		S3StorageID:           flex.StringPtrForUpdate(plan.S3StorageUUID, state.S3StorageUUID),
+		DatabasesToBackup:     flex.StringIfChanged(plan.DatabasesToBackup, state.DatabasesToBackup),
+		DumpAll:               flex.BoolIfChanged(plan.DumpAll, state.DumpAll),
+		RetainAmountLocally:   flex.Int64IfChanged(plan.RetainAmountLocally, state.RetainAmountLocally),
+		RetainDaysLocally:     flex.Int64IfChanged(plan.RetainDaysLocally, state.RetainDaysLocally),
+		RetainMaxStorageLocal: flex.Int64IfChanged(plan.RetainMaxStorageLocal, state.RetainMaxStorageLocal),
+		RetainAmountS3:        flex.Int64IfChanged(plan.RetainAmountS3, state.RetainAmountS3),
+		RetainDaysS3:          flex.Int64IfChanged(plan.RetainDaysS3, state.RetainDaysS3),
+		RetainMaxStorageS3:    flex.Int64IfChanged(plan.RetainMaxStorageS3, state.RetainMaxStorageS3),
+		Timeout:               flex.Int64IfChanged(plan.Timeout, state.Timeout),
+	}
 
 	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, state.UUID.ValueString(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating database backup", fmt.Sprintf("backup %s for database %s: %s", state.UUID.ValueString(), dbUUID, err))

@@ -257,20 +257,21 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": uuid})
 
-	input := client.UpdateDatabaseInput{}
-	flex.SetStrPtr(&input.Name, plan.Name)
-	flex.SetStrPtr(&input.Description, plan.Description)
-	flex.SetStrPtr(&input.Image, plan.Image)
-	flex.SetBoolPtr(&input.IsPublic, plan.IsPublic)
-	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
-	flex.SetStrPtr(&input.PostgresUser, plan.PostgresUser)
-	flex.SetStrPtr(&input.PostgresPassword, plan.PostgresPassword)
-	flex.SetStrPtr(&input.PostgresDB, plan.PostgresDB)
-	flex.SetStrPtr(&input.PostgresConf, plan.PostgresConf)
-	flex.SetStrPtr(&input.PostgresInitdbArgs, plan.PostgresInitdbArgs)
-	flex.SetStrPtr(&input.PostgresHostAuthMethod, plan.PostgresHostAuthMethod)
-	flex.SetStrPtr(&input.InitScripts, plan.InitScripts)
-	SetUpdateExtended(&input, plan.ExtFields())
+	input := client.UpdateDatabaseInput{
+		Name:                   flex.StringIfChanged(plan.Name, state.Name),
+		Description:            flex.StringIfChanged(plan.Description, state.Description),
+		Image:                  flex.StringIfChanged(plan.Image, state.Image),
+		IsPublic:               flex.BoolIfChanged(plan.IsPublic, state.IsPublic),
+		PublicPort:             flex.Int64IfChanged(plan.PublicPort, state.PublicPort),
+		PostgresUser:           flex.StringIfChanged(plan.PostgresUser, state.PostgresUser),
+		PostgresPassword:       flex.StringIfChanged(plan.PostgresPassword, state.PostgresPassword),
+		PostgresDB:             flex.StringIfChanged(plan.PostgresDB, state.PostgresDB),
+		PostgresConf:           flex.StringIfChanged(plan.PostgresConf, state.PostgresConf),
+		PostgresInitdbArgs:     flex.StringIfChanged(plan.PostgresInitdbArgs, state.PostgresInitdbArgs),
+		PostgresHostAuthMethod: flex.StringIfChanged(plan.PostgresHostAuthMethod, state.PostgresHostAuthMethod),
+		InitScripts:            flex.StringIfChanged(plan.InitScripts, state.InitScripts),
+	}
+	SetUpdateExtendedDiff(&input, plan.ExtFields(), state.ExtFields())
 	db, err := UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", uuid, err))
@@ -451,6 +452,21 @@ func SetUpdateExtended(input *client.UpdateDatabaseInput, f DatabaseExtendedPtrs
 	flex.SetInt64Ptr(&input.LimitsMemorySwappiness, *f.LimitsMemorySwappiness)
 	flex.SetInt64Ptr(&input.LimitsCPUShares, *f.LimitsCPUShares)
 	input.PublicPortTimeout = flex.Int64PtrFromFramework(*f.PublicPortTimeout)
+}
+
+// SetUpdateExtendedDiff populates the extended fields in an UpdateDatabaseInput,
+// only including fields that differ between plan and state.
+func SetUpdateExtendedDiff(input *client.UpdateDatabaseInput, plan, state DatabaseExtendedPtrs) {
+	input.LimitsMemory = flex.StringIfChanged(*plan.LimitsMemory, *state.LimitsMemory)
+	input.LimitsMemorySwap = flex.StringIfChanged(*plan.LimitsMemorySwap, *state.LimitsMemorySwap)
+	input.LimitsMemoryReservation = flex.StringIfChanged(*plan.LimitsMemoryReservation, *state.LimitsMemoryReservation)
+	input.LimitsCPUs = flex.StringIfChanged(*plan.LimitsCPUs, *state.LimitsCPUs)
+	input.LimitsCPUSet = flex.StringIfChanged(*plan.LimitsCPUSet, *state.LimitsCPUSet)
+	input.PortsMappings = flex.StringIfChanged(*plan.PortsMappings, *state.PortsMappings)
+	input.CustomDockerRunOptions = flex.StringIfChanged(*plan.CustomDockerRunOptions, *state.CustomDockerRunOptions)
+	input.LimitsMemorySwappiness = flex.Int64IfChanged(*plan.LimitsMemorySwappiness, *state.LimitsMemorySwappiness)
+	input.LimitsCPUShares = flex.Int64IfChanged(*plan.LimitsCPUShares, *state.LimitsCPUShares)
+	input.PublicPortTimeout = flex.Int64IfChanged(*plan.PublicPortTimeout, *state.PublicPortTimeout)
 }
 
 // HasExtendedFields returns true if any extended field is configured (not

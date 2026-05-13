@@ -134,11 +134,17 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var state serviceResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": plan.UUID.ValueString()})
 
-	input := client.UpdateServiceInput{}
-	flex.SetStrPtr(&input.Name, plan.Name)
-	flex.SetStrPtr(&input.Description, plan.Description)
+	input := client.UpdateServiceInput{
+		Name:        flex.StringIfChanged(plan.Name, state.Name),
+		Description: flex.StringIfChanged(plan.Description, state.Description),
+	}
 	if _, err := r.client.UpdateService(ctx, plan.UUID.ValueString(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating service", fmt.Sprintf("service %s: %s", plan.UUID.ValueString(), err))
 		return

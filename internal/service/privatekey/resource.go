@@ -190,10 +190,11 @@ func (r *privateKeyResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_private_key", "uuid": state.UUID.ValueString()})
 
-	input := client.UpdatePrivateKeyInput{}
-	flex.SetStrPtr(&input.Name, plan.Name)
-	flex.SetStrPtr(&input.Description, plan.Description)
-	flex.SetStrPtr(&input.PrivateKey, plan.PrivateKey)
+	input := client.UpdatePrivateKeyInput{
+		Name:        flex.StringIfChanged(plan.Name, state.Name),
+		Description: flex.StringIfChanged(plan.Description, state.Description),
+		PrivateKey:  flex.StringIfChanged(plan.PrivateKey, state.PrivateKey),
+	}
 
 	_, err := r.client.UpdatePrivateKey(ctx, state.UUID.ValueString(), input)
 	if err != nil {

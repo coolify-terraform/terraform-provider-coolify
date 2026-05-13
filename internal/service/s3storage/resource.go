@@ -194,14 +194,15 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_s3_storage", "uuid": state.UUID.ValueString()})
 
-	input := client.UpdateS3StorageInput{}
-	flex.SetStrPtr(&input.Name, plan.Name)
-	flex.SetStrPtr(&input.Description, plan.Description)
-	flex.SetStrPtr(&input.Endpoint, plan.Endpoint)
-	flex.SetStrPtr(&input.Bucket, plan.Bucket)
-	flex.SetStrPtr(&input.Region, plan.Region)
-	flex.SetStrPtr(&input.AccessKey, plan.AccessKey)
-	flex.SetStrPtr(&input.SecretKey, plan.SecretKey)
+	input := client.UpdateS3StorageInput{
+		Name:        flex.StringIfChanged(plan.Name, state.Name),
+		Description: flex.StringIfChanged(plan.Description, state.Description),
+		Endpoint:    flex.StringIfChanged(plan.Endpoint, state.Endpoint),
+		Bucket:      flex.StringIfChanged(plan.Bucket, state.Bucket),
+		Region:      flex.StringIfChanged(plan.Region, state.Region),
+		AccessKey:   flex.StringIfChanged(plan.AccessKey, state.AccessKey),
+		SecretKey:   flex.StringIfChanged(plan.SecretKey, state.SecretKey),
+	}
 
 	_, err := r.client.UpdateS3Storage(ctx, state.UUID.ValueString(), input)
 	if err != nil {

@@ -340,6 +340,99 @@ func TestSetBoolPtr(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// StringIfChanged / BoolIfChanged / Int64IfChanged
+// ---------------------------------------------------------------------------
+
+func TestStringIfChanged(t *testing.T) {
+	t.Parallel()
+
+	t.Run("different values returns plan", func(t *testing.T) {
+		result := flex.StringIfChanged(types.StringValue("new"), types.StringValue("old"))
+		if result == nil || *result != "new" {
+			t.Fatalf("expected 'new', got %v", result)
+		}
+	})
+
+	t.Run("same values returns nil", func(t *testing.T) {
+		result := flex.StringIfChanged(types.StringValue("same"), types.StringValue("same"))
+		if result != nil {
+			t.Fatalf("expected nil, got %v", *result)
+		}
+	})
+
+	t.Run("both null returns nil", func(t *testing.T) {
+		result := flex.StringIfChanged(types.StringNull(), types.StringNull())
+		if result != nil {
+			t.Fatalf("expected nil, got %v", *result)
+		}
+	})
+
+	t.Run("plan null state has value returns nil for plan", func(t *testing.T) {
+		result := flex.StringIfChanged(types.StringNull(), types.StringValue("old"))
+		if result != nil {
+			t.Fatalf("expected nil (plan is null), got %v", *result)
+		}
+	})
+
+	t.Run("plan has value state null returns plan", func(t *testing.T) {
+		result := flex.StringIfChanged(types.StringValue("new"), types.StringNull())
+		if result == nil || *result != "new" {
+			t.Fatalf("expected 'new', got %v", result)
+		}
+	})
+}
+
+func TestBoolIfChanged(t *testing.T) {
+	t.Parallel()
+
+	t.Run("different values returns plan", func(t *testing.T) {
+		result := flex.BoolIfChanged(types.BoolValue(true), types.BoolValue(false))
+		if result == nil || !*result {
+			t.Fatalf("expected true, got %v", result)
+		}
+	})
+
+	t.Run("same values returns nil", func(t *testing.T) {
+		result := flex.BoolIfChanged(types.BoolValue(true), types.BoolValue(true))
+		if result != nil {
+			t.Fatalf("expected nil, got %v", *result)
+		}
+	})
+
+	t.Run("both null returns nil", func(t *testing.T) {
+		result := flex.BoolIfChanged(types.BoolNull(), types.BoolNull())
+		if result != nil {
+			t.Fatalf("expected nil, got %v", *result)
+		}
+	})
+}
+
+func TestInt64IfChanged(t *testing.T) {
+	t.Parallel()
+
+	t.Run("different values returns plan", func(t *testing.T) {
+		result := flex.Int64IfChanged(types.Int64Value(42), types.Int64Value(10))
+		if result == nil || *result != 42 {
+			t.Fatalf("expected 42, got %v", result)
+		}
+	})
+
+	t.Run("same values returns nil", func(t *testing.T) {
+		result := flex.Int64IfChanged(types.Int64Value(42), types.Int64Value(42))
+		if result != nil {
+			t.Fatalf("expected nil, got %v", *result)
+		}
+	})
+
+	t.Run("both null returns nil", func(t *testing.T) {
+		result := flex.Int64IfChanged(types.Int64Null(), types.Int64Null())
+		if result != nil {
+			t.Fatalf("expected nil, got %v", *result)
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
 // StringPtrForUpdate / Int64PtrForUpdate
 // ---------------------------------------------------------------------------
 

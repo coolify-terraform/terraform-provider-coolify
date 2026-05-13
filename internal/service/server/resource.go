@@ -270,27 +270,20 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": state.UUID.ValueString()})
 
-	port := int(plan.Port.ValueInt64())
-	buildSrv := plan.IsBuildServer.ValueBool()
-	concBuilds := int(plan.ConcurrentBuilds.ValueInt64())
-	dynTimeout := int(plan.DynamicTimeout.ValueInt64())
-	queueLimit := int(plan.DeploymentQueueLimit.ValueInt64())
-	diskThresh := int(plan.ServerDiskUsageNotificationThreshold.ValueInt64())
-
 	input := client.UpdateServerInput{
-		Port:                                 &port,
-		IsBuildServer:                        &buildSrv,
-		ConcurrentBuilds:                     &concBuilds,
-		DynamicTimeout:                       &dynTimeout,
-		DeploymentQueueLimit:                 &queueLimit,
-		ServerDiskUsageNotificationThreshold: &diskThresh,
+		Name:                                 flex.StringIfChanged(plan.Name, state.Name),
+		Description:                          flex.StringIfChanged(plan.Description, state.Description),
+		IP:                                   flex.StringIfChanged(plan.IP, state.IP),
+		Port:                                 flex.IntIfChanged(plan.Port, state.Port),
+		User:                                 flex.StringIfChanged(plan.User, state.User),
+		PrivateKeyUUID:                       flex.StringIfChanged(plan.PrivateKeyUUID, state.PrivateKeyUUID),
+		IsBuildServer:                        flex.BoolIfChanged(plan.IsBuildServer, state.IsBuildServer),
+		ConcurrentBuilds:                     flex.IntIfChanged(plan.ConcurrentBuilds, state.ConcurrentBuilds),
+		DynamicTimeout:                       flex.IntIfChanged(plan.DynamicTimeout, state.DynamicTimeout),
+		DeploymentQueueLimit:                 flex.IntIfChanged(plan.DeploymentQueueLimit, state.DeploymentQueueLimit),
+		ServerDiskUsageNotificationThreshold: flex.IntIfChanged(plan.ServerDiskUsageNotificationThreshold, state.ServerDiskUsageNotificationThreshold),
+		ServerDiskUsageCheckFrequency:        flex.StringIfChanged(plan.ServerDiskUsageCheckFrequency, state.ServerDiskUsageCheckFrequency),
 	}
-	flex.SetStrPtr(&input.Name, plan.Name)
-	flex.SetStrPtr(&input.Description, plan.Description)
-	flex.SetStrPtr(&input.IP, plan.IP)
-	flex.SetStrPtr(&input.User, plan.User)
-	flex.SetStrPtr(&input.PrivateKeyUUID, plan.PrivateKeyUUID)
-	flex.SetStrPtr(&input.ServerDiskUsageCheckFrequency, plan.ServerDiskUsageCheckFrequency)
 
 	_, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input)
 	if err != nil {
