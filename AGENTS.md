@@ -18,24 +18,55 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
 
-**Never guess Coolify API behavior.** The real contracts are extracted from the
-Coolify Laravel source code (models, controllers, migrations) and stored in
-`testdata/contracts/coolify-v4.json`. The OpenAPI spec at `testdata/specs/` is
-generated FROM the contract, not manually maintained.
+**Never guess Coolify API behavior. You have access to the real source code.**
 
-When you need to know a field's type, default, nullability, validation rules,
-or whether it's returned on GET: check the contract JSON first. If the contract
-doesn't have the answer, clone the Coolify source and read the PHP directly:
+The Coolify project is open source at `github.com/coollabsio/coolify`. When
+you encounter ANY question about how the API works, the answer is in the PHP
+source code. Do not hypothesize, do not assume, do not test by trial and error.
+Read the code.
+
+### When to read the source
+
+- A field isn't returned on GET? Read the controller's response builder.
+- An update returns 422? Read the controller's `$allowedFields` and validation rules.
+- A field has a surprising default? Read the migration and model `$attributes`.
+- A flatten function causes "inconsistent result"? Read the model's accessors
+  to see if the API normalizes the value (base64 encode/decode, path prefixing, etc.).
+- The OpenAPI spec says one thing but the API does another? The spec is wrong.
+  The source code is the truth.
+
+### How to read the source
 
 ```bash
+# Clone once per session (or reuse /tmp/coolify if already there)
 git clone --depth 1 https://github.com/coollabsio/coolify.git /tmp/coolify
-# Models: /tmp/coolify/app/Models/Application.php ($fillable, $casts, $attributes)
-# Controllers: /tmp/coolify/app/Http/Controllers/Api/ApplicationsController.php (validation rules)
-# Migrations: /tmp/coolify/database/migrations/ (column types, defaults, nullable)
 ```
 
-Do NOT rely on the OpenAPI spec for field definitions. It has wrong nullability
-on 22+ fields, missing defaults, and zero validation rules.
+| Question | Where to look |
+|----------|--------------|
+| What fields exist on a resource? | `app/Models/Application.php` (`$fillable`) |
+| What type is a field? What's the default? | `database/migrations/` (column definitions) |
+| Is a field encrypted/sensitive? | Model `$casts` (look for `'encrypted'`) |
+| What does the API accept on create/update? | `app/Http/Controllers/Api/ApplicationsController.php` (`$allowedFields`, `$request->validate()`) |
+| What validation rules apply? | Controller + `bootstrap/helpers/api.php` (`sharedDataApplications()`) |
+| What regex patterns are enforced? | `app/Support/ValidationPatterns.php` |
+| What does the API return after create? | Controller method (look for `return response()->json(...)`) |
+| Does updating a field trigger a side effect? | Controller method (look for `queue_application_deployment`, `StartService`, etc.) |
+| What are the enum values? | `app/Enums/` directory |
+| Where are settings stored? | `app/Models/ApplicationSetting.php` (separate table from Application) |
+
+### The contract extraction pipeline
+
+We have automated extraction that reads the source and produces a machine-readable
+contract JSON. Use it as the first check, then go deeper into the PHP when needed:
+
+1. `testdata/contracts/coolify-v4.json` -- extracted contract (check here first)
+2. `/tmp/coolify/app/Models/*.php` -- the real model when the contract isn't enough
+3. `/tmp/coolify/app/Http/Controllers/Api/*.php` -- the real controller for validation logic
+
+The OpenAPI spec at `testdata/specs/` is generated FROM the contract. Do NOT
+treat it as authoritative. It had 22 wrong nullability annotations, 3 type
+mismatches, and zero validation rules when we compared it against the source.
 
 ## Commands
 
