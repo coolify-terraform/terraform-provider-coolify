@@ -46,13 +46,11 @@ contract-check: ## Verify client structs cover all contract fields
 contract-matrix: ## Generate API contract accuracy matrix page
 	python3 scripts/generate-contract-matrix.py
 
-spec-generate: ## Regenerate OpenAPI spec from contract (idempotent: always patches from git baseline)
-	@git show HEAD:testdata/specs/coolify-v4.json > testdata/specs/coolify-v4.json.base 2>/dev/null || cp testdata/specs/coolify-v4.json testdata/specs/coolify-v4.json.base
+spec-generate: ## Regenerate OpenAPI spec from contract (idempotent: always patches from original)
 	python3 scripts/generate-openapi.py \
 		--contract testdata/contracts/coolify-v4.json \
-		--spec testdata/specs/coolify-v4.json.base \
+		--spec testdata/specs/coolify-v4.original.json \
 		--output testdata/specs/coolify-v4.json
-	@rm -f testdata/specs/coolify-v4.json.base
 
 api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 	GENERATE_COVERAGE_DOC=1 go test -count=1 -run TestSpecCoverage_GenerateDoc ./internal/spectest/ -v

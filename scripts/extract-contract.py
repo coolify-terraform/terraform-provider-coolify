@@ -167,14 +167,15 @@ def _extract_column_defs(block: str, columns: dict):
     """Extract column definitions from a migration block."""
     # Match: $table->type('name')...;
     col_pattern = re.compile(
-        r"\$table->(\w+)\(\s*'([^']+)'(?:\s*,\s*(\d+))?\s*\)(.*?);",
+        r"\$table->(\w+)\(\s*'([^']+)'(?:\s*,\s*(?:(\d+)|(\[[^\]]*\])))?\s*\)(.*?);",
         re.DOTALL,
     )
     for match in col_pattern.finditer(block):
         col_type = match.group(1)
         col_name = match.group(2)
-        col_length = match.group(3)
-        chain = match.group(4)
+        col_length = match.group(3)  # numeric arg (e.g., string length)
+        col_array = match.group(4)   # array arg (e.g., enum values)
+        chain = match.group(5)
 
         # Skip non-column methods
         if col_type in (
@@ -227,14 +228,9 @@ def _extract_column_defs(block: str, columns: dict):
         elif mapped_type == "string":
             col_info["max_length"] = 255
 
-        # Detect enum values
-        if col_type == "enum":
-            enum_match = re.search(
-                r"\$table->enum\(\s*'" + re.escape(col_name) + r"'\s*,\s*\[(.*?)\]\s*\)",
-                block, re.DOTALL,
-            )
-            if enum_match:
-                col_info["enum_values"] = re.findall(r"'([^']+)'", enum_match.group(1))
+        # Detect enum values from the captured array argument
+        if col_type == "enum" and col_array:
+            col_info["enum_values"] = re.findall(r"'([^']+)'", col_array)
 
         columns[col_name] = col_info
 

@@ -78,10 +78,8 @@ def patch_schema(schema: dict, contract_model: dict) -> dict:
             if prop:
                 properties[field_name] = prop
 
-    # Don't add required to response schemas. The libopenapi validator
-    # has issues with required + nullable in OpenAPI 3.1.0 specs that use
-    # the 3.0-style nullable keyword. The contract test validates field
-    # coverage independently.
+    # Don't add required to response schemas. The contract test validates
+    # field coverage independently.
     schema["properties"] = dict(sorted(properties.items()))
     schema.pop("required", None)
 
@@ -98,10 +96,8 @@ def _build_property(field_name: str, field_info: dict) -> dict | None:
         "description": field_name.replace("_", " ").capitalize() + ".",
     }
 
-    # Don't add nullable: the spec uses OpenAPI 3.1.0 where nullable is
-    # not a valid keyword (use type arrays instead). The libopenapi validator
-    # has issues compiling schemas with nullable + 3.1.0. We correct
-    # nullability only on fields that already had it in the original spec.
+    # Don't add nullable on new fields. The original spec already has
+    # nullable annotations on existing fields where appropriate.
 
     if field_info.get("default") is not None:
         prop["default"] = field_info["default"]
@@ -127,8 +123,6 @@ def _patch_property(prop: dict, field_info: dict):
     prop["type"] = openapi_type
 
     # Preserve existing nullable annotations but don't add new ones.
-    # OpenAPI 3.1.0 doesn't support nullable keyword (use type arrays).
-    # The libopenapi validator fails schema compilation with nullable + 3.1.
 
     # Fix/add default
     if field_info.get("default") is not None:

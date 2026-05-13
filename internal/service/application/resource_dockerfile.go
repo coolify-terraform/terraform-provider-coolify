@@ -271,6 +271,14 @@ func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_dockerfile_application", "uuid": plan.UUID.ValueString()})
 
 	input := buildUpdateInput(plan.common())
+	// For dockerfile apps, the API expects Dockerfile content via the
+	// "dockerfile" JSON key, not "dockerfile_location". The shared
+	// buildUpdateInput sets DockerfileLocation (correct for git-based apps),
+	// so we move the value to the Dockerfile field.
+	if input.DockerfileLocation != nil {
+		input.Dockerfile = input.DockerfileLocation
+		input.DockerfileLocation = nil
+	}
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenDockerfileApplication(app, &plan)
 	})
@@ -354,5 +362,16 @@ func (m *dockerfileApplicationResourceModel) common() commonAppFields {
 }
 
 func flattenDockerfileApplication(app *client.Application, state *dockerfileApplicationResourceModel) {
+	// Save the user's dockerfile_location before the common flatten,
+	// which may overwrite it with a stale value from the API's
+	// dockerfile_location field. For dockerfile apps, the content
+	// lives in the API's "dockerfile" field, not "dockerfile_location".
+	savedDockerfileLocation := state.DockerfileLocation
 	flattenApplicationCommon(app, state.common())
+	// Preserve the user's value if it was set (normal CRUD flow).
+	// On import, savedDockerfileLocation is null, so let the common
+	// flatten's result stand (populated from app.DockerfileLocation).
+	if !savedDockerfileLocation.IsNull() && !savedDockerfileLocation.IsUnknown() {
+		state.DockerfileLocation = savedDockerfileLocation
+	}
 }

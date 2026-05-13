@@ -352,7 +352,6 @@ Schema::create('items', function (Blueprint $table) {
         cols = ec.parse_migration_columns(self.tmpdir, "items")
         self.assertEqual(cols["title"]["max_length"], 255)
 
-    @unittest.expectedFailure  # BUG: col_pattern regex only accepts numeric 2nd arg (\d+), skips enum arrays
     def test_enum_values(self):
         self._write(
             "2024_01_01_000000_create_items_table.php",
