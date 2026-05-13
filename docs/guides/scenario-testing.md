@@ -363,3 +363,4 @@ silently drops the record. Fix the server validation (see Step 4).
 | `acme-integrations` | Intermediate | Managed services from the Coolify catalog |
 | `acme-multi-env` | Advanced | Terraform module composition for dev + staging environments |
 | `acme-platform` | Intermediate | Private keys, environments, storage, data sources |
+| `acme-backups` | Beginner | Full backup lifecycle: schedule, trigger, monitor execution status |
