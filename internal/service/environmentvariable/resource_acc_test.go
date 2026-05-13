@@ -22,6 +22,7 @@ func TestAccEnvironmentVariableResource_ApplicationCRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_environment_variable", "application_uuid", "/api/v1/applications/%s/envs"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
@@ -66,6 +67,7 @@ func TestAccEnvironmentVariableDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_environment_variable", "application_uuid", "/api/v1/applications/%s/envs"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`

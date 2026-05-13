@@ -17,6 +17,7 @@ func TestAccEnvironmentResource_CreateImport(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			// Create
 			{
@@ -59,6 +60,7 @@ func TestAccEnvironmentDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`

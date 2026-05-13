@@ -18,6 +18,7 @@ func TestAccDatabaseBackupResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_database_backup", "database_uuid", "/api/v1/databases/%s/backups"),
 		Steps: []resource.TestStep{
 			// Create with initial frequency
 			{
@@ -89,6 +90,7 @@ func TestAccBackupExecutionsDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_database_backup", "database_uuid", "/api/v1/databases/%s/backups"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccBackupExecutionsConfig(name, serverUUID),

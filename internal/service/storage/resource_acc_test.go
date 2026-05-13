@@ -22,6 +22,7 @@ func TestAccStorageResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_storage", "application_uuid", "/api/v1/applications/%s/storages"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
@@ -64,6 +65,7 @@ func TestAccStorageDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_storage", "application_uuid", "/api/v1/applications/%s/storages"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccStorageWithDataSourcesConfig(name, serverUUID),

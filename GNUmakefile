@@ -51,8 +51,8 @@ docs-check: ## Check generated docs are up to date
 counts-check: ## Verify AGENTS.md resource/data source counts match provider.go
 	@r_actual=$$(sed -n '/func.*Resources.*\[\]func.*resource\.Resource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
 	d_actual=$$(sed -n '/func.*DataSources.*\[\]func.*datasource\.DataSource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
-	r_doc=$$(grep -oP '^\d+ resources' AGENTS.md | grep -oP '^\d+'); \
-	d_doc=$$(grep -oP '\d+ data sources' AGENTS.md | grep -oP '^\d+'); \
+	r_doc=$$(grep -Eo '^[0-9]+ resources' AGENTS.md | grep -Eo '^[0-9]+'); \
+	d_doc=$$(grep -Eo '[0-9]+ data sources' AGENTS.md | grep -Eo '^[0-9]+'); \
 	ok=true; \
 	if [ "$$r_actual" != "$$r_doc" ]; then echo "AGENTS.md says $$r_doc resources but provider.go has $$r_actual"; ok=false; fi; \
 	if [ "$$d_actual" != "$$d_doc" ]; then echo "AGENTS.md says $$d_doc data sources but provider.go has $$d_actual"; ok=false; fi; \

@@ -22,6 +22,7 @@ func TestAccScheduledTaskResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_scheduled_task", "application_uuid", "/api/v1/applications/%s/scheduled-tasks"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
@@ -65,6 +66,7 @@ func TestAccScheduledTaskDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_scheduled_task", "application_uuid", "/api/v1/applications/%s/scheduled-tasks"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccScheduledTaskWithDataSourcesConfig(name, serverUUID),
@@ -145,6 +147,7 @@ func TestAccTaskExecutionsDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_scheduled_task", "application_uuid", "/api/v1/applications/%s/scheduled-tasks"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccTaskExecutionsConfig(name, serverUUID),

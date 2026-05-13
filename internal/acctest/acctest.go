@@ -3,9 +3,11 @@ package acctest
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
@@ -183,6 +185,54 @@ func AccCheckDestroy(resourceType, apiPathPrefix string) resource.TestCheckFunc 
 		}
 		return nil
 	}
+}
+
+// AccCheckNestedDestroy verifies a nested resource no longer exists by
+// listing the parent's children and checking the child UUID is absent.
+// parentAttr is the state attribute holding the parent UUID (e.g.,
+// "application_uuid"). listPath is a format string with one %s for the
+// parent UUID (e.g., "/api/v1/applications/%s/envs").
+func AccCheckNestedDestroy(resourceType, parentAttr, listPath string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != resourceType {
+				continue
+			}
+			uuid := rs.Primary.Attributes["uuid"]
+			parentUUID := rs.Primary.Attributes[parentAttr]
+			if uuid == "" || parentUUID == "" {
+				continue
+			}
+			if err := checkNestedResourceGone(parentUUID, uuid, resourceType, listPath); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func checkNestedResourceGone(parentUUID, uuid, resourceType, listPath string) error {
+	endpoint := os.Getenv("COOLIFY_ENDPOINT")
+	token := os.Getenv("COOLIFY_TOKEN")
+	url := fmt.Sprintf("%s"+listPath, endpoint, parentUUID)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error checking destroy for %s/%s: %w", resourceType, uuid, err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	if strings.Contains(string(body), uuid) {
+		return fmt.Errorf("%s %s still exists in parent %s", resourceType, uuid, parentUUID)
+	}
+	return nil
 }
 
 // AccTestClient returns a Coolify API client configured from environment
