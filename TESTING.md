@@ -39,13 +39,58 @@ full Terraform lifecycle: `plan` -> `apply` -> `read` -> `update` ->
 
 ### Prerequisites
 
+The repo's `docker-compose.yml` is not a working Coolify setup. Use the
+official multi-service installation instead:
+
 ```bash
-# Start a local Coolify instance
-docker compose up -d
+# 1. Create directories (needs sudo)
+sudo mkdir -p /data/coolify/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
+sudo mkdir -p /data/coolify/proxy/dynamic
+sudo chown -R $USER:$USER /data/coolify
 
-# Complete initial setup at http://localhost:8000
-# Create an API token from Security > API Tokens
+# 2. Download official compose files
+cd /data/coolify/source
+curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.prod.yml -o docker-compose.prod.yml
+curl -fsSL https://cdn.coollabs.io/coolify/.env.production -o .env
 
+# 3. Generate secrets
+sed -i "s|APP_ID=.*|APP_ID=$(openssl rand -hex 16)|g" .env
+sed -i "s|APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|g" .env
+sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
+sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
+sed -i "s|PUSHER_APP_ID=.*|PUSHER_APP_ID=$(openssl rand -hex 32)|g" .env
+sed -i "s|PUSHER_APP_KEY=.*|PUSHER_APP_KEY=$(openssl rand -hex 32)|g" .env
+sed -i "s|PUSHER_APP_SECRET=.*|PUSHER_APP_SECRET=$(openssl rand -hex 32)|g" .env
+
+# 4. Generate SSH keys for localhost server
+ssh-keygen -t ed25519 -f /data/coolify/ssh/keys/id.root@host.docker.internal -N "" -q
+mkdir -p ~/.ssh
+cat /data/coolify/ssh/keys/id.root@host.docker.internal.pub >> ~/.ssh/authorized_keys
+chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+
+# 5. Create Docker network and start
+docker network create --attachable coolify
+cd /data/coolify/source
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml \
+  up -d --pull always --remove-orphans --force-recreate
+```
+
+Wait 30-60 seconds for Coolify to start, then complete registration at
+http://localhost:8000/register.
+
+**Important**: The API is disabled by default on fresh installs. Enable it
+via the Settings page in the UI, or directly in the database:
+
+```bash
+docker exec coolify-db psql -U coolify -d coolify \
+  -c "UPDATE instance_settings SET is_api_enabled = true;"
+```
+
+Then create an API token from **Settings > API Tokens** in the UI, or via
+the database (see the `coolify-test-instance` skill for the database method).
+
+```bash
 # Set environment variables
 export COOLIFY_ENDPOINT="http://localhost:8000"
 export COOLIFY_TOKEN="<your-api-token>"
@@ -54,11 +99,22 @@ export COOLIFY_TOKEN="<your-api-token>"
 export COOLIFY_SERVER_UUID="<server-uuid>"
 ```
 
+#### Server validation for application tests
+
+Application-related tests require a validated server with SSH access.
+Without this, application creation returns a UUID but silently fails to
+persist. See the
+[coolify-test-instance skill](../../.grok/skills/coolify-test-instance/SKILL.md)
+for the full SSH and server setup procedure.
+
 ### Running acceptance tests
 
+**Important**: Running all tests in parallel can overwhelm the Coolify API
+and cause false timeout failures. Use `-p 1` to run packages sequentially:
+
 ```bash
-# Run all acceptance tests
-make testacc
+# Run all acceptance tests (sequential packages, avoids API overload)
+TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -p 1 -run 'TestAcc' ./...
 
 # Run a specific test
 TF_ACC=1 go test -v -count=1 -timeout=30m \

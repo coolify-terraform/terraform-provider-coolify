@@ -32,7 +32,9 @@ export COOLIFY_TOKEN="your-api-token"
 make testacc
 ```
 
-See [TESTING.md](TESTING.md) for full acceptance test documentation.
+**Note**: The repo's `docker-compose.yml` is not a working Coolify setup.
+See [TESTING.md](TESTING.md) for the full local Coolify installation
+procedure, API token creation, and server validation steps.
 
 ### Code Quality
 
@@ -122,11 +124,9 @@ To test the provider against a real Coolify instance without publishing:
    terraform apply
    ```
 
-4. Start a local Coolify instance for testing:
-   ```bash
-   docker compose up -d
-   # Wait for startup, then create an API token in the Coolify UI
-   ```
+4. Start a local Coolify instance for testing (see [TESTING.md](TESTING.md)
+   for the full setup procedure; the repo's `docker-compose.yml` is not a
+   working Coolify setup).
 
 ## Pull Requests
 
