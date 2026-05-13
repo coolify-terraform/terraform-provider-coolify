@@ -70,7 +70,8 @@ mismatches, and zero validation rules when we compared it against the source.
 
 ## Commands
 
-- **Run all checks before pushing**: `make ci`
+- **Run all checks before pushing**: `make ci && make testacc`
+- **Note**: `make ci` does NOT include acceptance tests. Always run `make testacc` too if Coolify is available.
 - Build: `make build`
 - Test (all, with race detector): `make test`
 - Test (single package): `go test -race -count=1 -timeout=5m ./internal/service/project/`
@@ -155,7 +156,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - Framework: `hashicorp/terraform-plugin-testing` with `httptest` mock servers
 - 420+ tests (unit + acceptance)
 - Acceptance tests are skipped unless `TF_ACC=1` is set
-- Run `make ci` before pushing (build, lint, test, validate, docs-check, api-coverage-check, vulncheck)
+- Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, docs-check, api-coverage-check, vulncheck; testacc = acceptance tests against real Coolify)
 - Before adding a test function, grep for its name to avoid duplicates
 
 ## CI
@@ -173,4 +174,4 @@ Scenario Tests run `terraform test` against real Coolify (requires secrets).
 - Never commit API tokens or real credentials (test files use `"test-token"`)
 - `.gitleaks.toml` allowlists test files and examples for false positive suppression
 - Passwords in example HCL must be obvious placeholders (e.g., `"change-me-in-production"`)
-- Run `make ci` locally before pushing (runs build, lint, test, validate, docs-check, api-coverage-check, vulncheck)
+- Run `make ci && make testacc` locally before pushing
