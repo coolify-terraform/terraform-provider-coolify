@@ -32,6 +32,15 @@ func StringToFramework(s string) types.String {
 	return types.StringValue(s)
 }
 
+// StringValueOrDefault converts a Go string to a Terraform String value.
+// If the string is empty, returns the default value instead of null.
+func StringValueOrDefault(s, def string) types.String {
+	if s == "" {
+		return types.StringValue(def)
+	}
+	return types.StringValue(s)
+}
+
 // StringPtrToFramework converts a Go string pointer to a Terraform String.
 func StringPtrToFramework(v *string) types.String {
 	if v == nil {

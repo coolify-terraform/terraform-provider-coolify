@@ -46,6 +46,59 @@ type Application struct {
 	HealthCheckStartPeriod *int64 `json:"health_check_start_period,omitempty"`
 	// Auto-deploy
 	IsAutoDeployEnabled *bool `json:"is_auto_deploy_enabled,omitempty"`
+	// Extended build/deploy settings
+	BaseDirectory                   string `json:"base_directory,omitempty"`
+	PublishDirectory                string `json:"publish_directory,omitempty"`
+	Dockerfile                      string `json:"dockerfile,omitempty"`
+	DockerfileTargetBuild           string `json:"dockerfile_target_build,omitempty"`
+	DockerRegistryImageTag          string `json:"docker_registry_image_tag,omitempty"`
+	DockerComposeLocation           string `json:"docker_compose_location,omitempty"`
+	DockerComposeCustomBuildCommand string `json:"docker_compose_custom_build_command,omitempty"`
+	DockerComposeCustomStartCommand string `json:"docker_compose_custom_start_command,omitempty"`
+	DockerComposeDomains            string `json:"docker_compose_domains,omitempty"`
+	GitCommitSha                    string `json:"git_commit_sha,omitempty"`
+	WatchPaths                      string `json:"watch_paths,omitempty"`
+	PreviewURLTemplate              string `json:"preview_url_template,omitempty"`
+	// Container/Network settings
+	CustomDockerRunOptions   string `json:"custom_docker_run_options,omitempty"`
+	CustomLabels             string `json:"custom_labels,omitempty"`
+	CustomNetworkAliases     string `json:"custom_network_aliases,omitempty"`
+	CustomNginxConfiguration string `json:"custom_nginx_configuration,omitempty"`
+	PortsMappings            string `json:"ports_mappings,omitempty"`
+	ConnectToDockerNetwork   *bool  `json:"connect_to_docker_network,omitempty"`
+	// Redirect & static
+	Redirect    string `json:"redirect,omitempty"`
+	StaticImage string `json:"static_image,omitempty"`
+	IsStatic    *bool  `json:"is_static,omitempty"`
+	IsSPA       *bool  `json:"is_spa,omitempty"`
+	// Security & Auth
+	IsForceHTTPSEnabled    *bool  `json:"is_force_https_enabled,omitempty"`
+	IsHTTPBasicAuthEnabled *bool  `json:"is_http_basic_auth_enabled,omitempty"`
+	HTTPBasicAuthUsername  string `json:"http_basic_auth_username,omitempty"`
+	HTTPBasicAuthPassword  string `json:"http_basic_auth_password,omitempty"`
+	// Extended health checks
+	HealthCheckCommand      string `json:"health_check_command,omitempty"`
+	HealthCheckHost         string `json:"health_check_host,omitempty"`
+	HealthCheckMethod       string `json:"health_check_method,omitempty"`
+	HealthCheckResponseText string `json:"health_check_response_text,omitempty"`
+	HealthCheckReturnCode   *int64 `json:"health_check_return_code,omitempty"`
+	HealthCheckScheme       string `json:"health_check_scheme,omitempty"`
+	HealthCheckType         string `json:"health_check_type,omitempty"`
+	// Deployment commands
+	PreDeploymentCommand           string `json:"pre_deployment_command,omitempty"`
+	PreDeploymentCommandContainer  string `json:"pre_deployment_command_container,omitempty"`
+	PostDeploymentCommand          string `json:"post_deployment_command,omitempty"`
+	PostDeploymentCommandContainer string `json:"post_deployment_command_container,omitempty"`
+	// Webhook secrets
+	ManualWebhookSecretBitbucket string `json:"manual_webhook_secret_bitbucket,omitempty"`
+	ManualWebhookSecretGitea     string `json:"manual_webhook_secret_gitea,omitempty"`
+	ManualWebhookSecretGitHub    string `json:"manual_webhook_secret_github,omitempty"`
+	ManualWebhookSecretGitLab    string `json:"manual_webhook_secret_gitlab,omitempty"`
+	// Other settings
+	ForceDomainOverride           *bool `json:"force_domain_override,omitempty"`
+	IsContainerLabelEscapeEnabled *bool `json:"is_container_label_escape_enabled,omitempty"`
+	IsPreserveRepositoryEnabled   *bool `json:"is_preserve_repository_enabled,omitempty"`
+	UseBuildServer                *bool `json:"use_build_server,omitempty"`
 }
 type CreatePublicAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
@@ -97,6 +150,59 @@ type UpdateApplicationInput struct {
 	HealthCheckStartPeriod *int64  `json:"health_check_start_period,omitempty"`
 	// Auto-deploy
 	IsAutoDeployEnabled *bool `json:"is_auto_deploy_enabled,omitempty"`
+	// Extended build/deploy settings
+	BaseDirectory                   *string `json:"base_directory,omitempty"`
+	PublishDirectory                *string `json:"publish_directory,omitempty"`
+	Dockerfile                      *string `json:"dockerfile,omitempty"`
+	DockerfileTargetBuild           *string `json:"dockerfile_target_build,omitempty"`
+	DockerRegistryImageTag          *string `json:"docker_registry_image_tag,omitempty"`
+	DockerComposeLocation           *string `json:"docker_compose_location,omitempty"`
+	DockerComposeCustomBuildCommand *string `json:"docker_compose_custom_build_command,omitempty"`
+	DockerComposeCustomStartCommand *string `json:"docker_compose_custom_start_command,omitempty"`
+	DockerComposeDomains            *string `json:"docker_compose_domains,omitempty"`
+	GitCommitSha                    *string `json:"git_commit_sha,omitempty"`
+	WatchPaths                      *string `json:"watch_paths,omitempty"`
+	PreviewURLTemplate              *string `json:"preview_url_template,omitempty"`
+	// Container/Network settings
+	CustomDockerRunOptions   *string `json:"custom_docker_run_options,omitempty"`
+	CustomLabels             *string `json:"custom_labels,omitempty"`
+	CustomNetworkAliases     *string `json:"custom_network_aliases,omitempty"`
+	CustomNginxConfiguration *string `json:"custom_nginx_configuration,omitempty"`
+	PortsMappings            *string `json:"ports_mappings,omitempty"`
+	ConnectToDockerNetwork   *bool   `json:"connect_to_docker_network,omitempty"`
+	// Redirect & static
+	Redirect    *string `json:"redirect,omitempty"`
+	StaticImage *string `json:"static_image,omitempty"`
+	IsStatic    *bool   `json:"is_static,omitempty"`
+	IsSPA       *bool   `json:"is_spa,omitempty"`
+	// Security & Auth
+	IsForceHTTPSEnabled    *bool   `json:"is_force_https_enabled,omitempty"`
+	IsHTTPBasicAuthEnabled *bool   `json:"is_http_basic_auth_enabled,omitempty"`
+	HTTPBasicAuthUsername  *string `json:"http_basic_auth_username,omitempty"`
+	HTTPBasicAuthPassword  *string `json:"http_basic_auth_password,omitempty"`
+	// Extended health checks
+	HealthCheckCommand      *string `json:"health_check_command,omitempty"`
+	HealthCheckHost         *string `json:"health_check_host,omitempty"`
+	HealthCheckMethod       *string `json:"health_check_method,omitempty"`
+	HealthCheckResponseText *string `json:"health_check_response_text,omitempty"`
+	HealthCheckReturnCode   *int64  `json:"health_check_return_code,omitempty"`
+	HealthCheckScheme       *string `json:"health_check_scheme,omitempty"`
+	HealthCheckType         *string `json:"health_check_type,omitempty"`
+	// Deployment commands
+	PreDeploymentCommand           *string `json:"pre_deployment_command,omitempty"`
+	PreDeploymentCommandContainer  *string `json:"pre_deployment_command_container,omitempty"`
+	PostDeploymentCommand          *string `json:"post_deployment_command,omitempty"`
+	PostDeploymentCommandContainer *string `json:"post_deployment_command_container,omitempty"`
+	// Webhook secrets
+	ManualWebhookSecretBitbucket *string `json:"manual_webhook_secret_bitbucket,omitempty"`
+	ManualWebhookSecretGitea     *string `json:"manual_webhook_secret_gitea,omitempty"`
+	ManualWebhookSecretGitHub    *string `json:"manual_webhook_secret_github,omitempty"`
+	ManualWebhookSecretGitLab    *string `json:"manual_webhook_secret_gitlab,omitempty"`
+	// Other settings
+	ForceDomainOverride           *bool `json:"force_domain_override,omitempty"`
+	IsContainerLabelEscapeEnabled *bool `json:"is_container_label_escape_enabled,omitempty"`
+	IsPreserveRepositoryEnabled   *bool `json:"is_preserve_repository_enabled,omitempty"`
+	UseBuildServer                *bool `json:"use_build_server,omitempty"`
 }
 
 func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {
