@@ -475,7 +475,7 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Provider coverage: 
 | enabled | boolean | - | - | - | true | supported |
 | frequency | string | - | - | - | - | supported |
 | number_of_backups_locally | integer | - | - | - | 7 | n/a |
-| s3_storage_id | integer | - | - | - | - | n/a |
+| s3_storage_uuid | integer | - | - | - | - | n/a |
 | save_s3 | boolean | - | - | - | true | supported |
 | timeout | integer | - | - | - | 3600 | supported |
 | uuid | string | - | - | - | - | supported |

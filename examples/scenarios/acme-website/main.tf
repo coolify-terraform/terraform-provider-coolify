@@ -94,8 +94,8 @@ resource "coolify_s3_storage" "backups" {
 resource "coolify_database_backup" "daily" {
   count = var.enable_backups ? 1 : 0
 
-  database_uuid = coolify_postgresql_database.content.uuid
-  s3_storage_id = coolify_s3_storage.backups[0].uuid
-  frequency     = "@daily"
-  enabled       = true
+  database_uuid   = coolify_postgresql_database.content.uuid
+  s3_storage_uuid = coolify_s3_storage.backups[0].uuid
+  frequency       = "@daily"
+  enabled         = true
 }

@@ -134,7 +134,7 @@ data "coolify_application" "verify_api" {
 }
 
 # --- Database Backup ---
-# When s3_storage_id is omitted, backups are stored locally on the server.
+# When s3_storage_uuid is omitted, backups are stored locally on the server.
 
 resource "coolify_database_backup" "orders" {
   database_uuid         = coolify_postgresql_database.orders.uuid

@@ -58,7 +58,7 @@ resource "coolify_s3_storage" "backups" {
 
 resource "coolify_database_backup" "daily" {
   database_uuid         = coolify_postgresql_database.main.uuid
-  s3_storage_id         = coolify_s3_storage.backups.uuid
+  s3_storage_uuid       = coolify_s3_storage.backups.uuid
   frequency             = "0 2 * * *"
   retain_amount_locally = 7 # Number of backup copies to keep (not days)
   enabled               = true

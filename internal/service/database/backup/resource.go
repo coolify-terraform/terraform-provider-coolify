@@ -25,9 +25,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = &databaseBackupResource{}
-	_ resource.ResourceWithConfigure   = &databaseBackupResource{}
-	_ resource.ResourceWithImportState = &databaseBackupResource{}
+	_ resource.Resource                 = &databaseBackupResource{}
+	_ resource.ResourceWithConfigure    = &databaseBackupResource{}
+	_ resource.ResourceWithImportState  = &databaseBackupResource{}
+	_ resource.ResourceWithUpgradeState = &databaseBackupResource{}
 )
 
 type databaseBackupResource struct {
@@ -41,7 +42,7 @@ type databaseBackupResourceModel struct {
 	Frequency             types.String `tfsdk:"frequency"`
 	Enabled               types.Bool   `tfsdk:"enabled"`
 	SaveS3                types.Bool   `tfsdk:"save_s3"`
-	S3StorageID           types.String `tfsdk:"s3_storage_id"`
+	S3StorageUUID         types.String `tfsdk:"s3_storage_uuid"`
 	DatabasesToBackup     types.String `tfsdk:"databases_to_backup"`
 	DumpAll               types.Bool   `tfsdk:"dump_all"`
 	BackupNow             types.Bool   `tfsdk:"backup_now"`
@@ -62,6 +63,7 @@ func (r *databaseBackupResource) Metadata(_ context.Context, req resource.Metada
 
 func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Version:             1,
 		MarkdownDescription: "Manages a scheduled database backup configuration on Coolify.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
@@ -108,7 +110,7 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
-			"s3_storage_id": schema.StringAttribute{
+			"s3_storage_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the S3 storage destination for off-site backups. Required when `save_s3` is `true`.",
 				Optional:            true,
 			},
@@ -198,7 +200,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 		Enabled:   plan.Enabled.ValueBool(),
 	}
 	flex.SetBoolPtr(&input.SaveS3, plan.SaveS3)
-	flex.SetIfKnown(&input.S3StorageID, plan.S3StorageID)
+	flex.SetIfKnown(&input.S3StorageID, plan.S3StorageUUID)
 	flex.SetIfKnown(&input.DatabasesToBackup, plan.DatabasesToBackup)
 	flex.SetBoolPtr(&input.DumpAll, plan.DumpAll)
 	flex.SetBoolPtr(&input.BackupNow, plan.BackupNow)
@@ -301,7 +303,7 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 	flex.SetStrPtr(&input.Frequency, plan.Frequency)
 	flex.SetBoolPtr(&input.Enabled, plan.Enabled)
 	flex.SetBoolPtr(&input.SaveS3, plan.SaveS3)
-	input.S3StorageID = flex.StringPtrForUpdate(plan.S3StorageID, state.S3StorageID)
+	input.S3StorageID = flex.StringPtrForUpdate(plan.S3StorageUUID, state.S3StorageUUID)
 	flex.SetStrPtr(&input.DatabasesToBackup, plan.DatabasesToBackup)
 	flex.SetBoolPtr(&input.DumpAll, plan.DumpAll)
 	input.RetainAmountLocally = flex.Int64PtrFromFramework(plan.RetainAmountLocally)
@@ -376,6 +378,71 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), int64(backupID))...)
 }
 
+func (r *databaseBackupResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			// Version 0 -> 1: rename s3_storage_id to s3_storage_uuid.
+			PriorSchema: &schema.Schema{
+				Attributes: map[string]schema.Attribute{
+					"id":                         schema.Int64Attribute{Computed: true},
+					"uuid":                       schema.StringAttribute{Computed: true},
+					"database_uuid":              schema.StringAttribute{Required: true},
+					"frequency":                  schema.StringAttribute{Optional: true},
+					"enabled":                    schema.BoolAttribute{Optional: true, Computed: true},
+					"save_s3":                    schema.BoolAttribute{Optional: true, Computed: true},
+					"s3_storage_id":              schema.StringAttribute{Optional: true},
+					"databases_to_backup":        schema.StringAttribute{Optional: true},
+					"dump_all":                   schema.BoolAttribute{Optional: true, Computed: true},
+					"backup_now":                 schema.BoolAttribute{Optional: true},
+					"retain_amount_locally":      schema.Int64Attribute{Optional: true, Computed: true},
+					"retain_days_locally":        schema.Int64Attribute{Optional: true, Computed: true},
+					"retain_max_storage_locally": schema.Int64Attribute{Optional: true, Computed: true},
+					"retain_amount_s3":           schema.Int64Attribute{Optional: true, Computed: true},
+					"retain_days_s3":             schema.Int64Attribute{Optional: true, Computed: true},
+					"retain_max_storage_s3":      schema.Int64Attribute{Optional: true, Computed: true},
+					"timeout":                    schema.Int64Attribute{Optional: true, Computed: true},
+				},
+			},
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				type v0Model struct {
+					ID                    types.Int64  `tfsdk:"id"`
+					UUID                  types.String `tfsdk:"uuid"`
+					DatabaseUUID          types.String `tfsdk:"database_uuid"`
+					Frequency             types.String `tfsdk:"frequency"`
+					Enabled               types.Bool   `tfsdk:"enabled"`
+					SaveS3                types.Bool   `tfsdk:"save_s3"`
+					S3StorageID           types.String `tfsdk:"s3_storage_id"`
+					DatabasesToBackup     types.String `tfsdk:"databases_to_backup"`
+					DumpAll               types.Bool   `tfsdk:"dump_all"`
+					BackupNow             types.Bool   `tfsdk:"backup_now"`
+					RetainAmountLocally   types.Int64  `tfsdk:"retain_amount_locally"`
+					RetainDaysLocally     types.Int64  `tfsdk:"retain_days_locally"`
+					RetainMaxStorageLocal types.Int64  `tfsdk:"retain_max_storage_locally"`
+					RetainAmountS3        types.Int64  `tfsdk:"retain_amount_s3"`
+					RetainDaysS3          types.Int64  `tfsdk:"retain_days_s3"`
+					RetainMaxStorageS3    types.Int64  `tfsdk:"retain_max_storage_s3"`
+					Timeout               types.Int64  `tfsdk:"timeout"`
+				}
+				var old v0Model
+				resp.Diagnostics.Append(req.State.Get(ctx, &old)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				resp.Diagnostics.Append(resp.State.Set(ctx, &databaseBackupResourceModel{
+					ID: old.ID, UUID: old.UUID, DatabaseUUID: old.DatabaseUUID,
+					Frequency: old.Frequency, Enabled: old.Enabled, SaveS3: old.SaveS3,
+					S3StorageUUID: old.S3StorageID, DatabasesToBackup: old.DatabasesToBackup,
+					DumpAll: old.DumpAll, BackupNow: old.BackupNow,
+					RetainAmountLocally: old.RetainAmountLocally, RetainDaysLocally: old.RetainDaysLocally,
+					RetainMaxStorageLocal: old.RetainMaxStorageLocal, RetainAmountS3: old.RetainAmountS3,
+					RetainDaysS3: old.RetainDaysS3, RetainMaxStorageS3: old.RetainMaxStorageS3,
+					Timeout: old.Timeout,
+				})...)
+			},
+		},
+	}
+}
+
 // readBackup looks up a backup by listing all backups and matching by UUID or
 // numeric ID. The individual GET endpoint (/api/v1/databases/{uuid}/backups/{id})
 // exists in the client but returns 404 on some Coolify versions, so we use the
@@ -407,7 +474,7 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 	}
 	m.Enabled = types.BoolValue(b.Enabled)
 	m.SaveS3 = types.BoolValue(b.SaveS3)
-	m.S3StorageID = flex.StringToFramework(b.S3StorageID)
+	m.S3StorageUUID = flex.StringToFramework(b.S3StorageID)
 	if !m.DatabasesToBackup.IsNull() {
 		m.DatabasesToBackup = flex.StringToFramework(b.DatabasesToBackup)
 	}

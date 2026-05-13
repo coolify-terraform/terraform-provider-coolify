@@ -23,5 +23,5 @@ resource "coolify_database_backup" "daily" {
   enabled               = true
   save_s3               = true
   retain_amount_locally = 7 # Number of backup copies to keep (not days)
-  s3_storage_id         = coolify_s3_storage.backups.uuid
+  s3_storage_uuid       = coolify_s3_storage.backups.uuid
 }

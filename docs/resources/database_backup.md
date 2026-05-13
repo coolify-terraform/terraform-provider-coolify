@@ -38,7 +38,7 @@ resource "coolify_database_backup" "daily" {
   enabled               = true
   save_s3               = true
   retain_amount_locally = 7 # Number of backup copies to keep (not days)
-  s3_storage_id         = coolify_s3_storage.backups.uuid
+  s3_storage_uuid       = coolify_s3_storage.backups.uuid
 }
 ```
 
@@ -62,7 +62,7 @@ resource "coolify_database_backup" "daily" {
 - `retain_days_s3` (Number) Number of days to retain backups in S3.
 - `retain_max_storage_locally` (Number) Maximum storage in MB for local backups.
 - `retain_max_storage_s3` (Number) Maximum storage in MB for S3 backups.
-- `s3_storage_id` (String) The UUID of the S3 storage destination for off-site backups. Required when `save_s3` is `true`.
+- `s3_storage_uuid` (String) The UUID of the S3 storage destination for off-site backups. Required when `save_s3` is `true`.
 - `save_s3` (Boolean) Whether to save backups to S3 storage.
 - `timeout` (Number) Backup job timeout in seconds (60-36000).
 
