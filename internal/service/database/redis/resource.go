@@ -182,7 +182,7 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
 	pg.FlattenDatabaseExtended(db, extFields(m))
-	pg.SetStringIfConfigured(&m.RedisConf, db.RedisConf)
+	flex.SetStringIfConfigured(&m.RedisConf, db.RedisConf)
 }
 
 func extFields(m *model) pg.DatabaseExtendedPtrs {

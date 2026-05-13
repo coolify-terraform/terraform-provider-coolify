@@ -219,7 +219,7 @@ func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
 	m.MysqlPassword = flex.StringToFramework(db.MysqlPassword)
 	m.MysqlDatabase = flex.StringToFramework(db.MysqlDatabase)
 	m.MysqlRootPassword = flex.StringToFramework(db.MysqlRootPassword)
-	pg.SetStringIfConfigured(&m.MysqlConf, db.MysqlConf)
+	flex.SetStringIfConfigured(&m.MysqlConf, db.MysqlConf)
 }
 
 func extFields(m *mysqlDatabaseResourceModel) pg.DatabaseExtendedPtrs {

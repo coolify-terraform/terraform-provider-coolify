@@ -199,7 +199,7 @@ func flattenDatabase(db *client.Database, m *model) {
 	m.MongoInitdbRootUsername = flex.StringToFramework(db.MongoInitdbRootUsername)
 	m.MongoInitdbRootPassword = flex.StringToFramework(db.MongoInitdbRootPassword)
 	m.MongoInitdbDatabase = flex.StringToFramework(db.MongoInitdbDatabase)
-	pg.SetStringIfConfigured(&m.MongoConf, db.MongoConf)
+	flex.SetStringIfConfigured(&m.MongoConf, db.MongoConf)
 }
 
 func extFields(m *model) pg.DatabaseExtendedPtrs {

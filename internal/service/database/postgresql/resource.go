@@ -262,10 +262,10 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	m.PostgresUser = flex.StringToFramework(db.PostgresUser)
 	m.PostgresPassword = flex.StringToFramework(db.PostgresPassword)
 	m.PostgresDB = flex.StringToFramework(db.PostgresDB)
-	SetStringIfConfigured(&m.PostgresConf, db.PostgresConf)
-	SetStringIfConfigured(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
-	SetStringIfConfigured(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
-	SetStringIfConfigured(&m.InitScripts, db.InitScripts)
+	flex.SetStringIfConfigured(&m.PostgresConf, db.PostgresConf)
+	flex.SetStringIfConfigured(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
+	flex.SetStringIfConfigured(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
+	flex.SetStringIfConfigured(&m.InitScripts, db.InitScripts)
 }
 
 func extFields(m *postgresqlDatabaseResourceModel) DatabaseExtendedPtrs {
@@ -399,16 +399,16 @@ type DatabaseExtendedPtrs struct {
 // Optional-only fields use setIfConfigured to avoid "inconsistent result after
 // apply" errors when the API returns defaults for unconfigured fields.
 func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
-	SetStringIfConfigured(f.LimitsMemory, db.LimitsMemory)
-	SetStringIfConfigured(f.LimitsMemorySwap, db.LimitsMemorySwap)
-	SetStringIfConfigured(f.LimitsMemoryReservation, db.LimitsMemoryReservation)
-	SetStringIfConfigured(f.LimitsCPUs, db.LimitsCPUs)
-	SetStringIfConfigured(f.LimitsCPUSet, db.LimitsCPUSet)
-	SetStringIfConfigured(f.PortsMappings, db.PortsMappings)
-	SetStringIfConfigured(f.CustomDockerRunOptions, db.CustomDockerRunOptions)
-	SetInt64IfConfigured(f.LimitsMemorySwappiness, db.LimitsMemorySwappiness)
-	SetInt64IfConfigured(f.LimitsCPUShares, db.LimitsCPUShares)
-	SetInt64IfConfigured(f.PublicPortTimeout, db.PublicPortTimeout)
+	flex.SetStringIfConfigured(f.LimitsMemory, db.LimitsMemory)
+	flex.SetStringIfConfigured(f.LimitsMemorySwap, db.LimitsMemorySwap)
+	flex.SetStringIfConfigured(f.LimitsMemoryReservation, db.LimitsMemoryReservation)
+	flex.SetStringIfConfigured(f.LimitsCPUs, db.LimitsCPUs)
+	flex.SetStringIfConfigured(f.LimitsCPUSet, db.LimitsCPUSet)
+	flex.SetStringIfConfigured(f.PortsMappings, db.PortsMappings)
+	flex.SetStringIfConfigured(f.CustomDockerRunOptions, db.CustomDockerRunOptions)
+	flex.SetInt64IfConfigured(f.LimitsMemorySwappiness, db.LimitsMemorySwappiness)
+	flex.SetInt64IfConfigured(f.LimitsCPUShares, db.LimitsCPUShares)
+	flex.SetInt64IfConfigured(f.PublicPortTimeout, db.PublicPortTimeout)
 	// Status is Computed — always set.
 	*f.Status = flex.StringToFramework(db.Status)
 }
@@ -438,18 +438,6 @@ func HasExtendedFields(f DatabaseExtendedPtrs) bool {
 		strSet(f.CustomDockerRunOptions) ||
 		intSet(f.LimitsMemorySwappiness) || intSet(f.LimitsCPUShares) ||
 		intSet(f.PublicPortTimeout)
-}
-
-// SetStringIfConfigured delegates to flex.SetStringIfConfigured.
-// Deprecated: Use flex.SetStringIfConfigured directly.
-func SetStringIfConfigured(dst *types.String, v string) {
-	flex.SetStringIfConfigured(dst, v)
-}
-
-// SetInt64IfConfigured delegates to flex.SetInt64IfConfigured.
-// Deprecated: Use flex.SetInt64IfConfigured directly.
-func SetInt64IfConfigured(dst *types.Int64, v *int64) {
-	flex.SetInt64IfConfigured(dst, v)
 }
 
 // FlattenDatabaseCommon sets the fields shared by all database resource types.

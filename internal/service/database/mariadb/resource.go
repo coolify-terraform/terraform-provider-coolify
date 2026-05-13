@@ -204,7 +204,7 @@ func flattenDatabase(db *client.Database, m *model) {
 	m.MariadbPassword = flex.StringToFramework(db.MariadbPassword)
 	m.MariadbDatabase = flex.StringToFramework(db.MariadbDatabase)
 	m.MariadbRootPassword = flex.StringToFramework(db.MariadbRootPassword)
-	pg.SetStringIfConfigured(&m.MariadbConf, db.MariadbConf)
+	flex.SetStringIfConfigured(&m.MariadbConf, db.MariadbConf)
 }
 
 func extFields(m *model) pg.DatabaseExtendedPtrs {

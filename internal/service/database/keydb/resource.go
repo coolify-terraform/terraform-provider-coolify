@@ -189,7 +189,7 @@ func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, &m.UUID, &m.Name, &m.Description, &m.Image, &m.ProjectUUID, &m.ServerUUID, &m.EnvironmentName, &m.IsPublic, &m.PublicPort)
 	pg.FlattenDatabaseExtended(db, extFields(m))
 	m.KeydbPassword = flex.StringToFramework(db.KeydbPassword)
-	pg.SetStringIfConfigured(&m.KeydbConf, db.KeydbConf)
+	flex.SetStringIfConfigured(&m.KeydbConf, db.KeydbConf)
 }
 
 func extFields(m *model) pg.DatabaseExtendedPtrs {
