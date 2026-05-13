@@ -29,9 +29,22 @@ output "domain_names" {
 
 - `server_uuid` (String) The unique identifier of the server.
 
+### Optional
+
+- `filter` (Block Set) Filter results by field values. Multiple filters are ANDed together. Multiple values within a filter are ORed. (see [below for nested schema](#nestedblock--filter))
+
 ### Read-Only
 
 - `domains` (Attributes List) The list of domains configured on the server. (see [below for nested schema](#nestedatt--domains))
+
+<a id="nestedblock--filter"></a>
+### Nested Schema for `filter`
+
+Required:
+
+- `name` (String) The field name to filter by.
+- `values` (Set of String) The values to match against. Multiple values are ORed.
+
 
 <a id="nestedatt--domains"></a>
 ### Nested Schema for `domains`

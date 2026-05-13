@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -21,7 +22,8 @@ type sshKeysDataSource struct {
 }
 
 type sshKeysDataSourceModel struct {
-	SSHKeys []sshKeyModel `tfsdk:"ssh_keys"`
+	SSHKeys []sshKeyModel   `tfsdk:"ssh_keys"`
+	Filters []filter.Config `tfsdk:"filter"`
 }
 
 type sshKeyModel struct {
@@ -53,6 +55,9 @@ func (d *sshKeysDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -68,14 +73,34 @@ func (d *sshKeysDataSource) Configure(_ context.Context, req datasource.Configur
 	d.client = c
 }
 
-func (d *sshKeysDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config sshKeysDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	keys, err := d.client.ListHetznerSSHKeys(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing Hetzner SSH keys", err.Error())
 		return
 	}
 
+	keys = filter.Apply(keys, config.Filters, func(k client.HetznerSSHKey, field string) (string, bool) {
+		switch field {
+		case "id":
+			return filter.Int64ToString(k.ID), true
+		case "name":
+			return k.Name, true
+		case "fingerprint":
+			return k.Fingerprint, true
+		default:
+			return "", false
+		}
+	})
+
 	state := sshKeysDataSourceModel{
+		Filters: config.Filters,
 		SSHKeys: make([]sshKeyModel, len(keys)),
 	}
 	for i, k := range keys {

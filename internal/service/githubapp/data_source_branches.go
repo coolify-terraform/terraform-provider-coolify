@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -27,6 +28,7 @@ type gitHubAppBranchesDataSourceModel struct {
 	Owner       types.String            `tfsdk:"owner"`
 	Repo        types.String            `tfsdk:"repo"`
 	Branches    []gitHubBranchItemModel `tfsdk:"branches"`
+	Filters     []filter.Config         `tfsdk:"filter"`
 }
 
 // gitHubBranchItemModel maps a single branch in the list.
@@ -72,6 +74,9 @@ func (d *gitHubAppBranchesDataSource) Schema(_ context.Context, _ datasource.Sch
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -107,6 +112,15 @@ func (d *gitHubAppBranchesDataSource) Read(ctx context.Context, req datasource.R
 		resp.Diagnostics.AddError("Error listing branches", fmt.Sprintf("Could not list branches: %s", err))
 		return
 	}
+
+	branches = filter.Apply(branches, config.Filters, func(b client.GitHubBranch, field string) (string, bool) {
+		switch field {
+		case "name":
+			return b.Name, true
+		default:
+			return "", false
+		}
+	})
 
 	for _, b := range branches {
 		config.Branches = append(config.Branches, gitHubBranchItemModel{

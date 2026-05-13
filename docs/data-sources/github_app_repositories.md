@@ -29,9 +29,22 @@ output "repository_names" {
 
 - `github_app_id` (Number) The numeric identifier of the GitHub App.
 
+### Optional
+
+- `filter` (Block Set) Filter results by field values. Multiple filters are ANDed together. Multiple values within a filter are ORed. (see [below for nested schema](#nestedblock--filter))
+
 ### Read-Only
 
 - `repositories` (Attributes List) The list of repositories. (see [below for nested schema](#nestedatt--repositories))
+
+<a id="nestedblock--filter"></a>
+### Nested Schema for `filter`
+
+Required:
+
+- `name` (String) The field name to filter by.
+- `values` (Set of String) The values to match against. Multiple values are ORed.
+
 
 <a id="nestedatt--repositories"></a>
 ### Nested Schema for `repositories`

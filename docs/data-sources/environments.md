@@ -29,9 +29,22 @@ output "environment_names" {
 
 - `project_uuid` (String) The UUID of the project.
 
+### Optional
+
+- `filter` (Block Set) Filter results by field values. Multiple filters are ANDed together. Multiple values within a filter are ORed. (see [below for nested schema](#nestedblock--filter))
+
 ### Read-Only
 
 - `environments` (Attributes List) The list of environments. (see [below for nested schema](#nestedatt--environments))
+
+<a id="nestedblock--filter"></a>
+### Nested Schema for `filter`
+
+Required:
+
+- `name` (String) The field name to filter by.
+- `values` (Set of String) The values to match against. Multiple values are ORed.
+
 
 <a id="nestedatt--environments"></a>
 ### Nested Schema for `environments`

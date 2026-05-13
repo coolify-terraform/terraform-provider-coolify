@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -24,6 +25,7 @@ type privateKeyListDataSource struct {
 // privateKeyListDataSourceModel maps the data source schema data.
 type privateKeyListDataSourceModel struct {
 	PrivateKeys []privateKeyItemModel `tfsdk:"private_keys"`
+	Filters     []filter.Config       `tfsdk:"filter"`
 }
 
 // privateKeyItemModel maps a single private key in the list.
@@ -82,6 +84,9 @@ func (d *privateKeyListDataSource) Schema(_ context.Context, _ datasource.Schema
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -100,14 +105,38 @@ func (d *privateKeyListDataSource) Configure(_ context.Context, req datasource.C
 	d.client = c
 }
 
-func (d *privateKeyListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *privateKeyListDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config privateKeyListDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	keys, err := d.client.ListPrivateKeys(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing private keys", fmt.Sprintf("Could not list private keys: %s", err))
 		return
 	}
 
+	keys = filter.Apply(keys, config.Filters, func(k client.PrivateKey, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return k.UUID, true
+		case "name":
+			return k.Name, true
+		case "description":
+			return k.Description, true
+		case "fingerprint":
+			return k.Fingerprint, true
+		case "is_git_related":
+			return filter.BoolToString(k.IsGitRelated), true
+		default:
+			return "", false
+		}
+	})
+
 	var state privateKeyListDataSourceModel
+	state.Filters = config.Filters
 	for _, k := range keys {
 		item := privateKeyItemModel{
 			UUID:         types.StringValue(k.UUID),

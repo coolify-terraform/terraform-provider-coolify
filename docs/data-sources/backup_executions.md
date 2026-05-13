@@ -31,9 +31,22 @@ output "backup_execution_statuses" {
 - `backup_uuid` (String) The UUID of the backup configuration.
 - `database_uuid` (String) The UUID of the database.
 
+### Optional
+
+- `filter` (Block Set) Filter results by field values. Multiple filters are ANDed together. Multiple values within a filter are ORed. (see [below for nested schema](#nestedblock--filter))
+
 ### Read-Only
 
 - `executions` (Attributes List) The list of backup executions. (see [below for nested schema](#nestedatt--executions))
+
+<a id="nestedblock--filter"></a>
+### Nested Schema for `filter`
+
+Required:
+
+- `name` (String) The field name to filter by.
+- `values` (Set of String) The values to match against. Multiple values are ORed.
+
 
 <a id="nestedatt--executions"></a>
 ### Nested Schema for `executions`

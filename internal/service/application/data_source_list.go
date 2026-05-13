@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -24,6 +25,7 @@ type applicationListDataSource struct {
 // applicationListDataSourceModel maps the data source schema data.
 type applicationListDataSourceModel struct {
 	Applications []applicationItemModel `tfsdk:"applications"`
+	Filters      []filter.Config        `tfsdk:"filter"`
 }
 
 // applicationItemModel maps a single application in the list.
@@ -87,6 +89,9 @@ func (d *applicationListDataSource) Schema(_ context.Context, _ datasource.Schem
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -105,14 +110,42 @@ func (d *applicationListDataSource) Configure(_ context.Context, req datasource.
 	d.client = c
 }
 
-func (d *applicationListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *applicationListDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config applicationListDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	apps, err := d.client.ListApplications(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing applications", fmt.Sprintf("Could not list applications: %s", err))
 		return
 	}
 
+	apps = filter.Apply(apps, config.Filters, func(a client.Application, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return a.UUID, true
+		case "name":
+			return a.Name, true
+		case "fqdn":
+			return a.FQDN, true
+		case "git_repository":
+			return a.GitRepository, true
+		case "git_branch":
+			return a.GitBranch, true
+		case "build_pack":
+			return a.BuildPack, true
+		case "status":
+			return a.Status, true
+		default:
+			return "", false
+		}
+	})
+
 	var state applicationListDataSourceModel
+	state.Filters = config.Filters
 	for _, a := range apps {
 		item := applicationItemModel{
 			UUID: types.StringValue(a.UUID),

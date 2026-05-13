@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -27,6 +28,7 @@ type storageListModel struct {
 	ServiceUUID     types.String       `tfsdk:"service_uuid"`
 	DatabaseUUID    types.String       `tfsdk:"database_uuid"`
 	Storages        []storageItemModel `tfsdk:"storages"`
+	Filters         []filter.Config    `tfsdk:"filter"`
 }
 
 type storageItemModel struct {
@@ -78,6 +80,9 @@ func (d *storageListDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -121,6 +126,21 @@ func (d *storageListDataSource) Read(ctx context.Context, req datasource.ReadReq
 		resp.Diagnostics.AddError("Error listing persistent storages", err.Error())
 		return
 	}
+
+	storages = filter.Apply(storages, config.Filters, func(s client.Storage, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return s.UUID, true
+		case "name":
+			return s.Name, true
+		case "mount_path":
+			return s.MountPath, true
+		case "host_path":
+			return s.HostPath, true
+		default:
+			return "", false
+		}
+	})
 
 	items := make([]storageItemModel, len(storages))
 	for i, s := range storages {

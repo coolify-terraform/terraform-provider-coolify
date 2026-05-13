@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -24,6 +25,7 @@ type serviceListDataSource struct {
 // serviceListDataSourceModel maps the data source schema data.
 type serviceListDataSourceModel struct {
 	Services []serviceItemModel `tfsdk:"services"`
+	Filters  []filter.Config    `tfsdk:"filter"`
 }
 
 // serviceItemModel maps a single service in the list.
@@ -72,6 +74,9 @@ func (d *serviceListDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -90,14 +95,36 @@ func (d *serviceListDataSource) Configure(_ context.Context, req datasource.Conf
 	d.client = c
 }
 
-func (d *serviceListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *serviceListDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config serviceListDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	services, err := d.client.ListServices(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing services", fmt.Sprintf("Could not list services: %s", err))
 		return
 	}
 
+	services = filter.Apply(services, config.Filters, func(s client.Service, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return s.UUID, true
+		case "name":
+			return s.Name, true
+		case "description":
+			return s.Description, true
+		case "type":
+			return s.Type, true
+		default:
+			return "", false
+		}
+	})
+
 	var state serviceListDataSourceModel
+	state.Filters = config.Filters
 	for _, s := range services {
 		item := serviceItemModel{
 			UUID: types.StringValue(s.UUID),

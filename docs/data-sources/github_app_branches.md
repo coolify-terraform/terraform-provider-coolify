@@ -33,9 +33,22 @@ output "branch_names" {
 - `owner` (String) The repository owner.
 - `repo` (String) The repository name.
 
+### Optional
+
+- `filter` (Block Set) Filter results by field values. Multiple filters are ANDed together. Multiple values within a filter are ORed. (see [below for nested schema](#nestedblock--filter))
+
 ### Read-Only
 
 - `branches` (Attributes List) The list of branches. (see [below for nested schema](#nestedatt--branches))
+
+<a id="nestedblock--filter"></a>
+### Nested Schema for `filter`
+
+Required:
+
+- `name` (String) The field name to filter by.
+- `values` (Set of String) The values to match against. Multiple values are ORed.
+
 
 <a id="nestedatt--branches"></a>
 ### Nested Schema for `branches`

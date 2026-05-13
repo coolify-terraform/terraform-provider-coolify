@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -21,6 +22,7 @@ type serverTypesDataSource struct {
 
 type serverTypesDataSourceModel struct {
 	ServerTypes []serverTypeModel `tfsdk:"server_types"`
+	Filters     []filter.Config   `tfsdk:"filter"`
 }
 
 type serverTypeModel struct {
@@ -58,6 +60,9 @@ func (d *serverTypesDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -73,14 +78,40 @@ func (d *serverTypesDataSource) Configure(_ context.Context, req datasource.Conf
 	d.client = c
 }
 
-func (d *serverTypesDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *serverTypesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config serverTypesDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	serverTypes, err := d.client.ListHetznerServerTypes(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing Hetzner server types", err.Error())
 		return
 	}
 
+	serverTypes = filter.Apply(serverTypes, config.Filters, func(st client.HetznerServerType, field string) (string, bool) {
+		switch field {
+		case "id":
+			return filter.Int64ToString(st.ID), true
+		case "name":
+			return st.Name, true
+		case "description":
+			return st.Description, true
+		case "cores":
+			return filter.Int64ToString(st.Cores), true
+		case "memory":
+			return filter.Int64ToString(st.Memory), true
+		case "disk":
+			return filter.Int64ToString(st.Disk), true
+		default:
+			return "", false
+		}
+	})
+
 	state := serverTypesDataSourceModel{
+		Filters:     config.Filters,
 		ServerTypes: make([]serverTypeModel, len(serverTypes)),
 	}
 	for i, st := range serverTypes {

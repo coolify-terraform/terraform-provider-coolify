@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -24,6 +25,7 @@ type projectListDataSource struct {
 // projectListDataSourceModel maps the data source schema data.
 type projectListDataSourceModel struct {
 	Projects []projectItemModel `tfsdk:"projects"`
+	Filters  []filter.Config    `tfsdk:"filter"`
 }
 
 // projectItemModel maps a single project in the list.
@@ -67,6 +69,9 @@ func (d *projectListDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -85,14 +90,34 @@ func (d *projectListDataSource) Configure(_ context.Context, req datasource.Conf
 	d.client = c
 }
 
-func (d *projectListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *projectListDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config projectListDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	projects, err := d.client.ListProjects(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing projects", fmt.Sprintf("Could not list projects: %s", err))
 		return
 	}
 
+	projects = filter.Apply(projects, config.Filters, func(p client.Project, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return p.UUID, true
+		case "name":
+			return p.Name, true
+		case "description":
+			return p.Description, true
+		default:
+			return "", false
+		}
+	})
+
 	var state projectListDataSourceModel
+	state.Filters = config.Filters
 	for _, p := range projects {
 		item := projectItemModel{
 			UUID: types.StringValue(p.UUID),

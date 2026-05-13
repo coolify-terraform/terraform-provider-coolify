@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -23,8 +24,9 @@ type applicationLogsDataSource struct {
 }
 
 type applicationLogsDataSourceModel struct {
-	UUID types.String          `tfsdk:"uuid"`
-	Logs []applicationLogModel `tfsdk:"logs"`
+	UUID    types.String          `tfsdk:"uuid"`
+	Logs    []applicationLogModel `tfsdk:"logs"`
+	Filters []filter.Config       `tfsdk:"filter"`
 }
 
 type applicationLogModel struct {
@@ -67,6 +69,9 @@ func (d *applicationLogsDataSource) Schema(_ context.Context, _ datasource.Schem
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -104,6 +109,17 @@ func (d *applicationLogsDataSource) Read(ctx context.Context, req datasource.Rea
 		resp.Diagnostics.AddError("Error reading application logs", err.Error())
 		return
 	}
+
+	logs = filter.Apply(logs, config.Filters, func(l client.ApplicationLog, field string) (string, bool) {
+		switch field {
+		case "line":
+			return l.Line, true
+		case "timestamp":
+			return l.Timestamp, true
+		default:
+			return "", false
+		}
+	})
 
 	for _, l := range logs {
 		config.Logs = append(config.Logs, applicationLogModel{

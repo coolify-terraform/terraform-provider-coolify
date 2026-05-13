@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -21,6 +22,7 @@ type locationsDataSource struct {
 
 type locationsDataSourceModel struct {
 	Locations []locationModel `tfsdk:"locations"`
+	Filters   []filter.Config `tfsdk:"filter"`
 }
 
 type locationModel struct {
@@ -56,6 +58,9 @@ func (d *locationsDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -71,14 +76,38 @@ func (d *locationsDataSource) Configure(_ context.Context, req datasource.Config
 	d.client = c
 }
 
-func (d *locationsDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *locationsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config locationsDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	locations, err := d.client.ListHetznerLocations(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing Hetzner locations", err.Error())
 		return
 	}
 
+	locations = filter.Apply(locations, config.Filters, func(loc client.HetznerLocation, field string) (string, bool) {
+		switch field {
+		case "id":
+			return filter.Int64ToString(loc.ID), true
+		case "name":
+			return loc.Name, true
+		case "description":
+			return loc.Description, true
+		case "city":
+			return loc.City, true
+		case "country":
+			return loc.Country, true
+		default:
+			return "", false
+		}
+	})
+
 	state := locationsDataSourceModel{
+		Filters:   config.Filters,
 		Locations: make([]locationModel, len(locations)),
 	}
 	for i, loc := range locations {

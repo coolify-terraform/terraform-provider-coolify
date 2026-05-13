@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -24,6 +25,7 @@ type gitHubAppListDataSource struct {
 // gitHubAppListDataSourceModel maps the data source schema data.
 type gitHubAppListDataSourceModel struct {
 	GitHubApps []gitHubAppItemModel `tfsdk:"github_apps"`
+	Filters    []filter.Config      `tfsdk:"filter"`
 }
 
 // gitHubAppItemModel maps a single GitHub App in the list.
@@ -88,6 +90,9 @@ func (d *gitHubAppListDataSource) Schema(_ context.Context, _ datasource.SchemaR
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -106,14 +111,40 @@ func (d *gitHubAppListDataSource) Configure(_ context.Context, req datasource.Co
 	d.client = c
 }
 
-func (d *gitHubAppListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *gitHubAppListDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config gitHubAppListDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	apps, err := d.client.ListGitHubApps(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing GitHub Apps", fmt.Sprintf("Could not list GitHub Apps: %s", err))
 		return
 	}
 
+	apps = filter.Apply(apps, config.Filters, func(a client.GitHubApp, field string) (string, bool) {
+		switch field {
+		case "id":
+			return filter.Int64ToString(a.ID), true
+		case "name":
+			return a.Name, true
+		case "organization_name":
+			return a.OrganizationName, true
+		case "app_id":
+			return filter.Int64ToString(a.AppID), true
+		case "installation_id":
+			return filter.Int64ToString(a.InstallationID), true
+		case "client_id":
+			return a.ClientID, true
+		default:
+			return "", false
+		}
+	})
+
 	var state gitHubAppListDataSourceModel
+	state.Filters = config.Filters
 	for _, a := range apps {
 		item := gitHubAppItemModel{
 			ID:               types.Int64Value(a.ID),

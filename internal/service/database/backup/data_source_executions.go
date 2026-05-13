@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -23,6 +24,7 @@ type executionsDataSourceModel struct {
 	DatabaseUUID types.String     `tfsdk:"database_uuid"`
 	BackupUUID   types.String     `tfsdk:"backup_uuid"`
 	Executions   []executionModel `tfsdk:"executions"`
+	Filters      []filter.Config  `tfsdk:"filter"`
 }
 
 type executionModel struct {
@@ -64,6 +66,9 @@ func (d *executionsDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -91,6 +96,21 @@ func (d *executionsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		resp.Diagnostics.AddError("Error listing backup executions", err.Error())
 		return
 	}
+
+	execs = filter.Apply(execs, config.Filters, func(e client.BackupExecution, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return e.UUID, true
+		case "status":
+			return e.Status, true
+		case "created_at":
+			return e.CreatedAt, true
+		case "size":
+			return filter.Int64ToString(e.Size), true
+		default:
+			return "", false
+		}
+	})
 
 	items := make([]executionModel, len(execs))
 	for i, e := range execs {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -30,6 +31,7 @@ type s3StorageListItemModel struct {
 
 type s3StoragesDataSourceModel struct {
 	Storages []s3StorageListItemModel `tfsdk:"storages"`
+	Filters  []filter.Config          `tfsdk:"filter"`
 }
 
 // NewListDataSource returns a new data source that lists all S3 storages.
@@ -78,6 +80,9 @@ func (d *s3StoragesDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -98,14 +103,40 @@ func (d *s3StoragesDataSource) Configure(_ context.Context, req datasource.Confi
 	d.client = c
 }
 
-func (d *s3StoragesDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *s3StoragesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config s3StoragesDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	storages, err := d.client.ListS3Storages(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing S3 storages", err.Error())
 		return
 	}
 
+	storages = filter.Apply(storages, config.Filters, func(s client.S3Storage, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return s.UUID, true
+		case "name":
+			return s.Name, true
+		case "description":
+			return s.Description, true
+		case "endpoint":
+			return s.Endpoint, true
+		case "bucket":
+			return s.Bucket, true
+		case "region":
+			return s.Region, true
+		default:
+			return "", false
+		}
+	})
+
 	var state s3StoragesDataSourceModel
+	state.Filters = config.Filters
 	for _, s := range storages {
 		state.Storages = append(state.Storages, s3StorageListItemModel{
 			UUID:        types.StringValue(s.UUID),

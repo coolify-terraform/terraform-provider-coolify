@@ -39,11 +39,21 @@ output "db_env_var_keys" {
 
 - `application_uuid` (String) The UUID of the application. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.
 - `database_uuid` (String) The UUID of the database. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.
+- `filter` (Block Set) Filter results by field values. Multiple filters are ANDed together. Multiple values within a filter are ORed. (see [below for nested schema](#nestedblock--filter))
 - `service_uuid` (String) The UUID of the service. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.
 
 ### Read-Only
 
 - `environment_variables` (Attributes List) The list of environment variables. (see [below for nested schema](#nestedatt--environment_variables))
+
+<a id="nestedblock--filter"></a>
+### Nested Schema for `filter`
+
+Required:
+
+- `name` (String) The field name to filter by.
+- `values` (Set of String) The values to match against. Multiple values are ORed.
+
 
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`

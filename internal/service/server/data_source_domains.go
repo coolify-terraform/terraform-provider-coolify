@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -22,6 +23,7 @@ type serverDomainsDataSource struct {
 type serverDomainsDataSourceModel struct {
 	ServerUUID types.String        `tfsdk:"server_uuid"`
 	Domains    []serverDomainModel `tfsdk:"domains"`
+	Filters    []filter.Config     `tfsdk:"filter"`
 }
 
 type serverDomainModel struct {
@@ -62,6 +64,9 @@ func (d *serverDomainsDataSource) Schema(_ context.Context, _ datasource.SchemaR
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -94,6 +99,17 @@ func (d *serverDomainsDataSource) Read(ctx context.Context, req datasource.ReadR
 		resp.Diagnostics.AddError("Error listing server domains", err.Error())
 		return
 	}
+
+	domains = filter.Apply(domains, config.Filters, func(d client.ServerDomain, field string) (string, bool) {
+		switch field {
+		case "domain":
+			return d.Domain, true
+		case "ip":
+			return d.IP, true
+		default:
+			return "", false
+		}
+	})
 
 	for _, dom := range domains {
 		config.Domains = append(config.Domains, serverDomainModel{

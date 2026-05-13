@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -20,7 +21,8 @@ type teamsDataSource struct {
 }
 
 type teamsDataSourceModel struct {
-	Teams []teamsItemModel `tfsdk:"teams"`
+	Teams   []teamsItemModel `tfsdk:"teams"`
+	Filters []filter.Config  `tfsdk:"filter"`
 }
 
 type teamsItemModel struct {
@@ -62,6 +64,9 @@ func (d *teamsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -80,14 +85,34 @@ func (d *teamsDataSource) Configure(_ context.Context, req datasource.ConfigureR
 	d.client = c
 }
 
-func (d *teamsDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *teamsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config teamsDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	teams, err := d.client.ListTeams(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing teams", err.Error())
 		return
 	}
 
+	teams = filter.Apply(teams, config.Filters, func(t client.Team, field string) (string, bool) {
+		switch field {
+		case "id":
+			return filter.IntToString(t.ID), true
+		case "name":
+			return t.Name, true
+		case "description":
+			return t.Description, true
+		default:
+			return "", false
+		}
+	})
+
 	var state teamsDataSourceModel
+	state.Filters = config.Filters
 	for _, t := range teams {
 		state.Teams = append(state.Teams, teamsItemModel{
 			ID:          types.Int64Value(int64(t.ID)),

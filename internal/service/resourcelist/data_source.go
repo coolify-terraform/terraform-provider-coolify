@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -21,6 +22,7 @@ type resourcesDataSource struct {
 
 type resourcesDataSourceModel struct {
 	Resources []resourceItemModel `tfsdk:"resources"`
+	Filters   []filter.Config     `tfsdk:"filter"`
 }
 
 type resourceItemModel struct {
@@ -67,6 +69,9 @@ func (d *resourcesDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -85,14 +90,36 @@ func (d *resourcesDataSource) Configure(_ context.Context, req datasource.Config
 	d.client = c
 }
 
-func (d *resourcesDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *resourcesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config resourcesDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	resources, err := d.client.ListResources(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing resources", err.Error())
 		return
 	}
 
+	resources = filter.Apply(resources, config.Filters, func(r client.Resource, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return r.UUID, true
+		case "name":
+			return r.Name, true
+		case "type":
+			return r.Type, true
+		case "status":
+			return r.Status, true
+		default:
+			return "", false
+		}
+	})
+
 	var state resourcesDataSourceModel
+	state.Filters = config.Filters
 	for _, r := range resources {
 		state.Resources = append(state.Resources, resourceItemModel{
 			UUID:   types.StringValue(r.UUID),

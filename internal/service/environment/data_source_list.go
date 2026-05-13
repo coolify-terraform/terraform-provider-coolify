@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -27,6 +28,7 @@ type environmentListDataSource struct {
 type environmentListDataSourceModel struct {
 	ProjectUUID  types.String           `tfsdk:"project_uuid"`
 	Environments []environmentItemModel `tfsdk:"environments"`
+	Filters      []filter.Config        `tfsdk:"filter"`
 }
 
 // environmentItemModel maps a single environment in the list.
@@ -75,6 +77,9 @@ func (d *environmentListDataSource) Schema(_ context.Context, _ datasource.Schem
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -106,8 +111,22 @@ func (d *environmentListDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
+	envs = filter.Apply(envs, config.Filters, func(e client.Environment, field string) (string, bool) {
+		switch field {
+		case "id":
+			return filter.Int64ToString(e.ID), true
+		case "name":
+			return e.Name, true
+		case "description":
+			return e.Description, true
+		default:
+			return "", false
+		}
+	})
+
 	var state environmentListDataSourceModel
 	state.ProjectUUID = config.ProjectUUID
+	state.Filters = config.Filters
 	for _, e := range envs {
 		item := environmentItemModel{
 			ID:   types.Int64Value(e.ID),

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -22,6 +23,7 @@ type teamMembersDataSource struct {
 type teamMembersDataSourceModel struct {
 	ID      types.Int64       `tfsdk:"id"`
 	Members []teamMemberModel `tfsdk:"members"`
+	Filters []filter.Config   `tfsdk:"filter"`
 }
 
 func NewMembersDataSource() datasource.DataSource {
@@ -60,6 +62,9 @@ func (d *teamMembersDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 					},
 				},
 			},
+		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
 		},
 	}
 }
@@ -103,6 +108,19 @@ func (d *teamMembersDataSource) Read(ctx context.Context, req datasource.ReadReq
 			return
 		}
 	}
+
+	members = filter.Apply(members, config.Filters, func(m client.TeamMember, field string) (string, bool) {
+		switch field {
+		case "id":
+			return filter.IntToString(m.ID), true
+		case "name":
+			return m.Name, true
+		case "email":
+			return m.Email, true
+		default:
+			return "", false
+		}
+	})
 
 	result := make([]teamMemberModel, len(members))
 	for i, m := range members {

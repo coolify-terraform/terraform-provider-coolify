@@ -29,9 +29,22 @@ output "log_lines" {
 
 - `uuid` (String) The UUID of the application.
 
+### Optional
+
+- `filter` (Block Set) Filter results by field values. Multiple filters are ANDed together. Multiple values within a filter are ORed. (see [below for nested schema](#nestedblock--filter))
+
 ### Read-Only
 
 - `logs` (Attributes List) The list of log lines from the application. (see [below for nested schema](#nestedatt--logs))
+
+<a id="nestedblock--filter"></a>
+### Nested Schema for `filter`
+
+Required:
+
+- `name` (String) The field name to filter by.
+- `values` (Set of String) The values to match against. Multiple values are ORed.
+
 
 <a id="nestedatt--logs"></a>
 ### Nested Schema for `logs`

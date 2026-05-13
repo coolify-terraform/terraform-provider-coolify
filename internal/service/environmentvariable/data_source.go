@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -27,6 +28,7 @@ type envVarListModel struct {
 	ServiceUUID          types.String      `tfsdk:"service_uuid"`
 	DatabaseUUID         types.String      `tfsdk:"database_uuid"`
 	EnvironmentVariables []envVarItemModel `tfsdk:"environment_variables"`
+	Filters              []filter.Config   `tfsdk:"filter"`
 }
 
 type envVarItemModel struct {
@@ -79,6 +81,9 @@ func (d *envVarListDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -120,6 +125,23 @@ func (d *envVarListDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		resp.Diagnostics.AddError("Error listing environment variables", err.Error())
 		return
 	}
+
+	envVars = filter.Apply(envVars, config.Filters, func(ev client.EnvironmentVariable, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return ev.UUID, true
+		case "key":
+			return ev.Key, true
+		case "value":
+			return ev.Value, true
+		case "is_preview":
+			return filter.BoolToString(ev.IsPreview), true
+		case "is_build":
+			return filter.BoolToString(ev.IsBuild), true
+		default:
+			return "", false
+		}
+	})
 
 	items := make([]envVarItemModel, len(envVars))
 	for i, ev := range envVars {

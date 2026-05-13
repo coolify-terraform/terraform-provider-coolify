@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -23,6 +24,7 @@ type cloudTokenListDataSource struct {
 // cloudTokenListDataSourceModel maps the data source schema data.
 type cloudTokenListDataSourceModel struct {
 	CloudTokens []cloudTokenItemModel `tfsdk:"cloud_tokens"`
+	Filters     []filter.Config       `tfsdk:"filter"`
 }
 
 // cloudTokenItemModel maps a single cloud token in the list.
@@ -66,6 +68,9 @@ func (d *cloudTokenListDataSource) Schema(_ context.Context, _ datasource.Schema
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -84,14 +89,34 @@ func (d *cloudTokenListDataSource) Configure(_ context.Context, req datasource.C
 	d.client = c
 }
 
-func (d *cloudTokenListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *cloudTokenListDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config cloudTokenListDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	tokens, err := d.client.ListCloudTokens(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing cloud tokens", fmt.Sprintf("Could not list cloud tokens: %s", err))
 		return
 	}
 
+	tokens = filter.Apply(tokens, config.Filters, func(t client.CloudToken, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return t.UUID, true
+		case "name":
+			return t.Name, true
+		case "cloud_provider":
+			return t.Provider, true
+		default:
+			return "", false
+		}
+	})
+
 	var state cloudTokenListDataSourceModel
+	state.Filters = config.Filters
 	for _, t := range tokens {
 		item := cloudTokenItemModel{
 			UUID:          types.StringValue(t.UUID),

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -24,6 +25,7 @@ type deploymentsDataSource struct {
 type deploymentsDataSourceModel struct {
 	ApplicationUUID types.String          `tfsdk:"application_uuid"`
 	Deployments     []deploymentItemModel `tfsdk:"deployments"`
+	Filters         []filter.Config       `tfsdk:"filter"`
 }
 
 type deploymentItemModel struct {
@@ -71,6 +73,9 @@ func (d *deploymentsDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -106,6 +111,19 @@ func (d *deploymentsDataSource) Read(ctx context.Context, req datasource.ReadReq
 		resp.Diagnostics.AddError("Error listing deployments", err.Error())
 		return
 	}
+
+	deployments = filter.Apply(deployments, config.Filters, func(d client.Deployment, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return d.UUID, true
+		case "status":
+			return d.Status, true
+		case "server_uuid":
+			return d.ServerUUID, true
+		default:
+			return "", false
+		}
+	})
 
 	items := make([]deploymentItemModel, len(deployments))
 	for i, dep := range deployments {

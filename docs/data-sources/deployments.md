@@ -36,10 +36,20 @@ output "app_deployment_statuses" {
 ### Optional
 
 - `application_uuid` (String) The UUID of the application to filter deployments by. If not set, all deployments are returned.
+- `filter` (Block Set) Filter results by field values. Multiple filters are ANDed together. Multiple values within a filter are ORed. (see [below for nested schema](#nestedblock--filter))
 
 ### Read-Only
 
 - `deployments` (Attributes List) The list of deployments. (see [below for nested schema](#nestedatt--deployments))
+
+<a id="nestedblock--filter"></a>
+### Nested Schema for `filter`
+
+Required:
+
+- `name` (String) The field name to filter by.
+- `values` (Set of String) The values to match against. Multiple values are ORed.
+
 
 <a id="nestedatt--deployments"></a>
 ### Nested Schema for `deployments`

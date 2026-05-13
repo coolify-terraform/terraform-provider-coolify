@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -27,6 +28,7 @@ type taskExecutionsDataSourceModel struct {
 	ServiceUUID     types.String         `tfsdk:"service_uuid"`
 	TaskUUID        types.String         `tfsdk:"task_uuid"`
 	Executions      []taskExecutionModel `tfsdk:"executions"`
+	Filters         []filter.Config      `tfsdk:"filter"`
 }
 
 type taskExecutionModel struct {
@@ -77,6 +79,9 @@ func (d *taskExecutionsDataSource) Schema(_ context.Context, _ datasource.Schema
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -117,6 +122,21 @@ func (d *taskExecutionsDataSource) Read(ctx context.Context, req datasource.Read
 		resp.Diagnostics.AddError("Error listing task executions", err.Error())
 		return
 	}
+
+	execs = filter.Apply(execs, config.Filters, func(e client.TaskExecution, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return e.UUID, true
+		case "status":
+			return e.Status, true
+		case "message":
+			return e.Message, true
+		case "created_at":
+			return e.CreatedAt, true
+		default:
+			return "", false
+		}
+	})
 
 	items := make([]taskExecutionModel, len(execs))
 	for i, e := range execs {

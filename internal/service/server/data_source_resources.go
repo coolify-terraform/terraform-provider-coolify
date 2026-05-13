@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -22,6 +23,7 @@ type serverResourcesDataSource struct {
 type serverResourcesDataSourceModel struct {
 	ServerUUID types.String              `tfsdk:"server_uuid"`
 	Resources  []serverResourceItemModel `tfsdk:"resources"`
+	Filters    []filter.Config           `tfsdk:"filter"`
 }
 
 type serverResourceItemModel struct {
@@ -67,6 +69,9 @@ func (d *serverResourcesDataSource) Schema(_ context.Context, _ datasource.Schem
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -99,6 +104,19 @@ func (d *serverResourcesDataSource) Read(ctx context.Context, req datasource.Rea
 		resp.Diagnostics.AddError("Error listing server resources", err.Error())
 		return
 	}
+
+	resources = filter.Apply(resources, config.Filters, func(r client.ServerResource, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return r.UUID, true
+		case "name":
+			return r.Name, true
+		case "type":
+			return r.Type, true
+		default:
+			return "", false
+		}
+	})
 
 	for _, r := range resources {
 		config.Resources = append(config.Resources, serverResourceItemModel{

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -21,7 +22,8 @@ type imagesDataSource struct {
 }
 
 type imagesDataSourceModel struct {
-	Images []imageModel `tfsdk:"images"`
+	Images  []imageModel    `tfsdk:"images"`
+	Filters []filter.Config `tfsdk:"filter"`
 }
 
 type imageModel struct {
@@ -53,6 +55,9 @@ func (d *imagesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -68,15 +73,35 @@ func (d *imagesDataSource) Configure(_ context.Context, req datasource.Configure
 	d.client = c
 }
 
-func (d *imagesDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *imagesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config imagesDataSourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	images, err := d.client.ListHetznerImages(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing Hetzner images", err.Error())
 		return
 	}
 
+	images = filter.Apply(images, config.Filters, func(img client.HetznerImage, field string) (string, bool) {
+		switch field {
+		case "id":
+			return filter.Int64ToString(img.ID), true
+		case "name":
+			return img.Name, true
+		case "description":
+			return img.Description, true
+		default:
+			return "", false
+		}
+	})
+
 	state := imagesDataSourceModel{
-		Images: make([]imageModel, len(images)),
+		Filters: config.Filters,
+		Images:  make([]imageModel, len(images)),
 	}
 	for i, img := range images {
 		state.Images[i] = imageModel{

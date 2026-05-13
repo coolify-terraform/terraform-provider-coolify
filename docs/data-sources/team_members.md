@@ -33,11 +33,21 @@ output "team_1_members" {
 
 ### Optional
 
+- `filter` (Block Set) Filter results by field values. Multiple filters are ANDed together. Multiple values within a filter are ORed. (see [below for nested schema](#nestedblock--filter))
 - `id` (Number) The numeric ID of the team. If omitted, the current team is used.
 
 ### Read-Only
 
 - `members` (Attributes List) The members of the team. (see [below for nested schema](#nestedatt--members))
+
+<a id="nestedblock--filter"></a>
+### Nested Schema for `filter`
+
+Required:
+
+- `name` (String) The field name to filter by.
+- `values` (Set of String) The values to match against. Multiple values are ORed.
+
 
 <a id="nestedatt--members"></a>
 ### Nested Schema for `members`

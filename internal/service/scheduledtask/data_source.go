@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -26,6 +27,7 @@ type scheduledTaskListModel struct {
 	ApplicationUUID types.String             `tfsdk:"application_uuid"`
 	ServiceUUID     types.String             `tfsdk:"service_uuid"`
 	Tasks           []scheduledTaskItemModel `tfsdk:"tasks"`
+	Filters         []filter.Config          `tfsdk:"filter"`
 }
 
 type scheduledTaskItemModel struct {
@@ -74,6 +76,9 @@ func (d *scheduledTaskListDataSource) Schema(_ context.Context, _ datasource.Sch
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -114,6 +119,23 @@ func (d *scheduledTaskListDataSource) Read(ctx context.Context, req datasource.R
 		resp.Diagnostics.AddError("Error listing scheduled tasks", err.Error())
 		return
 	}
+
+	tasks = filter.Apply(tasks, config.Filters, func(t client.ScheduledTask, field string) (string, bool) {
+		switch field {
+		case "uuid":
+			return t.UUID, true
+		case "name":
+			return t.Name, true
+		case "command":
+			return t.Command, true
+		case "frequency":
+			return t.Frequency, true
+		case "enabled":
+			return filter.BoolToString(t.Enabled), true
+		default:
+			return "", false
+		}
+	})
 
 	items := make([]scheduledTaskItemModel, len(tasks))
 	for i, t := range tasks {

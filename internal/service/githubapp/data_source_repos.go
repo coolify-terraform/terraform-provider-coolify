@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -25,6 +26,7 @@ type gitHubAppReposDataSource struct {
 type gitHubAppReposDataSourceModel struct {
 	GitHubAppID  types.Int64           `tfsdk:"github_app_id"`
 	Repositories []gitHubRepoItemModel `tfsdk:"repositories"`
+	Filters      []filter.Config       `tfsdk:"filter"`
 }
 
 // gitHubRepoItemModel maps a single repository in the list.
@@ -72,6 +74,9 @@ func (d *gitHubAppReposDataSource) Schema(_ context.Context, _ datasource.Schema
 				},
 			},
 		},
+		Blocks: map[string]schema.Block{
+			"filter": filter.Block(),
+		},
 	}
 }
 
@@ -102,6 +107,19 @@ func (d *gitHubAppReposDataSource) Read(ctx context.Context, req datasource.Read
 		resp.Diagnostics.AddError("Error listing repositories", fmt.Sprintf("Could not list repositories: %s", err))
 		return
 	}
+
+	repos = filter.Apply(repos, config.Filters, func(r client.GitHubRepository, field string) (string, bool) {
+		switch field {
+		case "name":
+			return r.Name, true
+		case "full_name":
+			return r.FullName, true
+		case "private":
+			return filter.BoolToString(r.Private), true
+		default:
+			return "", false
+		}
+	})
 
 	for _, r := range repos {
 		config.Repositories = append(config.Repositories, gitHubRepoItemModel{
