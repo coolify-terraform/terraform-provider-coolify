@@ -175,8 +175,9 @@ make install     # Install provider to local Go bin
 make ci          # Run the aggregate local checks (acceptance tests run separately)
 ```
 
-`make ci` does not run acceptance tests. Run `make testacc` or targeted
-`TF_ACC=1 go test ...` coverage when your change touches real-API behavior.
+`make ci` does not run acceptance tests. If your change touches real Coolify
+API behavior, also run `make testacc` or targeted `TF_ACC=1 go test ...`
+commands.
 
 For local provider testing with `dev_overrides`, acceptance test setup, and
 project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and

@@ -43,8 +43,9 @@ Run the aggregate local checks before pushing:
 make ci      # Run build, lint, unit tests, validate, docs, coverage, and vuln checks
 ```
 
-`make ci` does not run acceptance tests. When your change touches real Coolify
-behavior, also run `make testacc` or targeted `TF_ACC=1 go test ...` coverage.
+`make ci` does not run acceptance tests. If your change touches real Coolify
+API behavior, also run `make testacc` or targeted `TF_ACC=1 go test ...`
+commands.
 
 Or run individual checks:
 
@@ -153,6 +154,6 @@ To test the provider against a real Coolify instance without publishing:
 
 ## Pull Requests
 
-- Run `make ci` before submitting, and add `make testacc` or targeted `TF_ACC=1 go test ...` coverage when your change touches real Coolify behavior (`make ci` still skips trivy, gitleaks, and acceptance tests)
+- Run `make ci` before submitting, and add `make testacc` or targeted `TF_ACC=1 go test ...` commands when your change touches real Coolify API behavior (`make ci` still skips trivy, gitleaks, and acceptance tests)
 - Include tests for new functionality
 - Keep PRs focused on a single change
