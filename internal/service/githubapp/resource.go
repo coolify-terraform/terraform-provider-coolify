@@ -153,6 +153,13 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	plan.ID = types.Int64Value(app.ID)
+	plan.UUID = flex.StringToFramework(app.UUID)
+	if plan.OrganizationName.IsUnknown() {
+		plan.OrganizationName = types.StringNull()
+	}
+	if plan.WebhookSecret.IsUnknown() {
+		plan.WebhookSecret = types.StringNull()
+	}
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -162,10 +169,14 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 
 	// Read back the full object to populate all fields.
 	diags := r.readGitHubApp(ctx, app.ID, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
+	if diags.HasError() {
+		resp.Diagnostics.AddError(
+			"GitHub App created but refresh failed",
+			fmt.Sprintf("Coolify created GitHub App %d, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", app.ID, diags.Errors()[0].Detail()),
+		)
 		return
 	}
+	resp.Diagnostics.Append(diags...)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -273,7 +284,7 @@ func (r *gitHubAppResource) readGitHubApp(ctx context.Context, id int64, model *
 
 	app, err := r.client.GetGitHubApp(ctx, id)
 	if err != nil {
-		diags.AddError("Error reading GitHub App", fmt.Sprintf("Could not read GitHub App %d after create/update: %s", id, err))
+		diags.AddError("Error reading GitHub App", fmt.Sprintf("Could not read GitHub App %d: %s", id, err))
 		return diags
 	}
 
