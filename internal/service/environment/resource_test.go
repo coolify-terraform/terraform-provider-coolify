@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -208,6 +210,67 @@ resource "coolify_environment" "test" {
 `,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestEnvironmentResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	store := newMockEnvironmentStore()
+	var forceReadFailure atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/projects/{projectUUID}/environments", func(w http.ResponseWriter, r *http.Request) {
+		projectUUID := r.PathValue("projectUUID")
+		var body struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		env := store.Create(projectUUID, body.Name, "")
+		forceReadFailure.Store(true)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(env)
+	})
+	mux.HandleFunc("GET /api/v1/projects/{projectUUID}/{envName}", func(w http.ResponseWriter, r *http.Request) {
+		if forceReadFailure.Load() {
+			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+			return
+		}
+		projectUUID := r.PathValue("projectUUID")
+		envName := r.PathValue("envName")
+		env, ok := store.Get(projectUUID, envName)
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(env)
+	})
+	mux.HandleFunc("DELETE /api/v1/projects/{projectUUID}/environments/{envName}", func(w http.ResponseWriter, r *http.Request) {
+		projectUUID := r.PathValue("projectUUID")
+		envName := r.PathValue("envName")
+		store.Delete(projectUUID, envName)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+	})
+
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_environment" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "readback-failure"
+}
+`,
+				ExpectError: regexp.MustCompile(`(?s)Environment created but refresh failed.*Could not read environment.*partial Terraform state was saved`),
 			},
 		},
 	})
