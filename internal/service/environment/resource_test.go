@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
 	"testing"
 
@@ -155,7 +156,8 @@ func checkEnvironmentDestroy(serverURL string) resource.TestCheckFunc {
 			if projectUUID == "" || name == "" {
 				continue
 			}
-			req, err := http.NewRequest(http.MethodGet, serverURL+"/api/v1/projects/"+projectUUID+"/"+name, nil)
+			path := fmt.Sprintf("/api/v1/projects/%s/%s", url.PathEscape(projectUUID), url.PathEscape(name))
+			req, err := http.NewRequest(http.MethodGet, serverURL+path, nil)
 			if err != nil {
 				return err
 			}
@@ -267,6 +269,39 @@ resource "coolify_environment" "test" {
 				ResourceName:            "coolify_environment.test",
 				ImportState:             true,
 				ImportStateId:           "aaaa0001-0001-4000-8000-000000000001:import-env",
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"description"},
+			},
+		},
+	})
+}
+
+func TestEnvironmentResource_ImportAndDestroyWithEscapedName(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockEnvironmentServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkEnvironmentDestroy(server.URL),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_environment" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "qa/staging"
+  description  = "slash name"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment.test", "name", "qa/staging"),
+					resource.TestCheckResourceAttr("coolify_environment.test", "description", "slash name"),
+				),
+			},
+			{
+				ResourceName:            "coolify_environment.test",
+				ImportState:             true,
+				ImportStateId:           "aaaa0001-0001-4000-8000-000000000001:qa/staging",
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"description"},
 			},
