@@ -25,8 +25,9 @@ type mockCloudToken struct {
 // newMockCoolifyServer creates an httptest.Server that simulates the Coolify API for cloud tokens.
 func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockCloudTokenStore) {
 	store := &mockCloudTokenStore{
-		cloudTokens: make(map[string]*mockCloudToken),
-		counter:     0,
+		cloudTokens:     make(map[string]*mockCloudToken),
+		omitTokenOnRead: make(map[string]bool),
+		counter:         0,
 	}
 
 	mux := http.NewServeMux()
@@ -112,9 +113,10 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockCloudTok
 
 // mockCloudTokenStore is a thread-safe in-memory store for mock cloud tokens.
 type mockCloudTokenStore struct {
-	mu          sync.RWMutex
-	cloudTokens map[string]*mockCloudToken
-	counter     int
+	mu              sync.RWMutex
+	cloudTokens     map[string]*mockCloudToken
+	omitTokenOnRead map[string]bool
+	counter         int
 }
 
 func (s *mockCloudTokenStore) Create(name, prov, token string) *mockCloudToken {
@@ -134,8 +136,18 @@ func (s *mockCloudTokenStore) Create(name, prov, token string) *mockCloudToken {
 func (s *mockCloudTokenStore) Get(uuid string) (*mockCloudToken, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
 	ct, ok := s.cloudTokens[uuid]
-	return ct, ok
+	if !ok {
+		return nil, false
+	}
+
+	copy := *ct
+	if s.omitTokenOnRead[uuid] {
+		copy.Token = ""
+	}
+
+	return &copy, true
 }
 
 func (s *mockCloudTokenStore) Update(uuid string, name, token *string) (*mockCloudToken, bool) {
@@ -152,6 +164,16 @@ func (s *mockCloudTokenStore) Update(uuid string, name, token *string) (*mockClo
 		ct.Token = *token
 	}
 	return ct, true
+}
+
+func (s *mockCloudTokenStore) OmitTokenOnRead(uuid string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.cloudTokens[uuid]; !ok {
+		return false
+	}
+	s.omitTokenOnRead[uuid] = true
+	return true
 }
 
 func (s *mockCloudTokenStore) Delete(uuid string) bool {
@@ -282,6 +304,53 @@ resource "coolify_cloud_token" "test" {
 					}
 					return rs.Primary.Attributes["uuid"], nil
 				},
+			},
+		},
+	})
+}
+
+func TestCloudTokenResource_PreservesTokenWhenReadOmitsIt(t *testing.T) {
+	t.Parallel()
+	server, store := newMockCoolifyServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_cloud_token" "test" {
+  name           = "preserve-token"
+  cloud_provider = "aws"
+  token          = "keep-me"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_cloud_token.test", "token", "keep-me"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_cloud_token.test"]
+						if !ok {
+							return fmt.Errorf("resource not found")
+						}
+
+						uuid := rs.Primary.Attributes["uuid"]
+						if !store.OmitTokenOnRead(uuid) {
+							return fmt.Errorf("cloud token %s not found in store", uuid)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_cloud_token" "test" {
+  name           = "preserve-token"
+  cloud_provider = "aws"
+  token          = "keep-me"
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
