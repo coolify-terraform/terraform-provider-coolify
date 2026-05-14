@@ -351,8 +351,22 @@ jobs:
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Generate deploy key for scenarios
+      - name: Health check
+        id: health
         if: steps.secrets.outputs.configured == 'true'
+        env:
+          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if curl -sf -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            "$COOLIFY_ENDPOINT/api/v1/version" > /dev/null 2>&1; then
+            echo "healthy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Coolify server not reachable, skipping scenario tests"
+            echo "healthy=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Generate deploy key for scenarios
+        if: steps.secrets.outputs.configured == 'true' && steps.health.outputs.healthy == 'true'
         run: |
           rm -f /tmp/scenario-deploy-key /tmp/scenario-deploy-key.pub
           ssh-keygen -t rsa -b 2048 -f /tmp/scenario-deploy-key -N "" -q
@@ -360,7 +374,7 @@ jobs:
           cat /tmp/scenario-deploy-key >> "$GITHUB_ENV"
           echo "EOFKEY" >> "$GITHUB_ENV"
       - name: Run scenario tests
-        if: steps.secrets.outputs.configured == 'true'
+        if: steps.secrets.outputs.configured == 'true' && steps.health.outputs.healthy == 'true'
         env:
           TF_VAR_coolify_endpoint: ${{ secrets.COOLIFY_ENDPOINT }}
           TF_VAR_coolify_token: ${{ secrets.COOLIFY_TOKEN }}
