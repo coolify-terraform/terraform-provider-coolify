@@ -76,6 +76,10 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	p.UUID = types.StringValue(c.UUID)
+	pg.NormalizeCommonCreateState(&p.CommonModel)
+	pg.NormalizeUnknownString(&p.ClickhouseAdminUser)
+	pg.NormalizeUnknownString(&p.ClickhouseAdminPassword)
+	pg.NormalizeUnknownString(&p.ClickhouseDB)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -94,7 +98,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", c.UUID, err))
+		pg.AddCreateReadBackError(resp, "ClickHouse database", c.UUID, err)
 		return
 	}
 	flattenDatabase(db, &p)

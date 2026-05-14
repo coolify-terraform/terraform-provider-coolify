@@ -71,6 +71,9 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	p.UUID = types.StringValue(c.UUID)
+	pg.NormalizeCommonCreateState(&p.CommonModel)
+	pg.NormalizeUnknownString(&p.KeydbPassword)
+	pg.NormalizeUnknownString(&p.KeydbConf)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -91,7 +94,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading KeyDB database", fmt.Sprintf("KeyDB database %s: %s", c.UUID, err))
+		pg.AddCreateReadBackError(resp, "KeyDB database", c.UUID, err)
 		return
 	}
 	flattenDatabase(db, &p)

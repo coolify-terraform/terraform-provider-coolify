@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -252,6 +253,63 @@ resource "coolify_postgresql_database" "test" {
 				),
 			},
 		},
+	})
+}
+
+func TestPostgresqlDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	const pgUUID = "aaaa0009-0009-4000-8000-000000000009"
+
+	var forceReadFailure atomic.Bool
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/postgresql":
+			forceReadFailure.Store(true)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": pgUUID})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", pgUUID):
+			if forceReadFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":              pgUUID,
+				"name":              "pg-readback-db",
+				"project_uuid":      "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":       "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":  "production",
+				"image":             "postgres:16",
+				"is_public":         false,
+				"postgres_user":     "postgres",
+				"postgres_password": "secret123",
+				"postgres_db":       "defaultdb",
+			})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", pgUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+			ExpectError: regexp.MustCompile(`(?s)PostgreSQL database created but refresh failed.*Could not read PostgreSQL database.*partial Terraform state was saved`),
+		}},
 	})
 }
 
