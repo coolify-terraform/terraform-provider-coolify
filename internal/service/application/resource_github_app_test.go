@@ -240,10 +240,12 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 
 func TestGitHubAppApplicationResource_Import(t *testing.T) {
 	t.Parallel()
+	// Simulate Coolify's URL normalization: API returns bare slug for
+	// git_repository. The provider should reconstruct the full URL on import.
 	app := client.Application{
 		UUID:            "aaaa0001-0001-4000-8000-000000000001",
 		Name:            "imported-ghapp",
-		GitRepository:   "github.com/myorg/myrepo",
+		GitRepository:   "myorg/myrepo", // Coolify strips https://github.com/ prefix
 		GitBranch:       "main",
 		BuildPack:       "nixpacks",
 		PortsExposes:    "3000",
@@ -282,12 +284,13 @@ func TestGitHubAppApplicationResource_Import(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
+				// Config uses the full URL which matches normalizeGitRepository("myorg/myrepo")
 				Config: testGitHubAppResourceConfig(srv.URL, `
 					name             = "imported-ghapp"
 					project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
 					server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
 					github_app_uuid  = "cccc0001-0001-4000-8000-000000000001"
-					git_repository   = "github.com/myorg/myrepo"
+					git_repository   = "https://github.com/myorg/myrepo"
 					git_branch       = "main"
 					build_pack       = "nixpacks"
 					ports_exposes    = "3000"

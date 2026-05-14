@@ -218,6 +218,8 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 
 func TestPrivateGitApplicationResource_Import(t *testing.T) {
 	t.Parallel()
+	// Private git repos typically use SSH URLs which Coolify does NOT strip.
+	// The provider stores the SSH URL as-is on import.
 	app := client.Application{
 		UUID:            "aaaa0001-0001-4000-8000-000000000001",
 		Name:            "imported-pgit-app",

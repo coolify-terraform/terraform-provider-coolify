@@ -449,6 +449,109 @@ func TestApplicationResource_GitRepoNormalization(t *testing.T) {
 	})
 }
 
+// TestApplicationResource_GitRepoExternalChange verifies that when the API
+// returns a different org/repo slug whose name happens to be a suffix of the
+// user's configured URL (e.g. "org/repo" is a suffix of "myorg/repo"), the
+// provider detects the change instead of falsely preserving the old URL.
+// This is the regression test for #167 (HasSuffix imprecision).
+func TestApplicationResource_GitRepoExternalChange(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	currentRepo := "myexample/repo" // initial API value (matches user config)
+	app := client.Application{
+		UUID:            "git-change-uuid",
+		Name:            "my-app",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		repo := currentRepo
+		mu.Unlock()
+		a := app
+		a.GitRepository = repo
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(a)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		repo := currentRepo
+		mu.Unlock()
+		a := app
+		a.GitRepository = repo
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(a)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				// Initial create: user configures myexample/repo, API returns myexample/repo
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/myexample/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "git_repository", "https://github.com/myexample/repo"),
+				),
+			},
+			{
+				// Simulate external change: API now returns "example/repo" (different org).
+				// "example/repo" IS a suffix of "https://github.com/myexample/repo"
+				// so the old HasSuffix check would have falsely preserved the URL.
+				PreConfig: func() {
+					mu.Lock()
+					currentRepo = "example/repo"
+					mu.Unlock()
+				},
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "git_repository", "https://github.com/example/repo"),
+				),
+			},
+		},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // TestApplicationResource_LimitsAndHealthChecks
 // ---------------------------------------------------------------------------

@@ -134,16 +134,8 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	*f.UUID = types.StringValue(app.UUID)
 	*f.Name = types.StringValue(app.Name)
 	*f.Description = flex.StringToFramework(app.Description)
-	// Coolify normalizes GitHub URLs by stripping the "https://github.com/"
-	// prefix (e.g. "https://github.com/org/repo" becomes "org/repo"). Preserve
-	// the user's original input if the API value is a suffix of it.
-	// On import (state is null/unknown), reconstruct the full URL from the slug.
 	if f.GitRepository != nil {
-		if !f.GitRepository.IsNull() && !f.GitRepository.IsUnknown() && strings.HasSuffix(f.GitRepository.ValueString(), app.GitRepository) {
-			// keep user's original value
-		} else {
-			*f.GitRepository = types.StringValue(normalizeGitRepository(app.GitRepository))
-		}
+		*f.GitRepository = resolveGitRepository(*f.GitRepository, app.GitRepository)
 	}
 	if f.GitBranch != nil {
 		*f.GitBranch = types.StringValue(app.GitBranch)
@@ -818,6 +810,22 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 	}
+}
+
+// resolveGitRepository reconciles the user's configured git_repository value
+// with the API response. Coolify strips "https://github.com/" from GitHub URLs,
+// so the API value may differ from the user's input. On import (state is
+// null/unknown) the normalized value is used; otherwise the user's value is
+// preserved when it matches the raw or normalized API value.
+func resolveGitRepository(state types.String, apiValue string) types.String {
+	normalized := normalizeGitRepository(apiValue)
+	if !state.IsNull() && !state.IsUnknown() {
+		sv := state.ValueString()
+		if sv == apiValue || sv == normalized {
+			return state
+		}
+	}
+	return types.StringValue(normalized)
 }
 
 // normalizeGitRepository reconstructs a full GitHub URL if the API returned a

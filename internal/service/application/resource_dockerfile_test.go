@@ -219,9 +219,12 @@ func TestDockerfileApplicationResource_Update(t *testing.T) {
 
 func TestDockerfileApplicationResource_Import(t *testing.T) {
 	t.Parallel()
+	// Simulate Coolify's URL normalization: API returns bare slug for
+	// git_repository. The provider should reconstruct the full URL on import.
 	app := client.Application{
 		UUID:               "aaaa0001-0001-4000-8000-000000000001",
 		Name:               "imported-dockerfile-app",
+		GitRepository:      "myorg/myapp", // Coolify strips the prefix
 		DockerfileLocation: "/Dockerfile",
 		PortsExposes:       "80",
 		ProjectUUID:        "aaaa0001-0001-4000-8000-000000000001",
