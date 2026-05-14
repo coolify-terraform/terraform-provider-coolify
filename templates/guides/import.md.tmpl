@@ -82,6 +82,8 @@ must be set in your `.tf` configuration before running `terraform plan`:
 |---|---|
 | All databases | `project_uuid`, `server_uuid`, `environment_name` |
 | All applications | `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_service` | `project_uuid`, `server_uuid`, `environment_name`, `type` |
+| `coolify_environment` | `description` (stored in Terraform state only; not returned by the API) |
 | `coolify_github_app` | `client_secret`, `private_key_uuid` (write-only, never returned by the API) |
 | `coolify_cloud_token` | `token` (write-only, may not be returned by the API) |
 | `coolify_private_key` | `private_key` (requires API token with `root` or `read:sensitive` permission; hidden otherwise) |
