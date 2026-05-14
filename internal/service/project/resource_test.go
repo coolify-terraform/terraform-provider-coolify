@@ -23,7 +23,7 @@ type mockProject struct {
 }
 
 // newMockCoolifyServer creates an httptest.Server that simulates the Coolify API for projects.
-func newMockCoolifyServer() (*httptest.Server, *mockProjectStore) {
+func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockProjectStore) {
 	store := &mockProjectStore{
 		projects: make(map[string]*mockProject),
 		counter:  0,
@@ -41,77 +41,6 @@ func newMockCoolifyServer() (*httptest.Server, *mockProjectStore) {
 			return
 		}
 
-		p := store.Create(body.Name, body.Description)
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"uuid": p.UUID})
-	})
-
-	mux.HandleFunc("GET /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
-		uuid := r.PathValue("uuid")
-		p, ok := store.Get(uuid)
-		if !ok {
-			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
-			return
-		}
-		json.NewEncoder(w).Encode(p)
-	})
-
-	mux.HandleFunc("PATCH /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
-		uuid := r.PathValue("uuid")
-		var body struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
-			return
-		}
-
-		p, ok := store.Update(uuid, body.Name, body.Description)
-		if !ok {
-			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
-			return
-		}
-		json.NewEncoder(w).Encode(p)
-	})
-
-	mux.HandleFunc("DELETE /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
-		uuid := r.PathValue("uuid")
-		if !store.Delete(uuid) {
-			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
-	})
-
-	mux.HandleFunc("GET /api/v1/projects", func(w http.ResponseWriter, r *http.Request) {
-		projects := store.List()
-		json.NewEncoder(w).Encode(projects)
-	})
-
-	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
-	return server, store
-}
-
-// newSpecValidatedServer creates the same mock server but with OpenAPI spec validation.
-func newSpecValidatedServer(t *testing.T) (*httptest.Server, *mockProjectStore) {
-	store := &mockProjectStore{
-		projects: make(map[string]*mockProject),
-		counter:  0,
-	}
-
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("POST /api/v1/projects", func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
-			return
-		}
 		p := store.Create(body.Name, body.Description)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -139,6 +68,7 @@ func newSpecValidatedServer(t *testing.T) (*httptest.Server, *mockProjectStore) 
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 			return
 		}
+
 		p, ok := store.Update(uuid, body.Name, body.Description)
 		if !ok {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
@@ -166,8 +96,11 @@ func newSpecValidatedServer(t *testing.T) (*httptest.Server, *mockProjectStore) 
 		json.NewEncoder(w).Encode(projects)
 	})
 
-	server := httptest.NewServer(spectest.WithSpecValidation(t, "coolify-v4",
-		acctest.WithVersionEndpoint(mux)))
+	handler := acctest.WithVersionEndpoint(mux)
+	if len(auditT) > 0 {
+		handler = spectest.WithSpecValidation(auditT[0], "coolify-v4", handler)
+	}
+	server := httptest.NewServer(handler)
 	return server, store
 }
 
@@ -564,7 +497,7 @@ resource "coolify_project" "test" {
 // a mock server that validates every request/response against the OpenAPI spec.
 func TestProjectResource_SpecValidation(t *testing.T) {
 	t.Parallel()
-	server, _ := newSpecValidatedServer(t)
+	server, _ := newMockCoolifyServer(t)
 	defer server.Close()
 
 	name := acctest.RandomWithPrefix("tf-spec")
