@@ -37,11 +37,14 @@ procedure, API token creation, and server validation steps.
 
 ### Code Quality
 
-Run all CI checks locally before pushing:
+Run the aggregate local checks before pushing:
 
 ```bash
-make ci      # Run the full local check suite
+make ci      # Run build, lint, unit tests, validate, docs, coverage, and vuln checks
 ```
+
+`make ci` does not run acceptance tests. When your change touches real Coolify
+behavior, also run `make testacc` or targeted `TF_ACC=1 go test ...` coverage.
 
 Or run individual checks:
 
@@ -134,7 +137,7 @@ To test the provider against a real Coolify instance without publishing:
    ```
    Replace `/home/YOUR_USER/go/bin` with your `$GOPATH/bin` (run `go env GOPATH` to find it).
 
-3. Run Terraform without `terraform init` (dev_overrides skip the registry):
+3. Run Terraform commands with the local override in place:
    ```bash
    export COOLIFY_ENDPOINT="http://localhost:8000"
    export COOLIFY_TOKEN="your-token"
@@ -142,11 +145,14 @@ To test the provider against a real Coolify instance without publishing:
    terraform apply
    ```
 
+   If the configuration uses local modules, run `terraform get` first.
+   `terraform init` still tries to resolve providers even with `dev_overrides`.
+
 4. Start a local Coolify instance for testing (see [TESTING.md](TESTING.md)
    for the full setup procedure).
 
 ## Pull Requests
 
-- Run `make ci` before submitting (runs all checks except trivy/gitleaks security scans)
+- Run `make ci` before submitting, and add `make testacc` or targeted `TF_ACC=1 go test ...` coverage when your change touches real Coolify behavior (`make ci` still skips trivy, gitleaks, and acceptance tests)
 - Include tests for new functionality
 - Keep PRs focused on a single change

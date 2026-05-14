@@ -20,7 +20,7 @@ fmt: ## Format code (gofmt + go mod tidy)
 	gofmt -s -w .
 	go mod tidy
 
-docs: ## Regenerate documentation via tfplugindocs
+docs: check-tfplugindocs ## Regenerate documentation via tfplugindocs
 	go generate ./...
 
 validate: ## Check HCL formatting in examples/
@@ -63,8 +63,8 @@ ci: build lint test validate docs-check api-coverage-check counts-check vulnchec
 modverify: ## Verify module cache integrity against go.sum
 	go mod verify
 
-docs-check: ## Check generated docs are up to date
-	@go generate ./... && git diff --exit-code || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
+docs-check: check-tfplugindocs ## Check generated docs are up to date
+	@go generate ./... && git diff --exit-code -- docs/ || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
 
 counts-check: ## Verify AGENTS.md and README.md resource/data source/test counts
 	@r_actual=$$(sed -n '/func.*Resources.*\[\]func.*resource\.Resource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
@@ -103,6 +103,9 @@ check-goreleaser-version: ## Verify goreleaser major version matches CI
 		exit 1; \
 	fi
 
+check-tfplugindocs: ## Verify tfplugindocs is installed for docs generation
+	@command -v tfplugindocs >/dev/null 2>&1 || (echo "ERROR: tfplugindocs is required for docs generation. Install with: (cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs)"; exit 1)
+
 goreleaser-check: check-goreleaser-version ## Validate .goreleaser.yml with CI-compatible goreleaser
 	goreleaser check
 
@@ -112,4 +115,4 @@ vulncheck: ## Run govulncheck for known vulnerabilities
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version goreleaser-check modverify ci help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-tfplugindocs goreleaser-check modverify ci help

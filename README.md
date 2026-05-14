@@ -172,8 +172,11 @@ make fmt         # Format code (gofmt + go mod tidy)
 make docs        # Regenerate documentation via tfplugindocs
 make validate    # Check HCL formatting in examples/
 make install     # Install provider to local Go bin
-make ci          # Run the full local check suite
+make ci          # Run the aggregate local checks (acceptance tests run separately)
 ```
+
+`make ci` does not run acceptance tests. Run `make testacc` or targeted
+`TF_ACC=1 go test ...` coverage when your change touches real-API behavior.
 
 For local provider testing with `dev_overrides`, acceptance test setup, and
 project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
