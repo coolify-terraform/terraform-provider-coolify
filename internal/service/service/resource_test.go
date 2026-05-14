@@ -5,13 +5,27 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
+
+const serviceTestConfig = `
+resource "coolify_service" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  type         = "plausible"
+}
+`
+
+func serviceConfig(serverURL string) string {
+	return acctest.ProviderBlockForURL(serverURL) + serviceTestConfig
+}
 
 type mockServiceState struct {
 	mu          sync.Mutex
@@ -89,18 +103,7 @@ func TestServiceResource_CreateImport(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_service" "test" {
-  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
-  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
-  type         = "plausible"
-}
-`, srv.URL),
+				Config: serviceConfig(srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "dddd0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_service.test", "name", "plausible-svc"),
@@ -110,18 +113,7 @@ resource "coolify_service" "test" {
 			},
 			// Idempotency
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_service" "test" {
-  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
-  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
-  type         = "plausible"
-}
-`, srv.URL),
+				Config:             serviceConfig(srv.URL),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
@@ -132,6 +124,59 @@ resource "coolify_service" "test" {
 				ImportStateId:     "dddd0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"project_uuid", "server_uuid", "environment_name", "type"},
+			},
+		},
+	})
+}
+
+func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	state := &mockServiceState{uuid: "dddd0009-0009-4000-8000-000000000009", name: "plausible-svc"}
+	var forceReadFailure atomic.Bool
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		state.mu.Lock()
+		defer state.mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			w.WriteHeader(http.StatusCreated)
+			forceReadFailure.Store(true)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			if forceReadFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":             state.uuid,
+				"name":             state.name,
+				"description":      state.description,
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name": "production",
+				"type":             "plausible",
+			})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			state.deleted = true
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config:      serviceConfig(srv.URL),
+				ExpectError: regexp.MustCompile(`(?s)Service created but refresh failed.*Could not read service.*partial Terraform state was saved`),
 			},
 		},
 	})
@@ -188,18 +233,7 @@ func TestServiceResource_Disappears(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(`
-provider "coolify" {
-  endpoint  = %q
-  token = "test-token"
-}
-
-resource "coolify_service" "test" {
-  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
-  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
-  type         = "plausible"
-}
-`, srv.URL),
+				Config: serviceConfig(srv.URL),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_service.test", "uuid"),
 					acctest.CheckResourceDisappears(srv.URL, "coolify_service.test", "/api/v1/services/"),
@@ -263,19 +297,14 @@ func TestServiceResource_Update(t *testing.T) {
 	defer srv.Close()
 
 	baseConfig := func(desc string) string {
-		return fmt.Sprintf(`
-provider "coolify" {
-  endpoint = %q
-  token    = "test-token"
-}
-
+		return acctest.ProviderBlockForURL(srv.URL) + fmt.Sprintf(`
 resource "coolify_service" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   type         = "plausible"
   description  = %q
 }
-`, srv.URL, desc)
+`, desc)
 	}
 
 	resource.UnitTest(t, resource.TestCase{

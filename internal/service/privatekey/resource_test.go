@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -121,6 +122,70 @@ resource "coolify_private_key" "test" {
 }`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestPrivateKeyResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	keys := make(map[string]*client.PrivateKey)
+	var mu sync.Mutex
+	var forceReadFailure atomic.Bool
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/security/keys":
+			var input client.CreatePrivateKeyInput
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			key := &client.PrivateKey{UUID: "cccc0009-0009-4000-8000-000000000009"}
+			keys[key.UUID] = key
+			forceReadFailure.Store(true)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(key)
+
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/"):
+			if forceReadFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/security/keys/")
+			key, ok := keys[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(key)
+
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/security/keys/")
+			delete(keys, uuid)
+			w.WriteHeader(http.StatusOK)
+
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_private_key" "test" {
+  name        = "readback-failure"
+  private_key = "ssh-ed25519 AAAA-test-key"
+}
+`,
+				ExpectError: regexp.MustCompile(`(?s)Private key created but refresh failed.*Could not read private key.*partial Terraform state was saved`),
 			},
 		},
 	})

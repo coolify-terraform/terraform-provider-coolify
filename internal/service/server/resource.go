@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-
 	"regexp"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
@@ -214,6 +213,18 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	plan.UUID = types.StringValue(created.UUID)
+	if plan.Description.IsUnknown() {
+		plan.Description = types.StringNull()
+	}
+	if plan.IsReachable.IsUnknown() {
+		plan.IsReachable = types.BoolNull()
+	}
+	if plan.IsUsable.IsUnknown() {
+		plan.IsUsable = types.BoolNull()
+	}
+	if plan.ServerDiskUsageCheckFrequency.IsUnknown() {
+		plan.ServerDiskUsageCheckFrequency = types.StringNull()
+	}
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -224,7 +235,10 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	// Read back for full state.
 	srv, err := r.client.GetServer(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading server after create", fmt.Sprintf("server %s: %s", created.UUID, err))
+		resp.Diagnostics.AddError(
+			"Server created but refresh failed",
+			fmt.Sprintf("Coolify created server %s, but the provider could not read it back: Could not read server %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, created.UUID, err),
+		)
 		return
 	}
 

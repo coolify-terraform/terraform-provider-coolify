@@ -12,17 +12,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
 	_ resource.Resource                = &privateKeyResource{}
 	_ resource.ResourceWithConfigure   = &privateKeyResource{}
 	_ resource.ResourceWithImportState = &privateKeyResource{}
+)
+
+const (
+	privateKeyDeleteRetryAttempts = 6
+	privateKeyDeleteRetryDelay    = 5 * time.Second
 )
 
 type privateKeyResource struct {
@@ -129,6 +133,18 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	plan.UUID = types.StringValue(created.UUID)
+	if plan.Description.IsUnknown() {
+		plan.Description = types.StringNull()
+	}
+	if plan.PublicKey.IsUnknown() {
+		plan.PublicKey = types.StringNull()
+	}
+	if plan.Fingerprint.IsUnknown() {
+		plan.Fingerprint = types.StringNull()
+	}
+	if plan.IsGitRelated.IsUnknown() {
+		plan.IsGitRelated = types.BoolNull()
+	}
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -139,7 +155,10 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	// Read back for full state.
 	key, err := r.client.GetPrivateKey(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading private key after create", fmt.Sprintf("private key %s: %s", created.UUID, err))
+		resp.Diagnostics.AddError(
+			"Private key created but refresh failed",
+			fmt.Sprintf("Coolify created private key %s, but the provider could not read it back: Could not read private key %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, created.UUID, err),
+		)
 		return
 	}
 
@@ -227,26 +246,27 @@ func (r *privateKeyResource) Delete(ctx context.Context, req resource.DeleteRequ
 	// up to 30 seconds on "in use" errors.
 	uuid := state.UUID.ValueString()
 	var err error
+
 retryLoop:
-	for attempt := range 6 {
+	for attempt := range privateKeyDeleteRetryAttempts {
 		err = r.client.DeletePrivateKey(ctx, uuid)
-		if err == nil {
+		if err == nil || client.IsNotFound(err) {
 			return
 		}
-		if client.IsNotFound(err) {
-			return
-		}
-		if !strings.Contains(err.Error(), "in use") && !strings.Contains(err.Error(), "cannot be deleted") {
+		if !isPrivateKeyDeleteRetryable(err) {
 			break
 		}
+
 		tflog.Debug(ctx, "retrying private key delete", map[string]interface{}{"attempt": attempt + 1, "uuid": uuid})
+
 		select {
 		case <-ctx.Done():
 			err = ctx.Err()
 			break retryLoop
-		case <-time.After(5 * time.Second):
+		case <-time.After(privateKeyDeleteRetryDelay):
 		}
 	}
+
 	resp.Diagnostics.AddError("Error deleting private key", fmt.Sprintf("private key %s: %s", uuid, err))
 }
 
@@ -261,6 +281,12 @@ func (r *privateKeyResource) ImportState(ctx context.Context, req resource.Impor
 		"The Coolify API hides the private_key field unless the API token has \"root\" or \"read:sensitive\" permission. "+
 			"If you see unexpected diffs after import, check your token's permissions in the Coolify dashboard under Security > API Tokens.",
 	)
+}
+
+func isPrivateKeyDeleteRetryable(err error) bool {
+	message := err.Error()
+
+	return strings.Contains(message, "in use") || strings.Contains(message, "cannot be deleted")
 }
 
 func flattenPrivateKey(key *client.PrivateKey, model *privateKeyResourceModel) {

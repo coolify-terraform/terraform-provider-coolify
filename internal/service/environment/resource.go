@@ -121,18 +121,32 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	if plan.ID.IsUnknown() {
+		plan.ID = types.Int64Null()
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = types.StringNull()
+	}
+
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	projectUUID := plan.ProjectUUID.ValueString()
+	name := plan.Name.ValueString()
+
 	// Read back the full environment to populate computed fields.
-	diags := r.readEnvironment(ctx, plan.ProjectUUID.ValueString(), plan.Name.ValueString(), &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
+	diags := r.readEnvironment(ctx, projectUUID, name, &plan)
+	if diags.HasError() {
+		resp.Diagnostics.AddError(
+			"Environment created but refresh failed",
+			fmt.Sprintf("Coolify created environment %s/%s, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", projectUUID, name, diags.Errors()[0].Detail()),
+		)
 		return
 	}
+	resp.Diagnostics.Append(diags...)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -144,15 +158,18 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_environment", "name": state.Name.ValueString()})
+	projectUUID := state.ProjectUUID.ValueString()
+	name := state.Name.ValueString()
 
-	env, err := r.client.GetEnvironment(ctx, state.ProjectUUID.ValueString(), state.Name.ValueString())
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_environment", "name": name})
+
+	env, err := r.client.GetEnvironment(ctx, projectUUID, name)
 	if err != nil {
 		if client.IsNotFound(err) {
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading environment", fmt.Sprintf("Could not read environment %s/%s: %s", state.ProjectUUID.ValueString(), state.Name.ValueString(), err))
+		resp.Diagnostics.AddError("Error reading environment", fmt.Sprintf("Could not read environment %s/%s: %s", projectUUID, name, err))
 		return
 	}
 
@@ -187,9 +204,12 @@ func (r *environmentResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_environment", "name": state.Name.ValueString()})
+	projectUUID := state.ProjectUUID.ValueString()
+	name := state.Name.ValueString()
 
-	err := r.client.DeleteEnvironment(ctx, state.ProjectUUID.ValueString(), state.Name.ValueString())
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_environment", "name": name})
+
+	err := r.client.DeleteEnvironment(ctx, projectUUID, name)
 	if err != nil {
 		if client.IsNotFound(err) {
 			return

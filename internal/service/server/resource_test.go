@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -182,6 +183,72 @@ resource "coolify_server" "test" {
 }`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	servers := make(map[string]*client.Server)
+	var mu sync.Mutex
+	var forceReadFailure atomic.Bool
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers":
+			var input client.CreateServerInput
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			created := &client.Server{UUID: "bbbb0009-0009-4000-8000-000000000009"}
+			servers[created.UUID] = created
+			forceReadFailure.Store(true)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(created)
+
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			if forceReadFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			server, ok := servers[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(server)
+
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			delete(servers, uuid)
+			w.WriteHeader(http.StatusOK)
+
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "readback-failure"
+  ip               = "10.0.0.1"
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
+}
+`,
+				ExpectError: regexp.MustCompile(`(?s)Server created but refresh failed.*Could not read server.*partial Terraform state was saved`),
 			},
 		},
 	})
