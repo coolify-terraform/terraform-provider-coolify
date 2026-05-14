@@ -129,13 +129,14 @@ resource "coolify_application" "web" {
 ```
 
 See the [examples/](examples/) directory for more. The
-[examples/scenarios/](examples/scenarios/) directory has 7 real-world
+[examples/scenarios/](examples/scenarios/) directory has 8 real-world
 scenarios tested against a live Coolify instance:
 
 | Scenario | What it tests |
 |---|---|
 | `acme-website` | Project, PostgreSQL, application, env vars |
 | `acme-api` | Dockerfile + Docker image apps, Redis, scheduled tasks, backups |
+| `acme-backups` | Database backup lifecycle: scheduling, S3 off-site storage, execution monitoring |
 | `acme-multi-env` | Terraform modules for dev/staging environments |
 | `acme-databases` | All 8 database engines (PostgreSQL, MySQL, MariaDB, Redis, MongoDB, ClickHouse, KeyDB, Dragonfly) |
 | `acme-platform` | Private keys, environments, storage, data sources |
