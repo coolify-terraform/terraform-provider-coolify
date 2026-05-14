@@ -254,7 +254,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 |----------|----------|--------|--------|--------|-------|
 | `coolify_project` | Yes | Yes | Yes | Yes | |
 | `coolify_private_key` | Yes | Yes | Yes | Yes | |
-| `coolify_s3_storage` | Yes | Yes | Yes | Yes | |
+| `coolify_s3_storage` | Skipped | | | | API unavailable on the tested Coolify v4 instance, tracked in #178 |
 | `coolify_environment` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
 | `coolify_dockerfile_application` | Yes | Yes | Yes | Yes | |
 | `coolify_postgresql_database` | Yes | Yes | Yes | Yes | |
@@ -299,8 +299,8 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_environment_variables` | Yes | Via envvar test |
 | `coolify_private_key` | Yes | Via private_key test |
 | `coolify_private_keys` | Yes | Via private_key test |
-| `coolify_s3_storage` | Yes | Via s3_storage test |
-| `coolify_s3_storages` | Yes | Via s3_storage test |
+| `coolify_s3_storage` | Skipped | API unavailable on the tested Coolify v4 instance, tracked in #178 |
+| `coolify_s3_storages` | Skipped | API unavailable on the tested Coolify v4 instance, tracked in #178 |
 | `coolify_servers` | Yes | |
 | `coolify_server` | Yes | By UUID |
 | `coolify_server_resources` | Yes | |
@@ -328,9 +328,9 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ### Coverage Summary
 
-- **Resources**: 26/26 tested (100%)
-- **Data Sources**: 42/42 tested (100%)
-- **Total acceptance test functions**: 59
+- **Resources**: 25/26 direct acceptance coverage (`coolify_s3_storage` is skipped, `coolify_github_app_application` is covered via application variants)
+- **Data Sources**: 40/42 direct acceptance coverage (both S3 storage data sources are skipped)
+- **Total acceptance test functions**: 59 (2 unconditionally skipped)
 
 ### Testing strategies for edge cases
 
