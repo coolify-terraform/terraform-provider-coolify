@@ -830,12 +830,14 @@ func normalizeGitRepository(apiValue string) string {
 	if strings.HasPrefix(apiValue, "git@") {
 		return apiValue
 	}
-	// Contains a domain (e.g. "github.com/org/repo", "gitlab.com/org/repo")
-	if strings.Contains(apiValue, ".") {
+	slashIdx := strings.Index(apiValue, "/")
+	dotIdx := strings.Index(apiValue, ".")
+	// Dot appears before the first slash: domain prefix (e.g. "github.com/org/repo")
+	if dotIdx >= 0 && (slashIdx < 0 || dotIdx < slashIdx) {
 		return apiValue
 	}
-	// Bare slug like "org/repo" with no domain, protocol, or SSH prefix
-	if strings.Contains(apiValue, "/") {
+	// Bare slug like "org/repo" or "org/repo.git" (dot after slash is a file extension)
+	if slashIdx >= 0 {
 		return "https://github.com/" + apiValue
 	}
 	return apiValue

@@ -15,6 +15,7 @@ func TestNormalizeGitRepository(t *testing.T) {
 		{"domain-prefixed", "github.com/org/repo", "github.com/org/repo"},
 		{"gitlab domain", "gitlab.com/org/repo", "gitlab.com/org/repo"},
 		{"bare slug", "org/repo", "https://github.com/org/repo"},
+		{"bare slug with .git", "org/repo.git", "https://github.com/org/repo.git"},
 		{"bare slug nested", "org/repo/subdir", "https://github.com/org/repo/subdir"},
 		{"empty string", "", ""},
 		{"single word", "myrepo", "myrepo"},
