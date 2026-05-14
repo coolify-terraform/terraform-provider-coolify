@@ -4,7 +4,7 @@
 ![Go Version](https://img.shields.io/github/go-mod/go-version/SebTardifLabs/terraform-provider-coolify)
 ![License](https://img.shields.io/github/license/SebTardifLabs/terraform-provider-coolify)
 
-A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 26 resources, 46 data sources, 440+ tests, 100% API coverage.
+A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 26 resources, 46 data sources, 450+ tests, 100% API coverage.
 
 ## Getting Started
 
@@ -156,7 +156,7 @@ The provider requires a Coolify API token. Generate one in the Coolify UI under 
 
 ```bash
 make build       # Compile the provider
-make test        # Run unit tests (440+ tests, race detector enabled)
+make test        # Run unit tests (450+ tests, race detector enabled)
 make testacc     # Run acceptance tests (needs running Coolify instance)
 make lint        # Run golangci-lint
 make fmt         # Format code (gofmt + go mod tidy)
