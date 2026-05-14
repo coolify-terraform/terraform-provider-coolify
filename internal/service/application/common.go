@@ -127,6 +127,121 @@ type commonAppFields struct {
 	UseBuildServer                *types.Bool
 }
 
+// applicationCommonModel holds the fields shared by all application resource
+// models. Embed this struct to avoid repeating ~60 fields in each model.
+type applicationCommonModel struct {
+	UUID                           types.String   `tfsdk:"uuid"`
+	Name                           types.String   `tfsdk:"name"`
+	Description                    types.String   `tfsdk:"description"`
+	ProjectUUID                    types.String   `tfsdk:"project_uuid"`
+	ServerUUID                     types.String   `tfsdk:"server_uuid"`
+	EnvironmentName                types.String   `tfsdk:"environment_name"`
+	PortsExposes                   types.String   `tfsdk:"ports_exposes"`
+	FQDN                           types.String   `tfsdk:"fqdn"`
+	InstallCommand                 types.String   `tfsdk:"install_command"`
+	StartCommand                   types.String   `tfsdk:"start_command"`
+	Status                         types.String   `tfsdk:"status"`
+	LimitsMemory                   types.String   `tfsdk:"limits_memory"`
+	LimitsMemorySwap               types.String   `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness         types.Int64    `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation        types.String   `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs                     types.String   `tfsdk:"limits_cpus"`
+	LimitsCPUSet                   types.String   `tfsdk:"limits_cpuset"`
+	LimitsCPUShares                types.Int64    `tfsdk:"limits_cpu_shares"`
+	HealthCheckEnabled             types.Bool     `tfsdk:"health_check_enabled"`
+	HealthCheckPath                types.String   `tfsdk:"health_check_path"`
+	HealthCheckPort                types.String   `tfsdk:"health_check_port"`
+	HealthCheckInterval            types.Int64    `tfsdk:"health_check_interval"`
+	HealthCheckTimeout             types.Int64    `tfsdk:"health_check_timeout"`
+	HealthCheckRetries             types.Int64    `tfsdk:"health_check_retries"`
+	HealthCheckStartPeriod         types.Int64    `tfsdk:"health_check_start_period"`
+	HealthCheckCommand             types.String   `tfsdk:"health_check_command"`
+	HealthCheckHost                types.String   `tfsdk:"health_check_host"`
+	HealthCheckMethod              types.String   `tfsdk:"health_check_method"`
+	HealthCheckResponseText        types.String   `tfsdk:"health_check_response_text"`
+	HealthCheckReturnCode          types.Int64    `tfsdk:"health_check_return_code"`
+	HealthCheckScheme              types.String   `tfsdk:"health_check_scheme"`
+	HealthCheckType                types.String   `tfsdk:"health_check_type"`
+	IsAutoDeployEnabled            types.Bool     `tfsdk:"is_auto_deploy_enabled"`
+	BaseDirectory                  types.String   `tfsdk:"base_directory"`
+	Dockerfile                     types.String   `tfsdk:"dockerfile"`
+	DockerRegistryImageTag         types.String   `tfsdk:"docker_registry_image_tag"`
+	DockerComposeDomains           types.String   `tfsdk:"docker_compose_domains"`
+	GitCommitSha                   types.String   `tfsdk:"git_commit_sha"`
+	PublishDirectory               types.String   `tfsdk:"publish_directory"`
+	WatchPaths                     types.String   `tfsdk:"watch_paths"`
+	PreviewURLTemplate             types.String   `tfsdk:"preview_url_template"`
+	CustomDockerRunOptions         types.String   `tfsdk:"custom_docker_run_options"`
+	CustomLabels                   types.String   `tfsdk:"custom_labels"`
+	CustomNetworkAliases           types.String   `tfsdk:"custom_network_aliases"`
+	CustomNginxConfiguration       types.String   `tfsdk:"custom_nginx_configuration"`
+	PortsMappings                  types.String   `tfsdk:"ports_mappings"`
+	ConnectToDockerNetwork         types.Bool     `tfsdk:"connect_to_docker_network"`
+	Redirect                       types.String   `tfsdk:"redirect"`
+	StaticImage                    types.String   `tfsdk:"static_image"`
+	IsStatic                       types.Bool     `tfsdk:"is_static"`
+	IsSPA                          types.Bool     `tfsdk:"is_spa"`
+	IsForceHTTPSEnabled            types.Bool     `tfsdk:"is_force_https_enabled"`
+	IsHTTPBasicAuthEnabled         types.Bool     `tfsdk:"is_http_basic_auth_enabled"`
+	HTTPBasicAuthUsername          types.String   `tfsdk:"http_basic_auth_username"`
+	HTTPBasicAuthPassword          types.String   `tfsdk:"http_basic_auth_password"`
+	PreDeploymentCommand           types.String   `tfsdk:"pre_deployment_command"`
+	PreDeploymentCommandContainer  types.String   `tfsdk:"pre_deployment_command_container"`
+	PostDeploymentCommand          types.String   `tfsdk:"post_deployment_command"`
+	PostDeploymentCommandContainer types.String   `tfsdk:"post_deployment_command_container"`
+	ManualWebhookSecretBitbucket   types.String   `tfsdk:"manual_webhook_secret_bitbucket"`
+	ManualWebhookSecretGitea       types.String   `tfsdk:"manual_webhook_secret_gitea"`
+	ManualWebhookSecretGitHub      types.String   `tfsdk:"manual_webhook_secret_github"`
+	ManualWebhookSecretGitLab      types.String   `tfsdk:"manual_webhook_secret_gitlab"`
+	ForceDomainOverride            types.Bool     `tfsdk:"force_domain_override"`
+	IsContainerLabelEscapeEnabled  types.Bool     `tfsdk:"is_container_label_escape_enabled"`
+	IsPreserveRepositoryEnabled    types.Bool     `tfsdk:"is_preserve_repository_enabled"`
+	UseBuildServer                 types.Bool     `tfsdk:"use_build_server"`
+	Timeouts                       timeouts.Value `tfsdk:"timeouts"`
+}
+
+// common returns a commonAppFields with pointers to the universal fields.
+// Type-specific models call this and then add their own fields.
+func (m *applicationCommonModel) common() commonAppFields {
+	return commonAppFields{
+		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
+		PortsExposes: &m.PortsExposes, FQDN: &m.FQDN,
+		InstallCommand: &m.InstallCommand, StartCommand: &m.StartCommand,
+		Status: &m.Status, ProjectUUID: &m.ProjectUUID, ServerUUID: &m.ServerUUID,
+		EnvironmentName: &m.EnvironmentName,
+		LimitsMemory:    &m.LimitsMemory, LimitsMemorySwap: &m.LimitsMemorySwap,
+		LimitsMemorySwappiness: &m.LimitsMemorySwappiness, LimitsMemoryReservation: &m.LimitsMemoryReservation,
+		LimitsCPUs: &m.LimitsCPUs, LimitsCPUSet: &m.LimitsCPUSet, LimitsCPUShares: &m.LimitsCPUShares,
+		HealthCheckEnabled: &m.HealthCheckEnabled, HealthCheckPath: &m.HealthCheckPath,
+		HealthCheckPort: &m.HealthCheckPort, HealthCheckInterval: &m.HealthCheckInterval,
+		HealthCheckTimeout: &m.HealthCheckTimeout, HealthCheckRetries: &m.HealthCheckRetries,
+		HealthCheckStartPeriod: &m.HealthCheckStartPeriod,
+		HealthCheckCommand:     &m.HealthCheckCommand, HealthCheckHost: &m.HealthCheckHost,
+		HealthCheckMethod: &m.HealthCheckMethod, HealthCheckResponseText: &m.HealthCheckResponseText,
+		HealthCheckReturnCode: &m.HealthCheckReturnCode, HealthCheckScheme: &m.HealthCheckScheme,
+		HealthCheckType:     &m.HealthCheckType,
+		IsAutoDeployEnabled: &m.IsAutoDeployEnabled,
+		BaseDirectory:       &m.BaseDirectory, Dockerfile: &m.Dockerfile,
+		DockerRegistryImageTag: &m.DockerRegistryImageTag,
+		DockerComposeDomains:   &m.DockerComposeDomains,
+		GitCommitSha:           &m.GitCommitSha, PublishDirectory: &m.PublishDirectory,
+		WatchPaths: &m.WatchPaths, PreviewURLTemplate: &m.PreviewURLTemplate,
+		CustomDockerRunOptions: &m.CustomDockerRunOptions, CustomLabels: &m.CustomLabels,
+		CustomNetworkAliases: &m.CustomNetworkAliases, CustomNginxConfiguration: &m.CustomNginxConfiguration,
+		PortsMappings: &m.PortsMappings, ConnectToDockerNetwork: &m.ConnectToDockerNetwork,
+		Redirect: &m.Redirect, StaticImage: &m.StaticImage,
+		IsStatic: &m.IsStatic, IsSPA: &m.IsSPA,
+		IsForceHTTPSEnabled: &m.IsForceHTTPSEnabled, IsHTTPBasicAuthEnabled: &m.IsHTTPBasicAuthEnabled,
+		HTTPBasicAuthUsername: &m.HTTPBasicAuthUsername, HTTPBasicAuthPassword: &m.HTTPBasicAuthPassword,
+		PreDeploymentCommand: &m.PreDeploymentCommand, PreDeploymentCommandContainer: &m.PreDeploymentCommandContainer,
+		PostDeploymentCommand: &m.PostDeploymentCommand, PostDeploymentCommandContainer: &m.PostDeploymentCommandContainer,
+		ManualWebhookSecretBitbucket: &m.ManualWebhookSecretBitbucket, ManualWebhookSecretGitea: &m.ManualWebhookSecretGitea,
+		ManualWebhookSecretGitHub: &m.ManualWebhookSecretGitHub, ManualWebhookSecretGitLab: &m.ManualWebhookSecretGitLab,
+		ForceDomainOverride: &m.ForceDomainOverride, IsContainerLabelEscapeEnabled: &m.IsContainerLabelEscapeEnabled,
+		IsPreserveRepositoryEnabled: &m.IsPreserveRepositoryEnabled, UseBuildServer: &m.UseBuildServer,
+	}
+}
+
 // flattenApplicationCommon maps shared API fields into any application model
 // via field pointers. Nil pointers are skipped (allows partial models like
 // compose or docker image to omit inapplicable fields).
