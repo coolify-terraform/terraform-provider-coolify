@@ -76,6 +76,19 @@ internal/
 
 ## Adding a New Resource
 
+Use the scaffold script to generate boilerplate:
+
+```bash
+make scaffold NAME=webhook
+```
+
+This creates the resource, data source, client methods, tests, and examples
+with TODO placeholders. Then complete the remaining manual steps printed by
+the script (register in provider.go, fill in TODOs, run `make ci`).
+
+<details>
+<summary>Manual steps (if not using the scaffold)</summary>
+
 1. Create a new subpackage under `internal/service/`
 2. Implement the resource (resource.go) following existing patterns
 3. Add data source(s) if applicable
@@ -88,6 +101,8 @@ internal/
 10. Run `make api-coverage` to regenerate API_COVERAGE.md
 11. Update resource/data source/test counts in AGENTS.md and README.md
 12. Run `make docs` to generate documentation
+
+</details>
 
 ## Style Guide
 
