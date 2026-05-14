@@ -1,6 +1,9 @@
 package environment_test
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -36,6 +39,28 @@ data "coolify_environment" "test" {
 					resource.TestCheckResourceAttr("data.coolify_environment.test", "name", "ds-test-env"),
 					resource.TestCheckResourceAttr("data.coolify_environment.test", "description", ""),
 				),
+			},
+		},
+	})
+}
+
+func TestEnvironmentDataSource_NotFound(t *testing.T) {
+	t.Parallel()
+	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	})))
+	defer mockSrv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
+data "coolify_environment" "test" {
+  project_uuid = "00000000-0000-4000-8000-000000000000"
+  name         = "nonexistent"
+}`,
+				ExpectError: regexp.MustCompile(`Error reading environment`),
 			},
 		},
 	})
