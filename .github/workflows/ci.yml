@@ -209,10 +209,16 @@ jobs:
       - name: Install gitleaks
         run: |
           VER="8.30.1"
+          BIN_DIR="$HOME/.local/bin"
+          export PATH="$BIN_DIR:$PATH"
+          mkdir -p "$BIN_DIR"
+
           if ! command -v gitleaks >/dev/null 2>&1 || ! gitleaks version 2>/dev/null | grep -q "$VER"; then
             curl -sfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" \
-              | sudo tar xz -C /usr/local/bin gitleaks
+              | tar xz -C "$BIN_DIR" gitleaks
           fi
+
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
       - name: Run gitleaks
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
