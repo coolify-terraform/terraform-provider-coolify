@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -194,6 +195,68 @@ resource "coolify_project" "test" {
 `,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestProjectResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	store := &mockProjectStore{
+		projects: make(map[string]*mockProject),
+		counter:  0,
+	}
+
+	var forceReadFailure atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/projects", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		p := store.Create(body.Name, body.Description)
+		forceReadFailure.Store(true)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": p.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if forceReadFailure.Load() {
+			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+			return
+		}
+		uuid := r.PathValue("uuid")
+		p, ok := store.Get(uuid)
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(p)
+	})
+	mux.HandleFunc("DELETE /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.PathValue("uuid")
+		store.Delete(uuid)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+	})
+
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_project" "test" {
+  name = "readback-failure"
+}
+`,
+				ExpectError: regexp.MustCompile(`(?s)Project created but refresh failed.*Could not read project.*partial Terraform state was saved`),
 			},
 		},
 	})

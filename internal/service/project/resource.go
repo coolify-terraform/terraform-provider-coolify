@@ -111,6 +111,9 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	plan.UUID = types.StringValue(project.UUID)
+	if plan.Description.IsUnknown() {
+		plan.Description = types.StringNull()
+	}
 
 	// Save partial state immediately so the resource is tracked even if
 	// the read-back fails. Without this, a transient error after create
@@ -122,10 +125,14 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// Read back the full project to populate all fields.
 	diags := r.readProject(ctx, project.UUID, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
+	if diags.HasError() {
+		resp.Diagnostics.AddError(
+			"Project created but refresh failed",
+			fmt.Sprintf("Coolify created project %s, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", project.UUID, diags.Errors()[0].Detail()),
+		)
 		return
 	}
+	resp.Diagnostics.Append(diags...)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
