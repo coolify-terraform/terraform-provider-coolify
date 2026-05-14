@@ -21,6 +21,11 @@ func TestHetznerLocationsDataSource(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/hetzner/locations", func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("cloud_provider_token_uuid"); got != "test-token-uuid" {
+			t.Errorf("expected cloud_provider_token_uuid=test-token-uuid, got %q", got)
+			http.Error(w, "missing cloud_provider_token_uuid", http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(locations)
 	})

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -299,13 +300,13 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			nil, 200, []map[string]interface{}{{"name": "main"}}},
 
 		// Hetzner
-		{"HetznerImages", "GET", "/api/v1/hetzner/images",
+		{"HetznerImages", "GET", "/api/v1/hetzner/images?cloud_provider_token_uuid=tok-1",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "ubuntu-22.04"}}},
-		{"HetznerLocations", "GET", "/api/v1/hetzner/locations",
+		{"HetznerLocations", "GET", "/api/v1/hetzner/locations?cloud_provider_token_uuid=tok-1",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "fsn1"}}},
-		{"HetznerServerTypes", "GET", "/api/v1/hetzner/server-types",
+		{"HetznerServerTypes", "GET", "/api/v1/hetzner/server-types?cloud_provider_token_uuid=tok-1",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "cx11"}}},
-		{"HetznerSSHKeys", "GET", "/api/v1/hetzner/ssh-keys",
+		{"HetznerSSHKeys", "GET", "/api/v1/hetzner/ssh-keys?cloud_provider_token_uuid=tok-1",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "my-key"}}},
 
 		// Servers (additional)
@@ -344,7 +345,12 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			// Not parallel: libopenapi-validator has internal state
 			// that races when shared across goroutines.
 			mux := http.NewServeMux()
-			pattern := fmt.Sprintf("%s %s", ep.method, ep.path)
+			// Strip query string for mux pattern (ServeMux matches on path only).
+			handlerPath := ep.path
+			if idx := strings.IndexByte(handlerPath, '?'); idx != -1 {
+				handlerPath = handlerPath[:idx]
+			}
+			pattern := fmt.Sprintf("%s %s", ep.method, handlerPath)
 			mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(ep.wantStatus)

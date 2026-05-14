@@ -33,6 +33,7 @@ func TestAccHetznerImagesDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig() + `
@@ -56,6 +57,7 @@ func TestAccHetznerLocationsDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig() + `
@@ -79,6 +81,7 @@ func TestAccHetznerServerTypesDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig() + `
@@ -102,6 +105,7 @@ func TestAccHetznerSSHKeysDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig() + `
