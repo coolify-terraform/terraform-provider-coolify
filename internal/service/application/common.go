@@ -23,6 +23,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// Application defaults — single source of truth for schema, import, and flatten.
+const (
+	defaultRedirect        = "both"
+	defaultStaticImage     = "nginx:alpine"
+	defaultHealthCheckHost = "localhost"
+	defaultHealthCheckType = "http"
+	defaultHealthCheckMeth = "GET"
+	defaultHealthCheckSchm = "http"
+	defaultHealthCheckCode = int64(200)
+)
+
 // commonAppFields holds pointers to the fields shared by all application
 // resource models. This allows a single flatten function to write into
 // any concrete model type.
@@ -205,10 +216,10 @@ func flattenLimitsAndHealth(app *client.Application, f commonAppFields) {
 	flex.SetStringIfConfigured(f.HealthCheckCommand, app.HealthCheckCommand)
 	flex.SetStringIfConfigured(f.HealthCheckResponseText, app.HealthCheckResponseText)
 	// Extended health check fields with defaults (always set from API)
-	*f.HealthCheckHost = flex.StringValueOrDefault(app.HealthCheckHost, "localhost")
-	*f.HealthCheckMethod = flex.StringValueOrDefault(app.HealthCheckMethod, "GET")
-	*f.HealthCheckScheme = flex.StringValueOrDefault(app.HealthCheckScheme, "http")
-	*f.HealthCheckType = flex.StringValueOrDefault(app.HealthCheckType, "http")
+	*f.HealthCheckHost = flex.StringValueOrDefault(app.HealthCheckHost, defaultHealthCheckHost)
+	*f.HealthCheckMethod = flex.StringValueOrDefault(app.HealthCheckMethod, defaultHealthCheckMeth)
+	*f.HealthCheckScheme = flex.StringValueOrDefault(app.HealthCheckScheme, defaultHealthCheckSchm)
+	*f.HealthCheckType = flex.StringValueOrDefault(app.HealthCheckType, defaultHealthCheckType)
 	if app.HealthCheckReturnCode != nil {
 		*f.HealthCheckReturnCode = types.Int64Value(*app.HealthCheckReturnCode)
 	}
@@ -268,8 +279,8 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 			*dst = v
 		}
 	}
-	setStr(f.Redirect, flex.StringValueOrDefault(app.Redirect, "both"))
-	setStr(f.StaticImage, flex.StringValueOrDefault(app.StaticImage, "nginx:alpine"))
+	setStr(f.Redirect, flex.StringValueOrDefault(app.Redirect, defaultRedirect))
+	setStr(f.StaticImage, flex.StringValueOrDefault(app.StaticImage, defaultStaticImage))
 	// Computed+Default+Sensitive fields (server-generated, always set)
 	setStr(f.PreviewURLTemplate, flex.StringToFramework(app.PreviewURLTemplate))
 	setStr(f.ManualWebhookSecretBitbucket, flex.StringToFramework(app.ManualWebhookSecretBitbucket))
@@ -610,14 +621,14 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			MarkdownDescription: "Domain redirect mode. Valid values: `www`, `non-www`, `both`.",
 			Optional:            true,
 			Computed:            true,
-			Default:             stringdefault.StaticString("both"),
+			Default:             stringdefault.StaticString(defaultRedirect),
 			Validators:          []validator.String{stringvalidator.OneOf("www", "non-www", "both")},
 		},
 		"static_image": schema.StringAttribute{
 			MarkdownDescription: "The Docker image to use for serving static sites.",
 			Optional:            true,
 			Computed:            true,
-			Default:             stringdefault.StaticString("nginx:alpine"),
+			Default:             stringdefault.StaticString(defaultStaticImage),
 		},
 		"is_static": schema.BoolAttribute{
 			MarkdownDescription: "Whether the application is a static site.",
@@ -679,13 +690,13 @@ func extendedHealthCheckAttrs() map[string]schema.Attribute {
 			MarkdownDescription: "The host for health checks.",
 			Optional:            true,
 			Computed:            true,
-			Default:             stringdefault.StaticString("localhost"),
+			Default:             stringdefault.StaticString(defaultHealthCheckHost),
 		},
 		"health_check_method": schema.StringAttribute{
 			MarkdownDescription: "The HTTP method for health checks.",
 			Optional:            true,
 			Computed:            true,
-			Default:             stringdefault.StaticString("GET"),
+			Default:             stringdefault.StaticString(defaultHealthCheckMeth),
 			Validators:          []validator.String{stringvalidator.OneOf("GET", "HEAD", "POST", "OPTIONS")},
 		},
 		"health_check_response_text": schema.StringAttribute{
@@ -696,20 +707,20 @@ func extendedHealthCheckAttrs() map[string]schema.Attribute {
 			MarkdownDescription: "Expected HTTP return code for health checks.",
 			Optional:            true,
 			Computed:            true,
-			Default:             int64default.StaticInt64(200),
+			Default:             int64default.StaticInt64(defaultHealthCheckCode),
 		},
 		"health_check_scheme": schema.StringAttribute{
 			MarkdownDescription: "The URL scheme for health checks.",
 			Optional:            true,
 			Computed:            true,
-			Default:             stringdefault.StaticString("http"),
+			Default:             stringdefault.StaticString(defaultHealthCheckSchm),
 			Validators:          []validator.String{stringvalidator.OneOf("http", "https")},
 		},
 		"health_check_type": schema.StringAttribute{
 			MarkdownDescription: "The type of health check. Valid values: `http`, `cmd`.",
 			Optional:            true,
 			Computed:            true,
-			Default:             stringdefault.StaticString("http"),
+			Default:             stringdefault.StaticString(defaultHealthCheckType),
 			Validators:          []validator.String{stringvalidator.OneOf("http", "cmd")},
 		},
 	}
@@ -840,13 +851,13 @@ func setImportDefaults(ctx context.Context, resp *resource.ImportStateResponse) 
 	}
 	set("health_check_enabled", false)
 	set("is_auto_deploy_enabled", true)
-	set("redirect", "both")
-	set("health_check_type", "http")
-	set("health_check_method", "GET")
-	set("health_check_scheme", "http")
-	set("health_check_return_code", int64(200))
-	set("health_check_host", "localhost")
-	set("static_image", "nginx:alpine")
+	set("redirect", defaultRedirect)
+	set("health_check_type", defaultHealthCheckType)
+	set("health_check_method", defaultHealthCheckMeth)
+	set("health_check_scheme", defaultHealthCheckSchm)
+	set("health_check_return_code", defaultHealthCheckCode)
+	set("health_check_host", defaultHealthCheckHost)
+	set("static_image", defaultStaticImage)
 	set("connect_to_docker_network", false)
 	set("is_http_basic_auth_enabled", false)
 	set("is_static", false)
