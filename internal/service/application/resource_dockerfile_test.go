@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -97,6 +99,70 @@ func TestDockerfileApplicationResource_Create(t *testing.T) {
 				`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerfileApplicationResource_CreateReadBackFailurePreservesState
+// ---------------------------------------------------------------------------
+
+func TestDockerfileApplicationResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	app := client.Application{
+		UUID:               "dockerfile-readback-failure-uuid",
+		ProjectUUID:        "aaaa0009-0009-4000-8000-000000000009",
+		ServerUUID:         "bbbb0009-0009-4000-8000-000000000009",
+		EnvironmentName:    "production",
+		DockerfileLocation: "RlJPTSBuZ2lueA==",
+		PortsExposes:       "80",
+	}
+
+	var forceReadFailure atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerfile", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		forceReadFailure.Store(true)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		if forceReadFailure.Load() {
+			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		forceReadFailure.Store(false)
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerfileResourceConfig(srv.URL, `
+					project_uuid        = "aaaa0009-0009-4000-8000-000000000009"
+					server_uuid         = "bbbb0009-0009-4000-8000-000000000009"
+					dockerfile_location = "RlJPTSBuZ2lueA=="
+					ports_exposes       = "80"
+				`),
+				ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*Could not read application.*partial Terraform state was saved`),
 			},
 		},
 	})
