@@ -8,9 +8,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -175,21 +173,10 @@ func (r *dockerfileApplicationResource) Read(ctx context.Context, req resource.R
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_dockerfile_application", "uuid": state.UUID.ValueString()})
-
-	app, err := r.client.GetApplication(ctx, state.UUID.ValueString())
-	if err != nil {
-		if client.IsNotFound(err) {
-			resp.State.RemoveResource(ctx)
-			return
-		}
-		resp.Diagnostics.AddError("Error reading application", fmt.Sprintf("application %s: %s", state.UUID.ValueString(), err))
-		return
-	}
-
-	flattenDockerfileApplication(app, &state)
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	readApplication(ctx, r.client, "coolify_dockerfile_application", state.UUID.ValueString(), resp, func(app *client.Application) {
+		flattenDockerfileApplication(app, &state)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	})
 }
 
 func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -226,26 +213,11 @@ func (r *dockerfileApplicationResource) Delete(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_dockerfile_application", "uuid": state.UUID.ValueString()})
-
-	if err := r.client.DeleteApplication(ctx, state.UUID.ValueString()); err != nil {
-		if client.IsNotFound(err) {
-			return
-		}
-		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", state.UUID.ValueString(), err))
-		return
-	}
+	deleteApplication(ctx, r.client, "coolify_dockerfile_application", state.UUID.ValueString(), resp)
 }
 
 func (r *dockerfileApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	if err := validate.ImportUUID(req.ID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
-		return
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
-	setImportDefaults(ctx, resp)
+	importApplicationState(ctx, req, resp)
 	resp.Diagnostics.AddWarning(
 		"Sensitive fields require token permissions",
 		"The Coolify API hides dockerfile, custom_labels, and docker_compose unless the API token has \"root\" or \"read:sensitive\" permission. "+

@@ -9,9 +9,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 
@@ -146,21 +144,10 @@ func (r *dockerImageApplicationResource) Read(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_docker_image_application", "uuid": state.UUID.ValueString()})
-
-	app, err := r.client.GetApplication(ctx, state.UUID.ValueString())
-	if err != nil {
-		if client.IsNotFound(err) {
-			resp.State.RemoveResource(ctx)
-			return
-		}
-		resp.Diagnostics.AddError("Error reading application", fmt.Sprintf("application %s: %s", state.UUID.ValueString(), err))
-		return
-	}
-
-	flattenDockerImageApplication(app, &state)
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	readApplication(ctx, r.client, "coolify_docker_image_application", state.UUID.ValueString(), resp, func(app *client.Application) {
+		flattenDockerImageApplication(app, &state)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	})
 }
 
 func (r *dockerImageApplicationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -195,26 +182,11 @@ func (r *dockerImageApplicationResource) Delete(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_docker_image_application", "uuid": state.UUID.ValueString()})
-
-	if err := r.client.DeleteApplication(ctx, state.UUID.ValueString()); err != nil {
-		if client.IsNotFound(err) {
-			return
-		}
-		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", state.UUID.ValueString(), err))
-		return
-	}
+	deleteApplication(ctx, r.client, "coolify_docker_image_application", state.UUID.ValueString(), resp)
 }
 
 func (r *dockerImageApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	if err := validate.ImportUUID(req.ID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
-		return
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
-	setImportDefaults(ctx, resp)
+	importApplicationState(ctx, req, resp)
 }
 
 func (m *dockerImageApplicationResourceModel) common() commonAppFields {

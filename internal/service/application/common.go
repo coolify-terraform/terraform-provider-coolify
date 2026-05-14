@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Application defaults — single source of truth for schema, import, and flatten.
@@ -1035,4 +1036,56 @@ func updateAndReadBack(
 		return
 	}
 	flatten(app)
+}
+
+// readApplication reads an application by UUID and calls the flatten function.
+// If the application is not found, it removes the resource from state.
+func readApplication(
+	ctx context.Context,
+	c *client.Client,
+	resourceType string,
+	uuid string,
+	resp *resource.ReadResponse,
+	flatten func(*client.Application),
+) {
+	app, err := c.GetApplication(ctx, uuid)
+	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError("Error reading application", fmt.Sprintf("application %s: %s", uuid, err))
+		return
+	}
+	flatten(app)
+}
+
+// deleteApplication deletes an application by UUID. A 404 is treated as
+// already-deleted and does not produce an error.
+func deleteApplication(
+	ctx context.Context,
+	c *client.Client,
+	resourceType string,
+	uuid string,
+	resp *resource.DeleteResponse,
+) {
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
+	if err := c.DeleteApplication(ctx, uuid); err != nil {
+		if client.IsNotFound(err) {
+			return
+		}
+		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", uuid, err))
+	}
+}
+
+// importApplicationState validates the import ID and sets the initial state
+// attributes common to all application resource types.
+func importApplicationState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	if err := validate.ImportUUID(req.ID); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
+		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), req.ID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
+	setImportDefaults(ctx, resp)
 }
