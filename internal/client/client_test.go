@@ -2696,3 +2696,522 @@ func TestHetznerCreate_CloudProviderTokenUUID_JSONTag(t *testing.T) {
 	_, hasOldToken := raw["hetzner_token"]
 	assert.False(t, hasOldToken, "should not send old 'hetzner_token' field")
 }
+
+// --- Scheduled Tasks ---
+
+func TestClient_ListScheduledTasks(t *testing.T) {
+	t.Parallel()
+	for _, parentType := range []string{"applications", "services"} {
+		t.Run(parentType, func(t *testing.T) {
+			t.Parallel()
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Equal(t, "/api/v1/"+parentType+"/parent-uuid-1/scheduled-tasks", r.URL.Path)
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode([]ScheduledTask{
+					{UUID: "task-1", Name: "backup", Command: "pg_dump", Frequency: "0 * * * *", Enabled: true},
+					{UUID: "task-2", Name: "cleanup", Command: "rm -rf /tmp/*", Frequency: "0 0 * * *", Enabled: false},
+				})
+			}))
+			defer srv.Close()
+
+			c := New(srv.URL, "test-token")
+			tasks, err := c.ListScheduledTasks(context.Background(), parentType, "parent-uuid-1")
+			require.NoError(t, err)
+			require.Len(t, tasks, 2)
+			assert.Equal(t, "task-1", tasks[0].UUID)
+			assert.Equal(t, "backup", tasks[0].Name)
+			assert.Equal(t, "pg_dump", tasks[0].Command)
+			assert.Equal(t, "0 * * * *", tasks[0].Frequency)
+			assert.True(t, tasks[0].Enabled)
+			assert.Equal(t, "task-2", tasks[1].UUID)
+			assert.Equal(t, "cleanup", tasks[1].Name)
+			assert.False(t, tasks[1].Enabled)
+		})
+	}
+}
+
+func TestClient_ListScheduledTasks_InvalidParentType(t *testing.T) {
+	t.Parallel()
+	var called int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&called, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListScheduledTasks(context.Background(), "invalid", "uuid-1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid")
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called), "should not make HTTP request for invalid parent type")
+}
+
+func TestClient_CreateScheduledTask(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-uuid-1/scheduled-tasks", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateScheduledTaskInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "daily-backup", input.Name)
+		assert.Equal(t, "pg_dump mydb", input.Command)
+		assert.Equal(t, "0 0 * * *", input.Frequency)
+		assert.True(t, input.Enabled)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(createScheduledTaskResponse{UUID: "task-new-uuid"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	uuid, err := c.CreateScheduledTask(context.Background(), "applications", "app-uuid-1", CreateScheduledTaskInput{
+		Name:      "daily-backup",
+		Command:   "pg_dump mydb",
+		Frequency: "0 0 * * *",
+		Enabled:   true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "task-new-uuid", uuid)
+}
+
+func TestClient_CreateScheduledTask_InvalidParentType(t *testing.T) {
+	t.Parallel()
+	var called int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&called, 1)
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateScheduledTask(context.Background(), "deployments", "uuid-1", CreateScheduledTaskInput{
+		Name: "test", Command: "echo hi", Frequency: "* * * * *",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "deployments")
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called))
+}
+
+func TestClient_UpdateScheduledTask(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-uuid-1/scheduled-tasks/task-uuid-1", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateScheduledTaskInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "renamed-task", *input.Name)
+		require.NotNil(t, input.Enabled)
+		assert.False(t, *input.Enabled)
+		assert.Nil(t, input.Command)
+		assert.Nil(t, input.Frequency)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "renamed-task"
+	enabled := false
+	err := c.UpdateScheduledTask(context.Background(), "services", "svc-uuid-1", "task-uuid-1", UpdateScheduledTaskInput{
+		Name:    &name,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+}
+
+func TestClient_UpdateScheduledTask_InvalidParentType(t *testing.T) {
+	t.Parallel()
+	var called int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&called, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.UpdateScheduledTask(context.Background(), "pods", "uuid-1", "task-1", UpdateScheduledTaskInput{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pods")
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called))
+}
+
+func TestClient_DeleteScheduledTask(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/scheduled-tasks/task-del-1", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteScheduledTask(context.Background(), "databases", "db-uuid-1", "task-del-1")
+	require.NoError(t, err)
+}
+
+func TestClient_DeleteScheduledTask_InvalidParentType(t *testing.T) {
+	t.Parallel()
+	var called int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&called, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteScheduledTask(context.Background(), "", "uuid-1", "task-1")
+	require.Error(t, err)
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called))
+}
+
+func TestClient_ListTaskExecutions(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-uuid-1/scheduled-tasks/task-uuid-1/executions", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]TaskExecution{
+			{UUID: "exec-1", Status: "success", Message: "completed", CreatedAt: "2025-01-01T00:00:00Z"},
+			{UUID: "exec-2", Status: "failed", Message: "timeout", CreatedAt: "2025-01-02T00:00:00Z"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	execs, err := c.ListTaskExecutions(context.Background(), "applications", "app-uuid-1", "task-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, execs, 2)
+	assert.Equal(t, "exec-1", execs[0].UUID)
+	assert.Equal(t, "success", execs[0].Status)
+	assert.Equal(t, "completed", execs[0].Message)
+	assert.Equal(t, "2025-01-01T00:00:00Z", execs[0].CreatedAt)
+	assert.Equal(t, "exec-2", execs[1].UUID)
+	assert.Equal(t, "failed", execs[1].Status)
+	assert.Equal(t, "timeout", execs[1].Message)
+}
+
+func TestClient_ListTaskExecutions_InvalidParentType(t *testing.T) {
+	t.Parallel()
+	var called int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&called, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListTaskExecutions(context.Background(), "containers", "uuid-1", "task-1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "containers")
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called))
+}
+
+// --- Persistent Storages ---
+
+func TestClient_ListStorages(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-uuid-1/storages", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(storageListResponse{
+			PersistentStorages: []Storage{
+				{UUID: "ps-1", Name: "data-vol", MountPath: "/data", HostPath: "/mnt/data"},
+				{UUID: "ps-2", Name: "logs-vol", MountPath: "/var/log"},
+			},
+			FileStorages: []Storage{
+				{UUID: "fs-1", Name: "config-file", MountPath: "/etc/app/config.yml"},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	storages, err := c.ListStorages(context.Background(), "applications", "app-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, storages, 3, "should merge persistent_storages and file_storages")
+	assert.Equal(t, "ps-1", storages[0].UUID)
+	assert.Equal(t, "data-vol", storages[0].Name)
+	assert.Equal(t, "/data", storages[0].MountPath)
+	assert.Equal(t, "/mnt/data", storages[0].HostPath)
+	assert.Equal(t, "ps-2", storages[1].UUID)
+	assert.Equal(t, "logs-vol", storages[1].Name)
+	assert.Equal(t, "fs-1", storages[2].UUID)
+	assert.Equal(t, "config-file", storages[2].Name)
+	assert.Equal(t, "/etc/app/config.yml", storages[2].MountPath)
+}
+
+func TestClient_ListStorages_EmptyArrays(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(storageListResponse{
+			PersistentStorages: []Storage{},
+			FileStorages:       []Storage{},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	storages, err := c.ListStorages(context.Background(), "services", "svc-uuid-1")
+	require.NoError(t, err)
+	assert.Empty(t, storages)
+}
+
+func TestClient_ListStorages_InvalidParentType(t *testing.T) {
+	t.Parallel()
+	var called int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&called, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListStorages(context.Background(), "invalid", "uuid-1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid")
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called))
+}
+
+func TestClient_CreateStorage(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/storages", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateStorageInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "persistent", input.Type)
+		assert.Equal(t, "my-volume", input.Name)
+		assert.Equal(t, "/data", input.MountPath)
+		assert.Equal(t, "/mnt/host-data", input.HostPath)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CreateStorageResponse{UUID: "storage-new-uuid"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	resp, err := c.CreateStorage(context.Background(), "databases", "db-uuid-1", CreateStorageInput{
+		Type:      "persistent",
+		Name:      "my-volume",
+		MountPath: "/data",
+		HostPath:  "/mnt/host-data",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "storage-new-uuid", resp.UUID)
+}
+
+func TestClient_CreateStorage_InvalidParentType(t *testing.T) {
+	t.Parallel()
+	var called int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&called, 1)
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateStorage(context.Background(), "volumes", "uuid-1", CreateStorageInput{
+		Name: "test", MountPath: "/data",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "volumes")
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called))
+}
+
+func TestClient_UpdateStorage(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-uuid-1/storages", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateStorageInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.UUID)
+		assert.Equal(t, "storage-uuid-1", *input.UUID)
+		assert.Equal(t, "persistent", input.Type)
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "renamed-vol", *input.Name)
+		require.NotNil(t, input.MountPath)
+		assert.Equal(t, "/new-path", *input.MountPath)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	storageUUID := "storage-uuid-1"
+	name := "renamed-vol"
+	mountPath := "/new-path"
+	err := c.UpdateStorage(context.Background(), "services", "svc-uuid-1", UpdateStorageInput{
+		UUID:      &storageUUID,
+		Type:      "persistent",
+		Name:      &name,
+		MountPath: &mountPath,
+	})
+	require.NoError(t, err)
+}
+
+func TestClient_UpdateStorage_InvalidParentType(t *testing.T) {
+	t.Parallel()
+	var called int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&called, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.UpdateStorage(context.Background(), "pods", "uuid-1", UpdateStorageInput{Type: "persistent"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pods")
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called))
+}
+
+func TestClient_DeleteStorage(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-uuid-1/storages/storage-del-1", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteStorage(context.Background(), "applications", "app-uuid-1", "storage-del-1")
+	require.NoError(t, err)
+}
+
+func TestClient_DeleteStorage_InvalidParentType(t *testing.T) {
+	t.Parallel()
+	var called int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&called, 1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteStorage(context.Background(), "APPLICATIONS", "uuid-1", "s-1")
+	require.Error(t, err)
+	assert.Equal(t, int32(0), atomic.LoadInt32(&called))
+}
+
+// --- Environments ---
+
+func TestClient_ListEnvironments(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/projects/proj-uuid-1/environments", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Environment{
+			{ID: 1, Name: "production", ProjectUUID: "proj-uuid-1", Description: "Prod env", CreatedAt: "2025-01-01T00:00:00Z", UpdatedAt: "2025-06-01T00:00:00Z"},
+			{ID: 2, Name: "staging", ProjectUUID: "proj-uuid-1"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	envs, err := c.ListEnvironments(context.Background(), "proj-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, envs, 2)
+	assert.Equal(t, int64(1), envs[0].ID)
+	assert.Equal(t, "production", envs[0].Name)
+	assert.Equal(t, "proj-uuid-1", envs[0].ProjectUUID)
+	assert.Equal(t, "Prod env", envs[0].Description)
+	assert.Equal(t, "2025-01-01T00:00:00Z", envs[0].CreatedAt)
+	assert.Equal(t, "2025-06-01T00:00:00Z", envs[0].UpdatedAt)
+	assert.Equal(t, int64(2), envs[1].ID)
+	assert.Equal(t, "staging", envs[1].Name)
+}
+
+func TestClient_GetEnvironment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/projects/proj-uuid-1/production", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Environment{
+			ID:          1,
+			Name:        "production",
+			ProjectUUID: "proj-uuid-1",
+			Description: "Production environment",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	env, err := c.GetEnvironment(context.Background(), "proj-uuid-1", "production")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), env.ID)
+	assert.Equal(t, "production", env.Name)
+	assert.Equal(t, "proj-uuid-1", env.ProjectUUID)
+	assert.Equal(t, "Production environment", env.Description)
+}
+
+func TestClient_CreateEnvironment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/projects/proj-uuid-1/environments", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateEnvironmentInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "staging", input.Name)
+
+		// Verify no description field is sent (API rejects it).
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &raw))
+		_, hasDesc := raw["description"]
+		assert.False(t, hasDesc, "CreateEnvironmentInput should not send 'description'")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Environment{ID: 3, Name: "staging", ProjectUUID: "proj-uuid-1"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	env, err := c.CreateEnvironment(context.Background(), "proj-uuid-1", CreateEnvironmentInput{Name: "staging"})
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), env.ID)
+	assert.Equal(t, "staging", env.Name)
+	assert.Equal(t, "proj-uuid-1", env.ProjectUUID)
+}
+
+func TestClient_DeleteEnvironment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/projects/proj-uuid-1/environments/staging", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteEnvironment(context.Background(), "proj-uuid-1", "staging")
+	require.NoError(t, err)
+}
