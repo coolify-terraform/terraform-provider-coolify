@@ -4,7 +4,7 @@
 ![Go Version](https://img.shields.io/github/go-mod/go-version/SebTardifLabs/terraform-provider-coolify)
 ![License](https://img.shields.io/github/license/SebTardifLabs/terraform-provider-coolify)
 
-A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 26 resources, 46 data sources, 500+ tests, 100% API coverage.
+A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 25 resources, 44 data sources, 500+ tests, 100% API coverage.
 
 ## Getting Started
 
@@ -37,7 +37,6 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_keydb_database` | Provision KeyDB databases (Redis-compatible) |
 | `coolify_dragonfly_database` | Provision DragonFly databases (Redis-compatible) |
 | `coolify_database_backup` | Schedule automated database backups |
-| `coolify_s3_storage` | Manage top-level S3 storage destinations, but current Coolify v4 may not expose the backing public CRUD API |
 | `coolify_scheduled_task` | Manage scheduled tasks on applications/services |
 | `coolify_storage` | Manage persistent storage volumes |
 | `coolify_cloud_token` | Manage cloud provider tokens (Hetzner) |
@@ -59,7 +58,6 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_environment_variable` / `coolify_environment_variables` | Read / list env vars for an application, service, or database |
 | `coolify_deployment` / `coolify_deployments` | Read / list deployments for an application |
 | `coolify_service` / `coolify_services` | Read service(s) |
-| `coolify_s3_storage` / `coolify_s3_storages` | Read top-level S3 storage destination(s), but current Coolify v4 may not expose the backing public API |
 | `coolify_scheduled_task` / `coolify_scheduled_tasks` / `coolify_task_executions` | Read scheduled task(s) and executions |
 | `coolify_storage` / `coolify_storages` | Read / list persistent storage volumes |
 | `coolify_cloud_token` / `coolify_cloud_tokens` | Read cloud token(s) |

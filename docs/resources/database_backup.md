@@ -13,9 +13,8 @@ Manages a scheduled database backup configuration on Coolify.
 ## Example Usage
 
 ```terraform
-# Warning: on current Coolify v4, create the S3 storage in the web UI first
-# and pass its UUID here. The top-level `coolify_s3_storage` API surface may
-# not be available.
+# Create the S3 storage in the Coolify web UI first, then pass its UUID here.
+# Current Coolify v4 does not expose a public top-level S3 storage CRUD API.
 variable "existing_s3_storage_uuid" {
   type = string
 }

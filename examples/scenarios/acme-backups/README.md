@@ -53,8 +53,8 @@ resource "coolify_database_backup" "daily" {
 }
 ```
 
-Current Coolify v4 may not expose the public top-level `coolify_s3_storage`
-API surface.
+Top-level S3 storage is managed in the Coolify web UI. This scenario expects
+an existing storage UUID.
 
 ## Running
 

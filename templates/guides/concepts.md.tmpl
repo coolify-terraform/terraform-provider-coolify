@@ -32,7 +32,6 @@ The Terraform provider maps each level to a resource or data source.
 | `coolify_environment` | Environment within a project (production, staging) |
 | `coolify_server` | A Docker host registered with Coolify |
 | `coolify_private_key` | SSH key for server access or Git clone |
-| `coolify_s3_storage` | Top-level S3-compatible backup destination, but current Coolify v4 may only support UI-managed storages rather than a public CRUD API |
 | `coolify_cloud_token` | Hetzner/cloud provider API token |
 | `coolify_github_app` | GitHub App integration for repository access |
 
