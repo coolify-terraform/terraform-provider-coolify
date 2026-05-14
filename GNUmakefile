@@ -55,6 +55,9 @@ spec-generate: ## Regenerate OpenAPI spec from contract (idempotent: always patc
 api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 	GENERATE_COVERAGE_DOC=1 go test -count=1 -run TestSpecCoverage_GenerateDoc ./internal/spectest/ -v
 
+scaffold: ## Scaffold a new resource (usage: make scaffold NAME=webhook)
+	@./scripts/new-resource.sh $(NAME)
+
 ci: build lint test validate docs-check api-coverage-check counts-check vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
 
 modverify: ## Verify module cache integrity against go.sum

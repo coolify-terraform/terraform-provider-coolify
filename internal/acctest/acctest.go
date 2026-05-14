@@ -95,6 +95,20 @@ resource "%s" "%s" {
 `, ProviderBlockForURL(endpoint), resourceType, resourceName, attrs)
 }
 
+// TestDataSourceConfig builds an HCL config block for a data source test.
+// Usage:
+//
+//	acctest.TestDataSourceConfig(srv.URL, "coolify_project", "test", `
+//	  uuid = "ds-uuid-0001"
+//	`)
+func TestDataSourceConfig(endpoint, dataSourceType, dataSourceName, attrs string) string {
+	return fmt.Sprintf(`%s
+data "%s" "%s" {
+  %s
+}
+`, ProviderBlockForURL(endpoint), dataSourceType, dataSourceName, attrs)
+}
+
 // CheckResourceDisappears returns a TestCheckFunc that deletes a resource
 // out-of-band via the mock API. Use in Disappears tests to simulate external
 // deletion. The deletePath should be the API path prefix (e.g., "/api/v1/servers/").
