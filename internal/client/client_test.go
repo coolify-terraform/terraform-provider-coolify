@@ -3215,3 +3215,511 @@ func TestClient_DeleteEnvironment(t *testing.T) {
 	err := c.DeleteEnvironment(context.Background(), "proj-uuid-1", "staging")
 	require.NoError(t, err)
 }
+
+// --- Cloud Tokens ---
+
+func TestClient_ListCloudTokens(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/cloud-tokens", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]CloudToken{
+			{UUID: "ct-1", Name: "hetzner-token", Provider: "hetzner", Token: "tok-1"},
+			{UUID: "ct-2", Name: "aws-token", Provider: "aws", Token: "tok-2"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	tokens, err := c.ListCloudTokens(context.Background())
+	require.NoError(t, err)
+	require.Len(t, tokens, 2)
+	assert.Equal(t, "ct-1", tokens[0].UUID)
+	assert.Equal(t, "hetzner-token", tokens[0].Name)
+	assert.Equal(t, "hetzner", tokens[0].Provider)
+	assert.Equal(t, "tok-1", tokens[0].Token)
+	assert.Equal(t, "ct-2", tokens[1].UUID)
+	assert.Equal(t, "aws-token", tokens[1].Name)
+	assert.Equal(t, "aws", tokens[1].Provider)
+}
+
+func TestClient_GetCloudToken(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/cloud-tokens/ct-uuid-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(CloudToken{
+			UUID:     "ct-uuid-1",
+			Name:     "my-cloud-token",
+			Provider: "hetzner",
+			Token:    "secret-token-value",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	ct, err := c.GetCloudToken(context.Background(), "ct-uuid-1")
+	require.NoError(t, err)
+	assert.Equal(t, "ct-uuid-1", ct.UUID)
+	assert.Equal(t, "my-cloud-token", ct.Name)
+	assert.Equal(t, "hetzner", ct.Provider)
+	assert.Equal(t, "secret-token-value", ct.Token)
+}
+
+func TestClient_GetCloudToken_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetCloudToken(context.Background(), "nonexistent-uuid")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_GetCloudToken_URLEscape(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/cloud-tokens/uuid%2Fwith%2Fslashes", r.URL.EscapedPath())
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(CloudToken{UUID: "uuid/with/slashes", Name: "escaped"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	ct, err := c.GetCloudToken(context.Background(), "uuid/with/slashes")
+	require.NoError(t, err)
+	assert.Equal(t, "escaped", ct.Name)
+}
+
+func TestClient_CreateCloudToken(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/cloud-tokens", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateCloudTokenInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "new-token", input.Name)
+		assert.Equal(t, "hetzner", input.Provider)
+		assert.Equal(t, "hc-api-key-123", input.Token)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CloudToken{UUID: "ct-new", Name: "new-token", Provider: "hetzner"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	ct, err := c.CreateCloudToken(context.Background(), CreateCloudTokenInput{
+		Name:     "new-token",
+		Provider: "hetzner",
+		Token:    "hc-api-key-123",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "ct-new", ct.UUID)
+	assert.Equal(t, "new-token", ct.Name)
+	assert.Equal(t, "hetzner", ct.Provider)
+}
+
+func TestClient_CreateCloudToken_WrongStatusCode(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK) // 200, not the expected 201
+		json.NewEncoder(w).Encode(CloudToken{UUID: "ct-wrong"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateCloudToken(context.Background(), CreateCloudTokenInput{
+		Name: "t", Provider: "hetzner", Token: "tok",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "expected status 201")
+	assert.Contains(t, err.Error(), "got 200")
+}
+
+func TestClient_UpdateCloudToken(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/cloud-tokens/ct-upd", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateCloudTokenInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "renamed-token", *input.Name)
+		require.NotNil(t, input.Token)
+		assert.Equal(t, "new-secret", *input.Token)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(CloudToken{UUID: "ct-upd", Name: "renamed-token", Provider: "hetzner"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "renamed-token"
+	token := "new-secret"
+	ct, err := c.UpdateCloudToken(context.Background(), "ct-upd", UpdateCloudTokenInput{
+		Name:  &name,
+		Token: &token,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "ct-upd", ct.UUID)
+	assert.Equal(t, "renamed-token", ct.Name)
+}
+
+func TestClient_UpdateCloudToken_PartialUpdate(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		// Verify omitempty: only "name" should be present, not "token"
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &raw))
+		_, hasName := raw["name"]
+		assert.True(t, hasName, "expected 'name' in request body")
+		_, hasToken := raw["token"]
+		assert.False(t, hasToken, "expected 'token' to be omitted when nil")
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(CloudToken{UUID: "ct-partial", Name: "only-name"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "only-name"
+	ct, err := c.UpdateCloudToken(context.Background(), "ct-partial", UpdateCloudTokenInput{
+		Name: &name,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "ct-partial", ct.UUID)
+	assert.Equal(t, "only-name", ct.Name)
+}
+
+func TestClient_DeleteCloudToken(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/cloud-tokens/ct-del", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteCloudToken(context.Background(), "ct-del")
+	require.NoError(t, err)
+}
+
+func TestClient_DeleteCloudToken_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteCloudToken(context.Background(), "nonexistent")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ValidateCloudToken(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/cloud-tokens/ct-val/validate", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.ValidateCloudToken(context.Background(), "ct-val")
+	require.NoError(t, err)
+}
+
+func TestClient_ValidateCloudToken_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.ValidateCloudToken(context.Background(), "nonexistent")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+// --- GitHub Apps (CRUD + Repositories/Branches) ---
+
+func TestClient_ListGitHubApps(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/github-apps", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{
+			{ID: 1, UUID: "gh-1", Name: "App One", OrganizationName: "my-org", AppID: 100, InstallationID: 200, ClientID: "cid-1"},
+			{ID: 2, UUID: "gh-2", Name: "App Two", AppID: 101, InstallationID: 201, ClientID: "cid-2"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	apps, err := c.ListGitHubApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, apps, 2)
+	assert.Equal(t, int64(1), apps[0].ID)
+	assert.Equal(t, "gh-1", apps[0].UUID)
+	assert.Equal(t, "App One", apps[0].Name)
+	assert.Equal(t, "my-org", apps[0].OrganizationName)
+	assert.Equal(t, int64(100), apps[0].AppID)
+	assert.Equal(t, int64(200), apps[0].InstallationID)
+	assert.Equal(t, "cid-1", apps[0].ClientID)
+	assert.Equal(t, int64(2), apps[1].ID)
+	assert.Equal(t, "gh-2", apps[1].UUID)
+	assert.Equal(t, "App Two", apps[1].Name)
+}
+
+func TestClient_CreateGitHubApp(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/github-apps", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateGitHubAppIntegrationInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "My GitHub App", input.Name)
+		assert.Equal(t, "my-org", input.OrganizationName)
+		assert.Equal(t, int64(12345), input.AppID)
+		assert.Equal(t, int64(67890), input.InstallationID)
+		assert.Equal(t, "Iv1.abc123", input.ClientID)
+		assert.Equal(t, "client-secret-val", input.ClientSecret)
+		assert.Equal(t, "wh-secret-val", input.WebhookSecret)
+		assert.Equal(t, "pk-uuid-1", input.PrivateKeyUUID)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(GitHubApp{ID: 42, UUID: "gh-new", Name: "My GitHub App"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.CreateGitHubApp(context.Background(), CreateGitHubAppIntegrationInput{
+		Name:             "My GitHub App",
+		OrganizationName: "my-org",
+		AppID:            12345,
+		InstallationID:   67890,
+		ClientID:         "Iv1.abc123",
+		ClientSecret:     "client-secret-val",
+		WebhookSecret:    "wh-secret-val",
+		PrivateKeyUUID:   "pk-uuid-1",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, int64(42), app.ID)
+	assert.Equal(t, "gh-new", app.UUID)
+	assert.Equal(t, "My GitHub App", app.Name)
+}
+
+func TestClient_CreateGitHubApp_WrongStatusCode(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK) // 200, not the expected 201
+		json.NewEncoder(w).Encode(GitHubApp{ID: 1})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateGitHubApp(context.Background(), CreateGitHubAppIntegrationInput{
+		Name: "t", AppID: 1, InstallationID: 1, ClientID: "c", ClientSecret: "s", PrivateKeyUUID: "pk",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "expected status 201")
+	assert.Contains(t, err.Error(), "got 200")
+}
+
+func TestClient_UpdateGitHubApp(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/github-apps/42", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateGitHubAppIntegrationInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "Updated App", *input.Name)
+		require.NotNil(t, input.OrganizationName)
+		assert.Equal(t, "new-org", *input.OrganizationName)
+		assert.Nil(t, input.AppID)
+		assert.Nil(t, input.ClientSecret)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(GitHubApp{ID: 42, UUID: "gh-upd", Name: "Updated App", OrganizationName: "new-org"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "Updated App"
+	org := "new-org"
+	app, err := c.UpdateGitHubApp(context.Background(), 42, UpdateGitHubAppIntegrationInput{
+		Name:             &name,
+		OrganizationName: &org,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, int64(42), app.ID)
+	assert.Equal(t, "gh-upd", app.UUID)
+	assert.Equal(t, "Updated App", app.Name)
+	assert.Equal(t, "new-org", app.OrganizationName)
+}
+
+func TestClient_UpdateGitHubApp_PartialUpdate(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		// Verify omitempty: only "name" should be present
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &raw))
+		_, hasName := raw["name"]
+		assert.True(t, hasName, "expected 'name' in request body")
+		_, hasAppID := raw["app_id"]
+		assert.False(t, hasAppID, "expected 'app_id' to be omitted when nil")
+		_, hasClientSecret := raw["client_secret"]
+		assert.False(t, hasClientSecret, "expected 'client_secret' to be omitted when nil")
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(GitHubApp{ID: 10, Name: "partial"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "partial"
+	app, err := c.UpdateGitHubApp(context.Background(), 10, UpdateGitHubAppIntegrationInput{Name: &name})
+	require.NoError(t, err)
+	assert.Equal(t, "partial", app.Name)
+}
+
+func TestClient_DeleteGitHubApp(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/github-apps/99", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteGitHubApp(context.Background(), 99)
+	require.NoError(t, err)
+}
+
+func TestClient_DeleteGitHubApp_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteGitHubApp(context.Background(), 999)
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ListGitHubAppRepositories(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/github-apps/42/repositories", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubRepository{
+			{Name: "repo-one", FullName: "org/repo-one", Private: false},
+			{Name: "repo-two", FullName: "org/repo-two", Private: true},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	repos, err := c.ListGitHubAppRepositories(context.Background(), 42)
+	require.NoError(t, err)
+	require.Len(t, repos, 2)
+	assert.Equal(t, "repo-one", repos[0].Name)
+	assert.Equal(t, "org/repo-one", repos[0].FullName)
+	assert.False(t, repos[0].Private)
+	assert.Equal(t, "repo-two", repos[1].Name)
+	assert.Equal(t, "org/repo-two", repos[1].FullName)
+	assert.True(t, repos[1].Private)
+}
+
+func TestClient_ListGitHubAppBranches(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/github-apps/42/repositories/my-org/my-repo/branches", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubBranch{
+			{Name: "main"},
+			{Name: "develop"},
+			{Name: "feature/new-thing"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	branches, err := c.ListGitHubAppBranches(context.Background(), 42, "my-org", "my-repo")
+	require.NoError(t, err)
+	require.Len(t, branches, 3)
+	assert.Equal(t, "main", branches[0].Name)
+	assert.Equal(t, "develop", branches[1].Name)
+	assert.Equal(t, "feature/new-thing", branches[2].Name)
+}
+
+func TestClient_ListGitHubAppBranches_URLEscape(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		// owner "my org" and repo "my repo" should be URL-escaped
+		assert.Equal(t, "/api/v1/github-apps/10/repositories/my%20org/my%20repo/branches", r.URL.EscapedPath())
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubBranch{{Name: "main"}})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	branches, err := c.ListGitHubAppBranches(context.Background(), 10, "my org", "my repo")
+	require.NoError(t, err)
+	require.Len(t, branches, 1)
+	assert.Equal(t, "main", branches[0].Name)
+}
+
+func TestClient_ListGitHubAppRepositories_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListGitHubAppRepositories(context.Background(), 999)
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
