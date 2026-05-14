@@ -29,6 +29,8 @@ terraform import coolify_application.api <app-uuid>
 terraform import coolify_postgresql_database.db <db-uuid>
 terraform import coolify_service.plausible <service-uuid>
 terraform import coolify_s3_storage.backups <storage-uuid>
+terraform import coolify_private_key.deploy <key-uuid>
+terraform import coolify_cloud_token.hetzner <token-uuid>
 ```
 
 The `coolify_github_app` resource uses a **numeric ID** (not a UUID):
@@ -81,6 +83,8 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | All databases | `project_uuid`, `server_uuid`, `environment_name` |
 | All applications | `project_uuid`, `server_uuid`, `environment_name` |
 | `coolify_github_app` | `client_secret`, `private_key_uuid` (write-only, never returned by the API) |
+| `coolify_cloud_token` | `token` (write-only, may not be returned by the API) |
+| `coolify_private_key` | `private_key` (requires API token with `root` or `read:sensitive` permission; hidden otherwise) |
 | Database backups | `database_uuid` |
 
 If these fields are missing, `terraform plan` will either show a diff
