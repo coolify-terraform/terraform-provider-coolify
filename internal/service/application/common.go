@@ -1048,6 +1048,7 @@ func readApplication(
 	resp *resource.ReadResponse,
 	flatten func(*client.Application),
 ) {
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 	app, err := c.GetApplication(ctx, uuid)
 	if err != nil {
 		if client.IsNotFound(err) {

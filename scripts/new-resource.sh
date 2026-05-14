@@ -569,6 +569,9 @@ data "coolify_${NAME}" "example" {
 }
 TFEOF
 
+# Format generated Go files so CI lint never fails on heredoc drift.
+gofmt -w "$SVC_DIR"/*.go "$CLIENT_FILE"
+
 echo ""
 echo "Scaffolded coolify_${NAME} resource:"
 echo "  $SVC_DIR/resource.go"
