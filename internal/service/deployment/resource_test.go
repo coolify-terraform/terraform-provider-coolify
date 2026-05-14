@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -296,6 +297,72 @@ resource "coolify_deployment" "test" {
 	})
 }
 
+func TestDeploymentResource_CreateReadBackFailureDefaultsQueued(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "readback-fail-0001-4000-8000-000000000001"
+	appUUID := "cccc0003-0003-4000-8000-000000000003"
+	var readBackCalls atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"deployment_uuid": deploymentUUID,
+			"message":         "Restart request queued.",
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if readBackCalls.Add(1) == 1 {
+			http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "queued",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	config := fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+  triggers = {
+    version = "1"
+  }
+}
+`, srv.URL, appUUID)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", deploymentUUID),
+					resource.TestCheckResourceAttr("coolify_deployment.test", "status", "queued"),
+					resource.TestCheckResourceAttr("coolify_deployment.test", "triggers.version", "1"),
+				),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestDeploymentResource_WaitForCompletion(t *testing.T) {
 	t.Parallel()
 	deploymentUUID := "wait-0001-0001-4000-8000-000000000001"
@@ -421,6 +488,57 @@ resource "coolify_deployment" "test" {
 }
 `, srv.URL, appUUID),
 				ExpectError: regexp.MustCompile(`Deployment failed`),
+			},
+		},
+	})
+}
+
+func TestDeploymentResource_WaitForCompletionTimeout(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "wait-timeout-0001-4000-8000-000000000001"
+	appUUID := "cccc0005-0005-4000-8000-000000000005"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"deployment_uuid": deploymentUUID,
+			"message":         "Restart request queued.",
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "in_progress",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid    = %q
+  wait_for_completion = true
+  timeouts = {
+    create = "1s"
+  }
+}
+`, srv.URL, appUUID),
+				ExpectError: regexp.MustCompile(`Deployment timed out`),
 			},
 		},
 	})
