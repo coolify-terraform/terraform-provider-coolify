@@ -78,6 +78,11 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	p.UUID = types.StringValue(c.UUID)
+	pg.NormalizeCommonCreateState(&p.CommonModel)
+	pg.NormalizeUnknownString(&p.MongoInitdbRootUsername)
+	pg.NormalizeUnknownString(&p.MongoInitdbRootPassword)
+	pg.NormalizeUnknownString(&p.MongoInitdbDatabase)
+	pg.NormalizeUnknownString(&p.MongoConf)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -97,7 +102,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading MongoDB database", fmt.Sprintf("MongoDB database %s: %s", c.UUID, err))
+		pg.AddCreateReadBackError(resp, "MongoDB database", c.UUID, err)
 		return
 	}
 	flattenDatabase(db, &p)

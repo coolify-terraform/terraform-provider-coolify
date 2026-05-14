@@ -205,6 +205,58 @@ func TestDatabaseBackupResource_Create(t *testing.T) {
 	})
 }
 
+func TestDatabaseBackupResource_CreateListFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	const dbUUID = "eeee0001-0001-4000-8000-000000000001"
+	const backupUUID = "bkp-readback-uuid-001"
+
+	var forceListFailure atomic.Bool
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
+			forceListFailure.Store(true)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":    backupUUID,
+				"message": "Backup configuration created successfully.",
+			})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
+			if forceListFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode([]map[string]interface{}{{
+				"id": 42, "uuid": backupUUID, "database_uuid": dbUUID, "frequency": "0 2 * * *", "enabled": true,
+			}})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%s", dbUUID, backupUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testBackupConfig(srv.URL, `
+				database_uuid = "eeee0001-0001-4000-8000-000000000001"
+				frequency     = "0 2 * * *"
+				enabled       = true
+			`),
+			ExpectError: regexp.MustCompile(`(?s)Database backup created but refresh failed.*Could not list database backups.*partial Terraform state was saved`),
+		}},
+	})
+}
+
 func TestDatabaseBackupResource_Update(t *testing.T) {
 	t.Parallel()
 	srv, _ := newMockBackupServer()

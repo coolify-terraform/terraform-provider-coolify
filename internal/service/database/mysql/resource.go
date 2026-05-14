@@ -89,6 +89,12 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	plan.UUID = types.StringValue(created.UUID)
+	pg.NormalizeCommonCreateState(&plan.CommonModel)
+	pg.NormalizeUnknownString(&plan.MysqlUser)
+	pg.NormalizeUnknownString(&plan.MysqlPassword)
+	pg.NormalizeUnknownString(&plan.MysqlDatabase)
+	pg.NormalizeUnknownString(&plan.MysqlRootPassword)
+	pg.NormalizeUnknownString(&plan.MysqlConf)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -108,7 +114,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 
 	db, err := r.client.GetDatabase(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading MySQL database after creation", fmt.Sprintf("MySQL database %s: %s", created.UUID, err))
+		pg.AddCreateReadBackError(resp, "MySQL database", created.UUID, err)
 		return
 	}
 	flattenDatabase(db, &plan)

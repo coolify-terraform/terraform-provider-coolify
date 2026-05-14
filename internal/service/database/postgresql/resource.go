@@ -190,6 +190,14 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	plan.UUID = types.StringValue(created.UUID)
+	NormalizeCommonCreateState(&plan.CommonModel)
+	NormalizeUnknownString(&plan.PostgresUser)
+	NormalizeUnknownString(&plan.PostgresPassword)
+	NormalizeUnknownString(&plan.PostgresDB)
+	NormalizeUnknownString(&plan.PostgresConf)
+	NormalizeUnknownString(&plan.PostgresInitdbArgs)
+	NormalizeUnknownString(&plan.PostgresHostAuthMethod)
+	NormalizeUnknownString(&plan.InitScripts)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -214,7 +222,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 
 	db, err := r.client.GetDatabase(ctx, created.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading PostgreSQL database after creation", fmt.Sprintf("PostgreSQL database %s: %s", created.UUID, err))
+		AddCreateReadBackError(resp, "PostgreSQL database", created.UUID, err)
 		return
 	}
 	flattenDatabase(db, &plan)
@@ -394,6 +402,41 @@ func DeleteDatabase(ctx context.Context, c *client.Client, uuid string) error {
 		return err
 	}
 	return nil
+}
+
+func NormalizeUnknownString(v *types.String) {
+	if v != nil && v.IsUnknown() {
+		*v = types.StringNull()
+	}
+}
+
+func NormalizeUnknownBool(v *types.Bool) {
+	if v != nil && v.IsUnknown() {
+		*v = types.BoolNull()
+	}
+}
+
+func NormalizeUnknownInt64(v *types.Int64) {
+	if v != nil && v.IsUnknown() {
+		*v = types.Int64Null()
+	}
+}
+
+func NormalizeCommonCreateState(m *CommonModel) {
+	NormalizeUnknownString(&m.Name)
+	NormalizeUnknownString(&m.Description)
+	NormalizeUnknownString(&m.EnvironmentName)
+	NormalizeUnknownString(&m.Image)
+	NormalizeUnknownBool(&m.IsPublic)
+	NormalizeUnknownInt64(&m.PublicPort)
+	NormalizeUnknownString(&m.Status)
+}
+
+func AddCreateReadBackError(resp *resource.CreateResponse, label, identifier string, err error) {
+	resp.Diagnostics.AddError(
+		fmt.Sprintf("%s created but refresh failed", label),
+		fmt.Sprintf("Coolify created %s %s, but the provider could not read it back: Could not read %s %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", label, identifier, label, identifier, err),
+	)
 }
 
 // ImportDatabaseState validates the import ID as a UUID and passes it through

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -155,6 +157,63 @@ resource "coolify_mongodb_database" "test" {
 				ImportStateVerifyIgnore: []string{"mongo_initdb_root_password"},
 			},
 		},
+	})
+}
+
+func TestMongodbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	const mongoUUID = "aaaa0009-0009-4000-8000-000000000009"
+
+	var forceReadFailure atomic.Bool
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/mongodb":
+			forceReadFailure.Store(true)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": mongoUUID})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mongoUUID):
+			if forceReadFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":                       mongoUUID,
+				"name":                       "mongo-readback-db",
+				"project_uuid":               "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":                "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":           "production",
+				"image":                      "mongo:7",
+				"is_public":                  false,
+				"mongo_initdb_root_username": "root",
+				"mongo_initdb_root_password": "mongosecret",
+				"mongo_initdb_database":      "admin",
+			})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mongoUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_mongodb_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+			ExpectError: regexp.MustCompile(`(?s)MongoDB database created but refresh failed.*Could not read MongoDB database.*partial Terraform state was saved`),
+		}},
 	})
 }
 

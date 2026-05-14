@@ -222,6 +222,39 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	// the full backup object. Save partial state immediately so the
 	// resource is tracked even if the follow-up read fails.
 	plan.UUID = types.StringValue(created.UUID)
+	if plan.ID.IsUnknown() {
+		plan.ID = types.Int64Null()
+	}
+	if plan.Enabled.IsUnknown() {
+		plan.Enabled = types.BoolNull()
+	}
+	if plan.SaveS3.IsUnknown() {
+		plan.SaveS3 = types.BoolNull()
+	}
+	if plan.DumpAll.IsUnknown() {
+		plan.DumpAll = types.BoolNull()
+	}
+	if plan.RetainAmountLocally.IsUnknown() {
+		plan.RetainAmountLocally = types.Int64Null()
+	}
+	if plan.RetainDaysLocally.IsUnknown() {
+		plan.RetainDaysLocally = types.Int64Null()
+	}
+	if plan.RetainMaxStorageLocal.IsUnknown() {
+		plan.RetainMaxStorageLocal = types.Int64Null()
+	}
+	if plan.RetainAmountS3.IsUnknown() {
+		plan.RetainAmountS3 = types.Int64Null()
+	}
+	if plan.RetainDaysS3.IsUnknown() {
+		plan.RetainDaysS3 = types.Int64Null()
+	}
+	if plan.RetainMaxStorageS3.IsUnknown() {
+		plan.RetainMaxStorageS3 = types.Int64Null()
+	}
+	if plan.Timeout.IsUnknown() {
+		plan.Timeout = types.Int64Null()
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -232,7 +265,10 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	// then do a full GET to populate all fields.
 	backups, listErr := r.client.ListDatabaseBackups(ctx, dbUUID)
 	if listErr != nil {
-		resp.Diagnostics.AddError("Error listing database backups after create", fmt.Sprintf("backup %s for database %s: %s", created.UUID, dbUUID, listErr))
+		resp.Diagnostics.AddError(
+			"Database backup created but refresh failed",
+			fmt.Sprintf("Coolify created database backup %s for database %s, but the provider could not read it back: Could not list database backups for %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, dbUUID, dbUUID, listErr),
+		)
 		return
 	}
 	var found *client.DatabaseBackup
@@ -243,7 +279,10 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 		}
 	}
 	if found == nil {
-		resp.Diagnostics.AddError("Error resolving database backup", fmt.Sprintf("backup %s not found in list for database %s", created.UUID, dbUUID))
+		resp.Diagnostics.AddError(
+			"Database backup created but refresh failed",
+			fmt.Sprintf("Coolify created database backup %s for database %s, but the provider could not read it back: Could not resolve backup %s from the database %s backup list after create. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, dbUUID, created.UUID, dbUUID),
+		)
 		return
 	}
 

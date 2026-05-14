@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -185,6 +187,60 @@ resource "coolify_dragonfly_database" "test" {
 				ImportStateVerifyIdentifierAttribute: "uuid",
 			},
 		},
+	})
+}
+
+func TestDragonflyDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	const dragonflyUUID = "aaaa0009-0009-4000-8000-000000000009"
+
+	var forceReadFailure atomic.Bool
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/dragonfly":
+			forceReadFailure.Store(true)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": dragonflyUUID})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dragonflyUUID):
+			if forceReadFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":             dragonflyUUID,
+				"name":             "dragonfly-readback-db",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name": "production",
+				"image":            "docker.dragonflydb.io/dragonflydb/dragonfly:latest",
+				"is_public":        false,
+			})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dragonflyUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_dragonfly_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+			ExpectError: regexp.MustCompile(`(?s)Dragonfly database created but refresh failed.*Could not read Dragonfly database.*partial Terraform state was saved`),
+		}},
 	})
 }
 

@@ -67,6 +67,8 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	p.UUID = types.StringValue(c.UUID)
+	pg.NormalizeCommonCreateState(&p.CommonModel)
+	pg.NormalizeUnknownString(&p.RedisConf)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -86,7 +88,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading Redis database", fmt.Sprintf("Redis database %s: %s", c.UUID, err))
+		pg.AddCreateReadBackError(resp, "Redis database", c.UUID, err)
 		return
 	}
 	flattenDatabase(db, &p)
