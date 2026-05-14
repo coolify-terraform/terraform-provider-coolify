@@ -197,10 +197,13 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 
 func TestDockerImageApplicationResource_Import(t *testing.T) {
 	t.Parallel()
+	// Simulate Coolify's tag stripping: the API may return "nginx" even though
+	// the user configured "nginx:latest". The provider cannot reconstruct the
+	// original tag, so docker_image is excluded from ImportStateVerify.
 	app := client.Application{
 		UUID:                    "aaaa0001-0001-4000-8000-000000000001",
 		Name:                    "imported-docker-app",
-		DockerRegistryImageName: "nginx:latest",
+		DockerRegistryImageName: "nginx", // Coolify strips the tag
 		PortsExposes:            "80",
 		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
@@ -250,7 +253,7 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateVerifyIgnore:              []string{"environment_name"},
+				ImportStateVerifyIgnore:              []string{"environment_name", "docker_image"},
 			},
 		},
 	})

@@ -126,11 +126,12 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	// Coolify normalizes GitHub URLs by stripping the "https://github.com/"
 	// prefix (e.g. "https://github.com/org/repo" becomes "org/repo"). Preserve
 	// the user's original input if the API value is a suffix of it.
+	// On import (state is null/unknown), reconstruct the full URL from the slug.
 	if f.GitRepository != nil {
 		if !f.GitRepository.IsNull() && !f.GitRepository.IsUnknown() && strings.HasSuffix(f.GitRepository.ValueString(), app.GitRepository) {
 			// keep user's original value
 		} else {
-			*f.GitRepository = types.StringValue(app.GitRepository)
+			*f.GitRepository = types.StringValue(normalizeGitRepository(app.GitRepository))
 		}
 	}
 	if f.GitBranch != nil {
@@ -806,6 +807,27 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 	}
+}
+
+// normalizeGitRepository reconstructs a full GitHub URL if the API returned a
+// bare org/repo slug. Coolify strips "https://github.com/" from GitHub URLs,
+// which causes import state to differ from the user's configured full URL.
+func normalizeGitRepository(apiValue string) string {
+	if strings.Contains(apiValue, "://") {
+		return apiValue
+	}
+	if strings.HasPrefix(apiValue, "git@") {
+		return apiValue
+	}
+	// Contains a domain (e.g. "github.com/org/repo", "gitlab.com/org/repo")
+	if strings.Contains(apiValue, ".") {
+		return apiValue
+	}
+	// Bare slug like "org/repo" with no domain, protocol, or SSH prefix
+	if strings.Contains(apiValue, "/") {
+		return "https://github.com/" + apiValue
+	}
+	return apiValue
 }
 
 // setImportDefaults sets the default values for Computed+Default attributes

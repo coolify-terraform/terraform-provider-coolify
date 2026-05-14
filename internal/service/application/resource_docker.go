@@ -343,6 +343,10 @@ func flattenDockerImageApplication(app *client.Application, state *dockerImageAp
 			state.DockerImage = types.StringValue(apiVal)
 		}
 	} else {
+		// On import there is no prior state. Store the API value as-is;
+		// if the tag was stripped, the user will see a diff on the next
+		// plan and the update will re-set the image. We cannot reconstruct
+		// the original tag from the stripped name alone.
 		state.DockerImage = types.StringValue(app.DockerRegistryImageName)
 	}
 }

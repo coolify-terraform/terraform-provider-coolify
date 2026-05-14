@@ -206,10 +206,13 @@ func TestApplicationResource_Update(t *testing.T) {
 
 func TestApplicationResource_Import(t *testing.T) {
 	t.Parallel()
+	// Simulate Coolify's URL normalization: the API returns the stripped slug
+	// (no "https://github.com/" prefix) even though the user configured the
+	// full URL. The provider should reconstruct the full URL on import.
 	app := client.Application{
 		UUID:            "aaaa0001-0001-4000-8000-000000000001",
 		Name:            "imported-app",
-		GitRepository:   "https://github.com/example/repo",
+		GitRepository:   "example/repo", // Coolify strips the prefix
 		GitBranch:       "main",
 		BuildPack:       "nixpacks",
 		PortsExposes:    "3000",
