@@ -154,6 +154,15 @@ The provider requires a Coolify API token. Generate one in the Coolify UI under 
 
 ## Development
 
+Install the CI-pinned local tools before running the commands below:
+
+- `golangci-lint` v2.12.2 exactly
+- `goreleaser` v2.x
+- `tfplugindocs`
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the exact install commands and
+full local setup.
+
 ```bash
 make build       # Compile the provider
 make test        # Run unit tests (500+ tests, race detector enabled)
@@ -163,6 +172,7 @@ make fmt         # Format code (gofmt + go mod tidy)
 make docs        # Regenerate documentation via tfplugindocs
 make validate    # Check HCL formatting in examples/
 make install     # Install provider to local Go bin
+make ci          # Run the full local check suite
 ```
 
 For local provider testing with `dev_overrides`, acceptance test setup, and
