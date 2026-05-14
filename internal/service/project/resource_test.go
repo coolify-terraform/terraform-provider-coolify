@@ -302,6 +302,122 @@ resource "coolify_project" "test" {
 	})
 }
 
+func TestProjectResource_UpdateUsesPatchResponse(t *testing.T) {
+	t.Parallel()
+	store := &mockProjectStore{
+		projects: make(map[string]*mockProject),
+		counter:  0,
+	}
+
+	var countStepTwoRequests atomic.Bool
+	var stepTwoPatches atomic.Int32
+	var stepTwoGetsAfterPatch atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/projects", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		p := store.Create(body.Name, body.Description)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": p.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if countStepTwoRequests.Load() && stepTwoPatches.Load() > 0 {
+			stepTwoGetsAfterPatch.Add(1)
+		}
+		uuid := r.PathValue("uuid")
+		p, ok := store.Get(uuid)
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(p)
+	})
+	mux.HandleFunc("PATCH /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if countStepTwoRequests.Load() {
+			stepTwoPatches.Add(1)
+		}
+		uuid := r.PathValue("uuid")
+		var body struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		p, ok := store.Update(uuid, body.Name, body.Description)
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		json.NewEncoder(w).Encode(p)
+	})
+	mux.HandleFunc("DELETE /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.PathValue("uuid")
+		store.Delete(uuid)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+	})
+	mux.HandleFunc("GET /api/v1/projects", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(store.List())
+	})
+
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_project" "test" {
+  name        = "original-name"
+  description = "original description"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_project.test", "name", "original-name"),
+					resource.TestCheckResourceAttr("coolify_project.test", "description", "original description"),
+				),
+			},
+			{
+				PreConfig: func() {
+					stepTwoPatches.Store(0)
+					stepTwoGetsAfterPatch.Store(0)
+					countStepTwoRequests.Store(true)
+				},
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_project" "test" {
+  name        = "updated-name"
+  description = "updated description"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_project.test", "name", "updated-name"),
+					resource.TestCheckResourceAttr("coolify_project.test", "description", "updated description"),
+					func(_ *terraform.State) error {
+						countStepTwoRequests.Store(false)
+						if got := stepTwoPatches.Load(); got != 1 {
+							return fmt.Errorf("expected 1 PATCH during update step, got %d", got)
+						}
+						if got := stepTwoGetsAfterPatch.Load(); got != 0 {
+							return fmt.Errorf("expected 0 GETs after PATCH during update step, got %d", got)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestProjectResource_Import(t *testing.T) {
 	t.Parallel()
 	server, _ := newMockCoolifyServer()

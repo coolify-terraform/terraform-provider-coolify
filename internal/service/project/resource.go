@@ -177,20 +177,15 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		Description: flex.StringIfChanged(plan.Description, state.Description),
 	}
 
-	_, err := r.client.UpdateProject(ctx, state.UUID.ValueString(), input)
+	project, err := r.client.UpdateProject(ctx, state.UUID.ValueString(), input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating project", fmt.Sprintf("Could not update project %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 
-	plan.UUID = state.UUID
-
-	// Read back the full project to populate all fields.
-	diags := r.readProject(ctx, state.UUID.ValueString(), &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	plan.UUID = types.StringValue(project.UUID)
+	plan.Name = types.StringValue(project.Name)
+	plan.Description = flex.StringToFramework(project.Description)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -251,7 +246,7 @@ func (r *projectResource) readProject(ctx context.Context, uuid string, model *p
 
 	project, err := r.client.GetProject(ctx, uuid)
 	if err != nil {
-		diags.AddError("Error reading project", fmt.Sprintf("Could not read project %s after create/update: %s", uuid, err))
+		diags.AddError("Error reading project", fmt.Sprintf("Could not read project %s: %s", uuid, err))
 		return diags
 	}
 
