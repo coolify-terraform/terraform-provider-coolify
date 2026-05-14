@@ -37,7 +37,7 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_keydb_database` | Provision KeyDB databases (Redis-compatible) |
 | `coolify_dragonfly_database` | Provision DragonFly databases (Redis-compatible) |
 | `coolify_database_backup` | Schedule automated database backups |
-| `coolify_s3_storage` | Manage S3 storage destinations for backups |
+| `coolify_s3_storage` | Manage top-level S3 storage destinations, but current Coolify v4 may not expose the backing public CRUD API |
 | `coolify_scheduled_task` | Manage scheduled tasks on applications/services |
 | `coolify_storage` | Manage persistent storage volumes |
 | `coolify_cloud_token` | Manage cloud provider tokens (Hetzner) |
@@ -59,7 +59,7 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_environment_variable` / `coolify_environment_variables` | Read / list env vars for an application, service, or database |
 | `coolify_deployment` / `coolify_deployments` | Read / list deployments for an application |
 | `coolify_service` / `coolify_services` | Read service(s) |
-| `coolify_s3_storage` / `coolify_s3_storages` | Read S3 storage destination(s) |
+| `coolify_s3_storage` / `coolify_s3_storages` | Read top-level S3 storage destination(s), but current Coolify v4 may not expose the backing public API |
 | `coolify_scheduled_task` / `coolify_scheduled_tasks` / `coolify_task_executions` | Read scheduled task(s) and executions |
 | `coolify_storage` / `coolify_storages` | Read / list persistent storage volumes |
 | `coolify_cloud_token` / `coolify_cloud_tokens` | Read cloud token(s) |
@@ -178,6 +178,11 @@ make ci          # Run the aggregate local checks (acceptance tests run separate
 `make ci` does not run acceptance tests. If your change touches real Coolify
 API behavior, also run `make testacc` or targeted `TF_ACC=1 go test ...`
 commands.
+
+Cloud token and Hetzner-related acceptance tests need a real
+`COOLIFY_HETZNER_TOKEN` in addition to the normal `COOLIFY_ENDPOINT` and
+`COOLIFY_TOKEN` setup, because Coolify validates the token against Hetzner on
+create.
 
 For local provider testing with `dev_overrides`, acceptance test setup, and
 project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and

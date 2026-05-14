@@ -1,11 +1,12 @@
 # 03 - Database with Backup: provision a database and schedule backups
 #
-# Creates a PostgreSQL database, an S3 storage destination, and a
-# scheduled backup that runs daily at 2 AM UTC.
+# Creates a PostgreSQL database and a scheduled backup that targets an
+# existing UI-managed S3 storage, then runs daily at 2 AM UTC.
 #
 # Prerequisites:
 #   - Coolify with a registered server
-#   - S3-compatible storage (AWS S3, MinIO, Backblaze B2, etc.)
+#   - An existing S3-compatible storage configured in the Coolify web UI
+#     (AWS S3, MinIO, Backblaze B2, etc.)
 #
 # Run:
 #   terraform init
@@ -26,14 +27,8 @@ variable "server_uuid" {
   type = string
 }
 
-variable "s3_access_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "s3_secret_key" {
-  type      = string
-  sensitive = true
+variable "existing_s3_storage_uuid" {
+  type = string
 }
 
 resource "coolify_project" "data" {
@@ -47,18 +42,9 @@ resource "coolify_postgresql_database" "main" {
   image        = "postgres:16"
 }
 
-resource "coolify_s3_storage" "backups" {
-  name       = "db-backups"
-  access_key = var.s3_access_key
-  secret_key = var.s3_secret_key
-  bucket     = "coolify-backups"
-  endpoint   = "https://s3.amazonaws.com"
-  region     = "us-east-1"
-}
-
 resource "coolify_database_backup" "daily" {
   database_uuid         = coolify_postgresql_database.main.uuid
-  s3_storage_uuid       = coolify_s3_storage.backups.uuid
+  s3_storage_uuid       = var.existing_s3_storage_uuid
   frequency             = "0 2 * * *"
   retain_amount_locally = 7 # Number of backup copies to keep (not days)
   enabled               = true

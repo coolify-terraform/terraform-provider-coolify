@@ -1,7 +1,8 @@
 # ACME Corp Marketing Website
 #
 # Deploys a Node.js marketing site backed by PostgreSQL on Coolify.
-# Optionally configures daily database backups to S3-compatible storage.
+# Optionally configures daily database backups using an existing UI-managed
+# S3-compatible storage.
 
 terraform {
   required_providers {
@@ -78,24 +79,13 @@ data "coolify_application" "verify" {
 }
 
 # --- Backups (optional) ---
-# Set enable_backups = true and provide S3 credentials to activate.
-
-resource "coolify_s3_storage" "backups" {
-  count = var.enable_backups ? 1 : 0
-
-  name       = "acme-backups"
-  endpoint   = var.s3_endpoint
-  bucket     = var.s3_bucket
-  region     = var.s3_region
-  access_key = var.s3_access_key
-  secret_key = var.s3_secret_key
-}
+# Set enable_backups = true and provide an existing UI-managed S3 storage UUID.
 
 resource "coolify_database_backup" "daily" {
   count = var.enable_backups ? 1 : 0
 
   database_uuid   = coolify_postgresql_database.content.uuid
-  s3_storage_uuid = coolify_s3_storage.backups[0].uuid
+  s3_storage_uuid = var.existing_s3_storage_uuid
   frequency       = "@daily"
   enabled         = true
 }
