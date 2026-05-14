@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -24,6 +25,10 @@ type mockCloudToken struct {
 
 // newMockCoolifyServer creates an httptest.Server that simulates the Coolify API for cloud tokens.
 func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockCloudTokenStore) {
+	return newMockCoolifyServerWithReadFailure(false, auditT...)
+}
+
+func newMockCoolifyServerWithReadFailure(forceReadFailure bool, auditT ...testing.TB) (*httptest.Server, *mockCloudTokenStore) {
 	store := &mockCloudTokenStore{
 		cloudTokens:     make(map[string]*mockCloudToken),
 		omitTokenOnRead: make(map[string]bool),
@@ -49,6 +54,10 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockCloudTok
 	})
 
 	mux.HandleFunc("GET /api/v1/cloud-tokens/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if forceReadFailure {
+			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+			return
+		}
 		uuid := r.PathValue("uuid")
 		ct, ok := store.Get(uuid)
 		if !ok {
@@ -232,6 +241,26 @@ resource "coolify_cloud_token" "test" {
 				ExpectNonEmptyPlan: false,
 			},
 		},
+	})
+}
+
+func TestCloudTokenResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockCoolifyServerWithReadFailure(true)
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_cloud_token" "test" {
+  name           = "readback-failure"
+  cloud_provider = "aws"
+  token          = "secret-token-value"
+}
+`,
+			ExpectError: regexp.MustCompile(`(?s)Cloud token created but refresh failed.*Could not read cloud token.*partial Terraform state was saved`),
+		}},
 	})
 }
 
