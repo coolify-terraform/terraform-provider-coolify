@@ -273,8 +273,10 @@ terraform test -verbose
 for dir in examples/scenarios/acme-*/; do
   echo "=== Testing $(basename "$dir") ==="
   cd "$dir"
-  # Modules need terraform init even with dev_overrides
-  [ -d "modules" ] && terraform init
+  if [ -d "modules" ]; then
+    # terraform init still resolves providers with dev_overrides, so fetch only local modules here.
+    terraform get
+  fi
   terraform test -verbose
   cd -
 done
