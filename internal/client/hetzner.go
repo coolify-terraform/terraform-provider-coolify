@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // HetznerImage represents a Hetzner cloud image.
@@ -39,37 +40,43 @@ type HetznerSSHKey struct {
 	Fingerprint string `json:"fingerprint"`
 }
 
-// ListHetznerImages returns all Hetzner cloud images.
-func (c *Client) ListHetznerImages(ctx context.Context) ([]HetznerImage, error) {
+func hetznerPath(base, cloudProviderTokenUUID string) string {
+	q := url.Values{}
+	q.Set("cloud_provider_token_uuid", cloudProviderTokenUUID)
+	return base + "?" + q.Encode()
+}
+
+// ListHetznerImages returns all Hetzner cloud images for the given cloud provider token.
+func (c *Client) ListHetznerImages(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerImage, error) {
 	var images []HetznerImage
-	if err := c.do(ctx, http.MethodGet, "/api/v1/hetzner/images", nil, &images); err != nil {
+	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/images", cloudProviderTokenUUID), nil, &images); err != nil {
 		return nil, fmt.Errorf("listing hetzner images: %w", err)
 	}
 	return images, nil
 }
 
-// ListHetznerLocations returns all Hetzner datacenter locations.
-func (c *Client) ListHetznerLocations(ctx context.Context) ([]HetznerLocation, error) {
+// ListHetznerLocations returns all Hetzner datacenter locations for the given cloud provider token.
+func (c *Client) ListHetznerLocations(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerLocation, error) {
 	var locations []HetznerLocation
-	if err := c.do(ctx, http.MethodGet, "/api/v1/hetzner/locations", nil, &locations); err != nil {
+	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/locations", cloudProviderTokenUUID), nil, &locations); err != nil {
 		return nil, fmt.Errorf("listing hetzner locations: %w", err)
 	}
 	return locations, nil
 }
 
-// ListHetznerServerTypes returns all Hetzner server types.
-func (c *Client) ListHetznerServerTypes(ctx context.Context) ([]HetznerServerType, error) {
+// ListHetznerServerTypes returns all Hetzner server types for the given cloud provider token.
+func (c *Client) ListHetznerServerTypes(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerServerType, error) {
 	var types []HetznerServerType
-	if err := c.do(ctx, http.MethodGet, "/api/v1/hetzner/server-types", nil, &types); err != nil {
+	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/server-types", cloudProviderTokenUUID), nil, &types); err != nil {
 		return nil, fmt.Errorf("listing hetzner server types: %w", err)
 	}
 	return types, nil
 }
 
-// ListHetznerSSHKeys returns all Hetzner SSH keys.
-func (c *Client) ListHetznerSSHKeys(ctx context.Context) ([]HetznerSSHKey, error) {
+// ListHetznerSSHKeys returns all Hetzner SSH keys for the given cloud provider token.
+func (c *Client) ListHetznerSSHKeys(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerSSHKey, error) {
 	var keys []HetznerSSHKey
-	if err := c.do(ctx, http.MethodGet, "/api/v1/hetzner/ssh-keys", nil, &keys); err != nil {
+	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/ssh-keys", cloudProviderTokenUUID), nil, &keys); err != nil {
 		return nil, fmt.Errorf("listing hetzner ssh keys: %w", err)
 	}
 	return keys, nil

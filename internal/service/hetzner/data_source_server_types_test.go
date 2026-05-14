@@ -32,7 +32,9 @@ func TestHetznerServerTypesDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-data "coolify_hetzner_server_types" "test" {}
+data "coolify_hetzner_server_types" "test" {
+  cloud_provider_token_uuid = "test-token-uuid"
+}
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coolify_hetzner_server_types.test", "server_types.#", "2"),

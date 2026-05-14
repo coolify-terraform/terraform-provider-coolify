@@ -1,3 +1,7 @@
+# Note: Current Coolify (v4) does not expose a public API for S3 storage CRUD.
+# S3 storages are managed through the Coolify web UI.
+# This resource targets an API surface that may not be available in your Coolify version.
+
 variable "s3_access_key" {
   type      = string
   sensitive = true

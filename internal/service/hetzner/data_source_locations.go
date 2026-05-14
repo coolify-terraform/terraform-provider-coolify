@@ -21,8 +21,9 @@ type locationsDataSource struct {
 }
 
 type locationsDataSourceModel struct {
-	Locations []locationModel `tfsdk:"locations"`
-	Filters   []filter.Config `tfsdk:"filter"`
+	CloudProviderTokenUUID types.String    `tfsdk:"cloud_provider_token_uuid"`
+	Locations              []locationModel `tfsdk:"locations"`
+	Filters                []filter.Config `tfsdk:"filter"`
 }
 
 type locationModel struct {
@@ -42,8 +43,12 @@ func (d *locationsDataSource) Metadata(_ context.Context, req datasource.Metadat
 
 func (d *locationsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Lists all available Hetzner datacenter locations.",
+		MarkdownDescription: "Lists all available Hetzner datacenter locations for a given cloud provider token.",
 		Attributes: map[string]schema.Attribute{
+			"cloud_provider_token_uuid": schema.StringAttribute{
+				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner locations.",
+				Required:            true,
+			},
 			"locations": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner locations.",
 				Computed:            true,
@@ -83,7 +88,7 @@ func (d *locationsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	locations, err := d.client.ListHetznerLocations(ctx)
+	locations, err := d.client.ListHetznerLocations(ctx, config.CloudProviderTokenUUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing Hetzner locations", err.Error())
 		return
@@ -107,8 +112,9 @@ func (d *locationsDataSource) Read(ctx context.Context, req datasource.ReadReque
 	})
 
 	state := locationsDataSourceModel{
-		Filters:   config.Filters,
-		Locations: make([]locationModel, len(locations)),
+		CloudProviderTokenUUID: config.CloudProviderTokenUUID,
+		Filters:                config.Filters,
+		Locations:              make([]locationModel, len(locations)),
 	}
 	for i, loc := range locations {
 		state.Locations[i] = locationModel{

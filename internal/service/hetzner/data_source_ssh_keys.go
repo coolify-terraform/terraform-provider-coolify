@@ -22,8 +22,9 @@ type sshKeysDataSource struct {
 }
 
 type sshKeysDataSourceModel struct {
-	SSHKeys []sshKeyModel   `tfsdk:"ssh_keys"`
-	Filters []filter.Config `tfsdk:"filter"`
+	CloudProviderTokenUUID types.String    `tfsdk:"cloud_provider_token_uuid"`
+	SSHKeys                []sshKeyModel   `tfsdk:"ssh_keys"`
+	Filters                []filter.Config `tfsdk:"filter"`
 }
 
 type sshKeyModel struct {
@@ -41,8 +42,12 @@ func (d *sshKeysDataSource) Metadata(_ context.Context, req datasource.MetadataR
 
 func (d *sshKeysDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Lists all available Hetzner SSH keys.",
+		MarkdownDescription: "Lists all available Hetzner SSH keys for a given cloud provider token.",
 		Attributes: map[string]schema.Attribute{
+			"cloud_provider_token_uuid": schema.StringAttribute{
+				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner SSH keys.",
+				Required:            true,
+			},
 			"ssh_keys": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner SSH keys.",
 				Computed:            true,
@@ -80,7 +85,7 @@ func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	keys, err := d.client.ListHetznerSSHKeys(ctx)
+	keys, err := d.client.ListHetznerSSHKeys(ctx, config.CloudProviderTokenUUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing Hetzner SSH keys", err.Error())
 		return
@@ -100,8 +105,9 @@ func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	})
 
 	state := sshKeysDataSourceModel{
-		Filters: config.Filters,
-		SSHKeys: make([]sshKeyModel, len(keys)),
+		CloudProviderTokenUUID: config.CloudProviderTokenUUID,
+		Filters:                config.Filters,
+		SSHKeys:                make([]sshKeyModel, len(keys)),
 	}
 	for i, k := range keys {
 		state.SSHKeys[i] = sshKeyModel{

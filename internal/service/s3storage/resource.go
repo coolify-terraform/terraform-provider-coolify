@@ -49,7 +49,11 @@ func (r *s3StorageResource) Metadata(_ context.Context, req resource.MetadataReq
 
 func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify S3 storage destination.",
+		MarkdownDescription: "Manages a Coolify S3 storage destination.\n\n" +
+			"~> **Note:** Current versions of Coolify (v4) do not expose a public API for S3 storage CRUD. " +
+			"S3 storages are managed through the Coolify web UI. This resource targets an API surface " +
+			"that may not be available in your Coolify version. " +
+			"Existing S3 storages can still be referenced by UUID in backup configurations.",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the S3 storage.",

@@ -4,15 +4,21 @@ page_title: "coolify_s3_storages Data Source - coolify"
 subcategory: ""
 description: |-
   Retrieves a list of all Coolify S3 storage destinations.
+  ~> Note: Current versions of Coolify (v4) do not expose a public API for S3 storage CRUD. This data source targets an API surface that may not be available in your Coolify version.
 ---
 
 # coolify_s3_storages (Data Source)
 
 Retrieves a list of all Coolify S3 storage destinations.
 
+~> **Note:** Current versions of Coolify (v4) do not expose a public API for S3 storage CRUD. This data source targets an API surface that may not be available in your Coolify version.
+
 ## Example Usage
 
 ```terraform
+# Note: Current Coolify (v4) may not expose a public API for S3 storage.
+# This data source targets an API surface that may not be available in your Coolify version.
+
 data "coolify_s3_storages" "all" {}
 
 output "storage_names" {

@@ -22,8 +22,9 @@ type imagesDataSource struct {
 }
 
 type imagesDataSourceModel struct {
-	Images  []imageModel    `tfsdk:"images"`
-	Filters []filter.Config `tfsdk:"filter"`
+	CloudProviderTokenUUID types.String    `tfsdk:"cloud_provider_token_uuid"`
+	Images                 []imageModel    `tfsdk:"images"`
+	Filters                []filter.Config `tfsdk:"filter"`
 }
 
 type imageModel struct {
@@ -41,8 +42,12 @@ func (d *imagesDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 
 func (d *imagesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Lists all available Hetzner cloud images.",
+		MarkdownDescription: "Lists all available Hetzner cloud images for a given cloud provider token.",
 		Attributes: map[string]schema.Attribute{
+			"cloud_provider_token_uuid": schema.StringAttribute{
+				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner images.",
+				Required:            true,
+			},
 			"images": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner images.",
 				Computed:            true,
@@ -80,7 +85,7 @@ func (d *imagesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	images, err := d.client.ListHetznerImages(ctx)
+	images, err := d.client.ListHetznerImages(ctx, config.CloudProviderTokenUUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing Hetzner images", err.Error())
 		return
@@ -100,8 +105,9 @@ func (d *imagesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	})
 
 	state := imagesDataSourceModel{
-		Filters: config.Filters,
-		Images:  make([]imageModel, len(images)),
+		CloudProviderTokenUUID: config.CloudProviderTokenUUID,
+		Filters:                config.Filters,
+		Images:                 make([]imageModel, len(images)),
 	}
 	for i, img := range images {
 		state.Images[i] = imageModel{

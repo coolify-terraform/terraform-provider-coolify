@@ -21,8 +21,9 @@ type serverTypesDataSource struct {
 }
 
 type serverTypesDataSourceModel struct {
-	ServerTypes []serverTypeModel `tfsdk:"server_types"`
-	Filters     []filter.Config   `tfsdk:"filter"`
+	CloudProviderTokenUUID types.String      `tfsdk:"cloud_provider_token_uuid"`
+	ServerTypes            []serverTypeModel `tfsdk:"server_types"`
+	Filters                []filter.Config   `tfsdk:"filter"`
 }
 
 type serverTypeModel struct {
@@ -43,8 +44,12 @@ func (d *serverTypesDataSource) Metadata(_ context.Context, req datasource.Metad
 
 func (d *serverTypesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Lists all available Hetzner server types.",
+		MarkdownDescription: "Lists all available Hetzner server types for a given cloud provider token.",
 		Attributes: map[string]schema.Attribute{
+			"cloud_provider_token_uuid": schema.StringAttribute{
+				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner server types.",
+				Required:            true,
+			},
 			"server_types": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner server types.",
 				Computed:            true,
@@ -85,7 +90,7 @@ func (d *serverTypesDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	serverTypes, err := d.client.ListHetznerServerTypes(ctx)
+	serverTypes, err := d.client.ListHetznerServerTypes(ctx, config.CloudProviderTokenUUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing Hetzner server types", err.Error())
 		return
@@ -111,8 +116,9 @@ func (d *serverTypesDataSource) Read(ctx context.Context, req datasource.ReadReq
 	})
 
 	state := serverTypesDataSourceModel{
-		Filters:     config.Filters,
-		ServerTypes: make([]serverTypeModel, len(serverTypes)),
+		CloudProviderTokenUUID: config.CloudProviderTokenUUID,
+		Filters:                config.Filters,
+		ServerTypes:            make([]serverTypeModel, len(serverTypes)),
 	}
 	for i, st := range serverTypes {
 		state.ServerTypes[i] = serverTypeModel{

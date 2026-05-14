@@ -44,7 +44,9 @@ func (d *s3StorageDataSource) Metadata(_ context.Context, req datasource.Metadat
 
 func (d *s3StorageDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Retrieves information about a Coolify S3 storage destination.",
+		MarkdownDescription: "Retrieves information about a Coolify S3 storage destination.\n\n" +
+			"~> **Note:** Current versions of Coolify (v4) do not expose a public API for S3 storage CRUD. " +
+			"This data source targets an API surface that may not be available in your Coolify version.",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the S3 storage.",

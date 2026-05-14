@@ -4,15 +4,21 @@ page_title: "coolify_s3_storage Data Source - coolify"
 subcategory: ""
 description: |-
   Retrieves information about a Coolify S3 storage destination.
+  ~> Note: Current versions of Coolify (v4) do not expose a public API for S3 storage CRUD. This data source targets an API surface that may not be available in your Coolify version.
 ---
 
 # coolify_s3_storage (Data Source)
 
 Retrieves information about a Coolify S3 storage destination.
 
+~> **Note:** Current versions of Coolify (v4) do not expose a public API for S3 storage CRUD. This data source targets an API surface that may not be available in your Coolify version.
+
 ## Example Usage
 
 ```terraform
+# Note: Current Coolify (v4) may not expose a public API for S3 storage.
+# This data source targets an API surface that may not be available in your Coolify version.
+
 data "coolify_s3_storage" "example" {
   uuid = "550e8400-e29b-41d4-a716-446655440007"
 }

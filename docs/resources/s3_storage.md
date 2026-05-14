@@ -4,15 +4,22 @@ page_title: "coolify_s3_storage Resource - coolify"
 subcategory: ""
 description: |-
   Manages a Coolify S3 storage destination.
+  ~> Note: Current versions of Coolify (v4) do not expose a public API for S3 storage CRUD. S3 storages are managed through the Coolify web UI. This resource targets an API surface that may not be available in your Coolify version. Existing S3 storages can still be referenced by UUID in backup configurations.
 ---
 
 # coolify_s3_storage (Resource)
 
 Manages a Coolify S3 storage destination.
 
+~> **Note:** Current versions of Coolify (v4) do not expose a public API for S3 storage CRUD. S3 storages are managed through the Coolify web UI. This resource targets an API surface that may not be available in your Coolify version. Existing S3 storages can still be referenced by UUID in backup configurations.
+
 ## Example Usage
 
 ```terraform
+# Note: Current Coolify (v4) does not expose a public API for S3 storage CRUD.
+# S3 storages are managed through the Coolify web UI.
+# This resource targets an API surface that may not be available in your Coolify version.
+
 variable "s3_access_key" {
   type      = string
   sensitive = true
