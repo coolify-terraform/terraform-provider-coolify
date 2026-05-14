@@ -58,8 +58,9 @@ output "app_uuid" {
 
 Replace `your-server-uuid` with the UUID of a server registered in Coolify.
 The server must be SSH-reachable and validated (status: `is_usable: true`).
-Coolify manages Docker containers by SSHing into servers, so applications
-created on unreachable servers will silently fail.
+Coolify manages Docker containers by SSHing into servers. If the target
+server is unreachable, Terraform will fail with `Application created but
+not persisted` and tell you to fix SSH reachability before retrying.
 
 Find your server UUID via the UI or with:
 

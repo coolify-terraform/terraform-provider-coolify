@@ -76,7 +76,7 @@ automatically, but they are worth knowing:
 | **Immutable fields omitted** | All databases, apps, services | `project_uuid`, `server_uuid`, `environment_name` not returned by GET |
 | **Storage name prefixing** | `coolify_storage` | Coolify prepends the application UUID to the storage name |
 | **Base64 encoding required** | `coolify_dockerfile_application` | `dockerfile_location` must be base64-encoded despite the field name; use `base64encode()` |
-| **Server must be reachable** | All applications, databases, services | Resources created on unreachable servers return a UUID but silently fail to persist |
+| **Server must be reachable** | All applications | Terraform fails with `Application created but not persisted` if Coolify cannot read the app back after creation |
 | **Cloud token validation** | `coolify_cloud_token` | Coolify validates the token against the cloud provider's API on creation (cannot use placeholder values) |
 | **Async deletion** | `coolify_project` | Child resources are deleted asynchronously; project delete retries automatically |
 

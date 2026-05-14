@@ -113,9 +113,9 @@ curl -s http://localhost:8000/api/health
 ```
 
 -> **Why SSH?** Coolify deploys applications by SSHing into target servers
-and running Docker commands. Without a reachable SSH server, Coolify
-silently fails to create applications (returns a UUID but doesn't persist
-the resource).
+and running Docker commands. Without a reachable SSH server, Terraform
+fails with `Application created but not persisted` after the API returns a
+UUID and the provider cannot read the application back.
 
 ## Step 3: Create an Admin Account and Enable the API
 
@@ -349,8 +349,9 @@ manually: `curl -X DELETE ".../projects/{uuid}"`
 
 ### Applications created but not persisted (404 on read-back)
 
-The server is not SSH-reachable. Coolify returns a UUID from Create but
-silently drops the record. Fix the server validation (see Step 4).
+The server is not SSH-reachable. Coolify may return a UUID from Create,
+but the provider then fails with `Application created but not persisted`
+when the read-back 404s. Fix the server validation (see Step 4).
 
 ## Available Scenarios
 
