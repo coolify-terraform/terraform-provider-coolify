@@ -29,6 +29,8 @@ Acceptance tests (requires a running Coolify instance):
 ```bash
 export COOLIFY_ENDPOINT="http://localhost:8000"
 export COOLIFY_TOKEN="your-api-token"
+# Also required for cloud token and Hetzner-related acceptance tests.
+export COOLIFY_HETZNER_TOKEN="your-real-hetzner-api-token"
 make testacc
 ```
 

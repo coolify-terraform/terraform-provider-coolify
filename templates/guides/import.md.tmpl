@@ -30,6 +30,14 @@ terraform import coolify_postgresql_database.db <db-uuid>
 terraform import coolify_service.plausible <service-uuid>
 terraform import coolify_s3_storage.backups <storage-uuid>
 terraform import coolify_private_key.deploy <key-uuid>
+```
+
+~> **Note:** `coolify_s3_storage` targets a top-level public API surface that
+current Coolify v4 may not expose. If that import fails, manage the storage in
+the Coolify web UI and reference its UUID from `coolify_database_backup`
+instead.
+
+```bash
 terraform import coolify_cloud_token.hetzner <token-uuid>
 ```
 

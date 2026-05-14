@@ -19,39 +19,13 @@ variable "server_uuid" {
 # --- Backups ---
 
 variable "enable_backups" {
-  description = "Enable daily database backups to S3-compatible storage"
+  description = "Enable daily database backups using an existing UI-managed S3 storage"
   type        = bool
   default     = false
 }
 
-variable "s3_endpoint" {
-  description = "S3-compatible storage endpoint (e.g. https://s3.amazonaws.com)"
+variable "existing_s3_storage_uuid" {
+  description = "UUID of an existing S3 storage already configured in the Coolify web UI"
   type        = string
   default     = ""
-}
-
-variable "s3_bucket" {
-  description = "S3 bucket name for database backups"
-  type        = string
-  default     = ""
-}
-
-variable "s3_region" {
-  description = "S3 bucket region (e.g. us-east-1)"
-  type        = string
-  default     = ""
-}
-
-variable "s3_access_key" {
-  description = "S3 access key"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "s3_secret_key" {
-  description = "S3 secret key"
-  type        = string
-  default     = ""
-  sensitive   = true
 }

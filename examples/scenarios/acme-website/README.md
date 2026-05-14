@@ -10,8 +10,8 @@ daily backups shipped to S3-compatible storage so the marketing data is never
 at risk.
 
 This scenario provisions the entire stack (project, database, application,
-environment wiring, and optional backup infrastructure) in a single
-`terraform apply`.
+environment wiring, and an optional backup schedule that targets an existing
+UI-managed S3 storage) in a single `terraform apply`.
 
 ## What Gets Created
 
@@ -22,8 +22,7 @@ environment wiring, and optional backup infrastructure) in a single
 | 3 | `coolify_application.website` | Node.js marketing site from Git |
 | 4 | `coolify_environment_variable.database_url` | Connects the app to the database |
 | 5 | `coolify_environment_variable.node_env` | Sets NODE_ENV=production for builds |
-| 6 | `coolify_s3_storage.backups` | S3 destination for backups *(optional)* |
-| 7 | `coolify_database_backup.daily` | Daily backup schedule *(optional)* |
+| 6 | `coolify_database_backup.daily` | Daily backup schedule using an existing UI-managed S3 storage *(optional)* |
 
 ## Architecture
 
@@ -51,7 +50,7 @@ environment wiring, and optional backup infrastructure) in a single
 └─────────────────────────────────────────────────────┘
 
            ┌──────────────────────────────────┐
-           │       S3-Compatible Storage       │
+           │ Existing UI-Managed S3 Storage    │
            │       "acme-backups"              │
            │                                   │
            │  ◄── Daily Backup ── PostgreSQL   │
@@ -66,9 +65,11 @@ environment wiring, and optional backup infrastructure) in a single
 2. **API token**: generate one in Coolify under *Security > API Tokens*.
 3. **Server UUID**: the UUID of the destination server registered in Coolify.
    Find it under *Servers* in the Coolify dashboard.
-4. *(Optional)* **S3-compatible storage credentials**: only needed if you
-   enable backups (`enable_backups = true`). Works with AWS S3, MinIO,
-   Backblaze B2, Cloudflare R2, etc.
+4. *(Optional)* **Existing S3 storage UUID**: only needed if you enable
+   backups (`enable_backups = true`). Create the storage in the Coolify web UI
+   first, then pass its UUID with `existing_s3_storage_uuid`. The storage can
+   target AWS S3, MinIO, Backblaze B2, Cloudflare R2, or another compatible
+   backend.
 
 ## Usage
 
@@ -96,7 +97,7 @@ terraform apply \
   -var="server_uuid=your-server-uuid"
 ```
 
-To enable daily backups to S3:
+To enable daily backups to S3, first create the storage in the Coolify web UI, then pass its UUID here:
 
 ```bash
 terraform apply \
@@ -104,11 +105,7 @@ terraform apply \
   -var="coolify_token=your-api-token" \
   -var="server_uuid=your-server-uuid" \
   -var="enable_backups=true" \
-  -var="s3_endpoint=https://s3.amazonaws.com" \
-  -var="s3_bucket=acme-backups" \
-  -var="s3_region=us-east-1" \
-  -var="s3_access_key=AKIA..." \
-  -var="s3_secret_key=wJalr..."
+  -var="existing_s3_storage_uuid=your-s3-storage-uuid"
 ```
 
 ## How It Works

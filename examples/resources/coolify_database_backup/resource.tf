@@ -1,20 +1,8 @@
-variable "s3_access_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "s3_secret_key" {
-  type      = string
-  sensitive = true
-}
-
-resource "coolify_s3_storage" "backups" {
-  name       = "backup-storage"
-  endpoint   = "https://s3.amazonaws.com"
-  bucket     = "coolify-backups"
-  region     = "us-east-1"
-  access_key = var.s3_access_key
-  secret_key = var.s3_secret_key
+# Warning: on current Coolify v4, create the S3 storage in the web UI first
+# and pass its UUID here. The top-level `coolify_s3_storage` API surface may
+# not be available.
+variable "existing_s3_storage_uuid" {
+  type = string
 }
 
 resource "coolify_database_backup" "daily" {
@@ -23,5 +11,5 @@ resource "coolify_database_backup" "daily" {
   enabled               = true
   save_s3               = true
   retain_amount_locally = 7 # Number of backup copies to keep (not days)
-  s3_storage_uuid       = coolify_s3_storage.backups.uuid
+  s3_storage_uuid       = var.existing_s3_storage_uuid
 }

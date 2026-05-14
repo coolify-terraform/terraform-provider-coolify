@@ -38,29 +38,23 @@ Each execution has:
 
 ### Adding S3 off-site storage
 
-To store backups in S3 (in addition to local), add an S3 storage
-resource and enable `save_s3`:
+To store backups in S3 (in addition to local), first create the S3 storage in
+the Coolify web UI, then enable `save_s3` and point the backup at that UUID:
 
 ```hcl
-resource "coolify_s3_storage" "backups" {
-  name       = "backup-storage"
-  endpoint   = "https://s3.amazonaws.com"
-  bucket     = "acme-backups"
-  region     = "us-east-1"
-  access_key = var.s3_access_key
-  secret_key = var.s3_secret_key
-}
-
 resource "coolify_database_backup" "daily" {
   database_uuid         = coolify_postgresql_database.app_db.uuid
   frequency             = "0 2 * * *"
   enabled               = true
   save_s3               = true
-  s3_storage_uuid       = coolify_s3_storage.backups.uuid
+  s3_storage_uuid       = "existing-ui-managed-s3-storage-uuid"
   retain_amount_locally = 7
   retain_amount_s3      = 30
 }
 ```
+
+Current Coolify v4 may not expose the public top-level `coolify_s3_storage`
+API surface.
 
 ## Running
 

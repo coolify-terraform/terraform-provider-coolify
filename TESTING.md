@@ -96,6 +96,9 @@ export COOLIFY_TOKEN="<your-api-token>"
 
 # Optional: set a specific server UUID (otherwise auto-discovered)
 export COOLIFY_SERVER_UUID="<server-uuid>"
+
+# Required for cloud token and Hetzner-related acceptance tests
+export COOLIFY_HETZNER_TOKEN="<real-hetzner-api-token>"
 ```
 
 #### Server validation for application tests
@@ -107,6 +110,12 @@ not persisted` when the provider cannot read the app back. See the
 for the full SSH and server setup procedure.
 
 ### Running acceptance tests
+
+Cloud token and Hetzner-related acceptance tests require a real
+`COOLIFY_HETZNER_TOKEN`. Those tests call Coolify endpoints that validate the
+provided token against Hetzner, so placeholder values will be rejected. The
+main affected packages today are `internal/service/cloudtoken` and
+`internal/service/hetzner`.
 
 **Important**: Running all tests in parallel can overwhelm the Coolify API
 and cause false timeout failures. Use `-p 1` to run packages sequentially:
