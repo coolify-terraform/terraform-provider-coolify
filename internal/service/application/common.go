@@ -994,9 +994,66 @@ func setImportDefaults(ctx context.Context, resp *resource.ImportStateResponse) 
 	set("use_build_server", false)
 }
 
-// readBackAfterCreate reads the application after creation and handles the
-// 404-on-readback case (server not SSH-reachable). Returns nil if an error
-// was added to diagnostics.
+// normalizeUnknown* converts unknown planned values to null before saving
+// partial state after create.
+func normalizeUnknownString(v *types.String) {
+	if v != nil && v.IsUnknown() {
+		*v = types.StringNull()
+	}
+}
+
+func normalizeUnknownBool(v *types.Bool) {
+	if v != nil && v.IsUnknown() {
+		*v = types.BoolNull()
+	}
+}
+
+func normalizeUnknownInt64(v *types.Int64) {
+	if v != nil && v.IsUnknown() {
+		*v = types.Int64Null()
+	}
+}
+
+func normalizeCommonAppCreateState(m *applicationCommonModel) {
+	normalizeUnknownString(&m.Name)
+	normalizeUnknownString(&m.Description)
+	normalizeUnknownString(&m.EnvironmentName)
+	normalizeUnknownString(&m.FQDN)
+	normalizeUnknownString(&m.Status)
+	normalizeUnknownBool(&m.HealthCheckEnabled)
+	normalizeUnknownBool(&m.IsAutoDeployEnabled)
+	normalizeUnknownString(&m.Redirect)
+	normalizeUnknownString(&m.StaticImage)
+	normalizeUnknownBool(&m.IsStatic)
+	normalizeUnknownBool(&m.IsSPA)
+	normalizeUnknownBool(&m.IsPreserveRepositoryEnabled)
+	normalizeUnknownBool(&m.UseBuildServer)
+	normalizeUnknownString(&m.PreviewURLTemplate)
+	normalizeUnknownString(&m.HealthCheckHost)
+	normalizeUnknownString(&m.HealthCheckMethod)
+	normalizeUnknownInt64(&m.HealthCheckReturnCode)
+	normalizeUnknownString(&m.HealthCheckScheme)
+	normalizeUnknownString(&m.HealthCheckType)
+	normalizeUnknownBool(&m.ConnectToDockerNetwork)
+	normalizeUnknownBool(&m.IsForceHTTPSEnabled)
+	normalizeUnknownBool(&m.IsHTTPBasicAuthEnabled)
+	normalizeUnknownString(&m.HTTPBasicAuthUsername)
+	normalizeUnknownString(&m.HTTPBasicAuthPassword)
+	normalizeUnknownString(&m.ManualWebhookSecretBitbucket)
+	normalizeUnknownString(&m.ManualWebhookSecretGitea)
+	normalizeUnknownString(&m.ManualWebhookSecretGitHub)
+	normalizeUnknownString(&m.ManualWebhookSecretGitLab)
+	normalizeUnknownBool(&m.ForceDomainOverride)
+	normalizeUnknownBool(&m.IsContainerLabelEscapeEnabled)
+}
+
+func addApplicationCreateReadBackError(resp *resource.CreateResponse, uuid string, err error) {
+	resp.Diagnostics.AddError(
+		"Application created but refresh failed",
+		fmt.Sprintf("Coolify created application %s, but the provider could not read it back: Could not read application %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", uuid, uuid, err),
+	)
+}
+
 func readBackAfterCreate(ctx context.Context, c *client.Client, uuid string, resp *resource.CreateResponse) *client.Application {
 	app, err := c.GetApplication(ctx, uuid)
 	if err != nil {
@@ -1010,7 +1067,7 @@ func readBackAfterCreate(ctx context.Context, c *client.Client, uuid string, res
 			)
 			return nil
 		}
-		resp.Diagnostics.AddError("Error reading application after creation", fmt.Sprintf("application %s: %s", uuid, err))
+		addApplicationCreateReadBackError(resp, uuid, err)
 		return nil
 	}
 	return app

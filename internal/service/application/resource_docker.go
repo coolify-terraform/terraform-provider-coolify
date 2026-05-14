@@ -122,6 +122,7 @@ func (r *dockerImageApplicationResource) Create(ctx context.Context, req resourc
 	}
 
 	plan.UUID = types.StringValue(created.UUID)
+	normalizeCommonAppCreateState(&plan.applicationCommonModel)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)

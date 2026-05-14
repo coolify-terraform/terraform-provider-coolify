@@ -164,6 +164,8 @@ func (r *privateGitApplicationResource) Create(ctx context.Context, req resource
 	}
 
 	plan.UUID = types.StringValue(created.UUID)
+	normalizeCommonAppCreateState(&plan.applicationCommonModel)
+	normalizeUnknownString(&plan.GitBranch)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
