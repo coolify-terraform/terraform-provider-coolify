@@ -3723,3 +3723,435 @@ func TestClient_ListGitHubAppRepositories_NotFound(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, IsNotFound(err))
 }
+
+// --- Database Environment Variables ---
+
+func TestClient_CreateDatabaseEnvVar(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-1/envs", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var ev EnvironmentVariable
+		require.NoError(t, json.Unmarshal(body, &ev))
+		assert.Equal(t, "DB_HOST", ev.Key)
+		assert.Equal(t, "localhost", ev.Value)
+		assert.True(t, ev.IsBuild)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CreateEnvVarResponse{UUID: "db-env-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	resp, err := c.CreateDatabaseEnvVar(context.Background(), "db-1", EnvironmentVariable{
+		Key:     "DB_HOST",
+		Value:   "localhost",
+		IsBuild: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "db-env-new", resp.UUID)
+}
+
+func TestClient_ListDatabaseEnvVars(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-1/envs", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]EnvironmentVariable{
+			{UUID: "dev-1", Key: "DB_PORT", Value: "5432", IsPreview: false, IsBuild: false},
+			{UUID: "dev-2", Key: "DB_PASS", Value: "secret", IsPreview: true, IsBuild: true},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	vars, err := c.ListDatabaseEnvVars(context.Background(), "db-1")
+	require.NoError(t, err)
+	require.Len(t, vars, 2)
+	assert.Equal(t, "DB_PORT", vars[0].Key)
+	assert.Equal(t, "5432", vars[0].Value)
+	assert.False(t, vars[0].IsPreview)
+	assert.Equal(t, "DB_PASS", vars[1].Key)
+	assert.True(t, vars[1].IsPreview)
+	assert.True(t, vars[1].IsBuild)
+}
+
+func TestClient_UpdateDatabaseEnvVar(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-env-1/envs", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var ev EnvironmentVariable
+		require.NoError(t, json.Unmarshal(body, &ev))
+		assert.Equal(t, "DB_HOST", ev.Key)
+		assert.Equal(t, "new-host", ev.Value)
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.UpdateDatabaseEnvVar(context.Background(), "db-env-1", EnvironmentVariable{
+		Key:   "DB_HOST",
+		Value: "new-host",
+	})
+	require.NoError(t, err)
+}
+
+func TestClient_DeleteDatabaseEnvVar(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-1/envs/dev-del", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteDatabaseEnvVar(context.Background(), "db-1", "dev-del")
+	require.NoError(t, err)
+}
+
+// --- Teams (remaining) ---
+
+func TestClient_ListTeams(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/teams", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Team{
+			{ID: 1, Name: "engineering", Description: "Engineering team"},
+			{ID: 2, Name: "design", Description: "Design team"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	teams, err := c.ListTeams(context.Background())
+	require.NoError(t, err)
+	require.Len(t, teams, 2)
+	assert.Equal(t, 1, teams[0].ID)
+	assert.Equal(t, "engineering", teams[0].Name)
+	assert.Equal(t, "Engineering team", teams[0].Description)
+	assert.Equal(t, 2, teams[1].ID)
+	assert.Equal(t, "design", teams[1].Name)
+	assert.Equal(t, "Design team", teams[1].Description)
+}
+
+func TestClient_GetCurrentTeam(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/teams/current", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Team{
+			ID:          10,
+			Name:        "my-team",
+			Description: "Current team",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	team, err := c.GetCurrentTeam(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 10, team.ID)
+	assert.Equal(t, "my-team", team.Name)
+	assert.Equal(t, "Current team", team.Description)
+}
+
+func TestClient_GetCurrentTeamMembers(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/teams/current/members", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]TeamMember{
+			{ID: 1, Name: "Charlie", Email: "charlie@example.com"},
+			{ID: 2, Name: "Dana", Email: "dana@example.com"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	members, err := c.GetCurrentTeamMembers(context.Background())
+	require.NoError(t, err)
+	require.Len(t, members, 2)
+	assert.Equal(t, 1, members[0].ID)
+	assert.Equal(t, "Charlie", members[0].Name)
+	assert.Equal(t, "charlie@example.com", members[0].Email)
+	assert.Equal(t, 2, members[1].ID)
+	assert.Equal(t, "Dana", members[1].Name)
+	assert.Equal(t, "dana@example.com", members[1].Email)
+}
+
+// --- Deployments (remaining) ---
+
+func TestClient_ListApplicationDeployments(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/deployments/applications/app-dep-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Deployment{
+			{UUID: "dep-a1", ID: 300, Status: "finished", ServerUUID: "srv-1"},
+			{UUID: "dep-a2", ID: 301, Status: "queued", ServerUUID: "srv-1"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	deps, err := c.ListApplicationDeployments(context.Background(), "app-dep-1")
+	require.NoError(t, err)
+	require.Len(t, deps, 2)
+	assert.Equal(t, "dep-a1", deps[0].UUID)
+	assert.Equal(t, 300, deps[0].ID)
+	assert.Equal(t, "finished", deps[0].Status)
+	assert.Equal(t, "dep-a2", deps[1].UUID)
+	assert.Equal(t, 301, deps[1].ID)
+	assert.Equal(t, "queued", deps[1].Status)
+}
+
+func TestClient_CancelDeployment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/deployments/dep-cancel-1/cancel", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.CancelDeployment(context.Background(), "dep-cancel-1")
+	require.NoError(t, err)
+}
+
+func TestClient_Deploy(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/deploy", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.Deploy(context.Background())
+	require.NoError(t, err)
+}
+
+// --- Databases (remaining) ---
+
+func TestClient_RestartDatabase(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-restart/restart", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.RestartDatabase(context.Background(), "db-restart")
+	require.NoError(t, err)
+}
+
+func TestClient_ListBackupExecutions(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/bk-uuid-1/executions", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(struct {
+			Executions []BackupExecution `json:"executions"`
+		}{
+			Executions: []BackupExecution{
+				{UUID: "exec-1", Status: "success", CreatedAt: "2025-01-01T00:00:00Z", Size: 1024},
+				{UUID: "exec-2", Status: "failed", CreatedAt: "2025-01-02T00:00:00Z", Size: 0},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	execs, err := c.ListBackupExecutions(context.Background(), "db-uuid-1", "bk-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, execs, 2)
+	assert.Equal(t, "exec-1", execs[0].UUID)
+	assert.Equal(t, "success", execs[0].Status)
+	assert.Equal(t, "2025-01-01T00:00:00Z", execs[0].CreatedAt)
+	assert.Equal(t, int64(1024), execs[0].Size)
+	assert.Equal(t, "exec-2", execs[1].UUID)
+	assert.Equal(t, "failed", execs[1].Status)
+	assert.Equal(t, "2025-01-02T00:00:00Z", execs[1].CreatedAt)
+}
+
+func TestClient_DeleteBackupExecution(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/databases/db-uuid-1/backups/bk-uuid-1/executions/exec-del-1", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteBackupExecution(context.Background(), "db-uuid-1", "bk-uuid-1", "exec-del-1")
+	require.NoError(t, err)
+}
+
+// --- Applications (remaining) ---
+
+func TestClient_CreateGitHubAppApplication(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/private-github-app", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateGitHubAppInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "proj-1", input.ProjectUUID)
+		assert.Equal(t, "srv-1", input.ServerUUID)
+		assert.Equal(t, "production", input.EnvironmentName)
+		assert.Equal(t, "gh-app-uuid", input.GitHubAppUUID)
+		assert.Equal(t, "https://github.com/org/repo", input.GitRepository)
+		assert.Equal(t, "main", input.GitBranch)
+		assert.Equal(t, "dockerfile", input.BuildPack)
+		assert.Equal(t, "8080", input.PortsExposes)
+		assert.Equal(t, "my-ghapp", input.Name)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "ghapp-new", Name: "my-ghapp"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.CreateGitHubAppApplication(context.Background(), CreateGitHubAppInput{
+		ProjectUUID:     "proj-1",
+		ServerUUID:      "srv-1",
+		EnvironmentName: "production",
+		GitHubAppUUID:   "gh-app-uuid",
+		GitRepository:   "https://github.com/org/repo",
+		GitBranch:       "main",
+		BuildPack:       "dockerfile",
+		PortsExposes:    "8080",
+		Name:            "my-ghapp",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "ghapp-new", app.UUID)
+	assert.Equal(t, "my-ghapp", app.Name)
+}
+
+func TestClient_GetApplicationLogs(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-logs-1/logs", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]ApplicationLog{
+			{Line: "Server started on port 3000", Timestamp: "2025-06-01T12:00:00Z"},
+			{Line: "Connected to database", Timestamp: "2025-06-01T12:00:01Z"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	logs, err := c.GetApplicationLogs(context.Background(), "app-logs-1")
+	require.NoError(t, err)
+	require.Len(t, logs, 2)
+	assert.Equal(t, "Server started on port 3000", logs[0].Line)
+	assert.Equal(t, "2025-06-01T12:00:00Z", logs[0].Timestamp)
+	assert.Equal(t, "Connected to database", logs[1].Line)
+	assert.Equal(t, "2025-06-01T12:00:01Z", logs[1].Timestamp)
+}
+
+func TestClient_DeletePreviewDeployment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-prev-1/previews/42", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeletePreviewDeployment(context.Background(), "app-prev-1", 42)
+	require.NoError(t, err)
+}
+
+// --- Client Enable/Disable API ---
+
+func TestClient_EnableAPI(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/enable", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.EnableAPI(context.Background())
+	require.NoError(t, err)
+}
+
+func TestClient_DisableAPI(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/disable", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DisableAPI(context.Background())
+	require.NoError(t, err)
+}
+
+// --- Resources ---
+
+func TestClient_ListResources(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/resources", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Resource{
+			{UUID: "res-1", Name: "my-app", Type: "application", Status: "running"},
+			{UUID: "res-2", Name: "my-db", Type: "database", Status: "stopped"},
+			{UUID: "res-3", Name: "my-svc", Type: "service", Status: "running"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	resources, err := c.ListResources(context.Background())
+	require.NoError(t, err)
+	require.Len(t, resources, 3)
+	assert.Equal(t, "res-1", resources[0].UUID)
+	assert.Equal(t, "my-app", resources[0].Name)
+	assert.Equal(t, "application", resources[0].Type)
+	assert.Equal(t, "running", resources[0].Status)
+	assert.Equal(t, "res-2", resources[1].UUID)
+	assert.Equal(t, "my-db", resources[1].Name)
+	assert.Equal(t, "database", resources[1].Type)
+	assert.Equal(t, "stopped", resources[1].Status)
+	assert.Equal(t, "res-3", resources[2].UUID)
+	assert.Equal(t, "my-svc", resources[2].Name)
+	assert.Equal(t, "service", resources[2].Type)
+	assert.Equal(t, "running", resources[2].Status)
+}
