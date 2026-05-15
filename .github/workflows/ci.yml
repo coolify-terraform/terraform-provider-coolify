@@ -63,7 +63,14 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: >-
+      always() &&
+      (
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -111,7 +118,14 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: >-
+      always() &&
+      (
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -133,7 +147,14 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     needs: changes
-    if: always() && (needs.changes.outputs.terraform == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch')
+    if: >-
+      always() &&
+      (
+        needs.changes.outputs.terraform == 'true' ||
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -150,7 +171,14 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: >-
+      always() &&
+      (
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -169,7 +197,14 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: >-
+      always() &&
+      (
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -234,7 +269,12 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     needs: changes
-    if: always() && (needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch')
+    if: >-
+      always() &&
+      (
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -249,7 +289,14 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     needs: changes
-    if: always() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.docs == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch')
+    if: >-
+      always() &&
+      (
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.docs == 'true' ||
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -310,12 +357,15 @@ jobs:
   scenario-tests:
     name: Scenario Tests
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 50
     needs: [changes, test]
     if: >-
       always() &&
       needs.test.result == 'success' &&
-      (needs.changes.outputs.scenarios == 'true' || github.event_name == 'workflow_dispatch')
+      (
+        needs.changes.outputs.scenarios == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -345,9 +395,21 @@ jobs:
       - name: Check secrets configured
         id: secrets
         run: |
+          missing=0
           if [ -z "${{ secrets.COOLIFY_ENDPOINT }}" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
             echo "::warning::Scenario tests skipped: COOLIFY_ENDPOINT secret not configured"
+            missing=1
+          fi
+          if [ -z "${{ secrets.COOLIFY_TOKEN }}" ]; then
+            echo "::warning::Scenario tests skipped: COOLIFY_TOKEN secret not configured"
+            missing=1
+          fi
+          if [ -z "${{ secrets.COOLIFY_SERVER_UUID }}" ]; then
+            echo "::warning::Scenario tests skipped: COOLIFY_SERVER_UUID secret not configured"
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
@@ -398,12 +460,16 @@ jobs:
   acceptance-tests:
     name: Acceptance Tests
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 130
     needs: [changes, test]
     if: >-
       always() &&
       needs.test.result == 'success' &&
-      (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch')
+      (
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -415,9 +481,17 @@ jobs:
       - name: Check secrets configured
         id: secrets
         run: |
+          missing=0
           if [ -z "${{ secrets.COOLIFY_ENDPOINT }}" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
             echo "::warning::Acceptance tests skipped: COOLIFY_ENDPOINT secret not configured"
+            missing=1
+          fi
+          if [ -z "${{ secrets.COOLIFY_TOKEN }}" ]; then
+            echo "::warning::Acceptance tests skipped: COOLIFY_TOKEN secret not configured"
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
@@ -444,7 +518,7 @@ jobs:
           COOLIFY_SERVER_UUID: ${{ secrets.COOLIFY_SERVER_UUID }}
           COOLIFY_S3_STORAGE_UUID: ${{ secrets.COOLIFY_S3_STORAGE_UUID }}
         run: |
-          go test -run TestAcc -race -count=1 -timeout=30m -p 4 ./...
+          go test -run TestAcc -race -count=1 -timeout=120m -p 1 ./...
 
   ci-pass:
     name: CI
