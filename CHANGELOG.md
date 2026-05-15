@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `coolify_github_app`: The `private_key` attribute has been renamed to `private_key_uuid` to match the Coolify API spec. This field now accepts a UUID referencing an existing `coolify_private_key` resource instead of raw key content.
 - `coolify_database_backup`: The `retain_days` attribute has been renamed to `retain_amount_locally`. The old name was misleading (it stored a count of backup copies, not days). Users must update their `.tf` files to use the new name.
+- `coolify_s3_storage` resource, `coolify_s3_storage` data source, and `coolify_s3_storages` data source have been removed. Current Coolify v4 has no public top-level S3 storage API. Manage S3 storages in the Coolify web UI and reference their UUIDs from `coolify_database_backup.s3_storage_uuid`.
 
 ### Added
 
@@ -22,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tflog.Debug` structured logging in all resource CRUD methods
 - **Provider configuration** with `endpoint` and `token` attributes (env var fallback: `COOLIFY_ENDPOINT`, `COOLIFY_TOKEN`)
 - Health check during `Configure` validates API connection by calling `/api/v1/version`
-- **27 Resources:**
+- **Resources:**
   - `coolify_project` - Manage projects
   - `coolify_server` - Register and configure servers
   - `coolify_private_key` - Manage SSH keys
@@ -45,12 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_keydb_database` - Provision KeyDB databases (Redis-compatible)
   - `coolify_dragonfly_database` - Provision DragonFly databases (Redis-compatible in-memory store)
   - `coolify_database_backup` - Schedule automated database backups with S3 storage and retention
-  - `coolify_s3_storage` - Manage S3 storage destinations for database backups
   - `coolify_scheduled_task` - Manage scheduled tasks on applications/services
   - `coolify_storage` - Manage persistent storage volumes
   - `coolify_cloud_token` - Manage cloud provider tokens (Hetzner)
   - `coolify_github_app` - Manage GitHub App integrations
-- **46 Data Sources:**
+- **Data Sources:**
   - `coolify_project` / `coolify_projects` - Read project(s)
   - `coolify_server` / `coolify_servers` - Read server(s)
   - `coolify_server_resources` - List all resources deployed on a server
@@ -64,7 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_environment` / `coolify_environments` - Read environment(s)
   - `coolify_environment_variable` / `coolify_environment_variables` - Read / list environment variables for an application, service, or database
   - `coolify_deployment` / `coolify_deployments` - Read / list deployments for an application
-  - `coolify_s3_storage` / `coolify_s3_storages` - Read S3 storage destination(s)
   - `coolify_scheduled_task` / `coolify_scheduled_tasks` / `coolify_task_executions` - Read scheduled task(s) and executions
   - `coolify_storage` / `coolify_storages` - Read / list persistent storage volumes
   - `coolify_cloud_token` / `coolify_cloud_tokens` - Read cloud token(s)

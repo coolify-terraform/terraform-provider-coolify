@@ -13,7 +13,7 @@ Read these skills when working in this repo:
 
 Terraform provider for [Coolify](https://coolify.io/), the open-source self-hosted PaaS.
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
-26 resources, 46 data sources, 500+ tests (unit + acceptance), 13 CI jobs.
+25 resources, 44 data sources, 500+ tests (unit + acceptance), 13 CI jobs.
 8 ACME Corp scenario examples with `terraform test` integration tests.
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)

@@ -257,13 +257,12 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (26 total)
+### Resources (25 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
 | `coolify_project` | Yes | Yes | Yes | Yes | |
 | `coolify_private_key` | Yes | Yes | Yes | Yes | |
-| `coolify_s3_storage` | Skipped | | | | API unavailable on the tested Coolify v4 instance, tracked in #178 |
 | `coolify_environment` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
 | `coolify_dockerfile_application` | Yes | Yes | Yes | Yes | |
 | `coolify_postgresql_database` | Yes | Yes | Yes | Yes | |
@@ -288,7 +287,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_dragonfly_database` | Yes | Yes | Yes | Yes | |
 | `coolify_keydb_database` | Yes | Yes | Yes | Yes | |
 
-### Data Sources (42 total)
+### Data Sources (44 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -303,26 +302,28 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_applications` | Yes | Via dockerfile app test |
 | `coolify_database` | Yes | Via postgresql test |
 | `coolify_databases` | Yes | Via postgresql test |
+| `coolify_deployment` | Yes | Via deployment test |
+| `coolify_deployments` | Yes | Via deployment test |
 | `coolify_environment` | Yes | |
 | `coolify_environments` | Yes | |
+| `coolify_environment_variable` | Yes | Via envvar test |
 | `coolify_environment_variables` | Yes | Via envvar test |
 | `coolify_private_key` | Yes | Via private_key test |
 | `coolify_private_keys` | Yes | Via private_key test |
-| `coolify_s3_storage` | Skipped | API unavailable on the tested Coolify v4 instance, tracked in #178 |
-| `coolify_s3_storages` | Skipped | API unavailable on the tested Coolify v4 instance, tracked in #178 |
-| `coolify_servers` | Yes | |
 | `coolify_server` | Yes | By UUID |
+| `coolify_servers` | Yes | |
 | `coolify_server_resources` | Yes | |
 | `coolify_server_domains` | Yes | |
 | `coolify_server_validation` | Yes | |
 | `coolify_service` | Yes | Via service test |
 | `coolify_services` | Yes | Via service test |
-| `coolify_deployments` | Yes | Via deployment test |
+| `coolify_storage` | Yes | Via storage test |
+| `coolify_storages` | Yes | Via storage test |
+| `coolify_scheduled_task` | Yes | Via scheduled_task test |
+| `coolify_scheduled_tasks` | Yes | Via scheduled_task test |
 | `coolify_cloud_token` | Yes | Via cloud_token test |
 | `coolify_cloud_tokens` | Yes | Via cloud_token test |
 | `coolify_resources` | Yes | |
-| `coolify_storages` | Yes | Via storage test |
-| `coolify_scheduled_tasks` | Yes | Via scheduled_task test |
 | `coolify_task_executions` | Yes | May return empty list |
 | `coolify_application_logs` | Yes | May return empty list |
 | `coolify_backup_executions` | Yes | May return empty list |
@@ -337,9 +338,9 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ### Coverage Summary
 
-- **Resources**: 25/26 direct acceptance coverage (`coolify_s3_storage` is skipped, `coolify_github_app_application` is covered via application variants)
-- **Data Sources**: 40/42 direct acceptance coverage (both S3 storage data sources are skipped)
-- **Total acceptance test functions**: 59 (2 unconditionally skipped)
+- **Resources**: 25/25 direct acceptance coverage
+- **Data Sources**: 44/44 direct acceptance coverage
+- **Total acceptance test functions**: 57
 
 ### Testing strategies for edge cases
 

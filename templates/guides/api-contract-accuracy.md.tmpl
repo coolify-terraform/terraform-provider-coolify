@@ -18,7 +18,7 @@ Contract version: `v4-latest` | Extracted from: `coollabsio/coolify@v4-latest`
 | Total fields | 611 |
 | Type matches | 611/611 |
 | Nullable matches | 239/611 |
-| Provider coverage | 325/611 |
+| Provider coverage | 337/611 |
 | Models in contract | 22 |
 | Models in spec | 13 |
 
@@ -142,7 +142,7 @@ Fields: 133 | Type matches: 133/133 | Nullable matches: 94/133 | Provider covera
 | post_deployment_command_container | string | string | yes | **WRONG** | - | supported |
 | pre_deployment_command | string | string | yes | yes | - | supported |
 | pre_deployment_command_container | string | string | yes | **WRONG** | - | supported |
-| preview_url_template | string | string | yes | yes | (template) | supported |
+| preview_url_template | string | string | yes | yes | { {pr_id} }.{ {domain} } | supported |
 | private_key_id | integer | integer | yes | yes | - | n/a |
 | publish_directory | string | string | yes | **WRONG** | - | supported |
 | redirect | string | string | yes | **WRONG** | - | supported |
@@ -439,20 +439,20 @@ Fields: 8 | Type matches: 8/8 | Nullable matches: 8/8 | Provider coverage: 3/8
 
 ## S3Storage
 
-Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Provider coverage: 8/10
+Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Provider coverage: 0/10
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| bucket | string | - | - | - | - | supported |
-| description | string | - | - | - | - | supported |
-| endpoint | string | - | - | - | - | supported |
-| is_usable | string | - | - | - | - | supported |
-| key | string | - | - | - | - | supported |
-| name | string | - | - | - | - | supported |
-| region | string | - | - | - | us-east-1 | supported |
+| bucket | string | - | - | - | - | n/a |
+| description | string | - | - | - | - | n/a |
+| endpoint | string | - | - | - | - | n/a |
+| is_usable | string | - | - | - | - | n/a |
+| key | string | - | - | - | - | n/a |
+| name | string | - | - | - | - | n/a |
+| region | string | - | - | - | us-east-1 | n/a |
 | secret | string | - | - | - | - | n/a |
 | unusable_email_sent | string | - | - | - | - | n/a |
-| uuid | string | - | - | - | - | supported |
+| uuid | string | - | - | - | - | n/a |
 
 ## ScheduledDatabaseBackup
 
@@ -475,20 +475,20 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Provider coverage: 
 | enabled | boolean | - | - | - | true | supported |
 | frequency | string | - | - | - | - | supported |
 | number_of_backups_locally | integer | - | - | - | 7 | n/a |
-| s3_storage_uuid | integer | - | - | - | - | n/a |
+| s3_storage_id | integer | - | - | - | - | n/a |
 | save_s3 | boolean | - | - | - | true | supported |
 | timeout | integer | - | - | - | 3600 | supported |
 | uuid | string | - | - | - | - | supported |
 
 ## StandaloneClickhouse
 
-Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Provider coverage: 18/30
+Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Provider coverage: 20/30
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | clickhouse_admin_password | string | - | - | - | - | supported |
 | clickhouse_admin_user | string | - | - | - | default | supported |
-| clickhouse_db | string | - | - | - | default | n/a |
+| clickhouse_db | string | - | - | - | default | supported |
 | custom_docker_run_options | string | - | - | - | - | supported |
 | description | string | - | - | - | - | supported |
 | destination_id | integer | - | - | - | - | n/a |
@@ -511,7 +511,7 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Provider coverage: 
 | name | string | - | - | - | - | supported |
 | ports_mappings | string | - | - | - | - | supported |
 | public_port | integer | - | - | - | - | supported |
-| public_port_timeout | string | - | - | - | - | n/a |
+| public_port_timeout | string | - | - | - | - | supported |
 | restart_count | string | - | - | - | - | n/a |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | supported |
@@ -519,7 +519,7 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Provider coverage: 
 
 ## StandaloneDragonfly
 
-Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Provider coverage: 16/29
+Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Provider coverage: 18/29
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -527,7 +527,7 @@ Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Provider coverage: 
 | description | string | - | - | - | - | supported |
 | destination_id | integer | - | - | - | - | n/a |
 | destination_type | string | - | - | - | - | n/a |
-| dragonfly_password | string | - | - | - | - | n/a |
+| dragonfly_password | string | - | - | - | - | supported |
 | enable_ssl | string | - | - | - | - | n/a |
 | environment_id | integer | - | - | - | - | n/a |
 | image | string | - | - | - | docker.dragonflydb.io/dragonflydb/dragonfly | supported |
@@ -547,7 +547,7 @@ Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Provider coverage: 
 | name | string | - | - | - | - | supported |
 | ports_mappings | string | - | - | - | - | supported |
 | public_port | integer | - | - | - | - | supported |
-| public_port_timeout | string | - | - | - | - | n/a |
+| public_port_timeout | string | - | - | - | - | supported |
 | restart_count | string | - | - | - | - | n/a |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | supported |
@@ -555,7 +555,7 @@ Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Provider coverage: 
 
 ## StandaloneKeydb
 
-Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Provider coverage: 16/30
+Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Provider coverage: 19/30
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -569,8 +569,8 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Provider coverage: 
 | is_include_timestamps | boolean | - | - | - | false | n/a |
 | is_log_drain_enabled | boolean | - | - | - | false | n/a |
 | is_public | boolean | - | - | - | false | supported |
-| keydb_conf | string | - | - | - | - | n/a |
-| keydb_password | string | - | - | - | - | n/a |
+| keydb_conf | string | - | - | - | - | supported |
+| keydb_password | string | - | - | - | - | supported |
 | last_online_at | string | - | - | - | - | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
@@ -584,7 +584,7 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Provider coverage: 
 | name | string | - | - | - | - | supported |
 | ports_mappings | string | - | - | - | - | supported |
 | public_port | integer | - | - | - | - | supported |
-| public_port_timeout | string | - | - | - | - | n/a |
+| public_port_timeout | string | - | - | - | - | supported |
 | restart_count | string | - | - | - | - | n/a |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | supported |
@@ -592,7 +592,7 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Provider coverage: 
 
 ## StandaloneMariadb
 
-Fields: 32 | Type matches: 32/32 | Nullable matches: 32/32 | Provider coverage: 20/32
+Fields: 32 | Type matches: 32/32 | Nullable matches: 32/32 | Provider coverage: 22/32
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -615,7 +615,7 @@ Fields: 32 | Type matches: 32/32 | Nullable matches: 32/32 | Provider coverage: 
 | limits_memory_reservation | string | - | - | - | 0 | supported |
 | limits_memory_swap | string | - | - | - | 0 | supported |
 | limits_memory_swappiness | integer | - | - | - | 60 | supported |
-| mariadb_conf | string | - | - | - | - | n/a |
+| mariadb_conf | string | - | - | - | - | supported |
 | mariadb_database | string | - | - | - | default | supported |
 | mariadb_password | string | - | - | - | - | supported |
 | mariadb_root_password | string | - | - | - | - | supported |
@@ -623,7 +623,7 @@ Fields: 32 | Type matches: 32/32 | Nullable matches: 32/32 | Provider coverage: 
 | name | string | - | - | - | - | supported |
 | ports_mappings | string | - | - | - | - | supported |
 | public_port | integer | - | - | - | - | supported |
-| public_port_timeout | string | - | - | - | - | n/a |
+| public_port_timeout | string | - | - | - | - | supported |
 | restart_count | string | - | - | - | - | n/a |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | supported |
@@ -631,7 +631,7 @@ Fields: 32 | Type matches: 32/32 | Nullable matches: 32/32 | Provider coverage: 
 
 ## StandaloneMongodb
 
-Fields: 33 | Type matches: 33/33 | Nullable matches: 33/33 | Provider coverage: 19/33
+Fields: 33 | Type matches: 33/33 | Nullable matches: 33/33 | Provider coverage: 21/33
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -655,14 +655,14 @@ Fields: 33 | Type matches: 33/33 | Nullable matches: 33/33 | Provider coverage: 
 | limits_memory_reservation | string | - | - | - | 0 | supported |
 | limits_memory_swap | string | - | - | - | 0 | supported |
 | limits_memory_swappiness | integer | - | - | - | 60 | supported |
-| mongo_conf | string | - | - | - | - | n/a |
+| mongo_conf | string | - | - | - | - | supported |
 | mongo_initdb_database | string | - | - | - | default | supported |
 | mongo_initdb_root_password | string | - | - | - | - | supported |
 | mongo_initdb_root_username | string | - | - | - | root | supported |
 | name | string | - | - | - | - | supported |
 | ports_mappings | string | - | - | - | - | supported |
 | public_port | integer | - | - | - | - | supported |
-| public_port_timeout | string | - | - | - | - | n/a |
+| public_port_timeout | string | - | - | - | - | supported |
 | restart_count | string | - | - | - | - | n/a |
 | ssl_mode | string | - | - | - | - | n/a |
 | started_at | string | - | - | - | - | n/a |
@@ -671,7 +671,7 @@ Fields: 33 | Type matches: 33/33 | Nullable matches: 33/33 | Provider coverage: 
 
 ## StandaloneMysql
 
-Fields: 34 | Type matches: 34/34 | Nullable matches: 34/34 | Provider coverage: 20/34
+Fields: 34 | Type matches: 34/34 | Nullable matches: 34/34 | Provider coverage: 22/34
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -695,7 +695,7 @@ Fields: 34 | Type matches: 34/34 | Nullable matches: 34/34 | Provider coverage: 
 | limits_memory_reservation | string | - | - | - | 0 | supported |
 | limits_memory_swap | string | - | - | - | 0 | supported |
 | limits_memory_swappiness | integer | - | - | - | 60 | supported |
-| mysql_conf | string | - | - | - | - | n/a |
+| mysql_conf | string | - | - | - | - | supported |
 | mysql_database | string | - | - | - | default | supported |
 | mysql_password | string | - | - | - | - | supported |
 | mysql_root_password | string | - | - | - | - | supported |
@@ -703,7 +703,7 @@ Fields: 34 | Type matches: 34/34 | Nullable matches: 34/34 | Provider coverage: 
 | name | string | - | - | - | - | supported |
 | ports_mappings | string | - | - | - | - | supported |
 | public_port | integer | - | - | - | - | supported |
-| public_port_timeout | string | - | - | - | - | n/a |
+| public_port_timeout | string | - | - | - | - | supported |
 | restart_count | string | - | - | - | - | n/a |
 | ssl_mode | string | - | - | - | - | n/a |
 | started_at | string | - | - | - | - | n/a |
@@ -712,7 +712,7 @@ Fields: 34 | Type matches: 34/34 | Nullable matches: 34/34 | Provider coverage: 
 
 ## StandalonePostgresql
 
-Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Provider coverage: 19/36
+Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Provider coverage: 24/36
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -723,7 +723,7 @@ Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Provider coverage: 
 | enable_ssl | string | - | - | - | - | n/a |
 | environment_id | integer | - | - | - | - | n/a |
 | image | string | - | - | - | postgres:15-alpine | supported |
-| init_scripts | object | - | - | - | - | n/a |
+| init_scripts | object | - | - | - | - | supported |
 | is_include_timestamps | string | - | - | - | - | n/a |
 | is_log_drain_enabled | string | - | - | - | - | n/a |
 | is_public | boolean | - | - | - | false | supported |
@@ -739,14 +739,14 @@ Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Provider coverage: 
 | limits_memory_swappiness | integer | - | - | - | 60 | supported |
 | name | string | - | - | - | - | supported |
 | ports_mappings | string | - | - | - | - | supported |
-| postgres_conf | string | - | - | - | - | n/a |
+| postgres_conf | string | - | - | - | - | supported |
 | postgres_db | string | - | - | - | postgres | supported |
-| postgres_host_auth_method | string | - | - | - | - | n/a |
-| postgres_initdb_args | string | - | - | - | - | n/a |
+| postgres_host_auth_method | string | - | - | - | - | supported |
+| postgres_initdb_args | string | - | - | - | - | supported |
 | postgres_password | string | - | - | - | - | supported |
 | postgres_user | string | - | - | - | postgres | supported |
 | public_port | integer | - | - | - | - | supported |
-| public_port_timeout | string | - | - | - | - | n/a |
+| public_port_timeout | string | - | - | - | - | supported |
 | restart_count | string | - | - | - | - | n/a |
 | ssl_mode | string | - | - | - | - | n/a |
 | started_at | string | - | - | - | - | n/a |
@@ -755,7 +755,7 @@ Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Provider coverage: 
 
 ## StandaloneRedis
 
-Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Provider coverage: 16/29
+Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Provider coverage: 18/29
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -782,8 +782,8 @@ Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Provider coverage: 
 | name | string | - | - | - | - | supported |
 | ports_mappings | string | - | - | - | - | supported |
 | public_port | integer | - | - | - | - | supported |
-| public_port_timeout | string | - | - | - | - | n/a |
-| redis_conf | string | - | - | - | - | n/a |
+| public_port_timeout | string | - | - | - | - | supported |
+| redis_conf | string | - | - | - | - | supported |
 | restart_count | string | - | - | - | - | n/a |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | supported |

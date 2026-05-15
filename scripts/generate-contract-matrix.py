@@ -33,6 +33,11 @@ MODEL_TO_SCHEMA = {
     "ScheduledTask": "ScheduledTask",
 }
 
+# Contract models that intentionally have no public provider surface.
+PROVIDER_TAG_OVERRIDES = {
+    "S3Storage": set(),
+}
+
 # Map contract field types to a normalised display type.
 TYPE_MAP = {
     "string": "string",
@@ -166,6 +171,8 @@ def _build_model_table(
     spec_props = {}
     if spec_schema:
         spec_props = spec_schema.get("properties", {})
+
+    provider_tags = PROVIDER_TAG_OVERRIDES.get(model_name, provider_tags)
 
     rows: list[dict] = []
     for field_name in sorted(all_fields):
