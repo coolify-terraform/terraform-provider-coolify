@@ -50,15 +50,15 @@ func (r *gitHubAppApplicationResource) Metadata(_ context.Context, req resource.
 
 func (r *gitHubAppApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify application deployed via a GitHub App integration.",
+		MarkdownDescription: "Manages a Coolify application deployed via a GitHub App integration. Coolify verifies repository access during create, so the referenced GitHub App must have installation access to the target repository.",
 		Attributes: CommonAppAttrs(ctx, map[string]schema.Attribute{
 			"github_app_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the GitHub App used for repository access.",
+				MarkdownDescription: "The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`.",
 				Required:            true,
 				Validators:          []validator.String{validate.UUID()},
 			},
 			"git_repository": schema.StringAttribute{
-				MarkdownDescription: "The Git repository URL (e.g. `github.com/org/repo`).",
+				MarkdownDescription: "The Git repository URL (for example `https://github.com/org/repo` or `org/repo`). Coolify checks repository access during create.",
 				Required:            true,
 			},
 			"git_branch": schema.StringAttribute{

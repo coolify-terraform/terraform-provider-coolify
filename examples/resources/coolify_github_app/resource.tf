@@ -3,6 +3,8 @@ variable "github_app_client_secret" {
   sensitive = true
 }
 
+# Requires a coolify_private_key resource created from the GitHub App
+# private key PEM before creating the integration.
 resource "coolify_github_app" "example" {
   name             = "my-github-app"
   app_id           = 12345

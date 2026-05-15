@@ -99,6 +99,16 @@ export COOLIFY_SERVER_UUID="<server-uuid>"
 
 # Required for cloud token and Hetzner-related acceptance tests
 export COOLIFY_HETZNER_TOKEN="<real-hetzner-api-token>"
+
+# Optional: enable GitHub App application acceptance with a live fixture.
+export COOLIFY_GITHUB_APP_APP_ID="123456"
+export COOLIFY_GITHUB_APP_INSTALLATION_ID="7890123"
+export COOLIFY_GITHUB_APP_CLIENT_ID="Iv1.abc123def456"
+export COOLIFY_GITHUB_APP_CLIENT_SECRET="<github-app-client-secret>"
+export COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE="$HOME/.config/coolify/github-app.pem"
+export COOLIFY_GITHUB_APP_REPOSITORY="owner/repo"
+# Optional, defaults to main.
+export COOLIFY_GITHUB_APP_BRANCH="main"
 ```
 
 #### Server validation for application tests
@@ -116,6 +126,11 @@ Cloud token and Hetzner-related acceptance tests require a real
 provided token against Hetzner, so placeholder values will be rejected. The
 main affected packages today are `internal/service/cloudtoken` and
 `internal/service/hetzner`.
+
+GitHub App application acceptance requires live `COOLIFY_GITHUB_APP_*`
+fixture variables because Coolify verifies repository access during
+`POST /applications/private-github-app`. The main affected test today is
+`internal/service/application.TestAccGitHubAppApplicationResource_CRUD`.
 
 **Important**: Running all tests in parallel can overwhelm the Coolify API
 and cause false timeout failures. Use `-p 1` to run packages sequentially:
@@ -277,8 +292,8 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_mysql_database` | Yes | Yes | Yes | Yes | Second DB type for coverage |
 | `coolify_application` | Yes | Yes | Yes | Yes | Public git with coollabsio/coolify-examples |
 | `coolify_private_git_application` | Yes | Yes | Yes | Yes | SSH URL, dummy key |
-| `coolify_github_app_application` | N/A | | | | Tested via `coolify_application` variants |
-| `coolify_github_app` | Yes | Yes | N/A | Yes | Dummy credentials (metadata only) |
+| `coolify_github_app_application` | Yes | Yes | Yes | Yes | Requires live `COOLIFY_GITHUB_APP_*` fixture env vars with repository access |
+| `coolify_github_app` | Yes | Yes | N/A | Yes | Uses a Terraform-managed private key fixture; create/update work without repository access |
 | `coolify_server` | Yes | Yes | Yes | Yes | RFC 5737 IP (192.0.2.1), not reachable |
 | `coolify_clickhouse_database` | Yes | Yes | Yes | Yes | |
 | `coolify_mariadb_database` | Yes | Yes | Yes | Yes | |
@@ -329,8 +344,8 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_backup_executions` | Yes | May return empty list |
 | `coolify_github_app` | Yes | Singular lookup by numeric ID |
 | `coolify_github_apps` | Yes | Paired with github_app resource |
-| `coolify_github_app_repositories` | Yes | ExpectError with dummy credentials |
-| `coolify_github_app_branches` | Yes | ExpectError with dummy credentials |
+| `coolify_github_app_repositories` | Yes | ExpectError without live repository-access fixture credentials |
+| `coolify_github_app_branches` | Yes | ExpectError without live repository-access fixture credentials |
 | `coolify_hetzner_images` | Yes | Needs Hetzner token in Coolify |
 | `coolify_hetzner_locations` | Yes | Needs Hetzner token in Coolify |
 | `coolify_hetzner_server_types` | Yes | Needs Hetzner token in Coolify |
@@ -347,8 +362,8 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | Category | Strategy |
 |----------|----------|
 | **Server registration** | Uses RFC 5737 documentation IP (192.0.2.1); server registers but is not reachable |
-| **GitHub App** | Uses dummy credentials (app_id=12345, fake secret/key); CRUD works, API calls to GitHub fail gracefully |
-| **GitHub App repos/branches** | Uses `ExpectError` since dummy credentials can't query GitHub |
+| **GitHub App** | Uses a Terraform-managed private key fixture plus placeholder OAuth fields; create and update work without repository access |
+| **GitHub App repos/branches** | Uses `ExpectError` because the acceptance fixture does not include a live GitHub App installation token |
 | **Private Git application** | Uses SSH URL with dummy key; registers metadata without cloning |
 | **Hetzner data sources** | Zero-input parameterless calls; pass when Hetzner is configured in Coolify |
 | **Runtime data** | application_logs, backup_executions, task_executions may return empty lists; test verifies the list attribute exists |
