@@ -20,20 +20,23 @@ import (
 //	    acctest.WithVersionEndpoint(mux),
 //	))
 func WithSpecValidation(t testing.TB, specVersion string, next http.Handler) http.Handler {
-	return withSpecValidation(t, specVersion, next, true)
+	return withSpecValidation(t, specVersion, next, true, nil)
 }
 
 // WithSpecAudit is like WithSpecValidation but logs violations as warnings
 // instead of failing the test. Use this when the spec itself has quality
 // issues (e.g., wrong response types) that would cause false failures.
 func WithSpecAudit(t testing.TB, specVersion string, next http.Handler) http.Handler {
-	return withSpecValidation(t, specVersion, next, false)
+	return withSpecValidation(t, specVersion, next, false, nil)
 }
 
-func withSpecValidation(t testing.TB, specVersion string, next http.Handler, strict bool) http.Handler {
-	v, err := newValidator(specVersion)
-	if err != nil {
-		t.Fatalf("failed to create validator for spec %s: %v", specVersion, err)
+func withSpecValidation(t testing.TB, specVersion string, next http.Handler, strict bool, v validator.Validator) http.Handler {
+	if v == nil {
+		createdValidator, err := newValidator(specVersion)
+		if err != nil {
+			t.Fatalf("failed to create validator for spec %s: %v", specVersion, err)
+		}
+		v = createdValidator
 	}
 	return &validatingHandler{
 		inner:     next,

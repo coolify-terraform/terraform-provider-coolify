@@ -17,6 +17,11 @@ import (
 func TestClientEndpoints_SpecCompliance(t *testing.T) {
 	t.Parallel()
 
+	v, err := newValidator("coolify-v4")
+	if err != nil {
+		t.Fatalf("creating validator: %v", err)
+	}
+
 	type endpoint struct {
 		name       string
 		method     string
@@ -367,7 +372,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 				w.Write([]byte("v4.0.0"))
 			})
 
-			srv := httptest.NewServer(WithSpecAudit(t, "coolify-v4", mux))
+			srv := httptest.NewServer(withSpecValidation(t, "coolify-v4", mux, false, v))
 			defer srv.Close()
 
 			var reqBody *bytes.Buffer
