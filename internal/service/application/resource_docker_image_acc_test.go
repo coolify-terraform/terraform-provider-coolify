@@ -33,6 +33,12 @@ func TestAccDockerImageApplicationResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "ports_exposes", "80"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccDockerImageAppConfig(name, serverUUID, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update description
 			{
 				Config: testAccDockerImageAppConfig(name, serverUUID, `description = "Updated via acc test"`),

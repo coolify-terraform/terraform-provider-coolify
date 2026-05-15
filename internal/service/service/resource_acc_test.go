@@ -39,6 +39,22 @@ resource "coolify_service" "test" {
 					resource.TestCheckResourceAttr("coolify_service.test", "environment_name", "production"),
 				),
 			},
+			// Idempotency check
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_service" "test" {
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  type         = "uptime-kuma"
+}
+`, name, serverUUID),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Import
 			{
 				ResourceName:                         "coolify_service.test",

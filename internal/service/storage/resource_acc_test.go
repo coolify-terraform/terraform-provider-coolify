@@ -33,6 +33,12 @@ func TestAccStorageResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_storage.test", "mount_path", "/data"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccStorageConfig(name, serverUUID, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update name
 			{
 				Config: testAccStorageConfig(name+"-updated", serverUUID, ""),

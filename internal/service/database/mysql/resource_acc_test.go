@@ -26,6 +26,12 @@ func TestAccMysqlDatabaseResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "name", name),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             acctest.AccTestDatabaseConfig("coolify_mysql_database", name, serverUUID, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update description
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_mysql_database", name, serverUUID, `description = "updated mysql"`),

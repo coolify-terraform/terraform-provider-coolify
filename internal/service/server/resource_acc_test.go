@@ -29,6 +29,12 @@ func TestAccServerResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_server.test", "private_key_uuid"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccServerConfig(name, privKey, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update name and description
 			{
 				Config: testAccServerConfig(name+"-updated", privKey, `description = "Updated via acc test"`),

@@ -26,6 +26,12 @@ func TestAccMariadbDatabaseResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_mariadb_database.test", "image"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             acctest.AccTestDatabaseConfig("coolify_mariadb_database", name, serverUUID, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_mariadb_database", name, serverUUID, `description = "Updated via acc test"`),
 				Check:  resource.TestCheckResourceAttr("coolify_mariadb_database.test", "description", "Updated via acc test"),

@@ -31,6 +31,12 @@ func TestAccDatabaseBackupResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_database_backup.test", "retain_amount_locally", "7"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccBackupConfig(name, serverUUID, "0 2 * * *"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Update frequency
 			{
 				Config: testAccBackupConfig(name, serverUUID, "0 4 * * *"),

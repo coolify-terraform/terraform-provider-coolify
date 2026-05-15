@@ -34,6 +34,12 @@ func TestAccScheduledTaskResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "frequency", "* * * * *"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccScheduledTaskConfig(name, serverUUID, "echo hello"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update command
 			{
 				Config: testAccScheduledTaskConfig(name, serverUUID, "echo updated"),

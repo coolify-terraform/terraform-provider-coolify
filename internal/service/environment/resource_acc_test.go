@@ -38,6 +38,22 @@ resource "coolify_environment" "test" {
 					resource.TestCheckResourceAttr("coolify_environment.test", "description", "Staging environment"),
 				),
 			},
+			// Idempotency check
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_environment" "test" {
+  project_uuid = coolify_project.test.uuid
+  name         = "staging"
+  description  = "Staging environment"
+}
+`, name),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Update description
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`

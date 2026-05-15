@@ -38,6 +38,18 @@ resource "coolify_private_key" "test" {
 					resource.TestCheckResourceAttr("coolify_private_key.test", "is_git_related", "false"),
 				),
 			},
+			// Idempotency check
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_private_key" "test" {
+  name        = %[1]q
+  description = "acc test key"
+  private_key = %[2]q
+}
+`, name, privKey),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update name and description
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`

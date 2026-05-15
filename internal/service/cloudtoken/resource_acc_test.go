@@ -36,6 +36,12 @@ func TestAccCloudTokenResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_cloud_token.test", "cloud_provider", "hetzner"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccCloudTokenConfig(name, "hetzner", token),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update name
 			{
 				Config: testAccCloudTokenConfig(name+"-updated", "hetzner", token),

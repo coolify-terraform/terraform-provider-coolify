@@ -27,6 +27,12 @@ func TestAccDragonflyDatabaseResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_dragonfly_database.test", "image"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             acctest.AccTestDatabaseConfig("coolify_dragonfly_database", name, serverUUID, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update description
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_dragonfly_database", name, serverUUID, `description = "Updated via acc test"`),

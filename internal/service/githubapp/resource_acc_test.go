@@ -33,6 +33,12 @@ func TestAccGitHubAppResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_github_app.test", "client_id", "Iv1.fake123456789"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccGitHubAppConfig(name, privateKeyName, privateKey),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update name
 			{
 				Config: testAccGitHubAppConfig(name+"-updated", privateKeyName, privateKey),

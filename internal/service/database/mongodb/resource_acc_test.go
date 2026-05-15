@@ -26,6 +26,12 @@ func TestAccMongodbDatabaseResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_mongodb_database.test", "image"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             acctest.AccTestDatabaseConfig("coolify_mongodb_database", name, serverUUID, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_mongodb_database", name, serverUUID, `description = "Updated via acc test"`),
 				Check:  resource.TestCheckResourceAttr("coolify_mongodb_database.test", "description", "Updated via acc test"),

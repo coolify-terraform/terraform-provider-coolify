@@ -31,6 +31,17 @@ resource "coolify_project" "test" {
 					resource.TestCheckResourceAttr("coolify_project.test", "description", "Acceptance test project"),
 				),
 			},
+			// Idempotency check
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name        = %q
+  description = "Acceptance test project"
+}
+`, name),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {

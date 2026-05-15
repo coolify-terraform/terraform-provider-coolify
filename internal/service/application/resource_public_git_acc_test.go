@@ -27,6 +27,12 @@ func TestAccApplicationResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_application.test", "ports_exposes", "3000"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccPublicGitAppConfig(name, serverUUID, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			{
 				Config: testAccPublicGitAppConfig(name, serverUUID, `description = "Updated public git app"`),
 				Check:  resource.TestCheckResourceAttr("coolify_application.test", "description", "Updated public git app"),

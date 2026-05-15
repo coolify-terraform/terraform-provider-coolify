@@ -30,6 +30,12 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_private_git_application.test", "ports_exposes", "3000"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccPrivateGitAppConfig(name, serverUUID, privKey, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update description
 			{
 				Config: testAccPrivateGitAppConfig(name, serverUUID, privKey, `description = "Updated private git app"`),

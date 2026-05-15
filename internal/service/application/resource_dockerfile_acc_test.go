@@ -31,6 +31,12 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "ports_exposes", "80"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             acctest.AccTestDockerfileAppConfig(name, serverUUID, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Step 2: Update description
 			{
 				Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, `description = "Updated via acc test"`),

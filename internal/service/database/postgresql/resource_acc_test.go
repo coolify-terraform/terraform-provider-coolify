@@ -27,6 +27,12 @@ func TestAccPostgresqlDatabaseResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "image"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Update description
 			{
 				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, `description = "Updated via acc test"`),

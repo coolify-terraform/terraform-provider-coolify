@@ -30,6 +30,12 @@ func TestAccDeploymentResource_CreateImport(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_deployment.test", "status"),
 				),
 			},
+			// Idempotency check
+			{
+				Config:             testAccDeploymentConfig(name, serverUUID),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 			// Import
 			{
 				ResourceName:                         "coolify_deployment.test",
