@@ -350,6 +350,18 @@ func NotFoundError() *regexp.Regexp {
 	return regexp.MustCompile(`(?i)not found`)
 }
 
+// AccTestS3StorageUUID returns the UUID of an S3 storage destination for
+// acceptance tests. Set COOLIFY_S3_STORAGE_UUID to the UUID of an S3
+// storage registered in Coolify. The test is skipped if not set.
+func AccTestS3StorageUUID(t *testing.T) string {
+	t.Helper()
+	v := os.Getenv("COOLIFY_S3_STORAGE_UUID")
+	if v == "" {
+		t.Skip("COOLIFY_S3_STORAGE_UUID not set, skipping S3 backup test")
+	}
+	return v
+}
+
 // AccTestDockerfileAppConfig returns a Terraform config for an acceptance test
 // of a Dockerfile application resource, including a project dependency. The
 // extra parameter allows injecting additional HCL attributes.

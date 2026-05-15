@@ -23,6 +23,7 @@ type mockBackupState struct {
 	dbUUID      string
 	frequency   string
 	enabled     bool
+	saveS3      bool
 	s3StorageID string
 	retainDays  *int64
 	deleted     bool
@@ -52,6 +53,12 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			}
 			if v, ok := body["enabled"].(bool); ok {
 				state.enabled = v
+			}
+			if v, ok := body["save_s3"].(bool); ok {
+				state.saveS3 = v
+			}
+			if v, ok := body["s3_storage_uuid"].(string); ok {
+				state.s3StorageID = v
 			}
 			if v, ok := body["database_backup_retention_amount_locally"].(float64); ok {
 				i := int64(v)
@@ -88,6 +95,9 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			}
 			if v, ok := body["enabled"].(bool); ok {
 				state.enabled = v
+			}
+			if v, ok := body["save_s3"].(bool); ok {
+				state.saveS3 = v
 			}
 			if v, ok := body["s3_storage_uuid"]; ok {
 				if s, ok := v.(string); ok {
@@ -128,9 +138,11 @@ func backupResponse(s *mockBackupState) map[string]interface{} {
 		"database_uuid": s.dbUUID,
 		"frequency":     s.frequency,
 		"enabled":       s.enabled,
+		"save_s3":       s.saveS3,
 	}
 	if s.s3StorageID != "" {
-		resp["s3_storage_uuid"] = s.s3StorageID
+		// Real API returns s3_storage_id (numeric FK), not s3_storage_uuid.
+		resp["s3_storage_id"] = 1
 	}
 	if s.retainDays != nil {
 		resp["database_backup_retention_amount_locally"] = *s.retainDays
@@ -506,6 +518,48 @@ func TestDatabaseBackupResource_CronAlias(t *testing.T) {
 					retain_amount_locally   = 7
 				`),
 				Check: resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "@daily"),
+			},
+		},
+	})
+}
+
+// TestDatabaseBackupResource_S3RoundTrip verifies that creating a backup with
+// save_s3=true and s3_storage_uuid preserves the UUID across plan/apply cycles.
+// The real Coolify API returns s3_storage_id (numeric FK) not s3_storage_uuid,
+// so the provider must preserve the user-configured UUID from state.
+func TestDatabaseBackupResource_S3RoundTrip(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockBackupServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkBackupDestroy(srv.URL),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid    = "eeee0001-0001-4000-8000-000000000001"
+					frequency        = "0 2 * * *"
+					enabled          = true
+					save_s3          = true
+					s3_storage_uuid  = "aaaa1111-2222-3333-4444-555566667777"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "save_s3", "true"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "s3_storage_uuid", "aaaa1111-2222-3333-4444-555566667777"),
+				),
+			},
+			// Idempotency: no plan diff on re-apply
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid    = "eeee0001-0001-4000-8000-000000000001"
+					frequency        = "0 2 * * *"
+					enabled          = true
+					save_s3          = true
+					s3_storage_uuid  = "aaaa1111-2222-3333-4444-555566667777"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
