@@ -60,5 +60,8 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# NOTE: Import only restores API-readable fields. Keep client_secret and
+# private_key_uuid in your Terraform config before running terraform plan,
+# because Coolify does not return them after create/import.
 terraform import coolify_github_app.example 42
 ```
