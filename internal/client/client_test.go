@@ -1763,6 +1763,20 @@ func TestClient_StopService(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestClient_RestartService(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/services/svc-restart/restart", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.RestartService(context.Background(), "svc-restart")
+	require.NoError(t, err)
+}
+
 // --- Private Git Application ---
 
 func TestClient_CreatePrivateGitApplication(t *testing.T) {
@@ -2194,6 +2208,22 @@ func TestClient_GetVersion_JSONQuoted(t *testing.T) {
 	v, err := c.GetVersion(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, "v4.1.0", v)
+}
+
+func TestClient_GetHealth(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/health", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	health, err := c.GetHealth(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "OK", health)
 }
 
 func TestClient_GetHealth_Non2xx(t *testing.T) {
