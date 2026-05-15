@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -135,7 +134,7 @@ func requireMockGitHubApp(w http.ResponseWriter, r *http.Request, store *mockGit
 }
 
 // newMockCoolifyServer creates an httptest.Server that simulates the Coolify API for GitHub Apps.
-func newMockCoolifyServer(forceReadFailure *atomic.Bool, auditT ...testing.TB) (*httptest.Server, *mockGitHubAppStore) {
+func newMockCoolifyServer(failListAfterCreate *atomic.Bool, auditT ...testing.TB) (*httptest.Server, *mockGitHubAppStore) {
 	store := &mockGitHubAppStore{
 		apps:    make(map[int64]*mockGitHubApp),
 		counter: 0,
@@ -162,8 +161,8 @@ func newMockCoolifyServer(forceReadFailure *atomic.Bool, auditT ...testing.TB) (
 		}
 
 		app := store.Create(body.Name, body.OrganizationName, body.AppID, body.InstallationID, body.ClientID, body.WebhookSecret)
-		if forceReadFailure != nil {
-			forceReadFailure.Store(true)
+		if failListAfterCreate != nil {
+			failListAfterCreate.Store(true)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -172,7 +171,7 @@ func newMockCoolifyServer(forceReadFailure *atomic.Bool, auditT ...testing.TB) (
 	})
 
 	mux.HandleFunc("GET /api/v1/github-apps", func(w http.ResponseWriter, r *http.Request) {
-		if forceReadFailure != nil && forceReadFailure.Load() {
+		if failListAfterCreate != nil && failListAfterCreate.Load() {
 			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
 			return
 		}
@@ -351,28 +350,33 @@ private_key_uuid = "pk-uuid-updated"
 	})
 }
 
-func TestGitHubAppResource_CreateReadBackFailurePreservesState(t *testing.T) {
+func TestGitHubAppResource_CreateUsesCreateResponseWhenListFails(t *testing.T) {
 	t.Parallel()
-	var forceReadFailure atomic.Bool
-	server, _ := newMockCoolifyServer(&forceReadFailure)
+	var failListAfterCreate atomic.Bool
+	server, _ := newMockCoolifyServer(&failListAfterCreate)
 	defer server.Close()
 
 	config := testGitHubAppResourceConfig(server.URL, `
-name             = "readback-failure"
+name              = "list-failure"
 organization_name = "acme"
-app_id           = 12345
-installation_id  = 67890
-client_id        = "Iv1.readback"
-client_secret    = "secret123"
-webhook_secret   = "hook-secret"
-private_key_uuid = "pk-uuid-test"
+app_id            = 12345
+installation_id   = 67890
+client_id         = "Iv1.readback"
+client_secret     = "secret123"
+webhook_secret    = "hook-secret"
+private_key_uuid  = "pk-uuid-test"
 `)
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
-			Config:      config,
-			ExpectError: regexp.MustCompile(`(?s)GitHub App created but refresh failed.*Could\s+not read GitHub App.*partial Terraform state was saved`),
+			Config: config,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttrSet("coolify_github_app.test", "id"),
+				resource.TestCheckResourceAttr("coolify_github_app.test", "name", "list-failure"),
+				resource.TestCheckResourceAttr("coolify_github_app.test", "organization_name", "acme"),
+				resource.TestCheckResourceAttr("coolify_github_app.test", "webhook_secret", "hook-secret"),
+			),
 		}},
 	})
 }

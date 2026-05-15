@@ -8,7 +8,6 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -159,31 +158,15 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	plan.ID = types.Int64Value(app.ID)
-	plan.UUID = flex.StringToFramework(app.UUID)
-	if plan.OrganizationName.IsUnknown() {
-		plan.OrganizationName = types.StringNull()
-	}
-	if plan.WebhookSecret.IsUnknown() {
-		plan.WebhookSecret = types.StringNull()
-	}
+	// Coolify has no GET /github-apps/{id} route, and POST already returns the
+	// created object, so avoid the extra list-backed refresh here.
+	flattenGitHubApp(app, &plan)
 
-	// Save partial state so the resource is tracked even if the read-back fails.
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
+	// Coolify may omit webhook_secret in responses. Preserve the value we sent
+	// so create still converges in one apply.
+	if plan.WebhookSecret.IsNull() || plan.WebhookSecret.IsUnknown() {
+		plan.WebhookSecret = types.StringValue(input.WebhookSecret)
 	}
-
-	// Read back the full object to populate all fields.
-	diags := r.readGitHubApp(ctx, app.ID, &plan)
-	if diags.HasError() {
-		resp.Diagnostics.AddError(
-			"GitHub App created but refresh failed",
-			fmt.Sprintf("Coolify created GitHub App %d, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", app.ID, diags.Errors()[0].Detail()),
-		)
-		return
-	}
-	resp.Diagnostics.Append(diags...)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -285,21 +268,6 @@ func (r *gitHubAppResource) ImportState(ctx context.Context, req resource.Import
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
-}
-
-// readGitHubApp fetches the GitHub App from the API and updates the model in place.
-// client_secret and private_key_uuid are write-only and preserved from the caller's model.
-func (r *gitHubAppResource) readGitHubApp(ctx context.Context, id int64, model *gitHubAppResourceModel) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	app, err := r.client.GetGitHubApp(ctx, id)
-	if err != nil {
-		diags.AddError("Error reading GitHub App", fmt.Sprintf("Could not read GitHub App %d: %s", id, err))
-		return diags
-	}
-
-	flattenGitHubApp(app, model)
-	return diags
 }
 
 // flattenGitHubApp maps API fields into the Terraform resource model.
