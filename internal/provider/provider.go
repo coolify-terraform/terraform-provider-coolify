@@ -4,6 +4,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -128,9 +129,10 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	// Validate the connection and Coolify version.
 	coolifyVersion, err := c.GetVersion(ctx)
 	if err != nil {
+		diagnosticEndpoint := redactEndpointForDiagnostics(endpoint)
 		resp.Diagnostics.AddError(
 			"Unable to connect to Coolify",
-			"The provider could not reach the Coolify API at "+endpoint+". "+
+			"The provider could not reach the Coolify API at "+diagnosticEndpoint+". "+
 				"Verify that the endpoint is correct, the server is running, "+
 				"and the API token is valid.\n\nError: "+err.Error(),
 		)
@@ -147,6 +149,20 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	resp.DataSourceData = c
 	resp.ResourceData = c
 }
+
+func redactEndpointForDiagnostics(endpoint string) string {
+	parsed, err := url.Parse(endpoint)
+	if err != nil || parsed.User == nil {
+		return endpoint
+	}
+	if _, hasPassword := parsed.User.Password(); hasPassword {
+		parsed.User = url.UserPassword("REDACTED", "REDACTED")
+	} else {
+		parsed.User = url.User("REDACTED")
+	}
+	return parsed.String()
+}
+
 func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		application.NewResource,

@@ -6,6 +6,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRedactEndpointForDiagnostics(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"no userinfo", "https://coolify.example.com/api", "https://coolify.example.com/api"},
+		{"username only", "https://user@coolify.example.com", "https://REDACTED@coolify.example.com"},
+		{"username and password", "https://user:pass@coolify.example.com/api", "https://REDACTED:REDACTED@coolify.example.com/api"},
+		{"invalid url", "://not a url", "://not a url"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, redactEndpointForDiagnostics(tt.input))
+		})
+	}
+}
+
 func TestIsVersionAtLeast(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
