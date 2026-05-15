@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -135,10 +134,9 @@ func requireMockGitHubApp(w http.ResponseWriter, r *http.Request, store *mockGit
 }
 
 // newMockCoolifyServer creates an httptest.Server that simulates the Coolify API for GitHub Apps.
-func newMockCoolifyServer(failListAfterCreate *atomic.Bool, auditT ...testing.TB) (*httptest.Server, *mockGitHubAppStore) {
+func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAppStore) {
 	store := &mockGitHubAppStore{
-		apps:    make(map[int64]*mockGitHubApp),
-		counter: 0,
+		apps: make(map[int64]*mockGitHubApp),
 	}
 
 	mux := http.NewServeMux()
@@ -162,9 +160,6 @@ func newMockCoolifyServer(failListAfterCreate *atomic.Bool, auditT ...testing.TB
 		}
 
 		app := store.Create(body.Name, body.OrganizationName, body.AppID, body.InstallationID, body.ClientID, body.WebhookSecret)
-		if failListAfterCreate != nil {
-			failListAfterCreate.Store(true)
-		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -172,10 +167,6 @@ func newMockCoolifyServer(failListAfterCreate *atomic.Bool, auditT ...testing.TB
 	})
 
 	mux.HandleFunc("GET /api/v1/github-apps", func(w http.ResponseWriter, r *http.Request) {
-		if failListAfterCreate != nil && failListAfterCreate.Load() {
-			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
-			return
-		}
 		apps := store.List()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(apps)
@@ -259,7 +250,7 @@ func newMockCoolifyServer(failListAfterCreate *atomic.Bool, auditT ...testing.TB
 
 func TestGitHubAppResource_Create(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(nil, t)
+	server, _ := newMockCoolifyServer(t)
 	defer server.Close()
 
 	config := testGitHubAppResourceConfig(server.URL, `
@@ -298,7 +289,7 @@ private_key_uuid = "pk-uuid-test"
 
 func TestGitHubAppResource_Update(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(nil)
+	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
 	initialConfig := testGitHubAppResourceConfig(server.URL, `
@@ -351,14 +342,48 @@ private_key_uuid = "pk-uuid-updated"
 	})
 }
 
-func TestGitHubAppResource_CreateUsesCreateResponseWhenListFails(t *testing.T) {
+func TestGitHubAppResource_CreateUsesCreateResponse(t *testing.T) {
 	t.Parallel()
-	var failListAfterCreate atomic.Bool
-	server, _ := newMockCoolifyServer(&failListAfterCreate)
+
+	store := &mockGitHubAppStore{apps: make(map[int64]*mockGitHubApp)}
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/github-apps", func(w http.ResponseWriter, r *http.Request) {
+		var body client.CreateGitHubAppIntegrationInput
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+
+		createdApp := store.Create(body.Name, body.OrganizationName, body.AppID, body.InstallationID, body.ClientID, body.WebhookSecret)
+		responseApp := *createdApp
+		responseApp.UUID = "ghapp-create-response"
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(responseApp)
+	})
+	mux.HandleFunc("GET /api/v1/github-apps", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(store.List())
+	})
+	mux.HandleFunc("DELETE /api/v1/github-apps/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+		if err != nil {
+			http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+			return
+		}
+		if !store.Delete(id) {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer server.Close()
 
 	config := testGitHubAppResourceConfig(server.URL, `
-name              = "list-failure"
+name              = "create-response"
 organization_name = "acme"
 app_id            = 12345
 installation_id   = 67890
@@ -370,11 +395,13 @@ private_key_uuid  = "pk-uuid-test"
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkGitHubAppDestroy(server.URL),
 		Steps: []resource.TestStep{{
 			Config: config,
 			Check: resource.ComposeAggregateTestCheckFunc(
 				resource.TestCheckResourceAttrSet("coolify_github_app.test", "id"),
-				resource.TestCheckResourceAttr("coolify_github_app.test", "name", "list-failure"),
+				resource.TestCheckResourceAttr("coolify_github_app.test", "uuid", "ghapp-create-response"),
+				resource.TestCheckResourceAttr("coolify_github_app.test", "name", "create-response"),
 				resource.TestCheckResourceAttr("coolify_github_app.test", "organization_name", "acme"),
 				resource.TestCheckResourceAttr("coolify_github_app.test", "webhook_secret", "hook-secret"),
 			),
@@ -384,7 +411,7 @@ private_key_uuid  = "pk-uuid-test"
 
 func TestGitHubAppResource_Import(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(nil)
+	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -423,7 +450,7 @@ resource "coolify_github_app" "test" {
 
 func TestGitHubAppResource_Disappears(t *testing.T) {
 	t.Parallel()
-	server, store := newMockCoolifyServer(nil)
+	server, store := newMockCoolifyServer()
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -462,7 +489,7 @@ resource "coolify_github_app" "test" {
 
 func TestGitHubAppsDataSource(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(nil)
+	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -502,7 +529,7 @@ data "coolify_github_apps" "all" {
 
 func TestGitHubAppRepositoriesDataSource(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(nil)
+	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -539,7 +566,7 @@ data "coolify_github_app_repositories" "test" {
 
 func TestGitHubAppBranchesDataSource(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(nil)
+	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -574,7 +601,7 @@ data "coolify_github_app_branches" "test" {
 
 func TestGitHubAppDataSource(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(nil)
+	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -609,7 +636,7 @@ data "coolify_github_app" "test" {
 
 func TestGitHubAppDataSource_NotFound(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(nil)
+	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
@@ -629,7 +656,7 @@ data "coolify_github_app" "test" {
 
 func TestGitHubAppResource_ImportBadID(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(nil)
+	server, _ := newMockCoolifyServer()
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{

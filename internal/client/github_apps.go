@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -67,11 +68,16 @@ type gitHubBranchesEnvelope struct {
 }
 
 func (c *Client) ListGitHubApps(ctx context.Context) ([]GitHubApp, error) {
-	var r []GitHubApp
-	if err := c.do(ctx, http.MethodGet, "/api/v1/github-apps", nil, &r); err != nil {
+	var apps []GitHubApp
+	if err := c.do(ctx, http.MethodGet, "/api/v1/github-apps", nil, &apps); err != nil {
 		return nil, fmt.Errorf("listing github apps: %w", err)
 	}
-	return r, nil
+	for i := range apps {
+		if err := validateGitHubAppResponse(&apps[i]); err != nil {
+			return nil, fmt.Errorf("listing github apps: invalid app at index %d: %w", i, err)
+		}
+	}
+	return apps, nil
 }
 
 func (c *Client) GetGitHubApp(ctx context.Context, id int64) (*GitHubApp, error) {
@@ -88,11 +94,14 @@ func (c *Client) GetGitHubApp(ctx context.Context, id int64) (*GitHubApp, error)
 }
 
 func (c *Client) CreateGitHubApp(ctx context.Context, input CreateGitHubAppIntegrationInput) (*GitHubApp, error) {
-	var r GitHubApp
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/github-apps", input, &r, http.StatusCreated); err != nil {
+	var app GitHubApp
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/github-apps", input, &app, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating github app: %w", err)
 	}
-	return &r, nil
+	if err := validateGitHubAppResponse(&app); err != nil {
+		return nil, fmt.Errorf("creating github app: %w", err)
+	}
+	return &app, nil
 }
 
 func (c *Client) UpdateGitHubApp(ctx context.Context, id int64, input UpdateGitHubAppIntegrationInput) (*GitHubApp, error) {
@@ -141,6 +150,9 @@ func (c *Client) ListGitHubAppBranches(ctx context.Context, id int64, owner, rep
 func decodeGitHubApp(raw json.RawMessage) (*GitHubApp, error) {
 	var wrapped gitHubAppEnvelope
 	if err := json.Unmarshal(raw, &wrapped); err == nil && wrapped.Data != nil {
+		if err := validateGitHubAppResponse(wrapped.Data); err != nil {
+			return nil, err
+		}
 		return wrapped.Data, nil
 	}
 
@@ -148,7 +160,23 @@ func decodeGitHubApp(raw json.RawMessage) (*GitHubApp, error) {
 	if err := json.Unmarshal(raw, &app); err != nil {
 		return nil, err
 	}
+	if err := validateGitHubAppResponse(&app); err != nil {
+		return nil, err
+	}
 	return &app, nil
+}
+
+func validateGitHubAppResponse(app *GitHubApp) error {
+	switch {
+	case app == nil:
+		return errors.New("github app response missing data")
+	case app.ID == 0:
+		return errors.New("github app response missing id")
+	case app.Name == "":
+		return errors.New("github app response missing name")
+	default:
+		return nil
+	}
 }
 
 func decodeGitHubRepositories(raw json.RawMessage) ([]GitHubRepository, error) {

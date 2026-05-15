@@ -3384,6 +3384,21 @@ func TestClient_ListGitHubApps(t *testing.T) {
 	assert.Equal(t, "App Two", apps[1].Name)
 }
 
+func TestClient_ListGitHubApps_MalformedSuccessResponse(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{{UUID: "gh-1", Name: "missing-id"}})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListGitHubApps(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid app at index 0")
+	assert.Contains(t, err.Error(), "missing id")
+}
+
 func TestClient_CreateGitHubApp(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -3449,6 +3464,23 @@ func TestClient_CreateGitHubApp_WrongStatusCode(t *testing.T) {
 	assert.Contains(t, err.Error(), "got 200")
 }
 
+func TestClient_CreateGitHubApp_MalformedSuccessResponse(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(GitHubApp{UUID: "gh-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateGitHubApp(context.Background(), CreateGitHubAppIntegrationInput{
+		Name: "t", AppID: 1, InstallationID: 1, ClientID: "c", ClientSecret: "s", PrivateKeyUUID: "pk",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing id")
+}
+
 func TestClient_UpdateGitHubApp(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -3511,6 +3543,21 @@ func TestClient_UpdateGitHubApp_PartialUpdate(t *testing.T) {
 	app, err := c.UpdateGitHubApp(context.Background(), 10, UpdateGitHubAppIntegrationInput{Name: &name})
 	require.NoError(t, err)
 	assert.Equal(t, "partial", app.Name)
+}
+
+func TestClient_UpdateGitHubApp_MalformedSuccessResponse(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"message": "GitHub app updated successfully", "data": map[string]any{"name": "missing-id"}})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "Updated App"
+	_, err := c.UpdateGitHubApp(context.Background(), 42, UpdateGitHubAppIntegrationInput{Name: &name})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing id")
 }
 
 func TestClient_DeleteGitHubApp(t *testing.T) {
