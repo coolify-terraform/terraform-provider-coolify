@@ -1,7 +1,6 @@
 package githubapp_test
 
 import (
-	"fmt"
 	"regexp"
 	"testing"
 
@@ -14,12 +13,14 @@ func TestAccGitHubAppRepositoriesDataSource(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	name := acctest.RandomWithPrefix("tf-acc-ghapp-repos")
+	privateKeyName := acctest.RandomWithPrefix("tf-acc-ghapp-repos-key")
+	privateKey := acctest.GenerateTestRSAKey(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccGitHubAppReposConfig(name),
+				Config:      testAccGitHubAppReposConfig(name, privateKeyName, privateKey),
 				ExpectError: regexp.MustCompile(`.+`),
 			},
 		},
@@ -31,50 +32,34 @@ func TestAccGitHubAppBranchesDataSource(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	name := acctest.RandomWithPrefix("tf-acc-ghapp-br")
+	privateKeyName := acctest.RandomWithPrefix("tf-acc-ghapp-br-key")
+	privateKey := acctest.GenerateTestRSAKey(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccGitHubAppBranchesConfig(name),
+				Config:      testAccGitHubAppBranchesConfig(name, privateKeyName, privateKey),
 				ExpectError: regexp.MustCompile(`.+`),
 			},
 		},
 	})
 }
 
-func testAccGitHubAppReposConfig(name string) string {
-	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
-resource "coolify_github_app" "test" {
-  name            = %[1]q
-  app_id          = 12345
-  installation_id = 67890
-  client_id       = "Iv1.dummy"
-  client_secret   = "dummysecret"
-  private_key_uuid = "pk-uuid-dummy"
-}
-
+func testAccGitHubAppReposConfig(name, privateKeyName, privateKey string) string {
+	return testAccGitHubAppConfig(name, privateKeyName, privateKey) + `
 data "coolify_github_app_repositories" "test" {
   github_app_id = coolify_github_app.test.id
 }
-`, name)
+`
 }
 
-func testAccGitHubAppBranchesConfig(name string) string {
-	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
-resource "coolify_github_app" "test" {
-  name            = %[1]q
-  app_id          = 12345
-  installation_id = 67890
-  client_id       = "Iv1.dummy"
-  client_secret   = "dummysecret"
-  private_key_uuid = "pk-uuid-dummy"
-}
-
+func testAccGitHubAppBranchesConfig(name, privateKeyName, privateKey string) string {
+	return testAccGitHubAppConfig(name, privateKeyName, privateKey) + `
 data "coolify_github_app_branches" "test" {
   github_app_id = coolify_github_app.test.id
   owner         = "coollabsio"
   repo          = "coolify"
 }
-`, name)
+`
 }

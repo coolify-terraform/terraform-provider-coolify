@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -21,6 +22,8 @@ type GitHubApp struct {
 type CreateGitHubAppIntegrationInput struct {
 	Name             string `json:"name"`
 	OrganizationName string `json:"organization,omitempty"`
+	APIURL           string `json:"api_url"`
+	HTMLURL          string `json:"html_url"`
 	AppID            int64  `json:"app_id"`
 	InstallationID   int64  `json:"installation_id"`
 	ClientID         string `json:"client_id"`
@@ -48,6 +51,19 @@ type GitHubRepository struct {
 
 type GitHubBranch struct {
 	Name string `json:"name"`
+}
+
+type gitHubAppEnvelope struct {
+	Message string     `json:"message,omitempty"`
+	Data    *GitHubApp `json:"data,omitempty"`
+}
+
+type gitHubRepositoriesEnvelope struct {
+	Repositories []GitHubRepository `json:"repositories"`
+}
+
+type gitHubBranchesEnvelope struct {
+	Branches []GitHubBranch `json:"branches"`
 }
 
 func (c *Client) ListGitHubApps(ctx context.Context) ([]GitHubApp, error) {
@@ -80,11 +96,15 @@ func (c *Client) CreateGitHubApp(ctx context.Context, input CreateGitHubAppInteg
 }
 
 func (c *Client) UpdateGitHubApp(ctx context.Context, id int64, input UpdateGitHubAppIntegrationInput) (*GitHubApp, error) {
-	var r GitHubApp
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/github-apps/%d", id), input, &r); err != nil {
+	var raw json.RawMessage
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/github-apps/%d", id), input, &raw); err != nil {
 		return nil, fmt.Errorf("updating github app %d: %w", id, err)
 	}
-	return &r, nil
+	app, err := decodeGitHubApp(raw)
+	if err != nil {
+		return nil, fmt.Errorf("decoding github app %d update response: %w", id, err)
+	}
+	return app, nil
 }
 
 func (c *Client) DeleteGitHubApp(ctx context.Context, id int64) error {
@@ -95,17 +115,64 @@ func (c *Client) DeleteGitHubApp(ctx context.Context, id int64) error {
 }
 
 func (c *Client) ListGitHubAppRepositories(ctx context.Context, id int64) ([]GitHubRepository, error) {
-	var r []GitHubRepository
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/github-apps/%d/repositories", id), nil, &r); err != nil {
+	var raw json.RawMessage
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/github-apps/%d/repositories", id), nil, &raw); err != nil {
 		return nil, fmt.Errorf("listing github app %d repositories: %w", id, err)
 	}
-	return r, nil
+	repos, err := decodeGitHubRepositories(raw)
+	if err != nil {
+		return nil, fmt.Errorf("decoding github app %d repositories response: %w", id, err)
+	}
+	return repos, nil
 }
 
 func (c *Client) ListGitHubAppBranches(ctx context.Context, id int64, owner, repo string) ([]GitHubBranch, error) {
-	var r []GitHubBranch
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/github-apps/%d/repositories/%s/%s/branches", id, url.PathEscape(owner), url.PathEscape(repo)), nil, &r); err != nil {
+	var raw json.RawMessage
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/github-apps/%d/repositories/%s/%s/branches", id, url.PathEscape(owner), url.PathEscape(repo)), nil, &raw); err != nil {
 		return nil, fmt.Errorf("listing github app %d branches for %s/%s: %w", id, owner, repo, err)
 	}
-	return r, nil
+	branches, err := decodeGitHubBranches(raw)
+	if err != nil {
+		return nil, fmt.Errorf("decoding github app %d branches response for %s/%s: %w", id, owner, repo, err)
+	}
+	return branches, nil
+}
+
+func decodeGitHubApp(raw json.RawMessage) (*GitHubApp, error) {
+	var wrapped gitHubAppEnvelope
+	if err := json.Unmarshal(raw, &wrapped); err == nil && wrapped.Data != nil {
+		return wrapped.Data, nil
+	}
+
+	var app GitHubApp
+	if err := json.Unmarshal(raw, &app); err != nil {
+		return nil, err
+	}
+	return &app, nil
+}
+
+func decodeGitHubRepositories(raw json.RawMessage) ([]GitHubRepository, error) {
+	var repos []GitHubRepository
+	if err := json.Unmarshal(raw, &repos); err == nil {
+		return repos, nil
+	}
+
+	var wrapped gitHubRepositoriesEnvelope
+	if err := json.Unmarshal(raw, &wrapped); err != nil {
+		return nil, err
+	}
+	return wrapped.Repositories, nil
+}
+
+func decodeGitHubBranches(raw json.RawMessage) ([]GitHubBranch, error) {
+	var branches []GitHubBranch
+	if err := json.Unmarshal(raw, &branches); err == nil {
+		return branches, nil
+	}
+
+	var wrapped gitHubBranchesEnvelope
+	if err := json.Unmarshal(raw, &wrapped); err != nil {
+		return nil, err
+	}
+	return wrapped.Branches, nil
 }

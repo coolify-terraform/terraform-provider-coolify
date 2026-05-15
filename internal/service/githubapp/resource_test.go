@@ -147,6 +147,8 @@ func newMockCoolifyServer(forceReadFailure *atomic.Bool, auditT ...testing.TB) (
 		var body struct {
 			Name             string `json:"name"`
 			OrganizationName string `json:"organization"`
+			APIURL           string `json:"api_url"`
+			HTMLURL          string `json:"html_url"`
 			AppID            int64  `json:"app_id"`
 			InstallationID   int64  `json:"installation_id"`
 			ClientID         string `json:"client_id"`
@@ -200,7 +202,7 @@ func newMockCoolifyServer(forceReadFailure *atomic.Bool, auditT ...testing.TB) (
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(app)
+		json.NewEncoder(w).Encode(map[string]any{"message": "GitHub app updated successfully", "data": app})
 	})
 
 	mux.HandleFunc("DELETE /api/v1/github-apps/{id}", func(w http.ResponseWriter, r *http.Request) {
@@ -226,10 +228,10 @@ func newMockCoolifyServer(forceReadFailure *atomic.Bool, auditT ...testing.TB) (
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.GitHubRepository{
+		json.NewEncoder(w).Encode(map[string]any{"repositories": []client.GitHubRepository{
 			{Name: "repo-1", FullName: "testowner/repo-1", Private: false},
 			{Name: "repo-2", FullName: "testowner/repo-2", Private: true},
-		})
+		}})
 	})
 
 	mux.HandleFunc("GET /api/v1/github-apps/{id}/repositories/{owner}/{repo}/branches", func(w http.ResponseWriter, r *http.Request) {
@@ -241,10 +243,10 @@ func newMockCoolifyServer(forceReadFailure *atomic.Bool, auditT ...testing.TB) (
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]client.GitHubBranch{
+		json.NewEncoder(w).Encode(map[string]any{"branches": []client.GitHubBranch{
 			{Name: "main"},
 			{Name: "develop"},
-		})
+		}})
 	})
 
 	handler := acctest.WithVersionEndpoint(mux)
