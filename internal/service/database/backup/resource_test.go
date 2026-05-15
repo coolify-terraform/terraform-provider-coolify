@@ -17,16 +17,17 @@ import (
 )
 
 type mockBackupState struct {
-	mu          sync.Mutex
-	id          int
-	uuid        string
-	dbUUID      string
-	frequency   string
-	enabled     bool
-	saveS3      bool
-	s3StorageID string
-	retainDays  *int64
-	deleted     bool
+	mu                sync.Mutex
+	id                int
+	uuid              string
+	dbUUID            string
+	frequency         string
+	enabled           bool
+	saveS3            bool
+	s3StorageID       string
+	databasesToBackup string
+	retainDays        *int64
+	deleted           bool
 }
 
 func newMockBackupServer() (*httptest.Server, *mockBackupState) {
@@ -99,10 +100,11 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			if v, ok := body["save_s3"].(bool); ok {
 				state.saveS3 = v
 			}
-			if v, ok := body["s3_storage_uuid"]; ok {
-				if s, ok := v.(string); ok {
-					state.s3StorageID = s
-				}
+			if s, ok := body["s3_storage_uuid"].(string); ok {
+				state.s3StorageID = s
+			}
+			if s, ok := body["databases_to_backup"].(string); ok {
+				state.databasesToBackup = s
 			}
 			if v, ok := body["database_backup_retention_amount_locally"]; ok {
 				if f, ok := v.(float64); ok {
@@ -143,6 +145,9 @@ func backupResponse(s *mockBackupState) map[string]interface{} {
 	if s.s3StorageID != "" {
 		// Real API returns s3_storage_id (numeric FK), not s3_storage_uuid.
 		resp["s3_storage_id"] = 1
+	}
+	if s.databasesToBackup != "" {
+		resp["databases_to_backup"] = s.databasesToBackup
 	}
 	if s.retainDays != nil {
 		resp["database_backup_retention_amount_locally"] = *s.retainDays
@@ -310,6 +315,59 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 					database_uuid = "eeee0001-0001-4000-8000-000000000001"
 					frequency     = "0 4 * * *"
 					enabled       = false
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestDatabaseBackupResource_UpdateClearsDatabasesToBackup(t *testing.T) {
+	t.Parallel()
+	srv, state := newMockBackupServer()
+	state.frequency = "0 2 * * *"
+	state.enabled = true
+	state.databasesToBackup = "app,queue"
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid        = "eeee0001-0001-4000-8000-000000000001"
+					frequency            = "0 2 * * *"
+					enabled              = true
+					databases_to_backup  = "app,queue"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_database_backup.test", "databases_to_backup", "app,queue"),
+			},
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
+					frequency     = "0 2 * * *"
+					enabled       = true
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr("coolify_database_backup.test", "databases_to_backup"),
+					func(_ *terraform.State) error {
+						state.mu.Lock()
+						defer state.mu.Unlock()
+
+						if state.databasesToBackup != "" {
+							return fmt.Errorf("expected remote databases_to_backup to be cleared, got %q", state.databasesToBackup)
+						}
+
+						return nil
+					},
+				),
+			},
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
+					frequency     = "0 2 * * *"
+					enabled       = true
 				`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,

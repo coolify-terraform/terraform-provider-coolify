@@ -343,7 +343,7 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 		Enabled:               flex.BoolIfChanged(plan.Enabled, state.Enabled),
 		SaveS3:                flex.BoolIfChanged(plan.SaveS3, state.SaveS3),
 		S3StorageID:           flex.StringPtrForUpdate(plan.S3StorageUUID, state.S3StorageUUID),
-		DatabasesToBackup:     flex.StringIfChanged(plan.DatabasesToBackup, state.DatabasesToBackup),
+		DatabasesToBackup:     flex.StringPtrForUpdate(plan.DatabasesToBackup, state.DatabasesToBackup),
 		DumpAll:               flex.BoolIfChanged(plan.DumpAll, state.DumpAll),
 		RetainAmountLocally:   flex.Int64IfChanged(plan.RetainAmountLocally, state.RetainAmountLocally),
 		RetainDaysLocally:     flex.Int64IfChanged(plan.RetainDaysLocally, state.RetainDaysLocally),
