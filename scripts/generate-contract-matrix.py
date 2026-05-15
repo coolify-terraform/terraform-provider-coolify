@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate a contract accuracy matrix comparing source-code contract vs OpenAPI spec.
+"""Generate the API contract accuracy guide.
 
-Reads the extracted contract JSON and the (patched) OpenAPI spec, then
-produces a Markdown guide template showing field-by-field accuracy for
-each model that exists in both files.
+Reads the source-derived contract JSON and pinned OpenAPI spec, then
+produces the Markdown guide template used for the API contract accuracy
+documentation. Reusable public schemas are compared field-by-field, and
+contract-only or inline-only models are documented separately.
 
 Usage:
     python3 scripts/generate-contract-matrix.py
@@ -20,7 +21,7 @@ SPEC_PATH = ROOT / "testdata" / "specs" / "coolify-v4.json"
 OUTPUT_PATH = ROOT / "templates" / "guides" / "api-contract-accuracy.md.tmpl"
 CLIENT_DIR = ROOT / "internal" / "client"
 
-# Maps contract model names to OpenAPI schema names (only models in both).
+# Preferred documentation order, with the reusable OpenAPI schema name to compare when present.
 MODEL_TO_SCHEMA = {
     "Application": "Application",
     "Server": "Server",
@@ -31,11 +32,20 @@ MODEL_TO_SCHEMA = {
     "EnvironmentVariable": "EnvironmentVariable",
     "PrivateKey": "PrivateKey",
     "ScheduledTask": "ScheduledTask",
+    "ScheduledDatabaseBackup": "ScheduledDatabaseBackup",
 }
 
 # Contract models that intentionally have no public provider surface.
 PROVIDER_TAG_OVERRIDES = {
     "S3Storage": set(),
+}
+
+# Models we keep in the contract-only / inline-only section even though the
+# pinned route spec may mention them elsewhere.
+CONTRACT_ONLY_MODELS = {
+    "CloudProviderToken",
+    "GithubApp",
+    "S3Storage",
 }
 
 # Map contract field types to a normalised display type.
@@ -157,6 +167,23 @@ def _compare_field(
     }
 
 
+def _model_intro(model_name: str, spec_schema: dict | None) -> list[str]:
+    if model_name == "ScheduledDatabaseBackup":
+        return [
+            "This section compares the internal source-derived backup model against the public backup request bodies in the pinned spec.",
+            "Coolify stores the relation as `s3_storage_id` internally, while the public API accepts `s3_storage_uuid` on request bodies.",
+            "That identifier translation is expected and does not imply a missing top-level S3 CRUD API.",
+            "",
+        ]
+    if spec_schema is None and model_name in CONTRACT_ONLY_MODELS:
+        return [
+            "This model exists in the extracted source contract but not as a reusable public OpenAPI schema.",
+            "Treat it as implementation detail coverage, not proof of a standalone public API surface.",
+            "",
+        ]
+    return []
+
+
 def _build_model_table(
     model_name: str,
     contract_model: dict,
@@ -204,6 +231,7 @@ def _build_model_table(
     lines: list[str] = []
     lines.append(f"## {model_name}")
     lines.append("")
+    lines.extend(_model_intro(model_name, spec_schema))
     lines.append(
         f"Fields: {total} | Type matches: {type_ok}/{total} "
         f"| Nullable matches: {nullable_ok}/{total} "
@@ -259,9 +287,11 @@ def main():
     out.append("# API Contract Accuracy")
     out.append("")
     out.append(
-        "This page shows the accuracy of the Coolify OpenAPI specification compared"
+        "This page compares the pinned reusable OpenAPI schemas with the source-derived"
     )
-    out.append("to the real API behavior extracted from the Coolify source code.")
+    out.append("Coolify contract extracted from the real application code.")
+    out.append("")
+    out.append("> The source-derived contract is the field-level source of truth. The pinned OpenAPI spec is useful for reusable public schemas and route inventory, but some contract models only exist as internal implementation details or inline request bodies.")
     out.append("")
     out.append(
         f"Contract version: `{contract.get('version', 'unknown')}` | "
@@ -269,83 +299,94 @@ def main():
     )
     out.append("")
 
-    # Summary counts.
-    total_fields = 0
-    total_type_ok = 0
-    total_nullable_ok = 0
-    total_provider = 0
+    def accumulate(section: list[str], stats: dict[str, int]):
+        for line in section:
+            if not line.startswith("Fields:"):
+                continue
+            parts = line.split("|")
+            for p in parts:
+                p = p.strip()
+                if p.startswith("Fields:"):
+                    stats["total_fields"] += int(p.split(":")[1].strip())
+                elif p.startswith("Type matches:"):
+                    n, _ = p.split(":")[1].strip().split("/")
+                    stats["total_type_ok"] += int(n)
+                elif p.startswith("Nullable matches:"):
+                    n, _ = p.split(":")[1].strip().split("/")
+                    stats["total_nullable_ok"] += int(n)
+                elif p.startswith("Provider coverage:"):
+                    n, _ = p.split(":")[1].strip().split("/")
+                    stats["total_provider"] += int(n)
 
-    model_sections: list[list[str]] = []
+    public_stats = {
+        "total_fields": 0,
+        "total_type_ok": 0,
+        "total_nullable_ok": 0,
+        "total_provider": 0,
+    }
+    contract_only_stats = {
+        "total_fields": 0,
+        "total_type_ok": 0,
+        "total_nullable_ok": 0,
+        "total_provider": 0,
+    }
+
+    public_sections: list[list[str]] = []
+    contract_only_sections: list[list[str]] = []
+
     for model_name, schema_name in sorted(MODEL_TO_SCHEMA.items()):
         contract_model = contract.get("models", {}).get(model_name)
         if contract_model is None:
             continue
         spec_schema = schemas.get(schema_name)
         section = _build_model_table(model_name, contract_model, spec_schema, provider_tags)
-        model_sections.append(section)
+        if spec_schema is None:
+            contract_only_sections.append(section)
+            accumulate(section, contract_only_stats)
+        else:
+            public_sections.append(section)
+            accumulate(section, public_stats)
 
-        # Parse stats from the summary line.
-        for line in section:
-            if line.startswith("Fields:"):
-                parts = line.split("|")
-                for p in parts:
-                    p = p.strip()
-                    if p.startswith("Fields:"):
-                        total_fields += int(p.split(":")[1].strip())
-                    elif p.startswith("Type matches:"):
-                        n, d = p.split(":")[1].strip().split("/")
-                        total_type_ok += int(n)
-                    elif p.startswith("Nullable matches:"):
-                        n, d = p.split(":")[1].strip().split("/")
-                        total_nullable_ok += int(n)
-                    elif p.startswith("Provider coverage:"):
-                        n, d = p.split(":")[1].strip().split("/")
-                        total_provider += int(n)
-
-    # Also generate sections for contract models NOT in the spec.
     for model_name in sorted(contract.get("models", {})):
         if model_name in MODEL_TO_SCHEMA:
             continue
         contract_model = contract["models"][model_name]
         section = _build_model_table(model_name, contract_model, None, provider_tags)
-        model_sections.append(section)
-
-        for line in section:
-            if line.startswith("Fields:"):
-                parts = line.split("|")
-                for p in parts:
-                    p = p.strip()
-                    if p.startswith("Fields:"):
-                        total_fields += int(p.split(":")[1].strip())
-                    elif p.startswith("Type matches:"):
-                        n, d = p.split(":")[1].strip().split("/")
-                        total_type_ok += int(n)
-                    elif p.startswith("Provider coverage:"):
-                        n, d = p.split(":")[1].strip().split("/")
-                        total_provider += int(n)
+        contract_only_sections.append(section)
+        accumulate(section, contract_only_stats)
 
     out.append("## Summary")
     out.append("")
     out.append(f"| Metric | Count |")
     out.append(f"|--------|------:|")
-    out.append(f"| Total fields | {total_fields} |")
-    out.append(f"| Type matches | {total_type_ok}/{total_fields} |")
-    out.append(f"| Nullable matches | {total_nullable_ok}/{total_fields} |")
-    out.append(f"| Provider coverage | {total_provider}/{total_fields} |")
-    out.append(f"| Models in contract | {len(contract.get('models', {}))} |")
-    out.append(
-        f"| Models in spec | {len(schemas)} |"
-    )
+    out.append(f"| Public schema fields compared | {public_stats['total_fields']} |")
+    out.append(f"| Public schema type matches | {public_stats['total_type_ok']}/{public_stats['total_fields']} |")
+    out.append(f"| Public schema nullable matches | {public_stats['total_nullable_ok']}/{public_stats['total_fields']} |")
+    out.append(f"| Public schema provider coverage | {public_stats['total_provider']}/{public_stats['total_fields']} |")
+    out.append(f"| Reusable public schemas compared | {len(public_sections)} |")
+    out.append(f"| Contract-only / inline-only models documented | {len(contract_only_sections)} |")
     out.append("")
     out.append("---")
     out.append("")
+    out.append("## Reusable Public Schemas")
+    out.append("")
 
-    for section in model_sections:
+    for section in public_sections:
         out.extend(section)
+
+    if contract_only_sections:
+        out.append("## Contract-Only or Inline-Only Models")
+        out.append("")
+        out.append("These sections document source-derived models that do not map cleanly to reusable public OpenAPI component schemas.")
+        out.append("")
+        for section in contract_only_sections:
+            out.extend(section)
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text("\n".join(out) + "\n")
-    print(f"Generated {OUTPUT_PATH} ({total_fields} fields across {len(model_sections)} models)", file=sys.stderr)
+    total_fields = public_stats["total_fields"] + contract_only_stats["total_fields"]
+    total_models = len(public_sections) + len(contract_only_sections)
+    print(f"Generated {OUTPUT_PATH} ({total_fields} fields across {total_models} models)", file=sys.stderr)
 
 
 if __name__ == "__main__":

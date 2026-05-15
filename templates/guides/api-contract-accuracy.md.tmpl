@@ -6,8 +6,10 @@ description: "Comparison of Coolify OpenAPI spec vs real source code contract."
 
 # API Contract Accuracy
 
-This page shows the accuracy of the Coolify OpenAPI specification compared
-to the real API behavior extracted from the Coolify source code.
+This page compares the pinned reusable OpenAPI schemas with the source-derived
+Coolify contract extracted from the real application code.
+
+> The source-derived contract is the field-level source of truth. The pinned OpenAPI spec is useful for reusable public schemas and route inventory, but some contract models only exist as internal implementation details or inline request bodies.
 
 Contract version: `v4-latest` | Extracted from: `coollabsio/coolify@v4-latest`
 
@@ -15,14 +17,16 @@ Contract version: `v4-latest` | Extracted from: `coollabsio/coolify@v4-latest`
 
 | Metric | Count |
 |--------|------:|
-| Total fields | 611 |
-| Type matches | 611/611 |
-| Nullable matches | 239/611 |
-| Provider coverage | 337/611 |
-| Models in contract | 22 |
-| Models in spec | 13 |
+| Public schema fields compared | 299 |
+| Public schema type matches | 299/299 |
+| Public schema nullable matches | 239/299 |
+| Public schema provider coverage | 143/299 |
+| Reusable public schemas compared | 9 |
+| Contract-only / inline-only models documented | 13 |
 
 ---
+
+## Reusable Public Schemas
 
 ## Application
 
@@ -386,7 +390,44 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 17/19 | Provider coverage: 
 | is_container_label_readonly_enabled | - | boolean | - | - | - | n/a |
 | updated_at | - | string | - | - | - | supported |
 
+## Contract-Only or Inline-Only Models
+
+These sections document source-derived models that do not map cleanly to reusable public OpenAPI component schemas.
+
+## ScheduledDatabaseBackup
+
+This section compares the internal source-derived backup model against the public backup request bodies in the pinned spec.
+Coolify stores the relation as `s3_storage_id` internally, while the public API accepts `s3_storage_uuid` on request bodies.
+That identifier translation is expected and does not imply a missing top-level S3 CRUD API.
+
+Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Provider coverage: 15/19
+
+| Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
+|-------|:---:|:---:|:---:|:---:|---------|:---:|
+| database_backup_retention_amount_locally | integer | - | - | - | 0 | supported |
+| database_backup_retention_amount_s3 | string | - | - | - | - | supported |
+| database_backup_retention_days_locally | string | - | - | - | - | supported |
+| database_backup_retention_days_s3 | string | - | - | - | - | supported |
+| database_backup_retention_max_storage_locally | string | - | - | - | - | supported |
+| database_backup_retention_max_storage_s3 | string | - | - | - | - | supported |
+| database_id | integer | - | - | - | - | n/a |
+| database_type | string | - | - | - | - | supported |
+| databases_to_backup | string | - | - | - | - | supported |
+| description | string | - | - | - | - | supported |
+| disable_local_backup | string | - | - | - | - | n/a |
+| dump_all | string | - | - | - | - | supported |
+| enabled | boolean | - | - | - | true | supported |
+| frequency | string | - | - | - | - | supported |
+| number_of_backups_locally | integer | - | - | - | 7 | n/a |
+| s3_storage_id | integer | - | - | - | - | n/a |
+| save_s3 | boolean | - | - | - | true | supported |
+| timeout | integer | - | - | - | 3600 | supported |
+| uuid | string | - | - | - | - | supported |
+
 ## CloudProviderToken
+
+This model exists in the extracted source contract but not as a reusable public OpenAPI schema.
+Treat it as implementation detail coverage, not proof of a standalone public API surface.
 
 Fields: 3 | Type matches: 3/3 | Nullable matches: 3/3 | Provider coverage: 3/3
 
@@ -398,19 +439,22 @@ Fields: 3 | Type matches: 3/3 | Nullable matches: 3/3 | Provider coverage: 3/3
 
 ## GithubApp
 
-Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Provider coverage: 9/19
+This model exists in the extracted source contract but not as a reusable public OpenAPI schema.
+Treat it as implementation detail coverage, not proof of a standalone public API surface.
+
+Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Provider coverage: 11/19
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | administration | string | - | - | - | - | n/a |
-| api_url | string | - | - | - | - | n/a |
+| api_url | string | - | - | - | - | supported |
 | app_id | integer | - | - | - | - | supported |
 | client_id | string | - | - | - | - | supported |
 | client_secret | string | - | - | - | - | supported |
 | contents | string | - | - | - | - | n/a |
 | custom_port | integer | - | - | - | 22 | n/a |
 | custom_user | string | - | - | - | git | n/a |
-| html_url | string | - | - | - | - | n/a |
+| html_url | string | - | - | - | - | supported |
 | installation_id | integer | - | - | - | - | supported |
 | is_public | boolean | - | - | - | false | supported |
 | is_system_wide | boolean | - | - | - | false | n/a |
@@ -439,6 +483,9 @@ Fields: 8 | Type matches: 8/8 | Nullable matches: 8/8 | Provider coverage: 3/8
 
 ## S3Storage
 
+This model exists in the extracted source contract but not as a reusable public OpenAPI schema.
+Treat it as implementation detail coverage, not proof of a standalone public API surface.
+
 Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Provider coverage: 0/10
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
@@ -453,32 +500,6 @@ Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Provider coverage: 
 | secret | string | - | - | - | - | n/a |
 | unusable_email_sent | string | - | - | - | - | n/a |
 | uuid | string | - | - | - | - | n/a |
-
-## ScheduledDatabaseBackup
-
-Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Provider coverage: 15/19
-
-| Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
-|-------|:---:|:---:|:---:|:---:|---------|:---:|
-| database_backup_retention_amount_locally | integer | - | - | - | 0 | supported |
-| database_backup_retention_amount_s3 | string | - | - | - | - | supported |
-| database_backup_retention_days_locally | string | - | - | - | - | supported |
-| database_backup_retention_days_s3 | string | - | - | - | - | supported |
-| database_backup_retention_max_storage_locally | string | - | - | - | - | supported |
-| database_backup_retention_max_storage_s3 | string | - | - | - | - | supported |
-| database_id | integer | - | - | - | - | n/a |
-| database_type | string | - | - | - | - | supported |
-| databases_to_backup | string | - | - | - | - | supported |
-| description | string | - | - | - | - | supported |
-| disable_local_backup | string | - | - | - | - | n/a |
-| dump_all | string | - | - | - | - | supported |
-| enabled | boolean | - | - | - | true | supported |
-| frequency | string | - | - | - | - | supported |
-| number_of_backups_locally | integer | - | - | - | 7 | n/a |
-| s3_storage_id | integer | - | - | - | - | n/a |
-| save_s3 | boolean | - | - | - | true | supported |
-| timeout | integer | - | - | - | 3600 | supported |
-| uuid | string | - | - | - | - | supported |
 
 ## StandaloneClickhouse
 

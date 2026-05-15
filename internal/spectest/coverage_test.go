@@ -20,11 +20,12 @@ type coverageStatus struct {
 	notes    string // human-readable context
 }
 
-// coveredEndpoints returns the full API endpoint registry.
-// This is the single source of truth for API coverage. The
-// TestSpecCoverage_Completeness test fails if the OpenAPI spec has
-// endpoints not listed here. The TestSpecCoverage_GenerateDoc test
-// generates API_COVERAGE.md from this data.
+// coveredEndpoints returns the provider's route coverage registry.
+// The pinned OpenAPI spec is the route inventory for completeness checks.
+// The source-derived contract remains the field-level source of truth.
+// TestSpecCoverage_Completeness fails if the pinned route inventory and
+// this registry drift. TestSpecCoverage_GenerateDoc generates API_COVERAGE.md
+// from this data.
 func coveredEndpoints() map[string]coverageStatus {
 	covered := func(resource, since string) coverageStatus {
 		return coverageStatus{category: "covered", resource: resource, since: since}
@@ -314,7 +315,8 @@ func TestSpecCoverage_GenerateDoc(t *testing.T) {
 	b.WriteString("# API Coverage\n\n")
 	b.WriteString("<!-- Auto-generated from internal/spectest/coverage_test.go. Do not edit manually. -->\n")
 	b.WriteString("<!-- Run: make api-coverage -->\n\n")
-	b.WriteString("**Spec**: Coolify v4 (pinned in `testdata/specs/coolify-v4.json`)  \n")
+	b.WriteString("**Route inventory**: pinned OpenAPI spec in `testdata/specs/coolify-v4.json`  \n")
+	b.WriteString("**Field source of truth**: source-derived contract in `testdata/contracts/coolify-v4.json`  \n")
 	fmt.Fprintf(&b, "**Coverage**: %d / %d endpoints (%.1f%%)  \n", len(coveredList), total, pct)
 	fmt.Fprintf(&b, "**Planned**: %d | **Skipped**: %d\n", len(plannedList), len(skippedList))
 
