@@ -78,7 +78,7 @@ automatically, but they are worth knowing:
 | **Base64 encoding required** | `coolify_dockerfile_application` | `dockerfile_location` must be base64-encoded despite the field name; use `base64encode()` |
 | **Server must be reachable** | All applications | Terraform fails with `Application created but not persisted` if Coolify cannot read the app back after creation |
 | **Cloud token validation** | `coolify_cloud_token` | Coolify validates the token against the cloud provider's API on creation (cannot use placeholder values) |
-| **GitHub App repository validation** | `coolify_github_app_application` | Coolify verifies repository access during create, so end-to-end tests need a live GitHub App installation with repository access |
+| **GitHub App repository validation** | `coolify_github_app_application` | Coolify verifies repository access during create, so the referenced `coolify_github_app` must have installation access to the target repository |
 | **Async deletion** | `coolify_project` | Child resources are deleted asynchronously; project delete retries automatically |
 
 The provider preserves your configured values for all normalized fields.
