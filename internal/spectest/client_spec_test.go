@@ -8,12 +8,16 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 )
 
 // TestClientEndpoints_SpecCompliance validates that every API endpoint
 // our client uses stays compatible with the pinned OpenAPI route spec.
 // This is a route and payload-shape audit only. The source-derived contract
-// remains the field-level source of truth for provider behavior.
+// remains the field-level source of truth for provider behavior. Request
+// bodies use real client input structs for cases where JSON tags do not
+// obviously match the Go field names.
 func TestClientEndpoints_SpecCompliance(t *testing.T) {
 	t.Parallel()
 
@@ -141,17 +145,25 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// Applications (additional types)
 		{"CreateDockerfileApp", "POST", "/api/v1/applications/dockerfile",
-			map[string]interface{}{
-				"project_uuid": "proj-1", "server_uuid": "srv-1",
-				"environment_name": "production", "environment_uuid": "env-1",
-				"dockerfile": "FROM nginx", "ports_exposes": "80",
+			client.CreateDockerfileAppInput{
+				ProjectUUID:        "proj-1",
+				ServerUUID:         "srv-1",
+				EnvironmentName:    "production",
+				EnvironmentUUID:    "env-1",
+				DockerfileLocation: "FROM nginx",
+				PortsExposes:       "80",
 			}, 201, map[string]string{"uuid": "app-1"}},
 		{"CreateGitHubAppApp", "POST", "/api/v1/applications/private-github-app",
-			map[string]interface{}{
-				"project_uuid": "proj-1", "server_uuid": "srv-1",
-				"environment_name": "production", "environment_uuid": "env-1",
-				"github_app_uuid": "gh-1", "git_repository": "owner/repo",
-				"git_branch": "main", "build_pack": "nixpacks", "ports_exposes": "3000",
+			client.CreateGitHubAppInput{
+				ProjectUUID:     "proj-1",
+				ServerUUID:      "srv-1",
+				EnvironmentName: "production",
+				EnvironmentUUID: "env-1",
+				GitHubAppUUID:   "gh-1",
+				GitRepository:   "owner/repo",
+				GitBranch:       "main",
+				BuildPack:       "nixpacks",
+				PortsExposes:    "3000",
 			}, 201, map[string]string{"uuid": "app-1"}},
 		{"StartApplication", "GET", "/api/v1/applications/app-1/start",
 			nil, 200, map[string]string{"message": "started"}},
@@ -277,7 +289,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListCloudTokens", "GET", "/api/v1/cloud-tokens",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "my-token"}}},
 		{"CreateCloudToken", "POST", "/api/v1/cloud-tokens",
-			map[string]interface{}{"name": "my-token", "provider": "hetzner", "token": "secret-token"},
+			client.CreateCloudTokenInput{Name: "my-token", Provider: "hetzner", Token: "secret-token"},
 			201, map[string]interface{}{"uuid": "ct-1"}},
 		{"GetCloudToken", "GET", "/api/v1/cloud-tokens/ct-1",
 			nil, 200, map[string]interface{}{"uuid": "ct-1", "name": "my-token", "provider": "hetzner"}},
@@ -293,10 +305,15 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListGitHubApps", "GET", "/api/v1/github-apps",
 			nil, 200, []map[string]interface{}{{"id": 1, "uuid": "gh-1", "name": "my-gh-app", "api_url": "https://api.github.com", "html_url": "https://github.com", "app_id": 12345, "installation_id": 67890, "client_id": "Iv1.abc123", "private_key_id": 1, "is_system_wide": false, "team_id": 1}}},
 		{"CreateGitHubApp", "POST", "/api/v1/github-apps",
-			map[string]interface{}{
-				"name": "my-gh-app", "api_url": "https://api.github.com", "html_url": "https://github.com",
-				"app_id": 12345, "installation_id": 67890, "client_id": "Iv1.abc123",
-				"client_secret": "secret", "private_key_uuid": "pk-1",
+			client.CreateGitHubAppIntegrationInput{
+				Name:           "my-gh-app",
+				APIURL:         "https://api.github.com",
+				HTMLURL:        "https://github.com",
+				AppID:          12345,
+				InstallationID: 67890,
+				ClientID:       "Iv1.abc123",
+				ClientSecret:   "secret",
+				PrivateKeyUUID: "pk-1",
 			},
 			201, map[string]interface{}{"id": 1, "uuid": "gh-1", "name": "my-gh-app"}},
 		{"UpdateGitHubApp", "PATCH", "/api/v1/github-apps/1",
@@ -321,10 +338,13 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// Servers (additional)
 		{"CreateHetznerServer", "POST", "/api/v1/servers/hetzner",
-			map[string]interface{}{
-				"name": "hetzner-srv", "private_key_uuid": "pk-1",
-				"cloud_provider_token_uuid": "tok-1", "server_type": "cx11",
-				"location": "fsn1", "image": "ubuntu-22.04",
+			client.CreateHetznerServerInput{
+				Name:                   "hetzner-srv",
+				PrivateKeyUUID:         "pk-1",
+				CloudProviderTokenUUID: "tok-1",
+				ServerType:             "cx11",
+				Location:               "fsn1",
+				Image:                  "ubuntu-22.04",
 			}, 201, map[string]string{"uuid": "srv-1"}},
 		{"ValidateServer", "GET", "/api/v1/servers/srv-1/validate",
 			nil, 200, map[string]interface{}{"valid": true}},
