@@ -11,6 +11,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -335,6 +336,18 @@ func GenerateTestRSAKey(t *testing.T) string {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}))
+}
+
+// UUIDValidationError returns a regex matching the provider's UUID validator
+// rejection message. Use with ExpectError in negative validation tests.
+func UUIDValidationError() *regexp.Regexp {
+	return regexp.MustCompile(`(?i)must be a valid UUID`)
+}
+
+// NotFoundError returns a regex matching common "not found" error messages
+// from both the provider and the Coolify API.
+func NotFoundError() *regexp.Regexp {
+	return regexp.MustCompile(`(?i)not found`)
 }
 
 // AccTestDockerfileAppConfig returns a Terraform config for an acceptance test
