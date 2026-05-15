@@ -98,7 +98,7 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Sensitive:           true,
 			},
 			"webhook_secret": schema.StringAttribute{
-				MarkdownDescription: "The GitHub App webhook secret.",
+				MarkdownDescription: "The GitHub App webhook secret. If omitted on create, the provider sends `<name>-webhook` after trimming surrounding whitespace from `name`, or `terraform-provider-coolify` when `name` is empty.",
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,

@@ -92,7 +92,7 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | `coolify_github_app` | `client_secret`, `private_key_uuid` (write-only, never returned by the API) |
 | `coolify_cloud_token` | `token` (write-only, may not be returned by the API) |
 | `coolify_private_key` | `private_key` (requires API token with `root` or `read:sensitive` permission; hidden otherwise) |
-| Database backups | `database_uuid` |
+| Database backups | `database_uuid`, `s3_storage_uuid` when `save_s3 = true` |
 
 If these fields are missing, `terraform plan` will either show a diff
 or propose replacing the resource. Set them in your config to match

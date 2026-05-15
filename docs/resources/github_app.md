@@ -27,7 +27,7 @@ resource "coolify_github_app" "example" {
   client_id        = "Iv1.abc123def456"
   client_secret    = var.github_app_client_secret
   webhook_secret   = "replace-me-with-a-random-secret"
-  private_key_uuid = coolify_private_key.github.uuid
+  private_key_uuid = coolify_private_key.example.uuid
 }
 ```
 
@@ -46,7 +46,7 @@ resource "coolify_github_app" "example" {
 ### Optional
 
 - `organization_name` (String) The GitHub organization name.
-- `webhook_secret` (String, Sensitive) The GitHub App webhook secret.
+- `webhook_secret` (String, Sensitive) The GitHub App webhook secret. If omitted on create, the provider sends `<name>-webhook` after trimming surrounding whitespace from `name`, or `terraform-provider-coolify` when `name` is empty.
 
 ### Read-Only
 
