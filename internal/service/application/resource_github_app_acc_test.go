@@ -19,6 +19,15 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-ghapp-app")
 	privateKeyName := acctest.RandomWithPrefix("tf-acc-ghapp-app-key")
+	updatedDescription := "Updated github app application"
+	createConfig := testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName, fixture, "")
+	updatedConfig := testAccGitHubAppApplicationConfig(
+		name,
+		serverUUID,
+		privateKeyName,
+		fixture,
+		fmt.Sprintf(`description = %q`, updatedDescription),
+	)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
@@ -26,25 +35,31 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName, fixture, ""),
+				Config: createConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_github_app_application.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_github_app_application.test", "build_pack", "nixpacks"),
 					resource.TestCheckResourceAttr("coolify_github_app_application.test", "ports_exposes", "3000"),
 				),
 			},
-			// Step 2: Update description
+			// Step 2: Idempotency check after create
 			{
-				Config: testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName, fixture, `description = "Updated github app application"`),
-				Check:  resource.TestCheckResourceAttr("coolify_github_app_application.test", "description", "Updated github app application"),
-			},
-			// Step 3: Idempotency check
-			{
-				Config:             testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName, fixture, `description = "Updated github app application"`),
+				Config:             createConfig,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 4: Import by UUID
+			// Step 3: Update description
+			{
+				Config: updatedConfig,
+				Check:  resource.TestCheckResourceAttr("coolify_github_app_application.test", "description", updatedDescription),
+			},
+			// Step 4: Idempotency check
+			{
+				Config:             updatedConfig,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			// Step 5: Import by UUID
 			{
 				ResourceName:                         "coolify_github_app_application.test",
 				ImportState:                          true,
