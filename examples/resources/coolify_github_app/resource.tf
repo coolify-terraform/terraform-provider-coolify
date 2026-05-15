@@ -9,5 +9,6 @@ resource "coolify_github_app" "example" {
   installation_id  = 67890
   client_id        = "Iv1.abc123def456"
   client_secret    = var.github_app_client_secret
+  webhook_secret   = "replace-me-with-a-random-secret"
   private_key_uuid = coolify_private_key.github.uuid
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
@@ -137,6 +138,8 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 
 	input := client.CreateGitHubAppIntegrationInput{
 		Name:           plan.Name.ValueString(),
+		APIURL:         "https://api.github.com",
+		HTMLURL:        "https://github.com",
 		AppID:          plan.AppID.ValueInt64(),
 		InstallationID: plan.InstallationID.ValueInt64(),
 		ClientID:       plan.ClientID.ValueString(),
@@ -144,7 +147,11 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 		PrivateKeyUUID: plan.PrivateKeyUUID.ValueString(),
 	}
 	flex.SetIfKnown(&input.OrganizationName, plan.OrganizationName)
-	flex.SetIfKnown(&input.WebhookSecret, plan.WebhookSecret)
+	if plan.WebhookSecret.IsNull() || plan.WebhookSecret.IsUnknown() {
+		input.WebhookSecret = defaultWebhookSecret(plan.Name.ValueString())
+	} else {
+		flex.SetIfKnown(&input.WebhookSecret, plan.WebhookSecret)
+	}
 
 	app, err := r.client.CreateGitHubApp(ctx, input)
 	if err != nil {
@@ -242,6 +249,9 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	flattenGitHubApp(app, &plan)
+	if plan.WebhookSecret.IsNull() || plan.WebhookSecret.IsUnknown() {
+		plan.WebhookSecret = state.WebhookSecret
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -303,5 +313,15 @@ func flattenGitHubApp(app *client.GitHubApp, model *gitHubAppResourceModel) {
 	model.AppID = types.Int64Value(app.AppID)
 	model.InstallationID = types.Int64Value(app.InstallationID)
 	model.ClientID = types.StringValue(app.ClientID)
-	model.WebhookSecret = flex.StringToFramework(app.WebhookSecret)
+	if app.WebhookSecret != "" {
+		model.WebhookSecret = types.StringValue(app.WebhookSecret)
+	}
+}
+
+func defaultWebhookSecret(name string) string {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return "terraform-provider-coolify"
+	}
+	return trimmed + "-webhook"
 }

@@ -3506,6 +3506,8 @@ func TestClient_CreateGitHubApp(t *testing.T) {
 		require.NoError(t, json.Unmarshal(body, &input))
 		assert.Equal(t, "My GitHub App", input.Name)
 		assert.Equal(t, "my-org", input.OrganizationName)
+		assert.Equal(t, "https://api.github.com", input.APIURL)
+		assert.Equal(t, "https://github.com", input.HTMLURL)
 		assert.Equal(t, int64(12345), input.AppID)
 		assert.Equal(t, int64(67890), input.InstallationID)
 		assert.Equal(t, "Iv1.abc123", input.ClientID)
@@ -3523,6 +3525,8 @@ func TestClient_CreateGitHubApp(t *testing.T) {
 	app, err := c.CreateGitHubApp(context.Background(), CreateGitHubAppIntegrationInput{
 		Name:             "My GitHub App",
 		OrganizationName: "my-org",
+		APIURL:           "https://api.github.com",
+		HTMLURL:          "https://github.com",
 		AppID:            12345,
 		InstallationID:   67890,
 		ClientID:         "Iv1.abc123",
@@ -3572,7 +3576,7 @@ func TestClient_UpdateGitHubApp(t *testing.T) {
 		assert.Nil(t, input.ClientSecret)
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(GitHubApp{ID: 42, UUID: "gh-upd", Name: "Updated App", OrganizationName: "new-org"})
+		json.NewEncoder(w).Encode(map[string]any{"message": "GitHub app updated successfully", "data": GitHubApp{ID: 42, UUID: "gh-upd", Name: "Updated App", OrganizationName: "new-org"}})
 	}))
 	defer srv.Close()
 
@@ -3607,7 +3611,7 @@ func TestClient_UpdateGitHubApp_PartialUpdate(t *testing.T) {
 		assert.False(t, hasClientSecret, "expected 'client_secret' to be omitted when nil")
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(GitHubApp{ID: 10, Name: "partial"})
+		json.NewEncoder(w).Encode(map[string]any{"message": "GitHub app updated successfully", "data": GitHubApp{ID: 10, Name: "partial"}})
 	}))
 	defer srv.Close()
 
@@ -3651,10 +3655,10 @@ func TestClient_ListGitHubAppRepositories(t *testing.T) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/github-apps/42/repositories", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]GitHubRepository{
+		json.NewEncoder(w).Encode(map[string]any{"repositories": []GitHubRepository{
 			{Name: "repo-one", FullName: "org/repo-one", Private: false},
 			{Name: "repo-two", FullName: "org/repo-two", Private: true},
-		})
+		}})
 	}))
 	defer srv.Close()
 
@@ -3676,11 +3680,11 @@ func TestClient_ListGitHubAppBranches(t *testing.T) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/api/v1/github-apps/42/repositories/my-org/my-repo/branches", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]GitHubBranch{
+		json.NewEncoder(w).Encode(map[string]any{"branches": []GitHubBranch{
 			{Name: "main"},
 			{Name: "develop"},
 			{Name: "feature/new-thing"},
-		})
+		}})
 	}))
 	defer srv.Close()
 
@@ -3700,7 +3704,7 @@ func TestClient_ListGitHubAppBranches_URLEscape(t *testing.T) {
 		// owner "my org" and repo "my repo" should be URL-escaped
 		assert.Equal(t, "/api/v1/github-apps/10/repositories/my%20org/my%20repo/branches", r.URL.EscapedPath())
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]GitHubBranch{{Name: "main"}})
+		json.NewEncoder(w).Encode(map[string]any{"branches": []GitHubBranch{{Name: "main"}}})
 	}))
 	defer srv.Close()
 
