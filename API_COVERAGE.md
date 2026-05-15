@@ -3,7 +3,8 @@
 <!-- Auto-generated from internal/spectest/coverage_test.go. Do not edit manually. -->
 <!-- Run: make api-coverage -->
 
-**Spec**: Coolify v4 (pinned in `testdata/specs/coolify-v4.json`)  
+**Route inventory**: pinned OpenAPI spec in `testdata/specs/coolify-v4.json`  
+**Field source of truth**: source-derived contract in `testdata/contracts/coolify-v4.json`  
 **Coverage**: 134 / 135 endpoints (99.3%)  
 **Planned**: 0 | **Skipped**: 1
 

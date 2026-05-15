@@ -11,8 +11,9 @@ import (
 )
 
 // TestClientEndpoints_SpecCompliance validates that every API endpoint
-// our client uses matches the OpenAPI spec. This catches wrong methods,
-// wrong paths, wrong request bodies, and wrong response shapes.
+// our client uses stays compatible with the pinned OpenAPI route spec.
+// This is a route and payload-shape audit only. The source-derived contract
+// remains the field-level source of truth for provider behavior.
 func TestClientEndpoints_SpecCompliance(t *testing.T) {
 	t.Parallel()
 
@@ -271,13 +272,13 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListCloudTokens", "GET", "/api/v1/cloud-tokens",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "my-token"}}},
 		{"CreateCloudToken", "POST", "/api/v1/cloud-tokens",
-			map[string]interface{}{"name": "my-token"},
-			201, map[string]interface{}{"id": 1, "name": "my-token"}},
+			map[string]interface{}{"name": "my-token", "provider": "hetzner", "token": "secret-token"},
+			201, map[string]interface{}{"uuid": "ct-1"}},
 		{"GetCloudToken", "GET", "/api/v1/cloud-tokens/ct-1",
-			nil, 200, map[string]interface{}{"id": 1, "name": "my-token"}},
+			nil, 200, map[string]interface{}{"uuid": "ct-1", "name": "my-token", "provider": "hetzner"}},
 		{"UpdateCloudToken", "PATCH", "/api/v1/cloud-tokens/ct-1",
 			map[string]interface{}{"name": "updated-token"},
-			200, map[string]interface{}{"id": 1, "name": "updated-token"}},
+			200, map[string]interface{}{"uuid": "ct-1"}},
 		{"DeleteCloudToken", "DELETE", "/api/v1/cloud-tokens/ct-1",
 			nil, 200, map[string]string{"message": "deleted"}},
 		{"ValidateCloudToken", "POST", "/api/v1/cloud-tokens/ct-1/validate",
@@ -285,13 +286,17 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// GitHub Apps
 		{"ListGitHubApps", "GET", "/api/v1/github-apps",
-			nil, 200, []map[string]interface{}{{"id": 1, "name": "my-gh-app"}}},
+			nil, 200, []map[string]interface{}{{"id": 1, "uuid": "gh-1", "name": "my-gh-app", "api_url": "https://api.github.com", "html_url": "https://github.com", "app_id": 12345, "installation_id": 67890, "client_id": "Iv1.abc123", "private_key_id": 1, "is_system_wide": false, "team_id": 1}}},
 		{"CreateGitHubApp", "POST", "/api/v1/github-apps",
-			map[string]interface{}{"name": "my-gh-app"},
-			201, map[string]interface{}{"id": 1, "uuid": "gh-1"}},
+			map[string]interface{}{
+				"name": "my-gh-app", "api_url": "https://api.github.com", "html_url": "https://github.com",
+				"app_id": 12345, "installation_id": 67890, "client_id": "Iv1.abc123",
+				"client_secret": "secret", "private_key_uuid": "pk-1",
+			},
+			201, map[string]interface{}{"id": 1, "uuid": "gh-1", "name": "my-gh-app"}},
 		{"UpdateGitHubApp", "PATCH", "/api/v1/github-apps/1",
-			map[string]interface{}{"name": "updated-gh-app"},
-			200, map[string]interface{}{"id": 1, "name": "updated-gh-app"}},
+			map[string]interface{}{"name": "updated-gh-app", "client_secret": "updated-secret"},
+			200, map[string]interface{}{"message": "GitHub app updated successfully", "data": map[string]interface{}{"id": 1, "name": "updated-gh-app"}}},
 		{"DeleteGitHubApp", "DELETE", "/api/v1/github-apps/1",
 			nil, 200, map[string]string{"message": "deleted"}},
 		{"ListRepos", "GET", "/api/v1/github-apps/1/repositories",
