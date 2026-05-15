@@ -1,23 +1,24 @@
 # ACME Corp External Integrations
 
-This scenario tests external integration resources: GitHub App registration
-(with dummy credentials) and Coolify managed services from the service catalog.
+This scenario tests external integration resources through a managed service
+from the Coolify catalog. GitHub App registration is documented separately
+because application creation requires a live GitHub App installation.
 
 ## Resources Tested
 
 | Resource | Purpose |
 |---|---|
-| `coolify_github_app` | GitHub App with dummy credentials (metadata only) |
 | `coolify_service` | Managed service from Coolify catalog (uptime-kuma) |
 
 ## How It Works
 
-The GitHub App uses dummy values (app_id=12345, fake client_secret). Coolify
-stores the metadata without verifying OAuth connectivity, so CRUD operations
-work without a real GitHub App configured.
-
 The managed service uses the `uptime-kuma` type from Coolify's built-in
 service catalog. Coolify creates the Docker containers for the service.
+
+GitHub App-backed applications are intentionally not part of this scenario.
+Coolify verifies repository access during `POST /applications/private-github-app`,
+so a realistic end-to-end example needs a live GitHub App installation with
+repository access.
 
 ## Running
 

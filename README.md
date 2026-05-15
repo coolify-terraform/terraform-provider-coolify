@@ -182,6 +182,10 @@ Cloud token and Hetzner-related acceptance tests need a real
 `COOLIFY_TOKEN` setup, because Coolify validates the token against Hetzner on
 create.
 
+GitHub App application acceptance additionally needs the optional
+`COOLIFY_GITHUB_APP_*` fixture variables documented in [TESTING.md](TESTING.md),
+because Coolify verifies repository access during application creation.
+
 For local provider testing with `dev_overrides`, acceptance test setup, and
 project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 [TESTING.md](TESTING.md).

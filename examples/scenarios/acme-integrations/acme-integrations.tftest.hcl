@@ -1,6 +1,6 @@
 # Acceptance test for ACME Corp external integrations.
 #
-# Tests: github_app (with dummy credentials), service (from catalog).
+# Tests: managed service from the Coolify catalog.
 #
 # Required variables via TF_VAR_*:
 #   TF_VAR_coolify_endpoint, TF_VAR_coolify_token, TF_VAR_server_uuid

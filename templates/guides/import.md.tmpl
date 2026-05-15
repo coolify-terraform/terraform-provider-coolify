@@ -86,6 +86,7 @@ must be set in your `.tf` configuration before running `terraform plan`:
 |---|---|
 | All databases | `project_uuid`, `server_uuid`, `environment_name` |
 | All applications | `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_github_app_application` | `github_app_uuid` (Coolify stores the linked GitHub App as `source_id`/`source_type`, so import cannot recover the original UUID) |
 | `coolify_service` | `project_uuid`, `server_uuid`, `environment_name`, `type` |
 | `coolify_environment` | `description` (stored in Terraform state only; not returned by the API) |
 | `coolify_github_app` | `client_secret`, `private_key_uuid` (write-only, never returned by the API) |
@@ -96,6 +97,10 @@ must be set in your `.tf` configuration before running `terraform plan`:
 If these fields are missing, `terraform plan` will either show a diff
 or propose replacing the resource. Set them in your config to match
 your actual Coolify setup.
+
+For `coolify_github_app_application`, import also cannot reconstruct
+`github_app_uuid` from the API. Keep that field in your configuration
+before the first `terraform plan`, or expect a post-import diff.
 
 Additionally, Coolify normalizes some input values:
 

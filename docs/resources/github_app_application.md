@@ -3,22 +3,24 @@
 page_title: "coolify_github_app_application Resource - coolify"
 subcategory: ""
 description: |-
-  Manages a Coolify application deployed via a GitHub App integration.
+  Manages a Coolify application deployed via a GitHub App integration. Coolify verifies repository access during create, so the referenced GitHub App must have installation access to the target repository.
 ---
 
 # coolify_github_app_application (Resource)
 
-Manages a Coolify application deployed via a GitHub App integration.
+Manages a Coolify application deployed via a GitHub App integration. Coolify verifies repository access during create, so the referenced GitHub App must have installation access to the target repository.
 
 ## Example Usage
 
 ```terraform
+# Requires an existing coolify_github_app backed by a live GitHub App
+# installation that can access the target repository.
 resource "coolify_github_app_application" "app" {
   name            = "my-github-app"
   project_uuid    = coolify_project.example.uuid
   server_uuid     = coolify_server.example.uuid
   github_app_uuid = coolify_github_app.example.uuid
-  git_repository  = "github.com/myorg/myrepo"
+  git_repository  = "https://github.com/myorg/myrepo"
   git_branch      = "main"
   build_pack      = "nixpacks"
   ports_exposes   = "3000"
@@ -32,8 +34,8 @@ resource "coolify_github_app_application" "app" {
 ### Required
 
 - `build_pack` (String) The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`.
-- `git_repository` (String) The Git repository URL (e.g. `github.com/org/repo`).
-- `github_app_uuid` (String) The UUID of the GitHub App used for repository access.
+- `git_repository` (String) The Git repository URL (for example `https://github.com/org/repo` or `org/repo`). Coolify checks repository access during create.
+- `github_app_uuid` (String) The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`.
 - `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g. `3000` or `3000,8080`).
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing this forces a new resource.
