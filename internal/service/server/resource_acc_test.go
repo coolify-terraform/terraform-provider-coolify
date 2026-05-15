@@ -56,6 +56,61 @@ func TestAccServerResource_CRUD(t *testing.T) {
 	})
 }
 
+func TestAccServerResource_UpdateFields(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	name := acctest.RandomWithPrefix("tf-acc-srv-upd")
+	privKey1 := acctest.GenerateTestRSAKey(t)
+	privKey2 := acctest.GenerateTestRSAKey(t)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_server", "/api/v1/servers/"),
+		Steps: []resource.TestStep{
+			// Create with key1 and IP .1
+			{
+				Config: testAccServerTwoKeysConfig(name, privKey1, privKey2, "192.0.2.1", "key1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_server.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_server.test", "ip", "192.0.2.1"),
+				),
+			},
+			// Switch to key2 and IP .2
+			{
+				Config: testAccServerTwoKeysConfig(name, privKey1, privKey2, "192.0.2.2", "key2"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server.test", "ip", "192.0.2.2"),
+				),
+			},
+		},
+	})
+}
+
+func testAccServerTwoKeysConfig(name, privKey1, privKey2, ip, useKey string) string {
+	activeKey := "coolify_private_key.key1.uuid"
+	if useKey == "key2" {
+		activeKey = "coolify_private_key.key2.uuid"
+	}
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_private_key" "key1" {
+  name        = "%[1]s-key1"
+  private_key = %[2]q
+}
+
+resource "coolify_private_key" "key2" {
+  name        = "%[1]s-key2"
+  private_key = %[3]q
+}
+
+resource "coolify_server" "test" {
+  name             = %[1]q
+  ip               = %[4]q
+  private_key_uuid = %[5]s
+}
+`, name, privKey1, privKey2, ip, activeKey)
+}
+
 func testAccServerConfig(name, privKey, extra string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_private_key" "test" {
