@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -110,16 +110,14 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Sensitive:           true,
 			},
 			"is_preview": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is available in preview deployments (defaults to `false`).",
+				MarkdownDescription: "Whether this variable is available in preview deployments. Defaults vary by parent resource type; omit to accept Coolify's default.",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
 			},
 			"is_build": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is available at build time (defaults to `false`).",
+				MarkdownDescription: "Whether this variable is available at build time. Defaults vary by parent resource type; omit to accept Coolify's default.",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
 			},
 		},
 	}
@@ -177,6 +175,10 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 	}
 
 	plan.UUID = types.StringValue(createResp.UUID)
+	// Ensure bool fields are known after apply (they may be unknown if
+	// the user omitted them and there is no schema default).
+	plan.IsPreview = types.BoolValue(ev.IsPreview)
+	plan.IsBuild = types.BoolValue(ev.IsBuild)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -270,6 +272,8 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
+	plan.IsPreview = types.BoolValue(ev.IsPreview)
+	plan.IsBuild = types.BoolValue(ev.IsBuild)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
