@@ -572,6 +572,68 @@ func mergeAttrs(dst, src map[string]schema.Attribute) {
 	}
 }
 
+// gitAppAttrs returns the shared schema attributes for Git-backed
+// application resources. Keep dockerfile_location scoped here because the
+// Dockerfile application resource uses the same attribute name for different
+// semantics.
+func gitAppAttrs(ctx context.Context, gitRepositoryDescription string, extra map[string]schema.Attribute) map[string]schema.Attribute {
+	attrs := gitAppSourceAttrs(gitRepositoryDescription)
+	mergeAttrs(attrs, extra)
+	mergeAttrs(attrs, gitAppCommandAttrs())
+
+	return CommonAppAttrs(ctx, attrs)
+}
+
+func gitAppSourceAttrs(gitRepositoryDescription string) map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"git_repository": schema.StringAttribute{
+			MarkdownDescription: gitRepositoryDescription,
+			Required:            true,
+		},
+		"git_branch": schema.StringAttribute{
+			MarkdownDescription: "The Git branch to deploy (defaults to `main`).",
+			Optional:            true,
+			Computed:            true,
+			Default:             stringdefault.StaticString("main"),
+		},
+		"build_pack": schema.StringAttribute{
+			MarkdownDescription: "The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`.",
+			Required:            true,
+			Validators: []validator.String{
+				stringvalidator.OneOf("nixpacks", "dockerfile", "dockercompose", "static"),
+			},
+		},
+		"ports_exposes": schema.StringAttribute{
+			MarkdownDescription: "The ports to expose, as a comma-separated list (e.g. `3000` or `3000,8080`).",
+			Required:            true,
+			Validators: []validator.String{
+				stringvalidator.RegexMatches(regexp.MustCompile(`^\d+(,\d+)*$`), "must be a comma-separated list of port numbers (e.g. \"3000\" or \"3000,8080\")"),
+			},
+		},
+		"dockerfile_location": schema.StringAttribute{
+			MarkdownDescription: "The path to the Dockerfile, relative to the repository root.",
+			Optional:            true,
+		},
+	}
+}
+
+func gitAppCommandAttrs() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"install_command": schema.StringAttribute{
+			MarkdownDescription: "The command to run during the install phase.",
+			Optional:            true,
+		},
+		"build_command": schema.StringAttribute{
+			MarkdownDescription: "The command to run during the build phase.",
+			Optional:            true,
+		},
+		"start_command": schema.StringAttribute{
+			MarkdownDescription: "The command to run to start the application.",
+			Optional:            true,
+		},
+	}
+}
+
 // coreAppAttrs returns the core schema attributes (identity, status, limits,
 // existing health checks, auto-deploy).
 func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {

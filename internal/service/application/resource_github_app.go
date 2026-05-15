@@ -3,16 +3,13 @@ package application
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -51,51 +48,11 @@ func (r *gitHubAppApplicationResource) Metadata(_ context.Context, req resource.
 func (r *gitHubAppApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed via a GitHub App integration. Coolify verifies repository access during create, so the referenced GitHub App must have installation access to the target repository.",
-		Attributes: CommonAppAttrs(ctx, map[string]schema.Attribute{
+		Attributes: gitAppAttrs(ctx, "The Git repository URL (for example `https://github.com/org/repo` or `org/repo`). Coolify checks repository access during create.", map[string]schema.Attribute{
 			"github_app_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`.",
 				Required:            true,
 				Validators:          []validator.String{validate.UUID()},
-			},
-			"git_repository": schema.StringAttribute{
-				MarkdownDescription: "The Git repository URL (for example `https://github.com/org/repo` or `org/repo`). Coolify checks repository access during create.",
-				Required:            true,
-			},
-			"git_branch": schema.StringAttribute{
-				MarkdownDescription: "The Git branch to deploy (defaults to `main`).",
-				Optional:            true,
-				Computed:            true,
-				Default:             stringdefault.StaticString("main"),
-			},
-			"build_pack": schema.StringAttribute{
-				MarkdownDescription: "The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`.",
-				Required:            true,
-				Validators: []validator.String{
-					stringvalidator.OneOf("nixpacks", "dockerfile", "dockercompose", "static"),
-				},
-			},
-			"ports_exposes": schema.StringAttribute{
-				MarkdownDescription: "The ports to expose, as a comma-separated list (e.g. `3000` or `3000,8080`).",
-				Required:            true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile(`^\d+(,\d+)*$`), "must be a comma-separated list of port numbers (e.g. \"3000\" or \"3000,8080\")"),
-				},
-			},
-			"dockerfile_location": schema.StringAttribute{
-				MarkdownDescription: "The path to the Dockerfile, relative to the repository root.",
-				Optional:            true,
-			},
-			"install_command": schema.StringAttribute{
-				MarkdownDescription: "The command to run during the install phase.",
-				Optional:            true,
-			},
-			"build_command": schema.StringAttribute{
-				MarkdownDescription: "The command to run during the build phase.",
-				Optional:            true,
-			},
-			"start_command": schema.StringAttribute{
-				MarkdownDescription: "The command to run to start the application.",
-				Optional:            true,
 			},
 		}),
 	}
