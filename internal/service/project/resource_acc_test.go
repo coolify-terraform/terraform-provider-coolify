@@ -65,6 +65,32 @@ resource "coolify_project" "test" {
 	})
 }
 
+func TestAccProjectResource_Disappears(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	name := acctest.RandomWithPrefix("tf-acc-proj-dis")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %q
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_project.test", "uuid"),
+					acctest.AccCheckResourceDisappears("coolify_project.test", "/api/v1/projects/"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccProjectDataSources(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)

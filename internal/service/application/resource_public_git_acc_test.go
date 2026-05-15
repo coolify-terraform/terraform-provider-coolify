@@ -49,6 +49,29 @@ func TestAccApplicationResource_CRUD(t *testing.T) {
 	})
 }
 
+func TestAccApplicationResource_Disappears(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-app-dis")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccPublicGitAppConfig(name, serverUUID, ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_application.test", "uuid"),
+					acctest.AccCheckResourceDisappears("coolify_application.test", "/api/v1/applications/"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccApplicationDataSource(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)

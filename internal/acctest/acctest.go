@@ -350,6 +350,36 @@ func NotFoundError() *regexp.Regexp {
 	return regexp.MustCompile(`(?i)not found`)
 }
 
+// AccCheckResourceDisappears returns a TestCheckFunc that deletes a resource
+// out-of-band via the real Coolify API. Use in acceptance Disappears tests to
+// simulate external deletion. The apiDeletePath should be the API path prefix
+// (e.g., "/api/v1/projects/"). The resource's "uuid" attribute is appended.
+func AccCheckResourceDisappears(resourceAddr, apiDeletePath string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceAddr]
+		if !ok {
+			return fmt.Errorf("resource %s not found in state", resourceAddr)
+		}
+		uuid := rs.Primary.Attributes["uuid"]
+		if uuid == "" {
+			return fmt.Errorf("resource %s has no uuid attribute", resourceAddr)
+		}
+		endpoint := os.Getenv("COOLIFY_ENDPOINT")
+		token := os.Getenv("COOLIFY_TOKEN")
+		req, err := http.NewRequest(http.MethodDelete, endpoint+apiDeletePath+uuid, nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("deleting %s/%s: %w", resourceAddr, uuid, err)
+		}
+		_ = resp.Body.Close()
+		return nil
+	}
+}
+
 // AccTestS3StorageUUID returns the UUID of an S3 storage destination for
 // acceptance tests. Set COOLIFY_S3_STORAGE_UUID to the UUID of an S3
 // storage registered in Coolify. The test is skipped if not set.

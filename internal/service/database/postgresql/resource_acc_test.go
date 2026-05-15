@@ -51,6 +51,29 @@ func TestAccPostgresqlDatabaseResource_CRUD(t *testing.T) {
 	})
 }
 
+func TestAccPostgresqlDatabaseResource_Disappears(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-pg-dis")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_postgresql_database", "/api/v1/databases/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "uuid"),
+					acctest.AccCheckResourceDisappears("coolify_postgresql_database.test", "/api/v1/databases/"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccPostgresqlDatabaseDataSources(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
