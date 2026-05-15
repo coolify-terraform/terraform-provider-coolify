@@ -33,7 +33,13 @@ func TestAccEnvironmentVariableResource_ApplicationCRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "initial-value"),
 				),
 			},
-			// Step 2: Update value
+			// Step 2: Idempotency - value preserved after read-back
+			{
+				Config:             testAccEnvVarAppConfig(name, serverUUID, "initial-value"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			// Step 3: Update value
 			{
 				Config: testAccEnvVarAppConfig(name, serverUUID, "updated-value"),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -41,7 +47,13 @@ func TestAccEnvironmentVariableResource_ApplicationCRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "updated-value"),
 				),
 			},
-			// Step 3: Import
+			// Step 4: Idempotency after update - value preserved
+			{
+				Config:             testAccEnvVarAppConfig(name, serverUUID, "updated-value"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			// Step 5: Import
 			{
 				ResourceName:                         "coolify_environment_variable.test",
 				ImportState:                          true,
