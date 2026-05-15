@@ -217,7 +217,9 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 	for _, ev := range envVars {
 		if ev.UUID == state.UUID.ValueString() {
 			state.Key = types.StringValue(ev.Key)
-			state.Value = types.StringValue(ev.Value)
+			if ev.Value != "" || state.Value.IsNull() || state.Value.IsUnknown() {
+				state.Value = types.StringValue(ev.Value)
+			}
 			state.IsPreview = types.BoolValue(ev.IsPreview)
 			state.IsBuild = types.BoolValue(ev.IsBuild)
 			found = true

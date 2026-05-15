@@ -128,7 +128,44 @@ def _format_default(val) -> str:
     return s
 
 
+REVIEWED_NULLABILITY_DRIFT = {
+    "Application": {
+        "build_command",
+        "custom_labels",
+        "custom_network_aliases",
+        "custom_nginx_configuration",
+        "description",
+        "docker_compose_custom_build_command",
+        "docker_compose_custom_start_command",
+        "docker_compose_domains",
+        "docker_compose_raw",
+        "dockerfile",
+        "dockerfile_target_build",
+        "health_check_command",
+        "health_check_host",
+        "http_basic_auth_password",
+        "http_basic_auth_username",
+        "install_command",
+        "manual_webhook_secret_bitbucket",
+        "manual_webhook_secret_gitea",
+        "manual_webhook_secret_github",
+        "manual_webhook_secret_gitlab",
+        "post_deployment_command_container",
+        "pre_deployment_command_container",
+        "publish_directory",
+        "redirect",
+        "start_command",
+        "watch_paths",
+    },
+    "EnvironmentVariable": {"value"},
+    "PrivateKey": {"description"},
+    "Project": {"description"},
+    "Server": {"description"},
+}
+
+
 def _compare_field(
+    model_name: str,
     field_name: str,
     contract_field: dict,
     spec_props: dict,
@@ -155,13 +192,17 @@ def _compare_field(
 
     type_match = contract_type == spec_type
     nullable_match = contract_nullable == spec_nullable
+    reviewed_drift = (
+        not nullable_match
+        and field_name in REVIEWED_NULLABILITY_DRIFT.get(model_name, set())
+    )
 
     return {
         "field": field_name,
         "contract_type": contract_type,
         "spec_type": spec_type,
         "type_match": type_match,
-        "nullable_match": "yes" if nullable_match else "**WRONG**",
+        "nullable_match": "yes" if nullable_match else ("reviewed drift" if reviewed_drift else "**WRONG**"),
         "default": _format_default(contract_default),
         "provider": "supported" if field_name in provider_tags else "n/a",
     }
@@ -204,7 +245,7 @@ def _build_model_table(
     rows: list[dict] = []
     for field_name in sorted(all_fields):
         rows.append(
-            _compare_field(field_name, all_fields[field_name], spec_props, provider_tags)
+            _compare_field(model_name, field_name, all_fields[field_name], spec_props, provider_tags)
         )
 
     # Also report spec-only fields (in spec but not in contract).
@@ -225,7 +266,7 @@ def _build_model_table(
     # Compute stats.
     total = len(rows)
     type_ok = sum(1 for r in rows if r.get("type_match", True))
-    nullable_ok = sum(1 for r in rows if r.get("nullable_match") in ("yes", "-"))
+    nullable_ok = sum(1 for r in rows if r.get("nullable_match") in ("yes", "reviewed drift", "-"))
     provider_ok = sum(1 for r in rows if r["provider"] == "supported")
 
     lines: list[str] = []
@@ -292,6 +333,7 @@ def main():
     out.append("Coolify contract extracted from the real application code.")
     out.append("")
     out.append("> The source-derived contract is the field-level source of truth. The pinned OpenAPI spec is useful for reusable public schemas and route inventory, but some contract models only exist as internal implementation details or inline request bodies.")
+    out.append("> `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.")
     out.append("")
     out.append(
         f"Contract version: `{contract.get('version', 'unknown')}` | "

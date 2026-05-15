@@ -198,6 +198,92 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 // TestEnvironmentVariableResource_Import
 // ---------------------------------------------------------------------------
 
+func TestEnvironmentVariableResource_ReadPreservesValueWhenAPIHidesIt(t *testing.T) {
+	t.Parallel()
+	currentEnvVar := client.EnvironmentVariable{
+		UUID:      "env-hidden-uuid",
+		Key:       "SECRET_KEY",
+		Value:     "initial-secret",
+		IsPreview: false,
+		IsBuild:   false,
+	}
+	returnHiddenValue := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentEnvVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		resp := currentEnvVar
+		if returnHiddenValue {
+			resp.Value = ""
+		}
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{resp})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["value"].(string); ok {
+			currentEnvVar.Value = v
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != currentEnvVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "SECRET_KEY"
+					value            = "initial-secret"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "initial-secret"),
+					resource.TestCheckFunc(func(s *terraform.State) error {
+						returnHiddenValue = true
+						return nil
+					}),
+				),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "SECRET_KEY"
+					value            = "initial-secret"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestEnvironmentVariableResource_Import(t *testing.T) {
 	t.Parallel()
 	envVar := client.EnvironmentVariable{
