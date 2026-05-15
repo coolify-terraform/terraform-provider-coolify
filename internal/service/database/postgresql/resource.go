@@ -389,7 +389,12 @@ func UpdateDatabase(ctx context.Context, c *client.Client, uuid string, input cl
 	if _, err := c.UpdateDatabase(ctx, uuid, input); err != nil {
 		return nil, err
 	}
-	return c.GetDatabase(ctx, uuid)
+
+	db, err := c.GetDatabase(ctx, uuid)
+	if err != nil {
+		return nil, fmt.Errorf("reading database %s after update: %w", uuid, err)
+	}
+	return db, nil
 }
 
 // DeleteDatabase removes a database by UUID, silently succeeding if already
