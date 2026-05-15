@@ -36,7 +36,7 @@ terraform init
 
 ## Configure authentication
 
-Generate an API token in the Coolify UI: **Security > API Tokens**.
+Coolify's API is disabled by default. Enable it in the Coolify UI under **Settings** first. Then generate an API token under **Security > API Tokens**. Otherwise provider operations fail with `Unauthenticated`.
 
 ### Token permissions
 

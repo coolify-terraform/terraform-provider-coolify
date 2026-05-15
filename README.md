@@ -143,7 +143,7 @@ scenarios tested against a live Coolify instance:
 
 ## Authentication
 
-The provider requires a Coolify API token. Generate one in the Coolify UI under **Security > API Tokens**.
+The provider requires a Coolify API token. Coolify's API is disabled by default, so first enable it in the Coolify UI under **Settings**. Then generate a token under **Security > API Tokens**. Otherwise provider operations fail with `Unauthenticated`.
 
 | Attribute | Environment Variable | Description |
 |-----------|---------------------|-------------|
