@@ -118,6 +118,37 @@ data "coolify_environment_variables" "by_app" {
 }
 
 // ---------------------------------------------------------------------------
+// TestAccEnvironmentVariableSingularDataSource
+// ---------------------------------------------------------------------------
+
+func TestAccEnvironmentVariableSingularDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-envvar-sds")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_environment_variable", "application_uuid", "/api/v1/applications/%s/envs"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccEnvVarAppConfig(name, serverUUID, "singular-ds-value") + `
+data "coolify_environment_variable" "test" {
+  uuid             = coolify_environment_variable.test.uuid
+  application_uuid = coolify_dockerfile_application.test.uuid
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair("data.coolify_environment_variable.test", "uuid", "coolify_environment_variable.test", "uuid"),
+					resource.TestCheckResourceAttr("data.coolify_environment_variable.test", "key", "TEST_VAR"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

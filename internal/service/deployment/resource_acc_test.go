@@ -81,6 +81,35 @@ data "coolify_deployments" "all" {
 }
 
 // ---------------------------------------------------------------------------
+// TestAccDeploymentSingularDataSource
+// ---------------------------------------------------------------------------
+
+func TestAccDeploymentSingularDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-deploy-sds")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDeploymentConfig(name, serverUUID) + `
+data "coolify_deployment" "test" {
+  uuid = coolify_deployment.test.uuid
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair("data.coolify_deployment.test", "uuid", "coolify_deployment.test", "uuid"),
+					resource.TestCheckResourceAttrSet("data.coolify_deployment.test", "status"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

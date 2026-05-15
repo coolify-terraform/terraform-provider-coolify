@@ -87,6 +87,37 @@ func TestAccStorageDataSources(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestAccStorageSingularDataSource
+// ---------------------------------------------------------------------------
+
+func TestAccStorageSingularDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-stor-sds")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_storage", "application_uuid", "/api/v1/applications/%s/storages"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageConfig(name, serverUUID, "") + `
+data "coolify_storage" "test" {
+  uuid             = coolify_storage.test.uuid
+  application_uuid = coolify_dockerfile_application.test.uuid
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair("data.coolify_storage.test", "uuid", "coolify_storage.test", "uuid"),
+					resource.TestCheckResourceAttr("data.coolify_storage.test", "mount_path", "/data"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

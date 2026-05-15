@@ -88,6 +88,38 @@ func TestAccScheduledTaskDataSources(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestAccScheduledTaskSingularDataSource
+// ---------------------------------------------------------------------------
+
+func TestAccScheduledTaskSingularDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-task-sds")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_scheduled_task", "application_uuid", "/api/v1/applications/%s/scheduled-tasks"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccScheduledTaskConfig(name, serverUUID, "echo singular") + `
+data "coolify_scheduled_task" "test" {
+  uuid             = coolify_scheduled_task.test.uuid
+  application_uuid = coolify_dockerfile_application.test.uuid
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair("data.coolify_scheduled_task.test", "uuid", "coolify_scheduled_task.test", "uuid"),
+					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "name", name),
+					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "command", "echo singular"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 

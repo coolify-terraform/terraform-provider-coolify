@@ -49,6 +49,33 @@ func TestAccApplicationResource_CRUD(t *testing.T) {
 	})
 }
 
+func TestAccApplicationDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-app-ds")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccPublicGitAppConfig(name, serverUUID, "") + `
+data "coolify_application" "test" {
+  uuid = coolify_application.test.uuid
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair("data.coolify_application.test", "uuid", "coolify_application.test", "uuid"),
+					resource.TestCheckResourceAttrPair("data.coolify_application.test", "name", "coolify_application.test", "name"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "build_pack", "nixpacks"),
+				),
+			},
+		},
+	})
+}
+
 func testAccPublicGitAppConfig(name, serverUUID, extra string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {
