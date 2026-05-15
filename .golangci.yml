@@ -2,6 +2,8 @@ version: "2"
 
 run:
   timeout: 5m
+  # Shared self-hosted runners should wait for the golangci-lint lock instead of failing.
+  allow-serial-runners: true
 
 linters:
   enable:
