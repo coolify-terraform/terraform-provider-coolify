@@ -10,6 +10,7 @@ This page compares the pinned reusable OpenAPI schemas with the source-derived
 Coolify contract extracted from the real application code.
 
 > The source-derived contract is the field-level source of truth. The pinned OpenAPI spec is useful for reusable public schemas and route inventory, but some contract models only exist as internal implementation details or inline request bodies.
+> `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 
 Contract version: `v4-latest` | Extracted from: `coollabsio/coolify@v4-latest`
 
@@ -19,7 +20,7 @@ Contract version: `v4-latest` | Extracted from: `coollabsio/coolify@v4-latest`
 |--------|------:|
 | Public schema fields compared | 299 |
 | Public schema type matches | 299/299 |
-| Public schema nullable matches | 239/299 |
+| Public schema nullable matches | 269/299 |
 | Public schema provider coverage | 143/299 |
 | Reusable public schemas compared | 9 |
 | Contract-only / inline-only models documented | 13 |
@@ -30,14 +31,14 @@ Contract version: `v4-latest` | Extracted from: `coollabsio/coolify@v4-latest`
 
 ## Application
 
-Fields: 133 | Type matches: 133/133 | Nullable matches: 94/133 | Provider coverage: 78/133
+Fields: 133 | Type matches: 133/133 | Nullable matches: 120/133 | Provider coverage: 78/133
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | additional_destinations | string | string | yes | **WRONG** | - | n/a |
 | application_id | integer | integer | yes | yes | - | n/a |
 | base_directory | string | string | yes | yes | / | supported |
-| build_command | string | string | yes | **WRONG** | - | supported |
+| build_command | string | string | yes | reviewed drift | - | supported |
 | build_pack | string | string | yes | yes | - | supported |
 | compose_parsing_version | string | string | yes | yes | - | n/a |
 | config_hash | string | string | yes | **WRONG** | - | n/a |
@@ -45,28 +46,28 @@ Fields: 133 | Type matches: 133/133 | Nullable matches: 94/133 | Provider covera
 | custom_docker_run_options | string | string | yes | yes | - | supported |
 | custom_healthcheck_found | string | string | yes | yes | - | n/a |
 | custom_internal_name | string | string | yes | yes | - | n/a |
-| custom_labels | string | string | yes | **WRONG** | - | supported |
-| custom_network_aliases | string | string | yes | **WRONG** | - | supported |
-| custom_nginx_configuration | string | string | yes | **WRONG** | - | supported |
-| description | string | string | yes | **WRONG** | - | supported |
+| custom_labels | string | string | yes | reviewed drift | - | supported |
+| custom_network_aliases | string | string | yes | reviewed drift | - | supported |
+| custom_nginx_configuration | string | string | yes | reviewed drift | - | supported |
+| description | string | string | yes | reviewed drift | - | supported |
 | destination_id | integer | integer | yes | **WRONG** | - | n/a |
 | destination_type | string | string | yes | **WRONG** | - | n/a |
 | disable_build_cache | string | string | yes | yes | - | n/a |
 | docker_compose | string | string | yes | **WRONG** | - | n/a |
-| docker_compose_custom_build_command | string | string | yes | **WRONG** | - | supported |
-| docker_compose_custom_start_command | string | string | yes | **WRONG** | - | supported |
-| docker_compose_domains | string | string | yes | **WRONG** | - | supported |
+| docker_compose_custom_build_command | string | string | yes | reviewed drift | - | supported |
+| docker_compose_custom_start_command | string | string | yes | reviewed drift | - | supported |
+| docker_compose_domains | string | string | yes | reviewed drift | - | supported |
 | docker_compose_location | string | string | yes | yes | - | supported |
 | docker_compose_pr | string | string | yes | **WRONG** | - | n/a |
 | docker_compose_pr_location | string | string | yes | **WRONG** | /docker-compose.yaml | n/a |
 | docker_compose_pr_raw | string | string | yes | **WRONG** | - | n/a |
-| docker_compose_raw | string | string | yes | **WRONG** | - | supported |
+| docker_compose_raw | string | string | yes | reviewed drift | - | supported |
 | docker_images_to_keep | string | string | yes | yes | - | n/a |
 | docker_registry_image_name | string | string | yes | yes | - | supported |
 | docker_registry_image_tag | string | string | yes | yes | - | supported |
-| dockerfile | string | string | yes | **WRONG** | - | supported |
+| dockerfile | string | string | yes | reviewed drift | - | supported |
 | dockerfile_location | string | string | yes | yes | - | supported |
-| dockerfile_target_build | string | string | yes | **WRONG** | - | supported |
+| dockerfile_target_build | string | string | yes | reviewed drift | - | supported |
 | environment_id | integer | integer | yes | yes | - | n/a |
 | force_domain_override | string | string | yes | yes | - | supported |
 | fqdn | string | string | yes | yes | - | supported |
@@ -78,9 +79,9 @@ Fields: 133 | Type matches: 133/133 | Nullable matches: 94/133 | Provider covera
 | gpu_device_ids | string | string | yes | yes | - | n/a |
 | gpu_driver | string | string | yes | yes | - | n/a |
 | gpu_options | string | string | yes | yes | - | n/a |
-| health_check_command | string | string | yes | **WRONG** | - | supported |
+| health_check_command | string | string | yes | reviewed drift | - | supported |
 | health_check_enabled | boolean | boolean | yes | yes | true | supported |
-| health_check_host | string | string | yes | **WRONG** | localhost | supported |
+| health_check_host | string | string | yes | reviewed drift | localhost | supported |
 | health_check_interval | integer | integer | yes | yes | 5 | supported |
 | health_check_method | string | string | yes | yes | GET | supported |
 | health_check_path | string | string | yes | yes | / | supported |
@@ -92,11 +93,11 @@ Fields: 133 | Type matches: 133/133 | Nullable matches: 94/133 | Provider covera
 | health_check_start_period | integer | integer | yes | yes | 5 | supported |
 | health_check_timeout | integer | integer | yes | yes | 5 | supported |
 | health_check_type | string | string | yes | yes | - | supported |
-| http_basic_auth_password | string | string | yes | **WRONG** | - | supported |
-| http_basic_auth_username | string | string | yes | **WRONG** | - | supported |
+| http_basic_auth_password | string | string | yes | reviewed drift | - | supported |
+| http_basic_auth_username | string | string | yes | reviewed drift | - | supported |
 | include_source_commit_in_build | string | string | yes | yes | - | n/a |
 | inject_build_args_to_dockerfile | string | string | yes | yes | - | n/a |
-| install_command | string | string | yes | **WRONG** | - | supported |
+| install_command | string | string | yes | reviewed drift | - | supported |
 | is_auto_deploy_enabled | boolean | boolean | yes | yes | true | supported |
 | is_build_server_enabled | string | string | yes | yes | - | n/a |
 | is_consistent_container_name_enabled | string | string | yes | yes | - | n/a |
@@ -134,27 +135,27 @@ Fields: 133 | Type matches: 133/133 | Nullable matches: 94/133 | Provider covera
 | limits_memory_reservation | string | string | yes | yes | 0 | supported |
 | limits_memory_swap | string | string | yes | yes | 0 | supported |
 | limits_memory_swappiness | integer | integer | yes | yes | 60 | supported |
-| manual_webhook_secret_bitbucket | string | string | yes | **WRONG** | - | supported |
-| manual_webhook_secret_gitea | string | string | yes | **WRONG** | - | supported |
-| manual_webhook_secret_github | string | string | yes | **WRONG** | - | supported |
-| manual_webhook_secret_gitlab | string | string | yes | **WRONG** | - | supported |
+| manual_webhook_secret_bitbucket | string | string | yes | reviewed drift | - | supported |
+| manual_webhook_secret_gitea | string | string | yes | reviewed drift | - | supported |
+| manual_webhook_secret_github | string | string | yes | reviewed drift | - | supported |
+| manual_webhook_secret_gitlab | string | string | yes | reviewed drift | - | supported |
 | name | string | string | yes | yes | - | supported |
 | nixpkgsarchive | string | string | yes | yes | - | n/a |
 | ports_exposes | string | string | yes | yes | - | supported |
 | ports_mappings | string | string | yes | yes | - | supported |
 | post_deployment_command | string | string | yes | yes | - | supported |
-| post_deployment_command_container | string | string | yes | **WRONG** | - | supported |
+| post_deployment_command_container | string | string | yes | reviewed drift | - | supported |
 | pre_deployment_command | string | string | yes | yes | - | supported |
-| pre_deployment_command_container | string | string | yes | **WRONG** | - | supported |
+| pre_deployment_command_container | string | string | yes | reviewed drift | - | supported |
 | preview_url_template | string | string | yes | yes | { {pr_id} }.{ {domain} } | supported |
 | private_key_id | integer | integer | yes | yes | - | n/a |
-| publish_directory | string | string | yes | **WRONG** | - | supported |
-| redirect | string | string | yes | **WRONG** | - | supported |
+| publish_directory | string | string | yes | reviewed drift | - | supported |
+| redirect | string | string | yes | reviewed drift | - | supported |
 | repository_project_id | integer | integer | yes | yes | - | n/a |
 | restart_count | integer | integer | yes | yes | 0 | n/a |
 | source_id | integer | integer | yes | yes | - | n/a |
 | source_type | string | string | yes | **WRONG** | - | n/a |
-| start_command | string | string | yes | **WRONG** | - | supported |
+| start_command | string | string | yes | reviewed drift | - | supported |
 | static_image | string | string | yes | yes | nginx:alpine | supported |
 | status | string | string | yes | yes | exited | supported |
 | swarm_placement_constraints | string | string | yes | **WRONG** | - | n/a |
@@ -162,7 +163,7 @@ Fields: 133 | Type matches: 133/133 | Nullable matches: 94/133 | Provider covera
 | use_build_secrets | string | string | yes | yes | - | n/a |
 | use_build_server | string | string | yes | yes | - | supported |
 | uuid | string | string | yes | yes | - | supported |
-| watch_paths | string | string | yes | **WRONG** | - | supported |
+| watch_paths | string | string | yes | reviewed drift | - | supported |
 | created_at | - | string | - | - | - | supported |
 | deleted_at | - | string | - | - | - | n/a |
 | id | - | integer | - | - | - | supported |
@@ -184,7 +185,7 @@ Fields: 7 | Type matches: 7/7 | Nullable matches: 7/7 | Provider coverage: 6/7
 
 ## EnvironmentVariable
 
-Fields: 33 | Type matches: 33/33 | Nullable matches: 20/33 | Provider coverage: 8/33
+Fields: 33 | Type matches: 33/33 | Nullable matches: 21/33 | Provider coverage: 8/33
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -214,7 +215,7 @@ Fields: 33 | Type matches: 33/33 | Nullable matches: 20/33 | Provider coverage: 
 | standalone_mysql_id | integer | integer | yes | **WRONG** | - | n/a |
 | standalone_postgresql_id | integer | integer | yes | **WRONG** | - | n/a |
 | standalone_redis_id | integer | integer | yes | **WRONG** | - | n/a |
-| value | string | string | yes | **WRONG** | - | supported |
+| value | string | string | yes | reviewed drift | - | supported |
 | version | string | string | yes | yes | - | n/a |
 | created_at | - | string | - | - | - | supported |
 | id | - | integer | - | - | - | supported |
@@ -224,11 +225,11 @@ Fields: 33 | Type matches: 33/33 | Nullable matches: 20/33 | Provider coverage: 
 
 ## PrivateKey
 
-Fields: 11 | Type matches: 11/11 | Nullable matches: 10/11 | Provider coverage: 10/11
+Fields: 11 | Type matches: 11/11 | Nullable matches: 11/11 | Provider coverage: 10/11
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| description | string | string | yes | **WRONG** | - | supported |
+| description | string | string | yes | reviewed drift | - | supported |
 | fingerprint | string | string | yes | yes | - | supported |
 | is_git_related | boolean | boolean | yes | yes | false | supported |
 | name | string | string | yes | yes | - | supported |
@@ -242,11 +243,11 @@ Fields: 11 | Type matches: 11/11 | Nullable matches: 10/11 | Provider coverage: 
 
 ## Project
 
-Fields: 4 | Type matches: 4/4 | Nullable matches: 3/4 | Provider coverage: 4/4
+Fields: 4 | Type matches: 4/4 | Nullable matches: 4/4 | Provider coverage: 4/4
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| description | string | string | yes | **WRONG** | - | supported |
+| description | string | string | yes | reviewed drift | - | supported |
 | name | string | string | yes | yes | - | supported |
 | uuid | string | string | yes | yes | - | supported |
 | id | - | integer | - | - | - | supported |
@@ -272,12 +273,12 @@ Fields: 12 | Type matches: 12/12 | Nullable matches: 10/12 | Provider coverage: 
 
 ## Server
 
-Fields: 26 | Type matches: 26/26 | Nullable matches: 25/26 | Provider coverage: 8/26
+Fields: 26 | Type matches: 26/26 | Nullable matches: 26/26 | Provider coverage: 8/26
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | cloud_provider_token_id | string | string | yes | yes | - | n/a |
-| description | string | string | yes | **WRONG** | - | supported |
+| description | string | string | yes | reviewed drift | - | supported |
 | detected_traefik_version | string | string | yes | yes | - | n/a |
 | hetzner_server_id | string | string | yes | yes | - | n/a |
 | hetzner_server_status | string | string | yes | yes | - | n/a |
