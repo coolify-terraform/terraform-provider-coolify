@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/provider"
@@ -354,6 +355,9 @@ func NotFoundError() *regexp.Regexp {
 // out-of-band via the real Coolify API. Use in acceptance Disappears tests to
 // simulate external deletion. The apiDeletePath should be the API path prefix
 // (e.g., "/api/v1/projects/"). The resource's "uuid" attribute is appended.
+//
+// After deleting, it polls the GET endpoint until the resource returns 404
+// to handle Coolify's async deletion behavior.
 func AccCheckResourceDisappears(resourceAddr, apiDeletePath string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceAddr]
@@ -366,6 +370,8 @@ func AccCheckResourceDisappears(resourceAddr, apiDeletePath string) resource.Tes
 		}
 		endpoint := os.Getenv("COOLIFY_ENDPOINT")
 		token := os.Getenv("COOLIFY_TOKEN")
+
+		// Delete the resource
 		req, err := http.NewRequest(http.MethodDelete, endpoint+apiDeletePath+uuid, nil)
 		if err != nil {
 			return err
@@ -376,7 +382,25 @@ func AccCheckResourceDisappears(resourceAddr, apiDeletePath string) resource.Tes
 			return fmt.Errorf("deleting %s/%s: %w", resourceAddr, uuid, err)
 		}
 		_ = resp.Body.Close()
-		return nil
+
+		// Poll until the resource is gone (Coolify deletes are async)
+		for range 30 {
+			time.Sleep(1 * time.Second)
+			getReq, err := http.NewRequest(http.MethodGet, endpoint+apiDeletePath+uuid, nil)
+			if err != nil {
+				return err
+			}
+			getReq.Header.Set("Authorization", "Bearer "+token)
+			getResp, err := http.DefaultClient.Do(getReq)
+			if err != nil {
+				continue
+			}
+			_ = getResp.Body.Close()
+			if getResp.StatusCode == http.StatusNotFound {
+				return nil
+			}
+		}
+		return fmt.Errorf("resource %s/%s still exists after 30s", resourceAddr, uuid)
 	}
 }
 

@@ -68,19 +68,19 @@ func TestAccServerResource_UpdateFields(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_server", "/api/v1/servers/"),
 		Steps: []resource.TestStep{
-			// Create with key1 and IP .1
+			// Create with key1 and IP .10
 			{
-				Config: testAccServerTwoKeysConfig(name, privKey1, privKey2, "192.0.2.1", "key1"),
+				Config: testAccServerTwoKeysConfig(name, privKey1, privKey2, "192.0.2.10", "key1"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_server.test", "uuid"),
-					resource.TestCheckResourceAttr("coolify_server.test", "ip", "192.0.2.1"),
+					resource.TestCheckResourceAttr("coolify_server.test", "ip", "192.0.2.10"),
 				),
 			},
-			// Switch to key2 and IP .2
+			// Switch to key2 and IP .11
 			{
-				Config: testAccServerTwoKeysConfig(name, privKey1, privKey2, "192.0.2.2", "key2"),
+				Config: testAccServerTwoKeysConfig(name, privKey1, privKey2, "192.0.2.11", "key2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_server.test", "ip", "192.0.2.2"),
+					resource.TestCheckResourceAttr("coolify_server.test", "ip", "192.0.2.11"),
 				),
 			},
 		},

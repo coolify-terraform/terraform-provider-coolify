@@ -289,6 +289,7 @@ resource "coolify_environment_variable" "test" {
   database_uuid = coolify_postgresql_database.test.uuid
   key           = "DB_TEST_VAR"
   value         = %[3]q
+  is_build      = true
 }
 `, name, serverUUID, value)
 }
@@ -309,6 +310,7 @@ resource "coolify_environment_variable" "test" {
   service_uuid = coolify_service.test.uuid
   key          = "SVC_TEST_VAR"
   value        = %[3]q
+  is_build     = true
 }
 `, name, serverUUID, value)
 }
