@@ -163,7 +163,7 @@ data "coolify_storage" "test" {
   application_uuid = "cccc0001-0001-4000-8000-000000000001"
 }
 `,
-				ExpectError: regexp.MustCompile(`not found`),
+				ExpectError: regexp.MustCompile(`not\s+found`),
 			},
 		},
 	})
