@@ -372,7 +372,7 @@ func ConfigureDatabase(req resource.ConfigureRequest, resp *resource.ConfigureRe
 	}
 	c, ok := req.ProviderData.(*client.Client)
 	if !ok {
-		resp.Diagnostics.AddError("Unexpected Resource Configure Type", fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData))
+		resp.Diagnostics.AddError("Unexpected Configure Type", fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData))
 		return nil
 	}
 	return c

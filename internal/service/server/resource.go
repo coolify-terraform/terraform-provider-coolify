@@ -178,7 +178,7 @@ func (r *serverResource) Configure(_ context.Context, req resource.ConfigureRequ
 	c, ok := req.ProviderData.(*client.Client)
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
+			"Unexpected Configure Type",
 			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
 		)
 		return

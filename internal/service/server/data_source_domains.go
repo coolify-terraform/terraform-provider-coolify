@@ -78,7 +78,7 @@ func (d *serverDomainsDataSource) Configure(_ context.Context, req datasource.Co
 	c, ok := req.ProviderData.(*client.Client)
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Data Source Configure Type",
+			"Unexpected Configure Type",
 			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
 		)
 		return

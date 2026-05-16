@@ -90,8 +90,8 @@ func (d *environmentListDataSource) Configure(_ context.Context, req datasource.
 	c, ok := req.ProviderData.(*client.Client)
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Provider Data",
-			"Expected *client.Client, got an unexpected type. Please report this issue to the provider developers.",
+			"Unexpected Configure Type",
+			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
 		)
 		return
 	}

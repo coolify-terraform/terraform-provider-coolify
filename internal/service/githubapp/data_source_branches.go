@@ -87,7 +87,7 @@ func (d *gitHubAppBranchesDataSource) Configure(_ context.Context, req datasourc
 	c, ok := req.ProviderData.(*client.Client)
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Provider Data",
+			"Unexpected Configure Type",
 			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
 		)
 		return

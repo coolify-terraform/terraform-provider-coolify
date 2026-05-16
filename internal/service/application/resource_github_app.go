@@ -65,7 +65,7 @@ func (r *gitHubAppApplicationResource) Configure(_ context.Context, req resource
 	c, ok := req.ProviderData.(*client.Client)
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
+			"Unexpected Configure Type",
 			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
 		)
 		return
