@@ -201,10 +201,6 @@ func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_dockerfile_application", "uuid": plan.UUID.ValueString()})
 
 	input := buildUpdateInput(plan.common(), state.common())
-	// Coolify v4 does not accept "dockerfile" on update; only "dockerfile_location" (a path).
-	// For dockerfile apps, the content is set at creation time only, so clear the path field
-	// to avoid sending base64 content as a path.
-	input.DockerfileLocation = nil
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenDockerfileApplication(app, &plan)
 	})
