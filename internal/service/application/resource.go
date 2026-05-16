@@ -100,7 +100,8 @@ func (r *applicationResource) Create(ctx context.Context, req resource.CreateReq
 
 	created, err := r.client.CreatePublicApplication(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating application", err.Error())
+		resp.Diagnostics.AddError("Error creating application",
+			fmt.Sprintf("project %s, server %s: %s", plan.ProjectUUID.ValueString(), plan.ServerUUID.ValueString(), err))
 		return
 	}
 

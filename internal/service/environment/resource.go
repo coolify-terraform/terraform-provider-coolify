@@ -117,7 +117,8 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 
 	_, err := r.client.CreateEnvironment(ctx, plan.ProjectUUID.ValueString(), input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating environment", err.Error())
+		resp.Diagnostics.AddError("Error creating environment",
+			fmt.Sprintf("project %s: %s", plan.ProjectUUID.ValueString(), err))
 		return
 	}
 

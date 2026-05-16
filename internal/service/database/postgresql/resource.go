@@ -187,7 +187,8 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 
 	created, err := r.client.CreateDatabase(ctx, "postgresql", input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating PostgreSQL database", err.Error())
+		resp.Diagnostics.AddError("Error creating PostgreSQL database",
+			fmt.Sprintf("project %s, server %s: %s", plan.ProjectUUID.ValueString(), plan.ServerUUID.ValueString(), err))
 		return
 	}
 

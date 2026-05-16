@@ -117,7 +117,8 @@ func (r *dockerImageApplicationResource) Create(ctx context.Context, req resourc
 
 	created, err := r.client.CreateDockerImageApplication(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating docker image application", err.Error())
+		resp.Diagnostics.AddError("Error creating docker image application",
+			fmt.Sprintf("project %s, server %s: %s", plan.ProjectUUID.ValueString(), plan.ServerUUID.ValueString(), err))
 		return
 	}
 

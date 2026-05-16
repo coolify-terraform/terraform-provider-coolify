@@ -161,7 +161,8 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	flex.SetIfKnown(&input.Description, plan.Description)
 	created, err := r.client.CreateService(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating service", err.Error())
+		resp.Diagnostics.AddError("Error creating service",
+			fmt.Sprintf("project %s, server %s: %s", plan.ProjectUUID.ValueString(), plan.ServerUUID.ValueString(), err))
 		return
 	}
 

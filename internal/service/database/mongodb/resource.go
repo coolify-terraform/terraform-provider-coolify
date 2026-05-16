@@ -73,7 +73,8 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	c, err := r.client.CreateDatabase(ctx, "mongodb", in)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating MongoDB database", err.Error())
+		resp.Diagnostics.AddError("Error creating MongoDB database",
+			fmt.Sprintf("project %s, server %s: %s", p.ProjectUUID.ValueString(), p.ServerUUID.ValueString(), err))
 		return
 	}
 

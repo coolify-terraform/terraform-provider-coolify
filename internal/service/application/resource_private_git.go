@@ -116,7 +116,8 @@ func (r *privateGitApplicationResource) Create(ctx context.Context, req resource
 
 	created, err := r.client.CreatePrivateGitApplication(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating private git application", err.Error())
+		resp.Diagnostics.AddError("Error creating private git application",
+			fmt.Sprintf("project %s, server %s: %s", plan.ProjectUUID.ValueString(), plan.ServerUUID.ValueString(), err))
 		return
 	}
 
