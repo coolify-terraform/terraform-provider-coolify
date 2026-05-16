@@ -105,7 +105,6 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"private_key_uuid": schema.StringAttribute{
 				MarkdownDescription: "UUID of an existing `coolify_private_key` resource for GitHub App authentication. Write-only: not returned by the API after creation.",
 				Required:            true,
-				Sensitive:           true,
 			},
 		},
 	}
