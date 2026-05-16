@@ -80,7 +80,7 @@ type. Additional read-only data sources include:
 
 - `coolify_server_resources`: list all resources deployed on a server
 - `coolify_server_domains`: list all domains configured on a server
-- `coolify_environment_variables`: list env vars for an app or service
+- `coolify_environment_variables`: list env vars for an app, service, or database
 - `coolify_version`: read the Coolify instance version
 - `coolify_team`: read team info and members
 
