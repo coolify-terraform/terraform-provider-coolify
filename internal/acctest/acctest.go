@@ -346,9 +346,10 @@ func UUIDValidationError() *regexp.Regexp {
 }
 
 // NotFoundError returns a regex matching common "not found" error messages
-// from both the provider and the Coolify API.
+// from both the provider and the Coolify API, including diagnostics where
+// wrapping introduces extra whitespace or newlines between the words.
 func NotFoundError() *regexp.Regexp {
-	return regexp.MustCompile(`(?i)not found`)
+	return regexp.MustCompile(`(?i)not\s+found`)
 }
 
 // AccCheckResourceDisappears returns a TestCheckFunc that deletes a resource

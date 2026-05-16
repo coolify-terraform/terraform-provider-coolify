@@ -6,8 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"regexp"
-
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -129,7 +127,7 @@ data "coolify_scheduled_task" "test" {
   application_uuid = "cccc0001-0001-4000-8000-000000000001"
 }
 `,
-				ExpectError: regexp.MustCompile(`not\s+found`),
+				ExpectError: acctest.NotFoundError(),
 			},
 		},
 	})
