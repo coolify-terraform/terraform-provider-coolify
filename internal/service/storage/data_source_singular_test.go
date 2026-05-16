@@ -17,8 +17,8 @@ func TestStorageDataSource_Application(t *testing.T) {
 	t.Parallel()
 
 	storages := []client.Storage{
-		{UUID: "st-1", Name: "vol-a", MountPath: "/data/a", HostPath: "/host/a"},
-		{UUID: "st-2", Name: "vol-b", MountPath: "/data/b"},
+		{UUID: "11111111-1111-4111-8111-111111111111", Name: "vol-a", MountPath: "/data/a", HostPath: "/host/a"},
+		{UUID: "22222222-2222-4222-8222-222222222222", Name: "vol-b", MountPath: "/data/b"},
 	}
 
 	mux := http.NewServeMux()
@@ -35,12 +35,12 @@ func TestStorageDataSource_Application(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_storage" "test" {
-  uuid             = "st-1"
+  uuid             = "11111111-1111-4111-8111-111111111111"
   application_uuid = "cccc0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coolify_storage.test", "uuid", "st-1"),
+					resource.TestCheckResourceAttr("data.coolify_storage.test", "uuid", "11111111-1111-4111-8111-111111111111"),
 					resource.TestCheckResourceAttr("data.coolify_storage.test", "name", "vol-a"),
 					resource.TestCheckResourceAttr("data.coolify_storage.test", "mount_path", "/data/a"),
 					resource.TestCheckResourceAttr("data.coolify_storage.test", "host_path", "/host/a"),
@@ -54,7 +54,7 @@ func TestStorageDataSource_Service(t *testing.T) {
 	t.Parallel()
 
 	storages := []client.Storage{
-		{UUID: "st-s1", Name: "svc-config", MountPath: "/etc/config", HostPath: "/opt/config"},
+		{UUID: "33333333-3333-4333-8333-333333333333", Name: "svc-config", MountPath: "/etc/config", HostPath: "/opt/config"},
 	}
 
 	mux := http.NewServeMux()
@@ -71,12 +71,12 @@ func TestStorageDataSource_Service(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_storage" "test" {
-  uuid         = "st-s1"
+  uuid         = "33333333-3333-4333-8333-333333333333"
   service_uuid = "ffff0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coolify_storage.test", "uuid", "st-s1"),
+					resource.TestCheckResourceAttr("data.coolify_storage.test", "uuid", "33333333-3333-4333-8333-333333333333"),
 					resource.TestCheckResourceAttr("data.coolify_storage.test", "name", "svc-config"),
 					resource.TestCheckResourceAttr("data.coolify_storage.test", "mount_path", "/etc/config"),
 					resource.TestCheckResourceAttr("data.coolify_storage.test", "host_path", "/opt/config"),
@@ -90,7 +90,7 @@ func TestStorageDataSource_Database(t *testing.T) {
 	t.Parallel()
 
 	storages := []client.Storage{
-		{UUID: "st-d1", Name: "db-data", MountPath: "/var/lib/postgresql"},
+		{UUID: "44444444-4444-4444-8444-444444444444", Name: "db-data", MountPath: "/var/lib/postgresql"},
 	}
 
 	mux := http.NewServeMux()
@@ -107,12 +107,12 @@ func TestStorageDataSource_Database(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_storage" "test" {
-  uuid          = "st-d1"
+  uuid          = "44444444-4444-4444-8444-444444444444"
   database_uuid = "dddd0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coolify_storage.test", "uuid", "st-d1"),
+					resource.TestCheckResourceAttr("data.coolify_storage.test", "uuid", "44444444-4444-4444-8444-444444444444"),
 					resource.TestCheckResourceAttr("data.coolify_storage.test", "name", "db-data"),
 					resource.TestCheckResourceAttr("data.coolify_storage.test", "mount_path", "/var/lib/postgresql"),
 					resource.TestCheckResourceAttr("data.coolify_storage.test", "host_path", ""),
@@ -122,11 +122,27 @@ data "coolify_storage" "test" {
 	})
 }
 
+func TestStorageDataSource_InvalidUUID(t *testing.T) {
+	t.Parallel()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: `data "coolify_storage" "test" {
+  uuid             = "not-a-valid-uuid"
+  application_uuid = "cccc0001-0001-4000-8000-000000000001"
+}
+`,
+			ExpectError: acctest.UUIDValidationError(),
+		}},
+	})
+}
+
 func TestStorageDataSource_NotFound(t *testing.T) {
 	t.Parallel()
 
 	storages := []client.Storage{
-		{UUID: "st-1", Name: "vol-a", MountPath: "/data/a"},
+		{UUID: "11111111-1111-4111-8111-111111111111", Name: "vol-a", MountPath: "/data/a"},
 	}
 
 	mux := http.NewServeMux()
@@ -143,7 +159,7 @@ func TestStorageDataSource_NotFound(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_storage" "test" {
-  uuid             = "nonexistent-uuid"
+  uuid             = "55555555-5555-4555-8555-555555555555"
   application_uuid = "cccc0001-0001-4000-8000-000000000001"
 }
 `,

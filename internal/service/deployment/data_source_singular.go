@@ -6,8 +6,10 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -40,6 +42,7 @@ func (d *deploymentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the deployment.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"status": schema.StringAttribute{
 				MarkdownDescription: "The current status of the deployment.",
