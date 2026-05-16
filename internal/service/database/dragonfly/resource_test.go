@@ -234,6 +234,10 @@ func TestDragonflyDatabaseResource_CreateReadBackFailurePreservesState(t *testin
 				"limits_cpu_shares":         1024,
 			})
 
+		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dragonflyUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dragonflyUUID):
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})

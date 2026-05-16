@@ -34,6 +34,6 @@ func (v noShellMetacharsValidator) ValidateString(_ context.Context, req validat
 	value := req.ConfigValue.ValueString()
 	if loc := shellMetachars.FindStringIndex(value); loc != nil {
 		resp.Diagnostics.AddAttributeError(req.Path, "Shell Metacharacter Detected",
-			v.Description(nil))
+			v.Description(context.Background()))
 	}
 }

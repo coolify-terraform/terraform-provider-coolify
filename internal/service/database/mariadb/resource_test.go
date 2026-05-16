@@ -211,6 +211,10 @@ func TestMariadbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.
 				"limits_cpu_shares":         1024,
 			})
 
+		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mariadbUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mariadbUUID):
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})

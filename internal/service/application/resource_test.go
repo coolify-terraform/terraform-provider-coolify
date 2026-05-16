@@ -1299,7 +1299,9 @@ func TestApplicationResource_ValidatePortsMappings(t *testing.T) {
 }
 
 func TestApplicationResource_PortsMappingsRange(t *testing.T) {
-	srv := acctest.NewMockServer(t)
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),

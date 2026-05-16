@@ -482,15 +482,17 @@ type DatabaseExtendedPtrs struct {
 // Optional-only fields use setIfConfigured to avoid "inconsistent result after
 // apply" errors when the API returns defaults for unconfigured fields.
 func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
-	flex.SetStringIfConfigured(f.LimitsMemory, db.LimitsMemory)
-	flex.SetStringIfConfigured(f.LimitsMemorySwap, db.LimitsMemorySwap)
-	flex.SetStringIfConfigured(f.LimitsMemoryReservation, db.LimitsMemoryReservation)
-	flex.SetStringIfConfigured(f.LimitsCPUs, db.LimitsCPUs)
-	flex.SetStringIfConfigured(f.LimitsCPUSet, db.LimitsCPUSet)
+	// Fields with schema defaults — always set from API so import works.
+	*f.LimitsMemory = flex.StringToFramework(db.LimitsMemory)
+	*f.LimitsMemorySwap = flex.StringToFramework(db.LimitsMemorySwap)
+	*f.LimitsMemoryReservation = flex.StringToFramework(db.LimitsMemoryReservation)
+	*f.LimitsCPUs = flex.StringToFramework(db.LimitsCPUs)
+	*f.LimitsCPUSet = flex.StringToFramework(db.LimitsCPUSet)
+	*f.LimitsMemorySwappiness = flex.Int64PtrToFramework(db.LimitsMemorySwappiness)
+	*f.LimitsCPUShares = flex.Int64PtrToFramework(db.LimitsCPUShares)
+	// Fields without defaults — only set when configured.
 	flex.SetStringIfConfigured(f.PortsMappings, db.PortsMappings)
 	flex.SetStringIfConfigured(f.CustomDockerRunOptions, db.CustomDockerRunOptions)
-	flex.SetInt64IfConfigured(f.LimitsMemorySwappiness, db.LimitsMemorySwappiness)
-	flex.SetInt64IfConfigured(f.LimitsCPUShares, db.LimitsCPUShares)
 	flex.SetInt64IfConfigured(f.PublicPortTimeout, db.PublicPortTimeout)
 	// Status is Computed — always set.
 	*f.Status = flex.StringToFramework(db.Status)
@@ -528,13 +530,23 @@ func SetUpdateExtendedDiff(input *client.UpdateDatabaseInput, plan, state Databa
 // HasExtendedFields returns true if any extended field is configured (not
 // null/unknown), indicating an Update is needed after Create.
 func HasExtendedFields(f DatabaseExtendedPtrs) bool {
+	// strNonDefault returns true when the user configured a value that
+	// differs from the Coolify default. Fields whose schema Default matches
+	// the API create-response default return false here, avoiding an
+	// unnecessary PATCH after create.
+	strNonDefault := func(v *types.String, dflt string) bool {
+		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueString() != dflt
+	}
+	intNonDefault := func(v *types.Int64, dflt int64) bool {
+		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueInt64() != dflt
+	}
 	strSet := func(v *types.String) bool { return v != nil && !v.IsNull() && !v.IsUnknown() }
 	intSet := func(v *types.Int64) bool { return v != nil && !v.IsNull() && !v.IsUnknown() }
-	return strSet(f.LimitsMemory) || strSet(f.LimitsMemorySwap) ||
-		strSet(f.LimitsMemoryReservation) || strSet(f.LimitsCPUs) ||
-		strSet(f.LimitsCPUSet) || strSet(f.PortsMappings) ||
-		strSet(f.CustomDockerRunOptions) ||
-		intSet(f.LimitsMemorySwappiness) || intSet(f.LimitsCPUShares) ||
+	return strNonDefault(f.LimitsMemory, "0") || strNonDefault(f.LimitsMemorySwap, "0") ||
+		strNonDefault(f.LimitsMemoryReservation, "0") || strNonDefault(f.LimitsCPUs, "0") ||
+		strNonDefault(f.LimitsCPUSet, "0") ||
+		intNonDefault(f.LimitsMemorySwappiness, 60) || intNonDefault(f.LimitsCPUShares, 1024) ||
+		strSet(f.PortsMappings) || strSet(f.CustomDockerRunOptions) ||
 		intSet(f.PublicPortTimeout)
 }
 

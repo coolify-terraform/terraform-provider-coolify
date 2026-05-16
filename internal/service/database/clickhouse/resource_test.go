@@ -286,6 +286,10 @@ func TestClickhouseDatabaseResource_CreateReadBackFailurePreservesState(t *testi
 				"limits_cpu_shares":         1024,
 			})
 
+		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", clickhouseUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", clickhouseUUID):
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
