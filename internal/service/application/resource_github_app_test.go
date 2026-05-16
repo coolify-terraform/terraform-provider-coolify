@@ -156,24 +156,26 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
-		if v, ok := body["name"].(string); ok {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["name"].(string); ok {
 			app.Name = v
 		}
-		if v, ok := body["description"].(string); ok {
+		if v, ok := requestBody["description"].(string); ok {
 			app.Description = v
 		}
-		if v, ok := body["install_command"].(string); ok {
+		if v, ok := requestBody["install_command"].(string); ok {
 			app.InstallCommand = v
 		}
-		if v, ok := body["build_command"].(string); ok {
+		if v, ok := requestBody["build_command"].(string); ok {
 			app.BuildCommand = v
 		}
-		if v, ok := body["start_command"].(string); ok {
+		if v, ok := requestBody["start_command"].(string); ok {
 			app.StartCommand = v
 		}
-		if v, ok := body["github_app_uuid"].(string); ok {
+		if v, ok := requestBody["github_app_uuid"].(string); ok {
 			app.GitHubAppUUID = v
 		}
 		w.Header().Set("Content-Type", "application/json")

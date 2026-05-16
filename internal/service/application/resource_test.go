@@ -148,9 +148,11 @@ func TestApplicationResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
-		if v, ok := body["description"].(string); ok {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["description"].(string); ok {
 			currentApp.Description = v
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -251,9 +253,11 @@ func TestApplicationResource_UpdateReadBackFailure(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
-		if v, ok := body["description"].(string); ok {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["description"].(string); ok {
 			currentApp.Description = v
 		}
 		readBackFailsAfterPatch = true
@@ -721,57 +725,59 @@ func TestApplicationResource_LimitsAndHealthChecks(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
-		if v, ok := body["limits_memory"].(string); ok {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["limits_memory"].(string); ok {
 			currentApp.LimitsMemory = v
 		}
-		if v, ok := body["limits_memory_swap"].(string); ok {
+		if v, ok := requestBody["limits_memory_swap"].(string); ok {
 			currentApp.LimitsMemorySwap = v
 		}
-		if v, ok := body["limits_memory_swappiness"].(float64); ok {
+		if v, ok := requestBody["limits_memory_swappiness"].(float64); ok {
 			i := int64(v)
 			currentApp.LimitsMemorySwappiness = &i
 		}
-		if v, ok := body["limits_memory_reservation"].(string); ok {
+		if v, ok := requestBody["limits_memory_reservation"].(string); ok {
 			currentApp.LimitsMemoryReservation = v
 		}
-		if v, ok := body["limits_cpus"].(string); ok {
+		if v, ok := requestBody["limits_cpus"].(string); ok {
 			currentApp.LimitsCPUs = v
 		}
-		if v, ok := body["limits_cpuset"].(string); ok {
+		if v, ok := requestBody["limits_cpuset"].(string); ok {
 			currentApp.LimitsCPUSet = v
 		}
-		if v, ok := body["limits_cpu_shares"].(float64); ok {
+		if v, ok := requestBody["limits_cpu_shares"].(float64); ok {
 			i := int64(v)
 			currentApp.LimitsCPUShares = &i
 		}
-		if v, ok := body["health_check_enabled"].(bool); ok {
+		if v, ok := requestBody["health_check_enabled"].(bool); ok {
 			currentApp.HealthCheckEnabled = &v
 		}
-		if v, ok := body["health_check_path"].(string); ok {
+		if v, ok := requestBody["health_check_path"].(string); ok {
 			currentApp.HealthCheckPath = v
 		}
-		if v, ok := body["health_check_port"].(string); ok {
+		if v, ok := requestBody["health_check_port"].(string); ok {
 			currentApp.HealthCheckPort = v
 		}
-		if v, ok := body["health_check_interval"].(float64); ok {
+		if v, ok := requestBody["health_check_interval"].(float64); ok {
 			i := int64(v)
 			currentApp.HealthCheckInterval = &i
 		}
-		if v, ok := body["health_check_timeout"].(float64); ok {
+		if v, ok := requestBody["health_check_timeout"].(float64); ok {
 			i := int64(v)
 			currentApp.HealthCheckTimeout = &i
 		}
-		if v, ok := body["health_check_retries"].(float64); ok {
+		if v, ok := requestBody["health_check_retries"].(float64); ok {
 			i := int64(v)
 			currentApp.HealthCheckRetries = &i
 		}
-		if v, ok := body["health_check_start_period"].(float64); ok {
+		if v, ok := requestBody["health_check_start_period"].(float64); ok {
 			i := int64(v)
 			currentApp.HealthCheckStartPeriod = &i
 		}
-		if v, ok := body["is_auto_deploy_enabled"].(bool); ok {
+		if v, ok := requestBody["is_auto_deploy_enabled"].(bool); ok {
 			currentApp.IsAutoDeployEnabled = &v
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -928,6 +934,18 @@ func testApplicationResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application", "test", attrs)
 }
 
+func decodeRequestBodyMap(t *testing.T, w http.ResponseWriter, r *http.Request) (map[string]interface{}, bool) {
+	t.Helper()
+
+	var requestBody map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		t.Errorf("decoding %s %s request body: %v", r.Method, r.URL.Path, err)
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return nil, false
+	}
+	return requestBody, true
+}
+
 func TestApplicationResource_InvalidPortsExposes(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
@@ -1073,18 +1091,20 @@ func TestApplicationResource_ExtendedFields(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
-		if v, ok := body["redirect"].(string); ok {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["redirect"].(string); ok {
 			currentApp.Redirect = v
 		}
-		if v, ok := body["base_directory"].(string); ok {
+		if v, ok := requestBody["base_directory"].(string); ok {
 			currentApp.BaseDirectory = v
 		}
-		if v, ok := body["is_static"].(bool); ok {
+		if v, ok := requestBody["is_static"].(bool); ok {
 			currentApp.IsStatic = &v
 		}
-		if v, ok := body["pre_deployment_command"].(string); ok {
+		if v, ok := requestBody["pre_deployment_command"].(string); ok {
 			currentApp.PreDeploymentCommand = v
 		}
 		w.Header().Set("Content-Type", "application/json")

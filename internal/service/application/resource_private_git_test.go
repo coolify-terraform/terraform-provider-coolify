@@ -156,9 +156,11 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
-		if v, ok := body["description"].(string); ok {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["description"].(string); ok {
 			currentApp.Description = v
 		}
 		w.Header().Set("Content-Type", "application/json")

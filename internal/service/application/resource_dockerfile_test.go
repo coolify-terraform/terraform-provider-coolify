@@ -209,22 +209,26 @@ func TestDockerfileApplicationResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
-		if v, ok := body["name"].(string); ok {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["name"].(string); ok {
 			app.Name = v
 		}
-		if v, ok := body["description"].(string); ok {
+		if v, ok := requestBody["description"].(string); ok {
 			app.Description = v
 		}
-		if v, ok := body["install_command"].(string); ok {
+		if v, ok := requestBody["install_command"].(string); ok {
 			app.InstallCommand = v
 		}
-		if v, ok := body["build_command"].(string); ok {
+		if v, ok := requestBody["build_command"].(string); ok {
 			app.BuildCommand = v
 		}
-		if _, has := body["dockerfile"]; has {
+		if _, has := requestBody["dockerfile"]; has {
 			t.Error("PATCH should not send 'dockerfile' (not accepted by Coolify v4 update API)")
+			http.Error(w, `{"error":"unexpected dockerfile field"}`, http.StatusBadRequest)
+			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})

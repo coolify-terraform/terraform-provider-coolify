@@ -141,9 +141,11 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
-		if v, ok := body["docker_registry_image_name"].(string); ok {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["docker_registry_image_name"].(string); ok {
 			currentApp.DockerRegistryImageName = v
 		}
 		w.Header().Set("Content-Type", "application/json")
