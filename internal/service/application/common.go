@@ -1110,9 +1110,15 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 	normalizeUnknownBool(&m.IsContainerLabelEscapeEnabled)
 }
 
+const applicationCreateReadBackFailedSummary = "Application created but refresh failed"
+
+func addApplicationCreateReadBackDiagnostic(resp *resource.CreateResponse, detail string) {
+	resp.Diagnostics.AddError(applicationCreateReadBackFailedSummary, detail)
+}
+
 func addApplicationCreateReadBackError(resp *resource.CreateResponse, uuid string, err error) {
-	resp.Diagnostics.AddError(
-		"Application created but refresh failed",
+	addApplicationCreateReadBackDiagnostic(
+		resp,
 		fmt.Sprintf(
 			"Coolify created application %s, but the provider could not read it back: "+
 				"Could not read application %s after create: %s. "+
@@ -1124,23 +1130,30 @@ func addApplicationCreateReadBackError(resp *resource.CreateResponse, uuid strin
 	)
 }
 
+func addApplicationCreateReadBackNotFoundError(resp *resource.CreateResponse, uuid string) {
+	addApplicationCreateReadBackDiagnostic(
+		resp,
+		fmt.Sprintf(
+			"Coolify created application %s, but the provider could not read it back because the API returned 404 on the immediate read-back. "+
+				"The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the application becomes readable through the API.",
+			uuid,
+		),
+	)
+}
+
+// readBackAfterCreate reads the newly created application. If the immediate
+// read-back fails, it leaves the partial state intact and records the failure.
 func readBackAfterCreate(ctx context.Context, c *client.Client, uuid string, resp *resource.CreateResponse) *client.Application {
 	app, err := c.GetApplication(ctx, uuid)
-	if err != nil {
-		if client.IsNotFound(err) {
-			resp.State.RemoveResource(ctx)
-			resp.Diagnostics.AddError(
-				"Application created but not persisted",
-				fmt.Sprintf("Coolify returned UUID %s but the application was not found on read-back. "+
-					"This usually means the target server is not reachable via SSH. "+
-					"Verify the server is online and SSH-accessible before retrying.", uuid),
-			)
-			return nil
-		}
-		addApplicationCreateReadBackError(resp, uuid, err)
+	if err == nil {
+		return app
+	}
+	if client.IsNotFound(err) {
+		addApplicationCreateReadBackNotFoundError(resp, uuid)
 		return nil
 	}
-	return app
+	addApplicationCreateReadBackError(resp, uuid, err)
+	return nil
 }
 
 // updateAndReadBack performs the shared update-then-read pattern for all

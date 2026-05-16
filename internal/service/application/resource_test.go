@@ -2,15 +2,18 @@ package application_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // ---------------------------------------------------------------------------
@@ -896,18 +899,29 @@ func TestApplicationResource_LimitsAndHealthChecks(t *testing.T) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-func TestApplicationResource_CreateNotPersisted(t *testing.T) {
+func TestApplicationResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	t.Parallel()
-	appUUID := "not-persisted-uuid"
+
+	const createdAppUUID = "create-readback-404-uuid"
+
+	var deleteCalledForCreatedUUID atomic.Bool
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
+		json.NewEncoder(w).Encode(map[string]string{"uuid": createdAppUUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != createdAppUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		deleteCalledForCreatedUUID.Store(true)
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -915,6 +929,12 @@ func TestApplicationResource_CreateNotPersisted(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(*terraform.State) error {
+			if !deleteCalledForCreatedUUID.Load() {
+				return fmt.Errorf("expected destroy to delete partially tracked application %s", createdAppUUID)
+			}
+			return nil
+		},
 		Steps: []resource.TestStep{
 			{
 				Config: testApplicationResourceConfig(srv.URL, `
@@ -924,7 +944,7 @@ func TestApplicationResource_CreateNotPersisted(t *testing.T) {
 					build_pack     = "nixpacks"
 					ports_exposes  = "3000"
 				`),
-				ExpectError: regexp.MustCompile(`Application created but not persisted`),
+				ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*partial Terraform state was saved.*becomes readable through the API`),
 			},
 		},
 	})
