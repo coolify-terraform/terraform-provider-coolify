@@ -107,8 +107,9 @@ make scaffold NAME=webhook
 
 This creates the resource, data source, client methods, unit tests, and
 examples with TODO placeholders. Then complete the remaining manual steps
-printed by the script, especially adding `resource_acc_test.go`, registering
-in provider.go, filling in TODOs, and running `make ci`.
+printed by the script, especially adding `resource_acc_test.go` and, when
+needed, `data_source_acc_test.go`, registering in provider.go, filling in
+TODOs, and running `make ci`.
 
 <details>
 <summary>Manual steps (if not using the scaffold)</summary>
@@ -117,7 +118,8 @@ in provider.go, filling in TODOs, and running `make ci`.
 2. Implement the resource (resource.go) following existing patterns
 3. Add data source(s) if applicable
 4. Write unit tests with httptest mock servers (minimum: Create, Update, Import, Disappears)
-5. Write acceptance tests in `resource_acc_test.go` (see [TESTING.md](TESTING.md))
+5. Write acceptance tests in `resource_acc_test.go` and, for data sources,
+   `data_source_acc_test.go` (see [TESTING.md](TESTING.md))
 6. Add client methods in `internal/client/`
 7. Register the resource in `internal/provider/provider.go`
 8. Add examples in `examples/resources/coolify_<type>/`: both `resource.tf` and `import.sh`
