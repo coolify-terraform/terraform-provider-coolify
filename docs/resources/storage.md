@@ -4,14 +4,17 @@ page_title: "coolify_storage Resource - coolify"
 subcategory: ""
 description: |-
   Manages a persistent storage volume on a Coolify application, service, or database.
-  ~> Note: Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for storage volumes. Large numbers of these resources on a single application may cause slower plan/apply times due to this API limitation.
+  ~> Note: Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for storage volumes. Large numbers of these resources on a single parent resource may cause slower plan/apply times due to this API limitation.
+  ~> Note: Creating new service-backed storages is not currently supported because the Coolify service storage create API requires an additional nested resource UUID. You can still import and manage existing service-backed storages by service_uuid.
 ---
 
 # coolify_storage (Resource)
 
 Manages a persistent storage volume on a Coolify application, service, or database.
 
-~> **Note:** Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for storage volumes. Large numbers of these resources on a single application may cause slower plan/apply times due to this API limitation.
+~> **Note:** Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for storage volumes. Large numbers of these resources on a single parent resource may cause slower plan/apply times due to this API limitation.
+
+~> **Note:** Creating new service-backed storages is not currently supported because the Coolify service storage create API requires an additional nested resource UUID. You can still import and manage existing service-backed storages by `service_uuid`.
 
 ## Example Usage
 
@@ -38,14 +41,14 @@ resource "coolify_storage" "db_data" {
 ### Required
 
 - `mount_path` (String) The mount path inside the container.
-- `name` (String) The name of the persistent storage. Note: Coolify prepends the application UUID to this name internally (e.g. `my-vol` becomes `{app-uuid}-my-vol`).
+- `name` (String) The name of the persistent storage. Note: Coolify prepends an internal resource UUID to this name (e.g. `my-vol` becomes `{resource-uuid}-my-vol`).
 
 ### Optional
 
 - `application_uuid` (String) The UUID of the application to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `database_uuid` (String) The UUID of the database to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `host_path` (String) The host path to mount (optional; leave empty for a Docker volume).
-- `service_uuid` (String) The UUID of the service to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
+- `service_uuid` (String) The UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. New service-backed storages cannot currently be created with this resource because the Coolify create API requires an additional nested resource UUID. Use this for importing or managing an existing service storage. Changing this forces a new resource.
 
 ### Read-Only
 

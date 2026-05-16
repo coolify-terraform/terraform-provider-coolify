@@ -56,7 +56,10 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 		MarkdownDescription: "Manages a persistent storage volume on a Coolify application, service, or database.\n\n" +
 			"~> **Note:** Each instance requires a List API call to read because the Coolify API does not " +
 			"provide a singular GET endpoint for storage volumes. Large numbers of these resources " +
-			"on a single application may cause slower plan/apply times due to this API limitation.",
+			"on a single parent resource may cause slower plan/apply times due to this API limitation.\n\n" +
+			"~> **Note:** Creating new service-backed storages is not currently supported because the " +
+			"Coolify service storage create API requires an additional nested resource UUID. You can " +
+			"still import and manage existing service-backed storages by `service_uuid`.",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the persistent storage.",
@@ -80,7 +83,7 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"service_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the service to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.",
+				MarkdownDescription: "The UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. New service-backed storages cannot currently be created with this resource because the Coolify create API requires an additional nested resource UUID. Use this for importing or managing an existing service storage. Changing this forces a new resource.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -96,7 +99,7 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Validators: []validator.String{validate.UUID()},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the persistent storage. Note: Coolify prepends the application UUID to this name internally (e.g. `my-vol` becomes `{app-uuid}-my-vol`).",
+				MarkdownDescription: "The name of the persistent storage. Note: Coolify prepends an internal resource UUID to this name (e.g. `my-vol` becomes `{resource-uuid}-my-vol`).",
 				Required:            true,
 			},
 			"mount_path": schema.StringAttribute{
@@ -149,6 +152,14 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_storage"})
 
+	if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
+		resp.Diagnostics.AddError(
+			"Service-backed storage creation is not supported",
+			"Coolify's service storage create API requires an additional nested resource UUID that this resource does not model yet. Import an existing service storage if you need to manage one, or use application_uuid or database_uuid when creating a new storage.",
+		)
+		return
+	}
+
 	parentType, parentUUID, ok := resolveParent(&plan)
 	if !ok {
 		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
@@ -200,9 +211,9 @@ func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, re
 	found := false
 	for _, s := range storages {
 		if s.UUID == state.UUID.ValueString() {
-			// Coolify prefixes storage names with the application UUID
-			// (e.g., "app-uuid-my-storage"). Preserve the user's original
-			// name to avoid a perpetual diff.
+			// Coolify prefixes storage names with an internal resource UUID
+			// (for example, "resource-uuid-my-storage"). Preserve the
+			// user's original name to avoid a perpetual diff.
 			apiName := s.Name
 			stateName := state.Name.ValueString()
 			if stateName != "" && apiName != stateName && strings.HasSuffix(apiName, "-"+stateName) {

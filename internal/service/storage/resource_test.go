@@ -373,6 +373,27 @@ func TestStorageResource_ImportBadType(t *testing.T) {
 	})
 }
 
+func TestStorageResource_CreateWithServiceUUIDUnsupported(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NewServeMux()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testStorageResourceConfig(srv.URL, `
+					service_uuid = "ffff0001-0001-4000-8000-000000000001"
+					name         = "svc-data"
+					mount_path   = "/data"
+				`),
+				ExpectError: regexp.MustCompile(`Service-backed storage creation is not supported`),
+			},
+		},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // TestStorageResource_Disappears
 // ---------------------------------------------------------------------------
@@ -481,14 +502,16 @@ func checkStorageDestroy(serverURL, listPath string) resource.TestCheckFunc {
 }
 
 // TestStorageResource_NamePrefixStripping verifies that when Coolify returns
-// a storage name prefixed with the application UUID (e.g., "app-uuid-my-storage"),
-// the provider preserves the user's original name to avoid a perpetual diff.
+// a storage name prefixed with an internal resource UUID (for example,
+// "resource-uuid-my-storage"), the provider preserves the user's original
+// name to avoid a perpetual diff.
 func TestStorageResource_NamePrefixStripping(t *testing.T) {
 	t.Parallel()
 	appUUID := "cccc0002-0002-4000-8000-000000000002"
 	storUUID := "stor-prefix-uuid"
+	internalResourceUUID := "resource-prefix-uuid"
 	userName := "app-data"
-	prefixedName := appUUID + "-" + userName
+	prefixedName := internalResourceUUID + "-" + userName
 
 	mu := sync.Mutex{}
 	deleted := false
