@@ -223,7 +223,11 @@ resource "coolify_project" "test" {
 resource "coolify_dockerfile_application" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
-  dockerfile_location = "/Dockerfile"
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
   ports_exposes       = "80"
 }
 `, name, serverUUID)
