@@ -249,29 +249,13 @@ func (r *privateKeyResource) Delete(ctx context.Context, req resource.DeleteRequ
 	// runs, the app referencing this key may still be deleting. Retry for
 	// up to 30 seconds on "in use" errors.
 	uuid := state.UUID.ValueString()
-	var err error
-
-retryLoop:
-	for attempt := range privateKeyDeleteRetryAttempts {
-		err = r.client.DeletePrivateKey(ctx, uuid)
-		if err == nil || client.IsNotFound(err) {
-			return
-		}
-		if !isPrivateKeyDeleteRetryable(err) {
-			break
-		}
-
-		tflog.Debug(ctx, "retrying private key delete", map[string]interface{}{"attempt": attempt + 1, "uuid": uuid})
-
-		select {
-		case <-ctx.Done():
-			err = ctx.Err()
-			break retryLoop
-		case <-time.After(privateKeyDeleteRetryDelay):
-		}
+	err := client.RetryDelete(ctx, privateKeyDeleteRetryAttempts, privateKeyDeleteRetryDelay,
+		func() error { return r.client.DeletePrivateKey(ctx, uuid) },
+		isPrivateKeyDeleteRetryable,
+	)
+	if err != nil {
+		resp.Diagnostics.AddError("Error deleting private key", fmt.Sprintf("private key %s: %s", uuid, err))
 	}
-
-	resp.Diagnostics.AddError("Error deleting private key", fmt.Sprintf("private key %s: %s", uuid, err))
 }
 
 func (r *privateKeyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

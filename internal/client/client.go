@@ -248,3 +248,24 @@ func extractAPIMessage(body []byte) string {
 	}
 	return "[raw API response] " + s
 }
+
+// RetryDelete retries a delete operation with backoff when the error is
+// retryable (e.g., resource still has dependents). It returns nil on
+// success or NotFound, or the last error after exhausting retries.
+func RetryDelete(ctx context.Context, attempts int, delay time.Duration, deleteFn func() error, isRetryable func(error) bool) error {
+	for range attempts {
+		err := deleteFn()
+		if err == nil || IsNotFound(err) {
+			return nil
+		}
+		if !isRetryable(err) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(delay):
+		}
+	}
+	return deleteFn()
+}

@@ -211,29 +211,10 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	// Coolify may not have finished removing them by the time the project
 	// delete is attempted. Retry for up to 60 seconds.
 	uuid := state.UUID.ValueString()
-	var err error
-	attempt := 0
-retryLoop:
-	for range 12 {
-		attempt++
-		err = r.client.DeleteProject(ctx, uuid)
-		if err == nil {
-			return
-		}
-		if client.IsNotFound(err) {
-			return
-		}
-		if !strings.Contains(err.Error(), "has resources") {
-			break
-		}
-		tflog.Debug(ctx, "retrying project delete", map[string]interface{}{"attempt": attempt, "uuid": uuid})
-		select {
-		case <-ctx.Done():
-			err = ctx.Err()
-			break retryLoop
-		case <-time.After(5 * time.Second):
-		}
-	}
+	err := client.RetryDelete(ctx, 12, 5*time.Second,
+		func() error { return r.client.DeleteProject(ctx, uuid) },
+		func(err error) bool { return strings.Contains(err.Error(), "has resources") },
+	)
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting project", fmt.Sprintf("Could not delete project %s: %s", uuid, err))
 	}
