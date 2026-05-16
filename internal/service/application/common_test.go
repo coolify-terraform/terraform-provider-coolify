@@ -3,6 +3,8 @@ package application
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
 func TestNormalizeGitRepository(t *testing.T) {
@@ -31,6 +33,27 @@ func TestNormalizeGitRepository(t *testing.T) {
 				t.Errorf("normalizeGitRepository(%q) = %q, want %q", tt.in, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestExtendedBuildDeployAttrsPreviewURLTemplateIsReadOnly(t *testing.T) {
+	t.Parallel()
+
+	attr, ok := extendedBuildDeployAttrs()["preview_url_template"]
+	if !ok {
+		t.Fatal("preview_url_template attribute missing")
+	}
+
+	stringAttr, ok := attr.(schema.StringAttribute)
+	if !ok {
+		t.Fatalf("preview_url_template has type %T, want schema.StringAttribute", attr)
+	}
+
+	if stringAttr.Optional {
+		t.Fatal("preview_url_template should be read-only")
+	}
+	if !stringAttr.Computed {
+		t.Fatal("preview_url_template should remain computed")
 	}
 }
 

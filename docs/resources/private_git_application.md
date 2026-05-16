@@ -98,7 +98,6 @@ resource "coolify_private_git_application" "api" {
 - `post_deployment_command_container` (String) Container to run the post-deployment command in.
 - `pre_deployment_command` (String) Command to run before deployment.
 - `pre_deployment_command_container` (String) Container to run the pre-deployment command in.
-- `preview_url_template` (String) The URL template for preview deployments.
 - `publish_directory` (String) The directory to publish for static sites.
 - `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
 - `start_command` (String) The command to run to start the application.
@@ -109,6 +108,7 @@ resource "coolify_private_git_application" "api" {
 
 ### Read-Only
 
+- `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.
 - `status` (String) The current status of the application (e.g. running, stopped, exited). Read-only.
 - `uuid` (String) The unique identifier of the application.
 

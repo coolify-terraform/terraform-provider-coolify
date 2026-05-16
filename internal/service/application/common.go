@@ -826,8 +826,7 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(false),
 		},
 		"preview_url_template": schema.StringAttribute{
-			MarkdownDescription: "The URL template for preview deployments.",
-			Optional:            true,
+			MarkdownDescription: "The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.",
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
