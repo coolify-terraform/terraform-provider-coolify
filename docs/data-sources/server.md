@@ -37,7 +37,6 @@ data "coolify_server" "example" {
 - `is_usable` (Boolean) Whether the server is currently usable for deployments.
 - `name` (String) The name of the server.
 - `port` (Number) The SSH port of the server.
-- `private_key_uuid` (String) The UUID of the private key used for SSH authentication.
 - `server_disk_usage_check_frequency` (String) Cron expression for how often disk usage is checked.
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
 - `user` (String) The SSH user for connecting to the server.

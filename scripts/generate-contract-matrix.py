@@ -35,8 +35,8 @@ MODEL_TO_SCHEMA = {
     "ScheduledDatabaseBackup": "ScheduledDatabaseBackup",
 }
 
-# Contract models that intentionally have no public provider surface.
-PROVIDER_TAG_OVERRIDES = {
+# Contract models that intentionally have no client JSON mapping surface.
+CLIENT_JSON_TAG_OVERRIDES = {
     "S3Storage": set(),
 }
 
@@ -88,7 +88,7 @@ def _extract_json_tags(go_file: Path) -> set[str]:
     return tags
 
 
-def _load_provider_tags() -> set[str]:
+def _load_client_json_tags() -> set[str]:
     """Load all JSON tags from all client Go files."""
     tags: set[str] = set()
     for f in CLIENT_DIR.glob("*.go"):
@@ -169,7 +169,7 @@ def _compare_field(
     field_name: str,
     contract_field: dict,
     spec_props: dict,
-    provider_tags: set[str],
+    client_json_tags: set[str],
 ) -> dict:
     """Compare a single field between contract and spec."""
     contract_type = TYPE_MAP.get(contract_field.get("type", "string"), "string")
@@ -184,7 +184,7 @@ def _compare_field(
             "spec_type": "-",
             "nullable_match": "-",
             "default": _format_default(contract_default),
-            "provider": "supported" if field_name in provider_tags else "n/a",
+            "client_json_mapping": "mapped" if field_name in client_json_tags else "n/a",
         }
 
     spec_type = _normalise_spec_type(spec_prop)
@@ -204,7 +204,7 @@ def _compare_field(
         "type_match": type_match,
         "nullable_match": "yes" if nullable_match else ("reviewed drift" if reviewed_drift else "**WRONG**"),
         "default": _format_default(contract_default),
-        "provider": "supported" if field_name in provider_tags else "n/a",
+        "client_json_mapping": "mapped" if field_name in client_json_tags else "n/a",
     }
 
 
@@ -229,7 +229,7 @@ def _build_model_table(
     model_name: str,
     contract_model: dict,
     spec_schema: dict | None,
-    provider_tags: set[str],
+    client_json_tags: set[str],
 ) -> list[str]:
     """Build Markdown table lines for one model."""
     fields = contract_model.get("fields", {})
@@ -240,12 +240,12 @@ def _build_model_table(
     if spec_schema:
         spec_props = spec_schema.get("properties", {})
 
-    provider_tags = PROVIDER_TAG_OVERRIDES.get(model_name, provider_tags)
+    client_json_tags = CLIENT_JSON_TAG_OVERRIDES.get(model_name, client_json_tags)
 
     rows: list[dict] = []
     for field_name in sorted(all_fields):
         rows.append(
-            _compare_field(model_name, field_name, all_fields[field_name], spec_props, provider_tags)
+            _compare_field(model_name, field_name, all_fields[field_name], spec_props, client_json_tags)
         )
 
     # Also report spec-only fields (in spec but not in contract).
@@ -259,7 +259,7 @@ def _build_model_table(
                     "spec_type": spec_type,
                     "nullable_match": "-",
                     "default": "-",
-                    "provider": "supported" if field_name in provider_tags else "n/a",
+                    "client_json_mapping": "mapped" if field_name in client_json_tags else "n/a",
                 }
             )
 
@@ -267,7 +267,7 @@ def _build_model_table(
     total = len(rows)
     type_ok = sum(1 for r in rows if r.get("type_match", True))
     nullable_ok = sum(1 for r in rows if r.get("nullable_match") in ("yes", "reviewed drift", "-"))
-    provider_ok = sum(1 for r in rows if r["provider"] == "supported")
+    client_mapping_ok = sum(1 for r in rows if r["client_json_mapping"] == "mapped")
 
     lines: list[str] = []
     lines.append(f"## {model_name}")
@@ -276,11 +276,11 @@ def _build_model_table(
     lines.append(
         f"Fields: {total} | Type matches: {type_ok}/{total} "
         f"| Nullable matches: {nullable_ok}/{total} "
-        f"| Provider coverage: {provider_ok}/{total}"
+        f"| Client JSON mappings: {client_mapping_ok}/{total}"
     )
     lines.append("")
     lines.append(
-        "| Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Provider |"
+        "| Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |"
     )
     lines.append(
         "|-------|:---:|:---:|:---:|:---:|---------|:---:|"
@@ -296,7 +296,7 @@ def _build_model_table(
             tm = "**WRONG**"
         nm = r["nullable_match"]
         d = r["default"]
-        p = r["provider"]
+        p = r["client_json_mapping"]
         lines.append(f"| {r['field']} | {ct} | {st} | {tm} | {nm} | {d} | {p} |")
 
     lines.append("")
@@ -314,7 +314,7 @@ def main():
     contract = json.loads(CONTRACT_PATH.read_text())
     spec = json.loads(SPEC_PATH.read_text())
     schemas = spec.get("components", {}).get("schemas", {})
-    provider_tags = _load_provider_tags()
+    client_json_tags = _load_client_json_tags()
 
     out: list[str] = []
     out.append("---")
@@ -334,6 +334,7 @@ def main():
     out.append("")
     out.append("> The source-derived contract is the field-level source of truth. The pinned OpenAPI spec is useful for reusable public schemas and route inventory, but some contract models only exist as internal implementation details or inline request bodies.")
     out.append("> `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.")
+    out.append("> `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.")
     out.append("")
     out.append(
         f"Contract version: `{contract.get('version', 'unknown')}` | "
@@ -356,21 +357,21 @@ def main():
                 elif p.startswith("Nullable matches:"):
                     n, _ = p.split(":")[1].strip().split("/")
                     stats["total_nullable_ok"] += int(n)
-                elif p.startswith("Provider coverage:"):
+                elif p.startswith("Client JSON mappings:"):
                     n, _ = p.split(":")[1].strip().split("/")
-                    stats["total_provider"] += int(n)
+                    stats["total_client_mapping"] += int(n)
 
     public_stats = {
         "total_fields": 0,
         "total_type_ok": 0,
         "total_nullable_ok": 0,
-        "total_provider": 0,
+        "total_client_mapping": 0,
     }
     contract_only_stats = {
         "total_fields": 0,
         "total_type_ok": 0,
         "total_nullable_ok": 0,
-        "total_provider": 0,
+        "total_client_mapping": 0,
     }
 
     public_sections: list[list[str]] = []
@@ -381,7 +382,7 @@ def main():
         if contract_model is None:
             continue
         spec_schema = schemas.get(schema_name)
-        section = _build_model_table(model_name, contract_model, spec_schema, provider_tags)
+        section = _build_model_table(model_name, contract_model, spec_schema, client_json_tags)
         if spec_schema is None:
             contract_only_sections.append(section)
             accumulate(section, contract_only_stats)
@@ -393,7 +394,7 @@ def main():
         if model_name in MODEL_TO_SCHEMA:
             continue
         contract_model = contract["models"][model_name]
-        section = _build_model_table(model_name, contract_model, None, provider_tags)
+        section = _build_model_table(model_name, contract_model, None, client_json_tags)
         contract_only_sections.append(section)
         accumulate(section, contract_only_stats)
 
@@ -404,7 +405,7 @@ def main():
     out.append(f"| Public schema fields compared | {public_stats['total_fields']} |")
     out.append(f"| Public schema type matches | {public_stats['total_type_ok']}/{public_stats['total_fields']} |")
     out.append(f"| Public schema nullable matches | {public_stats['total_nullable_ok']}/{public_stats['total_fields']} |")
-    out.append(f"| Public schema provider coverage | {public_stats['total_provider']}/{public_stats['total_fields']} |")
+    out.append(f"| Public schema client JSON mappings | {public_stats['total_client_mapping']}/{public_stats['total_fields']} |")
     out.append(f"| Reusable public schemas compared | {len(public_sections)} |")
     out.append(f"| Contract-only / inline-only models documented | {len(contract_only_sections)} |")
     out.append("")
