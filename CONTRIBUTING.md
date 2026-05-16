@@ -16,7 +16,7 @@ cd terraform-provider-coolify
 make build
 ```
 
-If you plan to run `make ci`, install the required local tools first. On a fresh clone, the command fails early if `golangci-lint`, `tfplugindocs`, or `goreleaser` are missing.
+If you plan to run `make ci`, install the required local tools first. On a fresh clone, the command fails early if `golangci-lint`, `tfplugindocs`, or `goreleaser` are missing. Run `make help` to see every supported local target from [GNUmakefile](GNUmakefile).
 
 ### Running Tests
 

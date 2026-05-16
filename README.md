@@ -165,7 +165,8 @@ Install the CI-pinned local tools before running the commands below:
 - `tfplugindocs`
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the exact install commands and
-full local setup.
+full local setup. Run `make help` to list the supported local targets from
+[GNUmakefile](GNUmakefile).
 
 ```bash
 make build       # Compile the provider
