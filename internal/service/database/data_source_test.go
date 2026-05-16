@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -65,6 +66,27 @@ data "coolify_database" "test" {
 					resource.TestCheckResourceAttr("data.coolify_database.test", "project_uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "environment_name", "production"),
 				),
+			},
+		},
+	})
+}
+
+func TestDatabaseDataSource_NotFound(t *testing.T) {
+	t.Parallel()
+	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	})))
+	defer mockSrv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
+data "coolify_database" "test" {
+  uuid = "00000000-0000-4000-8000-000000000000"
+}`,
+				ExpectError: regexp.MustCompile(`Error reading database`),
 			},
 		},
 	})
