@@ -110,12 +110,12 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Sensitive:           true,
 			},
 			"is_preview": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is available in preview deployments. Defaults vary by parent resource type; omit to accept Coolify's default.",
+				MarkdownDescription: "Whether this variable is available in preview deployments. Omit to accept Coolify's API default for the selected parent resource type.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"is_build": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is available at build time. Defaults vary by parent resource type; omit to accept Coolify's default.",
+				MarkdownDescription: "Whether this variable is available at build time. Omit to accept Coolify's API behavior for the selected parent resource type.",
 				Optional:            true,
 				Computed:            true,
 			},
