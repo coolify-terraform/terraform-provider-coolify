@@ -1045,7 +1045,7 @@ func TestApplicationResource_ExtendedFields(t *testing.T) {
 	isForceHTTPS := false
 	hcReturnCode := int64(200)
 	autoDeployEnabled := true
-	hcEnabled := false
+	hcEnabled := true
 	isSPA := false
 	isHTTPAuth := false
 	connectDocker := false
