@@ -293,7 +293,10 @@ func flattenPrivateKey(key *client.PrivateKey, model *privateKeyResourceModel) {
 	model.UUID = types.StringValue(key.UUID)
 	model.Name = types.StringValue(key.Name)
 	model.Description = flex.StringToFramework(key.Description)
-	model.PrivateKey = types.StringValue(key.PrivateKey)
+	// Preserve private key from state if the API does not return it (sensitive field).
+	if key.PrivateKey != "" {
+		model.PrivateKey = types.StringValue(key.PrivateKey)
+	}
 	model.PublicKey = flex.StringToFramework(key.PublicKey)
 	model.Fingerprint = flex.StringToFramework(key.Fingerprint)
 	model.IsGitRelated = types.BoolValue(key.IsGitRelated)
