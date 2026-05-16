@@ -2353,6 +2353,24 @@ func TestClient_GetGitHubApp_Found(t *testing.T) {
 	assert.Equal(t, "target-app", app.Name)
 }
 
+func TestClient_GetGitHubApp_IgnoresMalformedUnmatchedApps(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{
+			{UUID: "gh-bad", Name: "missing-id"},
+			{ID: 42, Name: "target-app"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.GetGitHubApp(context.Background(), 42)
+	require.NoError(t, err)
+	assert.Equal(t, int64(42), app.ID)
+	assert.Equal(t, "target-app", app.Name)
+}
+
 func TestClient_GetGitHubApp_EmptyList(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

@@ -81,14 +81,18 @@ func (c *Client) ListGitHubApps(ctx context.Context) ([]GitHubApp, error) {
 }
 
 func (c *Client) GetGitHubApp(ctx context.Context, id int64) (*GitHubApp, error) {
-	apps, err := c.ListGitHubApps(ctx)
-	if err != nil {
+	var apps []GitHubApp
+	if err := c.do(ctx, http.MethodGet, "/api/v1/github-apps", nil, &apps); err != nil {
 		return nil, fmt.Errorf("getting github app %d: %w", id, err)
 	}
 	for i := range apps {
-		if apps[i].ID == id {
-			return &apps[i], nil
+		if apps[i].ID != id {
+			continue
 		}
+		if err := validateGitHubAppResponse(&apps[i]); err != nil {
+			return nil, fmt.Errorf("getting github app %d: invalid matched app: %w", id, err)
+		}
+		return &apps[i], nil
 	}
 	return nil, &NotFoundError{Message: fmt.Sprintf("github app %d not found", id)}
 }
