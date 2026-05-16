@@ -91,6 +91,7 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | `coolify_clickhouse_database` | `clickhouse_admin_password`, `project_uuid`, `server_uuid`, `environment_name` |
 | `coolify_redis_database`, `coolify_keydb_database`, `coolify_dragonfly_database` | `project_uuid`, `server_uuid`, `environment_name` |
 | All applications | `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_private_git_application` | `private_key_uuid` (Coolify stores only the linked `private_key_id`, so import cannot reconstruct the original UUID) |
 | `coolify_github_app_application` | `github_app_uuid` (Coolify stores the linked GitHub App as `source_id`/`source_type`, so import cannot recover the original UUID) |
 | `coolify_service` | `project_uuid`, `server_uuid`, `environment_name`, `type` |
 | `coolify_environment` | `description` (stored in Terraform state only; not returned by the API) |
