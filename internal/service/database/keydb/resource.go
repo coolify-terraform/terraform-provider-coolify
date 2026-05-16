@@ -81,7 +81,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	ext := p.ExtFields()
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if pg.HasExtendedFields(ext) || strSet(p.KeydbConf) {
+	if pg.HasExtendedFields(ext) || strSet(p.KeydbPassword) || strSet(p.KeydbConf) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.KeydbPassword, p.KeydbPassword)

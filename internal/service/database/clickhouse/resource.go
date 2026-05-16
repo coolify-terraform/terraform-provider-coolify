@@ -86,7 +86,8 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	ext := p.ExtFields()
-	if pg.HasExtendedFields(ext) {
+	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
+	if pg.HasExtendedFields(ext) || strSet(p.ClickhouseDB) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.ClickhouseDB, p.ClickhouseDB)
