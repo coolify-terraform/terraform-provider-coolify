@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -81,14 +82,17 @@ func (r *privateKeyResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			"public_key": schema.StringAttribute{
 				MarkdownDescription: "The public key derived from the private key. Read-only.",
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"fingerprint": schema.StringAttribute{
 				MarkdownDescription: "The fingerprint of the private key. Read-only.",
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"is_git_related": schema.BoolAttribute{
 				MarkdownDescription: "Whether this key is used for Git operations. Determined by the server.",
 				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 		},
 	}
