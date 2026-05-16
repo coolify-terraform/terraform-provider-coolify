@@ -382,19 +382,20 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 // flattenExtendedDefaults sets fields with Computed+Default and sensitive fields.
 func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	// Computed+Default string fields (always set from API)
-	setStr := func(dst *types.String, v types.String) {
-		if dst != nil {
-			*dst = v
+	setString := func(dst *types.String, v types.String) {
+		if dst == nil {
+			return
 		}
+		*dst = v
 	}
-	setStr(f.Redirect, flex.StringValueOrDefault(app.Redirect, defaultRedirect))
-	setStr(f.StaticImage, flex.StringValueOrDefault(app.StaticImage, defaultStaticImage))
+	setString(f.Redirect, flex.StringValueOrDefault(app.Redirect, defaultRedirect))
+	setString(f.StaticImage, flex.StringValueOrDefault(app.StaticImage, defaultStaticImage))
 	// Computed+Default+Sensitive fields (server-generated, always set)
-	setStr(f.PreviewURLTemplate, flex.StringToFramework(app.PreviewURLTemplate))
-	setStr(f.ManualWebhookSecretBitbucket, flex.StringToFramework(app.ManualWebhookSecretBitbucket))
-	setStr(f.ManualWebhookSecretGitea, flex.StringToFramework(app.ManualWebhookSecretGitea))
-	setStr(f.ManualWebhookSecretGitHub, flex.StringToFramework(app.ManualWebhookSecretGitHub))
-	setStr(f.ManualWebhookSecretGitLab, flex.StringToFramework(app.ManualWebhookSecretGitLab))
+	setString(f.PreviewURLTemplate, flex.StringToFramework(app.PreviewURLTemplate))
+	setString(f.ManualWebhookSecretBitbucket, flex.StringToFramework(app.ManualWebhookSecretBitbucket))
+	setString(f.ManualWebhookSecretGitea, flex.StringToFramework(app.ManualWebhookSecretGitea))
+	setString(f.ManualWebhookSecretGitHub, flex.StringToFramework(app.ManualWebhookSecretGitHub))
+	setString(f.ManualWebhookSecretGitLab, flex.StringToFramework(app.ManualWebhookSecretGitLab))
 	// Computed+Default bool fields (always set from API)
 	setBoolDefault := func(dst *types.Bool, v *bool, def bool) {
 		if dst == nil {
@@ -402,9 +403,9 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 		}
 		if v != nil {
 			*dst = types.BoolValue(*v)
-		} else {
-			*dst = types.BoolValue(def)
+			return
 		}
+		*dst = types.BoolValue(def)
 	}
 	setBoolDefault(f.ConnectToDockerNetwork, app.ConnectToDockerNetwork, false)
 	setBoolDefault(f.IsHTTPBasicAuthEnabled, app.IsHTTPBasicAuthEnabled, false)
@@ -1112,7 +1113,14 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 func addApplicationCreateReadBackError(resp *resource.CreateResponse, uuid string, err error) {
 	resp.Diagnostics.AddError(
 		"Application created but refresh failed",
-		fmt.Sprintf("Coolify created application %s, but the provider could not read it back: Could not read application %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", uuid, uuid, err),
+		fmt.Sprintf(
+			"Coolify created application %s, but the provider could not read it back: "+
+				"Could not read application %s after create: %s. "+
+				"The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.",
+			uuid,
+			uuid,
+			err,
+		),
 	)
 }
 
@@ -1149,12 +1157,20 @@ func updateAndReadBack(
 		resp.Diagnostics.AddError("Error updating application", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
-	app, err := c.GetApplication(ctx, uuid)
+	app, err := readApplicationAfterUpdate(ctx, c, uuid)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading application after update", fmt.Sprintf("application %s: %s", uuid, err))
+		resp.Diagnostics.AddError("Error updating application", err.Error())
 		return
 	}
 	flatten(app)
+}
+
+func readApplicationAfterUpdate(ctx context.Context, c *client.Client, uuid string) (*client.Application, error) {
+	app, err := c.GetApplication(ctx, uuid)
+	if err != nil {
+		return nil, fmt.Errorf("reading application %s after update: %w", uuid, err)
+	}
+	return app, nil
 }
 
 // readApplication reads an application by UUID and calls the flatten function.

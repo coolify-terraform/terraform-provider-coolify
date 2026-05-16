@@ -16,7 +16,7 @@ cd terraform-provider-coolify
 make build
 ```
 
-If you plan to run `make ci`, install the required local tools first. On a fresh clone, `make ci` fails early if `golangci-lint`, `tfplugindocs`, or `goreleaser` are missing.
+If you plan to run `make ci`, install the required local tools first. On a fresh clone, the command fails early if `golangci-lint`, `tfplugindocs`, or `goreleaser` are missing.
 
 ### Running Tests
 
@@ -46,12 +46,25 @@ procedure, API token creation, and server validation steps.
 Run the aggregate local checks before pushing:
 
 ```bash
-make ci      # Run build, lint, unit tests, validate, docs, coverage, and vuln checks
+make ci
 ```
 
-`make ci` does not run acceptance tests. If your change touches real Coolify
-API behavior, also run `make testacc` or targeted `TF_ACC=1 go test ...`
-commands.
+From [GNUmakefile](GNUmakefile), `make ci` runs these local targets:
+- `build`
+- `lint`
+- `test`
+- `validate`
+- `docs-check`
+- `api-coverage-check`
+- `counts-check`
+- `vulncheck`
+- `goreleaser-check`
+- `modverify`
+
+`make ci` does not run acceptance tests or the CI-only security scanners
+(`trivy` and `gitleaks`) from the GitHub Actions pipeline. If your change
+touches real Coolify API behavior, also run `make testacc` or targeted
+`TF_ACC=1 go test ...` commands.
 
 Or run individual checks:
 

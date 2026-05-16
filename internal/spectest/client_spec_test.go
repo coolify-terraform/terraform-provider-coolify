@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -35,15 +36,27 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		response   interface{}
 	}
 
+	updatedProjectName := "updated"
+	updatedTaskName := "cleanup-v2"
+	appStorageUUID := "app-stor-1"
+	updatedAppStorageName := "data-v2"
+	dbStorageUUID := "db-stor-1"
+	updatedDBStorageName := "pgdata-v2"
+	svcStorageUUID := "svc-stor-1"
+	updatedSvcStorageName := "svc-data-v2"
+	updatedCloudTokenName := "updated-token"
+	updatedGitHubAppName := "updated-gh-app"
+	updatedGitHubAppSecret := "updated-secret"
+
 	endpoints := []endpoint{
 		// Projects
 		{"CreateProject", "POST", "/api/v1/projects",
-			map[string]string{"name": "test", "description": "desc"},
+			client.CreateProjectInput{Name: "test", Description: "desc"},
 			201, map[string]string{"uuid": "proj-1"}},
 		{"GetProject", "GET", "/api/v1/projects/proj-1",
 			nil, 200, map[string]interface{}{"uuid": "proj-1", "name": "test", "description": "desc"}},
 		{"UpdateProject", "PATCH", "/api/v1/projects/proj-1",
-			map[string]string{"name": "updated"},
+			client.UpdateProjectInput{Name: &updatedProjectName},
 			201, map[string]interface{}{"uuid": "proj-1", "name": "updated", "description": "desc"}},
 		{"DeleteProject", "DELETE", "/api/v1/projects/proj-1",
 			nil, 200, map[string]string{"message": "deleted"}},
@@ -52,7 +65,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// Servers
 		{"CreateServer", "POST", "/api/v1/servers",
-			map[string]interface{}{"name": "srv", "ip": "10.0.0.1", "port": 22, "private_key_uuid": "pk-1"},
+			client.CreateServerInput{Name: "srv", IP: "10.0.0.1", Port: 22, PrivateKeyUUID: "pk-1"},
 			201, map[string]string{"uuid": "srv-1"}},
 		{"GetServer", "GET", "/api/v1/servers/srv-1",
 			nil, 200, map[string]interface{}{"uuid": "srv-1", "name": "srv", "ip": "10.0.0.1", "port": 22}},
@@ -61,11 +74,15 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// Applications
 		{"CreatePublicApp", "POST", "/api/v1/applications/public",
-			map[string]interface{}{
-				"project_uuid": "proj-1", "server_uuid": "srv-1",
-				"environment_name": "production", "environment_uuid": "env-1",
-				"git_repository": "https://github.com/ex/repo", "git_branch": "main",
-				"build_pack": "nixpacks", "ports_exposes": "3000",
+			client.CreatePublicAppInput{
+				ProjectUUID:     "proj-1",
+				ServerUUID:      "srv-1",
+				EnvironmentName: "production",
+				EnvironmentUUID: "env-1",
+				GitRepository:   "https://github.com/ex/repo",
+				GitBranch:       "main",
+				BuildPack:       "nixpacks",
+				PortsExposes:    "3000",
 			}, 201, map[string]string{"uuid": "app-1"}},
 		{"GetApplication", "GET", "/api/v1/applications/app-1",
 			nil, 200, map[string]interface{}{"uuid": "app-1", "name": "my-app"}},
@@ -74,9 +91,11 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// Databases
 		{"CreatePostgresql", "POST", "/api/v1/databases/postgresql",
-			map[string]interface{}{
-				"server_uuid": "srv-1", "project_uuid": "proj-1",
-				"environment_name": "production", "environment_uuid": "env-1",
+			client.CreatePostgresqlInput{
+				ServerUUID:      "srv-1",
+				ProjectUUID:     "proj-1",
+				EnvironmentName: "production",
+				EnvironmentUUID: "env-1",
 			}, 201, map[string]string{"uuid": "db-1"}},
 		{"GetDatabase", "GET", "/api/v1/databases/db-1",
 			nil, 200, map[string]interface{}{"uuid": "db-1", "name": "pg-db"}},
@@ -85,7 +104,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// Private Keys
 		{"CreatePrivateKey", "POST", "/api/v1/security/keys",
-			map[string]interface{}{"name": "my-key", "private_key": "ssh-ed25519 AAAA"},
+			client.CreatePrivateKeyInput{Name: "my-key", PrivateKey: "ssh-ed25519 AAAA"},
 			201, map[string]string{"uuid": "pk-1"}},
 		{"GetPrivateKey", "GET", "/api/v1/security/keys/pk-1",
 			nil, 200, map[string]interface{}{"uuid": "pk-1", "name": "my-key", "private_key": "ssh-ed25519 AAAA", "is_git_related": false}},
@@ -94,10 +113,12 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// Services
 		{"CreateService", "POST", "/api/v1/services",
-			map[string]interface{}{
-				"type": "plausible", "server_uuid": "srv-1",
-				"project_uuid": "proj-1", "environment_name": "production",
-				"environment_uuid": "env-1",
+			client.CreateServiceInput{
+				Type:            "plausible",
+				ServerUUID:      "srv-1",
+				ProjectUUID:     "proj-1",
+				EnvironmentName: "production",
+				EnvironmentUUID: "env-1",
 			}, 201, map[string]interface{}{"uuid": "svc-1", "domains": []string{}}},
 		{"GetService", "GET", "/api/v1/services/svc-1",
 			nil, 200, map[string]interface{}{"uuid": "svc-1", "name": "plausible"}},
@@ -106,7 +127,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// Environment Variables (application)
 		{"CreateAppEnvVar", "POST", "/api/v1/applications/app-1/envs",
-			map[string]interface{}{"key": "DB_HOST", "value": "localhost", "is_preview": false},
+			client.EnvironmentVariable{Key: "DB_HOST", Value: "localhost", IsPreview: false},
 			201, map[string]string{"uuid": "env-1"}},
 		{"ListAppEnvVars", "GET", "/api/v1/applications/app-1/envs",
 			nil, 200, []map[string]interface{}{{"uuid": "env-1", "key": "DB_HOST", "value": "localhost"}}},
@@ -115,7 +136,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 
 		// Database Backups
 		{"CreateBackup", "POST", "/api/v1/databases/db-1/backups",
-			map[string]interface{}{"frequency": "0 2 * * *", "enabled": true},
+			client.CreateDatabaseBackupInput{Frequency: "0 2 * * *", Enabled: true},
 			201, map[string]interface{}{"uuid": "bak-1", "message": "created"}},
 
 		// Teams
@@ -136,7 +157,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListEnvironments", "GET", "/api/v1/projects/proj-1/environments",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "production"}}},
 		{"CreateEnvironment", "POST", "/api/v1/projects/proj-1/environments",
-			map[string]string{"name": "staging"},
+			client.CreateEnvironmentInput{Name: "staging"},
 			201, map[string]interface{}{"name": "staging"}},
 		{"DeleteEnvironment", "DELETE", "/api/v1/projects/proj-1/environments/staging",
 			nil, 200, map[string]string{"message": "deleted"}},
@@ -178,10 +199,10 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListAppTasks", "GET", "/api/v1/applications/app-1/scheduled-tasks",
 			nil, 200, []map[string]interface{}{{"uuid": "task-1", "name": "cleanup"}}},
 		{"CreateAppTask", "POST", "/api/v1/applications/app-1/scheduled-tasks",
-			map[string]interface{}{"name": "cleanup", "command": "rm -rf /tmp/*", "frequency": "0 * * * *"},
+			client.CreateScheduledTaskInput{Name: "cleanup", Command: "rm -rf /tmp/*", Frequency: "0 * * * *"},
 			201, map[string]interface{}{"uuid": "task-1", "message": "created"}},
 		{"UpdateAppTask", "PATCH", "/api/v1/applications/app-1/scheduled-tasks/task-1",
-			map[string]interface{}{"name": "cleanup-v2"},
+			client.UpdateScheduledTaskInput{Name: &updatedTaskName},
 			200, map[string]interface{}{"uuid": "task-1", "message": "updated"}},
 		{"DeleteAppTask", "DELETE", "/api/v1/applications/app-1/scheduled-tasks/task-1",
 			nil, 200, map[string]string{"message": "deleted"}},
@@ -192,32 +213,32 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListAppStorages", "GET", "/api/v1/applications/app-1/storages",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "data"}}},
 		{"CreateAppStorage", "POST", "/api/v1/applications/app-1/storages",
-			map[string]interface{}{"name": "data", "mount_path": "/data", "host_path": "/host/data"},
+			client.CreateStorageInput{Type: "persistent", Name: "data", MountPath: "/data", HostPath: "/host/data"},
 			201, map[string]interface{}{"id": 1, "message": "created"}},
 		{"UpdateAppStorage", "PATCH", "/api/v1/applications/app-1/storages",
-			map[string]interface{}{"id": 1, "name": "data-v2"},
+			client.UpdateStorageInput{UUID: &appStorageUUID, Type: "persistent", Name: &updatedAppStorageName},
 			200, map[string]interface{}{"id": 1, "message": "updated"}},
 		{"DeleteAppStorage", "DELETE", "/api/v1/applications/app-1/storages/stor-1",
 			nil, 200, map[string]string{"message": "deleted"}},
 
 		// App env bulk
 		{"BulkUpdateAppEnvs", "PATCH", "/api/v1/applications/app-1/envs/bulk",
-			map[string]interface{}{"data": []map[string]interface{}{{"key": "K1", "value": "V1"}}},
+			client.BulkEnvVarInput{Variables: []client.EnvVarEntry{{Key: "K1", Value: "V1"}}},
 			200, map[string]string{"message": "updated"}},
 
 		// Database environment variables
 		{"ListDatabaseEnvVars", "GET", "/api/v1/databases/db-1/envs",
 			nil, 200, []map[string]interface{}{{"uuid": "env-1", "key": "PG_HOST", "value": "localhost"}}},
 		{"CreateDatabaseEnvVar", "POST", "/api/v1/databases/db-1/envs",
-			map[string]interface{}{"key": "PG_HOST", "value": "localhost", "is_preview": false},
+			client.EnvironmentVariable{Key: "PG_HOST", Value: "localhost", IsPreview: false},
 			201, map[string]string{"uuid": "env-1"}},
 		{"UpdateDatabaseEnvVar", "PATCH", "/api/v1/databases/db-1/envs",
-			map[string]interface{}{"key": "PG_HOST", "value": "db.local"},
+			client.EnvironmentVariable{Key: "PG_HOST", Value: "db.local"},
 			200, map[string]string{"message": "updated"}},
 		{"DeleteDatabaseEnvVar", "DELETE", "/api/v1/databases/db-1/envs/env-1",
 			nil, 200, map[string]string{"message": "deleted"}},
 		{"BulkUpdateDbEnvs", "PATCH", "/api/v1/databases/db-1/envs/bulk",
-			map[string]interface{}{"data": []map[string]interface{}{{"key": "K1", "value": "V1"}}},
+			client.BulkEnvVarInput{Variables: []client.EnvVarEntry{{Key: "K1", Value: "V1"}}},
 			200, map[string]string{"message": "updated"}},
 
 		// Database lifecycle
@@ -232,10 +253,10 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListDbStorages", "GET", "/api/v1/databases/db-1/storages",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "pgdata"}}},
 		{"CreateDbStorage", "POST", "/api/v1/databases/db-1/storages",
-			map[string]interface{}{"name": "pgdata", "mount_path": "/var/lib/postgresql", "host_path": "/host/pgdata"},
+			client.CreateStorageInput{Type: "persistent", Name: "pgdata", MountPath: "/var/lib/postgresql", HostPath: "/host/pgdata"},
 			201, map[string]interface{}{"id": 1, "message": "created"}},
 		{"UpdateDbStorage", "PATCH", "/api/v1/databases/db-1/storages",
-			map[string]interface{}{"id": 1, "name": "pgdata-v2"},
+			client.UpdateStorageInput{UUID: &dbStorageUUID, Type: "persistent", Name: &updatedDBStorageName},
 			200, map[string]interface{}{"id": 1, "message": "updated"}},
 		{"DeleteDbStorage", "DELETE", "/api/v1/databases/db-1/storages/stor-1",
 			nil, 200, map[string]string{"message": "deleted"}},
@@ -250,7 +271,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListServiceEnvVars", "GET", "/api/v1/services/svc-1/envs",
 			nil, 200, []map[string]interface{}{{"uuid": "env-1", "key": "SECRET", "value": "val"}}},
 		{"BulkUpdateSvcEnvs", "PATCH", "/api/v1/services/svc-1/envs/bulk",
-			map[string]interface{}{"data": []map[string]interface{}{{"key": "K1", "value": "V1"}}},
+			client.BulkEnvVarInput{Variables: []client.EnvVarEntry{{Key: "K1", Value: "V1"}}},
 			200, map[string]string{"message": "updated"}},
 		{"RestartService", "GET", "/api/v1/services/svc-1/restart",
 			nil, 200, map[string]string{"message": "restarted"}},
@@ -263,10 +284,10 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListSvcTasks", "GET", "/api/v1/services/svc-1/scheduled-tasks",
 			nil, 200, []map[string]interface{}{{"uuid": "task-1", "name": "cleanup"}}},
 		{"CreateSvcTask", "POST", "/api/v1/services/svc-1/scheduled-tasks",
-			map[string]interface{}{"name": "cleanup", "command": "rm -rf /tmp/*", "frequency": "0 * * * *"},
+			client.CreateScheduledTaskInput{Name: "cleanup", Command: "rm -rf /tmp/*", Frequency: "0 * * * *"},
 			201, map[string]interface{}{"uuid": "task-1", "message": "created"}},
 		{"UpdateSvcTask", "PATCH", "/api/v1/services/svc-1/scheduled-tasks/task-1",
-			map[string]interface{}{"name": "cleanup-v2"},
+			client.UpdateScheduledTaskInput{Name: &updatedTaskName},
 			200, map[string]interface{}{"uuid": "task-1", "message": "updated"}},
 		{"DeleteSvcTask", "DELETE", "/api/v1/services/svc-1/scheduled-tasks/task-1",
 			nil, 200, map[string]string{"message": "deleted"}},
@@ -277,10 +298,10 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"ListSvcStorages", "GET", "/api/v1/services/svc-1/storages",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "svc-data"}}},
 		{"CreateSvcStorage", "POST", "/api/v1/services/svc-1/storages",
-			map[string]interface{}{"name": "svc-data", "mount_path": "/data", "host_path": "/host/svc-data"},
+			client.CreateStorageInput{Type: "persistent", Name: "svc-data", MountPath: "/data", HostPath: "/host/svc-data"},
 			201, map[string]interface{}{"id": 1, "message": "created"}},
 		{"UpdateSvcStorage", "PATCH", "/api/v1/services/svc-1/storages",
-			map[string]interface{}{"id": 1, "name": "svc-data-v2"},
+			client.UpdateStorageInput{UUID: &svcStorageUUID, Type: "persistent", Name: &updatedSvcStorageName},
 			200, map[string]interface{}{"id": 1, "message": "updated"}},
 		{"DeleteSvcStorage", "DELETE", "/api/v1/services/svc-1/storages/stor-1",
 			nil, 200, map[string]string{"message": "deleted"}},
@@ -294,7 +315,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"GetCloudToken", "GET", "/api/v1/cloud-tokens/ct-1",
 			nil, 200, map[string]interface{}{"uuid": "ct-1", "name": "my-token", "provider": "hetzner"}},
 		{"UpdateCloudToken", "PATCH", "/api/v1/cloud-tokens/ct-1",
-			map[string]interface{}{"name": "updated-token"},
+			client.UpdateCloudTokenInput{Name: &updatedCloudTokenName},
 			200, map[string]interface{}{"uuid": "ct-1"}},
 		{"DeleteCloudToken", "DELETE", "/api/v1/cloud-tokens/ct-1",
 			nil, 200, map[string]string{"message": "deleted"}},
@@ -317,7 +338,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			},
 			201, map[string]interface{}{"id": 1, "uuid": "gh-1", "name": "my-gh-app"}},
 		{"UpdateGitHubApp", "PATCH", "/api/v1/github-apps/1",
-			map[string]interface{}{"name": "updated-gh-app", "client_secret": "updated-secret"},
+			client.UpdateGitHubAppIntegrationInput{Name: &updatedGitHubAppName, ClientSecret: &updatedGitHubAppSecret},
 			200, map[string]interface{}{"message": "GitHub app updated successfully", "data": map[string]interface{}{"id": 1, "name": "updated-gh-app"}}},
 		{"DeleteGitHubApp", "DELETE", "/api/v1/github-apps/1",
 			nil, 200, map[string]string{"message": "deleted"}},
@@ -375,7 +396,6 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			// Not parallel: libopenapi-validator has internal state
 			// that races when shared across goroutines.
 			mux := http.NewServeMux()
-			// Strip query string for mux pattern (ServeMux matches on path only).
 			handlerPath := ep.path
 			if idx := strings.IndexByte(handlerPath, '?'); idx != -1 {
 				handlerPath = handlerPath[:idx]
@@ -395,12 +415,13 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			srv := httptest.NewServer(withSpecValidation(t, "coolify-v4", mux, false, v))
 			defer srv.Close()
 
-			var reqBody *bytes.Buffer
+			var reqBody io.Reader = http.NoBody
 			if ep.body != nil {
-				data, _ := json.Marshal(ep.body)
-				reqBody = bytes.NewBuffer(data)
-			} else {
-				reqBody = &bytes.Buffer{}
+				data, err := json.Marshal(ep.body)
+				if err != nil {
+					t.Fatalf("marshaling request body: %v", err)
+				}
+				reqBody = bytes.NewReader(data)
 			}
 
 			req, err := http.NewRequest(ep.method, srv.URL+ep.path, reqBody)
