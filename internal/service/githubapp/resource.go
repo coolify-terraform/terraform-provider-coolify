@@ -259,7 +259,7 @@ func (r *gitHubAppResource) Delete(ctx context.Context, req resource.DeleteReque
 			// Already deleted; nothing to do.
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting GitHub App", err.Error())
+		resp.Diagnostics.AddError("Error deleting GitHub App", fmt.Sprintf("Could not delete GitHub App %d: %s", state.ID.ValueInt64(), err))
 	}
 }
 

@@ -214,7 +214,7 @@ func (r *environmentResource) Delete(ctx context.Context, req resource.DeleteReq
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting environment", err.Error())
+		resp.Diagnostics.AddError("Error deleting environment", fmt.Sprintf("Could not delete environment %s in project %s: %s", name, projectUUID, err))
 	}
 }
 

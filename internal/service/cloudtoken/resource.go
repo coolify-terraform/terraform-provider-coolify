@@ -228,7 +228,7 @@ func (r *cloudTokenResource) Delete(ctx context.Context, req resource.DeleteRequ
 			// Already deleted; nothing to do.
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting cloud token", err.Error())
+		resp.Diagnostics.AddError("Error deleting cloud token", fmt.Sprintf("Could not delete cloud token %s: %s", state.UUID.ValueString(), err))
 	}
 }
 

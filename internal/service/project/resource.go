@@ -235,7 +235,7 @@ retryLoop:
 		}
 	}
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting project", err.Error())
+		resp.Diagnostics.AddError("Error deleting project", fmt.Sprintf("Could not delete project %s: %s", uuid, err))
 	}
 }
 
