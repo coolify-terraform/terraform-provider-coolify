@@ -41,7 +41,7 @@ resource "coolify_dockerfile_application" "app" {
 
 ### Required
 
-- `dockerfile_location` (String) The Dockerfile content, **base64-encoded**. Use `base64encode(<<-DOCKERFILE ... DOCKERFILE)` in your configuration. Despite the field name, this is not a file path.
+- `dockerfile_location` (String) The Dockerfile content, **base64-encoded**. Use `base64encode(<<-DOCKERFILE ... DOCKERFILE)` in your configuration. Despite the field name, this is not a file path. Changing this forces a new resource because the Coolify API only accepts Dockerfile content at creation time.
 - `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g. `80` or `80,443`).
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing this forces a new resource.

@@ -265,7 +265,7 @@ func TestDockerfileApplicationResource_Update(t *testing.T) {
 					description         = "Updated via test"
 					project_uuid        = "aaaa0001-0001-4000-8000-000000000001"
 					server_uuid         = "bbbb0001-0001-4000-8000-000000000001"
-					dockerfile_location = "RlJPTSBuZ2lueA=="
+					dockerfile_location = "/Dockerfile"
 					ports_exposes       = "80"
 					install_command     = "npm install"
 					build_command       = "npm run build"
@@ -274,7 +274,7 @@ func TestDockerfileApplicationResource_Update(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "uuid", "dockerfile-upd-uuid"),
 					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "name", "updated-dockerfile-app"),
 					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "description", "Updated via test"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "dockerfile_location", "RlJPTSBuZ2lueA=="),
+					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "dockerfile_location", "/Dockerfile"),
 					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "install_command", "npm install"),
 					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "build_command", "npm run build"),
 				),
