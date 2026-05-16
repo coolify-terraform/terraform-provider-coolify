@@ -139,6 +139,7 @@ func TestAccEnvironmentVariableResource_DatabaseCRUD(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_environment_variable.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "key", "DB_TEST_VAR"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "db-initial"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "false"),
 				),
 			},
 			// Idempotency check
@@ -158,7 +159,7 @@ func TestAccEnvironmentVariableResource_DatabaseCRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateVerifyIgnore:              []string{"value", "is_build"},
+				ImportStateVerifyIgnore:              []string{"value"},
 				ImportStateIdFunc:                    testAccEnvVarDbImportStateIdFunc("coolify_postgresql_database.test", "coolify_environment_variable.test"),
 			},
 		},
@@ -187,6 +188,7 @@ func TestAccEnvironmentVariableResource_ServiceCRUD(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_environment_variable.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "key", "SVC_TEST_VAR"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "svc-initial"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "false"),
 				),
 			},
 			// Idempotency check
@@ -206,7 +208,7 @@ func TestAccEnvironmentVariableResource_ServiceCRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateVerifyIgnore:              []string{"value", "is_build"},
+				ImportStateVerifyIgnore:              []string{"value"},
 				ImportStateIdFunc:                    testAccEnvVarServiceImportStateIdFunc("coolify_service.test", "coolify_environment_variable.test"),
 			},
 		},
