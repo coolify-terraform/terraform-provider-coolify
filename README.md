@@ -112,8 +112,8 @@ resource "coolify_postgresql_database" "db" {
   image         = "postgres:16"
   postgres_user = "app"
   postgres_db   = "myapp"
-  # postgres_password omitted here; Coolify auto-generates one
-  # readable from state after create.
+  # postgres_password omitted here. The provider stores the generated
+  # sensitive value in Terraform state after create.
 }
 
 resource "coolify_application" "web" {
@@ -130,9 +130,11 @@ resource "coolify_application" "web" {
 
 See the [examples/](examples/) directory for more, including the full
 [`coolify_postgresql_database` example](examples/resources/coolify_postgresql_database/resource.tf)
-that models `postgres_password` as a sensitive variable. The
-[examples/scenarios/](examples/scenarios/) directory has 8 real-world
-scenarios tested against a live Coolify instance:
+that models `postgres_password` as a sensitive variable, and the
+[`coolify_github_app` example](examples/resources/coolify_github_app/resource.tf)
+that models both `client_secret` and `webhook_secret` as sensitive
+variables. The [examples/scenarios/](examples/scenarios/) directory has 8
+real-world scenarios tested against a live Coolify instance:
 
 | Scenario | What it tests |
 |---|---|

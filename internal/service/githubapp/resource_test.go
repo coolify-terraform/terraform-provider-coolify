@@ -250,7 +250,7 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 
 func TestGitHubAppResource_Create(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer(t)
+	server, store := newMockCoolifyServer(t)
 	defer server.Close()
 
 	config := testGitHubAppResourceConfig(server.URL, `
@@ -275,6 +275,35 @@ private_key_uuid = "pk-uuid-test"
 					resource.TestCheckResourceAttr("coolify_github_app.test", "app_id", "12345"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "installation_id", "67890"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "client_id", "Iv1.abc123"),
+					resource.TestCheckResourceAttrSet("coolify_github_app.test", "webhook_secret"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_github_app.test"]
+						if !ok {
+							return fmt.Errorf("resource not found in state")
+						}
+
+						secret := rs.Primary.Attributes["webhook_secret"]
+						if !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(secret) {
+							return fmt.Errorf("expected generated webhook_secret to be 64 lowercase hex characters, got %q", secret)
+						}
+						if secret == "my-github-app-webhook" || secret == "terraform-provider-coolify" {
+							return fmt.Errorf("expected generated webhook_secret to avoid predictable defaults, got %q", secret)
+						}
+
+						id, err := strconv.ParseInt(rs.Primary.Attributes["id"], 10, 64)
+						if err != nil {
+							return fmt.Errorf("parsing resource id: %w", err)
+						}
+						app, ok := store.Get(id)
+						if !ok {
+							return fmt.Errorf("mock github app %d not found", id)
+						}
+						if app.WebhookSecret != secret {
+							return fmt.Errorf("expected API payload webhook_secret to match state")
+						}
+
+						return nil
+					},
 				),
 			},
 			// Plan idempotency

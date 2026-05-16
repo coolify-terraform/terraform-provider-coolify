@@ -2,9 +2,10 @@ package githubapp
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
@@ -97,7 +98,7 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Sensitive:           true,
 			},
 			"webhook_secret": schema.StringAttribute{
-				MarkdownDescription: "The GitHub App webhook secret. If omitted on create, the provider sends `<name>-webhook` after trimming surrounding whitespace from `name`, or `terraform-provider-coolify` when `name` is empty.",
+				MarkdownDescription: "The GitHub App webhook secret. If omitted on create, the provider generates a random secret, sends it to Coolify, and stores it in state.",
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
@@ -146,7 +147,12 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 	}
 	flex.SetIfKnown(&input.OrganizationName, plan.OrganizationName)
 	if plan.WebhookSecret.IsNull() || plan.WebhookSecret.IsUnknown() {
-		input.WebhookSecret = defaultWebhookSecret(plan.Name.ValueString())
+		generatedSecret, err := randomWebhookSecret()
+		if err != nil {
+			resp.Diagnostics.AddError("Error generating GitHub App webhook secret", err.Error())
+			return
+		}
+		input.WebhookSecret = generatedSecret
 	} else {
 		flex.SetIfKnown(&input.WebhookSecret, plan.WebhookSecret)
 	}
@@ -285,10 +291,10 @@ func flattenGitHubApp(app *client.GitHubApp, model *gitHubAppResourceModel) {
 	}
 }
 
-func defaultWebhookSecret(name string) string {
-	trimmed := strings.TrimSpace(name)
-	if trimmed == "" {
-		return "terraform-provider-coolify"
+func randomWebhookSecret() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("generating random webhook secret: %w", err)
 	}
-	return trimmed + "-webhook"
+	return hex.EncodeToString(buf), nil
 }
