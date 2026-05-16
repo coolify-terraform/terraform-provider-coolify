@@ -48,8 +48,8 @@ resource "coolify_environment_variable" "db_log_level" {
 
 - `application_uuid` (String) The UUID of the application to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `database_uuid` (String) The UUID of the database to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
-- `is_build` (Boolean) Whether this variable is available at build time. Supported only for application-scoped environment variables. Omit to accept Coolify's API behavior for the selected parent resource type.
-- `is_preview` (Boolean) Whether this variable is available in preview deployments. Omit to accept Coolify's API default for the selected parent resource type.
+- `is_build` (Boolean) Whether this variable is available at build time. Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.
+- `is_preview` (Boolean) Whether this variable is available in preview deployments. Set it explicitly when you need preview-scoped behavior.
 - `service_uuid` (String) The UUID of the service to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 
 ### Read-Only
