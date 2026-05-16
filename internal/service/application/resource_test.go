@@ -1269,3 +1269,24 @@ func TestApplicationResource_ValidatePortsMappings(t *testing.T) {
 		},
 	})
 }
+
+func TestApplicationResource_PortsMappingsRange(t *testing.T) {
+	srv := acctest.NewMockServer(t)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+					ports_mappings = "99999:80"
+				`),
+				ExpectError: regexp.MustCompile(`between 1 and 65535`),
+			},
+		},
+	})
+}

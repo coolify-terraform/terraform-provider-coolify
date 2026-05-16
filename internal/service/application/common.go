@@ -935,7 +935,7 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g. `8080:80` or `8080:80,8443:443`).",
 			Optional:            true,
 			Validators: []validator.String{
-				stringvalidator.RegexMatches(regexp.MustCompile(`^\d+:\d+(,\d+:\d+)*$`), "must be comma-separated host:container port pairs (e.g. \"8080:80\" or \"8080:80,8443:443\")"),
+				validate.PortMappings(),
 			},
 		},
 		"force_domain_override": schema.BoolAttribute{

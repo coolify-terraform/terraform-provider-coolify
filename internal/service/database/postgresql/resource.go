@@ -3,7 +3,6 @@ package postgresql
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
@@ -11,7 +10,6 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -353,7 +351,7 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g. `8080:5432`).",
 			Optional:            true,
 			Validators: []validator.String{
-				stringvalidator.RegexMatches(regexp.MustCompile(`^\d+:\d+(,\d+:\d+)*$`), "must be comma-separated host:container port pairs (e.g. \"8080:5432\" or \"8080:5432,8443:5433\")"),
+				validate.PortMappings(),
 			},
 		},
 		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container.", Optional: true},
