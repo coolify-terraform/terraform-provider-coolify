@@ -6,6 +6,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -53,6 +54,7 @@ func (d *envVarListDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				MarkdownDescription: "The UUID of the application. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.",
 				Optional:            true,
 				Validators: []validator.String{
+					validate.UUID(),
 					stringvalidator.ExactlyOneOf(
 						path.MatchRoot("service_uuid"),
 						path.MatchRoot("database_uuid"),
@@ -62,10 +64,12 @@ func (d *envVarListDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"service_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the service. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.",
 				Optional:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"database_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the database. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided.",
 				Optional:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"environment_variables": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of environment variables.",

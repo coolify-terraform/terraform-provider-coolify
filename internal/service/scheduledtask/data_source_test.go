@@ -54,6 +54,21 @@ data "coolify_scheduled_tasks" "test" {
 	})
 }
 
+func TestScheduledTasksDataSource_InvalidUUID(t *testing.T) {
+	t.Parallel()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: `data "coolify_scheduled_tasks" "test" {
+  application_uuid = "not-a-valid-uuid"
+}
+`,
+			ExpectError: acctest.UUIDValidationError(),
+		}},
+	})
+}
+
 func TestScheduledTasksDataSource_Service(t *testing.T) {
 	t.Parallel()
 

@@ -81,6 +81,21 @@ data "coolify_environment_variables" "test" {
 	})
 }
 
+func TestEnvironmentVariablesDataSource_InvalidUUID(t *testing.T) {
+	t.Parallel()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: `data "coolify_environment_variables" "test" {
+  application_uuid = "not-a-valid-uuid"
+}
+`,
+			ExpectError: acctest.UUIDValidationError(),
+		}},
+	})
+}
+
 func TestEnvironmentVariablesDataSource_Service(t *testing.T) {
 	t.Parallel()
 	envVars := []client.EnvironmentVariable{

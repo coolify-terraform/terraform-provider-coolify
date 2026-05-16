@@ -89,6 +89,21 @@ data "coolify_storages" "test" {
 	})
 }
 
+func TestStoragesDataSource_InvalidUUID(t *testing.T) {
+	t.Parallel()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: `data "coolify_storages" "test" {
+  application_uuid = "not-a-valid-uuid"
+}
+`,
+			ExpectError: acctest.UUIDValidationError(),
+		}},
+	})
+}
+
 func TestStoragesDataSource_Service(t *testing.T) {
 	t.Parallel()
 	storages := []client.Storage{
