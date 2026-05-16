@@ -1044,6 +1044,10 @@ func TestApplicationResource_ExtendedFields(t *testing.T) {
 	isStatic := true
 	isForceHTTPS := false
 	hcReturnCode := int64(200)
+	hcInterval := int64(5)
+	hcTimeout := int64(5)
+	hcRetries := int64(10)
+	hcStartPeriod := int64(5)
 	autoDeployEnabled := true
 	hcEnabled := true
 	isSPA := false
@@ -1077,6 +1081,12 @@ func TestApplicationResource_ExtendedFields(t *testing.T) {
 		PreDeploymentCommand:   "npm run migrate",
 		CustomDockerRunOptions: "--memory=512m",
 		StaticImage:            "nginx:alpine",
+		// Computed+Default health check fields (API returns these)
+		HealthCheckPath:        "/",
+		HealthCheckInterval:    &hcInterval,
+		HealthCheckTimeout:     &hcTimeout,
+		HealthCheckRetries:     &hcRetries,
+		HealthCheckStartPeriod: &hcStartPeriod,
 		// Computed+Default bools (API returns these)
 		IsSPA:                         &isSPA,
 		IsHTTPBasicAuthEnabled:        &isHTTPAuth,

@@ -726,6 +726,8 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 		"health_check_path": schema.StringAttribute{
 			MarkdownDescription: "The URL path for health checks.",
 			Optional:            true,
+			Computed:            true,
+			Default:             stringdefault.StaticString("/"),
 		},
 		"health_check_port": schema.StringAttribute{
 			MarkdownDescription: "The port for health checks.",
@@ -734,18 +736,26 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 		"health_check_interval": schema.Int64Attribute{
 			MarkdownDescription: "Health check interval in seconds.",
 			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(5),
 		},
 		"health_check_timeout": schema.Int64Attribute{
 			MarkdownDescription: "Health check timeout in seconds.",
 			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(5),
 		},
 		"health_check_retries": schema.Int64Attribute{
 			MarkdownDescription: "Number of health check retries.",
 			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(10),
 		},
 		"health_check_start_period": schema.Int64Attribute{
 			MarkdownDescription: "Health check start period in seconds.",
 			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(5),
 		},
 		// Auto-deploy
 		"is_auto_deploy_enabled": schema.BoolAttribute{
@@ -1038,6 +1048,11 @@ func setImportDefaults(ctx context.Context, resp *resource.ImportStateResponse) 
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(attr), v)...)
 	}
 	set("health_check_enabled", true)
+	set("health_check_path", "/")
+	set("health_check_interval", int64(5))
+	set("health_check_timeout", int64(5))
+	set("health_check_retries", int64(10))
+	set("health_check_start_period", int64(5))
 	set("is_auto_deploy_enabled", true)
 	set("redirect", defaultRedirect)
 	set("health_check_type", defaultHealthCheckType)
