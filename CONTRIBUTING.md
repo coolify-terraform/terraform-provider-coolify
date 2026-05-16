@@ -105,9 +105,10 @@ Use the scaffold script to generate boilerplate:
 make scaffold NAME=webhook
 ```
 
-This creates the resource, data source, client methods, tests, and examples
-with TODO placeholders. Then complete the remaining manual steps printed by
-the script (register in provider.go, fill in TODOs, run `make ci`).
+This creates the resource, data source, client methods, unit tests, and
+examples with TODO placeholders. Then complete the remaining manual steps
+printed by the script, especially adding `resource_acc_test.go`, registering
+in provider.go, filling in TODOs, and running `make ci`.
 
 <details>
 <summary>Manual steps (if not using the scaffold)</summary>
