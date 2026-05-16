@@ -1137,6 +1137,34 @@ func TestApplicationResource_ExtendedFields(t *testing.T) {
 		if v, ok := requestBody["pre_deployment_command"].(string); ok {
 			currentApp.PreDeploymentCommand = v
 		}
+		if v, ok := requestBody["health_check_type"].(string); ok {
+			currentApp.HealthCheckType = v
+		}
+		if v, ok := requestBody["health_check_command"].(string); ok {
+			currentApp.HealthCheckCommand = v
+		}
+		if v, ok := requestBody["health_check_host"].(string); ok {
+			currentApp.HealthCheckHost = v
+		}
+		if v, ok := requestBody["health_check_method"].(string); ok {
+			currentApp.HealthCheckMethod = v
+		}
+		if v, ok := requestBody["health_check_scheme"].(string); ok {
+			currentApp.HealthCheckScheme = v
+		}
+		if v, ok := requestBody["health_check_return_code"].(float64); ok {
+			n := int64(v)
+			currentApp.HealthCheckReturnCode = &n
+		}
+		if v, ok := requestBody["is_force_https_enabled"].(bool); ok {
+			currentApp.IsForceHTTPSEnabled = &v
+		}
+		if v, ok := requestBody["custom_docker_run_options"].(string); ok {
+			currentApp.CustomDockerRunOptions = v
+		}
+		if v, ok := requestBody["static_image"].(string); ok {
+			currentApp.StaticImage = v
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)
 	})
