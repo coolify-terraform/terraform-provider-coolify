@@ -66,7 +66,7 @@ All database resources share the same base schema (`project_uuid`,
 | Resource | Purpose |
 |----------|---------|
 | `coolify_environment_variable` | Inject config into apps, services, or databases |
-| `coolify_storage` | Persistent volume mount for apps or services |
+| `coolify_storage` | Persistent volume mount for apps, services, or databases |
 | `coolify_scheduled_task` | Cron-based task on apps or services |
 | `coolify_deployment` | Trigger a deploy (with force-redeploy via `triggers`) |
 | `coolify_database_backup` | Schedule automated backups with cron syntax |
