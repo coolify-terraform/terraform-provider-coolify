@@ -222,11 +222,6 @@ func (r *dockerfileApplicationResource) Delete(ctx context.Context, req resource
 
 func (r *dockerfileApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	importApplicationState(ctx, req, resp)
-	resp.Diagnostics.AddWarning(
-		"Sensitive fields require token permissions",
-		"The Coolify API hides dockerfile, custom_labels, and docker_compose unless the API token has \"root\" or \"read:sensitive\" permission. "+
-			"If you see unexpected diffs after import, check your token's permissions in the Coolify dashboard under Security > API Tokens.",
-	)
 }
 
 func (m *dockerfileApplicationResourceModel) common() commonAppFields {
