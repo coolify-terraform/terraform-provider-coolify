@@ -79,6 +79,7 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "The GitHub organization name.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"app_id": schema.Int64Attribute{
 				MarkdownDescription: "The GitHub App ID.",

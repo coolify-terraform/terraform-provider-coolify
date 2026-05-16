@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -114,11 +115,13 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				MarkdownDescription: "Whether this variable is available in preview deployments. Set it explicitly when you need preview-scoped behavior.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"is_build": schema.BoolAttribute{
 				MarkdownDescription: "Whether this variable is available at build time. Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 		},
 	}
