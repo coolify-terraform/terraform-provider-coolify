@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
+	"strconv"
 )
 
 type Deployment struct {
@@ -35,9 +37,28 @@ func (c *Client) ListDeployments(ctx context.Context) ([]Deployment, error) {
 	if err := json.Unmarshal(raw, &m); err != nil {
 		return nil, fmt.Errorf("listing deployments: decoding response: %w", err)
 	}
-	r = make([]Deployment, 0, len(m))
-	for _, d := range m {
-		r = append(r, d)
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	// Preserve the sparse array order encoded in the object keys.
+	sort.Slice(keys, func(i, j int) bool {
+		ki, errI := strconv.Atoi(keys[i])
+		kj, errJ := strconv.Atoi(keys[j])
+		switch {
+		case errI == nil && errJ == nil:
+			return ki < kj
+		case errI == nil:
+			return true
+		case errJ == nil:
+			return false
+		default:
+			return keys[i] < keys[j]
+		}
+	})
+	r = make([]Deployment, 0, len(keys))
+	for _, k := range keys {
+		r = append(r, m[k])
 	}
 	return r, nil
 }

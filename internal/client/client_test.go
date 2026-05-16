@@ -1180,21 +1180,19 @@ func TestClient_ListDeployments_ObjectFallback(t *testing.T) {
 		assert.Equal(t, "/api/v1/deployments", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		// Simulate Coolify sortBy('id') bug: non-sequential keys produce a JSON object.
-		w.Write([]byte(`{"0":{"deployment_uuid":"dep-1","status":"finished"},"2":{"deployment_uuid":"dep-2","status":"queued"}}`))
+		// Include key 10 to verify the fallback sorts numerically, not lexicographically.
+		w.Write([]byte(`{"10":{"deployment_uuid":"dep-3","id":102,"status":"failed"},"2":{"deployment_uuid":"dep-2","id":101,"status":"queued"},"0":{"deployment_uuid":"dep-1","id":100,"status":"finished"}}`))
 	}))
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
 	deps, err := c.ListDeployments(context.Background())
 	require.NoError(t, err)
-	require.Len(t, deps, 2)
-
-	uuids := map[string]bool{}
-	for _, d := range deps {
-		uuids[d.UUID] = true
-	}
-	assert.True(t, uuids["dep-1"], "dep-1 should be in results")
-	assert.True(t, uuids["dep-2"], "dep-2 should be in results")
+	assert.Equal(t, []Deployment{
+		{UUID: "dep-1", ID: 100, Status: "finished"},
+		{UUID: "dep-2", ID: 101, Status: "queued"},
+		{UUID: "dep-3", ID: 102, Status: "failed"},
+	}, deps)
 }
 
 func TestClient_ListDeployments_InvalidJSON(t *testing.T) {
