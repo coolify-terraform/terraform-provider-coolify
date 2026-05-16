@@ -330,7 +330,7 @@ resource "coolify_mariadb_database" "test" {
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
-				ExpectError: regexp.MustCompile(`must be a valid UUID`),
+				ExpectError: acctest.UUIDValidationError(),
 			},
 		},
 	})

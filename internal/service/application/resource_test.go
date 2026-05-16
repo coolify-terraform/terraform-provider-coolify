@@ -1027,7 +1027,7 @@ func TestApplicationResource_InvalidUUID(t *testing.T) {
 					build_pack     = "nixpacks"
 					ports_exposes  = "3000"
 				`),
-				ExpectError: regexp.MustCompile(`must be a valid UUID`),
+				ExpectError: acctest.UUIDValidationError(),
 			},
 		},
 	})

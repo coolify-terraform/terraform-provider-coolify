@@ -563,7 +563,7 @@ resource "coolify_deployment" "test" {
   application_uuid = "not-a-valid-uuid"
 }
 `, srv.URL),
-				ExpectError: regexp.MustCompile(`must be a valid UUID`),
+				ExpectError: acctest.UUIDValidationError(),
 			},
 		},
 	})
