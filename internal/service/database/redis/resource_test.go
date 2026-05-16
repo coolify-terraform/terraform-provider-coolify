@@ -47,15 +47,22 @@ func newMockRedisServer() (*httptest.Server, *mockRedisState) {
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":             state.uuid,
-				"name":             state.name,
-				"description":      state.description,
-				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
-				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
-				"environment_name": "production",
-				"image":            state.image,
-				"is_public":        false,
-				"public_port":      nil,
+				"uuid":                      state.uuid,
+				"name":                      state.name,
+				"description":               state.description,
+				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":          "production",
+				"image":                     state.image,
+				"is_public":                 false,
+				"public_port":               nil,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
@@ -171,13 +178,20 @@ func TestRedisDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":             redisUUID,
-				"name":             "redis-readback-db",
-				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
-				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
-				"environment_name": "production",
-				"image":            "redis:7",
-				"is_public":        false,
+				"uuid":                      redisUUID,
+				"name":                      "redis-readback-db",
+				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":          "production",
+				"image":                     "redis:7",
+				"is_public":                 false,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
@@ -226,13 +240,20 @@ func TestRedisDatabaseResource_Disappears(t *testing.T) {
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":             redisUUID,
-				"name":             "disappearing-redis",
-				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
-				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
-				"environment_name": "production",
-				"image":            "redis:7",
-				"is_public":        false,
+				"uuid":                      redisUUID,
+				"name":                      "disappearing-redis",
+				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":          "production",
+				"image":                     "redis:7",
+				"is_public":                 false,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):

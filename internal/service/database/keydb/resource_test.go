@@ -47,15 +47,22 @@ func newMockKeydbServer() (*httptest.Server, *mockKeydbState) {
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":             state.uuid,
-				"name":             state.name,
-				"description":      state.description,
-				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
-				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
-				"environment_name": "production",
-				"image":            state.image,
-				"is_public":        false,
-				"public_port":      nil,
+				"uuid":                      state.uuid,
+				"name":                      state.name,
+				"description":               state.description,
+				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":          "production",
+				"image":                     state.image,
+				"is_public":                 false,
+				"public_port":               nil,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
@@ -211,13 +218,20 @@ func TestKeydbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":             keydbUUID,
-				"name":             "keydb-readback-db",
-				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
-				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
-				"environment_name": "production",
-				"image":            "eqalpha/keydb:latest",
-				"is_public":        false,
+				"uuid":                      keydbUUID,
+				"name":                      "keydb-readback-db",
+				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":          "production",
+				"image":                     "eqalpha/keydb:latest",
+				"is_public":                 false,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", keydbUUID):
@@ -268,6 +282,13 @@ func TestKeydbDatabaseResource_Disappears(t *testing.T) {
 				"uuid": dbUUID, "name": "disappearing-keydb",
 				"project_uuid": "aaaa0001-0001-4000-8000-000000000001", "server_uuid": "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name": "production", "image": "eqalpha/keydb:latest", "is_public": false,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dbUUID):
 			deleted = true

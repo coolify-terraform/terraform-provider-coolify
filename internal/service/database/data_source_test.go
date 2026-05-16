@@ -23,16 +23,23 @@ func TestDatabaseDataSource(t *testing.T) {
 
 		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/"+dbUUID) {
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":             dbUUID,
-				"name":             "my-postgresql",
-				"description":      "Production database",
-				"type":             "postgresql",
-				"image":            "postgres:16",
-				"is_public":        true,
-				"public_port":      publicPort,
-				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
-				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
-				"environment_name": "production",
+				"uuid":                      dbUUID,
+				"name":                      "my-postgresql",
+				"description":               "Production database",
+				"type":                      "postgresql",
+				"image":                     "postgres:16",
+				"is_public":                 true,
+				"public_port":               publicPort,
+				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
+				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
+				"environment_name":          "production",
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 			return
 		}

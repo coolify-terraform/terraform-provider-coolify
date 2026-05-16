@@ -14,22 +14,38 @@ import (
 
 func TestDatabasesListDataSource(t *testing.T) {
 	t.Parallel()
+	swappiness := int64(60)
+	cpuShares := int64(1024)
 	databases := []client.Database{
 		{
-			UUID:        "db-list-uuid-1",
-			Name:        "db-alpha",
-			Description: "First database",
-			Type:        "postgresql",
-			Image:       "postgres:16",
-			IsPublic:    false,
+			UUID:                    "db-list-uuid-1",
+			Name:                    "db-alpha",
+			Description:             "First database",
+			Type:                    "postgresql",
+			Image:                   "postgres:16",
+			IsPublic:                false,
+			LimitsMemory:            "0",
+			LimitsMemorySwap:        "0",
+			LimitsMemorySwappiness:  &swappiness,
+			LimitsMemoryReservation: "0",
+			LimitsCPUs:              "0",
+			LimitsCPUSet:            "0",
+			LimitsCPUShares:         &cpuShares,
 		},
 		{
-			UUID:        "db-list-uuid-2",
-			Name:        "db-beta",
-			Description: "Second database",
-			Type:        "mysql",
-			Image:       "mysql:8",
-			IsPublic:    true,
+			UUID:                    "db-list-uuid-2",
+			Name:                    "db-beta",
+			Description:             "Second database",
+			Type:                    "mysql",
+			Image:                   "mysql:8",
+			IsPublic:                true,
+			LimitsMemory:            "0",
+			LimitsMemorySwap:        "0",
+			LimitsMemorySwappiness:  &swappiness,
+			LimitsMemoryReservation: "0",
+			LimitsCPUs:              "0",
+			LimitsCPUSet:            "0",
+			LimitsCPUShares:         &cpuShares,
 		},
 	}
 

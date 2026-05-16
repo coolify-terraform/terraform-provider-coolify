@@ -47,15 +47,22 @@ func newMockDragonflyServer() (*httptest.Server, *mockDragonflyState) {
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":             state.uuid,
-				"name":             state.name,
-				"description":      state.description,
-				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
-				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
-				"environment_name": "production",
-				"image":            state.image,
-				"is_public":        false,
-				"public_port":      nil,
+				"uuid":                      state.uuid,
+				"name":                      state.name,
+				"description":               state.description,
+				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":          "production",
+				"image":                     state.image,
+				"is_public":                 false,
+				"public_port":               nil,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
@@ -211,13 +218,20 @@ func TestDragonflyDatabaseResource_CreateReadBackFailurePreservesState(t *testin
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"uuid":             dragonflyUUID,
-				"name":             "dragonfly-readback-db",
-				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
-				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
-				"environment_name": "production",
-				"image":            "docker.dragonflydb.io/dragonflydb/dragonfly:latest",
-				"is_public":        false,
+				"uuid":                      dragonflyUUID,
+				"name":                      "dragonfly-readback-db",
+				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":          "production",
+				"image":                     "docker.dragonflydb.io/dragonflydb/dragonfly:latest",
+				"is_public":                 false,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dragonflyUUID):
@@ -268,6 +282,13 @@ func TestDragonflyDatabaseResource_Disappears(t *testing.T) {
 				"uuid": dbUUID, "name": "disappearing-dragonfly",
 				"project_uuid": "aaaa0001-0001-4000-8000-000000000001", "server_uuid": "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name": "production", "image": "docker.dragonflydb.io/dragonflydb/dragonfly:latest", "is_public": false,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dbUUID):
 			deleted = true

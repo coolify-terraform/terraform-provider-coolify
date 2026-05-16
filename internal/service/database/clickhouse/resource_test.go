@@ -63,6 +63,13 @@ func newMockClickhouseServer() (*httptest.Server, *mockClickhouseState) {
 				"public_port":               nil,
 				"clickhouse_admin_user":     state.adminUser,
 				"clickhouse_admin_password": state.adminPass,
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
@@ -187,6 +194,13 @@ func TestClickhouseDatabaseResource_CreateWithCredentials(t *testing.T) {
 				"is_public":                 false,
 				"clickhouse_admin_user":     "myadmin",
 				"clickhouse_admin_password": "mypass123",
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", chUUID):
@@ -263,6 +277,13 @@ func TestClickhouseDatabaseResource_CreateReadBackFailurePreservesState(t *testi
 				"is_public":                 false,
 				"clickhouse_admin_user":     "default",
 				"clickhouse_admin_password": "secret123",
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", clickhouseUUID):
@@ -320,6 +341,13 @@ func TestClickhouseDatabaseResource_Disappears(t *testing.T) {
 				"is_public":                 false,
 				"clickhouse_admin_user":     "default",
 				"clickhouse_admin_password": "secret",
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", chUUID):

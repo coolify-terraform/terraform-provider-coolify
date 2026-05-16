@@ -62,9 +62,16 @@ func newMockPostgresServer() (*httptest.Server, *mockPostgresState) {
 				"image":             state.image,
 				"is_public":         false,
 				"public_port":       nil,
-				"postgres_user":     state.pgUser,
-				"postgres_password": state.pgPassword,
-				"postgres_db":       state.pgDB,
+				"postgres_user":               state.pgUser,
+				"postgres_password":           state.pgPassword,
+				"postgres_db":                 state.pgDB,
+				"limits_memory":               "0",
+				"limits_memory_swap":           "0",
+				"limits_memory_swappiness":     60,
+				"limits_memory_reservation":    "0",
+				"limits_cpus":                  "0",
+				"limits_cpuset":                "0",
+				"limits_cpu_shares":            1024,
 			})
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
@@ -195,9 +202,16 @@ func TestPostgresqlDatabaseResource_DescriptionNullHandling(t *testing.T) {
 				"environment_name":  "production",
 				"image":             "postgres:16",
 				"is_public":         false,
-				"postgres_user":     "postgres",
-				"postgres_password": "secret",
-				"postgres_db":       "mydb",
+				"postgres_user":               "postgres",
+				"postgres_password":           "secret",
+				"postgres_db":                 "mydb",
+				"limits_memory":               "0",
+				"limits_memory_swap":           "0",
+				"limits_memory_swappiness":     60,
+				"limits_memory_reservation":    "0",
+				"limits_cpus":                  "0",
+				"limits_cpuset":                "0",
+				"limits_cpu_shares":            1024,
 			})
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", pgUUID):
@@ -284,9 +298,16 @@ func TestPostgresqlDatabaseResource_CreateReadBackFailurePreservesState(t *testi
 				"environment_name":  "production",
 				"image":             "postgres:16",
 				"is_public":         false,
-				"postgres_user":     "postgres",
-				"postgres_password": "secret123",
-				"postgres_db":       "defaultdb",
+				"postgres_user":               "postgres",
+				"postgres_password":           "secret123",
+				"postgres_db":                 "defaultdb",
+				"limits_memory":               "0",
+				"limits_memory_swap":           "0",
+				"limits_memory_swappiness":     60,
+				"limits_memory_reservation":    "0",
+				"limits_cpus":                  "0",
+				"limits_cpuset":                "0",
+				"limits_cpu_shares":            1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", pgUUID):
@@ -365,8 +386,15 @@ func TestPostgresqlDatabaseResource_Disappears(t *testing.T) {
 				"image":             "postgres:16",
 				"is_public":         false,
 				"postgres_user":     "postgres",
-				"postgres_password": "secret",
-				"postgres_db":       "mydb",
+				"postgres_password":           "secret",
+				"postgres_db":                 "mydb",
+				"limits_memory":               "0",
+				"limits_memory_swap":           "0",
+				"limits_memory_swappiness":     60,
+				"limits_memory_reservation":    "0",
+				"limits_cpus":                  "0",
+				"limits_cpuset":                "0",
+				"limits_cpu_shares":            1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", pgUUID):

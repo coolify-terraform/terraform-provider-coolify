@@ -65,6 +65,13 @@ func newMockMongodbServer() (*httptest.Server, *mockMongodbState) {
 				"mongo_initdb_root_username": state.mongoUser,
 				"mongo_initdb_root_password": state.mongoPass,
 				"mongo_initdb_database":      state.mongoDB,
+				"limits_memory":              "0",
+				"limits_memory_swap":         "0",
+				"limits_memory_swappiness":   60,
+				"limits_memory_reservation":  "0",
+				"limits_cpus":                "0",
+				"limits_cpuset":              "0",
+				"limits_cpu_shares":          1024,
 			})
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", state.uuid):
@@ -191,6 +198,13 @@ func TestMongodbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.
 				"mongo_initdb_root_username": "root",
 				"mongo_initdb_root_password": "mongosecret",
 				"mongo_initdb_database":      "admin",
+				"limits_memory":              "0",
+				"limits_memory_swap":         "0",
+				"limits_memory_swappiness":   60,
+				"limits_memory_reservation":  "0",
+				"limits_cpus":                "0",
+				"limits_cpuset":              "0",
+				"limits_cpu_shares":          1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mongoUUID):
@@ -249,6 +263,13 @@ func TestMongodbDatabaseResource_Disappears(t *testing.T) {
 				"mongo_initdb_root_username": "root",
 				"mongo_initdb_root_password": "secret",
 				"mongo_initdb_database":      "admin",
+				"limits_memory":              "0",
+				"limits_memory_swap":         "0",
+				"limits_memory_swappiness":   60,
+				"limits_memory_reservation":  "0",
+				"limits_cpus":                "0",
+				"limits_cpuset":              "0",
+				"limits_cpu_shares":          1024,
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mongoUUID):
