@@ -286,7 +286,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_dockerfile_application` | Yes | Yes | Yes | Yes | |
 | `coolify_postgresql_database` | Yes | Yes | Yes | Yes | |
 | `coolify_service` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
-| `coolify_deployment` | Yes | Yes | N/A | No | Trigger resource, no update |
+| `coolify_deployment` | Yes | Yes | N/A | Yes | Trigger resource, no update |
 | `coolify_environment_variable` | Yes | Yes | Yes | Yes | |
 | `coolify_database_backup` | Yes | Yes | Yes | Yes | |
 | `coolify_docker_image_application` | Yes | Yes | Yes | Yes | Uses nginx:alpine |
