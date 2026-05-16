@@ -365,6 +365,34 @@ resource "coolify_server" "test" {
 	})
 }
 
+func TestServerResource_CreateWithSettings(t *testing.T) {
+	t.Parallel()
+	srv := newServerMockServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name              = "settings-server"
+  ip                = "10.0.0.1"
+  private_key_uuid  = "dddd0002-0002-4000-8000-000000000002"
+  concurrent_builds = 8
+  dynamic_timeout   = 1800
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server.test", "concurrent_builds", "8"),
+					resource.TestCheckResourceAttr("coolify_server.test", "dynamic_timeout", "1800"),
+					resource.TestCheckResourceAttr("coolify_server.test", "deployment_queue_limit", "25"),
+					resource.TestCheckResourceAttr("coolify_server.test", "server_disk_usage_notification_threshold", "80"),
+				),
+			},
+		},
+	})
+}
+
 func TestServerResource_InvalidPort(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))

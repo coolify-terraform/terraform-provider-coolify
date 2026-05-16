@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -35,21 +37,22 @@ type serverResource struct {
 }
 
 type serverResourceModel struct {
-	UUID                                 types.String `tfsdk:"uuid"`
-	Name                                 types.String `tfsdk:"name"`
-	Description                          types.String `tfsdk:"description"`
-	IP                                   types.String `tfsdk:"ip"`
-	Port                                 types.Int64  `tfsdk:"port"`
-	User                                 types.String `tfsdk:"user"`
-	PrivateKeyUUID                       types.String `tfsdk:"private_key_uuid"`
-	IsBuildServer                        types.Bool   `tfsdk:"is_build_server"`
-	IsReachable                          types.Bool   `tfsdk:"is_reachable"`
-	IsUsable                             types.Bool   `tfsdk:"is_usable"`
-	ConcurrentBuilds                     types.Int64  `tfsdk:"concurrent_builds"`
-	DynamicTimeout                       types.Int64  `tfsdk:"dynamic_timeout"`
-	DeploymentQueueLimit                 types.Int64  `tfsdk:"deployment_queue_limit"`
-	ServerDiskUsageNotificationThreshold types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
-	ServerDiskUsageCheckFrequency        types.String `tfsdk:"server_disk_usage_check_frequency"`
+	Timeouts                             timeouts.Value `tfsdk:"timeouts"`
+	UUID                                 types.String   `tfsdk:"uuid"`
+	Name                                 types.String   `tfsdk:"name"`
+	Description                          types.String   `tfsdk:"description"`
+	IP                                   types.String   `tfsdk:"ip"`
+	Port                                 types.Int64    `tfsdk:"port"`
+	User                                 types.String   `tfsdk:"user"`
+	PrivateKeyUUID                       types.String   `tfsdk:"private_key_uuid"`
+	IsBuildServer                        types.Bool     `tfsdk:"is_build_server"`
+	IsReachable                          types.Bool     `tfsdk:"is_reachable"`
+	IsUsable                             types.Bool     `tfsdk:"is_usable"`
+	ConcurrentBuilds                     types.Int64    `tfsdk:"concurrent_builds"`
+	DynamicTimeout                       types.Int64    `tfsdk:"dynamic_timeout"`
+	DeploymentQueueLimit                 types.Int64    `tfsdk:"deployment_queue_limit"`
+	ServerDiskUsageNotificationThreshold types.Int64    `tfsdk:"server_disk_usage_notification_threshold"`
+	ServerDiskUsageCheckFrequency        types.String   `tfsdk:"server_disk_usage_check_frequency"`
 }
 
 // NewResource returns a new server resource.
@@ -61,10 +64,11 @@ func (r *serverResource) Metadata(_ context.Context, req resource.MetadataReques
 	resp.TypeName = req.ProviderTypeName + "_server"
 }
 
-func (r *serverResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify server.",
 		Attributes: map[string]schema.Attribute{
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the server.",
 				Computed:            true,
@@ -194,6 +198,14 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
+	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, createTimeout)
+	defer cancel()
+
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server"})
 
 	input := client.CreateServerInput{
@@ -231,6 +243,23 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// The Create endpoint only accepts core fields (name, ip, port, etc.).
+	// Settings like concurrent_builds and dynamic_timeout must be sent via
+	// a follow-up PATCH if the user configured non-default values.
+	if hasNonDefaultSettings(plan) {
+		settingsUpdate := client.UpdateServerInput{
+			ConcurrentBuilds:                     flex.IntIfNonDefault(plan.ConcurrentBuilds, 2),
+			DynamicTimeout:                       flex.IntIfNonDefault(plan.DynamicTimeout, 3600),
+			DeploymentQueueLimit:                 flex.IntIfNonDefault(plan.DeploymentQueueLimit, 25),
+			ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(plan.ServerDiskUsageNotificationThreshold, 80),
+		}
+		if _, err := r.client.UpdateServer(ctx, created.UUID, settingsUpdate); err != nil {
+			resp.Diagnostics.AddError("Error setting server settings",
+				fmt.Sprintf("server %s: %s", created.UUID, err))
+			return
+		}
 	}
 
 	// Read back for full state.
@@ -341,6 +370,18 @@ func (r *serverResource) ImportState(ctx context.Context, req resource.ImportSta
 		return
 	}
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+}
+
+// hasNonDefaultSettings returns true if the user configured any settings
+// field to a value different from Coolify's create-time default.
+func hasNonDefaultSettings(plan serverResourceModel) bool {
+	intNonDefault := func(v types.Int64, dflt int64) bool {
+		return !v.IsNull() && !v.IsUnknown() && v.ValueInt64() != dflt
+	}
+	return intNonDefault(plan.ConcurrentBuilds, 2) ||
+		intNonDefault(plan.DynamicTimeout, 3600) ||
+		intNonDefault(plan.DeploymentQueueLimit, 25) ||
+		intNonDefault(plan.ServerDiskUsageNotificationThreshold, 80)
 }
 
 func flattenServer(srv *client.Server, model *serverResourceModel) {

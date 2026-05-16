@@ -49,6 +49,7 @@ resource "coolify_server" "example" {
 - `port` (Number) The SSH port of the server.
 - `server_disk_usage_check_frequency` (String) Cron expression for how often disk usage is checked (e.g. `*/5 * * * *` or `@daily`).
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `user` (String) The SSH user for connecting to the server.
 
 ### Read-Only
@@ -56,6 +57,13 @@ resource "coolify_server" "example" {
 - `is_reachable` (Boolean) Whether the server is currently reachable.
 - `is_usable` (Boolean) Whether the server is currently usable for deployments.
 - `uuid` (String) The unique identifier of the server.
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
 
 ## Import
 
