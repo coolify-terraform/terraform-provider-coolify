@@ -26,11 +26,12 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 		Key:       "DATABASE_URL",
 		Value:     "postgres://localhost/mydb",
 		IsPreview: false,
-		IsBuild:   false,
+		IsBuild:   true,
 	}
 
 	mu := sync.Mutex{}
 	deleted := false
+	createBuildtimePresent := false
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
@@ -38,6 +39,11 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		_, createBuildtimePresent = body["is_buildtime"]
+		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
@@ -85,7 +91,15 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "key", "DATABASE_URL"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "postgres://localhost/mydb"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "false"),
-					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "false"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "true"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if createBuildtimePresent {
+							return fmt.Errorf("expected create request to omit is_buildtime when is_build is omitted")
+						}
+						return nil
+					}),
 				),
 			},
 			{
@@ -113,8 +127,10 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 		Key:       "API_KEY",
 		Value:     "initial-secret",
 		IsPreview: false,
-		IsBuild:   false,
+		IsBuild:   true,
 	}
+	updateBuildtimePresent := false
+	updateBuildtimeValue := false
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
@@ -143,12 +159,14 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
 		if v, ok := body["value"].(string); ok {
 			currentEnvVar.Value = v
 		}
 		if v, ok := body["is_buildtime"].(bool); ok {
+			updateBuildtimePresent = true
+			updateBuildtimeValue = v
 			currentEnvVar.IsBuild = v
 		}
 		w.WriteHeader(http.StatusOK)
@@ -175,7 +193,7 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "initial-secret"),
-					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "false"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "true"),
 				),
 			},
 			{
@@ -188,6 +206,17 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "updated-secret"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "true"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if !updateBuildtimePresent {
+							return fmt.Errorf("expected update request to include is_buildtime")
+						}
+						if !updateBuildtimeValue {
+							return fmt.Errorf("expected update request to send is_buildtime=true")
+						}
+						return nil
+					}),
 				),
 			},
 		},
@@ -205,7 +234,7 @@ func TestEnvironmentVariableResource_ReadPreservesValueWhenAPIHidesIt(t *testing
 		Key:       "SECRET_KEY",
 		Value:     "initial-secret",
 		IsPreview: false,
-		IsBuild:   false,
+		IsBuild:   true,
 	}
 	returnHiddenValue := false
 
@@ -291,7 +320,7 @@ func TestEnvironmentVariableResource_Import(t *testing.T) {
 		Key:       "IMPORT_VAR",
 		Value:     "import-value",
 		IsPreview: false,
-		IsBuild:   false,
+		IsBuild:   true,
 	}
 
 	mux := http.NewServeMux()
@@ -675,7 +704,7 @@ func TestEnvironmentVariableResource_Disappears(t *testing.T) {
 		Key:       "DISAPPEAR_VAR",
 		Value:     "some-value",
 		IsPreview: false,
-		IsBuild:   false,
+		IsBuild:   true,
 	}
 
 	mu := sync.Mutex{}

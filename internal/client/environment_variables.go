@@ -19,7 +19,7 @@ type applicationEnvVarInput struct {
 	Key       string `json:"key"`
 	Value     string `json:"value"`
 	IsPreview bool   `json:"is_preview"`
-	IsBuild   bool   `json:"is_buildtime"`
+	IsBuild   *bool  `json:"is_buildtime,omitempty"`
 }
 
 type envVarInput struct {
@@ -32,9 +32,9 @@ type CreateEnvVarResponse struct {
 	UUID string `json:"uuid"`
 }
 
-func (c *Client) CreateApplicationEnvVar(ctx context.Context, appUUID string, ev EnvironmentVariable) (*CreateEnvVarResponse, error) {
+func (c *Client) CreateApplicationEnvVar(ctx context.Context, appUUID string, ev EnvironmentVariable, createIsBuild *bool) (*CreateEnvVarResponse, error) {
 	var r CreateEnvVarResponse
-	input := applicationEnvVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview, IsBuild: ev.IsBuild}
+	input := applicationEnvVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview, IsBuild: createIsBuild}
 	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/applications/%s/envs", url.PathEscape(appUUID)), input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating application env var %s: %w", appUUID, err)
 	}
@@ -48,7 +48,7 @@ func (c *Client) ListApplicationEnvVars(ctx context.Context, appUUID string) ([]
 	return v, nil
 }
 func (c *Client) UpdateApplicationEnvVar(ctx context.Context, appUUID string, ev EnvironmentVariable) error {
-	input := applicationEnvVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview, IsBuild: ev.IsBuild}
+	input := applicationEnvVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview, IsBuild: &ev.IsBuild}
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s/envs", url.PathEscape(appUUID)), input, nil); err != nil {
 		return fmt.Errorf("updating application env var %s: %w", appUUID, err)
 	}

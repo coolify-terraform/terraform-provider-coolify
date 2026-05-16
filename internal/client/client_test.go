@@ -904,11 +904,41 @@ func TestClient_CreateApplicationEnvVar(t *testing.T) {
 		assert.Equal(t, "postgres://localhost/db", ev.Value)
 		assert.True(t, ev.IsBuild)
 
-		// Verify JSON uses spec-correct key "is_buildtime" (not "is_build_time")
-		var raw map[string]interface{}
+		var raw map[string]any
 		require.NoError(t, json.Unmarshal(body, &raw))
 		_, hasBuildtime := raw["is_buildtime"]
 		assert.True(t, hasBuildtime, "expected JSON key 'is_buildtime'")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CreateEnvVarResponse{UUID: "env-new"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	createIsBuild := true
+	resp, err := c.CreateApplicationEnvVar(context.Background(), "app-1", EnvironmentVariable{
+		Key:     "DATABASE_URL",
+		Value:   "postgres://localhost/db",
+		IsBuild: true,
+	}, &createIsBuild)
+	require.NoError(t, err)
+	assert.Equal(t, "env-new", resp.UUID)
+}
+
+func TestClient_CreateApplicationEnvVar_OmitsBuildtimeWhenUnset(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-1/envs", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var bodyMap map[string]any
+		require.NoError(t, json.Unmarshal(body, &bodyMap))
+		assert.Equal(t, "DATABASE_URL", bodyMap["key"])
+		assert.Equal(t, "postgres://localhost/db", bodyMap["value"])
+		assert.NotContains(t, bodyMap, "is_buildtime")
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -921,7 +951,7 @@ func TestClient_CreateApplicationEnvVar(t *testing.T) {
 		Key:     "DATABASE_URL",
 		Value:   "postgres://localhost/db",
 		IsBuild: true,
-	})
+	}, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "env-new", resp.UUID)
 }
@@ -1501,10 +1531,11 @@ func TestClient_UpdateApplicationEnvVar(t *testing.T) {
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		var ev EnvironmentVariable
-		require.NoError(t, json.Unmarshal(body, &ev))
-		assert.Equal(t, "DATABASE_URL", ev.Key)
-		assert.Equal(t, "postgres://new-host/db", ev.Value)
+		var bodyMap map[string]any
+		require.NoError(t, json.Unmarshal(body, &bodyMap))
+		assert.Equal(t, "DATABASE_URL", bodyMap["key"])
+		assert.Equal(t, "postgres://new-host/db", bodyMap["value"])
+		assert.Equal(t, false, bodyMap["is_buildtime"])
 
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -1512,8 +1543,9 @@ func TestClient_UpdateApplicationEnvVar(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	err := c.UpdateApplicationEnvVar(context.Background(), "app-env-1", EnvironmentVariable{
-		Key:   "DATABASE_URL",
-		Value: "postgres://new-host/db",
+		Key:     "DATABASE_URL",
+		Value:   "postgres://new-host/db",
+		IsBuild: false,
 	})
 	require.NoError(t, err)
 }

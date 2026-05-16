@@ -111,12 +111,12 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Sensitive:           true,
 			},
 			"is_preview": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is available in preview deployments. Omit to accept Coolify's API default for the selected parent resource type.",
+				MarkdownDescription: "Whether this variable is available in preview deployments. Set it explicitly when you need preview-scoped behavior.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"is_build": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is available at build time. Supported only for application-scoped environment variables. Omit to accept Coolify's API behavior for the selected parent resource type.",
+				MarkdownDescription: "Whether this variable is available at build time. Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.",
 				Optional:            true,
 				Computed:            true,
 			},
@@ -180,11 +180,21 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_environment_variable"})
 
+	isPreview := plan.IsPreview.ValueBool()
+	stateIsBuild := false
+	var createIsBuild *bool
+	if !plan.IsBuild.IsNull() && !plan.IsBuild.IsUnknown() {
+		stateIsBuild = plan.IsBuild.ValueBool()
+		createIsBuild = &stateIsBuild
+	} else if !plan.ApplicationUUID.IsNull() && !plan.ApplicationUUID.IsUnknown() {
+		stateIsBuild = true
+	}
+
 	ev := client.EnvironmentVariable{
 		Key:       plan.Key.ValueString(),
 		Value:     plan.Value.ValueString(),
-		IsPreview: plan.IsPreview.ValueBool(),
-		IsBuild:   plan.IsBuild.ValueBool(),
+		IsPreview: isPreview,
+		IsBuild:   stateIsBuild,
 	}
 
 	var createResp *client.CreateEnvVarResponse
@@ -192,7 +202,7 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 
 	//nolint:gocritic // if-else chain dispatches to different client methods; switch not applicable
 	if !plan.ApplicationUUID.IsNull() && !plan.ApplicationUUID.IsUnknown() {
-		createResp, err = r.client.CreateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev)
+		createResp, err = r.client.CreateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev, createIsBuild)
 	} else if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
 		createResp, err = r.client.CreateServiceEnvVar(ctx, plan.ServiceUUID.ValueString(), ev)
 	} else if !plan.DatabaseUUID.IsNull() && !plan.DatabaseUUID.IsUnknown() {
@@ -210,8 +220,8 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 	plan.UUID = types.StringValue(createResp.UUID)
 	// Ensure bool fields are known after apply (they may be unknown if
 	// the user omitted them and there is no schema default).
-	plan.IsPreview = types.BoolValue(ev.IsPreview)
-	plan.IsBuild = types.BoolValue(ev.IsBuild)
+	plan.IsPreview = types.BoolValue(isPreview)
+	plan.IsBuild = types.BoolValue(stateIsBuild)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
