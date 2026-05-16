@@ -464,7 +464,7 @@ resource "coolify_github_app" "test" {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "id",
-				ImportStateVerifyIgnore:              []string{"client_secret", "private_key_uuid"},
+				ImportStateVerifyIgnore:              []string{"client_secret", "webhook_secret", "private_key_uuid"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rs, ok := s.RootModule().Resources["coolify_github_app.test"]
 					if !ok {
