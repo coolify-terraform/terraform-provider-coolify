@@ -3,16 +3,16 @@ package environmentvariable_test
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
+	"sync"
+	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"net/http"
-	"net/http/httptest"
-	"sync"
-	"testing"
 )
 
 // ---------------------------------------------------------------------------
@@ -358,7 +358,7 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 		Key:       "REDIS_URL",
 		Value:     "redis://localhost:6379",
 		IsPreview: true,
-		IsBuild:   true,
+		IsBuild:   false,
 	}
 
 	mu := sync.Mutex{}
@@ -412,14 +412,13 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 					key          = "REDIS_URL"
 					value        = "redis://localhost:6379"
 					is_preview   = true
-					is_build     = true
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "uuid", "env-svc-uuid"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "key", "REDIS_URL"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "redis://localhost:6379"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "true"),
-					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "true"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "false"),
 				),
 			},
 		},
@@ -508,6 +507,25 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 // ---------------------------------------------------------------------------
 // TestEnvironmentVariableResource_ServiceImport
 // ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_ServiceBuildVarRejected(t *testing.T) {
+	t.Parallel()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig("https://example.invalid", `
+					service_uuid = "ffff0001-0001-4000-8000-000000000001"
+					key          = "LOG_LEVEL"
+					value        = "debug"
+					is_build     = true
+				`),
+				ExpectError: regexp.MustCompile("application-scoped environment variables"),
+			},
+		},
+	})
+}
 
 func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
 	t.Parallel()
@@ -1069,6 +1087,25 @@ func TestEnvironmentVariableResource_DatabaseUpdate(t *testing.T) {
 // ---------------------------------------------------------------------------
 // TestEnvironmentVariableResource_DatabaseImport
 // ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_DatabaseBuildVarRejected(t *testing.T) {
+	t.Parallel()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig("https://example.invalid", `
+					database_uuid = "dddd0001-0001-4000-8000-000000000001"
+					key           = "DB_MAX_CONN"
+					value         = "50"
+					is_build      = true
+				`),
+				ExpectError: regexp.MustCompile("application-scoped environment variables"),
+			},
+		},
+	})
+}
 
 func TestEnvironmentVariableResource_DatabaseImport(t *testing.T) {
 	t.Parallel()

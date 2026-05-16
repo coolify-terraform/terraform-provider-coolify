@@ -21,9 +21,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = &environmentVariableResource{}
-	_ resource.ResourceWithConfigure   = &environmentVariableResource{}
-	_ resource.ResourceWithImportState = &environmentVariableResource{}
+	_ resource.Resource                   = &environmentVariableResource{}
+	_ resource.ResourceWithConfigure      = &environmentVariableResource{}
+	_ resource.ResourceWithImportState    = &environmentVariableResource{}
+	_ resource.ResourceWithValidateConfig = &environmentVariableResource{}
 )
 
 // environmentVariableResource manages a single environment variable on an
@@ -115,7 +116,7 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Computed:            true,
 			},
 			"is_build": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is available at build time. Omit to accept Coolify's API behavior for the selected parent resource type.",
+				MarkdownDescription: "Whether this variable is available at build time. Supported only for application-scoped environment variables. Omit to accept Coolify's API behavior for the selected parent resource type.",
 				Optional:            true,
 				Computed:            true,
 			},
@@ -136,6 +137,38 @@ func (r *environmentVariableResource) Configure(_ context.Context, req resource.
 		return
 	}
 	r.client = c
+}
+
+func (r *environmentVariableResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config environmentVariableResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if config.IsBuild.IsNull() || config.IsBuild.IsUnknown() {
+		return
+	}
+
+	if !config.ApplicationUUID.IsNull() && !config.ApplicationUUID.IsUnknown() {
+		return
+	}
+
+	if !config.ServiceUUID.IsNull() && !config.ServiceUUID.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("is_build"),
+			"Unsupported build-time environment variable scope",
+			"`is_build` is only supported for application-scoped environment variables because Coolify does not persist `is_buildtime` for services.",
+		)
+	}
+
+	if !config.DatabaseUUID.IsNull() && !config.DatabaseUUID.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("is_build"),
+			"Unsupported build-time environment variable scope",
+			"`is_build` is only supported for application-scoped environment variables because Coolify does not persist `is_buildtime` for databases.",
+		)
+	}
 }
 
 func (r *environmentVariableResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

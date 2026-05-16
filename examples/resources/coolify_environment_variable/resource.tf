@@ -10,6 +10,7 @@ resource "coolify_environment_variable" "database_url" {
 # Set a custom environment variable on a database
 # Note: do not duplicate built-in credential fields (e.g. POSTGRES_PASSWORD)
 # that are already managed by the database resource's own attributes.
+# `is_build` is application-only; omit it for database/service variables.
 resource "coolify_environment_variable" "db_log_level" {
   database_uuid = coolify_postgresql_database.example.uuid
   key           = "POSTGRES_LOG_MIN_MESSAGES"

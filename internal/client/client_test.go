@@ -1565,11 +1565,11 @@ func TestClient_CreateServiceEnvVar(t *testing.T) {
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		var ev EnvironmentVariable
-		require.NoError(t, json.Unmarshal(body, &ev))
-		assert.Equal(t, "REDIS_URL", ev.Key)
-		assert.Equal(t, "redis://localhost:6379", ev.Value)
-		assert.True(t, ev.IsBuild)
+		var bodyMap map[string]any
+		require.NoError(t, json.Unmarshal(body, &bodyMap))
+		assert.Equal(t, "REDIS_URL", bodyMap["key"])
+		assert.Equal(t, "redis://localhost:6379", bodyMap["value"])
+		assert.NotContains(t, bodyMap, "is_buildtime")
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -1620,10 +1620,11 @@ func TestClient_UpdateServiceEnvVar(t *testing.T) {
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		var ev EnvironmentVariable
-		require.NoError(t, json.Unmarshal(body, &ev))
-		assert.Equal(t, "REDIS_URL", ev.Key)
-		assert.Equal(t, "redis://new-host:6379", ev.Value)
+		var bodyMap map[string]any
+		require.NoError(t, json.Unmarshal(body, &bodyMap))
+		assert.Equal(t, "REDIS_URL", bodyMap["key"])
+		assert.Equal(t, "redis://new-host:6379", bodyMap["value"])
+		assert.NotContains(t, bodyMap, "is_buildtime")
 
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -3676,11 +3677,11 @@ func TestClient_CreateDatabaseEnvVar(t *testing.T) {
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		var ev EnvironmentVariable
-		require.NoError(t, json.Unmarshal(body, &ev))
-		assert.Equal(t, "DB_HOST", ev.Key)
-		assert.Equal(t, "localhost", ev.Value)
-		assert.True(t, ev.IsBuild)
+		var bodyMap map[string]any
+		require.NoError(t, json.Unmarshal(body, &bodyMap))
+		assert.Equal(t, "DB_HOST", bodyMap["key"])
+		assert.Equal(t, "localhost", bodyMap["value"])
+		assert.NotContains(t, bodyMap, "is_buildtime")
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -3731,10 +3732,11 @@ func TestClient_UpdateDatabaseEnvVar(t *testing.T) {
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		var ev EnvironmentVariable
-		require.NoError(t, json.Unmarshal(body, &ev))
-		assert.Equal(t, "DB_HOST", ev.Key)
-		assert.Equal(t, "new-host", ev.Value)
+		var bodyMap map[string]any
+		require.NoError(t, json.Unmarshal(body, &bodyMap))
+		assert.Equal(t, "DB_HOST", bodyMap["key"])
+		assert.Equal(t, "new-host", bodyMap["value"])
+		assert.NotContains(t, bodyMap, "is_buildtime")
 
 		w.WriteHeader(http.StatusOK)
 	}))

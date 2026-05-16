@@ -14,13 +14,28 @@ type EnvironmentVariable struct {
 	IsPreview bool   `json:"is_preview"`
 	IsBuild   bool   `json:"is_buildtime"`
 }
+
+type applicationEnvVarInput struct {
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	IsPreview bool   `json:"is_preview"`
+	IsBuild   bool   `json:"is_buildtime"`
+}
+
+type envVarInput struct {
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	IsPreview bool   `json:"is_preview"`
+}
+
 type CreateEnvVarResponse struct {
 	UUID string `json:"uuid"`
 }
 
 func (c *Client) CreateApplicationEnvVar(ctx context.Context, appUUID string, ev EnvironmentVariable) (*CreateEnvVarResponse, error) {
 	var r CreateEnvVarResponse
-	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/applications/%s/envs", url.PathEscape(appUUID)), ev, &r, http.StatusCreated); err != nil {
+	input := applicationEnvVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview, IsBuild: ev.IsBuild}
+	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/applications/%s/envs", url.PathEscape(appUUID)), input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating application env var %s: %w", appUUID, err)
 	}
 	return &r, nil
@@ -33,7 +48,8 @@ func (c *Client) ListApplicationEnvVars(ctx context.Context, appUUID string) ([]
 	return v, nil
 }
 func (c *Client) UpdateApplicationEnvVar(ctx context.Context, appUUID string, ev EnvironmentVariable) error {
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s/envs", url.PathEscape(appUUID)), ev, nil); err != nil {
+	input := applicationEnvVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview, IsBuild: ev.IsBuild}
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s/envs", url.PathEscape(appUUID)), input, nil); err != nil {
 		return fmt.Errorf("updating application env var %s: %w", appUUID, err)
 	}
 	return nil
@@ -46,7 +62,8 @@ func (c *Client) DeleteApplicationEnvVar(ctx context.Context, appUUID string, en
 }
 func (c *Client) CreateServiceEnvVar(ctx context.Context, svcUUID string, ev EnvironmentVariable) (*CreateEnvVarResponse, error) {
 	var r CreateEnvVarResponse
-	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/services/%s/envs", url.PathEscape(svcUUID)), ev, &r, http.StatusCreated); err != nil {
+	input := envVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview}
+	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/services/%s/envs", url.PathEscape(svcUUID)), input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating service env var %s: %w", svcUUID, err)
 	}
 	return &r, nil
@@ -59,7 +76,8 @@ func (c *Client) ListServiceEnvVars(ctx context.Context, svcUUID string) ([]Envi
 	return v, nil
 }
 func (c *Client) UpdateServiceEnvVar(ctx context.Context, svcUUID string, ev EnvironmentVariable) error {
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/services/%s/envs", url.PathEscape(svcUUID)), ev, nil); err != nil {
+	input := envVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview}
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/services/%s/envs", url.PathEscape(svcUUID)), input, nil); err != nil {
 		return fmt.Errorf("updating service env var %s: %w", svcUUID, err)
 	}
 	return nil
@@ -72,7 +90,8 @@ func (c *Client) DeleteServiceEnvVar(ctx context.Context, svcUUID string, envUUI
 }
 func (c *Client) CreateDatabaseEnvVar(ctx context.Context, dbUUID string, ev EnvironmentVariable) (*CreateEnvVarResponse, error) {
 	var r CreateEnvVarResponse
-	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/envs", url.PathEscape(dbUUID)), ev, &r, http.StatusCreated); err != nil {
+	input := envVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview}
+	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/envs", url.PathEscape(dbUUID)), input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating database env var %s: %w", dbUUID, err)
 	}
 	return &r, nil
@@ -85,7 +104,8 @@ func (c *Client) ListDatabaseEnvVars(ctx context.Context, dbUUID string) ([]Envi
 	return v, nil
 }
 func (c *Client) UpdateDatabaseEnvVar(ctx context.Context, dbUUID string, ev EnvironmentVariable) error {
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/envs", url.PathEscape(dbUUID)), ev, nil); err != nil {
+	input := envVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview}
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/envs", url.PathEscape(dbUUID)), input, nil); err != nil {
 		return fmt.Errorf("updating database env var %s: %w", dbUUID, err)
 	}
 	return nil

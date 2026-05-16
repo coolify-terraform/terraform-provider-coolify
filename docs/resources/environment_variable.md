@@ -28,6 +28,7 @@ resource "coolify_environment_variable" "database_url" {
 # Set a custom environment variable on a database
 # Note: do not duplicate built-in credential fields (e.g. POSTGRES_PASSWORD)
 # that are already managed by the database resource's own attributes.
+# `is_build` is application-only; omit it for database/service variables.
 resource "coolify_environment_variable" "db_log_level" {
   database_uuid = coolify_postgresql_database.example.uuid
   key           = "POSTGRES_LOG_MIN_MESSAGES"
@@ -47,7 +48,7 @@ resource "coolify_environment_variable" "db_log_level" {
 
 - `application_uuid` (String) The UUID of the application to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `database_uuid` (String) The UUID of the database to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
-- `is_build` (Boolean) Whether this variable is available at build time. Omit to accept Coolify's API behavior for the selected parent resource type.
+- `is_build` (Boolean) Whether this variable is available at build time. Supported only for application-scoped environment variables. Omit to accept Coolify's API behavior for the selected parent resource type.
 - `is_preview` (Boolean) Whether this variable is available in preview deployments. Omit to accept Coolify's API default for the selected parent resource type.
 - `service_uuid` (String) The UUID of the service to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 
