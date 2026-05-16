@@ -309,7 +309,7 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading database backup", readErr.Error())
+		resp.Diagnostics.AddError("Error reading database backup", fmt.Sprintf("backup %d for database %s: %s", backupID, dbUUID, readErr))
 		return
 	}
 	if b == nil {
