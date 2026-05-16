@@ -4147,3 +4147,67 @@ func TestClient_ListResources(t *testing.T) {
 	assert.Equal(t, "service", resources[2].Type)
 	assert.Equal(t, "running", resources[2].Status)
 }
+
+// ---------------------------------------------------------------------------
+// RetryDelete tests
+// ---------------------------------------------------------------------------
+
+func TestRetryDelete_ImmediateSuccess(t *testing.T) {
+	err := RetryDelete(context.Background(), 3, time.Millisecond,
+		func() error { return nil },
+		func(error) bool { return true },
+	)
+	assert.NoError(t, err)
+}
+
+func TestRetryDelete_NotFoundIsSuccess(t *testing.T) {
+	err := RetryDelete(context.Background(), 3, time.Millisecond,
+		func() error { return &NotFoundError{Message: "gone"} },
+		func(error) bool { return true },
+	)
+	assert.NoError(t, err)
+}
+
+func TestRetryDelete_NonRetryableError(t *testing.T) {
+	err := RetryDelete(context.Background(), 3, time.Millisecond,
+		func() error { return assert.AnError },
+		func(error) bool { return false },
+	)
+	assert.ErrorIs(t, err, assert.AnError)
+}
+
+func TestRetryDelete_RetriesUntilSuccess(t *testing.T) {
+	var calls atomic.Int32
+	err := RetryDelete(context.Background(), 5, time.Millisecond,
+		func() error {
+			if calls.Add(1) < 3 {
+				return assert.AnError
+			}
+			return nil
+		},
+		func(error) bool { return true },
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, int32(3), calls.Load())
+}
+
+func TestRetryDelete_ExhaustsAttempts(t *testing.T) {
+	var calls atomic.Int32
+	err := RetryDelete(context.Background(), 2, time.Millisecond,
+		func() error { calls.Add(1); return assert.AnError },
+		func(error) bool { return true },
+	)
+	assert.ErrorIs(t, err, assert.AnError)
+	// 2 retries + 1 final attempt = 3 calls
+	assert.Equal(t, int32(3), calls.Load())
+}
+
+func TestRetryDelete_CancelledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := RetryDelete(ctx, 10, time.Second,
+		func() error { return assert.AnError },
+		func(error) bool { return true },
+	)
+	assert.ErrorIs(t, err, context.Canceled)
+}
