@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
@@ -10,6 +11,7 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -345,7 +347,13 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"limits_cpuset":             schema.StringAttribute{MarkdownDescription: "CPU set restriction (e.g., `0-3`, `0,2`).", Optional: true},
 		"limits_cpu_shares":         schema.Int64Attribute{MarkdownDescription: "CPU shares (relative weight).", Optional: true},
 		// Container/network settings
-		"ports_mappings":            schema.StringAttribute{MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g. `8080:5432`).", Optional: true},
+		"ports_mappings": schema.StringAttribute{
+			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g. `8080:5432`).",
+			Optional:            true,
+			Validators: []validator.String{
+				stringvalidator.RegexMatches(regexp.MustCompile(`^\d+:\d+(,\d+:\d+)*$`), "must be comma-separated host:container port pairs (e.g. \"8080:5432\" or \"8080:5432,8443:5433\")"),
+			},
+		},
 		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container.", Optional: true},
 		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
 		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g. `running`, `exited`).", Computed: true},
