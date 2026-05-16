@@ -82,7 +82,7 @@ func (d *gitHubAppListDataSource) Schema(_ context.Context, _ datasource.SchemaR
 							Computed:            true,
 						},
 						"webhook_secret": schema.StringAttribute{
-							MarkdownDescription: "The GitHub App webhook secret.",
+							MarkdownDescription: "The GitHub App webhook secret, when returned by the Coolify API. Coolify may omit this value on read.",
 							Computed:            true,
 							Sensitive:           true,
 						},

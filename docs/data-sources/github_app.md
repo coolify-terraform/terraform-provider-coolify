@@ -38,4 +38,4 @@ output "github_app_uuid" {
 - `name` (String) The name of the GitHub App.
 - `organization_name` (String) The GitHub organization name.
 - `uuid` (String) The unique identifier of the GitHub App.
-- `webhook_secret` (String, Sensitive) The GitHub App webhook secret.
+- `webhook_secret` (String, Sensitive) The GitHub App webhook secret, when returned by the Coolify API. Coolify may omit this value on read.
