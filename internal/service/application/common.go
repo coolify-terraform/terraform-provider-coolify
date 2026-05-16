@@ -918,6 +918,9 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 		"custom_docker_run_options": schema.StringAttribute{
 			MarkdownDescription: "Custom Docker run options passed to the container.",
 			Optional:            true,
+			Validators: []validator.String{
+				validate.NoShellMetachars(),
+			},
 		},
 		"custom_labels": schema.StringAttribute{
 			MarkdownDescription: "Custom Docker labels for the container, **base64-encoded**. Use `base64encode()` in your configuration.",

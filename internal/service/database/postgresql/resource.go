@@ -354,7 +354,7 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 				validate.PortMappings(),
 			},
 		},
-		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container.", Optional: true},
+		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container.", Optional: true, Validators: []validator.String{validate.NoShellMetachars()}},
 		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
 		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g. `running`, `exited`).", Computed: true},
 	}
