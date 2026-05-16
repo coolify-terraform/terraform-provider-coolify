@@ -53,8 +53,11 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 		MarkdownDescription: "Manages a Coolify application deployed from a Dockerfile.",
 		Attributes: CommonAppAttrs(ctx, map[string]schema.Attribute{
 			"dockerfile_location": schema.StringAttribute{
-				MarkdownDescription: "The Dockerfile content, **base64-encoded**. Use `base64encode(<<-DOCKERFILE ... DOCKERFILE)` in your configuration. Despite the field name, this is not a file path.",
+				MarkdownDescription: "The Dockerfile content, **base64-encoded**. Use `base64encode(<<-DOCKERFILE ... DOCKERFILE)` in your configuration. Despite the field name, this is not a file path. Changing this forces a new resource because the Coolify API only accepts Dockerfile content at creation time.",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"ports_exposes": schema.StringAttribute{
 				MarkdownDescription: "The ports to expose, as a comma-separated list (e.g. `80` or `80,443`).",
