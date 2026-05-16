@@ -84,7 +84,12 @@ must be set in your `.tf` configuration before running `terraform plan`:
 
 | Resource Type | Fields the API may not return |
 |---|---|
-| All databases | `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_postgresql_database` | `postgres_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_mysql_database` | `mysql_password`, `mysql_root_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_mariadb_database` | `mariadb_password`, `mariadb_root_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_mongodb_database` | `mongo_initdb_root_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_clickhouse_database` | `clickhouse_admin_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_redis_database`, `coolify_keydb_database`, `coolify_dragonfly_database` | `project_uuid`, `server_uuid`, `environment_name` |
 | All applications | `project_uuid`, `server_uuid`, `environment_name` |
 | `coolify_github_app_application` | `github_app_uuid` (Coolify stores the linked GitHub App as `source_id`/`source_type`, so import cannot recover the original UUID) |
 | `coolify_service` | `project_uuid`, `server_uuid`, `environment_name`, `type` |
