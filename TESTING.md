@@ -115,7 +115,7 @@ export COOLIFY_GITHUB_APP_BRANCH="main"
 
 Application-related tests require a validated server with SSH access.
 Without this, application creation can fail with `Application created but
-not persisted` when the provider cannot read the app back. See the
+refresh failed` when the provider cannot read the app back. See the
 [coolify-test-instance skill](../../.grok/skills/coolify-test-instance/SKILL.md)
 for the full SSH and server setup procedure.
 

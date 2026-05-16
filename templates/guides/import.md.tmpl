@@ -94,6 +94,9 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | `coolify_private_git_application` | `private_key_uuid` (Coolify stores only the linked `private_key_id`, so import cannot reconstruct the original UUID) |
 | `coolify_github_app_application` | `github_app_uuid` (Coolify stores the linked GitHub App as `source_id`/`source_type`, so import cannot recover the original UUID) |
 | `coolify_service` | `project_uuid`, `server_uuid`, `environment_name`, `type` |
+| `coolify_server` | `private_key_uuid` (Coolify stores only the linked `private_key_id`, so import cannot reconstruct the original UUID) |
+| `coolify_environment_variable` | `value` (sensitive value is not reliably returned on import; keep it in configuration before the first `terraform plan`) |
+| `coolify_deployment` | `triggers`, `wait_for_completion` (Terraform-only behavior controls, not persisted by the Coolify API) |
 | `coolify_environment` | `description` (stored in Terraform state only; not returned by the API) |
 | `coolify_github_app` | `client_secret`, `private_key_uuid` (write-only, never returned by the API) |
 | `coolify_cloud_token` | `token` (write-only, may not be returned by the API) |
