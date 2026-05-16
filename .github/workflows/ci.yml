@@ -255,11 +255,15 @@ jobs:
 
           echo "$BIN_DIR" >> "$GITHUB_PATH"
       - name: Run gitleaks
+        env:
+          GIT_BEFORE: ${{ github.event.before }}
+          GIT_AFTER: ${{ github.event.after }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             gitleaks detect --source . --config .gitleaks.toml --log-opts="origin/main..HEAD" --exit-code 1
-          elif [ "${{ github.event_name }}" = "push" ]; then
-            gitleaks detect --source . --config .gitleaks.toml --log-opts="${{ github.event.before }}..${{ github.event.after }}" --exit-code 1
+          elif [ "$EVENT_NAME" = "push" ]; then
+            gitleaks detect --source . --config .gitleaks.toml --log-opts="${GIT_BEFORE}..${GIT_AFTER}" --exit-code 1
           else
             gitleaks detect --source . --config .gitleaks.toml --exit-code 1
           fi

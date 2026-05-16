@@ -208,7 +208,8 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	created, err := r.client.CreateServer(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating server", err.Error())
+		resp.Diagnostics.AddError("Error creating server",
+			fmt.Sprintf("server %q (IP %s): %s", plan.Name.ValueString(), plan.IP.ValueString(), err))
 		return
 	}
 
