@@ -70,7 +70,11 @@ func newServerMockServer() *httptest.Server {
 				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
-			json.NewEncoder(w).Encode(srv)
+			// Real Coolify GET omits private_key_uuid; return a copy
+			// without it to exercise the flatten guard.
+			resp := *srv
+			resp.PrivateKeyUUID = ""
+			json.NewEncoder(w).Encode(resp)
 
 		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
 			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
@@ -335,6 +339,7 @@ resource "coolify_server" "test" {
 				ImportStateId:                        "bbbb0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateVerifyIgnore:              []string{"private_key_uuid"},
 			},
 		},
 	})
