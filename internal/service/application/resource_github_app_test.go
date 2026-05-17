@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -385,6 +387,74 @@ func TestGitHubAppApplicationResource_Disappears(t *testing.T) {
 				ExpectNonEmptyPlan: true,
 			},
 		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestGitHubAppApplicationResource_CreateReadBackFailurePreservesState
+// ---------------------------------------------------------------------------
+
+func TestGitHubAppApplicationResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+
+	const appUUID = "ghapp-readback-fail-uuid"
+
+	var forceReadFailure atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+		forceReadFailure.Store(true)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		if forceReadFailure.Load() {
+			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(client.Application{
+			UUID:            appUUID,
+			Name:            "ghapp-readback",
+			GitRepository:   "github.com/org/repo",
+			GitBranch:       "main",
+			BuildPack:       "nixpacks",
+			PortsExposes:    "3000",
+			ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+			ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+			EnvironmentName: "production",
+			GitHubAppUUID:   "cccc0001-0001-4000-8000-000000000001",
+		})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testGitHubAppResourceConfig(srv.URL, `
+				project_uuid    = "aaaa0001-0001-4000-8000-000000000001"
+				server_uuid     = "bbbb0001-0001-4000-8000-000000000001"
+				github_app_uuid = "cccc0001-0001-4000-8000-000000000001"
+				git_repository  = "github.com/org/repo"
+				build_pack      = "nixpacks"
+				ports_exposes   = "3000"
+			`),
+			ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*Could not read application.*partial Terraform state was saved`),
+		}},
 	})
 }
 
