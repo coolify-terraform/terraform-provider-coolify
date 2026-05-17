@@ -172,7 +172,7 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_mongodb_database", "uuid": s.UUID.ValueString()})
 
-	if err := pg.DeleteDatabase(ctx, r.client, s.UUID.ValueString()); err != nil {
+	if err := pg.DeleteDatabase(ctx, r.client, "coolify_mongodb_database", s.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting MongoDB database", fmt.Sprintf("MongoDB database %s: %s", s.UUID.ValueString(), err))
 		return
 	}

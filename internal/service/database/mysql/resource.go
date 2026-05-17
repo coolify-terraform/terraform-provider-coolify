@@ -190,7 +190,7 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
 
-	if err := pg.DeleteDatabase(ctx, r.client, state.UUID.ValueString()); err != nil {
+	if err := pg.DeleteDatabase(ctx, r.client, "coolify_mysql_database", state.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}

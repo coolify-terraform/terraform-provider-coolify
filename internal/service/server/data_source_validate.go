@@ -82,7 +82,7 @@ func (d *serverValidateDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_server_validate"})
+	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_server_validation"})
 
 	v, err := d.client.ValidateServer(ctx, config.UUID.ValueString())
 	if err != nil {

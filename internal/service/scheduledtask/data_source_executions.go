@@ -105,7 +105,7 @@ func (d *taskExecutionsDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_scheduled_task_executions"})
+	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_task_executions"})
 
 	var parentType, parentUUID string
 	//nolint:gocritic // if-else chain with different client calls and early return; switch not clearer

@@ -302,7 +302,7 @@ func (r *postgresqlDatabaseResource) Delete(ctx context.Context, req resource.De
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": state.UUID.ValueString()})
 
-	if err := DeleteDatabase(ctx, r.client, state.UUID.ValueString()); err != nil {
+	if err := DeleteDatabase(ctx, r.client, "coolify_postgresql_database", state.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}
@@ -415,7 +415,7 @@ func UpdateDatabase(ctx context.Context, c *client.Client, uuid string, input cl
 
 // DeleteDatabase removes a database by UUID, silently succeeding if already
 // gone.
-func DeleteDatabase(ctx context.Context, c *client.Client, uuid string) error {
+func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid string) error {
 	if err := c.DeleteDatabase(ctx, uuid); err != nil {
 		if client.IsNotFound(err) {
 			return nil
@@ -423,7 +423,7 @@ func DeleteDatabase(ctx context.Context, c *client.Client, uuid string) error {
 		return err
 	}
 	client.PollUntilDeleted(ctx, func() error { _, err := c.GetDatabase(ctx, uuid); return err })
-	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "database", "uuid": uuid})
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 	return nil
 }
 

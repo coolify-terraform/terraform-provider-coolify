@@ -103,7 +103,7 @@ func (d *gitHubAppReposDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_github_app_repos"})
+	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_github_app_repositories"})
 
 	repos, err := d.client.ListGitHubAppRepositories(ctx, config.GitHubAppID.ValueInt64())
 	if err != nil {

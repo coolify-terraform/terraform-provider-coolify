@@ -92,7 +92,7 @@ func (d *executionsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_database_backup_executions"})
+	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_backup_executions"})
 
 	execs, err := d.client.ListBackupExecutions(ctx, config.DatabaseUUID.ValueString(), config.BackupUUID.ValueString())
 	if err != nil {
