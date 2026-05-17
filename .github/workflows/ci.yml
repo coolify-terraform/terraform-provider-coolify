@@ -116,7 +116,7 @@ jobs:
   lint:
     name: Lint
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: changes
     if: >-
       always() &&
@@ -138,43 +138,34 @@ jobs:
         with:
           version: v2.12.2
       - name: Check go mod tidy
+        if: ${{ !cancelled() }}
         run: go mod tidy && git diff --exit-code go.mod go.sum
       - name: Verify module checksums
+        if: ${{ !cancelled() }}
         run: go mod verify
+      - name: Govulncheck
+        if: ${{ !cancelled() }}
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
+          govulncheck ./...
+      - name: GoReleaser check
+        if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch') }}
+        uses: goreleaser/goreleaser-action@1a80836c5c9d9e5755a25cb59ec6f45a3b5f41a8 # v7
+        with:
+          version: "~> 2"
+          args: check
 
-  validate-examples:
-    name: Validate Examples
+  validate:
+    name: Validate
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 15
     needs: changes
     if: >-
       always() &&
       (
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.docs == 'true' ||
         needs.changes.outputs.terraform == 'true' ||
-        needs.changes.outputs.go == 'true' ||
-        needs.changes.outputs.ci == 'true' ||
-        github.event_name == 'workflow_dispatch'
-      )
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
-        with:
-          terraform_wrapper: false
-          terraform_version: "1.12.x"
-      - name: Check HCL formatting
-        run: terraform fmt -check -recursive examples/
-
-  govulncheck:
-    name: Govulncheck
-    runs-on: self-hosted
-    timeout-minutes: 10
-    needs: changes
-    if: >-
-      always() &&
-      (
-        needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
         github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch'
@@ -182,34 +173,33 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
           cache: false
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
-      - name: Run govulncheck
-        run: govulncheck ./...
-
-  trivy:
-    name: Trivy
-    runs-on: self-hosted
-    timeout-minutes: 10
-    needs: changes
-    if: >-
-      always() &&
-      (
-        needs.changes.outputs.go == 'true' ||
-        needs.changes.outputs.ci == 'true' ||
-        github.event_name == 'schedule' ||
-        github.event_name == 'workflow_dispatch'
-      )
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
-          persist-credentials: false
-      - name: Run Trivy scan
+          terraform_wrapper: false
+          terraform_version: "1.12.x"
+      - name: Check HCL formatting
+        if: ${{ !cancelled() }}
+        run: terraform fmt -check -recursive examples/
+      - name: Check generated docs
+        if: ${{ !cancelled() }}
+        run: |
+          cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs && cd ..
+          go generate ./...
+          git diff --exit-code
+      - name: API Coverage doc
+        if: ${{ !cancelled() }}
+        run: make api-coverage && git diff --exit-code API_COVERAGE.md
+      - name: Verify AGENTS.md counts
+        if: ${{ !cancelled() }}
+        run: make counts-check
+      - name: Trivy filesystem scan
+        if: ${{ !cancelled() }}
         id: trivy
         continue-on-error: true
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -223,7 +213,7 @@ jobs:
         env:
           TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2
       - name: Retry Trivy with cached DB
-        if: steps.trivy.outcome == 'failure'
+        if: ${{ !cancelled() && steps.trivy.outcome == 'failure' }}
         run: |
           if trivy fs . --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed --skip-db-update 2>/dev/null; then
             echo "::warning::Trivy DB download failed but scan passed with cached DB"
@@ -231,35 +221,21 @@ jobs:
             echo "::error::Trivy scan failed (tried fresh download and cached DB)"
             exit 1
           fi
-
-  gitleaks:
-    name: Gitleaks
-    runs-on: self-hosted
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Install gitleaks
-        run: |
-          VER="8.30.1"
-          BIN_DIR="$HOME/.local/bin"
-          export PATH="$BIN_DIR:$PATH"
-          mkdir -p "$BIN_DIR"
-
-          if ! command -v gitleaks >/dev/null 2>&1 || ! gitleaks version 2>/dev/null | grep -q "$VER"; then
-            curl -sfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" \
-              | tar xz -C "$BIN_DIR" gitleaks
-          fi
-
-          echo "$BIN_DIR" >> "$GITHUB_PATH"
-      - name: Run gitleaks
+      - name: Gitleaks
+        if: ${{ !cancelled() }}
         env:
           GIT_BEFORE: ${{ github.event.before }}
           GIT_AFTER: ${{ github.event.after }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
+          VER="8.30.1"
+          BIN_DIR="$HOME/.local/bin"
+          export PATH="$BIN_DIR:$PATH"
+          mkdir -p "$BIN_DIR"
+          if ! command -v gitleaks >/dev/null 2>&1 || ! gitleaks version 2>/dev/null | grep -q "$VER"; then
+            curl -sfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" \
+              | tar xz -C "$BIN_DIR" gitleaks
+          fi
           if [ "$EVENT_NAME" = "pull_request" ]; then
             gitleaks detect --source . --config .gitleaks.toml --log-opts="origin/main..HEAD" --exit-code 1
           elif [ "$EVENT_NAME" = "push" ]; then
@@ -267,59 +243,6 @@ jobs:
           else
             gitleaks detect --source . --config .gitleaks.toml --exit-code 1
           fi
-
-  goreleaser-check:
-    name: GoReleaser Check
-    runs-on: self-hosted
-    timeout-minutes: 5
-    needs: changes
-    if: >-
-      always() &&
-      (
-        needs.changes.outputs.ci == 'true' ||
-        github.event_name == 'workflow_dispatch'
-      )
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-      - uses: goreleaser/goreleaser-action@1a80836c5c9d9e5755a25cb59ec6f45a3b5f41a8 # v7
-        with:
-          version: "~> 2"
-          args: check
-
-  docs:
-    name: Docs
-    runs-on: self-hosted
-    timeout-minutes: 10
-    needs: changes
-    if: >-
-      always() &&
-      (
-        needs.changes.outputs.go == 'true' ||
-        needs.changes.outputs.docs == 'true' ||
-        needs.changes.outputs.ci == 'true' ||
-        github.event_name == 'workflow_dispatch'
-      )
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
-        with:
-          go-version-file: go.mod
-          cache: false
-      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
-        with:
-          terraform_wrapper: false
-          terraform_version: "1.12.x"
-      - run: cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-      - run: go generate ./...
-      - run: git diff --exit-code
-      - name: API Coverage doc
-        run: make api-coverage && git diff --exit-code API_COVERAGE.md
-      - name: Verify AGENTS.md counts
-        run: make counts-check
 
   spec-freshness:
     name: Spec Freshness
@@ -529,7 +452,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [test, lint, validate-examples, govulncheck, trivy, gitleaks, goreleaser-check, docs, scenario-tests, acceptance-tests]
+    needs: [test, lint, validate, scenario-tests, acceptance-tests]
     steps:
       - name: Check results
         run: |
