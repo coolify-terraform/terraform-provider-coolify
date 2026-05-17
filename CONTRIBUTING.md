@@ -5,7 +5,7 @@
 ### Prerequisites
 
 - [Go](https://golang.org/doc/install) >= 1.26
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.6 (required for `terraform fmt` validation)
 - [golangci-lint](https://golangci-lint.run/welcome/install/) v2.12.2 exactly (must match CI)
 
 ### Clone and Build
