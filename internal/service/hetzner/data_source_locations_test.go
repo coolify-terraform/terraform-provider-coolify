@@ -51,6 +51,21 @@ data "coolify_hetzner_locations" "test" {
 					resource.TestCheckResourceAttr("data.coolify_hetzner_locations.test", "locations.1.name", "nbg1"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_hetzner_locations" "filtered" {
+  cloud_provider_token_uuid = "test-token-uuid"
+  filter {
+    name   = "city"
+    values = ["Nuremberg"]
+  }
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_hetzner_locations.filtered", "locations.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_hetzner_locations.filtered", "locations.0.name", "nbg1"),
+				),
+			},
 		},
 	})
 }

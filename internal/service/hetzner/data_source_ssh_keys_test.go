@@ -50,6 +50,21 @@ data "coolify_hetzner_ssh_keys" "test" {
 					resource.TestCheckResourceAttr("data.coolify_hetzner_ssh_keys.test", "ssh_keys.1.name", "deploy-key"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_hetzner_ssh_keys" "filtered" {
+  cloud_provider_token_uuid = "test-token-uuid"
+  filter {
+    name   = "name"
+    values = ["deploy-key"]
+  }
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_hetzner_ssh_keys.filtered", "ssh_keys.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_hetzner_ssh_keys.filtered", "ssh_keys.0.name", "deploy-key"),
+				),
+			},
 		},
 	})
 }

@@ -52,6 +52,22 @@ data "coolify_hetzner_server_types" "test" {
 					resource.TestCheckResourceAttr("data.coolify_hetzner_server_types.test", "server_types.1.cores", "2"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_hetzner_server_types" "filtered" {
+  cloud_provider_token_uuid = "test-token-uuid"
+  filter {
+    name   = "name"
+    values = ["cx21"]
+  }
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_hetzner_server_types.filtered", "server_types.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_hetzner_server_types.filtered", "server_types.0.name", "cx21"),
+					resource.TestCheckResourceAttr("data.coolify_hetzner_server_types.filtered", "server_types.0.cores", "2"),
+				),
+			},
 		},
 	})
 }

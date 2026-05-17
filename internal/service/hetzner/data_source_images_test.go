@@ -51,6 +51,21 @@ data "coolify_hetzner_images" "test" {
 					resource.TestCheckResourceAttr("data.coolify_hetzner_images.test", "images.1.description", "Debian 12"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_hetzner_images" "filtered" {
+  cloud_provider_token_uuid = "test-token-uuid"
+  filter {
+    name   = "name"
+    values = ["debian-12"]
+  }
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_hetzner_images.filtered", "images.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_hetzner_images.filtered", "images.0.name", "debian-12"),
+				),
+			},
 		},
 	})
 }
