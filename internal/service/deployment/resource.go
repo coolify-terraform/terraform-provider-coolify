@@ -76,7 +76,7 @@ func (r *deploymentResource) Schema(ctx context.Context, _ resource.SchemaReques
 				Computed:            true,
 			},
 			"wait_for_completion": schema.BoolAttribute{
-				MarkdownDescription: "When `true`, the resource waits until the deployment reaches `finished` or `error` status before completing. On `error`, the apply fails with a diagnostic. Default `false`.",
+				MarkdownDescription: "When `true`, the resource waits until the deployment reaches `finished` or `error` status before completing. The default create timeout is 10 minutes; for long-running builds, increase it with `timeouts { create = \"30m\" }`. On `error`, the apply fails with a diagnostic. Default `false`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
@@ -173,7 +173,9 @@ func (r *deploymentResource) pollDeployment(ctx context.Context, uuid string, pl
 		resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 		if dep.Status == "finished" || dep.Status == "error" {
 			if dep.Status == "error" {
-				resp.Diagnostics.AddError("Deployment failed", fmt.Sprintf("Deployment %s finished with status 'error'", uuid))
+				resp.Diagnostics.AddError("Deployment failed",
+					fmt.Sprintf("Deployment %s finished with status 'error'. "+
+						"Check the deployment logs in the Coolify UI (application > Deployments) for details.", uuid))
 			}
 			return
 		}
