@@ -189,5 +189,5 @@ func flattenDatabase(db *client.Database, m *model) {
 		m.MongoInitdbRootPassword = types.StringNull()
 	}
 	m.MongoInitdbDatabase = flex.StringToFramework(db.MongoInitdbDatabase)
-	flex.SetStringIfConfigured(&m.MongoConf, db.MongoConf)
+	flex.SetStringOrClear(&m.MongoConf, db.MongoConf)
 }

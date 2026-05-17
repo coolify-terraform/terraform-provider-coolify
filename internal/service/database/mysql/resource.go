@@ -214,5 +214,5 @@ func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
 	} else if m.MysqlRootPassword.IsUnknown() {
 		m.MysqlRootPassword = types.StringNull()
 	}
-	flex.SetStringIfConfigured(&m.MysqlConf, db.MysqlConf)
+	flex.SetStringOrClear(&m.MysqlConf, db.MysqlConf)
 }

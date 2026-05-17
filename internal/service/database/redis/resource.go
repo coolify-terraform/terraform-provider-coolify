@@ -180,5 +180,5 @@ func flattenDatabase(db *client.Database, m *model) {
 	} else if m.RedisPassword.IsUnknown() {
 		m.RedisPassword = types.StringNull()
 	}
-	flex.SetStringIfConfigured(&m.RedisConf, db.RedisConf)
+	flex.SetStringOrClear(&m.RedisConf, db.RedisConf)
 }

@@ -321,10 +321,10 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 		m.PostgresPassword = types.StringNull()
 	}
 	m.PostgresDB = flex.StringToFramework(db.PostgresDB)
-	flex.SetStringIfConfigured(&m.PostgresConf, db.PostgresConf)
-	flex.SetStringIfConfigured(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
-	flex.SetStringIfConfigured(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
-	flex.SetStringIfConfigured(&m.InitScripts, db.InitScripts)
+	flex.SetStringOrClear(&m.PostgresConf, db.PostgresConf)
+	flex.SetStringOrClear(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
+	flex.SetStringOrClear(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
+	flex.SetStringOrClear(&m.InitScripts, db.InitScripts)
 }
 
 // --- shared helpers ---
@@ -534,8 +534,8 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	*f.LimitsMemorySwappiness = flex.Int64PtrToFramework(db.LimitsMemorySwappiness)
 	*f.LimitsCPUShares = flex.Int64PtrToFramework(db.LimitsCPUShares)
 	// Fields without defaults — only set when configured.
-	flex.SetStringIfConfigured(f.PortsMappings, db.PortsMappings)
-	flex.SetStringIfConfigured(f.CustomDockerRunOptions, db.CustomDockerRunOptions)
+	flex.SetStringOrClear(f.PortsMappings, db.PortsMappings)
+	flex.SetStringOrClear(f.CustomDockerRunOptions, db.CustomDockerRunOptions)
 	flex.SetInt64IfConfigured(f.PublicPortTimeout, db.PublicPortTimeout)
 	// Status is Computed — always set.
 	*f.Status = flex.StringToFramework(db.Status)

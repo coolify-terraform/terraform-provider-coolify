@@ -199,5 +199,5 @@ func flattenDatabase(db *client.Database, m *model) {
 	} else if m.MariadbRootPassword.IsUnknown() {
 		m.MariadbRootPassword = types.StringNull()
 	}
-	flex.SetStringIfConfigured(&m.MariadbConf, db.MariadbConf)
+	flex.SetStringOrClear(&m.MariadbConf, db.MariadbConf)
 }

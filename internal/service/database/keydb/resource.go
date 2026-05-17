@@ -176,5 +176,5 @@ func flattenDatabase(db *client.Database, m *model) {
 	} else if m.KeydbPassword.IsUnknown() {
 		m.KeydbPassword = types.StringNull()
 	}
-	flex.SetStringIfConfigured(&m.KeydbConf, db.KeydbConf)
+	flex.SetStringOrClear(&m.KeydbConf, db.KeydbConf)
 }
