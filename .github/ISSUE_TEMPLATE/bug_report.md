@@ -33,6 +33,27 @@ terraform providers
 2.
 3.
 
+## Debug output
+
+Run your command with debug logging enabled and paste the relevant output:
+
+```bash
+TF_LOG_PROVIDER=DEBUG terraform plan 2>debug.log
+```
+
+**Important:** Review the log for sensitive values (passwords, tokens)
+before pasting. The provider redacts most sensitive fields automatically,
+but custom environment variable values may appear.
+
+<details>
+<summary>Debug log output</summary>
+
+```
+Paste relevant log lines here
+```
+
+</details>
+
 ## Additional context
 
-Paste any relevant error output, `terraform plan` output, or API responses.
+Any other relevant information (API responses, Coolify UI screenshots, etc.).

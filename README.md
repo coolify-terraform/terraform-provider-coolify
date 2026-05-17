@@ -203,6 +203,23 @@ project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 examples, docs, Trivy, Gitleaks), Scenario Tests, Acceptance Tests, Spec
 Freshness (weekly), and a CI gate job.
 
+## Troubleshooting
+
+Enable provider debug logging to diagnose issues:
+
+```bash
+# Debug level: CRUD operations and state changes
+TF_LOG_PROVIDER=DEBUG terraform plan
+
+# Trace level: full HTTP request/response logging
+TF_LOG_PROVIDER=TRACE terraform plan
+```
+
+Sensitive fields (passwords, tokens, private keys) are automatically
+redacted in log output. See the
+[Troubleshooting Guide](https://registry.terraform.io/providers/SebTardifLabs/coolify/latest/docs/guides/troubleshooting)
+for details.
+
 ## License
 
 MPL-2.0
