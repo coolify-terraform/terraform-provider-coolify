@@ -81,7 +81,7 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"service_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. New service-backed storages cannot currently be created with this resource because the Coolify create API requires an additional nested resource UUID. Use this for importing or managing an existing service storage. Changing this forces a new resource.",
+				MarkdownDescription: "The UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. When set, `resource_uuid` must also be provided to identify which sub-resource within the service owns the storage. Changing this forces a new resource.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),

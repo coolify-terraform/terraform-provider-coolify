@@ -539,6 +539,32 @@ func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
 	})
 }
 
+func TestDatabaseBackupResource_ImportZeroID(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockBackupServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
+					frequency     = "0 2 * * *"
+					enabled       = true
+					retain_amount_locally   = 7
+				`),
+			},
+			{
+				ResourceName:  "coolify_database_backup.test",
+				ImportState:   true,
+				ImportStateId: "eeee0001-0001-4000-8000-000000000001:0",
+				ExpectError:   regexp.MustCompile(`backup_id must be a positive integer`),
+			},
+		},
+	})
+}
+
 func TestDatabaseBackupResource_InvalidRetainAmountLocally(t *testing.T) {
 	t.Parallel()
 	srv, _ := newMockBackupServer()

@@ -438,6 +438,13 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 		)
 		return
 	}
+	if backupID <= 0 {
+		resp.Diagnostics.AddError(
+			"Invalid import ID format",
+			fmt.Sprintf("backup_id must be a positive integer, got %d.", backupID),
+		)
+		return
+	}
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("database_uuid"), dbUUID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), int64(backupID))...)

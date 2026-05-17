@@ -134,7 +134,7 @@ func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"dynamic_timeout": schema.Int64Attribute{
-				MarkdownDescription: "Deployment timeout in seconds.",
+				MarkdownDescription: "Timeout in seconds for Docker operations (pull, build, health check) during deployment.",
 				Optional:            true,
 				Computed:            true,
 				Default:             int64default.StaticInt64(3600),
