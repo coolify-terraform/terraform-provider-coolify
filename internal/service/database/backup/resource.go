@@ -552,9 +552,7 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 	if b.S3StorageID != "" && (m.S3StorageUUID.IsNull() || m.S3StorageUUID.IsUnknown()) {
 		m.S3StorageUUID = flex.StringToFramework(b.S3StorageID)
 	}
-	if !m.DatabasesToBackup.IsNull() {
-		m.DatabasesToBackup = flex.StringToFramework(b.DatabasesToBackup)
-	}
+	m.DatabasesToBackup = flex.StringToFramework(b.DatabasesToBackup)
 	m.DumpAll = types.BoolValue(b.DumpAll)
 	m.RetainAmountLocally = flex.Int64PtrToFramework(b.RetainAmountLocally)
 	m.RetainDaysLocally = flex.Int64PtrToFramework(b.RetainDaysLocally)
