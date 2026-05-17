@@ -539,9 +539,10 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 	}
 	m.Enabled = types.BoolValue(b.Enabled)
 	m.SaveS3 = types.BoolValue(b.SaveS3)
-	// The API returns s3_storage_id (numeric FK), not s3_storage_uuid.
-	// Preserve the user-configured UUID when the API doesn't return it.
-	if b.S3StorageID != "" {
+	// The API may return s3_storage_id as a numeric FK, not the UUID the
+	// user configured. Only populate on import (when state is empty);
+	// otherwise preserve the user's configured value.
+	if b.S3StorageID != "" && (m.S3StorageUUID.IsNull() || m.S3StorageUUID.IsUnknown()) {
 		m.S3StorageUUID = flex.StringToFramework(b.S3StorageID)
 	}
 	if !m.DatabasesToBackup.IsNull() {

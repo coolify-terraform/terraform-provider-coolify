@@ -232,7 +232,9 @@ func (r *privateKeyResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
+	plannedKey := plan.PrivateKey
 	flattenPrivateKey(key, &plan)
+	plan.PrivateKey = plannedKey
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
