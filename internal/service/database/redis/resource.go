@@ -169,8 +169,14 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
 	pg.FlattenDatabaseExtended(db, m.ExtFields())
+	// redis_password is a sensitive field; the API may hide it via
+	// ApiSensitiveData middleware. Only overwrite when the API returns
+	// a value; otherwise preserve the existing state/plan value so
+	// Terraform doesn't see it flip to unknown.
 	if db.RedisPassword != "" {
 		m.RedisPassword = types.StringValue(db.RedisPassword)
+	} else if m.RedisPassword.IsUnknown() {
+		m.RedisPassword = types.StringNull()
 	}
 	flex.SetStringIfConfigured(&m.RedisConf, db.RedisConf)
 }

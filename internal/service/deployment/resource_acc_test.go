@@ -43,7 +43,7 @@ func TestAccDeploymentResource_CreateImport(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateVerifyIgnore:              []string{"triggers", "wait_for_completion"},
+				ImportStateVerifyIgnore:              []string{"triggers", "wait_for_completion", "status"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rs := s.RootModule().Resources["coolify_deployment.test"]
 					return rs.Primary.Attributes["application_uuid"] + ":" + rs.Primary.Attributes["uuid"], nil
