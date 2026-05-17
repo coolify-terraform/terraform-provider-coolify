@@ -166,5 +166,9 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
 	pg.FlattenDatabaseExtended(db, m.ExtFields())
-	m.DragonflyPassword = flex.StringToFramework(db.DragonflyPassword)
+	if db.DragonflyPassword != "" {
+		m.DragonflyPassword = types.StringValue(db.DragonflyPassword)
+	} else if m.DragonflyPassword.IsUnknown() {
+		m.DragonflyPassword = types.StringNull()
+	}
 }

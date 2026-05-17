@@ -171,6 +171,10 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
 	pg.FlattenDatabaseExtended(db, m.ExtFields())
-	m.KeydbPassword = flex.StringToFramework(db.KeydbPassword)
+	if db.KeydbPassword != "" {
+		m.KeydbPassword = types.StringValue(db.KeydbPassword)
+	} else if m.KeydbPassword.IsUnknown() {
+		m.KeydbPassword = types.StringNull()
+	}
 	flex.SetStringIfConfigured(&m.KeydbConf, db.KeydbConf)
 }

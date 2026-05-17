@@ -254,6 +254,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 			DynamicTimeout:                       flex.IntIfNonDefault(plan.DynamicTimeout, 3600),
 			DeploymentQueueLimit:                 flex.IntIfNonDefault(plan.DeploymentQueueLimit, 25),
 			ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(plan.ServerDiskUsageNotificationThreshold, 80),
+			ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(plan.ServerDiskUsageCheckFrequency),
 		}
 		if _, err := r.client.UpdateServer(ctx, created.UUID, settingsUpdate); err != nil {
 			resp.Diagnostics.AddError("Error setting server settings",
@@ -378,10 +379,14 @@ func hasNonDefaultSettings(plan serverResourceModel) bool {
 	intNonDefault := func(v types.Int64, dflt int64) bool {
 		return !v.IsNull() && !v.IsUnknown() && v.ValueInt64() != dflt
 	}
+	strSet := func(v types.String) bool {
+		return !v.IsNull() && !v.IsUnknown()
+	}
 	return intNonDefault(plan.ConcurrentBuilds, 2) ||
 		intNonDefault(plan.DynamicTimeout, 3600) ||
 		intNonDefault(plan.DeploymentQueueLimit, 25) ||
-		intNonDefault(plan.ServerDiskUsageNotificationThreshold, 80)
+		intNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
+		strSet(plan.ServerDiskUsageCheckFrequency)
 }
 
 func flattenServer(srv *client.Server, model *serverResourceModel) {
