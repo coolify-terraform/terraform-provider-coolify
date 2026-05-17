@@ -513,3 +513,30 @@ func TestInt64PtrForUpdate(t *testing.T) {
 		}
 	})
 }
+
+func TestIntIfNonDefault(t *testing.T) {
+	t.Run("null returns nil", func(t *testing.T) {
+		if got := flex.IntIfNonDefault(types.Int64Null(), 2); got != nil {
+			t.Fatalf("expected nil, got %v", *got)
+		}
+	})
+	t.Run("unknown returns nil", func(t *testing.T) {
+		if got := flex.IntIfNonDefault(types.Int64Unknown(), 2); got != nil {
+			t.Fatalf("expected nil, got %v", *got)
+		}
+	})
+	t.Run("matches default returns nil", func(t *testing.T) {
+		if got := flex.IntIfNonDefault(types.Int64Value(2), 2); got != nil {
+			t.Fatalf("expected nil, got %v", *got)
+		}
+	})
+	t.Run("differs from default returns pointer", func(t *testing.T) {
+		got := flex.IntIfNonDefault(types.Int64Value(8), 2)
+		if got == nil {
+			t.Fatal("expected non-nil")
+		}
+		if *got != 8 {
+			t.Fatalf("expected 8, got %d", *got)
+		}
+	})
+}
