@@ -9,10 +9,12 @@ import (
 
 // Storage represents a persistent storage volume in Coolify.
 type Storage struct {
-	UUID      string `json:"uuid"`
-	Name      string `json:"name"`
-	MountPath string `json:"mount_path"`
-	HostPath  string `json:"host_path,omitempty"`
+	UUID         string `json:"uuid"`
+	Name         string `json:"name"`
+	MountPath    string `json:"mount_path"`
+	HostPath     string `json:"host_path,omitempty"`
+	ResourceUUID string `json:"resource_uuid,omitempty"`
+	ResourceType string `json:"resource_type,omitempty"`
 }
 
 // storageListResponse wraps the API response which nests storages by type.
@@ -23,10 +25,11 @@ type storageListResponse struct {
 
 // CreateStorageInput is the payload for creating a new persistent storage.
 type CreateStorageInput struct {
-	Type      string `json:"type"`
-	Name      string `json:"name"`
-	MountPath string `json:"mount_path"`
-	HostPath  string `json:"host_path,omitempty"`
+	Type         string `json:"type"`
+	ResourceUUID string `json:"resource_uuid,omitempty"`
+	Name         string `json:"name"`
+	MountPath    string `json:"mount_path"`
+	HostPath     string `json:"host_path,omitempty"`
 }
 
 // CreateStorageResponse is the response from creating a persistent storage.

@@ -37,6 +37,7 @@ type storageResourceModel struct {
 	ApplicationUUID types.String `tfsdk:"application_uuid"`
 	ServiceUUID     types.String `tfsdk:"service_uuid"`
 	DatabaseUUID    types.String `tfsdk:"database_uuid"`
+	ResourceUUID    types.String `tfsdk:"resource_uuid"`
 	Name            types.String `tfsdk:"name"`
 	MountPath       types.String `tfsdk:"mount_path"`
 	HostPath        types.String `tfsdk:"host_path"`
@@ -56,10 +57,7 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 		MarkdownDescription: "Manages a persistent storage volume on a Coolify application, service, or database.\n\n" +
 			"~> **Note:** Each instance requires a List API call to read because the Coolify API does not " +
 			"provide a singular GET endpoint for storage volumes. Large numbers of these resources " +
-			"on a single parent resource may cause slower plan/apply times due to this API limitation.\n\n" +
-			"~> **Note:** Creating new service-backed storages is not currently supported because the " +
-			"Coolify service storage create API requires an additional nested resource UUID. You can " +
-			"still import and manage existing service-backed storages by `service_uuid`.",
+			"on a single parent resource may cause slower plan/apply times due to this API limitation.",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the persistent storage.",
@@ -95,6 +93,16 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{validate.UUID()},
+			},
+			"resource_uuid": schema.StringAttribute{
+				MarkdownDescription: "The UUID of the nested application or database inside a service. Required when `service_uuid` is set because Coolify services contain multiple sub-resources and the storage must target a specific one. Ignored for `application_uuid` and `database_uuid`. Changing this forces a new resource.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Validators: []validator.String{validate.UUID()},
 			},
@@ -153,11 +161,13 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_storage"})
 
 	if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
-		resp.Diagnostics.AddError(
-			"Service-backed storage creation is not supported",
-			"Coolify's service storage create API requires an additional nested resource UUID that this resource does not model yet. Import an existing service storage if you need to manage one, or use application_uuid or database_uuid when creating a new storage.",
-		)
-		return
+		if plan.ResourceUUID.IsNull() || plan.ResourceUUID.IsUnknown() {
+			resp.Diagnostics.AddError(
+				"Missing resource_uuid for service storage",
+				"When creating storage on a service, resource_uuid must be set to the UUID of the nested application or database inside the service.",
+			)
+			return
+		}
 	}
 
 	parentType, parentUUID, ok := resolveParent(&plan)
@@ -172,6 +182,7 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 		MountPath: plan.MountPath.ValueString(),
 	}
 	flex.SetIfKnown(&input.HostPath, plan.HostPath)
+	flex.SetIfKnown(&input.ResourceUUID, plan.ResourceUUID)
 
 	createResp, err := r.client.CreateStorage(ctx, parentType, parentUUID, input)
 	if err != nil {
@@ -180,6 +191,9 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	plan.UUID = types.StringValue(createResp.UUID)
+	if plan.ResourceUUID.IsUnknown() {
+		plan.ResourceUUID = types.StringNull()
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -228,6 +242,9 @@ func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, re
 				// keep null if it was null before and API returns empty
 			} else {
 				state.HostPath = types.StringNull()
+			}
+			if s.ResourceUUID != "" {
+				state.ResourceUUID = types.StringValue(s.ResourceUUID)
 			}
 			found = true
 			break
