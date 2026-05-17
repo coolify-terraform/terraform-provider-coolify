@@ -548,6 +548,9 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	if plan.ForceDomainOverride != nil && state.ForceDomainOverride != nil {
 		input.ForceDomainOverride = boolDiff(*plan.ForceDomainOverride, *state.ForceDomainOverride)
 	}
+	if plan.Dockerfile != nil && state.Dockerfile != nil {
+		input.Dockerfile = strDiff(*plan.Dockerfile, *state.Dockerfile)
+	}
 	if plan.DockerfileTargetBuild != nil && state.DockerfileTargetBuild != nil {
 		input.DockerfileTargetBuild = strDiff(*plan.DockerfileTargetBuild, *state.DockerfileTargetBuild)
 	}
