@@ -373,7 +373,7 @@ func TestStorageResource_ImportBadType(t *testing.T) {
 	})
 }
 
-func TestStorageResource_CreateWithServiceUUIDUnsupported(t *testing.T) {
+func TestStorageResource_CreateWithServiceUUIDMissingResourceUUID(t *testing.T) {
 	t.Parallel()
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NewServeMux()))
@@ -388,7 +388,7 @@ func TestStorageResource_CreateWithServiceUUIDUnsupported(t *testing.T) {
 					name         = "svc-data"
 					mount_path   = "/data"
 				`),
-				ExpectError: regexp.MustCompile(`Service-backed storage creation is not supported`),
+				ExpectError: regexp.MustCompile(`Missing resource_uuid for service storage`),
 			},
 		},
 	})

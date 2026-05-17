@@ -5,7 +5,6 @@ subcategory: ""
 description: |-
   Manages a persistent storage volume on a Coolify application, service, or database.
   ~> Note: Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for storage volumes. Large numbers of these resources on a single parent resource may cause slower plan/apply times due to this API limitation.
-  ~> Note: Creating new service-backed storages is not currently supported because the Coolify service storage create API requires an additional nested resource UUID. You can still import and manage existing service-backed storages by service_uuid.
 ---
 
 # coolify_storage (Resource)
@@ -13,8 +12,6 @@ description: |-
 Manages a persistent storage volume on a Coolify application, service, or database.
 
 ~> **Note:** Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for storage volumes. Large numbers of these resources on a single parent resource may cause slower plan/apply times due to this API limitation.
-
-~> **Note:** Creating new service-backed storages is not currently supported because the Coolify service storage create API requires an additional nested resource UUID. You can still import and manage existing service-backed storages by `service_uuid`.
 
 ## Example Usage
 
@@ -48,6 +45,7 @@ resource "coolify_storage" "db_data" {
 - `application_uuid` (String) The UUID of the application to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `database_uuid` (String) The UUID of the database to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `host_path` (String) The host path to mount (optional; leave empty for a Docker volume).
+- `resource_uuid` (String) The UUID of the nested application or database inside a service. Required when `service_uuid` is set because Coolify services contain multiple sub-resources and the storage must target a specific one. Ignored for `application_uuid` and `database_uuid`. Changing this forces a new resource.
 - `service_uuid` (String) The UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. New service-backed storages cannot currently be created with this resource because the Coolify create API requires an additional nested resource UUID. Use this for importing or managing an existing service storage. Changing this forces a new resource.
 
 ### Read-Only
