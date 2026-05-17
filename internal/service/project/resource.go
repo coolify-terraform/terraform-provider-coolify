@@ -209,9 +209,9 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	// Coolify deletes applications and databases asynchronously. When
 	// terraform destroy runs, child resources are deleted first but
 	// Coolify may not have finished removing them by the time the project
-	// delete is attempted. Retry for up to 60 seconds.
+	// delete is attempted. Retry for up to 2 minutes.
 	uuid := state.UUID.ValueString()
-	err := client.RetryDelete(ctx, 12, 5*time.Second,
+	err := client.RetryDelete(ctx, 24, 5*time.Second,
 		func() error { return r.client.DeleteProject(ctx, uuid) },
 		func(err error) bool { return strings.Contains(err.Error(), "has resources") },
 	)

@@ -385,8 +385,8 @@ func AccCheckResourceDisappears(resourceAddr, apiDeletePath string) resource.Tes
 		_ = resp.Body.Close()
 
 		// Poll until the resource is gone (Coolify deletes are async).
-		// Applications can take 30-60s to fully remove.
-		for range 60 {
+		// Applications can take 60-120s to fully remove on slow hosts.
+		for range 120 {
 			time.Sleep(1 * time.Second)
 			getReq, err := http.NewRequest(http.MethodGet, endpoint+apiDeletePath+uuid, nil)
 			if err != nil {
@@ -402,7 +402,7 @@ func AccCheckResourceDisappears(resourceAddr, apiDeletePath string) resource.Tes
 				return nil
 			}
 		}
-		return fmt.Errorf("resource %s/%s still exists after 60s", resourceAddr, uuid)
+		return fmt.Errorf("resource %s/%s still exists after 120s", resourceAddr, uuid)
 	}
 }
 

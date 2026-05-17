@@ -1247,8 +1247,10 @@ func deleteApplication(
 		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
-	// Poll until the application is fully removed (up to 60s).
-	for range 12 {
+	// Poll until the application is fully removed (up to 2 min).
+	// Coolify queues a DeleteResourceJob that tears down containers;
+	// on slow hosts this can take well over 60s.
+	for range 24 {
 		select {
 		case <-ctx.Done():
 			return
