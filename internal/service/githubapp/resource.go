@@ -175,6 +175,7 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_github_app", "uuid": plan.UUID.ValueString()})
 }
 
 func (r *gitHubAppResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -190,6 +191,7 @@ func (r *gitHubAppResource) Read(ctx context.Context, req resource.ReadRequest, 
 	if err != nil {
 		if client.IsNotFound(err) {
 			// The GitHub App was deleted outside of Terraform; remove from state.
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_github_app", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -261,7 +263,9 @@ func (r *gitHubAppResource) Delete(ctx context.Context, req resource.DeleteReque
 			return
 		}
 		resp.Diagnostics.AddError("Error deleting GitHub App", fmt.Sprintf("Could not delete GitHub App %d: %s", state.ID.ValueInt64(), err))
+		return
 	}
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_github_app", "uuid": state.UUID.ValueString()})
 }
 
 func (r *gitHubAppResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

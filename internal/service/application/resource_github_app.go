@@ -133,6 +133,7 @@ func (r *gitHubAppApplicationResource) Create(ctx context.Context, req resource.
 
 	flattenGitHubAppApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_github_app_application", "uuid": created.UUID})
 }
 
 func (r *gitHubAppApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

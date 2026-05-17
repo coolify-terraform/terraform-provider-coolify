@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -80,6 +81,8 @@ func (d *serverValidateDataSource) Read(ctx context.Context, req datasource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_server_validate"})
 
 	v, err := d.client.ValidateServer(ctx, config.UUID.ValueString())
 	if err != nil {

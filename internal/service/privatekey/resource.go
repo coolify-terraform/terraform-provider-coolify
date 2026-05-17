@@ -173,6 +173,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	flattenPrivateKey(key, &plan)
 	plan.PrivateKey = plannedKey
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_private_key", "uuid": created.UUID})
 }
 
 func (r *privateKeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -187,6 +188,7 @@ func (r *privateKeyResource) Read(ctx context.Context, req resource.ReadRequest,
 	key, err := r.client.GetPrivateKey(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_private_key", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -257,7 +259,9 @@ func (r *privateKeyResource) Delete(ctx context.Context, req resource.DeleteRequ
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting private key", fmt.Sprintf("private key %s: %s", uuid, err))
+		return
 	}
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_private_key", "uuid": uuid})
 }
 
 func (r *privateKeyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

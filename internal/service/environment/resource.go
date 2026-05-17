@@ -150,6 +150,7 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_environment", "name": plan.Name.ValueString()})
 }
 
 func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -167,6 +168,7 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 	env, err := r.client.GetEnvironment(ctx, projectUUID, name)
 	if err != nil {
 		if client.IsNotFound(err) {
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_environment", "name": name})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -216,7 +218,9 @@ func (r *environmentResource) Delete(ctx context.Context, req resource.DeleteReq
 			return
 		}
 		resp.Diagnostics.AddError("Error deleting environment", fmt.Sprintf("Could not delete environment %s in project %s: %s", name, projectUUID, err))
+		return
 	}
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_environment", "name": name})
 }
 
 func (r *environmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

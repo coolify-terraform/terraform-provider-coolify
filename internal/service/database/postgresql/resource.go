@@ -230,6 +230,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	}
 	flattenDatabase(db, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": created.UUID})
 }
 
 func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -246,6 +247,7 @@ func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 	if db == nil {
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -421,6 +423,7 @@ func DeleteDatabase(ctx context.Context, c *client.Client, uuid string) error {
 		return err
 	}
 	client.PollUntilDeleted(ctx, func() error { _, err := c.GetDatabase(ctx, uuid); return err })
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "database", "uuid": uuid})
 	return nil
 }
 

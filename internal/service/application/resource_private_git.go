@@ -138,6 +138,7 @@ func (r *privateGitApplicationResource) Create(ctx context.Context, req resource
 
 	flattenPrivateGitApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_private_git_application", "uuid": created.UUID})
 }
 
 func (r *privateGitApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

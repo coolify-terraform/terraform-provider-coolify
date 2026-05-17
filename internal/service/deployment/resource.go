@@ -148,6 +148,7 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_deployment", "uuid": result.DeploymentUUID})
 
 	if plan.WaitForCompletion.ValueBool() {
 		r.pollDeployment(ctx, result.DeploymentUUID, &plan, resp)
@@ -191,6 +192,7 @@ func (r *deploymentResource) Read(ctx context.Context, req resource.ReadRequest,
 	dep, err := r.client.GetDeployment(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_deployment", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}

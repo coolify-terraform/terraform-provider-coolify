@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -103,6 +104,8 @@ func (d *taskExecutionsDataSource) Read(ctx context.Context, req datasource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_scheduled_task_executions"})
 
 	var parentType, parentUUID string
 	//nolint:gocritic // if-else chain with different client calls and early return; switch not clearer

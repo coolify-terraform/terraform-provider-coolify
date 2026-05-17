@@ -192,6 +192,7 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 
 	flattenService(svc, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": created.UUID})
 }
 
 func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -205,6 +206,7 @@ func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, re
 	svc, err := r.client.GetService(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_service", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -268,6 +270,7 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 	client.PollUntilDeleted(ctx, func() error { _, err := r.client.GetService(ctx, uuid); return err })
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": uuid})
 }
 
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

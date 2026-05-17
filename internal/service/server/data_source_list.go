@@ -8,6 +8,7 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -74,6 +75,8 @@ func (d *serversDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_servers"})
 
 	servers, err := d.client.ListServers(ctx)
 	if err != nil {

@@ -1227,6 +1227,7 @@ func readApplication(
 	app, err := c.GetApplication(ctx, uuid)
 	if err != nil {
 		if client.IsNotFound(err) {
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -1257,6 +1258,7 @@ func deleteApplication(
 		return
 	}
 	client.PollUntilDeleted(ctx, func() error { _, err := c.GetApplication(ctx, uuid); return err })
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 }
 
 // importApplicationState validates the import ID and sets the initial state

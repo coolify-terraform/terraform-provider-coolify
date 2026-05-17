@@ -173,6 +173,7 @@ func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource
 
 	flattenDockerfileApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_dockerfile_application", "uuid": created.UUID})
 }
 
 func (r *dockerfileApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

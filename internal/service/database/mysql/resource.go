@@ -120,6 +120,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	}
 	flattenDatabase(db, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": created.UUID})
 }
 
 func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -136,6 +137,7 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 	if db == nil {
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}

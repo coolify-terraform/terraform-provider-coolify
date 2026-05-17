@@ -195,6 +195,7 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 		plan.ResourceUUID = types.StringNull()
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_storage", "uuid": createResp.UUID})
 }
 
 func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -215,6 +216,7 @@ func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, re
 	storages, err := r.client.ListStorages(ctx, parentType, parentUUID)
 	if err != nil {
 		if client.IsNotFound(err) {
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_storage", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -223,6 +225,7 @@ func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	if !flattenStorageFromList(storages, &state) {
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_storage", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -290,6 +293,7 @@ func (r *storageResource) Delete(ctx context.Context, req resource.DeleteRequest
 		resp.Diagnostics.AddError("Error deleting persistent storage", fmt.Sprintf("storage %s: %s", state.UUID.ValueString(), err))
 		return
 	}
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_storage", "uuid": state.UUID.ValueString()})
 }
 
 // flattenStorageFromList finds the storage matching state.UUID in the list

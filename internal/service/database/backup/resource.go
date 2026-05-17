@@ -314,6 +314,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	flattenDatabaseBackup(found, &plan)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_database_backup", "uuid": created.UUID})
 }
 
 func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -331,6 +332,7 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 	b, readErr := r.readBackup(ctx, dbUUID, backupID, state.UUID)
 	if readErr != nil {
 		if client.IsNotFound(readErr) {
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_backup", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -338,6 +340,7 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 	if b == nil {
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_backup", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -413,6 +416,7 @@ func (r *databaseBackupResource) Delete(ctx context.Context, req resource.Delete
 		resp.Diagnostics.AddError("Error deleting database backup", fmt.Sprintf("backup %d for database %s: %s", int(state.ID.ValueInt64()), state.DatabaseUUID.ValueString(), err))
 		return
 	}
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_database_backup", "uuid": state.UUID.ValueString()})
 }
 
 func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

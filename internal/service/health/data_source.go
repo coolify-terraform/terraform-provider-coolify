@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -55,6 +56,8 @@ func (d *healthDataSource) Configure(_ context.Context, req datasource.Configure
 }
 
 func (d *healthDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_health"})
+
 	status, err := d.client.GetHealth(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading Coolify health", err.Error())

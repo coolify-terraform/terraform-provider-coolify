@@ -108,6 +108,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 	flattenDatabase(db, &p)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_mongodb_database", "uuid": c.UUID})
 }
 func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var s model
@@ -123,6 +124,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 		return
 	}
 	if db == nil {
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_mongodb_database", "uuid": s.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}

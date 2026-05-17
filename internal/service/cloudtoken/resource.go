@@ -135,6 +135,7 @@ func (r *cloudTokenResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_cloud_token", "uuid": plan.UUID.ValueString()})
 }
 
 func (r *cloudTokenResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -150,6 +151,7 @@ func (r *cloudTokenResource) Read(ctx context.Context, req resource.ReadRequest,
 	if err != nil {
 		if client.IsNotFound(err) {
 			// The cloud token was deleted outside of Terraform; remove from state.
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_cloud_token", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -229,7 +231,9 @@ func (r *cloudTokenResource) Delete(ctx context.Context, req resource.DeleteRequ
 			return
 		}
 		resp.Diagnostics.AddError("Error deleting cloud token", fmt.Sprintf("Could not delete cloud token %s: %s", state.UUID.ValueString(), err))
+		return
 	}
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_cloud_token", "uuid": state.UUID.ValueString()})
 }
 
 func addCreateReadBackError(resp *resource.CreateResponse, uuid string, err error) {

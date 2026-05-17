@@ -122,6 +122,7 @@ func (r *applicationResource) Create(ctx context.Context, req resource.CreateReq
 
 	flattenApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application", "uuid": created.UUID})
 }
 
 func (r *applicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

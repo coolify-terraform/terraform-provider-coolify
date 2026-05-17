@@ -135,6 +135,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	resp.Diagnostics.Append(diags...)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_project", "uuid": plan.UUID.ValueString()})
 }
 
 func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -150,6 +151,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if err != nil {
 		if client.IsNotFound(err) {
 			// The project was deleted outside of Terraform; remove from state.
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_project", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -217,7 +219,9 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting project", fmt.Sprintf("Could not delete project %s: %s", uuid, err))
+		return
 	}
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_project", "uuid": uuid})
 }
 
 func (r *projectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

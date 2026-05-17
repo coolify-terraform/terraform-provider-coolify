@@ -164,6 +164,7 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 
 	plan.UUID = types.StringValue(taskUUID)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID})
 }
 
 func (r *scheduledTaskResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -180,6 +181,7 @@ func (r *scheduledTaskResource) Read(ctx context.Context, req resource.ReadReque
 	tasks, err := r.client.ListScheduledTasks(ctx, parentType, parentUUID)
 	if err != nil {
 		if client.IsNotFound(err) {
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -200,6 +202,7 @@ func (r *scheduledTaskResource) Read(ctx context.Context, req resource.ReadReque
 	}
 
 	if !found {
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -256,6 +259,7 @@ func (r *scheduledTaskResource) Delete(ctx context.Context, req resource.DeleteR
 		resp.Diagnostics.AddError("Error deleting scheduled task", fmt.Sprintf("scheduled task %s: %s", state.UUID.ValueString(), err))
 		return
 	}
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": state.UUID.ValueString()})
 }
 
 func (r *scheduledTaskResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
