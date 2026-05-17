@@ -176,3 +176,32 @@ func IntIfChanged(plan, state types.Int64) *int {
 	v := int(plan.ValueInt64())
 	return &v
 }
+
+// Float64PtrToInt64Framework converts a *float64 from the API to a
+// Terraform Int64 value, truncating to integer. Used when the API
+// contract specifies float but the schema uses Int64Attribute.
+func Float64PtrToInt64Framework(v *float64) types.Int64 {
+	if v == nil {
+		return types.Int64Null()
+	}
+	return types.Int64Value(int64(*v))
+}
+
+// Float64PtrFromInt64Framework converts a Terraform Int64 to a *float64
+// for sending to the API.
+func Float64PtrFromInt64Framework(v types.Int64) *float64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := float64(v.ValueInt64())
+	return &f
+}
+
+// Float64IfChangedFromInt64 returns a *float64 only if the Int64 plan
+// value differs from state.
+func Float64IfChangedFromInt64(plan, state types.Int64) *float64 {
+	if plan.Equal(state) {
+		return nil
+	}
+	return Float64PtrFromInt64Framework(plan)
+}

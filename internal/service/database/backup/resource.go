@@ -206,10 +206,10 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	flex.SetBoolPtr(&input.BackupNow, plan.BackupNow)
 	input.RetainAmountLocally = flex.Int64PtrFromFramework(plan.RetainAmountLocally)
 	input.RetainDaysLocally = flex.Int64PtrFromFramework(plan.RetainDaysLocally)
-	input.RetainMaxStorageLocal = flex.Int64PtrFromFramework(plan.RetainMaxStorageLocal)
+	input.RetainMaxStorageLocal = flex.Float64PtrFromInt64Framework(plan.RetainMaxStorageLocal)
 	input.RetainAmountS3 = flex.Int64PtrFromFramework(plan.RetainAmountS3)
 	input.RetainDaysS3 = flex.Int64PtrFromFramework(plan.RetainDaysS3)
-	input.RetainMaxStorageS3 = flex.Int64PtrFromFramework(plan.RetainMaxStorageS3)
+	input.RetainMaxStorageS3 = flex.Float64PtrFromInt64Framework(plan.RetainMaxStorageS3)
 	input.Timeout = flex.Int64PtrFromFramework(plan.Timeout)
 
 	created, err := r.client.CreateDatabaseBackup(ctx, plan.DatabaseUUID.ValueString(), input)
@@ -347,10 +347,10 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 		DumpAll:               flex.BoolIfChanged(plan.DumpAll, state.DumpAll),
 		RetainAmountLocally:   flex.Int64IfChanged(plan.RetainAmountLocally, state.RetainAmountLocally),
 		RetainDaysLocally:     flex.Int64IfChanged(plan.RetainDaysLocally, state.RetainDaysLocally),
-		RetainMaxStorageLocal: flex.Int64IfChanged(plan.RetainMaxStorageLocal, state.RetainMaxStorageLocal),
+		RetainMaxStorageLocal: flex.Float64IfChangedFromInt64(plan.RetainMaxStorageLocal, state.RetainMaxStorageLocal),
 		RetainAmountS3:        flex.Int64IfChanged(plan.RetainAmountS3, state.RetainAmountS3),
 		RetainDaysS3:          flex.Int64IfChanged(plan.RetainDaysS3, state.RetainDaysS3),
-		RetainMaxStorageS3:    flex.Int64IfChanged(plan.RetainMaxStorageS3, state.RetainMaxStorageS3),
+		RetainMaxStorageS3:    flex.Float64IfChangedFromInt64(plan.RetainMaxStorageS3, state.RetainMaxStorageS3),
 		Timeout:               flex.Int64IfChanged(plan.Timeout, state.Timeout),
 	}
 
@@ -525,9 +525,9 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 	m.DumpAll = types.BoolValue(b.DumpAll)
 	m.RetainAmountLocally = flex.Int64PtrToFramework(b.RetainAmountLocally)
 	m.RetainDaysLocally = flex.Int64PtrToFramework(b.RetainDaysLocally)
-	m.RetainMaxStorageLocal = flex.Int64PtrToFramework(b.RetainMaxStorageLocal)
+	m.RetainMaxStorageLocal = flex.Float64PtrToInt64Framework(b.RetainMaxStorageLocal)
 	m.RetainAmountS3 = flex.Int64PtrToFramework(b.RetainAmountS3)
 	m.RetainDaysS3 = flex.Int64PtrToFramework(b.RetainDaysS3)
-	m.RetainMaxStorageS3 = flex.Int64PtrToFramework(b.RetainMaxStorageS3)
+	m.RetainMaxStorageS3 = flex.Float64PtrToInt64Framework(b.RetainMaxStorageS3)
 	m.Timeout = flex.Int64PtrToFramework(b.Timeout)
 }
