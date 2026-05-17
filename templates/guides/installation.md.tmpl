@@ -70,8 +70,8 @@ provider "coolify" {
 
 ## Version requirements
 
-The provider validates the Coolify version on `terraform init` /
-`terraform plan`. If your instance is older than **v4.0.0**, the provider
+The provider validates the Coolify version on `terraform plan` /
+`terraform apply`. If your instance is older than **v4.0.0**, the provider
 will return an error and refuse to continue. Upgrade your Coolify instance
 before using the provider.
 

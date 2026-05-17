@@ -72,6 +72,25 @@ data "coolify_applications" "test" {}
 					resource.TestCheckResourceAttr("data.coolify_applications.test", "applications.1.status", "stopped"),
 				),
 			},
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+data "coolify_applications" "filtered" {
+  filter {
+    name   = "name"
+    values = ["app-alpha"]
+  }
+}
+`, mockSrv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_applications.filtered", "applications.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_applications.filtered", "applications.0.name", "app-alpha"),
+				),
+			},
 		},
 	})
 }

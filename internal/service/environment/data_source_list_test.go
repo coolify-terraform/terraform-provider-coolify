@@ -38,6 +38,34 @@ data "coolify_environments" "all" {
 					resource.TestCheckResourceAttr("data.coolify_environments.all", "environments.#", "2"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_environment" "first" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "first-env"
+  description  = "first"
+}
+
+resource "coolify_environment" "second" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "second-env"
+  description  = "second"
+}
+
+data "coolify_environments" "filtered" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  depends_on   = [coolify_environment.first, coolify_environment.second]
+  filter {
+    name   = "name"
+    values = ["first-env"]
+  }
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_environments.filtered", "environments.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_environments.filtered", "environments.0.name", "first-env"),
+				),
+			},
 		},
 	})
 }

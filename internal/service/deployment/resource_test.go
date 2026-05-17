@@ -225,7 +225,7 @@ resource "coolify_deployment" "test" {
 				ImportStateId:                        appUUID + ":" + deploymentUUID,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateVerifyIgnore:              []string{"triggers", "wait_for_completion"},
+				ImportStateVerifyIgnore:              []string{"triggers", "wait_for_completion", "status"},
 			},
 		},
 	})

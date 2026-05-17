@@ -41,7 +41,7 @@ resource "coolify_environment_variable" "db_log_level" {
 
 ### Required
 
-- `key` (String) The name of the environment variable (must be a valid shell variable name).
+- `key` (String) The name of the environment variable (must be a valid shell variable name). Changing the key forces replacement.
 - `value` (String, Sensitive) The value of the environment variable.
 
 ### Optional

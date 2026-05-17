@@ -552,6 +552,39 @@ data "coolify_github_apps" "all" {
 					resource.TestCheckResourceAttr("data.coolify_github_apps.all", "github_apps.#", "2"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_github_app" "first" {
+  name            = "first-app"
+  app_id          = 111
+  installation_id = 222
+  client_id       = "Iv1.first"
+  client_secret   = "firstsecret"
+  private_key_uuid = "pk-uuid-first"
+}
+
+resource "coolify_github_app" "second" {
+  name            = "second-app"
+  app_id          = 333
+  installation_id = 444
+  client_id       = "Iv1.second"
+  client_secret   = "secondsecret"
+  private_key_uuid = "pk-uuid-second"
+}
+
+data "coolify_github_apps" "filtered" {
+  depends_on = [coolify_github_app.first, coolify_github_app.second]
+  filter {
+    name   = "name"
+    values = ["second-app"]
+  }
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_github_apps.filtered", "github_apps.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_github_apps.filtered", "github_apps.0.name", "second-app"),
+				),
+			},
 		},
 	})
 }

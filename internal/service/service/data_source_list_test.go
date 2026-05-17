@@ -63,6 +63,26 @@ data "coolify_services" "test" {}
 					resource.TestCheckResourceAttr("data.coolify_services.test", "services.1.type", "minio"),
 				),
 			},
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+data "coolify_services" "filtered" {
+  filter {
+    name   = "type"
+    values = ["minio"]
+  }
+}
+`, mockSrv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_services.filtered", "services.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_services.filtered", "services.0.name", "svc-beta"),
+					resource.TestCheckResourceAttr("data.coolify_services.filtered", "services.0.type", "minio"),
+				),
+			},
 		},
 	})
 }

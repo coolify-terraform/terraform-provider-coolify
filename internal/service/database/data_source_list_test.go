@@ -87,6 +87,26 @@ data "coolify_databases" "test" {}
 					resource.TestCheckResourceAttr("data.coolify_databases.test", "databases.1.is_public", "true"),
 				),
 			},
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+data "coolify_databases" "filtered" {
+  filter {
+    name   = "type"
+    values = ["postgresql"]
+  }
+}
+`, mockSrv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_databases.filtered", "databases.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_databases.filtered", "databases.0.name", "db-alpha"),
+					resource.TestCheckResourceAttr("data.coolify_databases.filtered", "databases.0.type", "postgresql"),
+				),
+			},
 		},
 	})
 }

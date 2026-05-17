@@ -58,6 +58,25 @@ data "coolify_teams" "test" {}
 					resource.TestCheckResourceAttr("data.coolify_teams.test", "teams.1.description", "The design team"),
 				),
 			},
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint  = %q
+  token = "test-token"
+}
+
+data "coolify_teams" "filtered" {
+  filter {
+    name   = "name"
+    values = ["Design"]
+  }
+}
+`, mockSrv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_teams.filtered", "teams.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_teams.filtered", "teams.0.name", "Design"),
+				),
+			},
 		},
 	})
 }

@@ -65,6 +65,20 @@ data "coolify_private_keys" "test" {}`,
 					resource.TestCheckResourceAttr("data.coolify_private_keys.test", "private_keys.1.is_git_related", "false"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
+data "coolify_private_keys" "filtered" {
+  filter {
+    name   = "name"
+    values = ["key-beta"]
+  }
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_private_keys.filtered", "private_keys.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_private_keys.filtered", "private_keys.0.name", "key-beta"),
+					resource.TestCheckResourceAttr("data.coolify_private_keys.filtered", "private_keys.0.is_git_related", "false"),
+				),
+			},
 		},
 	})
 }

@@ -99,6 +99,20 @@ data "coolify_servers" "test" {}`,
 					resource.TestCheckResourceAttr("data.coolify_servers.test", "servers.1.server_disk_usage_check_frequency", "0 * * * *"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
+data "coolify_servers" "filtered" {
+  filter {
+    name   = "name"
+    values = ["server-alpha"]
+  }
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_servers.filtered", "servers.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_servers.filtered", "servers.0.name", "server-alpha"),
+					resource.TestCheckResourceAttr("data.coolify_servers.filtered", "servers.0.ip", "10.0.0.1"),
+				),
+			},
 		},
 	})
 }

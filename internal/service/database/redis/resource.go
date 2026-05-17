@@ -10,6 +10,8 @@ import (
 	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -34,7 +36,7 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Redis database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
-		"redis_password": schema.StringAttribute{MarkdownDescription: "The Redis authentication password. Stored as an encrypted environment variable in Coolify.", Optional: true, Computed: true, Sensitive: true},
+		"redis_password": schema.StringAttribute{MarkdownDescription: "The Redis authentication password. Stored as an encrypted environment variable in Coolify.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"redis_conf":     schema.StringAttribute{MarkdownDescription: "Custom Redis configuration (base64-encoded `redis.conf` content).", Optional: true},
 	})}
 }

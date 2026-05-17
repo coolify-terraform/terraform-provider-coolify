@@ -37,6 +37,33 @@ data "coolify_cloud_tokens" "all" {
 					resource.TestCheckResourceAttr("data.coolify_cloud_tokens.all", "cloud_tokens.#", "2"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_cloud_token" "first" {
+  name           = "first-token"
+  cloud_provider = "aws"
+  token          = "secret-1"
+}
+
+resource "coolify_cloud_token" "second" {
+  name           = "second-token"
+  cloud_provider = "hetzner"
+  token          = "secret-2"
+}
+
+data "coolify_cloud_tokens" "filtered" {
+  depends_on = [coolify_cloud_token.first, coolify_cloud_token.second]
+  filter {
+    name   = "cloud_provider"
+    values = ["hetzner"]
+  }
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_cloud_tokens.filtered", "cloud_tokens.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_cloud_tokens.filtered", "cloud_tokens.0.name", "second-token"),
+				),
+			},
 		},
 	})
 }

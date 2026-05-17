@@ -35,6 +35,31 @@ data "coolify_projects" "all" {
 					resource.TestCheckResourceAttr("data.coolify_projects.all", "projects.#", "2"),
 				),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_project" "first" {
+  name        = "first-project"
+  description = "first"
+}
+
+resource "coolify_project" "second" {
+  name        = "second-project"
+  description = "second"
+}
+
+data "coolify_projects" "filtered" {
+  depends_on = [coolify_project.first, coolify_project.second]
+  filter {
+    name   = "name"
+    values = ["first-project"]
+  }
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_projects.filtered", "projects.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_projects.filtered", "projects.0.name", "first-project"),
+				),
+			},
 		},
 	})
 }

@@ -53,7 +53,7 @@ resource "coolify_docker_image_application" "nginx" {
 - `fqdn` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `git_commit_sha` (String) The specific Git commit SHA to deploy.
 - `health_check_command` (String) Custom health check command (used when type is `cmd`).
-- `health_check_enabled` (Boolean) Whether health checks are enabled.
+- `health_check_enabled` (Boolean) Whether health checks are enabled. Coolify defaults to `false` for new applications.
 - `health_check_host` (String) The host for health checks.
 - `health_check_interval` (Number) Health check interval in seconds.
 - `health_check_method` (String) The HTTP method for health checks.

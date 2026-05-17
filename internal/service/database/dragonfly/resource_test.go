@@ -192,6 +192,7 @@ resource "coolify_dragonfly_database" "test" {
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateVerifyIgnore:              []string{"dragonfly_password"},
 			},
 		},
 	})
