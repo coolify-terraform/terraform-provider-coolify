@@ -46,3 +46,22 @@ func TestPortMappings(t *testing.T) {
 		})
 	}
 }
+
+func TestPortMappings_NullAndUnknown(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		value types.String
+	}{
+		{"null", types.StringNull()},
+		{"unknown", types.StringUnknown()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := validator.StringRequest{ConfigValue: tc.value}
+			resp := &validator.StringResponse{}
+			validate.PortMappings().ValidateString(context.Background(), req, resp)
+			if resp.Diagnostics.HasError() {
+				t.Errorf("expected no error for %s value, got: %s", tc.name, resp.Diagnostics.Errors()[0].Detail())
+			}
+		})
+	}
+}

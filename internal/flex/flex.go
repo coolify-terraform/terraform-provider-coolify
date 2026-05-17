@@ -41,28 +41,12 @@ func StringValueOrDefault(s, def string) types.String {
 	return types.StringValue(s)
 }
 
-// StringPtrToFramework converts a Go string pointer to a Terraform String.
-func StringPtrToFramework(v *string) types.String {
-	if v == nil {
-		return types.StringNull()
-	}
-	return types.StringValue(*v)
-}
-
 // Int64PtrToFramework converts a *int64 to a framework types.Int64.
 func Int64PtrToFramework(v *int64) types.Int64 {
 	if v == nil {
 		return types.Int64Null()
 	}
 	return types.Int64Value(*v)
-}
-
-// BoolPtrToFramework converts a Go bool pointer to a Terraform Bool.
-func BoolPtrToFramework(v *bool) types.Bool {
-	if v == nil {
-		return types.BoolNull()
-	}
-	return types.BoolValue(*v)
 }
 
 // SetIfKnown sets dst to the string value if v is known and non-null.
@@ -191,20 +175,4 @@ func IntIfChanged(plan, state types.Int64) *int {
 	}
 	v := int(plan.ValueInt64())
 	return &v
-}
-
-// Int64PtrForUpdate returns a *int64 suitable for a JSON PATCH body.
-// If the plan has a value, returns a pointer to it. If the plan is null
-// but the prior state had a value, returns a pointer to 0 (explicit clear).
-// If both are null, returns nil (omit from body).
-func Int64PtrForUpdate(plan, state types.Int64) *int64 {
-	if !plan.IsNull() && !plan.IsUnknown() {
-		i := plan.ValueInt64()
-		return &i
-	}
-	if !state.IsNull() {
-		zero := int64(0)
-		return &zero
-	}
-	return nil
 }

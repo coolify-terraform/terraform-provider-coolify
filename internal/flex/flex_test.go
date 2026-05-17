@@ -113,45 +113,6 @@ func TestStringToFramework(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// StringValueToFramework
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// StringPtrToFramework
-// ---------------------------------------------------------------------------
-
-func TestStringPtrToFramework(t *testing.T) {
-	t.Parallel()
-	s := "hello"
-	tests := []struct {
-		name     string
-		input    *string
-		wantNull bool
-		want     string
-	}{
-		{"nil becomes null", nil, true, ""},
-		{"non-nil becomes value", &s, false, "hello"},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := flex.StringPtrToFramework(tc.input)
-			if tc.wantNull {
-				if !got.IsNull() {
-					t.Fatalf("expected null, got %q", got.ValueString())
-				}
-				return
-			}
-			if got.IsNull() {
-				t.Fatal("expected non-null, got null")
-			}
-			if got.ValueString() != tc.want {
-				t.Fatalf("expected %q, got %q", tc.want, got.ValueString())
-			}
-		})
-	}
-}
-
-// ---------------------------------------------------------------------------
 // Int64PtrToFramework
 // ---------------------------------------------------------------------------
 
@@ -181,41 +142,6 @@ func TestInt64PtrToFramework(t *testing.T) {
 			}
 			if got.ValueInt64() != tc.want {
 				t.Fatalf("expected %d, got %d", tc.want, got.ValueInt64())
-			}
-		})
-	}
-}
-
-// ---------------------------------------------------------------------------
-// BoolPtrToFramework
-// ---------------------------------------------------------------------------
-
-func TestBoolPtrToFramework(t *testing.T) {
-	t.Parallel()
-	b := true
-	tests := []struct {
-		name     string
-		input    *bool
-		wantNull bool
-		want     bool
-	}{
-		{"nil becomes null", nil, true, false},
-		{"non-nil becomes value", &b, false, true},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := flex.BoolPtrToFramework(tc.input)
-			if tc.wantNull {
-				if !got.IsNull() {
-					t.Fatalf("expected null, got %v", got.ValueBool())
-				}
-				return
-			}
-			if got.IsNull() {
-				t.Fatal("expected non-null, got null")
-			}
-			if got.ValueBool() != tc.want {
-				t.Fatalf("expected %v, got %v", tc.want, got.ValueBool())
 			}
 		})
 	}
@@ -469,45 +395,6 @@ func TestStringPtrForUpdate(t *testing.T) {
 
 	t.Run("plan unknown state null returns nil", func(t *testing.T) {
 		result := flex.StringPtrForUpdate(types.StringUnknown(), types.StringNull())
-		if result != nil {
-			t.Fatalf("expected nil, got %v", *result)
-		}
-	})
-}
-
-func TestInt64PtrForUpdate(t *testing.T) {
-	t.Parallel()
-
-	t.Run("plan has value", func(t *testing.T) {
-		result := flex.Int64PtrForUpdate(types.Int64Value(42), types.Int64Value(10))
-		if result == nil || *result != 42 {
-			t.Fatalf("expected 42, got %v", result)
-		}
-	})
-
-	t.Run("plan null state had value clears", func(t *testing.T) {
-		result := flex.Int64PtrForUpdate(types.Int64Null(), types.Int64Value(10))
-		if result == nil || *result != 0 {
-			t.Fatalf("expected 0 (clear), got %v", result)
-		}
-	})
-
-	t.Run("both null returns nil", func(t *testing.T) {
-		result := flex.Int64PtrForUpdate(types.Int64Null(), types.Int64Null())
-		if result != nil {
-			t.Fatalf("expected nil, got %v", *result)
-		}
-	})
-
-	t.Run("plan unknown state had value clears", func(t *testing.T) {
-		result := flex.Int64PtrForUpdate(types.Int64Unknown(), types.Int64Value(10))
-		if result == nil || *result != 0 {
-			t.Fatalf("expected 0 (clear), got %v", result)
-		}
-	})
-
-	t.Run("plan unknown state null returns nil", func(t *testing.T) {
-		result := flex.Int64PtrForUpdate(types.Int64Unknown(), types.Int64Null())
 		if result != nil {
 			t.Fatalf("expected nil, got %v", *result)
 		}

@@ -4211,3 +4211,102 @@ func TestRetryDelete_CancelledContext(t *testing.T) {
 	)
 	assert.ErrorIs(t, err, context.Canceled)
 }
+
+// --- List Cache ---
+
+func TestCachedList_HitAvoidsDuplicateRequest(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Project{
+			{UUID: "p1", Name: "Alpha"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+
+	// First call hits the server.
+	var result1 []Project
+	require.NoError(t, c.doCachedList(context.Background(), "/api/v1/projects", &result1))
+	require.Len(t, result1, 1)
+	assert.Equal(t, "Alpha", result1[0].Name)
+
+	// Second call returns cached data without another HTTP call.
+	var result2 []Project
+	require.NoError(t, c.doCachedList(context.Background(), "/api/v1/projects", &result2))
+	require.Len(t, result2, 1)
+	assert.Equal(t, "Alpha", result2[0].Name)
+
+	assert.Equal(t, int32(1), calls.Load(), "expected exactly 1 HTTP call, second should be cached")
+}
+
+func TestCachedList_InvalidationForcesRefresh(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		if n == 1 {
+			json.NewEncoder(w).Encode([]Project{{UUID: "p1", Name: "Before"}})
+		} else {
+			json.NewEncoder(w).Encode([]Project{{UUID: "p1", Name: "After"}})
+		}
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	path := "/api/v1/projects"
+
+	var r1 []Project
+	require.NoError(t, c.doCachedList(context.Background(), path, &r1))
+	assert.Equal(t, "Before", r1[0].Name)
+
+	c.listCache.invalidate(path)
+
+	var r2 []Project
+	require.NoError(t, c.doCachedList(context.Background(), path, &r2))
+	assert.Equal(t, "After", r2[0].Name)
+	assert.Equal(t, int32(2), calls.Load())
+}
+
+func TestCachedList_404ReturnsNotFoundError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	var result []Project
+	err := c.doCachedList(context.Background(), "/api/v1/missing", &result)
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestCachedList_DifferentPathsIndependent(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Project{{UUID: "p1", Name: r.URL.Path}})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+
+	var r1, r2 []Project
+	require.NoError(t, c.doCachedList(context.Background(), "/path/a", &r1))
+	require.NoError(t, c.doCachedList(context.Background(), "/path/b", &r2))
+	assert.Equal(t, "/path/a", r1[0].Name)
+	assert.Equal(t, "/path/b", r2[0].Name)
+	assert.Equal(t, int32(2), calls.Load())
+
+	// Re-fetching /path/a should use cache.
+	var r3 []Project
+	require.NoError(t, c.doCachedList(context.Background(), "/path/a", &r3))
+	assert.Equal(t, int32(2), calls.Load())
+}
