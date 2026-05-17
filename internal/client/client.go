@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // maxResponseSize limits API response bodies to 10 MB to prevent OOM
@@ -113,7 +114,7 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 		}
 		return false, nil
 	}
-	rc.Logger = nil
+	rc.Logger = retryablehttp.LeveledLogger(&retryLogger{})
 	httpClient := rc.StandardClient()
 	httpClient.Timeout = 30 * time.Second
 
@@ -252,6 +253,14 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 			return fmt.Errorf("marshaling request body: %w", err)
 		}
 		reqBody = bytes.NewReader(data)
+		tflog.Trace(ctx, "API request", map[string]interface{}{
+			"method": method, "path": path,
+			"body": redactJSON(data),
+		})
+	} else {
+		tflog.Trace(ctx, "API request", map[string]interface{}{
+			"method": method, "path": path,
+		})
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, reqBody)
@@ -276,6 +285,12 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		return fmt.Errorf("reading response: %w", err)
 	}
 
+	tflog.Trace(ctx, "API response", map[string]interface{}{
+		"method": method, "path": path,
+		"status":       resp.StatusCode,
+		"body_excerpt": truncateString(string(respBody), 500),
+	})
+
 	// Check 404 first, regardless of expectedStatus.
 	if resp.StatusCode == http.StatusNotFound {
 		return &NotFoundError{Message: fmt.Sprintf("resource not found: %s", extractAPIMessage(respBody))}
@@ -294,6 +309,46 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	}
 
 	return nil
+}
+
+// sensitiveKeys are JSON field names whose values are redacted in logs.
+var sensitiveKeys = map[string]bool{
+	"password": true, "private_key": true, "token": true,
+	"secret": true, "client_secret": true, "webhook_secret": true,
+	"redis_password": true, "postgres_password": true, "mysql_password": true,
+	"mysql_root_password": true, "mariadb_password": true,
+	"mariadb_root_password": true, "mongo_initdb_root_password": true,
+	"clickhouse_admin_password": true, "dragonfly_password": true,
+	"keydb_password": true, "http_basic_auth_password": true,
+}
+
+// redactJSON replaces sensitive field values with [REDACTED] in a JSON byte
+// slice for safe logging. Returns the original string if unmarshaling fails.
+func redactJSON(data []byte) string {
+	var obj map[string]interface{}
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return truncateString(string(data), 500)
+	}
+	for k := range obj {
+		lower := strings.ToLower(k)
+		if sensitiveKeys[lower] || strings.Contains(lower, "password") ||
+			strings.Contains(lower, "secret") || strings.Contains(lower, "private_key") {
+			obj[k] = "[REDACTED]"
+		}
+	}
+	out, err := json.Marshal(obj)
+	if err != nil {
+		return truncateString(string(data), 500)
+	}
+	return truncateString(string(out), 500)
+}
+
+// truncateString truncates s to maxLen characters, appending "..." if truncated.
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // validParentTypes is the set of allowed parent resource types for compound
@@ -364,6 +419,33 @@ func RetryDelete(ctx context.Context, attempts int, delay time.Duration, deleteF
 		return nil
 	}
 	return finalErr
+}
+
+// retryLogger adapts retryablehttp's LeveledLogger to tflog at TRACE level.
+// Since retryablehttp doesn't pass context, we log to the background context.
+type retryLogger struct{}
+
+func (l *retryLogger) Error(msg string, keysAndValues ...interface{}) {
+	tflog.Trace(context.Background(), "[retry] "+msg, toMap(keysAndValues))
+}
+func (l *retryLogger) Warn(msg string, keysAndValues ...interface{}) {
+	tflog.Trace(context.Background(), "[retry] "+msg, toMap(keysAndValues))
+}
+func (l *retryLogger) Info(msg string, keysAndValues ...interface{}) {
+	tflog.Trace(context.Background(), "[retry] "+msg, toMap(keysAndValues))
+}
+func (l *retryLogger) Debug(msg string, keysAndValues ...interface{}) {
+	tflog.Trace(context.Background(), "[retry] "+msg, toMap(keysAndValues))
+}
+
+func toMap(keysAndValues []interface{}) map[string]interface{} {
+	m := make(map[string]interface{}, len(keysAndValues)/2)
+	for i := 0; i+1 < len(keysAndValues); i += 2 {
+		if k, ok := keysAndValues[i].(string); ok {
+			m[k] = keysAndValues[i+1]
+		}
+	}
+	return m
 }
 
 // PollUntilDeleted polls a get function every 5s for up to 2 minutes,
