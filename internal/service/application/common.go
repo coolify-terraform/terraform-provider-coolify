@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
@@ -1226,8 +1227,11 @@ func readApplication(
 	flatten(app)
 }
 
-// deleteApplication deletes an application by UUID. A 404 is treated as
-// already-deleted and does not produce an error.
+// deleteApplication deletes an application by UUID and polls until the
+// resource is fully removed. Coolify processes application deletions
+// asynchronously via DeleteResourceJob; without polling, downstream
+// resources (e.g. project) fail to delete because the app still exists.
+// A 404 is treated as already-deleted and does not produce an error.
 func deleteApplication(
 	ctx context.Context,
 	c *client.Client,
@@ -1241,6 +1245,18 @@ func deleteApplication(
 			return
 		}
 		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", uuid, err))
+		return
+	}
+	// Poll until the application is fully removed (up to 60s).
+	for range 12 {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(5 * time.Second):
+		}
+		if _, err := c.GetApplication(ctx, uuid); client.IsNotFound(err) {
+			return
+		}
 	}
 }
 
