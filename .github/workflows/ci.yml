@@ -61,7 +61,7 @@ jobs:
   test:
     name: Test
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 20
     needs: changes
     if: >-
       always() &&

@@ -32,6 +32,7 @@ type gitHubAppListDataSourceModel struct {
 // gitHubAppItemModel maps a single GitHub App in the list.
 type gitHubAppItemModel struct {
 	ID               types.Int64  `tfsdk:"id"`
+	UUID             types.String `tfsdk:"uuid"`
 	Name             types.String `tfsdk:"name"`
 	OrganizationName types.String `tfsdk:"organization_name"`
 	AppID            types.Int64  `tfsdk:"app_id"`
@@ -60,6 +61,10 @@ func (d *gitHubAppListDataSource) Schema(_ context.Context, _ datasource.SchemaR
 					Attributes: map[string]schema.Attribute{
 						"id": schema.Int64Attribute{
 							MarkdownDescription: "The numeric identifier of the GitHub App.",
+							Computed:            true,
+						},
+						"uuid": schema.StringAttribute{
+							MarkdownDescription: "The unique identifier of the GitHub App.",
 							Computed:            true,
 						},
 						"name": schema.StringAttribute{
@@ -131,6 +136,8 @@ func (d *gitHubAppListDataSource) Read(ctx context.Context, req datasource.ReadR
 		switch field {
 		case "id":
 			return filter.Int64ToString(a.ID), true
+		case "uuid":
+			return a.UUID, true
 		case "name":
 			return a.Name, true
 		case "organization_name":
@@ -151,6 +158,7 @@ func (d *gitHubAppListDataSource) Read(ctx context.Context, req datasource.ReadR
 	for _, a := range apps {
 		item := gitHubAppItemModel{
 			ID:               types.Int64Value(a.ID),
+			UUID:             flex.StringToFramework(a.UUID),
 			Name:             types.StringValue(a.Name),
 			OrganizationName: flex.StringToFramework(a.OrganizationName),
 			AppID:            types.Int64Value(a.AppID),
