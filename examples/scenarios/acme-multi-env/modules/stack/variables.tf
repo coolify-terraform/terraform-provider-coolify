@@ -3,6 +3,12 @@ variable "project_name" {
   type        = string
 }
 
+variable "project_description" {
+  description = "Project description"
+  type        = string
+  default     = "Managed by Terraform"
+}
+
 variable "server_uuid" {
   description = "UUID of the Coolify server to deploy to"
   type        = string

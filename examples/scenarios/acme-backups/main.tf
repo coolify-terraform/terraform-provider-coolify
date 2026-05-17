@@ -24,7 +24,7 @@ provider "coolify" {
 
 resource "coolify_project" "backups" {
   name        = "acme-backups"
-  description = "Database backup lifecycle demo"
+  description = var.project_description
 }
 
 # --- Database ---

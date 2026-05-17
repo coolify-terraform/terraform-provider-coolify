@@ -10,7 +10,7 @@ terraform {
 
 resource "coolify_project" "this" {
   name        = var.project_name
-  description = "Managed by Terraform"
+  description = var.project_description
 }
 
 resource "coolify_postgresql_database" "app" {

@@ -21,7 +21,7 @@ provider "coolify" {
 
 resource "coolify_project" "acme" {
   name        = "acme-website"
-  description = "ACME Corp marketing website and content database"
+  description = var.project_description
 }
 
 # --- Database ---

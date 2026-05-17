@@ -20,7 +20,7 @@ provider "coolify" {
 
 resource "coolify_project" "eval" {
   name        = "acme-db-eval"
-  description = "Database engine evaluation"
+  description = var.project_description
 }
 
 # --- All 8 Database Engines ---

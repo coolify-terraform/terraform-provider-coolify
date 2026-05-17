@@ -13,3 +13,9 @@ variable "server_uuid" {
   description = "UUID of the target Coolify server"
   type        = string
 }
+
+variable "project_description" {
+  description = "Project description (used by update scenario test)"
+  type        = string
+  default     = "Database engine evaluation"
+}

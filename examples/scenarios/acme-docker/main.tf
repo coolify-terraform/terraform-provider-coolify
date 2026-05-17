@@ -20,7 +20,7 @@ provider "coolify" {
 
 resource "coolify_project" "docker" {
   name        = "acme-docker"
-  description = "ACME Corp containerized services"
+  description = var.project_description
 }
 
 # --- Docker Image Applications ---

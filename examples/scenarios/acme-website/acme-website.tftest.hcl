@@ -93,6 +93,20 @@ run "verify_data_sources" {
   }
 }
 
+# Update: change description and verify the update is applied.
+run "update_project_description" {
+  command = apply
+
+  variables {
+    project_description = "Updated by scenario test"
+  }
+
+  assert {
+    condition     = coolify_project.acme.description == "Updated by scenario test"
+    error_message = "Project description not updated: got ${coolify_project.acme.description}"
+  }
+}
+
 # Idempotency: re-plan should produce no changes.
 # Catches normalization bugs where flatten returns different values than config.
 # If the plan shows changes, terraform test logs them but doesn't fail on its own.

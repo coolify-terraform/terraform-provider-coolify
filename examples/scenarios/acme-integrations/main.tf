@@ -20,7 +20,7 @@ provider "coolify" {
 
 resource "coolify_project" "integrations" {
   name        = "acme-integrations"
-  description = "ACME Corp external service integrations"
+  description = var.project_description
 }
 
 # --- Managed Service (from Coolify service catalog) ---

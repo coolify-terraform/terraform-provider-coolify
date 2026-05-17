@@ -14,6 +14,12 @@ variable "server_uuid" {
   type        = string
 }
 
+variable "project_description" {
+  description = "Project description (used by update scenario test)"
+  type        = string
+  default     = "ACME Corp platform infrastructure"
+}
+
 variable "deploy_key" {
   description = "SSH private key for deployments (PEM-encoded)"
   type        = string

@@ -40,7 +40,7 @@ resource "coolify_private_key" "deploy" {
 
 resource "coolify_project" "platform" {
   name        = "acme-platform"
-  description = "ACME Corp platform infrastructure"
+  description = var.project_description
 }
 
 resource "coolify_environment" "staging" {

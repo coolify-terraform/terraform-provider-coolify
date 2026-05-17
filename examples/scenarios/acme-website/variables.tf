@@ -16,6 +16,14 @@ variable "server_uuid" {
   type        = string
 }
 
+# --- Update test ---
+
+variable "project_description" {
+  description = "Project description (used by update scenario test)"
+  type        = string
+  default     = "ACME Corp marketing website and content database"
+}
+
 # --- Backups ---
 
 variable "enable_backups" {

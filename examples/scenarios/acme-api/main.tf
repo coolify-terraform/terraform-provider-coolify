@@ -25,7 +25,7 @@ provider "coolify" {
 
 resource "coolify_project" "acme" {
   name        = "acme-orders"
-  description = "ACME Corp order processing microservices"
+  description = var.project_description
 }
 
 # --- Databases ---

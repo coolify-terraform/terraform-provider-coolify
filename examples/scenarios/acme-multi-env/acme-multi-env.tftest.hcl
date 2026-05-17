@@ -45,6 +45,24 @@ run "create_both_environments" {
   }
 }
 
+# Update: change description and verify the update is applied.
+run "update_project_description" {
+  command = apply
+
+  variables {
+    project_description = "Updated by scenario test"
+  }
+
+  assert {
+    condition     = module.dev.project_description == "Updated by scenario test"
+    error_message = "Dev project description not updated: got ${module.dev.project_description}"
+  }
+  assert {
+    condition     = module.staging.project_description == "Updated by scenario test"
+    error_message = "Staging project description not updated: got ${module.staging.project_description}"
+  }
+}
+
 # Idempotency: re-plan should produce no changes.
 run "idempotency" {
   command = plan

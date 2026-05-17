@@ -3,6 +3,11 @@ output "project_uuid" {
   value       = coolify_project.this.uuid
 }
 
+output "project_description" {
+  description = "Description of the created Coolify project"
+  value       = coolify_project.this.description
+}
+
 output "database_uuid" {
   description = "UUID of the PostgreSQL database"
   value       = coolify_postgresql_database.app.uuid
