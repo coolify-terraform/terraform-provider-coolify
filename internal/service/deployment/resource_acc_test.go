@@ -22,6 +22,7 @@ func TestAccDeploymentResource_CreateImport(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDeploymentConfig(name, serverUUID),
@@ -65,6 +66,7 @@ func TestAccDeploymentDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDeploymentConfig(name, serverUUID) + `
@@ -93,6 +95,7 @@ func TestAccDeploymentSingularDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDeploymentConfig(name, serverUUID) + `

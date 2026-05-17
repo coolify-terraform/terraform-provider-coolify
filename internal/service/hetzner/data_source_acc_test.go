@@ -15,10 +15,10 @@ func skipIfNoHetznerToken(t *testing.T) {
 	}
 }
 
-func testAccHetznerCloudTokenConfig() string {
+func testAccHetznerCloudTokenConfig(name string) string {
 	return `
 resource "coolify_cloud_token" "hetzner_test" {
-  name           = "acc-test-hetzner"
+  name           = "` + name + `"
   cloud_provider = "hetzner"
   token          = "` + os.Getenv("COOLIFY_HETZNER_TOKEN") + `"
 }
@@ -30,13 +30,14 @@ func TestAccHetznerImagesDataSource(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	skipIfNoHetznerToken(t)
+	name := acctest.RandomWithPrefix("tf-acc-hetzner")
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig() + `
+				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig(name) + `
 data "coolify_hetzner_images" "test" {
   cloud_provider_token_uuid = coolify_cloud_token.hetzner_test.uuid
 }
@@ -54,13 +55,14 @@ func TestAccHetznerLocationsDataSource(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	skipIfNoHetznerToken(t)
+	name := acctest.RandomWithPrefix("tf-acc-hetzner")
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig() + `
+				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig(name) + `
 data "coolify_hetzner_locations" "test" {
   cloud_provider_token_uuid = coolify_cloud_token.hetzner_test.uuid
 }
@@ -78,13 +80,14 @@ func TestAccHetznerServerTypesDataSource(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	skipIfNoHetznerToken(t)
+	name := acctest.RandomWithPrefix("tf-acc-hetzner")
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig() + `
+				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig(name) + `
 data "coolify_hetzner_server_types" "test" {
   cloud_provider_token_uuid = coolify_cloud_token.hetzner_test.uuid
 }
@@ -102,13 +105,14 @@ func TestAccHetznerSSHKeysDataSource(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	skipIfNoHetznerToken(t)
+	name := acctest.RandomWithPrefix("tf-acc-hetzner")
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig() + `
+				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig(name) + `
 data "coolify_hetzner_ssh_keys" "test" {
   cloud_provider_token_uuid = coolify_cloud_token.hetzner_test.uuid
 }
