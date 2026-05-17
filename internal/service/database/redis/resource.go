@@ -24,7 +24,8 @@ type res struct{ client *client.Client }
 type model struct {
 	pg.CommonModel
 	// Type-specific
-	RedisConf types.String `tfsdk:"redis_conf"`
+	RedisPassword types.String `tfsdk:"redis_password"`
+	RedisConf     types.String `tfsdk:"redis_conf"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -33,7 +34,8 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Redis database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
-		"redis_conf": schema.StringAttribute{MarkdownDescription: "Custom Redis configuration (base64-encoded `redis.conf` content).", Optional: true},
+		"redis_password": schema.StringAttribute{MarkdownDescription: "The Redis authentication password. Stored as an encrypted environment variable in Coolify.", Optional: true, Computed: true, Sensitive: true},
+		"redis_conf":     schema.StringAttribute{MarkdownDescription: "Custom Redis configuration (base64-encoded `redis.conf` content).", Optional: true},
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -58,6 +60,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.Name, p.Name)
 	flex.SetIfKnown(&in.Description, p.Description)
 	flex.SetIfKnown(&in.Image, p.Image)
+	flex.SetIfKnown(&in.RedisPassword, p.RedisPassword)
 	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
 	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
 	c, err := r.client.CreateDatabase(ctx, "redis", in)
@@ -69,6 +72,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	p.UUID = types.StringValue(c.UUID)
 	pg.NormalizeCommonCreateState(&p.CommonModel)
+	pg.NormalizeUnknownString(&p.RedisPassword)
 	pg.NormalizeUnknownString(&p.RedisConf)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
@@ -129,12 +133,13 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_redis_database", "uuid": s.UUID.ValueString()})
 
 	u := client.UpdateDatabaseInput{
-		Name:        flex.StringIfChanged(p.Name, s.Name),
-		Description: flex.StringIfChanged(p.Description, s.Description),
-		Image:       flex.StringIfChanged(p.Image, s.Image),
-		IsPublic:    flex.BoolIfChanged(p.IsPublic, s.IsPublic),
-		PublicPort:  flex.Int64IfChanged(p.PublicPort, s.PublicPort),
-		RedisConf:   flex.StringIfChanged(p.RedisConf, s.RedisConf),
+		Name:          flex.StringIfChanged(p.Name, s.Name),
+		Description:   flex.StringIfChanged(p.Description, s.Description),
+		Image:         flex.StringIfChanged(p.Image, s.Image),
+		IsPublic:      flex.BoolIfChanged(p.IsPublic, s.IsPublic),
+		PublicPort:    flex.Int64IfChanged(p.PublicPort, s.PublicPort),
+		RedisPassword: flex.StringIfChanged(p.RedisPassword, s.RedisPassword),
+		RedisConf:     flex.StringIfChanged(p.RedisConf, s.RedisConf),
 	}
 	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
@@ -164,5 +169,8 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
 	pg.FlattenDatabaseExtended(db, m.ExtFields())
+	if db.RedisPassword != "" {
+		m.RedisPassword = types.StringValue(db.RedisPassword)
+	}
 	flex.SetStringIfConfigured(&m.RedisConf, db.RedisConf)
 }

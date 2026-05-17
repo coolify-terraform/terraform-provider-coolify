@@ -13,11 +13,17 @@ Manages a Redis database resource on Coolify.
 ## Example Usage
 
 ```terraform
+variable "redis_password" {
+  type      = string
+  sensitive = true
+}
+
 resource "coolify_redis_database" "example" {
-  name         = "my-redis"
-  project_uuid = coolify_project.example.uuid
-  server_uuid  = coolify_server.example.uuid
-  image        = "redis:7"
+  name           = "my-redis"
+  project_uuid   = coolify_project.example.uuid
+  server_uuid    = coolify_server.example.uuid
+  image          = "redis:7"
+  redis_password = var.redis_password
 }
 ```
 
@@ -48,6 +54,7 @@ resource "coolify_redis_database" "example" {
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 - `public_port_timeout` (Number) Timeout in seconds for public port allocation.
 - `redis_conf` (String) Custom Redis configuration (base64-encoded `redis.conf` content).
+- `redis_password` (String, Sensitive) The Redis authentication password. Stored as an encrypted environment variable in Coolify.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only

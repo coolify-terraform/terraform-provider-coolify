@@ -16,19 +16,21 @@ import (
 )
 
 type mockRedisState struct {
-	mu          sync.Mutex
-	uuid        string
-	name        string
-	description string
-	image       string
-	deleted     bool
+	mu            sync.Mutex
+	uuid          string
+	name          string
+	description   string
+	image         string
+	redisPassword string
+	deleted       bool
 }
 
 func newMockRedisServer() (*httptest.Server, *mockRedisState) {
 	state := &mockRedisState{
-		uuid:  "aaaa0001-0001-4000-8000-000000000001",
-		name:  "redis-test-db",
-		image: "redis:7",
+		uuid:          "aaaa0001-0001-4000-8000-000000000001",
+		name:          "redis-test-db",
+		image:         "redis:7",
+		redisPassword: "default-redis-pass",
 	}
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +58,7 @@ func newMockRedisServer() (*httptest.Server, *mockRedisState) {
 				"image":                     state.image,
 				"is_public":                 false,
 				"public_port":               nil,
+				"redis_password":            state.redisPassword,
 				"limits_memory":             "0",
 				"limits_memory_swap":        "0",
 				"limits_memory_swappiness":  60,
@@ -73,6 +76,9 @@ func newMockRedisServer() (*httptest.Server, *mockRedisState) {
 			}
 			if v, ok := body["description"].(string); ok {
 				state.description = v
+			}
+			if v, ok := body["redis_password"].(string); ok {
+				state.redisPassword = v
 			}
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
@@ -185,6 +191,7 @@ func TestRedisDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 				"environment_name":          "production",
 				"image":                     "redis:7",
 				"is_public":                 false,
+				"redis_password":            "default-redis-pass",
 				"limits_memory":             "0",
 				"limits_memory_swap":        "0",
 				"limits_memory_swappiness":  60,
@@ -251,6 +258,7 @@ func TestRedisDatabaseResource_Disappears(t *testing.T) {
 				"environment_name":          "production",
 				"image":                     "redis:7",
 				"is_public":                 false,
+				"redis_password":            "default-redis-pass",
 				"limits_memory":             "0",
 				"limits_memory_swap":        "0",
 				"limits_memory_swappiness":  60,
