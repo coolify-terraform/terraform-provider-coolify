@@ -222,36 +222,7 @@ func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	found := false
-	for _, s := range storages {
-		if s.UUID == state.UUID.ValueString() {
-			// Coolify prefixes storage names with an internal resource UUID
-			// (for example, "resource-uuid-my-storage"). Preserve the
-			// user's original name to avoid a perpetual diff.
-			apiName := s.Name
-			stateName := state.Name.ValueString()
-			if stateName != "" && apiName != stateName && strings.HasSuffix(apiName, "-"+stateName) {
-				apiName = stateName
-			}
-			state.Name = types.StringValue(apiName)
-			state.MountPath = types.StringValue(s.MountPath)
-			//nolint:gocritic // preserves null vs empty distinction for optional field
-			if s.HostPath != "" {
-				state.HostPath = types.StringValue(s.HostPath)
-			} else if state.HostPath.IsNull() {
-				// keep null if it was null before and API returns empty
-			} else {
-				state.HostPath = types.StringNull()
-			}
-			if s.ResourceUUID != "" {
-				state.ResourceUUID = types.StringValue(s.ResourceUUID)
-			}
-			found = true
-			break
-		}
-	}
-
-	if !found {
+	if !flattenStorageFromList(storages, &state) {
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -319,6 +290,37 @@ func (r *storageResource) Delete(ctx context.Context, req resource.DeleteRequest
 		resp.Diagnostics.AddError("Error deleting persistent storage", fmt.Sprintf("storage %s: %s", state.UUID.ValueString(), err))
 		return
 	}
+}
+
+// flattenStorageFromList finds the storage matching state.UUID in the list
+// and updates the state model. Returns false if not found.
+func flattenStorageFromList(storages []client.Storage, state *storageResourceModel) bool {
+	for _, s := range storages {
+		if s.UUID != state.UUID.ValueString() {
+			continue
+		}
+		// Coolify prefixes storage names with an internal resource UUID
+		// (for example, "resource-uuid-my-storage"). Preserve the
+		// user's original name to avoid a perpetual diff.
+		apiName := s.Name
+		stateName := state.Name.ValueString()
+		if stateName != "" && apiName != stateName && strings.HasSuffix(apiName, "-"+stateName) {
+			apiName = stateName
+		}
+		state.Name = types.StringValue(apiName)
+		state.MountPath = types.StringValue(s.MountPath)
+		//nolint:gocritic // preserves null vs empty distinction for optional field
+		if s.HostPath != "" {
+			state.HostPath = types.StringValue(s.HostPath)
+		} else if !state.HostPath.IsNull() {
+			state.HostPath = types.StringNull()
+		}
+		if s.ResourceUUID != "" {
+			state.ResourceUUID = types.StringValue(s.ResourceUUID)
+		}
+		return true
+	}
+	return false
 }
 
 func (r *storageResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
