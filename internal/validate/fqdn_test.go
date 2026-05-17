@@ -37,6 +37,7 @@ func TestFQDN_Invalid(t *testing.T) {
 		"https://",
 		"not-a-url",
 		"",
+		" ",
 	}
 	v := validate.FQDN()
 	for _, s := range invalid {

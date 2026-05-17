@@ -38,6 +38,7 @@ func (v portMappingsValidator) ValidateString(_ context.Context, req validator.S
 	}
 
 	for _, pair := range strings.Split(value, ",") {
+		pair = strings.TrimSpace(pair)
 		parts := strings.SplitN(pair, ":", 2)
 		if len(parts) != 2 {
 			resp.Diagnostics.AddAttributeError(req.Path, "Invalid Port Mapping",
@@ -45,6 +46,7 @@ func (v portMappingsValidator) ValidateString(_ context.Context, req validator.S
 			return
 		}
 		for _, p := range parts {
+			p = strings.TrimSpace(p)
 			port, err := strconv.Atoi(p)
 			if err != nil || port < 1 || port > 65535 {
 				resp.Diagnostics.AddAttributeError(req.Path, "Invalid Port Number",

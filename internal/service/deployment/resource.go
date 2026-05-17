@@ -205,9 +205,18 @@ func (r *deploymentResource) Read(ctx context.Context, req resource.ReadRequest,
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *deploymentResource) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// All mutable attributes use RequiresReplace, so Update is never called.
-	resp.Diagnostics.AddError("Update not supported", "Deployment resources are replaced, not updated.")
+func (r *deploymentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Only local-behavior attributes (wait_for_completion) can trigger an
+	// Update; triggers uses RequiresReplace. No API call is needed.
+	var plan, state deploymentResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// Preserve computed fields from current state.
+	plan.Status = state.Status
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *deploymentResource) Delete(_ context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {

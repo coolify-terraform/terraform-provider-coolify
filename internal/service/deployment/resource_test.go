@@ -652,6 +652,94 @@ resource "coolify_deployment" "test" {
 	})
 }
 
+func TestDeploymentResource_UpdateWaitForCompletion(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "aaaa0006-0006-4000-8000-000000000006"
+	appUUID := "cccc0006-0006-4000-8000-000000000006"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"deployment_uuid": deploymentUUID,
+			"message":         "Restart request queued.",
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "finished",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			// Create with wait_for_completion = false (default)
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+  triggers = {
+    version = "1"
+  }
+}
+`, srv.URL, appUUID),
+				Check: resource.TestCheckResourceAttr("coolify_deployment.test", "wait_for_completion", "false"),
+			},
+			// Update wait_for_completion without changing triggers (should not error)
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid    = %q
+  wait_for_completion = true
+  triggers = {
+    version = "1"
+  }
+}
+`, srv.URL, appUUID),
+				Check: resource.TestCheckResourceAttr("coolify_deployment.test", "wait_for_completion", "true"),
+			},
+			// Idempotency
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid    = %q
+  wait_for_completion = true
+  triggers = {
+    version = "1"
+  }
+}
+`, srv.URL, appUUID),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestDeploymentResource_InvalidUUID(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))

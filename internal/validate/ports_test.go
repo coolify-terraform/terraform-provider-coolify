@@ -28,6 +28,8 @@ func TestPortMappings(t *testing.T) {
 		{"missing colon", "8080", true},
 		{"non-numeric", "abc:5432", true},
 		{"empty pair", "8080:5432,,8443:5433", true},
+		{"whitespace after comma", "8080:5432, 8443:5433", false},
+		{"whitespace around colon", " 8080 : 5432 ", false},
 	}
 
 	for _, tt := range tests {
