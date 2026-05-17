@@ -202,8 +202,17 @@ func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
 	pg.FlattenDatabaseExtended(db, m.ExtFields())
 	m.MysqlUser = flex.StringToFramework(db.MysqlUser)
-	m.MysqlPassword = flex.StringToFramework(db.MysqlPassword)
+	// Preserve passwords from plan/state when the API hides sensitive fields.
+	if db.MysqlPassword != "" {
+		m.MysqlPassword = types.StringValue(db.MysqlPassword)
+	} else if m.MysqlPassword.IsUnknown() {
+		m.MysqlPassword = types.StringNull()
+	}
 	m.MysqlDatabase = flex.StringToFramework(db.MysqlDatabase)
-	m.MysqlRootPassword = flex.StringToFramework(db.MysqlRootPassword)
+	if db.MysqlRootPassword != "" {
+		m.MysqlRootPassword = types.StringValue(db.MysqlRootPassword)
+	} else if m.MysqlRootPassword.IsUnknown() {
+		m.MysqlRootPassword = types.StringNull()
+	}
 	flex.SetStringIfConfigured(&m.MysqlConf, db.MysqlConf)
 }

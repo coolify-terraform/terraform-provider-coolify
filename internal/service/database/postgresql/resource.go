@@ -313,7 +313,12 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	FlattenDatabaseCommon(db, m.CommonPtrs())
 	FlattenDatabaseExtended(db, m.ExtFields())
 	m.PostgresUser = flex.StringToFramework(db.PostgresUser)
-	m.PostgresPassword = flex.StringToFramework(db.PostgresPassword)
+	// Preserve password from plan/state when the API hides sensitive fields.
+	if db.PostgresPassword != "" {
+		m.PostgresPassword = types.StringValue(db.PostgresPassword)
+	} else if m.PostgresPassword.IsUnknown() {
+		m.PostgresPassword = types.StringNull()
+	}
 	m.PostgresDB = flex.StringToFramework(db.PostgresDB)
 	flex.SetStringIfConfigured(&m.PostgresConf, db.PostgresConf)
 	flex.SetStringIfConfigured(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)

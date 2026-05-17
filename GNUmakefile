@@ -115,4 +115,4 @@ vulncheck: ## Run govulncheck for known vulnerabilities
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-tfplugindocs goreleaser-check modverify ci help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-tfplugindocs goreleaser-check modverify ci scaffold help

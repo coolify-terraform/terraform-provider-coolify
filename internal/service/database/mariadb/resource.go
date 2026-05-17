@@ -187,8 +187,17 @@ func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
 	pg.FlattenDatabaseExtended(db, m.ExtFields())
 	m.MariadbUser = flex.StringToFramework(db.MariadbUser)
-	m.MariadbPassword = flex.StringToFramework(db.MariadbPassword)
+	// Preserve passwords from plan/state when the API hides sensitive fields.
+	if db.MariadbPassword != "" {
+		m.MariadbPassword = types.StringValue(db.MariadbPassword)
+	} else if m.MariadbPassword.IsUnknown() {
+		m.MariadbPassword = types.StringNull()
+	}
 	m.MariadbDatabase = flex.StringToFramework(db.MariadbDatabase)
-	m.MariadbRootPassword = flex.StringToFramework(db.MariadbRootPassword)
+	if db.MariadbRootPassword != "" {
+		m.MariadbRootPassword = types.StringValue(db.MariadbRootPassword)
+	} else if m.MariadbRootPassword.IsUnknown() {
+		m.MariadbRootPassword = types.StringNull()
+	}
 	flex.SetStringIfConfigured(&m.MariadbConf, db.MariadbConf)
 }

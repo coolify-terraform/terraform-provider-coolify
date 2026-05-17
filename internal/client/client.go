@@ -359,5 +359,9 @@ func RetryDelete(ctx context.Context, attempts int, delay time.Duration, deleteF
 		case <-time.After(delay):
 		}
 	}
-	return deleteFn()
+	finalErr := deleteFn()
+	if finalErr == nil || IsNotFound(finalErr) {
+		return nil
+	}
+	return finalErr
 }

@@ -182,7 +182,12 @@ func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
 	pg.FlattenDatabaseExtended(db, m.ExtFields())
 	m.MongoInitdbRootUsername = flex.StringToFramework(db.MongoInitdbRootUsername)
-	m.MongoInitdbRootPassword = flex.StringToFramework(db.MongoInitdbRootPassword)
+	// Preserve password from plan/state when the API hides sensitive fields.
+	if db.MongoInitdbRootPassword != "" {
+		m.MongoInitdbRootPassword = types.StringValue(db.MongoInitdbRootPassword)
+	} else if m.MongoInitdbRootPassword.IsUnknown() {
+		m.MongoInitdbRootPassword = types.StringNull()
+	}
 	m.MongoInitdbDatabase = flex.StringToFramework(db.MongoInitdbDatabase)
 	flex.SetStringIfConfigured(&m.MongoConf, db.MongoConf)
 }

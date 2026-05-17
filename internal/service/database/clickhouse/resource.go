@@ -180,6 +180,11 @@ func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
 	pg.FlattenDatabaseExtended(db, m.ExtFields())
 	m.ClickhouseAdminUser = flex.StringToFramework(db.ClickhouseAdminUser)
-	m.ClickhouseAdminPassword = flex.StringToFramework(db.ClickhouseAdminPassword)
+	// Preserve password from plan/state when the API hides sensitive fields.
+	if db.ClickhouseAdminPassword != "" {
+		m.ClickhouseAdminPassword = types.StringValue(db.ClickhouseAdminPassword)
+	} else if m.ClickhouseAdminPassword.IsUnknown() {
+		m.ClickhouseAdminPassword = types.StringNull()
+	}
 	m.ClickhouseDB = flex.StringToFramework(db.ClickhouseDB)
 }
