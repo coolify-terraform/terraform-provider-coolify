@@ -13,7 +13,7 @@ Read these skills when working in this repo:
 
 Terraform provider for [Coolify](https://coolify.io/), the open-source self-hosted PaaS.
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
-25 resources, 44 data sources, 580+ tests (unit + acceptance), 8 CI jobs.
+25 resources, 44 data sources, 590+ tests (unit + acceptance), 8 CI jobs.
 8 ACME Corp scenario examples with `terraform test` integration tests.
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
@@ -148,7 +148,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - `gofmt -s` for formatting (enforced by CI)
 - golangci-lint v2 with 20 linters: errcheck, errorlint, govet, ineffassign, staticcheck,
   unused, misspell, bodyclose, nilerr, unconvert, wastedassign, whitespace,
-  funlen (150 lines/80 statements), godox (no FIXME/HACK/XXX), dupl (200 tokens),
+  funlen (150 lines/80 statements), godox (no FIXME/HACK/XXX), dupl (250 tokens),
   gocognit (complexity 20), nestif (depth 5), forbidigo (no fmt.Print), gocritic, dupword
 - errcheck excluded from test files
 - No em dashes in human-facing text
@@ -156,9 +156,9 @@ mismatches, and zero validation rules when we compared it against the source.
 ## Testing
 
 - Framework: `hashicorp/terraform-plugin-testing` with `httptest` mock servers
-- 570+ tests (unit + acceptance)
+- 590+ tests (unit + acceptance)
 - Acceptance tests are skipped unless `TF_ACC=1` is set
-- Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, docs-check, api-coverage-check, vulncheck; testacc = acceptance tests against real Coolify)
+- Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, docs-check, api-coverage-check, counts-check, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
 - Before adding a test function, grep for its name to avoid duplicates
 
 ## CI

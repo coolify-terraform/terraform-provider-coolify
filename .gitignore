@@ -1,4 +1,5 @@
 dist/
+bin/
 terraform-provider-coolify
 *.exe
 .terraform/
