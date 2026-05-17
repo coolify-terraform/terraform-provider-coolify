@@ -57,6 +57,7 @@ type Database struct {
 	MariadbConf            string `json:"mariadb_conf,omitempty"`
 	MongoConf              string `json:"mongo_conf,omitempty"`
 	RedisConf              string `json:"redis_conf,omitempty"`
+	RedisPassword          string `json:"redis_password,omitempty"`
 	ClickhouseDB           string `json:"clickhouse_db,omitempty"`
 	KeydbConf              string `json:"keydb_conf,omitempty"`
 	KeydbPassword          string `json:"keydb_password,omitempty"`
@@ -114,6 +115,7 @@ type CreateRedisInput struct {
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
 	Image           string `json:"image,omitempty"`
+	RedisPassword   string `json:"redis_password,omitempty"`
 	IsPublic        *bool  `json:"is_public,omitempty"`
 	PublicPort      *int64 `json:"public_port,omitempty"`
 }
@@ -211,6 +213,7 @@ type UpdateDatabaseInput struct {
 	MariadbConf            *string `json:"mariadb_conf,omitempty"`
 	MongoConf              *string `json:"mongo_conf,omitempty"`
 	RedisConf              *string `json:"redis_conf,omitempty"`
+	RedisPassword          *string `json:"redis_password,omitempty"`
 	ClickhouseDB           *string `json:"clickhouse_db,omitempty"`
 	KeydbConf              *string `json:"keydb_conf,omitempty"`
 	KeydbPassword          *string `json:"keydb_password,omitempty"`
