@@ -149,6 +149,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		PublicPort:              flex.Int64IfChanged(p.PublicPort, s.PublicPort),
 		ClickhouseAdminUser:     flex.StringIfChanged(p.ClickhouseAdminUser, s.ClickhouseAdminUser),
 		ClickhouseAdminPassword: flex.StringIfChanged(p.ClickhouseAdminPassword, s.ClickhouseAdminPassword),
+		ClickhouseDB:            flex.StringIfChanged(p.ClickhouseDB, s.ClickhouseDB),
 	}
 	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
