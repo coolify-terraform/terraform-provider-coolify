@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -24,6 +25,55 @@ type Client struct {
 	apiToken   string // unexported: prevents %+v leaking the token
 	HTTPClient *http.Client
 	UserAgent  string
+	listCache  listCache
+}
+
+// listCache is a short-lived, thread-safe cache for GET list responses.
+// It prevents redundant API calls when multiple resources with the same
+// parent are read during a single plan/apply cycle.
+type listCache struct {
+	mu      sync.Mutex
+	entries map[string]listCacheEntry
+}
+
+type listCacheEntry struct {
+	data    []byte
+	expires time.Time
+}
+
+const listCacheTTL = 5 * time.Second
+
+// getCached returns cached response bytes for the given path, or nil if
+// the cache is empty or expired.
+func (lc *listCache) get(path string) []byte {
+	lc.mu.Lock()
+	defer lc.mu.Unlock()
+	if lc.entries == nil {
+		return nil
+	}
+	e, ok := lc.entries[path]
+	if !ok || time.Now().After(e.expires) {
+		delete(lc.entries, path)
+		return nil
+	}
+	return e.data
+}
+
+// set stores response bytes in the cache with a TTL.
+func (lc *listCache) set(path string, data []byte) {
+	lc.mu.Lock()
+	defer lc.mu.Unlock()
+	if lc.entries == nil {
+		lc.entries = make(map[string]listCacheEntry)
+	}
+	lc.entries[path] = listCacheEntry{data: data, expires: time.Now().Add(listCacheTTL)}
+}
+
+// invalidate removes a cache entry (called after mutating operations).
+func (lc *listCache) invalidate(path string) {
+	lc.mu.Lock()
+	defer lc.mu.Unlock()
+	delete(lc.entries, path)
 }
 
 // RetryConfig holds user-configurable retry settings.
@@ -148,6 +198,48 @@ func IsNotFound(err error) bool {
 // do executes an API request, accepting any 2xx status.
 func (c *Client) do(ctx context.Context, method, path string, body interface{}, result interface{}) error {
 	return c.doWithStatus(ctx, method, path, body, result, 0)
+}
+
+// doCachedList performs a GET request with short-lived caching. Repeated
+// calls with the same path within the TTL window return cached data
+// without hitting the API. Use for List endpoints where multiple
+// Terraform resources share the same parent.
+func (c *Client) doCachedList(ctx context.Context, path string, result interface{}) error {
+	if cached := c.listCache.get(path); cached != nil {
+		return json.Unmarshal(cached, result)
+	}
+	// Make the real API call and capture raw bytes.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
+	if err != nil {
+		return fmt.Errorf("reading response body: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &NotFoundError{Message: fmt.Sprintf("resource not found: %s", extractAPIMessage(respBody))}
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, extractAPIMessage(respBody))
+	}
+
+	c.listCache.set(path, respBody)
+	if result != nil {
+		return json.Unmarshal(respBody, result)
+	}
+	return nil
 }
 
 // doWithStatus executes an API request. When expectedStatus is non-zero only

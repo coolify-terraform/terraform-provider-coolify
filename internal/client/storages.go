@@ -54,7 +54,8 @@ func (c *Client) ListStorages(ctx context.Context, parentType, parentUUID string
 		return nil, err
 	}
 	var v storageListResponse
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID)), nil, &v); err != nil {
+	path := fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID))
+	if err := c.doCachedList(ctx, path, &v); err != nil {
 		return nil, fmt.Errorf("listing storages for %s %s: %w", parentType, parentUUID, err)
 	}
 	return append(v.PersistentStorages, v.FileStorages...), nil
@@ -67,9 +68,11 @@ func (c *Client) CreateStorage(ctx context.Context, parentType, parentUUID strin
 		return nil, err
 	}
 	var r CreateStorageResponse
-	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID)), input, &r, http.StatusCreated); err != nil {
+	listPath := fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID))
+	if err := c.doWithStatus(ctx, http.MethodPost, listPath, input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating storage for %s %s: %w", parentType, parentUUID, err)
 	}
+	c.listCache.invalidate(listPath)
 	return &r, nil
 }
 
@@ -79,9 +82,11 @@ func (c *Client) UpdateStorage(ctx context.Context, parentType, parentUUID strin
 	if err := validateParentType(parentType); err != nil {
 		return err
 	}
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID)), input, nil); err != nil {
+	listPath := fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID))
+	if err := c.do(ctx, http.MethodPatch, listPath, input, nil); err != nil {
 		return fmt.Errorf("updating storage for %s %s: %w", parentType, parentUUID, err)
 	}
+	c.listCache.invalidate(listPath)
 	return nil
 }
 
@@ -93,5 +98,6 @@ func (c *Client) DeleteStorage(ctx context.Context, parentType, parentUUID, stor
 	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/%s/%s/storages/%s", parentType, url.PathEscape(parentUUID), url.PathEscape(storageUUID)), nil, nil); err != nil {
 		return fmt.Errorf("deleting storage %s for %s %s: %w", storageUUID, parentType, parentUUID, err)
 	}
+	c.listCache.invalidate(fmt.Sprintf("/api/v1/%s/%s/storages", parentType, url.PathEscape(parentUUID)))
 	return nil
 }
