@@ -289,6 +289,157 @@ func TestContractCoverage_Sensitive(t *testing.T) {
 		len(sensitiveFields), strings.Join(sensitiveFields, "\n  "))
 }
 
+// contractCoverageTest is a reusable helper for model contract tests.
+func contractCoverageTest(t *testing.T, modelName string, goType reflect.Type, ignore map[string]bool) {
+	t.Helper()
+	c := loadContract(t)
+	model, ok := c.Models[modelName]
+	if !ok {
+		t.Fatalf("model %s not found in contract", modelName)
+	}
+	goTags := jsonTagsFromStruct(goType)
+	if ignore == nil {
+		ignore = map[string]bool{}
+	}
+	var missing []string
+	for fieldName, field := range model.Fields {
+		if !field.Fillable || ignore[fieldName] {
+			continue
+		}
+		if _, ok := goTags[fieldName]; !ok {
+			missing = append(missing, fieldName)
+		}
+	}
+	sort.Strings(missing)
+	if len(missing) > 0 {
+		t.Errorf("client struct is missing %d contract fields from %s:\n  %s",
+			len(missing), modelName, strings.Join(missing, "\n  "))
+	}
+}
+
+func TestContractCoverage_Server(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "Server", reflect.TypeOf(client.Server{}), map[string]bool{
+		"team_id":                   true,
+		"private_key_id":            true,
+		"proxy":                     true, // complex JSON object
+		"sentinel_token":            true, // hidden by middleware
+		"sentinel_custom_url":       true,
+		"sentinel_metrics_token":    true,
+		"sentinel_metrics_history":  true,
+		"sentinel_metrics_interval": true,
+		"started_at":                true,
+		"last_online_at":            true,
+		"last_restart_at":           true,
+		"last_restart_type":         true,
+		"restart_count":             true,
+		"unreachable_notification":  true,
+		"unreachable_count":         true,
+		"log_drain_notification":    true,
+		"swarm_cluster":             true,
+		"cloud_provider_token_id":   true, // internal FK
+		"detected_traefik_version":  true, // ephemeral status
+		"hetzner_server_id":         true, // Hetzner-specific
+		"hetzner_server_status":     true, // Hetzner-specific
+		"ip_previous":               true, // internal tracking
+		"is_validating":             true, // ephemeral status
+		"server_metadata":           true, // internal metadata
+		"traefik_outdated_info":     true, // ephemeral status
+	})
+}
+
+func TestContractCoverage_Service(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "Service", reflect.TypeOf(client.Service{}), map[string]bool{
+		"team_id":                             true,
+		"environment_id":                      true,
+		"destination_id":                      true,
+		"destination_type":                    true,
+		"server_id":                           true,
+		"config_hash":                         true,
+		"docker_compose_raw":                  true, // sensitive, hidden
+		"docker_compose":                      true, // sensitive, hidden
+		"connect_to_docker_network":           true,
+		"is_container_label_escape_enabled":   true,
+		"is_container_label_readonly_enabled": true,
+		"is_readonly":                         true,
+		"compose_parsing_version":             true, // internal config
+		"service_type":                        true, // mapped to "type" in client struct
+	})
+}
+
+func TestContractCoverage_PrivateKey(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "PrivateKey", reflect.TypeOf(client.PrivateKey{}), map[string]bool{
+		"team_id": true,
+	})
+}
+
+func TestContractCoverage_EnvironmentVariable(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "EnvironmentVariable", reflect.TypeOf(client.EnvironmentVariable{}), map[string]bool{
+		"resourceable_id":   true,
+		"resourceable_type": true,
+		"team_id":           true,
+		"real_value":        true, // computed accessor
+		"version":           true,
+		"comment":           true, // not exposed in provider
+		"is_literal":        true, // internal flag
+		"is_multiline":      true, // internal flag
+		"is_required":       true, // internal flag
+		"is_runtime":        true, // internal flag
+		"is_shared":         true, // internal flag
+		"is_shown_once":     true, // internal flag
+		"order":             true, // UI ordering
+	})
+}
+
+func TestContractCoverage_ScheduledTask(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "ScheduledTask", reflect.TypeOf(client.ScheduledTask{}), map[string]bool{
+		"application_id": true,
+		"service_id":     true,
+		"team_id":        true,
+		"container":      true, // not user-facing
+		"timeout":        true, // not exposed yet
+	})
+}
+
+func TestContractCoverage_Project(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "Project", reflect.TypeOf(client.Project{}), map[string]bool{
+		"team_id": true,
+	})
+}
+
+func TestContractCoverage_GithubApp(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "GithubApp", reflect.TypeOf(client.GitHubApp{}), map[string]bool{
+		"team_id":        true,
+		"private_key_id": true,
+		"client_secret":  true, // sensitive, hidden
+		"is_system_wide": true,
+		"administration": true, // GitHub permission scope
+		"contents":       true, // GitHub permission scope
+		"custom_port":    true, // internal config
+		"custom_user":    true, // internal config
+		"is_public":      true, // internal flag
+		"metadata":       true, // GitHub permission scope
+		"pull_requests":  true, // GitHub permission scope
+	})
+}
+
+func TestContractCoverage_ScheduledDatabaseBackup(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "ScheduledDatabaseBackup", reflect.TypeOf(client.DatabaseBackup{}), map[string]bool{
+		"team_id":              true,
+		"database_id":          true,
+		"description":          true, // not exposed yet
+		"disable_local_backup": true, // not exposed yet
+		"s3_storage_id":        true, // numeric FK; provider uses s3_storage_uuid
+	})
+}
+
 // TestContractCoverage_Report prints a summary of coverage. Run with -v.
 func TestContractCoverage_Report(t *testing.T) {
 	t.Parallel()
