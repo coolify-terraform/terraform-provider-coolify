@@ -32,6 +32,8 @@ func (v portMappingsValidator) ValidateString(_ context.Context, req validator.S
 
 	value := req.ConfigValue.ValueString()
 	if value == "" {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Port Mapping",
+			"port mappings must not be empty; omit the attribute instead of setting it to an empty string")
 		return
 	}
 

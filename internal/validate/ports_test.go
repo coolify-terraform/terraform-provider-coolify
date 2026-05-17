@@ -15,6 +15,7 @@ func TestPortMappings(t *testing.T) {
 		value   string
 		wantErr bool
 	}{
+		{"empty string", "", true},
 		{"valid single", "8080:5432", false},
 		{"valid multiple", "8080:5432,8443:5433", false},
 		{"valid edge low", "1:1", false},

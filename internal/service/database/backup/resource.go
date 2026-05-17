@@ -25,10 +25,11 @@ import (
 )
 
 var (
-	_ resource.Resource                 = &databaseBackupResource{}
-	_ resource.ResourceWithConfigure    = &databaseBackupResource{}
-	_ resource.ResourceWithImportState  = &databaseBackupResource{}
-	_ resource.ResourceWithUpgradeState = &databaseBackupResource{}
+	_ resource.Resource                   = &databaseBackupResource{}
+	_ resource.ResourceWithConfigure      = &databaseBackupResource{}
+	_ resource.ResourceWithImportState    = &databaseBackupResource{}
+	_ resource.ResourceWithUpgradeState   = &databaseBackupResource{}
+	_ resource.ResourceWithValidateConfig = &databaseBackupResource{}
 )
 
 type databaseBackupResource struct {
@@ -184,6 +185,23 @@ func (r *databaseBackupResource) Configure(_ context.Context, req resource.Confi
 		return
 	}
 	r.client = c
+}
+
+func (r *databaseBackupResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config databaseBackupResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !config.SaveS3.IsNull() && !config.SaveS3.IsUnknown() && config.SaveS3.ValueBool() {
+		if config.S3StorageUUID.IsNull() || config.S3StorageUUID.IsUnknown() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("s3_storage_uuid"),
+				"Missing S3 Storage UUID",
+				"`s3_storage_uuid` must be set when `save_s3` is `true`.",
+			)
+		}
+	}
 }
 
 func (r *databaseBackupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
