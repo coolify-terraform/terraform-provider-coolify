@@ -418,7 +418,7 @@
         "health_check_enabled": {
           "type": "boolean",
           "nullable": false,
-          "default": true,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
