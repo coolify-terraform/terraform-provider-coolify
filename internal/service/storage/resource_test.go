@@ -373,6 +373,175 @@ func TestStorageResource_ImportBadType(t *testing.T) {
 	})
 }
 
+// ---------------------------------------------------------------------------
+// TestStorageResource_CreateWithServiceUUID
+// ---------------------------------------------------------------------------
+
+func TestStorageResource_CreateWithServiceUUID(t *testing.T) {
+	t.Parallel()
+	svcUUID := "ffff0001-0001-4000-8000-000000000001"
+	resourceUUID := "eeee0001-0001-4000-8000-000000000001"
+	stor := client.Storage{
+		UUID:      "stor-svc-uuid",
+		Name:      "svc-data",
+		MountPath: "/data",
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/services/{svcUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != svcUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/services/{svcUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != svcUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if deleted {
+			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {}, "file_storages": {}})
+		} else {
+			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
+		}
+	})
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/storages/{storUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != svcUUID || r.PathValue("storUUID") != stor.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	config := testStorageResourceConfig(srv.URL, fmt.Sprintf(`
+		service_uuid  = %q
+		resource_uuid = %q
+		name          = "svc-data"
+		mount_path    = "/data"
+	`, svcUUID, resourceUUID))
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_storage.test", "uuid", "stor-svc-uuid"),
+					resource.TestCheckResourceAttr("coolify_storage.test", "name", "svc-data"),
+					resource.TestCheckResourceAttr("coolify_storage.test", "mount_path", "/data"),
+					resource.TestCheckResourceAttr("coolify_storage.test", "service_uuid", svcUUID),
+					resource.TestCheckResourceAttr("coolify_storage.test", "resource_uuid", resourceUUID),
+				),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestStorageResource_CreateWithDatabaseUUID
+// ---------------------------------------------------------------------------
+
+func TestStorageResource_CreateWithDatabaseUUID(t *testing.T) {
+	t.Parallel()
+	dbUUID := "dddd0002-0002-4000-8000-000000000002"
+	stor := client.Storage{
+		UUID:      "stor-db-uuid",
+		Name:      "db-data",
+		MountPath: "/var/lib/data",
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != dbUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/databases/{dbUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != dbUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if deleted {
+			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {}, "file_storages": {}})
+		} else {
+			json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
+		}
+	})
+	mux.HandleFunc("DELETE /api/v1/databases/{dbUUID}/storages/{storUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("dbUUID") != dbUUID || r.PathValue("storUUID") != stor.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	config := testStorageResourceConfig(srv.URL, fmt.Sprintf(`
+		database_uuid = %q
+		name          = "db-data"
+		mount_path    = "/var/lib/data"
+	`, dbUUID))
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_storage.test", "uuid", "stor-db-uuid"),
+					resource.TestCheckResourceAttr("coolify_storage.test", "name", "db-data"),
+					resource.TestCheckResourceAttr("coolify_storage.test", "mount_path", "/var/lib/data"),
+					resource.TestCheckResourceAttr("coolify_storage.test", "database_uuid", dbUUID),
+				),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestStorageResource_CreateWithServiceUUIDMissingResourceUUID
+// ---------------------------------------------------------------------------
+
 func TestStorageResource_CreateWithServiceUUIDMissingResourceUUID(t *testing.T) {
 	t.Parallel()
 
