@@ -719,10 +719,9 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 		},
 		// Health checks
 		"health_check_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether health checks are enabled.",
+			MarkdownDescription: "Whether health checks are enabled. Coolify defaults to `false` for new applications.",
 			Optional:            true,
 			Computed:            true,
-			Default:             booldefault.StaticBool(false),
 		},
 		"health_check_path": schema.StringAttribute{
 			MarkdownDescription: "The URL path for health checks.",
