@@ -30,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_application` - Deploy applications from public Git repositories
   - `coolify_dockerfile_application` - Deploy applications from Dockerfiles
   - `coolify_docker_image_application` - Deploy applications from Docker images (Docker Hub, GHCR, etc.)
-  - `coolify_docker_compose_application` - Deploy applications from Docker Compose files
   - `coolify_private_git_application` - Deploy applications from private Git repositories (SSH deploy key)
   - `coolify_github_app_application` - Deploy applications via GitHub App integration
   - `coolify_environment` - Manage project environments
@@ -84,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable `timeouts` block on all application resources
 - Graceful handling of out-of-band resource deletion (404 in Read removes from state)
 - 420+ unit tests with race detection across 34 packages
-- CI pipeline: 13 jobs (detect changes, test, lint, validate examples, docs, govulncheck, trivy, gitleaks, goreleaser check, scenario tests, acceptance tests, spec freshness, CI gate)
+- CI pipeline: 8 jobs (detect changes, test, lint, validate, scenario tests, acceptance tests, spec freshness, CI gate)
 - GoReleaser config for GPG-signed releases
 - Computed `status` field on all application resources
 - Full-stack deployment example

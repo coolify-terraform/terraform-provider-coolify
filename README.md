@@ -199,9 +199,9 @@ project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ### CI Pipeline
 
-13 jobs in the CI workflow: Detect Changes, Test, Lint, Validate Examples,
-Docs, Govulncheck, Trivy, Gitleaks, GoReleaser Check, Scenario Tests,
-Acceptance Tests, Spec Freshness (weekly), and a CI gate job.
+8 jobs in the CI workflow: Detect Changes, Test, Lint, Validate (includes
+examples, docs, Trivy, Gitleaks), Scenario Tests, Acceptance Tests, Spec
+Freshness (weekly), and a CI gate job.
 
 ## License
 
