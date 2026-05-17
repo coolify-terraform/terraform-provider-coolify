@@ -109,6 +109,32 @@ def _parse_php_value(val: str):
     return val
 
 
+def _extract_up_method(content: str) -> str:
+    """Extract only the up() method body from a migration.
+
+    Laravel migrations have up() and down() methods. The down() method
+    reverses the change and must not be processed, or its values overwrite
+    the up() values (e.g., default(null) in up, default('0') in down).
+    """
+    m = re.search(
+        r"public\s+function\s+up\s*\(\s*\)\s*(?::\s*void\s*)?\{(.*)",
+        content,
+        re.DOTALL,
+    )
+    if not m:
+        return content  # fallback: use entire file
+    body = m.group(1)
+    depth = 1
+    for i, ch in enumerate(body):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return body[:i]
+    return body
+
+
 def parse_migration_columns(migration_dir: Path, table_name: str) -> dict:
     """Parse all migrations for a table and build the final column schema."""
     columns = {}
@@ -123,8 +149,9 @@ def parse_migration_columns(migration_dir: Path, table_name: str) -> dict:
         if table_name == "applications" and "application_settings" in mig_file.name:
             continue
 
-        _parse_create_table(content, table_name, columns)
-        _parse_alter_table(content, table_name, columns)
+        up_content = _extract_up_method(content)
+        _parse_create_table(up_content, table_name, columns)
+        _parse_alter_table(up_content, table_name, columns)
 
     return columns
 
@@ -232,7 +259,22 @@ def _extract_column_defs(block: str, columns: dict):
         if col_type == "enum" and col_array:
             col_info["enum_values"] = re.findall(r"'([^']+)'", col_array)
 
-        columns[col_name] = col_info
+        # If this is a ->change() migration and the column already exists,
+        # merge only the explicitly-set properties instead of replacing
+        # the entire entry. This preserves max_length, enum_values, etc.
+        # from the original Schema::create() definition.
+        is_change = "->change()" in chain
+        if is_change and col_name in columns:
+            existing = columns[col_name]
+            existing["type"] = mapped_type
+            if default_match:
+                existing["default"] = default
+            if "->nullable()" in chain or "->nullable(true)" in chain:
+                existing["nullable"] = nullable
+            if col_length:
+                existing["max_length"] = int(col_length)
+        else:
+            columns[col_name] = col_info
 
     # Handle timestamps()
     if "$table->timestamps()" in block:

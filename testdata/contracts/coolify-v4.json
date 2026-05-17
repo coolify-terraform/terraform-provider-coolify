@@ -1,7 +1,7 @@
 {
   "version": "v4-latest",
   "extracted_from": "coollabsio/coolify@v4-latest",
-  "extracted_at": "2026-05-13T03:42:18.956032+00:00",
+  "extracted_at": "2026-05-17T14:40:36.259094+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -105,15 +105,6 @@
         "server_status"
       ],
       "fields": {
-        "additional_destinations": {
-          "type": "string",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false,
-          "max_length": 255
-        },
         "base_directory": {
           "type": "string",
           "nullable": false,
@@ -144,10 +135,11 @@
         "compose_parsing_version": {
           "type": "string",
           "nullable": false,
-          "default": null,
+          "default": "1",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "config_hash": {
           "type": "string",
@@ -167,7 +159,7 @@
           "fillable": true
         },
         "custom_docker_run_options": {
-          "type": "string",
+          "type": "text",
           "nullable": true,
           "default": null,
           "cast": null,
@@ -176,32 +168,32 @@
           "max_length": 255
         },
         "custom_healthcheck_found": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "custom_labels": {
-          "type": "string",
-          "nullable": false,
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "custom_network_aliases": {
-          "type": "string",
-          "nullable": false,
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "custom_nginx_configuration": {
-          "type": "string",
-          "nullable": false,
+          "type": "longText",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -209,11 +201,12 @@
         },
         "description": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "destination_id": {
           "type": "bigInteger",
@@ -232,46 +225,6 @@
           "fillable": true
         },
         "docker_compose": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
-        },
-        "docker_compose_custom_build_command": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
-        },
-        "docker_compose_custom_start_command": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
-        },
-        "docker_compose_domains": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
-        },
-        "docker_compose_location": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
-        },
-        "docker_compose_pr": {
           "type": "longText",
           "nullable": true,
           "default": null,
@@ -279,7 +232,33 @@
           "sensitive": false,
           "fillable": true
         },
-        "docker_compose_pr_location": {
+        "docker_compose_custom_build_command": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "max_length": 255
+        },
+        "docker_compose_custom_start_command": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "max_length": 255
+        },
+        "docker_compose_domains": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true
+        },
+        "docker_compose_location": {
           "type": "string",
           "nullable": true,
           "default": "/docker-compose.yaml",
@@ -288,17 +267,33 @@
           "fillable": true,
           "max_length": 255
         },
+        "docker_compose_pr": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true
+        },
+        "docker_compose_pr_location": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true
+        },
         "docker_compose_pr_raw": {
-          "type": "longText",
-          "nullable": true,
+          "type": "string",
+          "nullable": false,
           "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "docker_compose_raw": {
-          "type": "string",
-          "nullable": false,
+          "type": "longText",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -323,8 +318,8 @@
           "max_length": 255
         },
         "dockerfile": {
-          "type": "string",
-          "nullable": false,
+          "type": "longText",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -332,19 +327,21 @@
         },
         "dockerfile_location": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "dockerfile_target_build": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "environment_id": {
           "type": "bigInteger",
@@ -363,7 +360,7 @@
           "fillable": true
         },
         "fqdn": {
-          "type": "string",
+          "type": "longText",
           "nullable": true,
           "default": null,
           "cast": null,
@@ -408,8 +405,8 @@
           "max_length": 255
         },
         "health_check_command": {
-          "type": "string",
-          "nullable": false,
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -518,28 +515,30 @@
           "fillable": true
         },
         "health_check_type": {
-          "type": "string",
+          "type": "text",
           "nullable": false,
-          "default": null,
+          "default": "http",
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "http_basic_auth_password": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "http_basic_auth_username": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "install_command": {
           "type": "string",
@@ -559,17 +558,17 @@
           "fillable": true
         },
         "is_http_basic_auth_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "last_online_at": {
-          "type": "string",
+          "type": "timestamp",
           "nullable": false,
-          "default": null,
+          "default": "now(",
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -611,7 +610,7 @@
         "limits_cpuset": {
           "type": "string",
           "nullable": true,
-          "default": "0",
+          "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true,
@@ -654,35 +653,39 @@
         },
         "manual_webhook_secret_bitbucket": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "manual_webhook_secret_gitea": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "manual_webhook_secret_github": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "manual_webhook_secret_gitlab": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "name": {
           "type": "string",
@@ -720,7 +723,7 @@
           "max_length": 255
         },
         "post_deployment_command": {
-          "type": "string",
+          "type": "text",
           "nullable": true,
           "default": null,
           "cast": null,
@@ -730,14 +733,15 @@
         },
         "post_deployment_command_container": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "pre_deployment_command": {
-          "type": "string",
+          "type": "text",
           "nullable": true,
           "default": null,
           "cast": null,
@@ -747,11 +751,12 @@
         },
         "pre_deployment_command_container": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "preview_url_template": {
           "type": "string",
@@ -780,12 +785,17 @@
           "max_length": 255
         },
         "redirect": {
-          "type": "string",
+          "type": "enum",
           "nullable": false,
-          "default": null,
+          "default": "both",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "enum_values": [
+            "www",
+            "non-www",
+            "both"
+          ]
         },
         "repository_project_id": {
           "type": "integer",
@@ -847,17 +857,17 @@
           "max_length": 255
         },
         "swarm_placement_constraints": {
-          "type": "string",
-          "nullable": false,
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "swarm_replicas": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 1,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -880,8 +890,8 @@
           "max_length": 255
         },
         "watch_paths": {
-          "type": "string",
-          "nullable": false,
+          "type": "longText",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -898,81 +908,85 @@
           "fillable": true
         },
         "connect_to_docker_network": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "custom_internal_name": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "disable_build_cache": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "docker_images_to_keep": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 2,
           "cast": "integer",
           "sensitive": false,
           "fillable": true
         },
         "gpu_count": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "gpu_device_ids": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "gpu_driver": {
           "type": "string",
           "nullable": false,
-          "default": null,
+          "default": "nvidia",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "gpu_options": {
-          "type": "string",
-          "nullable": false,
+          "type": "longText",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "include_source_commit_in_build": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
         },
         "inject_build_args_to_dockerfile": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": true,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -986,25 +1000,25 @@
           "fillable": true
         },
         "is_build_server_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
         },
         "is_consistent_container_name_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_container_label_escape_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": true,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -1012,7 +1026,7 @@
         "is_container_label_readonly_enabled": {
           "type": "boolean",
           "nullable": false,
-          "default": false,
+          "default": true,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -1066,9 +1080,9 @@
           "fillable": true
         },
         "is_git_shallow_clone_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": true,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -1082,17 +1096,17 @@
           "fillable": true
         },
         "is_gpu_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_gzip_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": true,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -1106,33 +1120,33 @@
           "fillable": false
         },
         "is_include_timestamps": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_log_drain_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_pr_deployments_public_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
         },
         "is_preserve_repository_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -1146,17 +1160,17 @@
           "fillable": true
         },
         "is_raw_compose_deployment_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_spa": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -1170,25 +1184,25 @@
           "fillable": true
         },
         "is_stripprefix_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": true,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_swarm_only_worker_nodes": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": true,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "use_build_secrets": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -1221,8 +1235,8 @@
       ],
       "fields": {
         "cloud_provider_token_id": {
-          "type": "string",
-          "nullable": false,
+          "type": "bigInteger",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -1239,15 +1253,16 @@
         },
         "detected_traefik_version": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "hetzner_server_id": {
-          "type": "string",
-          "nullable": false,
+          "type": "bigInteger",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -1255,11 +1270,20 @@
         },
         "hetzner_server_status": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
+        },
+        "high_disk_usage_notification_sent": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false
         },
         "ip": {
           "type": "string",
@@ -1272,27 +1296,28 @@
         },
         "ip_previous": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "max_length": 255
+        },
+        "is_validating": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
-        "is_metrics_enabled": {
+        "log_drain_notification_sent": {
           "type": "boolean",
           "nullable": false,
-          "default": true,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": false
-        },
-        "is_validating": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
         },
         "name": {
           "type": "string",
@@ -1320,20 +1345,44 @@
           "fillable": true
         },
         "server_metadata": {
-          "type": "string",
-          "nullable": false,
+          "type": "json",
+          "nullable": true,
           "default": null,
           "cast": "array",
           "sensitive": false,
           "fillable": true
         },
+        "swarm_cluster": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false
+        },
         "traefik_outdated_info": {
-          "type": "string",
-          "nullable": false,
+          "type": "json",
+          "nullable": true,
           "default": null,
           "cast": "array",
           "sensitive": false,
           "fillable": true
+        },
+        "unreachable_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false
+        },
+        "unreachable_email_sent": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false
         },
         "user": {
           "type": "string",
@@ -1352,6 +1401,14 @@
           "sensitive": false,
           "fillable": false,
           "max_length": 255
+        },
+        "validation_logs": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false
         }
       }
     },
@@ -1406,50 +1463,42 @@
       "hidden": [],
       "appends": [],
       "fields": {
-        "cleanup_after_percentage": {
+        "concurrent_builds": {
           "type": "integer",
           "nullable": false,
-          "default": 80,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "concurrent_builds": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
+          "default": 2,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "delete_unused_networks": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "delete_unused_volumes": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "deployment_queue_limit": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 25,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "disable_application_image_retention": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -1457,32 +1506,32 @@
         "docker_cleanup_frequency": {
           "type": "string",
           "nullable": false,
-          "default": "*/10 * * * *",
+          "default": "0 0 * * *",
           "cast": null,
           "sensitive": false,
           "fillable": true,
           "max_length": 255
         },
         "docker_cleanup_threshold": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 80,
           "cast": "integer",
           "sensitive": false,
           "fillable": true
         },
         "dynamic_timeout": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 3600,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "force_disabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -1490,23 +1539,15 @@
         "force_docker_cleanup": {
           "type": "boolean",
           "nullable": false,
-          "default": false,
+          "default": true,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
         },
-        "force_server_cleanup": {
+        "generate_exact_labels": {
           "type": "boolean",
           "nullable": false,
           "default": false,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "generate_exact_labels": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -1520,20 +1561,12 @@
           "fillable": true
         },
         "is_cloudflare_tunnel": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
-        },
-        "is_force_cleanup_enabled": {
           "type": "boolean",
           "nullable": false,
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": true
         },
         "is_jump_server": {
           "type": "boolean",
@@ -1544,41 +1577,41 @@
           "fillable": true
         },
         "is_logdrain_axiom_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_logdrain_custom_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_logdrain_highlight_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_logdrain_newrelic_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_metrics_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -1600,9 +1633,9 @@
           "fillable": true
         },
         "is_sentinel_debug_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -1610,18 +1643,10 @@
         "is_sentinel_enabled": {
           "type": "boolean",
           "nullable": false,
-          "default": false,
+          "default": true,
           "cast": null,
           "sensitive": false,
           "fillable": true
-        },
-        "is_server_api_enabled": {
-          "type": "boolean",
-          "nullable": false,
-          "default": false,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
         },
         "is_swarm_manager": {
           "type": "string",
@@ -1632,17 +1657,17 @@
           "fillable": true
         },
         "is_swarm_worker": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_terminal_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": true,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -1657,31 +1682,33 @@
         },
         "logdrain_axiom_api_key": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "logdrain_axiom_dataset_name": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "logdrain_custom_config": {
-          "type": "string",
-          "nullable": false,
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "logdrain_custom_config_parser": {
-          "type": "string",
-          "nullable": false,
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -1689,88 +1716,67 @@
         },
         "logdrain_highlight_project_id": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "logdrain_newrelic_base_uri": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
-        },
-        "logdrain_newrelic_license_key": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
-        },
-        "metrics_history_days": {
-          "type": "integer",
-          "nullable": false,
-          "default": 30,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "metrics_refresh_rate_seconds": {
-          "type": "integer",
-          "nullable": false,
-          "default": 5,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "metrics_token": {
           "type": "string",
           "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": false,
+          "fillable": true,
+          "max_length": 255
+        },
+        "logdrain_newrelic_license_key": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
           "max_length": 255
         },
         "sentinel_custom_url": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "sentinel_metrics_history_days": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 7,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "sentinel_metrics_refresh_rate_seconds": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 10,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "sentinel_push_interval_seconds": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 60,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "sentinel_token": {
-          "type": "string",
-          "nullable": false,
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
@@ -1779,15 +1785,16 @@
         "server_disk_usage_check_frequency": {
           "type": "string",
           "nullable": false,
-          "default": null,
+          "default": "0 23 * * *",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "server_disk_usage_notification_threshold": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 80,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -1803,7 +1810,7 @@
         "server_timezone": {
           "type": "string",
           "nullable": false,
-          "default": "",
+          "default": "UTC",
           "cast": null,
           "sensitive": false,
           "fillable": true,
@@ -1811,11 +1818,12 @@
         },
         "wildcard_domain": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         }
       }
     },
@@ -1874,11 +1882,12 @@
       "fields": {
         "description": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "name": {
           "type": "string",
@@ -1899,11 +1908,12 @@
         },
         "uuid": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         }
       }
     },
@@ -1935,30 +1945,32 @@
         "compose_parsing_version": {
           "type": "string",
           "nullable": false,
-          "default": null,
+          "default": "2",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "config_hash": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "connect_to_docker_network": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "description": {
-          "type": "string",
-          "nullable": false,
+          "type": "longText",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -1981,15 +1993,15 @@
           "fillable": true
         },
         "docker_compose": {
-          "type": "string",
-          "nullable": false,
+          "type": "longText",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "docker_compose_raw": {
-          "type": "string",
+          "type": "longText",
           "nullable": false,
           "default": null,
           "cast": null,
@@ -2005,9 +2017,9 @@
           "fillable": true
         },
         "is_container_label_escape_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": true,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2022,8 +2034,8 @@
           "max_length": 255
         },
         "server_id": {
-          "type": "string",
-          "nullable": false,
+          "type": "bigInteger",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -2031,11 +2043,12 @@
         },
         "service_type": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "uuid": {
           "type": "string",
@@ -2097,9 +2110,18 @@
         "server_status"
       ],
       "fields": {
-        "custom_docker_run_options": {
+        "config_hash": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -2131,9 +2153,9 @@
           "fillable": true
         },
         "enable_ssl": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2149,7 +2171,7 @@
         "image": {
           "type": "string",
           "nullable": false,
-          "default": "postgres:15-alpine",
+          "default": "postgres:16-alpine",
           "cast": null,
           "sensitive": false,
           "fillable": true,
@@ -2164,17 +2186,17 @@
           "fillable": true
         },
         "is_include_timestamps": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_log_drain_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2188,9 +2210,9 @@
           "fillable": true
         },
         "last_online_at": {
-          "type": "string",
+          "type": "timestamp",
           "nullable": false,
-          "default": null,
+          "default": "now(",
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2231,7 +2253,7 @@
         "limits_cpuset": {
           "type": "string",
           "nullable": true,
-          "default": "0",
+          "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true,
@@ -2290,8 +2312,8 @@
           "fillable": true
         },
         "postgres_conf": {
-          "type": "string",
-          "nullable": false,
+          "type": "longText",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -2366,12 +2388,19 @@
           "fillable": true
         },
         "ssl_mode": {
-          "type": "string",
+          "type": "enum",
           "nullable": false,
-          "default": null,
+          "default": "require",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "enum_values": [
+            "allow",
+            "prefer",
+            "require",
+            "verify-ca",
+            "verify-full"
+          ]
         },
         "started_at": {
           "type": "timestamp",
@@ -2448,9 +2477,18 @@
         "server_status"
       ],
       "fields": {
-        "custom_docker_run_options": {
+        "config_hash": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -2482,9 +2520,9 @@
           "fillable": true
         },
         "enable_ssl": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2507,17 +2545,17 @@
           "max_length": 255
         },
         "is_include_timestamps": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_log_drain_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2531,9 +2569,9 @@
           "fillable": true
         },
         "last_online_at": {
-          "type": "string",
+          "type": "timestamp",
           "nullable": false,
-          "default": null,
+          "default": "now(",
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2574,7 +2612,7 @@
         "limits_cpuset": {
           "type": "string",
           "nullable": true,
-          "default": "0",
+          "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true,
@@ -2699,12 +2737,18 @@
           "fillable": true
         },
         "ssl_mode": {
-          "type": "string",
+          "type": "enum",
           "nullable": false,
-          "default": null,
+          "default": "REQUIRED",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "enum_values": [
+            "PREFERRED",
+            "REQUIRED",
+            "VERIFY_CA",
+            "VERIFY_IDENTITY"
+          ]
         },
         "started_at": {
           "type": "timestamp",
@@ -2779,9 +2823,18 @@
         "server_status"
       ],
       "fields": {
-        "custom_docker_run_options": {
+        "config_hash": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -2813,9 +2866,9 @@
           "fillable": true
         },
         "enable_ssl": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2838,9 +2891,9 @@
           "max_length": 255
         },
         "is_log_drain_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2854,9 +2907,9 @@
           "fillable": true
         },
         "last_online_at": {
-          "type": "string",
+          "type": "timestamp",
           "nullable": false,
-          "default": null,
+          "default": "now(",
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -2897,7 +2950,7 @@
         "limits_cpuset": {
           "type": "string",
           "nullable": true,
-          "default": "0",
+          "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true,
@@ -3095,9 +3148,18 @@
         "server_status"
       ],
       "fields": {
-        "custom_docker_run_options": {
+        "config_hash": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -3131,7 +3193,7 @@
         "enable_ssl": {
           "type": "boolean",
           "nullable": false,
-          "default": true,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -3154,17 +3216,17 @@
           "max_length": 255
         },
         "is_include_timestamps": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_log_drain_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -3178,9 +3240,9 @@
           "fillable": true
         },
         "last_online_at": {
-          "type": "string",
+          "type": "timestamp",
           "nullable": false,
-          "default": null,
+          "default": "now(",
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -3221,7 +3283,7 @@
         "limits_cpuset": {
           "type": "string",
           "nullable": true,
-          "default": "0",
+          "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true,
@@ -3336,12 +3398,18 @@
           "fillable": true
         },
         "ssl_mode": {
-          "type": "string",
+          "type": "enum",
           "nullable": false,
-          "default": null,
+          "default": "require",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "enum_values": [
+            "allow",
+            "prefer",
+            "require",
+            "verify-full"
+          ]
         },
         "started_at": {
           "type": "timestamp",
@@ -3413,9 +3481,18 @@
         "server_status"
       ],
       "fields": {
-        "custom_docker_run_options": {
+        "config_hash": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -3447,9 +3524,9 @@
           "fillable": true
         },
         "enable_ssl": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -3472,17 +3549,17 @@
           "max_length": 255
         },
         "is_include_timestamps": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_log_drain_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -3496,9 +3573,9 @@
           "fillable": true
         },
         "last_online_at": {
-          "type": "string",
+          "type": "timestamp",
           "nullable": false,
-          "default": null,
+          "default": "now(",
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -3539,7 +3616,7 @@
         "limits_cpuset": {
           "type": "string",
           "nullable": true,
-          "default": "0",
+          "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true,
@@ -3726,9 +3803,18 @@
           "fillable": true,
           "max_length": 255
         },
-        "custom_docker_run_options": {
+        "config_hash": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -3770,7 +3856,7 @@
         "image": {
           "type": "string",
           "nullable": false,
-          "default": "bitnamilegacy/clickhouse",
+          "default": "clickhouse/clickhouse-server:25.11",
           "cast": null,
           "sensitive": false,
           "fillable": true,
@@ -3801,9 +3887,9 @@
           "fillable": true
         },
         "last_online_at": {
-          "type": "string",
+          "type": "timestamp",
           "nullable": false,
-          "default": null,
+          "default": "now(",
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -3996,9 +4082,18 @@
         "server_status"
       ],
       "fields": {
-        "custom_docker_run_options": {
+        "config_hash": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -4030,9 +4125,9 @@
           "fillable": true
         },
         "enable_ssl": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -4095,9 +4190,9 @@
           "fillable": true
         },
         "last_online_at": {
-          "type": "string",
+          "type": "timestamp",
           "nullable": false,
-          "default": null,
+          "default": "now(",
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -4290,9 +4385,18 @@
         "server_status"
       ],
       "fields": {
-        "custom_docker_run_options": {
+        "config_hash": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -4332,9 +4436,9 @@
           "fillable": true
         },
         "enable_ssl": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -4381,9 +4485,9 @@
           "fillable": true
         },
         "last_online_at": {
-          "type": "string",
+          "type": "timestamp",
           "nullable": false,
-          "default": null,
+          "default": "now(",
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -4563,66 +4667,35 @@
         "is_coolify"
       ],
       "fields": {
-        "application_id": {
-          "type": "bigInteger",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
         "comment": {
           "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": true
-        },
-        "database_id": {
-          "type": "bigInteger",
           "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": false
-        },
-        "is_build_time": {
-          "type": "boolean",
-          "nullable": false,
-          "default": false,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
+          "fillable": true,
+          "max_length": 256
         },
         "is_buildtime": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
           "default": true,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
         },
-        "is_buildtime_only": {
+        "is_literal": {
           "type": "boolean",
           "nullable": false,
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": false
-        },
-        "is_literal": {
-          "type": "string",
-          "nullable": false,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
           "fillable": true
         },
         "is_multiline": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -4636,15 +4709,15 @@
           "fillable": true
         },
         "is_required": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_runtime": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
           "default": true,
           "cast": "boolean",
@@ -4652,17 +4725,17 @@
           "fillable": true
         },
         "is_shared": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "is_shown_once": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -4677,16 +4750,16 @@
           "max_length": 255
         },
         "order": {
-          "type": "string",
-          "nullable": false,
+          "type": "integer",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "resourceable_id": {
-          "type": "string",
-          "nullable": false,
+          "type": "bigInteger",
+          "nullable": true,
           "default": null,
           "cast": "integer",
           "sensitive": false,
@@ -4694,86 +4767,24 @@
         },
         "resourceable_type": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
-        "service_id": {
-          "type": "bigInteger",
+        "uuid": {
+          "type": "string",
           "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": false
-        },
-        "standalone_clickhouse_id": {
-          "type": "bigInteger",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "standalone_dragonfly_id": {
-          "type": "bigInteger",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "standalone_keydb_id": {
-          "type": "bigInteger",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "standalone_mariadb_id": {
-          "type": "bigInteger",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "standalone_mongodb_id": {
-          "type": "bigInteger",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "standalone_mysql_id": {
-          "type": "bigInteger",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "standalone_postgresql_id": {
-          "type": "bigInteger",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
-        },
-        "standalone_redis_id": {
-          "type": "bigInteger",
-          "nullable": true,
-          "default": null,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "max_length": 255
         },
         "value": {
-          "type": "string",
+          "type": "text",
           "nullable": true,
           "default": null,
           "cast": "encrypted",
@@ -4784,10 +4795,11 @@
         "version": {
           "type": "string",
           "nullable": false,
-          "default": null,
+          "default": "4.0.0-beta.239",
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         }
       }
     },
@@ -4818,11 +4830,12 @@
         },
         "fingerprint": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "is_git_related": {
           "type": "boolean",
@@ -4894,20 +4907,12 @@
           "max_length": 255
         },
         "is_preview_suffix_enabled": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": true,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
-        },
-        "is_readonly": {
-          "type": "boolean",
-          "nullable": false,
-          "default": false,
-          "cast": null,
-          "sensitive": false,
-          "fillable": false
         },
         "mount_path": {
           "type": "string",
@@ -4942,6 +4947,15 @@
           "cast": null,
           "sensitive": false,
           "fillable": true
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
         }
       }
     },
@@ -5024,9 +5038,9 @@
           "fillable": true
         },
         "timeout": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 300,
           "cast": "integer",
           "sensitive": false,
           "fillable": true
@@ -5076,11 +5090,12 @@
       "fields": {
         "administration": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "api_url": {
           "type": "string",
@@ -5118,11 +5133,12 @@
         },
         "contents": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "custom_port": {
           "type": "integer",
@@ -5176,11 +5192,12 @@
         },
         "metadata": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "name": {
           "type": "string",
@@ -5210,11 +5227,12 @@
         },
         "pull_requests": {
           "type": "string",
-          "nullable": false,
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "max_length": 255
         },
         "uuid": {
           "type": "string",
@@ -5277,9 +5295,9 @@
           "fillable": true
         },
         "is_usable": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": "boolean",
           "sensitive": false,
           "fillable": true
@@ -5319,9 +5337,9 @@
           "fillable": true
         },
         "unusable_email_sent": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -5374,6 +5392,15 @@
           "cast": "encrypted",
           "sensitive": true,
           "fillable": true
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "max_length": 255
         }
       }
     },
@@ -5413,25 +5440,25 @@
           "fillable": true
         },
         "database_backup_retention_amount_s3": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 0,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "database_backup_retention_days_locally": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 0,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "database_backup_retention_days_s3": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 0,
           "cast": null,
           "sensitive": false,
           "fillable": true
@@ -5469,8 +5496,8 @@
           "fillable": true
         },
         "databases_to_backup": {
-          "type": "string",
-          "nullable": false,
+          "type": "text",
+          "nullable": true,
           "default": null,
           "cast": null,
           "sensitive": false,
@@ -5485,17 +5512,17 @@
           "fillable": true
         },
         "disable_local_backup": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
         },
         "dump_all": {
-          "type": "string",
+          "type": "boolean",
           "nullable": false,
-          "default": null,
+          "default": false,
           "cast": null,
           "sensitive": false,
           "fillable": true
