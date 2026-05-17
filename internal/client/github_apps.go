@@ -14,6 +14,8 @@ type GitHubApp struct {
 	UUID             string `json:"uuid,omitempty"`
 	Name             string `json:"name"`
 	OrganizationName string `json:"organization,omitempty"`
+	APIURL           string `json:"api_url,omitempty"`
+	HTMLURL          string `json:"html_url,omitempty"`
 	AppID            int64  `json:"app_id,omitempty"`
 	InstallationID   int64  `json:"installation_id,omitempty"`
 	ClientID         string `json:"client_id,omitempty"`
