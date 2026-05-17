@@ -1049,7 +1049,7 @@ func TestApplicationResource_ExtendedFields(t *testing.T) {
 	hcRetries := int64(10)
 	hcStartPeriod := int64(5)
 	autoDeployEnabled := true
-	hcEnabled := true
+	hcEnabled := false
 	isSPA := false
 	isHTTPAuth := false
 	connectDocker := false

@@ -721,7 +721,7 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			MarkdownDescription: "Whether health checks are enabled.",
 			Optional:            true,
 			Computed:            true,
-			Default:             booldefault.StaticBool(true),
+			Default:             booldefault.StaticBool(false),
 		},
 		"health_check_path": schema.StringAttribute{
 			MarkdownDescription: "The URL path for health checks.",
@@ -1050,7 +1050,7 @@ func setImportDefaults(ctx context.Context, resp *resource.ImportStateResponse) 
 	set := func(attr string, v interface{}) {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(attr), v)...)
 	}
-	set("health_check_enabled", true)
+	set("health_check_enabled", false)
 	set("health_check_path", "/")
 	set("health_check_interval", int64(5))
 	set("health_check_timeout", int64(5))
