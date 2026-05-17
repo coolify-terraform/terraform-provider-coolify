@@ -1,7 +1,7 @@
 {
   "version": "v4.0.1",
   "extracted_from": "coollabsio/coolify@v4.0.1",
-  "extracted_at": "2026-05-17T19:44:17.183459+00:00",
+  "extracted_at": "2026-05-17T20:02:36.198563+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -190,7 +190,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
-          "flatten_hint": "or_clear"
+          "flatten_hint": "if_configured"
         },
         "custom_network_aliases": {
           "type": "text",
@@ -245,7 +245,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
-          "flatten_hint": "or_clear"
+          "flatten_hint": "if_configured"
         },
         "docker_compose_custom_build_command": {
           "type": "string",
@@ -320,7 +320,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
-          "flatten_hint": "or_clear"
+          "flatten_hint": "if_configured"
         },
         "docker_registry_image_name": {
           "type": "string",
@@ -349,7 +349,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
-          "flatten_hint": "or_clear"
+          "flatten_hint": "if_configured"
         },
         "dockerfile_location": {
           "type": "string",
@@ -2207,7 +2207,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
-          "flatten_hint": "or_clear"
+          "flatten_hint": "if_configured"
         },
         "docker_compose_raw": {
           "type": "longText",
@@ -2216,7 +2216,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
-          "flatten_hint": "unconditional"
+          "flatten_hint": "if_configured"
         },
         "environment_id": {
           "type": "bigInteger",

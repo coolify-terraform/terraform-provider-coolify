@@ -419,6 +419,7 @@ def build_model_contract(
     migration_dir: Path,
     table_name: str,
     casts_override: dict | None = None,
+    controller_hidden: set[str] | None = None,
 ) -> dict:
     """Build a complete model contract from model file + migrations."""
     content = model_path.read_text(errors="replace")
@@ -448,6 +449,7 @@ def build_model_contract(
         default_val = model_defaults.get(fname, col.get("default"))
         is_sensitive = casts.get(fname) == "encrypted"
         is_hidden = fname in hidden
+        is_api_hidden = fname in (controller_hidden or set())
         field_info = {
             "type": col.get("type", "string"),
             "nullable": is_nullable,
@@ -460,7 +462,7 @@ def build_model_contract(
             # - "or_clear": NULLABLE without default, must detect external clearing
             # - "if_configured": sensitive/hidden field, empty is ambiguous
             "flatten_hint": (
-                "if_configured" if (is_sensitive or is_hidden) else
+                "if_configured" if (is_sensitive or is_hidden or is_api_hidden) else
                 "or_clear" if is_nullable else
                 "unconditional"
             ),
@@ -531,11 +533,29 @@ def extract_contract(coolify_dir: str, version: str = "unknown") -> dict:
         "ScheduledDatabaseBackup": "scheduled_database_backups",
     }
 
+    # Fields hidden by controller removeSensitiveData / ApiSensitiveData
+    # middleware. These return empty when the token lacks read:sensitive,
+    # so the flatten must use SetStringIfConfigured (not SetStringOrClear).
+    # Source: ApplicationsController::removeSensitiveData, ApiSensitiveData.php
+    controller_hidden_map: dict[str, set[str]] = {
+        "Application": {
+            "custom_labels", "dockerfile", "docker_compose", "docker_compose_raw",
+            "manual_webhook_secret_bitbucket", "manual_webhook_secret_gitea",
+            "manual_webhook_secret_github", "manual_webhook_secret_gitlab",
+            "http_basic_auth_password",
+        },
+        "Service": {"docker_compose_raw", "docker_compose", "value"},
+        "Server": {"sentinel_token"},
+        "PrivateKey": {"private_key"},
+        "GithubApp": {"client_secret", "webhook_secret"},
+    }
+
     for model_name, table_name in model_table_map.items():
         model_file = models_dir / f"{model_name}.php"
         if model_file.exists():
             contract["models"][model_name] = build_model_contract(
-                model_file, migration_dir, table_name
+                model_file, migration_dir, table_name,
+                controller_hidden=controller_hidden_map.get(model_name),
             )
 
     # Extract ApplicationSetting separately and attach to Application

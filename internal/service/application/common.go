@@ -356,7 +356,7 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	// Nullable fields — use SetStringOrClear so drift is detected when
 	// someone clears the field in the Coolify UI.
 	flex.SetStringOrClear(f.PublishDirectory, app.PublishDirectory)
-	flex.SetStringOrClear(f.Dockerfile, app.Dockerfile)
+	flex.SetStringIfConfigured(f.Dockerfile, app.Dockerfile)
 	flex.SetStringOrClear(f.DockerRegistryImageTag, app.DockerRegistryImageTag)
 	flex.SetStringOrClear(f.DockerComposeDomains, app.DockerComposeDomains)
 	flex.SetStringOrClear(f.WatchPaths, app.WatchPaths)
@@ -364,8 +364,8 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	flex.SetStringOrClear(f.CustomNetworkAliases, app.CustomNetworkAliases)
 	flex.SetStringOrClear(f.CustomNginxConfiguration, app.CustomNginxConfiguration)
 	flex.SetStringOrClear(f.PortsMappings, app.PortsMappings)
-	flex.SetStringOrClear(f.HTTPBasicAuthUsername, app.HTTPBasicAuthUsername)
-	flex.SetStringOrClear(f.HTTPBasicAuthPassword, app.HTTPBasicAuthPassword)
+	flex.SetStringIfConfigured(f.HTTPBasicAuthUsername, app.HTTPBasicAuthUsername)
+	flex.SetStringIfConfigured(f.HTTPBasicAuthPassword, app.HTTPBasicAuthPassword)
 	flex.SetStringOrClear(f.PreDeploymentCommand, app.PreDeploymentCommand)
 	flex.SetStringOrClear(f.PreDeploymentCommandContainer, app.PreDeploymentCommandContainer)
 	flex.SetStringOrClear(f.PostDeploymentCommand, app.PostDeploymentCommand)
