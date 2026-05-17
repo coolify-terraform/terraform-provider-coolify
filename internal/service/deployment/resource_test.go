@@ -315,7 +315,11 @@ func TestDeploymentResource_CreateReadBackFailureDefaultsQueued(t *testing.T) {
 		})
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
-		if readBackCalls.Add(1) == 1 {
+		count := readBackCalls.Add(1)
+		// Fail enough times to exhaust the client's 3 retries during
+		// Create's read-back, exercising the "default to queued" fallback.
+		// Succeed afterward so the post-apply refresh Read works.
+		if count <= 4 {
 			http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
 			return
 		}
