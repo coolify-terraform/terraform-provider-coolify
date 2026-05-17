@@ -166,12 +166,11 @@ mismatches, and zero validation rules when we compared it against the source.
 8 GitHub Actions jobs on push to main and PRs (self-hosted runner):
 Detect Changes, Test, Lint (includes Govulncheck + GoReleaser Check),
 Validate (includes HCL fmt + Docs + Trivy + Gitleaks),
-Scenario Tests, Acceptance Tests, Spec Freshness (weekly only), CI (gate).
-Consolidated from 13 jobs to match the 3-runner pool; each runner picks
-up exactly one heavy job per wave.
+Acceptance Tests, Scenario Tests, Spec Freshness (weekly only), CI (gate).
+Acceptance Tests run against real Coolify on localhost:8000 (requires secrets).
+Scenario Tests run `terraform test` against real Coolify (requires secrets).
 A separate Dependabot Auto-Merge workflow auto-merges minor/patch PRs.
 Format check (gofmt) is included in the Lint job via golangci-lint.
-Scenario Tests run `terraform test` against real Coolify (requires secrets).
 
 ## Safety
 

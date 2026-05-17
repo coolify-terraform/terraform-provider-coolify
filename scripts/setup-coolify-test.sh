@@ -194,7 +194,49 @@ if ! grep -q "API_RATE_LIMIT" /data/coolify/source/.env 2>/dev/null; then
   echo "API_RATE_LIMIT=1000" >> /data/coolify/source/.env
 fi
 
-# --- Step 7: Update GitHub secrets (if --secrets) ---
+# --- Step 7: MinIO S3 storage for backup tests ---
+
+if ! docker ps --format '{{.Names}}' | grep -q "^coolify-minio$"; then
+  log "Starting MinIO for S3 backup tests"
+  docker run -d \
+    --name coolify-minio \
+    --network coolify \
+    -e MINIO_ROOT_USER=minioadmin \
+    -e MINIO_ROOT_PASSWORD=minioadmin123 \
+    -p 9000:9000 \
+    -p 9001:9001 \
+    minio/minio:latest server /data --console-address ":9001" > /dev/null 2>&1
+  sleep 3
+  docker exec coolify-minio mc alias set local http://localhost:9000 minioadmin minioadmin123 > /dev/null 2>&1
+  docker exec coolify-minio mc mb local/coolify-backups > /dev/null 2>&1 || true
+else
+  log "MinIO already running"
+fi
+
+S3_COUNT=$(psql_exec "SELECT count(*) FROM s3_storages WHERE name = 'minio-test';")
+if [[ "$S3_COUNT" == "0" ]]; then
+  log "Registering MinIO S3 storage in Coolify"
+  S3_UUID=$(docker exec coolify php artisan tinker --execute='
+    $s = new \App\Models\S3Storage();
+    $s->name = "minio-test";
+    $s->description = "Local MinIO for acceptance testing";
+    $s->region = "us-east-1";
+    $s->key = "minioadmin";
+    $s->secret = "minioadmin123";
+    $s->bucket = "coolify-backups";
+    $s->endpoint = "http://coolify-minio:9000";
+    $s->team_id = \App\Models\Team::first()->id;
+    $s->is_usable = true;
+    $s->save();
+    echo $s->uuid;
+  ' 2>/dev/null | tail -1)
+  log "S3 storage UUID: $S3_UUID"
+else
+  S3_UUID=$(psql_exec "SELECT uuid FROM s3_storages WHERE name = 'minio-test' LIMIT 1;")
+  log "MinIO S3 storage already registered: $S3_UUID"
+fi
+
+# --- Step 8: Update GitHub secrets (if --secrets) ---
 
 if [[ "$UPDATE_SECRETS" == "true" ]]; then
   log "Updating GitHub secrets for $REPO"
@@ -202,6 +244,9 @@ if [[ "$UPDATE_SECRETS" == "true" ]]; then
   gh secret set COOLIFY_TOKEN --repo "$REPO" --body "$API_TOKEN"
   gh secret set COOLIFY_SERVER_UUID --repo "$REPO" --body "$SERVER_UUID"
   gh secret set COOLIFY_PRIVATE_KEY_UUID --repo "$REPO" --body "$PRIVATE_KEY_UUID"
+  if [[ -n "${S3_UUID:-}" ]]; then
+    gh secret set COOLIFY_S3_STORAGE_UUID --repo "$REPO" --body "$S3_UUID"
+  fi
   log "GitHub secrets updated"
 fi
 
@@ -211,15 +256,17 @@ echo ""
 echo "========================================="
 echo "  Coolify Test Instance Setup Complete"
 echo "========================================="
-echo "  Endpoint:         $COOLIFY_ENDPOINT"
-echo "  API Token:        ${API_TOKEN:0:10}..."
-echo "  Server UUID:      $SERVER_UUID"
-echo "  Private Key UUID: $PRIVATE_KEY_UUID"
+echo "  Endpoint:          $COOLIFY_ENDPOINT"
+echo "  API Token:         ${API_TOKEN:0:10}..."
+echo "  Server UUID:       $SERVER_UUID"
+echo "  Private Key UUID:  $PRIVATE_KEY_UUID"
+echo "  S3 Storage UUID:   ${S3_UUID:-not configured}"
 echo ""
 echo "  To run acceptance tests locally:"
 echo "    export COOLIFY_ENDPOINT=$COOLIFY_ENDPOINT"
 echo "    export COOLIFY_TOKEN=$API_TOKEN"
 echo "    export COOLIFY_SERVER_UUID=$SERVER_UUID"
 echo "    export COOLIFY_PRIVATE_KEY_UUID=$PRIVATE_KEY_UUID"
+echo "    export COOLIFY_S3_STORAGE_UUID=${S3_UUID:-}"
 echo "    make testacc"
 echo "========================================="
