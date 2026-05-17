@@ -336,7 +336,7 @@ type UpdateDatabaseBackupInput struct {
 
 func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]DatabaseBackup, error) {
 	var backups []DatabaseBackup
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)), nil, &backups); err != nil {
+	if err := c.doCachedList(ctx, fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)), &backups); err != nil {
 		return nil, fmt.Errorf("listing backups for database %s: %w", dbUUID, err)
 	}
 	return backups, nil
@@ -347,6 +347,7 @@ func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input 
 	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)), input, &b, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating backup for database %s: %w", dbUUID, err)
 	}
+	c.listCache.invalidate(fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)))
 	return &b, nil
 }
 
@@ -355,6 +356,7 @@ func (c *Client) UpdateDatabaseBackup(ctx context.Context, dbUUID string, backup
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/backups/%s", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), input, &b); err != nil {
 		return nil, fmt.Errorf("updating backup %s for database %s: %w", backupUUID, dbUUID, err)
 	}
+	c.listCache.invalidate(fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)))
 	return &b, nil
 }
 
@@ -362,6 +364,7 @@ func (c *Client) DeleteDatabaseBackup(ctx context.Context, dbUUID string, backup
 	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/databases/%s/backups/%s", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), nil, nil); err != nil {
 		return fmt.Errorf("deleting backup %s for database %s: %w", backupUUID, dbUUID, err)
 	}
+	c.listCache.invalidate(fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)))
 	return nil
 }
 
