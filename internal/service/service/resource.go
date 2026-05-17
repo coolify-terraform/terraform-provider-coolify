@@ -266,6 +266,7 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 		resp.Diagnostics.AddError("Error deleting service", fmt.Sprintf("service %s: %s", uuid, err))
 		return
 	}
+	client.PollUntilDeleted(ctx, func() error { _, err := r.client.GetService(ctx, uuid); return err })
 }
 
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

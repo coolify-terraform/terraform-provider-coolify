@@ -419,6 +419,7 @@ func DeleteDatabase(ctx context.Context, c *client.Client, uuid string) error {
 		}
 		return err
 	}
+	client.PollUntilDeleted(ctx, func() error { _, err := c.GetDatabase(ctx, uuid); return err })
 	return nil
 }
 

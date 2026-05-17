@@ -365,3 +365,20 @@ func RetryDelete(ctx context.Context, attempts int, delay time.Duration, deleteF
 	}
 	return finalErr
 }
+
+// PollUntilDeleted polls a get function every 5s for up to 2 minutes,
+// returning when the resource is confirmed gone (NotFound) or the
+// context is cancelled. Use after an async delete to wait for Coolify
+// to finish tearing down containers.
+func PollUntilDeleted(ctx context.Context, getFn func() error) {
+	for range 24 {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(5 * time.Second):
+		}
+		if IsNotFound(getFn()) {
+			return
+		}
+	}
+}

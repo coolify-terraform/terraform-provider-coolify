@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
@@ -1254,19 +1253,7 @@ func deleteApplication(
 		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
-	// Poll until the application is fully removed (up to 2 min).
-	// Coolify queues a DeleteResourceJob that tears down containers;
-	// on slow hosts this can take well over 60s.
-	for range 24 {
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(5 * time.Second):
-		}
-		if _, err := c.GetApplication(ctx, uuid); client.IsNotFound(err) {
-			return
-		}
-	}
+	client.PollUntilDeleted(ctx, func() error { _, err := c.GetApplication(ctx, uuid); return err })
 }
 
 // importApplicationState validates the import ID and sets the initial state
