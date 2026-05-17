@@ -4,11 +4,14 @@ page_title: "coolify_environment Resource - coolify"
 subcategory: ""
 description: |-
   Manages a Coolify environment within a project. Every project auto-creates a production environment. Use this resource to create additional environments (e.g. staging, dev). Applications, databases, and services reference environments via their environment_name attribute.
+  ~> Warning: Deleting an environment will cascade-delete all applications, databases, and services within it.
 ---
 
 # coolify_environment (Resource)
 
 Manages a Coolify environment within a project. Every project auto-creates a `production` environment. Use this resource to create additional environments (e.g. `staging`, `dev`). Applications, databases, and services reference environments via their `environment_name` attribute.
+
+~> **Warning:** Deleting an environment will cascade-delete all applications, databases, and services within it.
 
 ## Example Usage
 

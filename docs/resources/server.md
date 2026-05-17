@@ -4,11 +4,14 @@ page_title: "coolify_server Resource - coolify"
 subcategory: ""
 description: |-
   Manages a Coolify server.
+  ~> Warning: Deleting a server will cascade-delete all applications, databases, and services deployed on it.
 ---
 
 # coolify_server (Resource)
 
 Manages a Coolify server.
+
+~> **Warning:** Deleting a server will cascade-delete all applications, databases, and services deployed on it.
 
 ## Example Usage
 
@@ -44,7 +47,7 @@ resource "coolify_server" "example" {
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
 - `description` (String) A description of the server.
-- `dynamic_timeout` (Number) Deployment timeout in seconds.
+- `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `is_build_server` (Boolean) Whether this server is used for building applications.
 - `port` (Number) The SSH port of the server.
 - `server_disk_usage_check_frequency` (String) Cron expression for how often disk usage is checked (e.g. `*/5 * * * *` or `@daily`).
