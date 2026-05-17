@@ -440,6 +440,22 @@ func TestContractCoverage_ScheduledDatabaseBackup(t *testing.T) {
 	})
 }
 
+func TestContractCoverage_CloudToken(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "CloudProviderToken", reflect.TypeOf(client.CloudToken{}), map[string]bool{
+		"team_id": true, // internal FK
+	})
+}
+
+func TestContractCoverage_Storage(t *testing.T) {
+	t.Parallel()
+	contractCoverageTest(t, "LocalPersistentVolume", reflect.TypeOf(client.Storage{}), map[string]bool{
+		"container_id":              true, // internal Docker container ID
+		"resource_id":               true, // numeric FK; provider uses resource_uuid
+		"is_preview_suffix_enabled": true, // not exposed yet
+	})
+}
+
 // TestContractCoverage_Report prints a summary of coverage. Run with -v.
 func TestContractCoverage_Report(t *testing.T) {
 	t.Parallel()

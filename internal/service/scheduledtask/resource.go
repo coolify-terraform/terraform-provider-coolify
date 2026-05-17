@@ -238,6 +238,10 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
+	// Write plan values directly to state without a read-back GET.
+	// Scheduled tasks use a list endpoint (no singular GET), so read-back
+	// would require listing all tasks and filtering. The plan values are
+	// authoritative since the PATCH was accepted.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
