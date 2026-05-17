@@ -13,6 +13,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 const serviceTestConfig = `
@@ -324,6 +325,105 @@ resource "coolify_service" "test" {
 					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-uuid-1"),
 					resource.TestCheckResourceAttr("coolify_service.test", "description", "updated description"),
 				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestServiceResource_ImportCompound
+// ---------------------------------------------------------------------------
+
+func TestServiceResource_ImportCompound(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockServiceServer()
+	defer srv.Close()
+
+	const (
+		projUUID = "aaaa0001-0001-4000-8000-000000000001"
+		srvUUID  = "bbbb0001-0001-4000-8000-000000000001"
+		svcUUID  = "dddd0001-0001-4000-8000-000000000001"
+		envName  = "production"
+	)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: serviceConfig(srv.URL),
+			},
+			{
+				ResourceName:  "coolify_service.test",
+				ImportState:   true,
+				ImportStateId: projUUID + ":" + srvUUID + ":" + envName + ":" + svcUUID,
+				ImportStateCheck: func(states []*terraform.InstanceState) error {
+					if len(states) != 1 {
+						return fmt.Errorf("expected 1 state, got %d", len(states))
+					}
+					attrs := states[0].Attributes
+					checks := map[string]string{
+						"project_uuid":     projUUID,
+						"server_uuid":      srvUUID,
+						"environment_name": envName,
+						"uuid":             svcUUID,
+					}
+					for k, want := range checks {
+						if got := attrs[k]; got != want {
+							return fmt.Errorf("attribute %s = %q, want %q", k, got, want)
+						}
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestServiceResource_ImportCompoundBadParts
+// ---------------------------------------------------------------------------
+
+func TestServiceResource_ImportCompoundBadParts(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockServiceServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: serviceConfig(srv.URL),
+			},
+			{
+				ResourceName:  "coolify_service.test",
+				ImportState:   true,
+				ImportStateId: "a:b:c",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestServiceResource_ImportCompoundEmptyEnv
+// ---------------------------------------------------------------------------
+
+func TestServiceResource_ImportCompoundEmptyEnv(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockServiceServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: serviceConfig(srv.URL),
+			},
+			{
+				ResourceName:  "coolify_service.test",
+				ImportState:   true,
+				ImportStateId: "aaaa0001-0001-4000-8000-000000000001:bbbb0001-0001-4000-8000-000000000001::dddd0001-0001-4000-8000-000000000001",
+				ExpectError:   regexp.MustCompile(`environment_name must not be empty`),
 			},
 		},
 	})

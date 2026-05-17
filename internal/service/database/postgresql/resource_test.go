@@ -13,6 +13,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 type mockPostgresState struct {
@@ -433,6 +434,120 @@ resource "coolify_postgresql_database" "test" {
 					acctest.CheckResourceDisappears(srv.URL, "coolify_postgresql_database.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestPostgresqlDatabaseResource_ImportCompound
+// ---------------------------------------------------------------------------
+
+func TestPostgresqlDatabaseResource_ImportCompound(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockPostgresServer()
+	defer srv.Close()
+
+	const (
+		projUUID = "aaaa0001-0001-4000-8000-000000000001"
+		srvUUID  = "bbbb0001-0001-4000-8000-000000000001"
+		dbUUID   = "aaaa0001-0001-4000-8000-000000000001"
+		envName  = "production"
+	)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_postgresql_database.test",
+				ImportState:   true,
+				ImportStateId: projUUID + ":" + srvUUID + ":" + envName + ":" + dbUUID,
+				ImportStateCheck: func(states []*terraform.InstanceState) error {
+					if len(states) != 1 {
+						return fmt.Errorf("expected 1 state, got %d", len(states))
+					}
+					attrs := states[0].Attributes
+					checks := map[string]string{
+						"project_uuid":     projUUID,
+						"server_uuid":      srvUUID,
+						"environment_name": envName,
+						"uuid":             dbUUID,
+					}
+					for k, want := range checks {
+						if got := attrs[k]; got != want {
+							return fmt.Errorf("attribute %s = %q, want %q", k, got, want)
+						}
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestPostgresqlDatabaseResource_ImportCompoundBadParts
+// ---------------------------------------------------------------------------
+
+func TestPostgresqlDatabaseResource_ImportCompoundBadParts(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockPostgresServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_postgresql_database.test",
+				ImportState:   true,
+				ImportStateId: "a:b:c",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestPostgresqlDatabaseResource_ImportCompoundEmptyEnv
+// ---------------------------------------------------------------------------
+
+func TestPostgresqlDatabaseResource_ImportCompoundEmptyEnv(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockPostgresServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_postgresql_database.test",
+				ImportState:   true,
+				ImportStateId: "aaaa0001-0001-4000-8000-000000000001:bbbb0001-0001-4000-8000-000000000001::aaaa0001-0001-4000-8000-000000000001",
+				ExpectError:   regexp.MustCompile(`environment_name must not be empty`),
 			},
 		},
 	})

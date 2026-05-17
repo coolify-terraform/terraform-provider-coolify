@@ -1320,3 +1320,226 @@ func TestApplicationResource_PortsMappingsRange(t *testing.T) {
 		},
 	})
 }
+
+// ---------------------------------------------------------------------------
+// TestApplicationResource_ImportCompound
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_ImportCompound(t *testing.T) {
+	t.Parallel()
+	const (
+		projUUID = "aaaa0004-0004-4000-8000-000000000004"
+		srvUUID  = "bbbb0004-0004-4000-8000-000000000004"
+		appUUID  = "cccc0004-0004-4000-8000-000000000004"
+		envName  = "production"
+	)
+
+	app := client.Application{
+		UUID:            appUUID,
+		Name:            "compound-import-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     projUUID,
+		ServerUUID:      srvUUID,
+		EnvironmentName: envName,
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, fmt.Sprintf(`
+					project_uuid   = %q
+					server_uuid    = %q
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`, projUUID, srvUUID)),
+			},
+			{
+				ResourceName:  "coolify_application.test",
+				ImportState:   true,
+				ImportStateId: projUUID + ":" + srvUUID + ":" + envName + ":" + appUUID,
+				ImportStateCheck: func(states []*terraform.InstanceState) error {
+					if len(states) != 1 {
+						return fmt.Errorf("expected 1 state, got %d", len(states))
+					}
+					attrs := states[0].Attributes
+					checks := map[string]string{
+						"project_uuid":     projUUID,
+						"server_uuid":      srvUUID,
+						"environment_name": envName,
+						"uuid":             appUUID,
+					}
+					for k, want := range checks {
+						if got := attrs[k]; got != want {
+							return fmt.Errorf("attribute %s = %q, want %q", k, got, want)
+						}
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestApplicationResource_ImportCompoundBadParts
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_ImportCompoundBadParts(t *testing.T) {
+	t.Parallel()
+	app := client.Application{
+		UUID:            "cccc0005-0005-4000-8000-000000000005",
+		Name:            "bad-parts-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0005-0005-4000-8000-000000000005",
+		ServerUUID:      "bbbb0005-0005-4000-8000-000000000005",
+		EnvironmentName: "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0005-0005-4000-8000-000000000005"
+					server_uuid    = "bbbb0005-0005-4000-8000-000000000005"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`),
+			},
+			{
+				ResourceName:  "coolify_application.test",
+				ImportState:   true,
+				ImportStateId: "a:b:c",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestApplicationResource_ImportCompoundEmptyEnv
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_ImportCompoundEmptyEnv(t *testing.T) {
+	t.Parallel()
+	app := client.Application{
+		UUID:            "cccc0006-0006-4000-8000-000000000006",
+		Name:            "empty-env-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0006-0006-4000-8000-000000000006",
+		ServerUUID:      "bbbb0006-0006-4000-8000-000000000006",
+		EnvironmentName: "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0006-0006-4000-8000-000000000006"
+					server_uuid    = "bbbb0006-0006-4000-8000-000000000006"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`),
+			},
+			{
+				ResourceName:  "coolify_application.test",
+				ImportState:   true,
+				ImportStateId: "aaaa0006-0006-4000-8000-000000000006:bbbb0006-0006-4000-8000-000000000006::cccc0006-0006-4000-8000-000000000006",
+				ExpectError:   regexp.MustCompile(`environment_name must not be empty`),
+			},
+		},
+	})
+}
