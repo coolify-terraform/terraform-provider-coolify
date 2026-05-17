@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
@@ -270,11 +271,41 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 }
 
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	if err := validate.ImportUUID(req.ID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
+	// Accept both simple UUID and compound "project_uuid:server_uuid:environment_name:uuid" formats.
+	parts := strings.SplitN(req.ID, ":", 4)
+	switch len(parts) {
+	case 1:
+		if err := validate.ImportUUID(parts[0]); err != nil {
+			resp.Diagnostics.AddError("Invalid Import ID", err.Error())
+			return
+		}
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parts[0])...)
+	case 4:
+		if err := validate.ImportUUID(parts[0]); err != nil {
+			resp.Diagnostics.AddError("Invalid Import ID", "project_uuid: "+err.Error())
+			return
+		}
+		if err := validate.ImportUUID(parts[1]); err != nil {
+			resp.Diagnostics.AddError("Invalid Import ID", "server_uuid: "+err.Error())
+			return
+		}
+		if parts[2] == "" {
+			resp.Diagnostics.AddError("Invalid Import ID", "environment_name must not be empty")
+			return
+		}
+		if err := validate.ImportUUID(parts[3]); err != nil {
+			resp.Diagnostics.AddError("Invalid Import ID", "uuid: "+err.Error())
+			return
+		}
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parts[0])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parts[1])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parts[2])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parts[3])...)
+	default:
+		resp.Diagnostics.AddError("Invalid Import ID",
+			"Expected UUID or project_uuid:server_uuid:environment_name:uuid, got: "+req.ID)
 		return
 	}
-	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 	resp.Diagnostics.AddWarning(
 		"Sensitive fields require token permissions",
 		"The Coolify API hides docker_compose and docker_compose_raw unless the API token has \"root\" or \"read:sensitive\" permission. "+

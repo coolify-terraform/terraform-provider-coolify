@@ -62,5 +62,9 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# Simple import (project_uuid, server_uuid, environment_name must be added to config manually):
 terraform import coolify_service.example <service-uuid>
+
+# Compound import (recommended, populates all required fields):
+terraform import coolify_service.example <project-uuid>:<server-uuid>:<environment-name>:<service-uuid>
 ```
