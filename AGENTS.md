@@ -87,6 +87,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - Extract contract from Coolify source: `make contract-extract VERSION=v4.0.1`
 - Verify client structs cover contract: `make contract-check`
 - Regenerate OpenAPI spec from contract: `make spec-generate`
+- Scaffold a new resource: `make scaffold NAME=myresource`
 
 ## Structure
 
