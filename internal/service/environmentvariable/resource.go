@@ -100,8 +100,11 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Validators: []validator.String{validate.UUID()},
 			},
 			"key": schema.StringAttribute{
-				MarkdownDescription: "The name of the environment variable (must be a valid shell variable name).",
+				MarkdownDescription: "The name of the environment variable (must be a valid shell variable name). Changing the key forces replacement.",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`), "must be a valid environment variable name (letters, digits, underscores; cannot start with a digit)"),
 				},
