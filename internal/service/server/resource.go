@@ -66,7 +66,7 @@ func (r *serverResource) Metadata(_ context.Context, req resource.MetadataReques
 
 func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify server.",
+		MarkdownDescription: "Manages a Coolify server.\n\n~> **Warning:** Deleting a server will cascade-delete all applications, databases, and services deployed on it.",
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"uuid": schema.StringAttribute{
