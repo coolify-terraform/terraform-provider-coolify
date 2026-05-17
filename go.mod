@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.31.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/hashicorp/terraform-plugin-testing v1.16.0
-	github.com/pb33f/libopenapi v0.36.3
+	github.com/pb33f/libopenapi v0.36.4
 	github.com/pb33f/libopenapi-validator v0.13.7
 	github.com/stretchr/testify v1.11.1
 )
