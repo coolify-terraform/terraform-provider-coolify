@@ -349,7 +349,7 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"limits_memory_swappiness":  schema.Int64Attribute{MarkdownDescription: "Memory swappiness (0-100).", Optional: true, Computed: true, Default: int64default.StaticInt64(60)},
 		"limits_memory_reservation": schema.StringAttribute{MarkdownDescription: "Memory reservation (e.g., `256m`).", Optional: true, Computed: true, Default: stringdefault.StaticString("0")},
 		"limits_cpus":               schema.StringAttribute{MarkdownDescription: "CPU limit (e.g., `0.5`, `2`).", Optional: true, Computed: true, Default: stringdefault.StaticString("0")},
-		"limits_cpuset":             schema.StringAttribute{MarkdownDescription: "CPU set restriction (e.g., `0-3`, `0,2`).", Optional: true, Computed: true},
+		"limits_cpuset":             schema.StringAttribute{MarkdownDescription: "CPU set restriction (e.g., `0-3`, `0,2`).", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"limits_cpu_shares":         schema.Int64Attribute{MarkdownDescription: "CPU shares (relative weight).", Optional: true, Computed: true, Default: int64default.StaticInt64(1024)},
 		// Container/network settings
 		"ports_mappings": schema.StringAttribute{
@@ -492,7 +492,13 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	*f.LimitsMemorySwap = flex.StringToFramework(db.LimitsMemorySwap)
 	*f.LimitsMemoryReservation = flex.StringToFramework(db.LimitsMemoryReservation)
 	*f.LimitsCPUs = flex.StringToFramework(db.LimitsCPUs)
-	*f.LimitsCPUSet = flex.StringToFramework(db.LimitsCPUSet)
+	// limits_cpuset has no schema Default. Resolve unknown after create,
+	// preserve user value on normal read, populate on import.
+	if db.LimitsCPUSet != "" {
+		*f.LimitsCPUSet = types.StringValue(db.LimitsCPUSet)
+	} else if f.LimitsCPUSet.IsUnknown() {
+		*f.LimitsCPUSet = types.StringNull()
+	}
 	*f.LimitsMemorySwappiness = flex.Int64PtrToFramework(db.LimitsMemorySwappiness)
 	*f.LimitsCPUShares = flex.Int64PtrToFramework(db.LimitsCPUShares)
 	// Fields without defaults — only set when configured.
