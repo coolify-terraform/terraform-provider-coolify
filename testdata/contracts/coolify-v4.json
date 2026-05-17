@@ -1,7 +1,7 @@
 {
-  "version": "v4-latest",
-  "extracted_from": "coollabsio/coolify@v4-latest",
-  "extracted_at": "2026-05-17T14:40:36.259094+00:00",
+  "version": "v4.0.1",
+  "extracted_from": "coollabsio/coolify@v4.0.1",
+  "extracted_at": "2026-05-17T19:44:17.183459+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -112,6 +112,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "build_command": {
@@ -121,6 +122,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "build_pack": {
@@ -130,6 +132,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "compose_parsing_version": {
@@ -139,6 +142,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "config_hash": {
@@ -148,6 +152,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "connect_to_docker_network": {
@@ -156,7 +161,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "custom_docker_run_options": {
           "type": "text",
@@ -165,6 +171,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_healthcheck_found": {
@@ -173,7 +180,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "custom_labels": {
           "type": "text",
@@ -181,7 +189,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "custom_network_aliases": {
           "type": "text",
@@ -189,7 +198,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "custom_nginx_configuration": {
           "type": "longText",
@@ -197,7 +207,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -206,6 +217,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "destination_id": {
@@ -214,7 +226,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "destination_type": {
           "type": "string",
@@ -222,7 +235,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "docker_compose": {
           "type": "longText",
@@ -230,7 +244,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "docker_compose_custom_build_command": {
           "type": "string",
@@ -239,6 +254,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "docker_compose_custom_start_command": {
@@ -248,6 +264,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "docker_compose_domains": {
@@ -256,7 +273,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "docker_compose_location": {
           "type": "string",
@@ -265,6 +283,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "docker_compose_pr": {
@@ -273,7 +292,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "docker_compose_pr_location": {
           "type": "string",
@@ -281,7 +301,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "docker_compose_pr_raw": {
           "type": "string",
@@ -289,7 +310,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "docker_compose_raw": {
           "type": "longText",
@@ -297,7 +319,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "docker_registry_image_name": {
           "type": "string",
@@ -306,6 +329,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "docker_registry_image_tag": {
@@ -315,6 +339,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "dockerfile": {
@@ -323,7 +348,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "dockerfile_location": {
           "type": "string",
@@ -332,6 +358,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "dockerfile_target_build": {
@@ -341,6 +368,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "environment_id": {
@@ -349,7 +377,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "force_domain_override": {
           "type": "string",
@@ -357,7 +386,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "fqdn": {
           "type": "longText",
@@ -366,6 +396,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "git_branch": {
@@ -375,6 +406,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "git_commit_sha": {
@@ -384,6 +416,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "git_full_url": {
@@ -393,6 +426,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "git_repository": {
@@ -402,6 +436,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "health_check_command": {
@@ -410,7 +445,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "health_check_enabled": {
           "type": "boolean",
@@ -418,7 +454,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "health_check_host": {
           "type": "string",
@@ -427,6 +464,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "health_check_interval": {
@@ -435,7 +473,8 @@
           "default": 5,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "health_check_method": {
           "type": "string",
@@ -444,6 +483,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "health_check_path": {
@@ -453,6 +493,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "health_check_port": {
@@ -462,6 +503,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "health_check_response_text": {
@@ -471,6 +513,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "health_check_retries": {
@@ -479,7 +522,8 @@
           "default": 10,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "health_check_return_code": {
           "type": "integer",
@@ -487,7 +531,8 @@
           "default": 200,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "health_check_scheme": {
           "type": "string",
@@ -496,6 +541,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "health_check_start_period": {
@@ -504,7 +550,8 @@
           "default": 5,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "health_check_timeout": {
           "type": "integer",
@@ -512,7 +559,8 @@
           "default": 5,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "health_check_type": {
           "type": "text",
@@ -520,7 +568,8 @@
           "default": "http",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "http_basic_auth_password": {
           "type": "string",
@@ -529,6 +578,7 @@
           "cast": "encrypted",
           "sensitive": true,
           "fillable": true,
+          "flatten_hint": "if_configured",
           "max_length": 255
         },
         "http_basic_auth_username": {
@@ -538,6 +588,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "install_command": {
@@ -547,6 +598,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "is_container_label_escape_enabled": {
@@ -555,7 +607,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_http_basic_auth_enabled": {
           "type": "boolean",
@@ -563,7 +616,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_online_at": {
           "type": "timestamp",
@@ -571,7 +625,8 @@
           "default": "now(",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_at": {
           "type": "timestamp",
@@ -579,7 +634,8 @@
           "default": null,
           "cast": "datetime",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "last_restart_type": {
           "type": "string",
@@ -588,6 +644,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 10
         },
         "limits_cpu_shares": {
@@ -596,7 +653,8 @@
           "default": 1024,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpus": {
           "type": "string",
@@ -605,6 +663,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_cpuset": {
@@ -614,6 +673,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "limits_memory": {
@@ -623,6 +683,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_reservation": {
@@ -632,6 +693,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swap": {
@@ -641,6 +703,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swappiness": {
@@ -649,7 +712,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "manual_webhook_secret_bitbucket": {
           "type": "string",
@@ -658,6 +722,7 @@
           "cast": "encrypted",
           "sensitive": true,
           "fillable": true,
+          "flatten_hint": "if_configured",
           "max_length": 255
         },
         "manual_webhook_secret_gitea": {
@@ -667,6 +732,7 @@
           "cast": "encrypted",
           "sensitive": true,
           "fillable": true,
+          "flatten_hint": "if_configured",
           "max_length": 255
         },
         "manual_webhook_secret_github": {
@@ -676,6 +742,7 @@
           "cast": "encrypted",
           "sensitive": true,
           "fillable": true,
+          "flatten_hint": "if_configured",
           "max_length": 255
         },
         "manual_webhook_secret_gitlab": {
@@ -685,6 +752,7 @@
           "cast": "encrypted",
           "sensitive": true,
           "fillable": true,
+          "flatten_hint": "if_configured",
           "max_length": 255
         },
         "name": {
@@ -694,6 +762,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "nixpkgsarchive": {
@@ -702,7 +771,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "ports_exposes": {
           "type": "string",
@@ -711,6 +781,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ports_mappings": {
@@ -720,6 +791,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "post_deployment_command": {
@@ -729,6 +801,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "post_deployment_command_container": {
@@ -738,6 +811,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "pre_deployment_command": {
@@ -747,6 +821,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "pre_deployment_command_container": {
@@ -756,6 +831,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "preview_url_template": {
@@ -765,6 +841,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "private_key_id": {
@@ -773,7 +850,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "publish_directory": {
           "type": "string",
@@ -782,6 +860,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "redirect": {
@@ -791,6 +870,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "enum_values": [
             "www",
             "non-www",
@@ -803,7 +883,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "restart_count": {
           "type": "integer",
@@ -811,7 +892,8 @@
           "default": 0,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "source_id": {
           "type": "bigInteger",
@@ -819,7 +901,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "source_type": {
           "type": "string",
@@ -827,7 +910,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "start_command": {
           "type": "string",
@@ -836,6 +920,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "static_image": {
@@ -845,6 +930,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "status": {
@@ -854,6 +940,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "swarm_placement_constraints": {
@@ -862,7 +949,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "swarm_replicas": {
           "type": "integer",
@@ -870,7 +958,8 @@
           "default": 1,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "use_build_server": {
           "type": "string",
@@ -878,7 +967,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "uuid": {
           "type": "string",
@@ -887,6 +977,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "watch_paths": {
@@ -895,7 +986,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         }
       },
       "settings_fields": {
@@ -905,7 +997,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "connect_to_docker_network": {
           "type": "boolean",
@@ -913,7 +1006,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "custom_internal_name": {
           "type": "string",
@@ -922,6 +1016,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "disable_build_cache": {
@@ -930,7 +1025,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "docker_images_to_keep": {
           "type": "integer",
@@ -938,7 +1034,8 @@
           "default": 2,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "gpu_count": {
           "type": "string",
@@ -947,6 +1044,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "gpu_device_ids": {
@@ -956,6 +1054,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "gpu_driver": {
@@ -965,6 +1064,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "gpu_options": {
@@ -973,7 +1073,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "include_source_commit_in_build": {
           "type": "boolean",
@@ -981,7 +1082,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "inject_build_args_to_dockerfile": {
           "type": "boolean",
@@ -989,7 +1091,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_auto_deploy_enabled": {
           "type": "boolean",
@@ -997,7 +1100,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_build_server_enabled": {
           "type": "boolean",
@@ -1005,7 +1109,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_consistent_container_name_enabled": {
           "type": "boolean",
@@ -1013,7 +1118,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_container_label_escape_enabled": {
           "type": "boolean",
@@ -1021,7 +1127,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_container_label_readonly_enabled": {
           "type": "boolean",
@@ -1029,7 +1136,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_custom_ssl": {
           "type": "boolean",
@@ -1037,7 +1145,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "unconditional"
         },
         "is_debug_enabled": {
           "type": "boolean",
@@ -1045,7 +1154,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_dual_cert": {
           "type": "boolean",
@@ -1053,7 +1163,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "unconditional"
         },
         "is_env_sorting_enabled": {
           "type": "boolean",
@@ -1061,7 +1172,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_force_https_enabled": {
           "type": "boolean",
@@ -1069,7 +1181,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_git_lfs_enabled": {
           "type": "boolean",
@@ -1077,7 +1190,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_git_shallow_clone_enabled": {
           "type": "boolean",
@@ -1085,7 +1199,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_git_submodules_enabled": {
           "type": "boolean",
@@ -1093,7 +1208,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_gpu_enabled": {
           "type": "boolean",
@@ -1101,7 +1217,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_gzip_enabled": {
           "type": "boolean",
@@ -1109,7 +1226,8 @@
           "default": true,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_http2": {
           "type": "boolean",
@@ -1117,7 +1235,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "unconditional"
         },
         "is_include_timestamps": {
           "type": "boolean",
@@ -1125,7 +1244,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_log_drain_enabled": {
           "type": "boolean",
@@ -1133,7 +1253,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_pr_deployments_public_enabled": {
           "type": "boolean",
@@ -1141,7 +1262,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_preserve_repository_enabled": {
           "type": "boolean",
@@ -1149,7 +1271,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_preview_deployments_enabled": {
           "type": "boolean",
@@ -1157,7 +1280,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_raw_compose_deployment_enabled": {
           "type": "boolean",
@@ -1165,7 +1289,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_spa": {
           "type": "boolean",
@@ -1173,7 +1298,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_static": {
           "type": "boolean",
@@ -1181,7 +1307,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_stripprefix_enabled": {
           "type": "boolean",
@@ -1189,7 +1316,8 @@
           "default": true,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_swarm_only_worker_nodes": {
           "type": "boolean",
@@ -1197,7 +1325,8 @@
           "default": true,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "use_build_secrets": {
           "type": "boolean",
@@ -1205,7 +1334,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         }
       }
     },
@@ -1240,7 +1370,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -1249,6 +1380,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "detected_traefik_version": {
@@ -1258,6 +1390,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "hetzner_server_id": {
@@ -1266,7 +1399,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "hetzner_server_status": {
           "type": "string",
@@ -1275,6 +1409,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "high_disk_usage_notification_sent": {
@@ -1283,7 +1418,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "unconditional"
         },
         "ip": {
           "type": "string",
@@ -1292,6 +1428,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ip_previous": {
@@ -1301,6 +1438,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "is_validating": {
@@ -1309,7 +1447,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "log_drain_notification_sent": {
           "type": "boolean",
@@ -1317,7 +1456,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "unconditional"
         },
         "name": {
           "type": "string",
@@ -1326,6 +1466,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "port": {
@@ -1334,7 +1475,8 @@
           "default": 22,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "private_key_id": {
           "type": "bigInteger",
@@ -1342,7 +1484,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "server_metadata": {
           "type": "json",
@@ -1350,7 +1493,8 @@
           "default": null,
           "cast": "array",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "swarm_cluster": {
           "type": "integer",
@@ -1358,7 +1502,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "or_clear"
         },
         "traefik_outdated_info": {
           "type": "json",
@@ -1366,7 +1511,8 @@
           "default": null,
           "cast": "array",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "unreachable_count": {
           "type": "integer",
@@ -1374,7 +1520,8 @@
           "default": 0,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "unconditional"
         },
         "unreachable_email_sent": {
           "type": "boolean",
@@ -1382,7 +1529,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "unconditional"
         },
         "user": {
           "type": "string",
@@ -1391,6 +1539,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -1400,6 +1549,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "validation_logs": {
@@ -1408,7 +1558,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "or_clear"
         }
       }
     },
@@ -1469,7 +1620,8 @@
           "default": 2,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "delete_unused_networks": {
           "type": "boolean",
@@ -1477,7 +1629,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "delete_unused_volumes": {
           "type": "boolean",
@@ -1485,7 +1638,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "deployment_queue_limit": {
           "type": "integer",
@@ -1493,7 +1647,8 @@
           "default": 25,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "disable_application_image_retention": {
           "type": "boolean",
@@ -1501,7 +1656,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "docker_cleanup_frequency": {
           "type": "string",
@@ -1510,6 +1666,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "docker_cleanup_threshold": {
@@ -1518,7 +1675,8 @@
           "default": 80,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "dynamic_timeout": {
           "type": "integer",
@@ -1526,7 +1684,8 @@
           "default": 3600,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "force_disabled": {
           "type": "boolean",
@@ -1534,7 +1693,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "force_docker_cleanup": {
           "type": "boolean",
@@ -1542,7 +1702,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "generate_exact_labels": {
           "type": "boolean",
@@ -1550,7 +1711,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_build_server": {
           "type": "boolean",
@@ -1558,7 +1720,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_cloudflare_tunnel": {
           "type": "boolean",
@@ -1566,7 +1729,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_jump_server": {
           "type": "boolean",
@@ -1574,7 +1738,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_logdrain_axiom_enabled": {
           "type": "boolean",
@@ -1582,7 +1747,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_logdrain_custom_enabled": {
           "type": "boolean",
@@ -1590,7 +1756,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_logdrain_highlight_enabled": {
           "type": "boolean",
@@ -1598,7 +1765,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_logdrain_newrelic_enabled": {
           "type": "boolean",
@@ -1606,7 +1774,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_metrics_enabled": {
           "type": "boolean",
@@ -1614,7 +1783,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_part_of_swarm": {
           "type": "boolean",
@@ -1622,7 +1792,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "unconditional"
         },
         "is_reachable": {
           "type": "boolean",
@@ -1630,7 +1801,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_sentinel_debug_enabled": {
           "type": "boolean",
@@ -1638,7 +1810,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_sentinel_enabled": {
           "type": "boolean",
@@ -1646,7 +1819,8 @@
           "default": true,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_swarm_manager": {
           "type": "string",
@@ -1654,7 +1828,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_swarm_worker": {
           "type": "boolean",
@@ -1662,7 +1837,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_terminal_enabled": {
           "type": "boolean",
@@ -1670,7 +1846,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_usable": {
           "type": "boolean",
@@ -1678,7 +1855,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "logdrain_axiom_api_key": {
           "type": "string",
@@ -1687,6 +1865,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "logdrain_axiom_dataset_name": {
@@ -1696,6 +1875,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "logdrain_custom_config": {
@@ -1704,7 +1884,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "logdrain_custom_config_parser": {
           "type": "text",
@@ -1712,7 +1893,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "logdrain_highlight_project_id": {
           "type": "string",
@@ -1721,6 +1903,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "logdrain_newrelic_base_uri": {
@@ -1730,6 +1913,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "logdrain_newrelic_license_key": {
@@ -1739,6 +1923,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "sentinel_custom_url": {
@@ -1748,6 +1933,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "sentinel_metrics_history_days": {
@@ -1756,7 +1942,8 @@
           "default": 7,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "sentinel_metrics_refresh_rate_seconds": {
           "type": "integer",
@@ -1764,7 +1951,8 @@
           "default": 10,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "sentinel_push_interval_seconds": {
           "type": "integer",
@@ -1772,7 +1960,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "sentinel_token": {
           "type": "text",
@@ -1780,7 +1969,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "server_disk_usage_check_frequency": {
           "type": "string",
@@ -1789,6 +1979,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "server_disk_usage_notification_threshold": {
@@ -1797,7 +1988,8 @@
           "default": 80,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "server_id": {
           "type": "bigInteger",
@@ -1805,7 +1997,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "server_timezone": {
           "type": "string",
@@ -1814,6 +2007,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "wildcard_domain": {
@@ -1823,6 +2017,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         }
       }
@@ -1846,6 +2041,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "name": {
@@ -1855,6 +2051,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -1864,6 +2061,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -1887,6 +2085,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "name": {
@@ -1896,6 +2095,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "project_id": {
@@ -1904,7 +2104,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "uuid": {
           "type": "string",
@@ -1913,6 +2114,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         }
       }
@@ -1949,6 +2151,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "config_hash": {
@@ -1958,6 +2161,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "connect_to_docker_network": {
@@ -1966,7 +2170,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "description": {
           "type": "longText",
@@ -1974,7 +2179,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "destination_id": {
           "type": "bigInteger",
@@ -1982,7 +2188,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "destination_type": {
           "type": "string",
@@ -1990,7 +2197,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "docker_compose": {
           "type": "longText",
@@ -1998,7 +2206,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "docker_compose_raw": {
           "type": "longText",
@@ -2006,7 +2215,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "environment_id": {
           "type": "bigInteger",
@@ -2014,7 +2224,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_container_label_escape_enabled": {
           "type": "boolean",
@@ -2022,7 +2233,8 @@
           "default": true,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "name": {
           "type": "string",
@@ -2031,6 +2243,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "server_id": {
@@ -2039,7 +2252,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "service_type": {
           "type": "string",
@@ -2048,6 +2262,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "uuid": {
@@ -2057,6 +2272,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -2117,6 +2333,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_docker_run_options": {
@@ -2125,7 +2342,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -2134,6 +2352,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "destination_id": {
@@ -2142,7 +2361,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "destination_type": {
           "type": "string",
@@ -2150,7 +2370,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "enable_ssl": {
           "type": "boolean",
@@ -2158,7 +2379,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "environment_id": {
           "type": "bigInteger",
@@ -2166,7 +2388,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "image": {
           "type": "string",
@@ -2175,6 +2398,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "init_scripts": {
@@ -2183,7 +2407,8 @@
           "default": null,
           "cast": "array",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "is_include_timestamps": {
           "type": "boolean",
@@ -2191,7 +2416,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_log_drain_enabled": {
           "type": "boolean",
@@ -2199,7 +2425,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_public": {
           "type": "boolean",
@@ -2207,7 +2434,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_online_at": {
           "type": "timestamp",
@@ -2215,7 +2443,8 @@
           "default": "now(",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_at": {
           "type": "string",
@@ -2223,7 +2452,8 @@
           "default": null,
           "cast": "datetime",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_type": {
           "type": "string",
@@ -2231,7 +2461,8 @@
           "default": null,
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpu_shares": {
           "type": "integer",
@@ -2239,7 +2470,8 @@
           "default": 1024,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpus": {
           "type": "string",
@@ -2248,6 +2480,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_cpuset": {
@@ -2257,6 +2490,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "limits_memory": {
@@ -2266,6 +2500,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_reservation": {
@@ -2275,6 +2510,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swap": {
@@ -2284,6 +2520,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swappiness": {
@@ -2292,7 +2529,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "name": {
           "type": "string",
@@ -2301,6 +2539,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ports_mappings": {
@@ -2309,7 +2548,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "postgres_conf": {
           "type": "longText",
@@ -2317,7 +2557,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "postgres_db": {
           "type": "string",
@@ -2326,6 +2567,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "postgres_host_auth_method": {
@@ -2335,6 +2577,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "postgres_initdb_args": {
@@ -2344,6 +2587,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "postgres_password": {
@@ -2352,7 +2596,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "postgres_user": {
           "type": "string",
@@ -2361,6 +2606,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "public_port": {
@@ -2369,7 +2615,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port_timeout": {
           "type": "string",
@@ -2377,7 +2624,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "restart_count": {
           "type": "string",
@@ -2385,7 +2633,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "ssl_mode": {
           "type": "enum",
@@ -2394,6 +2643,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "enum_values": [
             "allow",
             "prefer",
@@ -2408,7 +2658,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "status": {
           "type": "string",
@@ -2417,6 +2668,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -2426,6 +2678,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -2484,6 +2737,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_docker_run_options": {
@@ -2492,7 +2746,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -2501,6 +2756,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "destination_id": {
@@ -2509,7 +2765,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "destination_type": {
           "type": "string",
@@ -2517,7 +2774,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "enable_ssl": {
           "type": "boolean",
@@ -2525,7 +2783,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "environment_id": {
           "type": "bigInteger",
@@ -2533,7 +2792,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "image": {
           "type": "string",
@@ -2542,6 +2802,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "is_include_timestamps": {
@@ -2550,7 +2811,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_log_drain_enabled": {
           "type": "boolean",
@@ -2558,7 +2820,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_public": {
           "type": "boolean",
@@ -2566,7 +2829,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_online_at": {
           "type": "timestamp",
@@ -2574,7 +2838,8 @@
           "default": "now(",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_at": {
           "type": "string",
@@ -2582,7 +2847,8 @@
           "default": null,
           "cast": "datetime",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_type": {
           "type": "string",
@@ -2590,7 +2856,8 @@
           "default": null,
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpu_shares": {
           "type": "integer",
@@ -2598,7 +2865,8 @@
           "default": 1024,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpus": {
           "type": "string",
@@ -2607,6 +2875,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_cpuset": {
@@ -2616,6 +2885,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "limits_memory": {
@@ -2625,6 +2895,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_reservation": {
@@ -2634,6 +2905,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swap": {
@@ -2643,6 +2915,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swappiness": {
@@ -2651,7 +2924,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "mysql_conf": {
           "type": "longText",
@@ -2659,7 +2933,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "mysql_database": {
           "type": "string",
@@ -2668,6 +2943,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "mysql_password": {
@@ -2676,7 +2952,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "mysql_root_password": {
           "type": "text",
@@ -2684,7 +2961,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "mysql_user": {
           "type": "string",
@@ -2693,6 +2971,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "name": {
@@ -2702,6 +2981,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ports_mappings": {
@@ -2710,7 +2990,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port": {
           "type": "integer",
@@ -2718,7 +2999,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port_timeout": {
           "type": "string",
@@ -2726,7 +3008,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "restart_count": {
           "type": "string",
@@ -2734,7 +3017,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "ssl_mode": {
           "type": "enum",
@@ -2743,6 +3027,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "enum_values": [
             "PREFERRED",
             "REQUIRED",
@@ -2756,7 +3041,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "status": {
           "type": "string",
@@ -2765,6 +3051,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -2774,6 +3061,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -2830,6 +3118,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_docker_run_options": {
@@ -2838,7 +3127,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -2847,6 +3137,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "destination_id": {
@@ -2855,7 +3146,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "destination_type": {
           "type": "string",
@@ -2863,7 +3155,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "enable_ssl": {
           "type": "boolean",
@@ -2871,7 +3164,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "environment_id": {
           "type": "bigInteger",
@@ -2879,7 +3173,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "image": {
           "type": "string",
@@ -2888,6 +3183,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "is_log_drain_enabled": {
@@ -2896,7 +3192,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_public": {
           "type": "boolean",
@@ -2904,7 +3201,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_online_at": {
           "type": "timestamp",
@@ -2912,7 +3210,8 @@
           "default": "now(",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_at": {
           "type": "string",
@@ -2920,7 +3219,8 @@
           "default": null,
           "cast": "datetime",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_type": {
           "type": "string",
@@ -2928,7 +3228,8 @@
           "default": null,
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpu_shares": {
           "type": "integer",
@@ -2936,7 +3237,8 @@
           "default": 1024,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpus": {
           "type": "string",
@@ -2945,6 +3247,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_cpuset": {
@@ -2954,6 +3257,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "limits_memory": {
@@ -2963,6 +3267,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_reservation": {
@@ -2972,6 +3277,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swap": {
@@ -2981,6 +3287,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swappiness": {
@@ -2989,7 +3296,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "mariadb_conf": {
           "type": "longText",
@@ -2997,7 +3305,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "mariadb_database": {
           "type": "string",
@@ -3006,6 +3315,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "mariadb_password": {
@@ -3014,7 +3324,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "mariadb_root_password": {
           "type": "text",
@@ -3022,7 +3333,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "mariadb_user": {
           "type": "string",
@@ -3031,6 +3343,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "name": {
@@ -3040,6 +3353,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ports_mappings": {
@@ -3048,7 +3362,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port": {
           "type": "integer",
@@ -3056,7 +3371,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port_timeout": {
           "type": "string",
@@ -3064,7 +3380,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "restart_count": {
           "type": "string",
@@ -3072,7 +3389,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "started_at": {
           "type": "timestamp",
@@ -3080,7 +3398,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "status": {
           "type": "string",
@@ -3089,6 +3408,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -3098,6 +3418,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -3155,6 +3476,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_docker_run_options": {
@@ -3163,7 +3485,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -3172,6 +3495,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "destination_id": {
@@ -3180,7 +3504,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "destination_type": {
           "type": "string",
@@ -3188,7 +3513,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "enable_ssl": {
           "type": "boolean",
@@ -3196,7 +3522,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "environment_id": {
           "type": "bigInteger",
@@ -3204,7 +3531,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "image": {
           "type": "string",
@@ -3213,6 +3541,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "is_include_timestamps": {
@@ -3221,7 +3550,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_log_drain_enabled": {
           "type": "boolean",
@@ -3229,7 +3559,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_public": {
           "type": "boolean",
@@ -3237,7 +3568,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_online_at": {
           "type": "timestamp",
@@ -3245,7 +3577,8 @@
           "default": "now(",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_at": {
           "type": "string",
@@ -3253,7 +3586,8 @@
           "default": null,
           "cast": "datetime",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_type": {
           "type": "string",
@@ -3261,7 +3595,8 @@
           "default": null,
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpu_shares": {
           "type": "integer",
@@ -3269,7 +3604,8 @@
           "default": 1024,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpus": {
           "type": "string",
@@ -3278,6 +3614,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_cpuset": {
@@ -3287,6 +3624,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "limits_memory": {
@@ -3296,6 +3634,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_reservation": {
@@ -3305,6 +3644,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swap": {
@@ -3314,6 +3654,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swappiness": {
@@ -3322,7 +3663,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "mongo_conf": {
           "type": "text",
@@ -3330,7 +3672,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "mongo_initdb_database": {
           "type": "text",
@@ -3338,7 +3681,8 @@
           "default": "default",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "mongo_initdb_root_password": {
           "type": "text",
@@ -3346,7 +3690,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "mongo_initdb_root_username": {
           "type": "text",
@@ -3354,7 +3699,8 @@
           "default": "root",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "name": {
           "type": "string",
@@ -3363,6 +3709,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ports_mappings": {
@@ -3371,7 +3718,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port": {
           "type": "integer",
@@ -3379,7 +3727,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port_timeout": {
           "type": "string",
@@ -3387,7 +3736,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "restart_count": {
           "type": "string",
@@ -3395,7 +3745,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "ssl_mode": {
           "type": "enum",
@@ -3404,6 +3755,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "enum_values": [
             "allow",
             "prefer",
@@ -3417,7 +3769,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "status": {
           "type": "string",
@@ -3426,6 +3779,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -3435,6 +3789,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -3488,6 +3843,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_docker_run_options": {
@@ -3496,7 +3852,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -3505,6 +3862,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "destination_id": {
@@ -3513,7 +3871,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "destination_type": {
           "type": "string",
@@ -3521,7 +3880,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "enable_ssl": {
           "type": "boolean",
@@ -3529,7 +3889,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "environment_id": {
           "type": "bigInteger",
@@ -3537,7 +3898,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "image": {
           "type": "string",
@@ -3546,6 +3908,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "is_include_timestamps": {
@@ -3554,7 +3917,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_log_drain_enabled": {
           "type": "boolean",
@@ -3562,7 +3926,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_public": {
           "type": "boolean",
@@ -3570,7 +3935,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_online_at": {
           "type": "timestamp",
@@ -3578,7 +3944,8 @@
           "default": "now(",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_at": {
           "type": "string",
@@ -3586,7 +3953,8 @@
           "default": null,
           "cast": "datetime",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_type": {
           "type": "string",
@@ -3594,7 +3962,8 @@
           "default": null,
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpu_shares": {
           "type": "integer",
@@ -3602,7 +3971,8 @@
           "default": 1024,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpus": {
           "type": "string",
@@ -3611,6 +3981,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_cpuset": {
@@ -3620,6 +3991,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "limits_memory": {
@@ -3629,6 +4001,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_reservation": {
@@ -3638,6 +4011,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swap": {
@@ -3647,6 +4021,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swappiness": {
@@ -3655,7 +4030,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "name": {
           "type": "string",
@@ -3664,6 +4040,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ports_mappings": {
@@ -3672,7 +4049,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port": {
           "type": "integer",
@@ -3680,7 +4058,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port_timeout": {
           "type": "string",
@@ -3688,7 +4067,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "redis_conf": {
           "type": "longText",
@@ -3696,7 +4076,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "restart_count": {
           "type": "string",
@@ -3704,7 +4085,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "started_at": {
           "type": "timestamp",
@@ -3712,7 +4094,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "status": {
           "type": "string",
@@ -3721,6 +4104,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -3730,6 +4114,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -3783,7 +4168,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "clickhouse_admin_user": {
           "type": "string",
@@ -3792,6 +4178,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "clickhouse_db": {
@@ -3801,6 +4188,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "config_hash": {
@@ -3810,6 +4198,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_docker_run_options": {
@@ -3818,7 +4207,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -3827,6 +4217,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "destination_id": {
@@ -3835,7 +4226,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "destination_type": {
           "type": "string",
@@ -3843,7 +4235,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "environment_id": {
           "type": "bigInteger",
@@ -3851,7 +4244,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "image": {
           "type": "string",
@@ -3860,6 +4254,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "is_include_timestamps": {
@@ -3868,7 +4263,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_log_drain_enabled": {
           "type": "boolean",
@@ -3876,7 +4272,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_public": {
           "type": "boolean",
@@ -3884,7 +4281,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_online_at": {
           "type": "timestamp",
@@ -3892,7 +4290,8 @@
           "default": "now(",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_at": {
           "type": "string",
@@ -3900,7 +4299,8 @@
           "default": null,
           "cast": "datetime",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_type": {
           "type": "string",
@@ -3908,7 +4308,8 @@
           "default": null,
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpu_shares": {
           "type": "integer",
@@ -3916,7 +4317,8 @@
           "default": 1024,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpus": {
           "type": "string",
@@ -3925,6 +4327,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_cpuset": {
@@ -3934,6 +4337,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "limits_memory": {
@@ -3943,6 +4347,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_reservation": {
@@ -3952,6 +4357,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swap": {
@@ -3961,6 +4367,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swappiness": {
@@ -3969,7 +4376,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "name": {
           "type": "string",
@@ -3978,6 +4386,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ports_mappings": {
@@ -3986,7 +4395,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port": {
           "type": "integer",
@@ -3994,7 +4404,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port_timeout": {
           "type": "string",
@@ -4002,7 +4413,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "restart_count": {
           "type": "string",
@@ -4010,7 +4422,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "started_at": {
           "type": "timestamp",
@@ -4018,7 +4431,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "status": {
           "type": "string",
@@ -4027,6 +4441,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -4036,6 +4451,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -4089,6 +4505,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_docker_run_options": {
@@ -4097,7 +4514,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -4106,6 +4524,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "destination_id": {
@@ -4114,7 +4533,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "destination_type": {
           "type": "string",
@@ -4122,7 +4542,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "enable_ssl": {
           "type": "boolean",
@@ -4130,7 +4551,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "environment_id": {
           "type": "bigInteger",
@@ -4138,7 +4560,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "image": {
           "type": "string",
@@ -4147,6 +4570,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "is_include_timestamps": {
@@ -4155,7 +4579,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_log_drain_enabled": {
           "type": "boolean",
@@ -4163,7 +4588,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_public": {
           "type": "boolean",
@@ -4171,7 +4597,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "keydb_conf": {
           "type": "longText",
@@ -4179,7 +4606,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "keydb_password": {
           "type": "text",
@@ -4187,7 +4615,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "last_online_at": {
           "type": "timestamp",
@@ -4195,7 +4624,8 @@
           "default": "now(",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_at": {
           "type": "string",
@@ -4203,7 +4633,8 @@
           "default": null,
           "cast": "datetime",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_type": {
           "type": "string",
@@ -4211,7 +4642,8 @@
           "default": null,
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpu_shares": {
           "type": "integer",
@@ -4219,7 +4651,8 @@
           "default": 1024,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpus": {
           "type": "string",
@@ -4228,6 +4661,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_cpuset": {
@@ -4237,6 +4671,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "limits_memory": {
@@ -4246,6 +4681,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_reservation": {
@@ -4255,6 +4691,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swap": {
@@ -4264,6 +4701,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swappiness": {
@@ -4272,7 +4710,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "name": {
           "type": "string",
@@ -4281,6 +4720,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ports_mappings": {
@@ -4289,7 +4729,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port": {
           "type": "integer",
@@ -4297,7 +4738,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port_timeout": {
           "type": "string",
@@ -4305,7 +4747,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "restart_count": {
           "type": "string",
@@ -4313,7 +4756,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "started_at": {
           "type": "timestamp",
@@ -4321,7 +4765,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "status": {
           "type": "string",
@@ -4330,6 +4775,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -4339,6 +4785,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -4392,6 +4839,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_docker_run_options": {
@@ -4400,7 +4848,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "string",
@@ -4409,6 +4858,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "destination_id": {
@@ -4417,7 +4867,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "destination_type": {
           "type": "string",
@@ -4425,7 +4876,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "dragonfly_password": {
           "type": "text",
@@ -4433,7 +4885,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "enable_ssl": {
           "type": "boolean",
@@ -4441,7 +4894,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "environment_id": {
           "type": "bigInteger",
@@ -4449,7 +4903,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "image": {
           "type": "string",
@@ -4458,6 +4913,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "is_include_timestamps": {
@@ -4466,7 +4922,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_log_drain_enabled": {
           "type": "boolean",
@@ -4474,7 +4931,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_public": {
           "type": "boolean",
@@ -4482,7 +4940,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_online_at": {
           "type": "timestamp",
@@ -4490,7 +4949,8 @@
           "default": "now(",
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_at": {
           "type": "string",
@@ -4498,7 +4958,8 @@
           "default": null,
           "cast": "datetime",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "last_restart_type": {
           "type": "string",
@@ -4506,7 +4967,8 @@
           "default": null,
           "cast": "string",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpu_shares": {
           "type": "integer",
@@ -4514,7 +4976,8 @@
           "default": 1024,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "limits_cpus": {
           "type": "string",
@@ -4523,6 +4986,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_cpuset": {
@@ -4532,6 +4996,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "limits_memory": {
@@ -4541,6 +5006,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_reservation": {
@@ -4550,6 +5016,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swap": {
@@ -4559,6 +5026,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "limits_memory_swappiness": {
@@ -4567,7 +5035,8 @@
           "default": 60,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "name": {
           "type": "string",
@@ -4576,6 +5045,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "ports_mappings": {
@@ -4584,7 +5054,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port": {
           "type": "integer",
@@ -4592,7 +5063,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "public_port_timeout": {
           "type": "string",
@@ -4600,7 +5072,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "restart_count": {
           "type": "string",
@@ -4608,7 +5081,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "started_at": {
           "type": "timestamp",
@@ -4616,7 +5090,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "status": {
           "type": "string",
@@ -4625,6 +5100,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "uuid": {
@@ -4634,6 +5110,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -4674,6 +5151,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 256
         },
         "is_buildtime": {
@@ -4682,7 +5160,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_literal": {
           "type": "boolean",
@@ -4690,7 +5169,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_multiline": {
           "type": "boolean",
@@ -4698,7 +5178,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_preview": {
           "type": "boolean",
@@ -4706,7 +5187,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_required": {
           "type": "boolean",
@@ -4714,7 +5196,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_runtime": {
           "type": "boolean",
@@ -4722,7 +5205,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_shared": {
           "type": "boolean",
@@ -4730,7 +5214,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_shown_once": {
           "type": "boolean",
@@ -4738,7 +5223,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "key": {
           "type": "string",
@@ -4747,6 +5233,7 @@
           "cast": "string",
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "order": {
@@ -4755,7 +5242,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "resourceable_id": {
           "type": "bigInteger",
@@ -4763,7 +5251,8 @@
           "default": null,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "resourceable_type": {
           "type": "string",
@@ -4772,6 +5261,7 @@
           "cast": "string",
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "uuid": {
@@ -4781,6 +5271,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "value": {
@@ -4790,6 +5281,7 @@
           "cast": "encrypted",
           "sensitive": true,
           "fillable": true,
+          "flatten_hint": "if_configured",
           "max_length": 255
         },
         "version": {
@@ -4799,6 +5291,7 @@
           "cast": "string",
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -4826,6 +5319,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "fingerprint": {
@@ -4835,6 +5329,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "is_git_related": {
@@ -4843,7 +5338,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "name": {
           "type": "string",
@@ -4852,6 +5348,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "private_key": {
@@ -4860,7 +5357,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "uuid": {
           "type": "string",
@@ -4869,6 +5367,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -4895,6 +5394,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "host_path": {
@@ -4904,6 +5404,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "is_preview_suffix_enabled": {
@@ -4912,7 +5413,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "mount_path": {
           "type": "string",
@@ -4921,6 +5423,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "name": {
@@ -4930,6 +5433,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "resource_id": {
@@ -4938,7 +5442,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "resource_type": {
           "type": "string",
@@ -4946,7 +5451,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "uuid": {
           "type": "string",
@@ -4955,6 +5461,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         }
       }
@@ -4983,7 +5490,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "command": {
           "type": "string",
@@ -4992,6 +5500,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "container": {
@@ -5001,6 +5510,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "enabled": {
@@ -5009,7 +5519,8 @@
           "default": true,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "frequency": {
           "type": "string",
@@ -5018,6 +5529,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "name": {
@@ -5027,6 +5539,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "service_id": {
@@ -5035,7 +5548,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "timeout": {
           "type": "integer",
@@ -5043,7 +5557,8 @@
           "default": 300,
           "cast": "integer",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "uuid": {
           "type": "string",
@@ -5052,6 +5567,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -5095,6 +5611,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "api_url": {
@@ -5104,6 +5621,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "app_id": {
@@ -5112,7 +5630,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "client_id": {
           "type": "string",
@@ -5121,6 +5640,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "client_secret": {
@@ -5129,7 +5649,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "contents": {
           "type": "string",
@@ -5138,6 +5659,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "custom_port": {
@@ -5146,7 +5668,8 @@
           "default": 22,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "custom_user": {
           "type": "string",
@@ -5155,6 +5678,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "html_url": {
@@ -5164,6 +5688,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "installation_id": {
@@ -5172,7 +5697,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "is_public": {
           "type": "boolean",
@@ -5180,7 +5706,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "is_system_wide": {
           "type": "boolean",
@@ -5188,7 +5715,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "metadata": {
           "type": "string",
@@ -5197,6 +5725,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "name": {
@@ -5206,6 +5735,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "organization": {
@@ -5215,6 +5745,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "private_key_id": {
@@ -5223,7 +5754,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "pull_requests": {
           "type": "string",
@@ -5232,6 +5764,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "uuid": {
@@ -5241,6 +5774,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "webhook_secret": {
@@ -5249,7 +5783,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         }
       }
     },
@@ -5276,7 +5811,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "description": {
           "type": "longText",
@@ -5284,7 +5820,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "endpoint": {
           "type": "longText",
@@ -5292,7 +5829,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "is_usable": {
           "type": "boolean",
@@ -5300,7 +5838,8 @@
           "default": false,
           "cast": "boolean",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "key": {
           "type": "longText",
@@ -5308,7 +5847,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "name": {
           "type": "string",
@@ -5317,6 +5857,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "region": {
@@ -5326,6 +5867,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "secret": {
@@ -5334,7 +5876,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "unusable_email_sent": {
           "type": "boolean",
@@ -5342,7 +5885,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "uuid": {
           "type": "string",
@@ -5351,6 +5895,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }
@@ -5374,6 +5919,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "or_clear",
           "max_length": 255
         },
         "provider": {
@@ -5383,6 +5929,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "token": {
@@ -5391,7 +5938,8 @@
           "default": null,
           "cast": "encrypted",
           "sensitive": true,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "if_configured"
         },
         "uuid": {
           "type": "string",
@@ -5400,6 +5948,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": false,
+          "flatten_hint": "or_clear",
           "max_length": 255
         }
       }
@@ -5437,7 +5986,8 @@
           "default": 0,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "database_backup_retention_amount_s3": {
           "type": "integer",
@@ -5445,7 +5995,8 @@
           "default": 0,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "database_backup_retention_days_locally": {
           "type": "integer",
@@ -5453,7 +6004,8 @@
           "default": 0,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "database_backup_retention_days_s3": {
           "type": "integer",
@@ -5461,7 +6013,8 @@
           "default": 0,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "database_backup_retention_max_storage_locally": {
           "type": "string",
@@ -5469,7 +6022,8 @@
           "default": null,
           "cast": "float",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "database_backup_retention_max_storage_s3": {
           "type": "string",
@@ -5477,7 +6031,8 @@
           "default": null,
           "cast": "float",
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "database_id": {
           "type": "bigInteger",
@@ -5485,7 +6040,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "database_type": {
           "type": "string",
@@ -5493,7 +6049,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "databases_to_backup": {
           "type": "text",
@@ -5501,7 +6058,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "description": {
           "type": "text",
@@ -5509,7 +6067,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "disable_local_backup": {
           "type": "boolean",
@@ -5517,7 +6076,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "dump_all": {
           "type": "boolean",
@@ -5525,7 +6085,8 @@
           "default": false,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "enabled": {
           "type": "boolean",
@@ -5533,7 +6094,8 @@
           "default": true,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "frequency": {
           "type": "string",
@@ -5542,6 +6104,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         },
         "number_of_backups_locally": {
@@ -5550,7 +6113,8 @@
           "default": 7,
           "cast": null,
           "sensitive": false,
-          "fillable": false
+          "fillable": false,
+          "flatten_hint": "unconditional"
         },
         "s3_storage_id": {
           "type": "bigInteger",
@@ -5558,7 +6122,8 @@
           "default": null,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "or_clear"
         },
         "save_s3": {
           "type": "boolean",
@@ -5566,7 +6131,8 @@
           "default": true,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "timeout": {
           "type": "integer",
@@ -5574,7 +6140,8 @@
           "default": 3600,
           "cast": null,
           "sensitive": false,
-          "fillable": true
+          "fillable": true,
+          "flatten_hint": "unconditional"
         },
         "uuid": {
           "type": "string",
@@ -5583,6 +6150,7 @@
           "cast": null,
           "sensitive": false,
           "fillable": true,
+          "flatten_hint": "unconditional",
           "max_length": 255
         }
       }

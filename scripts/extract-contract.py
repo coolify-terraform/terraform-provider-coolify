@@ -444,13 +444,26 @@ def build_model_contract(
 
     for fname in sorted(all_field_names - internal_fields):
         col = columns.get(fname, {})
+        is_nullable = col.get("nullable", False)
+        default_val = model_defaults.get(fname, col.get("default"))
+        is_sensitive = casts.get(fname) == "encrypted"
+        is_hidden = fname in hidden
         field_info = {
             "type": col.get("type", "string"),
-            "nullable": col.get("nullable", False),
-            "default": model_defaults.get(fname, col.get("default")),
+            "nullable": is_nullable,
+            "default": default_val,
             "cast": casts.get(fname),
-            "sensitive": casts.get(fname) == "encrypted",
+            "sensitive": is_sensitive,
             "fillable": fname in fillable,
+            # Flatten helper recommendation based on DB schema:
+            # - "unconditional": NOT NULL with default, API always returns value
+            # - "or_clear": NULLABLE without default, must detect external clearing
+            # - "if_configured": sensitive/hidden field, empty is ambiguous
+            "flatten_hint": (
+                "if_configured" if (is_sensitive or is_hidden) else
+                "or_clear" if is_nullable else
+                "unconditional"
+            ),
         }
         if "max_length" in col:
             field_info["max_length"] = col["max_length"]
