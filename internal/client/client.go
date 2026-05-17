@@ -86,16 +86,20 @@ type RetryConfig struct {
 
 // New creates a new Coolify API client.
 func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
+	var cfg RetryConfig
+	if len(opts) > 0 {
+		cfg = opts[0]
+	}
 	rc := retryablehttp.NewClient()
 	rc.RetryMax = 3
-	if len(opts) > 0 && opts[0].Attempts > 0 {
-		rc.RetryMax = opts[0].Attempts
+	if cfg.Attempts > 0 {
+		rc.RetryMax = cfg.Attempts
 	}
-	if len(opts) > 0 && opts[0].MinWait > 0 {
-		rc.RetryWaitMin = opts[0].MinWait
+	if cfg.MinWait > 0 {
+		rc.RetryWaitMin = cfg.MinWait
 	}
-	if len(opts) > 0 && opts[0].MaxWait > 0 {
-		rc.RetryWaitMax = opts[0].MaxWait
+	if cfg.MaxWait > 0 {
+		rc.RetryWaitMax = cfg.MaxWait
 	}
 	rc.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if err != nil {
@@ -343,12 +347,13 @@ func redactJSON(data []byte) string {
 	return truncateString(string(out), 500)
 }
 
-// truncateString truncates s to maxLen characters, appending "..." if truncated.
+// truncateString truncates s to maxLen runes, appending "..." if truncated.
 func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
 		return s
 	}
-	return s[:maxLen] + "..."
+	return string(runes[:maxLen]) + "..."
 }
 
 // validParentTypes is the set of allowed parent resource types for compound
