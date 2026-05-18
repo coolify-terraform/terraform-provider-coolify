@@ -259,7 +259,7 @@ app_id           = 12345
 installation_id  = 67890
 client_id        = "Iv1.abc123"
 client_secret    = "secret123"
-private_key_uuid = "pk-uuid-test"
+private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 `)
 
 	resource.UnitTest(t, resource.TestCase{
@@ -328,7 +328,7 @@ installation_id  = 67890
 client_id        = "Iv1.abc123"
 client_secret    = "secret123"
 webhook_secret   = "hook-secret-1"
-private_key_uuid = "pk-uuid-test"
+private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 `)
 	updatedConfig := testGitHubAppResourceConfig(server.URL, `
 name             = "my-github-app-updated"
@@ -337,7 +337,7 @@ installation_id  = 99999
 client_id        = "Iv1.xyz789"
 client_secret    = "secret456"
 webhook_secret   = "hook-secret-2"
-private_key_uuid = "pk-uuid-updated"
+private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 `)
 
 	resource.UnitTest(t, resource.TestCase{
@@ -419,7 +419,7 @@ installation_id   = 67890
 client_id         = "Iv1.readback"
 client_secret     = "secret123"
 webhook_secret    = "hook-secret"
-private_key_uuid  = "pk-uuid-test"
+private_key_uuid  = "dddd0001-0001-4000-8000-000000000001"
 `)
 
 	resource.UnitTest(t, resource.TestCase{
@@ -454,7 +454,7 @@ resource "coolify_github_app" "test" {
   installation_id = 22222
   client_id       = "Iv1.import"
   client_secret   = "importsecret"
-  private_key_uuid = "pk-uuid-import"
+  private_key_uuid = "dddd0003-0003-4000-8000-000000000003"
 }
 `,
 				Check: resource.TestCheckResourceAttrSet("coolify_github_app.test", "id"),
@@ -493,7 +493,7 @@ resource "coolify_github_app" "test" {
   installation_id = 88888
   client_id       = "Iv1.disappear"
   client_secret   = "disappearsecret"
-  private_key_uuid = "pk-uuid-disappear"
+  private_key_uuid = "dddd0004-0004-4000-8000-000000000004"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -532,7 +532,7 @@ resource "coolify_github_app" "first" {
   installation_id = 222
   client_id       = "Iv1.first"
   client_secret   = "firstsecret"
-  private_key_uuid = "pk-uuid-first"
+  private_key_uuid = "dddd0005-0005-4000-8000-000000000005"
 }
 
 resource "coolify_github_app" "second" {
@@ -541,7 +541,7 @@ resource "coolify_github_app" "second" {
   installation_id = 444
   client_id       = "Iv1.second"
   client_secret   = "secondsecret"
-  private_key_uuid = "pk-uuid-second"
+  private_key_uuid = "dddd0006-0006-4000-8000-000000000006"
 }
 
 data "coolify_github_apps" "all" {
@@ -560,7 +560,7 @@ resource "coolify_github_app" "first" {
   installation_id = 222
   client_id       = "Iv1.first"
   client_secret   = "firstsecret"
-  private_key_uuid = "pk-uuid-first"
+  private_key_uuid = "dddd0005-0005-4000-8000-000000000005"
 }
 
 resource "coolify_github_app" "second" {
@@ -569,7 +569,7 @@ resource "coolify_github_app" "second" {
   installation_id = 444
   client_id       = "Iv1.second"
   client_secret   = "secondsecret"
-  private_key_uuid = "pk-uuid-second"
+  private_key_uuid = "dddd0006-0006-4000-8000-000000000006"
 }
 
 data "coolify_github_apps" "filtered" {
@@ -605,7 +605,7 @@ resource "coolify_github_app" "test" {
   installation_id = 666
   client_id       = "Iv1.repos"
   client_secret   = "repossecret"
-  private_key_uuid = "pk-uuid-repos"
+  private_key_uuid = "dddd0007-0007-4000-8000-000000000007"
 }
 
 data "coolify_github_app_repositories" "test" {
@@ -642,7 +642,7 @@ resource "coolify_github_app" "test" {
   installation_id = 888
   client_id       = "Iv1.branches"
   client_secret   = "branchessecret"
-  private_key_uuid = "pk-uuid-branches"
+  private_key_uuid = "dddd0008-0008-4000-8000-000000000008"
 }
 
 data "coolify_github_app_branches" "test" {
@@ -677,7 +677,7 @@ resource "coolify_github_app" "test" {
   installation_id = 22222
   client_id       = "Iv1.dstest"
   client_secret   = "dstestsecret"
-  private_key_uuid = "pk-uuid-dstest"
+  private_key_uuid = "dddd0009-0009-4000-8000-000000000009"
 }
 
 data "coolify_github_app" "test" {
@@ -732,7 +732,7 @@ resource "coolify_github_app" "test" {
   installation_id = 67890
   client_id       = "Iv1.badid"
   client_secret   = "badidsecret"
-  private_key_uuid = "pk-uuid-badid"
+  private_key_uuid = "dddd0010-0010-4000-8000-000000000010"
 }
 `,
 			},
