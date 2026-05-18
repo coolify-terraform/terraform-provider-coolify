@@ -236,6 +236,21 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 			DeploymentQueueLimit:                 flex.IntIfNonDefault(plan.DeploymentQueueLimit, 25),
 			ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(plan.ServerDiskUsageNotificationThreshold, 80),
 			ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(plan.ServerDiskUsageCheckFrequency),
+			WildcardDomain:                       flex.StringValueOrNull(plan.WildcardDomain),
+			IsCloudFlareTunnel:                   flex.BoolValueOrNull(plan.IsCloudFlareTunnel),
+			ServerTimezone:                       flex.StringValueOrNull(plan.ServerTimezone),
+			IsMetricsEnabled:                     flex.BoolValueOrNull(plan.IsMetricsEnabled),
+			IsTerminalEnabled:                    flex.BoolValueOrNull(plan.IsTerminalEnabled),
+			IsSentinelEnabled:                    flex.BoolValueOrNull(plan.IsSentinelEnabled),
+			SentinelMetricsHistoryDays:           flex.IntValueOrNull(plan.SentinelMetricsHistoryDays),
+			SentinelMetricsRefreshRateSeconds:    flex.IntValueOrNull(plan.SentinelMetricsRefreshRateSeconds),
+			SentinelPushIntervalSeconds:          flex.IntValueOrNull(plan.SentinelPushIntervalSeconds),
+			DockerCleanupFrequency:               flex.StringValueOrNull(plan.DockerCleanupFrequency),
+			DockerCleanupThreshold:               flex.IntValueOrNull(plan.DockerCleanupThreshold),
+			ForceDockerCleanup:                   flex.BoolValueOrNull(plan.ForceDockerCleanup),
+			DeleteUnusedVolumes:                  flex.BoolValueOrNull(plan.DeleteUnusedVolumes),
+			DeleteUnusedNetworks:                 flex.BoolValueOrNull(plan.DeleteUnusedNetworks),
+			GenerateExactLabels:                  flex.BoolValueOrNull(plan.GenerateExactLabels),
 		}
 		if _, err := r.client.UpdateServer(ctx, created.UUID, settingsUpdate); err != nil {
 			resp.Diagnostics.AddError("Error setting Hetzner server settings",
@@ -363,7 +378,22 @@ func hasNonDefaultHetznerSettings(plan hetznerServerResourceModel) bool {
 		intNonDefault(plan.DynamicTimeout, 3600) ||
 		intNonDefault(plan.DeploymentQueueLimit, 25) ||
 		intNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
-		strSet(plan.ServerDiskUsageCheckFrequency)
+		strSet(plan.ServerDiskUsageCheckFrequency) ||
+		strSet(plan.WildcardDomain) ||
+		boolTrue(plan.IsCloudFlareTunnel) ||
+		strSet(plan.ServerTimezone) ||
+		boolTrue(plan.IsMetricsEnabled) ||
+		boolTrue(plan.IsTerminalEnabled) ||
+		boolTrue(plan.IsSentinelEnabled) ||
+		intNonDefault(plan.SentinelMetricsHistoryDays, 0) ||
+		intNonDefault(plan.SentinelMetricsRefreshRateSeconds, 0) ||
+		intNonDefault(plan.SentinelPushIntervalSeconds, 0) ||
+		strSet(plan.DockerCleanupFrequency) ||
+		intNonDefault(plan.DockerCleanupThreshold, 0) ||
+		boolTrue(plan.ForceDockerCleanup) ||
+		boolTrue(plan.DeleteUnusedVolumes) ||
+		boolTrue(plan.DeleteUnusedNetworks) ||
+		boolTrue(plan.GenerateExactLabels)
 }
 
 func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
