@@ -4355,6 +4355,33 @@ func TestClient_InsecureSkipsVerification(t *testing.T) {
 	assert.Equal(t, "4.0.0", version)
 }
 
+func TestClient_RetryWorksWithCustomTLS(t *testing.T) {
+	t.Parallel()
+	var attempts int32
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := atomic.AddInt32(&attempts, 1)
+		if n <= 2 {
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		w.Write([]byte("4.0.0"))
+	}))
+	defer srv.Close()
+
+	caCert := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: srv.TLS.Certificates[0].Certificate[0],
+	})
+
+	c := New(srv.URL, "test-token", RetryConfig{
+		CACert: string(caCert),
+	})
+	version, err := c.GetVersion(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "4.0.0", version)
+	assert.Equal(t, int32(3), atomic.LoadInt32(&attempts), "expected 3 attempts (2 retries + 1 success)")
+}
+
 func TestRedactJSON_Object(t *testing.T) {
 	t.Parallel()
 	input := `{"name":"db","postgres_password":"secret123","image":"pg:16"}`

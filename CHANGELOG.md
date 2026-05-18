@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom TLS configuration (`ca_cert`, `insecure`) no longer silently disables HTTP retry logic
 - `redactJSON` now handles JSON arrays and nested objects (previously only top-level objects were redacted)
 
+### Added
+
+- UUID format validation on 13 attributes across server, Hetzner, backup, scheduled task, and GitHub App resources/data sources (catches malformed input at plan time instead of API time)
+
 ### Changed
 
 - Consolidated `is_include_timestamps`, `enable_ssl`, and `ssl_mode` handling into shared database helpers, reducing duplication across all 8 database resources
