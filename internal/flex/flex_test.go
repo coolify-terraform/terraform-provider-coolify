@@ -401,6 +401,284 @@ func TestStringPtrForUpdate(t *testing.T) {
 	})
 }
 
+// ---------------------------------------------------------------------------
+// StringValueOrDefault
+// ---------------------------------------------------------------------------
+
+func TestStringValueOrDefault(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		s    string
+		def  string
+		want string
+	}{
+		{"non-empty returns value", "hello", "fallback", "hello"},
+		{"empty returns default", "", "fallback", "fallback"},
+		{"empty with empty default", "", "", ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.StringValueOrDefault(tc.s, tc.def)
+			if got.ValueString() != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got.ValueString())
+			}
+			if got.IsNull() {
+				t.Fatal("expected non-null, got null")
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// SetStringIfConfigured
+// ---------------------------------------------------------------------------
+
+func TestSetStringIfConfigured(t *testing.T) {
+	t.Parallel()
+	t.Run("sets value when configured and non-empty", func(t *testing.T) {
+		dst := types.StringValue("old")
+		flex.SetStringIfConfigured(&dst, "new")
+		if dst.ValueString() != "new" {
+			t.Fatalf("expected 'new', got %q", dst.ValueString())
+		}
+	})
+	t.Run("skips empty value when configured", func(t *testing.T) {
+		dst := types.StringValue("old")
+		flex.SetStringIfConfigured(&dst, "")
+		if dst.ValueString() != "old" {
+			t.Fatalf("expected 'old' unchanged, got %q", dst.ValueString())
+		}
+	})
+	t.Run("skips when null", func(t *testing.T) {
+		dst := types.StringNull()
+		flex.SetStringIfConfigured(&dst, "new")
+		if !dst.IsNull() {
+			t.Fatalf("expected null, got %q", dst.ValueString())
+		}
+	})
+	t.Run("skips when unknown", func(t *testing.T) {
+		dst := types.StringUnknown()
+		flex.SetStringIfConfigured(&dst, "new")
+		if !dst.IsUnknown() {
+			t.Fatal("expected unknown, got non-unknown")
+		}
+	})
+	t.Run("handles nil dst", func(t *testing.T) {
+		flex.SetStringIfConfigured(nil, "new") // should not panic
+	})
+}
+
+// ---------------------------------------------------------------------------
+// SetStringOrClear
+// ---------------------------------------------------------------------------
+
+func TestSetStringOrClear(t *testing.T) {
+	t.Parallel()
+	t.Run("sets non-empty value", func(t *testing.T) {
+		dst := types.StringValue("old")
+		flex.SetStringOrClear(&dst, "new")
+		if dst.ValueString() != "new" {
+			t.Fatalf("expected 'new', got %q", dst.ValueString())
+		}
+	})
+	t.Run("clears to null on empty", func(t *testing.T) {
+		dst := types.StringValue("old")
+		flex.SetStringOrClear(&dst, "")
+		if !dst.IsNull() {
+			t.Fatalf("expected null, got %q", dst.ValueString())
+		}
+	})
+	t.Run("skips when null", func(t *testing.T) {
+		dst := types.StringNull()
+		flex.SetStringOrClear(&dst, "new")
+		if !dst.IsNull() {
+			t.Fatalf("expected null unchanged, got %q", dst.ValueString())
+		}
+	})
+	t.Run("skips when unknown", func(t *testing.T) {
+		dst := types.StringUnknown()
+		flex.SetStringOrClear(&dst, "new")
+		if !dst.IsUnknown() {
+			t.Fatal("expected unknown unchanged")
+		}
+	})
+	t.Run("handles nil dst", func(t *testing.T) {
+		flex.SetStringOrClear(nil, "new") // should not panic
+	})
+}
+
+// ---------------------------------------------------------------------------
+// SetInt64IfConfigured
+// ---------------------------------------------------------------------------
+
+func TestSetInt64IfConfigured(t *testing.T) {
+	t.Parallel()
+	t.Run("sets value when configured and non-nil", func(t *testing.T) {
+		dst := types.Int64Value(10)
+		v := int64(42)
+		flex.SetInt64IfConfigured(&dst, &v)
+		if dst.ValueInt64() != 42 {
+			t.Fatalf("expected 42, got %d", dst.ValueInt64())
+		}
+	})
+	t.Run("skips nil value when configured", func(t *testing.T) {
+		dst := types.Int64Value(10)
+		flex.SetInt64IfConfigured(&dst, nil)
+		if dst.ValueInt64() != 10 {
+			t.Fatalf("expected 10 unchanged, got %d", dst.ValueInt64())
+		}
+	})
+	t.Run("skips when null", func(t *testing.T) {
+		dst := types.Int64Null()
+		v := int64(42)
+		flex.SetInt64IfConfigured(&dst, &v)
+		if !dst.IsNull() {
+			t.Fatalf("expected null, got %d", dst.ValueInt64())
+		}
+	})
+	t.Run("skips when unknown", func(t *testing.T) {
+		dst := types.Int64Unknown()
+		v := int64(42)
+		flex.SetInt64IfConfigured(&dst, &v)
+		if !dst.IsUnknown() {
+			t.Fatal("expected unknown, got non-unknown")
+		}
+	})
+	t.Run("handles nil dst", func(t *testing.T) {
+		v := int64(42)
+		flex.SetInt64IfConfigured(nil, &v) // should not panic
+	})
+}
+
+// ---------------------------------------------------------------------------
+// IntIfChanged
+// ---------------------------------------------------------------------------
+
+func TestIntIfChanged(t *testing.T) {
+	t.Parallel()
+	t.Run("different values returns plan", func(t *testing.T) {
+		got := flex.IntIfChanged(types.Int64Value(42), types.Int64Value(10))
+		if got == nil || *got != 42 {
+			t.Fatalf("expected 42, got %v", got)
+		}
+	})
+	t.Run("same values returns nil", func(t *testing.T) {
+		got := flex.IntIfChanged(types.Int64Value(42), types.Int64Value(42))
+		if got != nil {
+			t.Fatalf("expected nil, got %v", *got)
+		}
+	})
+	t.Run("both null returns nil", func(t *testing.T) {
+		got := flex.IntIfChanged(types.Int64Null(), types.Int64Null())
+		if got != nil {
+			t.Fatalf("expected nil, got %v", *got)
+		}
+	})
+	t.Run("plan null returns nil", func(t *testing.T) {
+		got := flex.IntIfChanged(types.Int64Null(), types.Int64Value(10))
+		if got != nil {
+			t.Fatalf("expected nil (plan is null), got %v", *got)
+		}
+	})
+	t.Run("plan unknown returns nil", func(t *testing.T) {
+		got := flex.IntIfChanged(types.Int64Unknown(), types.Int64Value(10))
+		if got != nil {
+			t.Fatalf("expected nil (plan is unknown), got %v", *got)
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Float64PtrToInt64Framework
+// ---------------------------------------------------------------------------
+
+func TestFloat64PtrToInt64Framework(t *testing.T) {
+	t.Parallel()
+	t.Run("nil returns null", func(t *testing.T) {
+		got := flex.Float64PtrToInt64Framework(nil)
+		if !got.IsNull() {
+			t.Fatalf("expected null, got %d", got.ValueInt64())
+		}
+	})
+	t.Run("non-nil returns truncated value", func(t *testing.T) {
+		f := 42.9
+		got := flex.Float64PtrToInt64Framework(&f)
+		if got.IsNull() {
+			t.Fatal("expected non-null")
+		}
+		if got.ValueInt64() != 42 {
+			t.Fatalf("expected 42 (truncated), got %d", got.ValueInt64())
+		}
+	})
+	t.Run("exact integer", func(t *testing.T) {
+		f := 100.0
+		got := flex.Float64PtrToInt64Framework(&f)
+		if got.ValueInt64() != 100 {
+			t.Fatalf("expected 100, got %d", got.ValueInt64())
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Float64PtrFromInt64Framework
+// ---------------------------------------------------------------------------
+
+func TestFloat64PtrFromInt64Framework(t *testing.T) {
+	t.Parallel()
+	t.Run("null returns nil", func(t *testing.T) {
+		got := flex.Float64PtrFromInt64Framework(types.Int64Null())
+		if got != nil {
+			t.Fatalf("expected nil, got %v", *got)
+		}
+	})
+	t.Run("unknown returns nil", func(t *testing.T) {
+		got := flex.Float64PtrFromInt64Framework(types.Int64Unknown())
+		if got != nil {
+			t.Fatalf("expected nil, got %v", *got)
+		}
+	})
+	t.Run("value returns float64 pointer", func(t *testing.T) {
+		got := flex.Float64PtrFromInt64Framework(types.Int64Value(42))
+		if got == nil {
+			t.Fatal("expected non-nil")
+		}
+		if *got != 42.0 {
+			t.Fatalf("expected 42.0, got %v", *got)
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Float64IfChangedFromInt64
+// ---------------------------------------------------------------------------
+
+func TestFloat64IfChangedFromInt64(t *testing.T) {
+	t.Parallel()
+	t.Run("different values returns plan as float64", func(t *testing.T) {
+		got := flex.Float64IfChangedFromInt64(types.Int64Value(42), types.Int64Value(10))
+		if got == nil || *got != 42.0 {
+			t.Fatalf("expected 42.0, got %v", got)
+		}
+	})
+	t.Run("same values returns nil", func(t *testing.T) {
+		got := flex.Float64IfChangedFromInt64(types.Int64Value(42), types.Int64Value(42))
+		if got != nil {
+			t.Fatalf("expected nil, got %v", *got)
+		}
+	})
+	t.Run("both null returns nil", func(t *testing.T) {
+		got := flex.Float64IfChangedFromInt64(types.Int64Null(), types.Int64Null())
+		if got != nil {
+			t.Fatalf("expected nil, got %v", *got)
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// IntIfNonDefault
+// ---------------------------------------------------------------------------
+
 func TestIntIfNonDefault(t *testing.T) {
 	t.Run("null returns nil", func(t *testing.T) {
 		if got := flex.IntIfNonDefault(types.Int64Null(), 2); got != nil {

@@ -223,6 +223,23 @@ resource "coolify_hetzner_server" "test" {
 					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "concurrent_builds", "4"),
 				),
 			},
+			// Post-update idempotency check.
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_hetzner_server" "test" {
+  name                       = "renamed-hetzner"
+  description                = "Updated description"
+  cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
+  server_type                = "cx22"
+  location                   = "fsn1"
+  image                      = "ubuntu-24.04"
+  private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
+  is_build_server            = true
+  concurrent_builds          = 4
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
@@ -288,19 +305,11 @@ resource "coolify_hetzner_server" "test" {
   image                      = "ubuntu-24.04"
   private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
 }`,
-			},
-			{
-				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
-  name                       = "my-hetzner"
-  cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
-  server_type                = "cx22"
-  location                   = "fsn1"
-  image                      = "ubuntu-24.04"
-  private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
-}`,
-				Destroy:            true,
-				ExpectNonEmptyPlan: false,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_hetzner_server.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_hetzner_server.test", "/api/v1/servers/"),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
