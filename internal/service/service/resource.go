@@ -322,7 +322,7 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 	if svc.ConnectToNetwork != nil {
 		model.ConnectToNetwork = types.BoolValue(*svc.ConnectToNetwork)
 	} else {
-		model.ConnectToNetwork = types.BoolValue(false)
+		model.ConnectToNetwork = types.BoolNull()
 	}
 
 	// Immutable fields: only update if the API returns them because
