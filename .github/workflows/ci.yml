@@ -273,6 +273,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Ensure label exists (idempotent).
+          gh label create spec-drift --description "Upstream Coolify OpenAPI spec has changed" --color "d93f0b" --force 2>/dev/null || true
           EXISTING=$(gh issue list --label "spec-drift" --state open --json number --jq length)
           if [ "$EXISTING" = "0" ]; then
             gh issue create \
