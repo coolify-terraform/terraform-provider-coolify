@@ -3,6 +3,7 @@ package provider
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"net/url"
 	"os"
@@ -115,7 +116,17 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 	endpoint = strings.TrimRight(endpoint, "/")
-	c := client.New(endpoint, token, buildClientConfig(config))
+	cfg := buildClientConfig(config)
+	if cfg.CACert != "" {
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM([]byte(cfg.CACert)) {
+			resp.Diagnostics.AddError("Invalid CA Certificate",
+				"The ca_cert value could not be parsed as a PEM-encoded certificate. "+
+					"Check that the value is a valid PEM block starting with -----BEGIN CERTIFICATE-----.")
+			return
+		}
+	}
+	c := client.New(endpoint, token, cfg)
 	if p.version != "" {
 		c.UserAgent = "terraform-provider-coolify/" + p.version
 	}
