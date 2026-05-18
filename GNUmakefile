@@ -112,7 +112,16 @@ goreleaser-check: check-goreleaser-version ## Validate .goreleaser.yml with CI-c
 vulncheck: ## Run govulncheck for known vulnerabilities
 	go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
 
+tools: ## Install all required development tools
+	@echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v$(GOLANGCI_LINT_VERSION)
+	@echo "Installing goreleaser..."
+	@go install github.com/goreleaser/goreleaser/v$(GORELEASER_MAJOR)@latest
+	@echo "Installing tfplugindocs..."
+	@cd tools && GOBIN=$$(cd .. && pwd)/bin go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	@echo "All tools installed."
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-tfplugindocs goreleaser-check modverify ci scaffold help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-tfplugindocs goreleaser-check modverify ci scaffold tools help
