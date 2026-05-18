@@ -11,7 +11,7 @@ The Coolify provider allows you to manage resources in a [Coolify](https://cooli
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.6
 - A running [Coolify](https://coolify.io/) instance (v4.x)
 
 ## Authentication

@@ -181,6 +181,9 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	req.Header.Set("User-Agent", c.UserAgent)
+	tflog.Trace(ctx, "API request", map[string]interface{}{
+		"method": http.MethodGet, "path": path,
+	})
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -192,6 +195,9 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("reading response for %s: %w", path, err)
 	}
+	tflog.Trace(ctx, "API response", map[string]interface{}{
+		"path": path, "status": resp.StatusCode,
+	})
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return "", fmt.Errorf("api error for %s (status %d): %s", path, resp.StatusCode, extractAPIMessage(body))
 	}
