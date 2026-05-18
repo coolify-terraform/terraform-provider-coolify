@@ -32,6 +32,28 @@ terraform import coolify_private_key.deploy <key-uuid>
 terraform import coolify_cloud_token.hetzner <token-uuid>
 ```
 
+### Compound Import Format (Recommended for Applications, Databases, and Services)
+
+Applications, databases, and services support an extended compound import format
+that populates `project_uuid`, `server_uuid`, and `environment_name` automatically:
+
+```bash
+# Format: project_uuid:server_uuid:environment_name:resource_uuid
+terraform import coolify_application.api \
+  <project-uuid>:<server-uuid>:production:<app-uuid>
+
+terraform import coolify_postgresql_database.db \
+  <project-uuid>:<server-uuid>:production:<db-uuid>
+
+terraform import coolify_service.plausible \
+  <project-uuid>:<server-uuid>:production:<service-uuid>
+```
+
+This avoids post-import diffs for `project_uuid`, `server_uuid`, and
+`environment_name` (which the API may not return in GET responses). The simple
+UUID format still works but may require you to set these fields manually in
+your `.tf` configuration.
+
 ~> **Note:** Top-level S3 storages are managed in the Coolify web UI. When
 `coolify_database_backup` uses `save_s3 = true`, set `s3_storage_uuid` to an
 existing storage UUID.
