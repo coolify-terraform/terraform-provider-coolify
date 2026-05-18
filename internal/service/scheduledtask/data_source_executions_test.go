@@ -34,7 +34,7 @@ func TestTaskExecutionsDataSource_Application(t *testing.T) {
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_task_executions" "test" {
   application_uuid = "cccc0001-0001-4000-8000-000000000001"
-  task_uuid        = "task-uuid-001"
+  task_uuid        = "aaaa0001-0001-4000-8000-000000000099"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -73,7 +73,7 @@ func TestTaskExecutionsDataSource_Service(t *testing.T) {
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_task_executions" "test" {
   service_uuid = "ffff0001-0001-4000-8000-000000000001"
-  task_uuid    = "task-uuid-002"
+  task_uuid    = "aaaa0002-0002-4000-8000-000000000099"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(

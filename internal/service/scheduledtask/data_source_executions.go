@@ -6,6 +6,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -54,6 +55,7 @@ func (d *taskExecutionsDataSource) Schema(_ context.Context, _ datasource.Schema
 				MarkdownDescription: "The UUID of the application. Exactly one of `application_uuid` or `service_uuid` must be provided.",
 				Optional:            true,
 				Validators: []validator.String{
+					validate.UUID(),
 					stringvalidator.ExactlyOneOf(
 						path.MatchRoot("service_uuid"),
 					),
@@ -62,10 +64,12 @@ func (d *taskExecutionsDataSource) Schema(_ context.Context, _ datasource.Schema
 			"service_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the service. Exactly one of `application_uuid` or `service_uuid` must be provided.",
 				Optional:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"task_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the scheduled task.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"executions": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of task executions.",

@@ -7,8 +7,10 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -48,6 +50,7 @@ func (d *sshKeysDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 			"cloud_provider_token_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner SSH keys.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"ssh_keys": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner SSH keys.",

@@ -114,6 +114,7 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 			"s3_storage_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the S3 storage destination for off-site backups. Required when `save_s3` is `true`.",
 				Optional:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"databases_to_backup": schema.StringAttribute{
 				MarkdownDescription: "Comma-separated list of database names to back up selectively.",

@@ -33,8 +33,8 @@ func TestBackupExecutionsDataSource(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_backup_executions" "test" {
-  database_uuid = "db-uuid-001"
-  backup_uuid   = "backup-uuid-001"
+  database_uuid = "eeee0001-0001-4000-8000-000000000001"
+  backup_uuid   = "ffff0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(

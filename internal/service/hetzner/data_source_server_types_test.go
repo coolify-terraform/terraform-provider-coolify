@@ -21,8 +21,8 @@ func TestHetznerServerTypesDataSource(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/hetzner/server-types", func(w http.ResponseWriter, r *http.Request) {
-		if got := r.URL.Query().Get("cloud_provider_token_uuid"); got != "test-token-uuid" {
-			t.Errorf("expected cloud_provider_token_uuid=test-token-uuid, got %q", got)
+		if got := r.URL.Query().Get("cloud_provider_token_uuid"); got != "cccc0001-0001-4000-8000-000000000001" {
+			t.Errorf("expected cloud_provider_token_uuid=cccc0001-0001-4000-8000-000000000001, got %q", got)
 			http.Error(w, "missing cloud_provider_token_uuid", http.StatusBadRequest)
 			return
 		}
@@ -38,7 +38,7 @@ func TestHetznerServerTypesDataSource(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_hetzner_server_types" "test" {
-  cloud_provider_token_uuid = "test-token-uuid"
+  cloud_provider_token_uuid = "cccc0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -55,7 +55,7 @@ data "coolify_hetzner_server_types" "test" {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_hetzner_server_types" "filtered" {
-  cloud_provider_token_uuid = "test-token-uuid"
+  cloud_provider_token_uuid = "cccc0001-0001-4000-8000-000000000001"
   filter {
     name   = "name"
     values = ["cx21"]

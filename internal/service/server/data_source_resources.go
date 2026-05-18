@@ -6,8 +6,10 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -48,6 +50,7 @@ func (d *serverResourcesDataSource) Schema(_ context.Context, _ datasource.Schem
 			"server_uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the server.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"resources": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of resources deployed on the server.",

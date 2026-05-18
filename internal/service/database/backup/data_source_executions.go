@@ -6,8 +6,10 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -49,10 +51,12 @@ func (d *executionsDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"database_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the database.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"backup_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the backup configuration.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"executions": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of backup executions.",

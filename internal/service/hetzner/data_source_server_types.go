@@ -6,8 +6,10 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -50,6 +52,7 @@ func (d *serverTypesDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 			"cloud_provider_token_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner server types.",
 				Required:            true,
+				Validators:          []validator.String{validate.UUID()},
 			},
 			"server_types": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner server types.",
