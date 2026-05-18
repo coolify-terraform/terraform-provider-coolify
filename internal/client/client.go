@@ -211,9 +211,11 @@ func (c *Client) do(ctx context.Context, method, path string, body interface{}, 
 // Terraform resources share the same parent.
 func (c *Client) doCachedList(ctx context.Context, path string, result interface{}) error {
 	if cached := c.listCache.get(path); cached != nil {
+		tflog.Trace(ctx, "API cache hit", map[string]interface{}{"path": path})
 		return json.Unmarshal(cached, result)
 	}
 	// Make the real API call and capture raw bytes.
+	tflog.Trace(ctx, "API request", map[string]interface{}{"method": "GET", "path": path})
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
@@ -233,6 +235,11 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 		return fmt.Errorf("reading response body: %w", err)
 	}
 
+	tflog.Trace(ctx, "API response", map[string]interface{}{
+		"path": path, "status": resp.StatusCode,
+		"body": truncateString(string(respBody), 1024),
+	})
+
 	if resp.StatusCode == http.StatusNotFound {
 		return &NotFoundError{Message: fmt.Sprintf("resource not found: %s", extractAPIMessage(respBody))}
 	}
@@ -240,10 +247,13 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, extractAPIMessage(respBody))
 	}
 
-	c.listCache.set(path, respBody)
+	// Cache only after successful unmarshal to avoid storing malformed data.
 	if result != nil {
-		return json.Unmarshal(respBody, result)
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return fmt.Errorf("decoding response: %w", err)
+		}
 	}
+	c.listCache.set(path, respBody)
 	return nil
 }
 
@@ -306,8 +316,12 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		return fmt.Errorf("api error (status %d): %s", resp.StatusCode, extractAPIMessage(respBody))
 	}
 
-	if result != nil && len(respBody) > 0 {
-		if err := json.Unmarshal(respBody, result); err != nil {
+	if result != nil {
+		if len(respBody) == 0 {
+			tflog.Warn(ctx, "API returned success with empty body", map[string]interface{}{
+				"method": method, "path": path, "status": resp.StatusCode,
+			})
+		} else if err := json.Unmarshal(respBody, result); err != nil {
 			return fmt.Errorf("decoding response: %w", err)
 		}
 	}
