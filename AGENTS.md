@@ -117,6 +117,8 @@ mismatches, and zero validation rules when we compared it against the source.
 - Handle 404 in Read (call `resp.State.RemoveResource`) and Delete (silently return)
 - Use `stringplanmodifier.RequiresReplace()` on immutable fields (project_uuid, server_uuid, environment_name)
 - Use `stringplanmodifier.UseStateForUnknown()` on computed fields (uuid, name)
+- Use `Optional: true, Computed: true` with `UseStateForUnknown()` on fields where the API returns a default value when the user omits them (e.g., `databases_to_backup` defaults to `"postgres"`). `Optional` alone causes "inconsistent result after apply" because the framework sees an unexpected value on read-back.
+- When the Create endpoint only accepts a subset of fields, issue a follow-up PATCH in the Create method for remaining fields so the resource converges in a single apply. Guard with a `hasNonDefault*()` helper to skip the PATCH when all values are defaults. (Example: `coolify_hetzner_server` Create POST only accepts Hetzner-specific fields; `description`, `port`, `user`, `is_build_server` need a post-create PATCH.)
 - Mark passwords and keys as `Sensitive: true`
 - Wrap all client errors: `fmt.Errorf("getting project %s: %w", uuid, err)`
 
