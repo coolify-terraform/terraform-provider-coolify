@@ -15,6 +15,23 @@ type ServerSettings struct {
 	DeploymentQueueLimit                 int    `json:"deployment_queue_limit"`
 	ServerDiskUsageNotificationThreshold int    `json:"server_disk_usage_notification_threshold"`
 	ServerDiskUsageCheckFrequency        string `json:"server_disk_usage_check_frequency"`
+	WildcardDomain                       string `json:"wildcard_domain,omitempty"`
+	IsCloudFlareTunnel                   bool   `json:"is_cloudflare_tunnel"`
+	ServerTimezone                       string `json:"server_timezone,omitempty"`
+	IsMetricsEnabled                     bool   `json:"is_metrics_enabled"`
+	IsTerminalEnabled                    bool   `json:"is_terminal_enabled"`
+	IsSentinelEnabled                    bool   `json:"is_sentinel_enabled"`
+	SentinelToken                        string `json:"sentinel_token,omitempty"`
+	SentinelCustomURL                    string `json:"sentinel_custom_url,omitempty"`
+	SentinelMetricsHistoryDays           int    `json:"sentinel_metrics_history_days"`
+	SentinelMetricsRefreshRateSeconds    int    `json:"sentinel_metrics_refresh_rate_seconds"`
+	SentinelPushIntervalSeconds          int    `json:"sentinel_push_interval_seconds"`
+	DockerCleanupFrequency               string `json:"docker_cleanup_frequency,omitempty"`
+	DockerCleanupThreshold               int    `json:"docker_cleanup_threshold"`
+	ForceDockerCleanup                   bool   `json:"force_docker_cleanup"`
+	DeleteUnusedVolumes                  bool   `json:"delete_unused_volumes"`
+	DeleteUnusedNetworks                 bool   `json:"delete_unused_networks"`
+	GenerateExactLabels                  bool   `json:"generate_exact_labels"`
 }
 
 type Server struct {
@@ -52,6 +69,21 @@ type UpdateServerInput struct {
 	DeploymentQueueLimit                 *int    `json:"deployment_queue_limit,omitempty"`
 	ServerDiskUsageNotificationThreshold *int    `json:"server_disk_usage_notification_threshold,omitempty"`
 	ServerDiskUsageCheckFrequency        *string `json:"server_disk_usage_check_frequency,omitempty"`
+	WildcardDomain                       *string `json:"wildcard_domain,omitempty"`
+	IsCloudFlareTunnel                   *bool   `json:"is_cloudflare_tunnel,omitempty"`
+	ServerTimezone                       *string `json:"server_timezone,omitempty"`
+	IsMetricsEnabled                     *bool   `json:"is_metrics_enabled,omitempty"`
+	IsTerminalEnabled                    *bool   `json:"is_terminal_enabled,omitempty"`
+	IsSentinelEnabled                    *bool   `json:"is_sentinel_enabled,omitempty"`
+	SentinelMetricsHistoryDays           *int    `json:"sentinel_metrics_history_days,omitempty"`
+	SentinelMetricsRefreshRateSeconds    *int    `json:"sentinel_metrics_refresh_rate_seconds,omitempty"`
+	SentinelPushIntervalSeconds          *int    `json:"sentinel_push_interval_seconds,omitempty"`
+	DockerCleanupFrequency               *string `json:"docker_cleanup_frequency,omitempty"`
+	DockerCleanupThreshold               *int    `json:"docker_cleanup_threshold,omitempty"`
+	ForceDockerCleanup                   *bool   `json:"force_docker_cleanup,omitempty"`
+	DeleteUnusedVolumes                  *bool   `json:"delete_unused_volumes,omitempty"`
+	DeleteUnusedNetworks                 *bool   `json:"delete_unused_networks,omitempty"`
+	GenerateExactLabels                  *bool   `json:"generate_exact_labels,omitempty"`
 }
 
 func (c *Client) ListServers(ctx context.Context) ([]Server, error) {

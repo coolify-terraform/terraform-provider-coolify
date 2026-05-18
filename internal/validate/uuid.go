@@ -3,6 +3,7 @@ package validate
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -30,4 +31,48 @@ func ImportUUID(id string) error {
 		return fmt.Errorf("import ID %q is not a valid UUID or Coolify identifier", id)
 	}
 	return nil
+}
+
+// CompoundImportID holds the parsed components of a compound import ID
+// in the format "project_uuid:server_uuid:environment_name:uuid".
+type CompoundImportID struct {
+	ProjectUUID     string
+	ServerUUID      string
+	EnvironmentName string
+	UUID            string
+}
+
+// ParseCompoundImportID parses an import ID that is either a simple UUID
+// or the compound format "project_uuid:server_uuid:environment_name:uuid".
+// Returns the parsed parts and whether the compound format was used.
+func ParseCompoundImportID(id string) (*CompoundImportID, bool, error) {
+	parts := strings.SplitN(id, ":", 4)
+	switch len(parts) {
+	case 1:
+		if err := ImportUUID(parts[0]); err != nil {
+			return nil, false, err
+		}
+		return &CompoundImportID{UUID: parts[0]}, false, nil
+	case 4:
+		if err := ImportUUID(parts[0]); err != nil {
+			return nil, false, fmt.Errorf("project_uuid: %w", err)
+		}
+		if err := ImportUUID(parts[1]); err != nil {
+			return nil, false, fmt.Errorf("server_uuid: %w", err)
+		}
+		if parts[2] == "" {
+			return nil, false, fmt.Errorf("environment_name must not be empty")
+		}
+		if err := ImportUUID(parts[3]); err != nil {
+			return nil, false, fmt.Errorf("uuid: %w", err)
+		}
+		return &CompoundImportID{
+			ProjectUUID:     parts[0],
+			ServerUUID:      parts[1],
+			EnvironmentName: parts[2],
+			UUID:            parts[3],
+		}, true, nil
+	default:
+		return nil, false, fmt.Errorf("expected UUID or project_uuid:server_uuid:environment_name:uuid, got: %s", id)
+	}
 }

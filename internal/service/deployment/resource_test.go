@@ -740,6 +740,44 @@ resource "coolify_deployment" "test" {
 	})
 }
 
+func TestDeploymentResource_EmptyUUID(t *testing.T) {
+	t.Parallel()
+	appUUID := "cccc0007-0007-4000-8000-000000000007"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"deployment_uuid": "",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+				ExpectError: regexp.MustCompile("Deployment triggered but no UUID returned"),
+			},
+		},
+	})
+}
+
 func TestDeploymentResource_InvalidUUID(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))

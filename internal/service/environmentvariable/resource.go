@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -131,18 +132,7 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 }
 
 func (r *environmentVariableResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
-		)
-		return
-	}
-	r.client = c
+	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
 func (r *environmentVariableResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {

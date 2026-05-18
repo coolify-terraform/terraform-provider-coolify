@@ -8,13 +8,18 @@ import (
 )
 
 type Service struct {
-	UUID            string `json:"uuid"`
-	Name            string `json:"name"`
-	Description     string `json:"description,omitempty"`
-	Type            string `json:"type"`
-	ServerUUID      string `json:"server_uuid,omitempty"`
-	ProjectUUID     string `json:"project_uuid,omitempty"`
-	EnvironmentName string `json:"environment_name,omitempty"`
+	UUID             string `json:"uuid"`
+	Name             string `json:"name"`
+	Description      string `json:"description,omitempty"`
+	Type             string `json:"type"`
+	ServerUUID       string `json:"server_uuid,omitempty"`
+	ProjectUUID      string `json:"project_uuid,omitempty"`
+	EnvironmentName  string `json:"environment_name,omitempty"`
+	Status           string `json:"status,omitempty"`
+	DockerCompose    string `json:"docker_compose,omitempty"`
+	DockerComposeRaw string `json:"docker_compose_raw,omitempty"`
+	ConnectToNetwork *bool  `json:"connect_to_docker_network,omitempty"`
+	ConfigHash       string `json:"config_hash,omitempty"`
 }
 type CreateServiceInput struct {
 	Type            string `json:"type"`

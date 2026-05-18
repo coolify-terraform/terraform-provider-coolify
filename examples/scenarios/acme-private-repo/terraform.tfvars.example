@@ -1,0 +1,8 @@
+coolify_endpoint = "http://localhost:8000"
+coolify_token    = "your-api-token"
+server_uuid      = "your-server-uuid"
+deploy_ssh_key   = "-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----"
+git_repository   = "git@github.com:your-org/your-private-repo.git"
+git_branch       = "main"
+database_url     = "postgresql://user:pass@db:5432/mydb"
+app_secret       = "change-me-in-production"

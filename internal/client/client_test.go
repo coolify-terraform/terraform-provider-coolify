@@ -571,6 +571,77 @@ func TestClient_GetServer(t *testing.T) {
 	assert.True(t, s.IsUsable)
 }
 
+func TestClient_GetServer_WithSettings(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/servers/test-uuid", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"uuid": "test-uuid",
+			"name": "Settings Server",
+			"ip": "10.0.0.1",
+			"port": 22,
+			"is_build_server": false,
+			"is_reachable": true,
+			"is_usable": true,
+			"settings": {
+				"concurrent_builds": 4,
+				"dynamic_timeout": 7200,
+				"deployment_queue_limit": 10,
+				"server_disk_usage_notification_threshold": 90,
+				"server_disk_usage_check_frequency": "0 * * * *"
+			}
+		}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	s, err := c.GetServer(context.Background(), "test-uuid")
+	require.NoError(t, err)
+	assert.Equal(t, "test-uuid", s.UUID)
+	assert.Equal(t, "Settings Server", s.Name)
+	require.NotNil(t, s.Settings)
+	assert.Equal(t, 4, s.Settings.ConcurrentBuilds)
+	assert.Equal(t, 7200, s.Settings.DynamicTimeout)
+	assert.Equal(t, 10, s.Settings.DeploymentQueueLimit)
+	assert.Equal(t, 90, s.Settings.ServerDiskUsageNotificationThreshold)
+	assert.Equal(t, "0 * * * *", s.Settings.ServerDiskUsageCheckFrequency)
+}
+
+func TestClient_GetServer_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetServer(context.Background(), "test-uuid")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_GetServer_ServerError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message": "internal error"}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	c.HTTPClient.Timeout = 10 * time.Second
+	_, err := c.GetServer(context.Background(), "test-uuid")
+	require.Error(t, err)
+	assert.False(t, IsNotFound(err))
+	// The retryable client retries on 500 and eventually gives up.
+	got := err.Error()
+	assert.True(t, strings.Contains(got, "giving up") || strings.Contains(got, "500") || strings.Contains(got, "internal error"),
+		"expected error to mention retry exhaustion, status 500, or the API message, got: %s", got)
+}
+
 func TestClient_CreateServer(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

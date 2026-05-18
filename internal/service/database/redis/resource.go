@@ -7,7 +7,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
+	dbcommon "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -24,7 +24,7 @@ var (
 
 type res struct{ client *client.Client }
 type model struct {
-	pg.CommonModel
+	dbcommon.CommonModel
 	// Type-specific
 	RedisPassword types.String `tfsdk:"redis_password"`
 	RedisConf     types.String `tfsdk:"redis_conf"`
@@ -36,14 +36,14 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 	resp.TypeName = req.ProviderTypeName + "_redis_database"
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Redis database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
+	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Redis database resource on Coolify.", Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 		"redis_password": schema.StringAttribute{MarkdownDescription: "The Redis authentication password. Stored as an encrypted environment variable in Coolify.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"redis_conf":     schema.StringAttribute{MarkdownDescription: "Custom Redis configuration (base64-encoded `redis.conf` content).", Optional: true},
-		"enable_ssl":     pg.EnableSSLAttr(),
+		"enable_ssl":     dbcommon.EnableSSLAttr(),
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	r.client = pg.ConfigureDatabase(req, resp)
+	r.client = dbcommon.ConfigureDatabase(req, resp)
 }
 func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var p model
@@ -75,7 +75,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	p.UUID = types.StringValue(c.UUID)
-	pg.NormalizeCommonCreateState(&p.CommonModel)
+	dbcommon.NormalizeCommonCreateState(&p.CommonModel)
 	flex.NormalizeUnknownString(&p.RedisPassword)
 	flex.NormalizeUnknownString(&p.RedisConf)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
@@ -85,9 +85,9 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	ext := p.ExtFields().WithSSL(&p.EnableSSL, nil)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if pg.HasExtendedFields(ext) || strSet(p.RedisConf) {
+	if dbcommon.HasExtendedFields(ext) || strSet(p.RedisConf) {
 		update := client.UpdateDatabaseInput{}
-		pg.SetUpdateExtended(&update, ext)
+		dbcommon.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.RedisConf, p.RedisConf)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting Redis database extended fields", fmt.Sprintf("Redis database %s: %s", c.UUID, err))
@@ -97,7 +97,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
-		pg.AddCreateReadBackError(resp, "Redis database", c.UUID, err)
+		dbcommon.AddCreateReadBackError(resp, "Redis database", c.UUID, err)
 		return
 	}
 	flattenDatabase(db, &p)
@@ -112,7 +112,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 	}
 	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_redis_database", "uuid": s.UUID.ValueString()})
 
-	db, err := pg.ReadDatabase(ctx, r.client, s.UUID.ValueString())
+	db, err := dbcommon.ReadDatabase(ctx, r.client, s.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading Redis database", fmt.Sprintf("Redis database %s: %s", s.UUID.ValueString(), err))
 		return
@@ -147,8 +147,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		RedisPassword: flex.StringIfChanged(p.RedisPassword, s.RedisPassword),
 		RedisConf:     flex.StringIfChanged(p.RedisConf, s.RedisConf),
 	}
-	pg.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, nil), s.ExtFields().WithSSL(&s.EnableSSL, nil))
-	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
+	dbcommon.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, nil), s.ExtFields().WithSSL(&s.EnableSSL, nil))
+	db, err := dbcommon.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Redis database", fmt.Sprintf("Redis database %s: %s", s.UUID.ValueString(), err))
 		return
@@ -164,17 +164,17 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_redis_database", "uuid": s.UUID.ValueString()})
 
-	if err := pg.DeleteDatabase(ctx, r.client, "coolify_redis_database", s.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_redis_database", s.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting Redis database", fmt.Sprintf("Redis database %s: %s", s.UUID.ValueString(), err))
 		return
 	}
 }
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	pg.ImportDatabaseState(ctx, req, resp)
+	dbcommon.ImportDatabaseState(ctx, req, resp)
 }
 func flattenDatabase(db *client.Database, m *model) {
-	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
-	pg.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, nil))
+	dbcommon.FlattenDatabaseCommon(db, m.CommonPtrs())
+	dbcommon.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, nil))
 	// redis_password is a sensitive field; the API may hide it via
 	// ApiSensitiveData middleware. Only overwrite when the API returns
 	// a value; otherwise preserve the existing state/plan value so

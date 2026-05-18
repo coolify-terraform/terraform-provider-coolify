@@ -7,7 +7,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
+	dbcommon "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -24,7 +24,7 @@ var (
 
 type res struct{ client *client.Client }
 type model struct {
-	pg.CommonModel
+	dbcommon.CommonModel
 	// Type-specific
 	KeydbPassword types.String `tfsdk:"keydb_password"`
 	KeydbConf     types.String `tfsdk:"keydb_conf"`
@@ -36,14 +36,14 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 	resp.TypeName = req.ProviderTypeName + "_keydb_database"
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{MarkdownDescription: "Manages a KeyDB database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
+	resp.Schema = schema.Schema{MarkdownDescription: "Manages a KeyDB database resource on Coolify.", Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 		"keydb_password": schema.StringAttribute{MarkdownDescription: "The KeyDB password. If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"keydb_conf":     schema.StringAttribute{MarkdownDescription: "Custom KeyDB configuration (base64-encoded `keydb.conf` content).", Optional: true},
-		"enable_ssl":     pg.EnableSSLAttr(),
+		"keydb_conf":     schema.StringAttribute{MarkdownDescription: "Custom KeyDB configuration (base64-encoded `keypg.conf` content).", Optional: true},
+		"enable_ssl":     dbcommon.EnableSSLAttr(),
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	r.client = pg.ConfigureDatabase(req, resp)
+	r.client = dbcommon.ConfigureDatabase(req, resp)
 }
 func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var p model
@@ -75,7 +75,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	p.UUID = types.StringValue(c.UUID)
-	pg.NormalizeCommonCreateState(&p.CommonModel)
+	dbcommon.NormalizeCommonCreateState(&p.CommonModel)
 	flex.NormalizeUnknownString(&p.KeydbPassword)
 	flex.NormalizeUnknownString(&p.KeydbConf)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
@@ -85,9 +85,9 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	ext := p.ExtFields().WithSSL(&p.EnableSSL, nil)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if pg.HasExtendedFields(ext) || strSet(p.KeydbPassword) || strSet(p.KeydbConf) {
+	if dbcommon.HasExtendedFields(ext) || strSet(p.KeydbPassword) || strSet(p.KeydbConf) {
 		update := client.UpdateDatabaseInput{}
-		pg.SetUpdateExtended(&update, ext)
+		dbcommon.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.KeydbPassword, p.KeydbPassword)
 		flex.SetStrPtr(&update.KeydbConf, p.KeydbConf)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
@@ -98,7 +98,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
-		pg.AddCreateReadBackError(resp, "KeyDB database", c.UUID, err)
+		dbcommon.AddCreateReadBackError(resp, "KeyDB database", c.UUID, err)
 		return
 	}
 	flattenDatabase(db, &p)
@@ -113,7 +113,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 	}
 	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_keydb_database", "uuid": s.UUID.ValueString()})
 
-	db, err := pg.ReadDatabase(ctx, r.client, s.UUID.ValueString())
+	db, err := dbcommon.ReadDatabase(ctx, r.client, s.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading KeyDB database", fmt.Sprintf("KeyDB database %s: %s", s.UUID.ValueString(), err))
 		return
@@ -148,8 +148,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		KeydbPassword: flex.StringIfChanged(p.KeydbPassword, s.KeydbPassword),
 		KeydbConf:     flex.StringIfChanged(p.KeydbConf, s.KeydbConf),
 	}
-	pg.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, nil), s.ExtFields().WithSSL(&s.EnableSSL, nil))
-	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
+	dbcommon.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, nil), s.ExtFields().WithSSL(&s.EnableSSL, nil))
+	db, err := dbcommon.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating KeyDB database", fmt.Sprintf("KeyDB database %s: %s", s.UUID.ValueString(), err))
 		return
@@ -165,17 +165,17 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_keydb_database", "uuid": s.UUID.ValueString()})
 
-	if err := pg.DeleteDatabase(ctx, r.client, "coolify_keydb_database", s.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_keydb_database", s.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting KeyDB database", fmt.Sprintf("KeyDB database %s: %s", s.UUID.ValueString(), err))
 		return
 	}
 }
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	pg.ImportDatabaseState(ctx, req, resp)
+	dbcommon.ImportDatabaseState(ctx, req, resp)
 }
 func flattenDatabase(db *client.Database, m *model) {
-	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
-	pg.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, nil))
+	dbcommon.FlattenDatabaseCommon(db, m.CommonPtrs())
+	dbcommon.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, nil))
 	if db.KeydbPassword != "" {
 		m.KeydbPassword = types.StringValue(db.KeydbPassword)
 	} else if m.KeydbPassword.IsUnknown() {

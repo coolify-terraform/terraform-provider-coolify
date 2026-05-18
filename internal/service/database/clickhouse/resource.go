@@ -7,7 +7,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
+	dbcommon "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -24,7 +24,7 @@ var (
 
 type res struct{ client *client.Client }
 type model struct {
-	pg.CommonModel
+	dbcommon.CommonModel
 	// Type-specific
 	ClickhouseAdminUser     types.String `tfsdk:"clickhouse_admin_user"`
 	ClickhouseAdminPassword types.String `tfsdk:"clickhouse_admin_password"`
@@ -36,14 +36,14 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 	resp.TypeName = req.ProviderTypeName + "_clickhouse_database"
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{MarkdownDescription: "Manages a ClickHouse database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
+	resp.Schema = schema.Schema{MarkdownDescription: "Manages a ClickHouse database resource on Coolify.", Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 		"clickhouse_admin_user":     schema.StringAttribute{MarkdownDescription: "The ClickHouse admin user name (maps to `CLICKHOUSE_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"clickhouse_admin_password": schema.StringAttribute{MarkdownDescription: "The ClickHouse admin password (maps to `CLICKHOUSE_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"clickhouse_db":             schema.StringAttribute{MarkdownDescription: "The default ClickHouse database name. If omitted, Coolify uses `default`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	r.client = pg.ConfigureDatabase(req, resp)
+	r.client = dbcommon.ConfigureDatabase(req, resp)
 }
 func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var p model
@@ -77,7 +77,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	p.UUID = types.StringValue(c.UUID)
-	pg.NormalizeCommonCreateState(&p.CommonModel)
+	dbcommon.NormalizeCommonCreateState(&p.CommonModel)
 	flex.NormalizeUnknownString(&p.ClickhouseAdminUser)
 	flex.NormalizeUnknownString(&p.ClickhouseAdminPassword)
 	flex.NormalizeUnknownString(&p.ClickhouseDB)
@@ -88,9 +88,9 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	ext := p.ExtFields()
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if pg.HasExtendedFields(ext) || strSet(p.ClickhouseDB) {
+	if dbcommon.HasExtendedFields(ext) || strSet(p.ClickhouseDB) {
 		update := client.UpdateDatabaseInput{}
-		pg.SetUpdateExtended(&update, ext)
+		dbcommon.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.ClickhouseDB, p.ClickhouseDB)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting ClickHouse database extended fields", fmt.Sprintf("ClickHouse database %s: %s", c.UUID, err))
@@ -100,7 +100,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	db, err := r.client.GetDatabase(ctx, c.UUID)
 	if err != nil {
-		pg.AddCreateReadBackError(resp, "ClickHouse database", c.UUID, err)
+		dbcommon.AddCreateReadBackError(resp, "ClickHouse database", c.UUID, err)
 		return
 	}
 	flattenDatabase(db, &p)
@@ -116,7 +116,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 
 	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": s.UUID.ValueString()})
 
-	db, err := pg.ReadDatabase(ctx, r.client, s.UUID.ValueString())
+	db, err := dbcommon.ReadDatabase(ctx, r.client, s.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
 		return
@@ -153,8 +153,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		ClickhouseAdminPassword: flex.StringIfChanged(p.ClickhouseAdminPassword, s.ClickhouseAdminPassword),
 		ClickhouseDB:            flex.StringIfChanged(p.ClickhouseDB, s.ClickhouseDB),
 	}
-	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
-	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
+	dbcommon.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
+	db, err := dbcommon.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
 		return
@@ -171,17 +171,17 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": s.UUID.ValueString()})
 
-	if err := pg.DeleteDatabase(ctx, r.client, "coolify_clickhouse_database", s.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_clickhouse_database", s.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
 		return
 	}
 }
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	pg.ImportDatabaseState(ctx, req, resp)
+	dbcommon.ImportDatabaseState(ctx, req, resp)
 }
 func flattenDatabase(db *client.Database, m *model) {
-	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
-	pg.FlattenDatabaseExtended(db, m.ExtFields())
+	dbcommon.FlattenDatabaseCommon(db, m.CommonPtrs())
+	dbcommon.FlattenDatabaseExtended(db, m.ExtFields())
 	m.ClickhouseAdminUser = flex.StringToFramework(db.ClickhouseAdminUser)
 	// Preserve password from plan/state when the API hides sensitive fields.
 	if db.ClickhouseAdminPassword != "" {

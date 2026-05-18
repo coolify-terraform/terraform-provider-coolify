@@ -39,6 +39,7 @@ resource "coolify_service" "monitoring" {
 
 ### Optional
 
+- `connect_to_docker_network` (Boolean) Whether the service containers connect to the Coolify Docker network.
 - `description` (String) A description of the service.
 - `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
 - `name` (String) The name of the service.
@@ -46,6 +47,10 @@ resource "coolify_service" "monitoring" {
 
 ### Read-Only
 
+- `config_hash` (String) Hash of the current service configuration. Changes when the compose or settings are modified.
+- `docker_compose` (String, Sensitive) The parsed Docker Compose configuration. Requires API token with `read:sensitive` permission.
+- `docker_compose_raw` (String, Sensitive) The raw Docker Compose configuration. Requires API token with `read:sensitive` permission.
+- `status` (String) The current status of the service (e.g., `running`, `stopped`, `exited`). Read-only.
 - `uuid` (String) The UUID of the service.
 
 <a id="nestedatt--timeouts"></a>

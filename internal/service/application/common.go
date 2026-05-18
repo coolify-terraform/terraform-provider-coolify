@@ -1238,48 +1238,27 @@ func deleteApplication(
 		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
-	client.PollUntilDeleted(ctx, func() error { _, err := c.GetApplication(ctx, uuid); return err })
+	if !client.PollUntilDeleted(ctx, func() error { _, err := c.GetApplication(ctx, uuid); return err }) {
+		tflog.Warn(ctx, "resource may still exist after polling timeout", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
+	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 }
 
 // importApplicationState validates the import ID and sets the initial state
 // attributes common to all application resource types.
 func importApplicationState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Accept both simple UUID and compound "project_uuid:server_uuid:environment_name:uuid" formats.
-	parts := strings.SplitN(req.ID, ":", 4)
-	switch len(parts) {
-	case 1:
-		if err := validate.ImportUUID(parts[0]); err != nil {
-			resp.Diagnostics.AddError("Invalid Import ID", err.Error())
-			return
-		}
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parts[0])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
-	case 4:
-		if err := validate.ImportUUID(parts[0]); err != nil {
-			resp.Diagnostics.AddError("Invalid Import ID", "project_uuid: "+err.Error())
-			return
-		}
-		if err := validate.ImportUUID(parts[1]); err != nil {
-			resp.Diagnostics.AddError("Invalid Import ID", "server_uuid: "+err.Error())
-			return
-		}
-		if parts[2] == "" {
-			resp.Diagnostics.AddError("Invalid Import ID", "environment_name must not be empty")
-			return
-		}
-		if err := validate.ImportUUID(parts[3]); err != nil {
-			resp.Diagnostics.AddError("Invalid Import ID", "uuid: "+err.Error())
-			return
-		}
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parts[0])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parts[1])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parts[2])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parts[3])...)
-	default:
-		resp.Diagnostics.AddError("Invalid Import ID",
-			"Expected UUID or project_uuid:server_uuid:environment_name:uuid, got: "+req.ID)
+	parsed, compound, err := validate.ParseCompoundImportID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
 		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
+	if compound {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parsed.ProjectUUID)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parsed.ServerUUID)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parsed.EnvironmentName)...)
+	} else {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 	}
 	setImportDefaults(ctx, resp)
 	addApplicationImportSensitiveFieldsWarning(resp)

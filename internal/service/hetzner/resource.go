@@ -62,6 +62,22 @@ type hetznerServerResourceModel struct {
 	DeploymentQueueLimit                 types.Int64  `tfsdk:"deployment_queue_limit"`
 	ServerDiskUsageNotificationThreshold types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
 	ServerDiskUsageCheckFrequency        types.String `tfsdk:"server_disk_usage_check_frequency"`
+	// Extended settings
+	WildcardDomain                    types.String `tfsdk:"wildcard_domain"`
+	IsCloudFlareTunnel                types.Bool   `tfsdk:"is_cloudflare_tunnel"`
+	ServerTimezone                    types.String `tfsdk:"server_timezone"`
+	IsMetricsEnabled                  types.Bool   `tfsdk:"is_metrics_enabled"`
+	IsTerminalEnabled                 types.Bool   `tfsdk:"is_terminal_enabled"`
+	IsSentinelEnabled                 types.Bool   `tfsdk:"is_sentinel_enabled"`
+	SentinelMetricsHistoryDays        types.Int64  `tfsdk:"sentinel_metrics_history_days"`
+	SentinelMetricsRefreshRateSeconds types.Int64  `tfsdk:"sentinel_metrics_refresh_rate_seconds"`
+	SentinelPushIntervalSeconds       types.Int64  `tfsdk:"sentinel_push_interval_seconds"`
+	DockerCleanupFrequency            types.String `tfsdk:"docker_cleanup_frequency"`
+	DockerCleanupThreshold            types.Int64  `tfsdk:"docker_cleanup_threshold"`
+	ForceDockerCleanup                types.Bool   `tfsdk:"force_docker_cleanup"`
+	DeleteUnusedVolumes               types.Bool   `tfsdk:"delete_unused_volumes"`
+	DeleteUnusedNetworks              types.Bool   `tfsdk:"delete_unused_networks"`
+	GenerateExactLabels               types.Bool   `tfsdk:"generate_exact_labels"`
 }
 
 // NewResource returns a new Hetzner server resource.
@@ -142,15 +158,7 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 }
 
 func (r *hetznerServerResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError("Unexpected Configure Type", fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData))
-		return
-	}
-	r.client = c
+	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
 func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -367,6 +375,14 @@ func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
 		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
 		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
+		WildcardDomain: &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
+		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
+		IsTerminalEnabled: &m.IsTerminalEnabled, IsSentinelEnabled: &m.IsSentinelEnabled,
+		SentinelMetricsHistoryDays: &m.SentinelMetricsHistoryDays, SentinelMetricsRefreshRateSeconds: &m.SentinelMetricsRefreshRateSeconds,
+		SentinelPushIntervalSeconds: &m.SentinelPushIntervalSeconds,
+		DockerCleanupFrequency:      &m.DockerCleanupFrequency, DockerCleanupThreshold: &m.DockerCleanupThreshold,
+		ForceDockerCleanup: &m.ForceDockerCleanup, DeleteUnusedVolumes: &m.DeleteUnusedVolumes,
+		DeleteUnusedNetworks: &m.DeleteUnusedNetworks, GenerateExactLabels: &m.GenerateExactLabels,
 	}
 }
 

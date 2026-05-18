@@ -7,7 +7,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	pg "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/postgresql"
+	dbcommon "github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -25,7 +25,7 @@ var (
 type mysqlDatabaseResource struct{ client *client.Client }
 
 type mysqlDatabaseResourceModel struct {
-	pg.CommonModel
+	dbcommon.CommonModel
 	// Type-specific
 	MysqlUser         types.String `tfsdk:"mysql_user"`
 	MysqlPassword     types.String `tfsdk:"mysql_password"`
@@ -45,20 +45,20 @@ func (r *mysqlDatabaseResource) Metadata(_ context.Context, req resource.Metadat
 func (r *mysqlDatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a MySQL database resource on Coolify.",
-		Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
+		Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 			"mysql_user":          schema.StringAttribute{MarkdownDescription: "The MySQL user name (maps to `MYSQL_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_password":      schema.StringAttribute{MarkdownDescription: "The MySQL user password (maps to `MYSQL_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_database":      schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MYSQL_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_root_password": schema.StringAttribute{MarkdownDescription: "The MySQL root password (maps to `MYSQL_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"mysql_conf":          schema.StringAttribute{MarkdownDescription: "Custom MySQL configuration (base64-encoded `my.cnf` content).", Optional: true},
-			"enable_ssl":          pg.EnableSSLAttr(),
-			"ssl_mode":            pg.SSLModeMysqlAttr(),
+			"enable_ssl":          dbcommon.EnableSSLAttr(),
+			"ssl_mode":            dbcommon.SSLModeMysqlAttr(),
 		}),
 	}
 }
 
 func (r *mysqlDatabaseResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	r.client = pg.ConfigureDatabase(req, resp)
+	r.client = dbcommon.ConfigureDatabase(req, resp)
 }
 
 func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -94,7 +94,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	plan.UUID = types.StringValue(created.UUID)
-	pg.NormalizeCommonCreateState(&plan.CommonModel)
+	dbcommon.NormalizeCommonCreateState(&plan.CommonModel)
 	flex.NormalizeUnknownString(&plan.MysqlUser)
 	flex.NormalizeUnknownString(&plan.MysqlPassword)
 	flex.NormalizeUnknownString(&plan.MysqlDatabase)
@@ -108,9 +108,9 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 
 	ext := plan.ExtFields().WithSSL(&plan.EnableSSL, &plan.SSLMode)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if pg.HasExtendedFields(ext) || strSet(plan.MysqlConf) {
+	if dbcommon.HasExtendedFields(ext) || strSet(plan.MysqlConf) {
 		update := client.UpdateDatabaseInput{}
-		pg.SetUpdateExtended(&update, ext)
+		dbcommon.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.MysqlConf, plan.MysqlConf)
 		if _, err := r.client.UpdateDatabase(ctx, created.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting MySQL database extended fields", fmt.Sprintf("MySQL database %s: %s", created.UUID, err))
@@ -120,7 +120,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 
 	db, err := r.client.GetDatabase(ctx, created.UUID)
 	if err != nil {
-		pg.AddCreateReadBackError(resp, "MySQL database", created.UUID, err)
+		dbcommon.AddCreateReadBackError(resp, "MySQL database", created.UUID, err)
 		return
 	}
 	flattenDatabase(db, &plan)
@@ -136,7 +136,7 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 	}
 	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
 
-	db, err := pg.ReadDatabase(ctx, r.client, state.UUID.ValueString())
+	db, err := dbcommon.ReadDatabase(ctx, r.client, state.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
 		return
@@ -177,8 +177,8 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 		MysqlRootPassword: flex.StringIfChanged(plan.MysqlRootPassword, state.MysqlRootPassword),
 		MysqlConf:         flex.StringIfChanged(plan.MysqlConf, state.MysqlConf),
 	}
-	pg.SetUpdateExtendedDiff(&input, plan.ExtFields().WithSSL(&plan.EnableSSL, &plan.SSLMode), state.ExtFields().WithSSL(&state.EnableSSL, &state.SSLMode))
-	db, err := pg.UpdateDatabase(ctx, r.client, uuid, input)
+	dbcommon.SetUpdateExtendedDiff(&input, plan.ExtFields().WithSSL(&plan.EnableSSL, &plan.SSLMode), state.ExtFields().WithSSL(&state.EnableSSL, &state.SSLMode))
+	db, err := dbcommon.UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MySQL database", fmt.Sprintf("MySQL database %s: %s", uuid, err))
 		return
@@ -195,19 +195,19 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
 
-	if err := pg.DeleteDatabase(ctx, r.client, "coolify_mysql_database", state.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_mysql_database", state.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}
 }
 
 func (r *mysqlDatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	pg.ImportDatabaseState(ctx, req, resp)
+	dbcommon.ImportDatabaseState(ctx, req, resp)
 }
 
 func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
-	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
-	pg.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, &m.SSLMode))
+	dbcommon.FlattenDatabaseCommon(db, m.CommonPtrs())
+	dbcommon.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, &m.SSLMode))
 	m.MysqlUser = flex.StringToFramework(db.MysqlUser)
 	// Preserve passwords from plan/state when the API hides sensitive fields.
 	if db.MysqlPassword != "" {

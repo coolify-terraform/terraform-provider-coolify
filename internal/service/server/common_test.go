@@ -17,6 +17,14 @@ func newTestPtrs() (ServerCommonPtrs, *testModel) {
 		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
 		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
 		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
+		WildcardDomain: &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
+		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
+		IsTerminalEnabled: &m.IsTerminalEnabled, IsSentinelEnabled: &m.IsSentinelEnabled,
+		SentinelMetricsHistoryDays: &m.SentinelMetricsHistoryDays, SentinelMetricsRefreshRateSeconds: &m.SentinelMetricsRefreshRateSeconds,
+		SentinelPushIntervalSeconds: &m.SentinelPushIntervalSeconds,
+		DockerCleanupFrequency:      &m.DockerCleanupFrequency, DockerCleanupThreshold: &m.DockerCleanupThreshold,
+		ForceDockerCleanup: &m.ForceDockerCleanup, DeleteUnusedVolumes: &m.DeleteUnusedVolumes,
+		DeleteUnusedNetworks: &m.DeleteUnusedNetworks, GenerateExactLabels: &m.GenerateExactLabels,
 	}, m
 }
 
@@ -27,6 +35,22 @@ type testModel struct {
 	ServerDiskUsageNotificationThreshold              types.Int64
 	ServerDiskUsageCheckFrequency                     types.String
 	IsBuildServer, IsReachable, IsUsable              types.Bool
+	// Extended settings
+	WildcardDomain                    types.String
+	IsCloudFlareTunnel                types.Bool
+	ServerTimezone                    types.String
+	IsMetricsEnabled                  types.Bool
+	IsTerminalEnabled                 types.Bool
+	IsSentinelEnabled                 types.Bool
+	SentinelMetricsHistoryDays        types.Int64
+	SentinelMetricsRefreshRateSeconds types.Int64
+	SentinelPushIntervalSeconds       types.Int64
+	DockerCleanupFrequency            types.String
+	DockerCleanupThreshold            types.Int64
+	ForceDockerCleanup                types.Bool
+	DeleteUnusedVolumes               types.Bool
+	DeleteUnusedNetworks              types.Bool
+	GenerateExactLabels               types.Bool
 }
 
 func TestFlattenServerCommon_FullServer(t *testing.T) {
@@ -191,5 +215,90 @@ func TestBuildServerUpdateInput_PartialChange(t *testing.T) {
 	}
 	if input.Port != nil {
 		t.Errorf("Port should be nil when unchanged, got %v", *input.Port)
+	}
+}
+
+func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
+	t.Parallel()
+	plan, _ := newTestPtrs()
+	state, _ := newTestPtrs()
+
+	// String fields: plan != state.
+	*plan.Name = types.StringValue("new-name")
+	*state.Name = types.StringValue("old-name")
+	*plan.Description = types.StringValue("new-desc")
+	*state.Description = types.StringValue("old-desc")
+	*plan.IP = types.StringValue("10.0.0.2")
+	*state.IP = types.StringValue("10.0.0.1")
+	*plan.User = types.StringValue("deploy")
+	*state.User = types.StringValue("root")
+	*plan.PrivateKeyUUID = types.StringValue("new-key")
+	*state.PrivateKeyUUID = types.StringValue("old-key")
+	*plan.ServerDiskUsageCheckFrequency = types.StringValue("*/10 * * * *")
+	*state.ServerDiskUsageCheckFrequency = types.StringValue("*/5 * * * *")
+
+	// Int64 fields: plan != state.
+	*plan.Port = types.Int64Value(2222)
+	*state.Port = types.Int64Value(22)
+	*plan.ConcurrentBuilds = types.Int64Value(8)
+	*state.ConcurrentBuilds = types.Int64Value(2)
+	*plan.DynamicTimeout = types.Int64Value(7200)
+	*state.DynamicTimeout = types.Int64Value(3600)
+	*plan.DeploymentQueueLimit = types.Int64Value(50)
+	*state.DeploymentQueueLimit = types.Int64Value(25)
+	*plan.ServerDiskUsageNotificationThreshold = types.Int64Value(95)
+	*state.ServerDiskUsageNotificationThreshold = types.Int64Value(80)
+
+	// Bool field: plan != state.
+	*plan.IsBuildServer = types.BoolValue(true)
+	*state.IsBuildServer = types.BoolValue(false)
+
+	input := BuildServerUpdateInput(plan, state)
+
+	// Verify string fields.
+	stringChecks := []struct {
+		name, want string
+		got        *string
+	}{
+		{"Name", "new-name", input.Name},
+		{"Description", "new-desc", input.Description},
+		{"IP", "10.0.0.2", input.IP},
+		{"User", "deploy", input.User},
+		{"PrivateKeyUUID", "new-key", input.PrivateKeyUUID},
+		{"ServerDiskUsageCheckFrequency", "*/10 * * * *", input.ServerDiskUsageCheckFrequency},
+	}
+	for _, c := range stringChecks {
+		if c.got == nil {
+			t.Errorf("%s should be non-nil", c.name)
+		} else if *c.got != c.want {
+			t.Errorf("%s = %q, want %q", c.name, *c.got, c.want)
+		}
+	}
+
+	// Verify int fields.
+	intChecks := []struct {
+		name string
+		want int
+		got  *int
+	}{
+		{"Port", 2222, input.Port},
+		{"ConcurrentBuilds", 8, input.ConcurrentBuilds},
+		{"DynamicTimeout", 7200, input.DynamicTimeout},
+		{"DeploymentQueueLimit", 50, input.DeploymentQueueLimit},
+		{"ServerDiskUsageNotificationThreshold", 95, input.ServerDiskUsageNotificationThreshold},
+	}
+	for _, c := range intChecks {
+		if c.got == nil {
+			t.Errorf("%s should be non-nil", c.name)
+		} else if *c.got != c.want {
+			t.Errorf("%s = %d, want %d", c.name, *c.got, c.want)
+		}
+	}
+
+	// Verify bool field.
+	if input.IsBuildServer == nil {
+		t.Error("IsBuildServer should be non-nil")
+	} else if *input.IsBuildServer != true {
+		t.Errorf("IsBuildServer = %v, want true", *input.IsBuildServer)
 	}
 }

@@ -22,9 +22,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = (*gitHubAppResource)(nil)
-	_ resource.ResourceWithImportState = (*gitHubAppResource)(nil)
-	_ resource.ResourceWithConfigure   = (*gitHubAppResource)(nil)
+	_ resource.Resource                 = (*gitHubAppResource)(nil)
+	_ resource.ResourceWithImportState  = (*gitHubAppResource)(nil)
+	_ resource.ResourceWithConfigure    = (*gitHubAppResource)(nil)
+	_ resource.ResourceWithUpgradeState = (*gitHubAppResource)(nil)
 )
 
 // gitHubAppResource is the resource implementation for a Coolify GitHub App integration.
@@ -57,6 +58,7 @@ func (r *gitHubAppResource) Metadata(_ context.Context, req resource.MetadataReq
 
 func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Version:             1,
 		MarkdownDescription: "Manages a Coolify GitHub App integration.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
@@ -116,18 +118,7 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 }
 
 func (r *gitHubAppResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
-		)
-		return
-	}
-	r.client = c
+	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
 func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -281,6 +272,64 @@ func (r *gitHubAppResource) ImportState(ctx context.Context, req resource.Import
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
+}
+
+func (r *gitHubAppResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
+	return map[int64]resource.StateUpgrader{
+		0: {
+			// Version 0 -> 1: rename private_key (raw PEM content) to
+			// private_key_uuid (UUID reference to coolify_private_key).
+			PriorSchema: &schema.Schema{
+				Attributes: map[string]schema.Attribute{
+					"id":                schema.Int64Attribute{Computed: true},
+					"uuid":              schema.StringAttribute{Computed: true},
+					"name":              schema.StringAttribute{Required: true},
+					"organization_name": schema.StringAttribute{Optional: true, Computed: true},
+					"app_id":            schema.Int64Attribute{Required: true},
+					"installation_id":   schema.Int64Attribute{Required: true},
+					"client_id":         schema.StringAttribute{Required: true},
+					"client_secret":     schema.StringAttribute{Required: true, Sensitive: true},
+					"webhook_secret":    schema.StringAttribute{Optional: true, Computed: true, Sensitive: true},
+					"private_key":       schema.StringAttribute{Required: true, Sensitive: true},
+				},
+			},
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				type v0Model struct {
+					ID               types.Int64  `tfsdk:"id"`
+					UUID             types.String `tfsdk:"uuid"`
+					Name             types.String `tfsdk:"name"`
+					OrganizationName types.String `tfsdk:"organization_name"`
+					AppID            types.Int64  `tfsdk:"app_id"`
+					InstallationID   types.Int64  `tfsdk:"installation_id"`
+					ClientID         types.String `tfsdk:"client_id"`
+					ClientSecret     types.String `tfsdk:"client_secret"`
+					WebhookSecret    types.String `tfsdk:"webhook_secret"`
+					PrivateKey       types.String `tfsdk:"private_key"`
+				}
+				var old v0Model
+				resp.Diagnostics.Append(req.State.Get(ctx, &old)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				resp.Diagnostics.AddWarning(
+					"State migrated: private_key renamed to private_key_uuid",
+					"The coolify_github_app resource renamed private_key (raw PEM content) to private_key_uuid "+
+						"(UUID of a coolify_private_key resource). The old value cannot be automatically "+
+						"converted. Update your configuration to set private_key_uuid to the UUID of an "+
+						"existing coolify_private_key resource, then run terraform apply.",
+				)
+				resp.Diagnostics.Append(resp.State.Set(ctx, &gitHubAppResourceModel{
+					ID: old.ID, UUID: old.UUID, Name: old.Name,
+					OrganizationName: old.OrganizationName,
+					AppID:            old.AppID, InstallationID: old.InstallationID,
+					ClientID: old.ClientID, ClientSecret: old.ClientSecret,
+					WebhookSecret: old.WebhookSecret,
+					// Cannot convert raw PEM content to UUID; user must update config.
+					PrivateKeyUUID: types.StringUnknown(),
+				})...)
+			},
+		},
+	}
 }
 
 // flattenGitHubApp maps API fields into the Terraform resource model.

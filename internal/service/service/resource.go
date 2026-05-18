@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
@@ -13,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -32,14 +32,19 @@ type serviceResource struct {
 }
 
 type serviceResourceModel struct {
-	Timeouts        timeouts.Value `tfsdk:"timeouts"`
-	UUID            types.String   `tfsdk:"uuid"`
-	Name            types.String   `tfsdk:"name"`
-	Description     types.String   `tfsdk:"description"`
-	ProjectUUID     types.String   `tfsdk:"project_uuid"`
-	ServerUUID      types.String   `tfsdk:"server_uuid"`
-	EnvironmentName types.String   `tfsdk:"environment_name"`
-	Type            types.String   `tfsdk:"type"`
+	Timeouts         timeouts.Value `tfsdk:"timeouts"`
+	UUID             types.String   `tfsdk:"uuid"`
+	Name             types.String   `tfsdk:"name"`
+	Description      types.String   `tfsdk:"description"`
+	ProjectUUID      types.String   `tfsdk:"project_uuid"`
+	ServerUUID       types.String   `tfsdk:"server_uuid"`
+	EnvironmentName  types.String   `tfsdk:"environment_name"`
+	Type             types.String   `tfsdk:"type"`
+	Status           types.String   `tfsdk:"status"`
+	DockerCompose    types.String   `tfsdk:"docker_compose"`
+	DockerComposeRaw types.String   `tfsdk:"docker_compose_raw"`
+	ConnectToNetwork types.Bool     `tfsdk:"connect_to_docker_network"`
+	ConfigHash       types.String   `tfsdk:"config_hash"`
 }
 
 func NewResource() resource.Resource {
@@ -114,25 +119,36 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"status": schema.StringAttribute{
+				MarkdownDescription: "The current status of the service (e.g., `running`, `stopped`, `exited`). Read-only.",
+				Computed:            true,
+			},
+			"docker_compose": schema.StringAttribute{
+				MarkdownDescription: "The parsed Docker Compose configuration. Requires API token with `read:sensitive` permission.",
+				Computed:            true,
+				Sensitive:           true,
+			},
+			"docker_compose_raw": schema.StringAttribute{
+				MarkdownDescription: "The raw Docker Compose configuration. Requires API token with `read:sensitive` permission.",
+				Computed:            true,
+				Sensitive:           true,
+			},
+			"connect_to_docker_network": schema.BoolAttribute{
+				MarkdownDescription: "Whether the service containers connect to the Coolify Docker network.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"config_hash": schema.StringAttribute{
+				MarkdownDescription: "Hash of the current service configuration. Changes when the compose or settings are modified.",
+				Computed:            true,
+			},
 		},
 	}
 }
 
 func (r *serviceResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = c
+	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
 func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -269,45 +285,23 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 		resp.Diagnostics.AddError("Error deleting service", fmt.Sprintf("service %s: %s", uuid, err))
 		return
 	}
-	client.PollUntilDeleted(ctx, func() error { _, err := r.client.GetService(ctx, uuid); return err })
+	if !client.PollUntilDeleted(ctx, func() error { _, err := r.client.GetService(ctx, uuid); return err }) {
+		tflog.Warn(ctx, "resource may still exist after polling timeout", map[string]interface{}{"resource_type": "coolify_service", "uuid": uuid})
+	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": uuid})
 }
 
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Accept both simple UUID and compound "project_uuid:server_uuid:environment_name:uuid" formats.
-	parts := strings.SplitN(req.ID, ":", 4)
-	switch len(parts) {
-	case 1:
-		if err := validate.ImportUUID(parts[0]); err != nil {
-			resp.Diagnostics.AddError("Invalid Import ID", err.Error())
-			return
-		}
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parts[0])...)
-	case 4:
-		if err := validate.ImportUUID(parts[0]); err != nil {
-			resp.Diagnostics.AddError("Invalid Import ID", "project_uuid: "+err.Error())
-			return
-		}
-		if err := validate.ImportUUID(parts[1]); err != nil {
-			resp.Diagnostics.AddError("Invalid Import ID", "server_uuid: "+err.Error())
-			return
-		}
-		if parts[2] == "" {
-			resp.Diagnostics.AddError("Invalid Import ID", "environment_name must not be empty")
-			return
-		}
-		if err := validate.ImportUUID(parts[3]); err != nil {
-			resp.Diagnostics.AddError("Invalid Import ID", "uuid: "+err.Error())
-			return
-		}
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parts[0])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parts[1])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parts[2])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parts[3])...)
-	default:
-		resp.Diagnostics.AddError("Invalid Import ID",
-			"Expected UUID or project_uuid:server_uuid:environment_name:uuid, got: "+req.ID)
+	parsed, compound, err := validate.ParseCompoundImportID(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
 		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
+	if compound {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parsed.ProjectUUID)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parsed.ServerUUID)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parsed.EnvironmentName)...)
 	}
 	resp.Diagnostics.AddWarning(
 		"Sensitive fields require token permissions",
@@ -320,6 +314,15 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 	model.UUID = types.StringValue(svc.UUID)
 	model.Name = flex.StringToFramework(svc.Name)
 	model.Description = flex.StringToFramework(svc.Description)
+	model.Status = flex.StringToFramework(svc.Status)
+	model.DockerCompose = flex.StringToFramework(svc.DockerCompose)
+	model.DockerComposeRaw = flex.StringToFramework(svc.DockerComposeRaw)
+	model.ConfigHash = flex.StringToFramework(svc.ConfigHash)
+	if svc.ConnectToNetwork != nil {
+		model.ConnectToNetwork = types.BoolValue(*svc.ConnectToNetwork)
+	} else {
+		model.ConnectToNetwork = types.BoolValue(false)
+	}
 
 	// Immutable fields: only update if the API returns them because
 	// Coolify may omit these from the GET response.

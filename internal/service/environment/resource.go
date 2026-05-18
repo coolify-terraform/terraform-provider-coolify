@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -88,18 +89,7 @@ func (r *environmentResource) Schema(_ context.Context, _ resource.SchemaRequest
 }
 
 func (r *environmentResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
-		)
-		return
-	}
-	r.client = c
+	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
 func (r *environmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
