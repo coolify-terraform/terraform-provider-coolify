@@ -75,6 +75,21 @@ The provider validates the Coolify version on `terraform plan` /
 will return an error and refuse to continue. Upgrade your Coolify instance
 before using the provider.
 
+### Version compatibility matrix
+
+The provider tracks the latest Coolify v4 release. Older Coolify versions
+work for core resources, but newer features require a recent version.
+
+| Provider Version | Min Coolify | Key Features |
+|-----------------|-------------|--------------|
+| 0.1.x | 4.0.0 | Core resources: projects, servers, applications, environments |
+| 0.2.x | 4.0.0 | Databases (8 types), services, environment variables, private keys |
+| 0.3.x | 4.0.0 | Cloud tokens (Hetzner), GitHub Apps, scheduled tasks, storage |
+| 0.4.x | 4.0.0 | Database SSL/TLS (`enable_ssl`, `ssl_mode`), log drain settings, custom TLS CA |
+
+-> **Tip:** Run `data "coolify_version" "current" {}` to check your
+instance version programmatically.
+
 ## Retry configuration
 
 API requests are retried automatically on transient failures (HTTP 429,

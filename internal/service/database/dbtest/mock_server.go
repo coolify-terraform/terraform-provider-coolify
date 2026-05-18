@@ -42,6 +42,10 @@ func (s *MockState) buildResponse() map[string]interface{} {
 		"limits_cpus":               "0",
 		"limits_cpuset":             "0",
 		"limits_cpu_shares":         1024,
+		"is_log_drain_enabled":      false,
+		"is_include_timestamps":     false,
+		"enable_ssl":                false,
+		"ssl_mode":                  "",
 	}
 	for k, v := range s.ExtraFields {
 		resp[k] = v

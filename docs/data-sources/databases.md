@@ -46,8 +46,13 @@ Required:
 Read-Only:
 
 - `description` (String) A description of the database.
+- `enable_ssl` (Boolean) Whether SSL/TLS is enabled for database connections.
 - `image` (String) The Docker image used by the database.
+- `is_include_timestamps` (Boolean) Whether timestamps are included in log output.
+- `is_log_drain_enabled` (Boolean) Whether log drain is enabled for this database.
 - `is_public` (Boolean) Whether the database is publicly accessible.
 - `name` (String) The name of the database.
+- `ssl_mode` (String) The SSL connection mode.
+- `status` (String) The current status of the database.
 - `type` (String) The type of the database (e.g., postgresql, mysql, redis).
 - `uuid` (String) The unique identifier of the database.

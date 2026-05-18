@@ -11,6 +11,7 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -55,6 +56,7 @@ type CommonModel struct {
 	PortsMappings           types.String   `tfsdk:"ports_mappings"`
 	CustomDockerRunOptions  types.String   `tfsdk:"custom_docker_run_options"`
 	PublicPortTimeout       types.Int64    `tfsdk:"public_port_timeout"`
+	IsLogDrainEnabled       types.Bool     `tfsdk:"is_log_drain_enabled"`
 	Status                  types.String   `tfsdk:"status"`
 }
 
@@ -81,6 +83,7 @@ func (m *CommonModel) ExtFields() DatabaseExtendedPtrs {
 		PortsMappings:           &m.PortsMappings,
 		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
 		PublicPortTimeout:       &m.PublicPortTimeout,
+		IsLogDrainEnabled:       &m.IsLogDrainEnabled,
 		Status:                  &m.Status,
 	}
 }
@@ -106,6 +109,9 @@ type postgresqlDatabaseResourceModel struct {
 	PostgresInitdbArgs     types.String `tfsdk:"postgres_initdb_args"`
 	PostgresHostAuthMethod types.String `tfsdk:"postgres_host_auth_method"`
 	InitScripts            types.String `tfsdk:"init_scripts"`
+	IsIncludeTimestamps    types.Bool   `tfsdk:"is_include_timestamps"`
+	EnableSSL              types.Bool   `tfsdk:"enable_ssl"`
+	SSLMode                types.String `tfsdk:"ssl_mode"`
 }
 
 func NewResource() resource.Resource { return &postgresqlDatabaseResource{} }
@@ -146,6 +152,9 @@ func (r *postgresqlDatabaseResource) Schema(ctx context.Context, _ resource.Sche
 				MarkdownDescription: "Initialization scripts as a JSON array.",
 				Optional:            true,
 			},
+			"is_include_timestamps": IsIncludeTimestampsAttr(),
+			"enable_ssl":            EnableSSLAttr(),
+			"ssl_mode":              SSLModePostgresqlAttr(),
 		}),
 	}
 }
@@ -283,6 +292,9 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 		PostgresInitdbArgs:     flex.StringIfChanged(plan.PostgresInitdbArgs, state.PostgresInitdbArgs),
 		PostgresHostAuthMethod: flex.StringIfChanged(plan.PostgresHostAuthMethod, state.PostgresHostAuthMethod),
 		InitScripts:            flex.StringIfChanged(plan.InitScripts, state.InitScripts),
+		IsIncludeTimestamps:    flex.BoolIfChanged(plan.IsIncludeTimestamps, state.IsIncludeTimestamps),
+		EnableSSL:              flex.BoolIfChanged(plan.EnableSSL, state.EnableSSL),
+		SSLMode:                flex.StringIfChanged(plan.SSLMode, state.SSLMode),
 	}
 	SetUpdateExtendedDiff(&input, plan.ExtFields(), state.ExtFields())
 	db, err := UpdateDatabase(ctx, r.client, uuid, input)
@@ -327,6 +339,9 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	flex.SetStringOrClear(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
 	flex.SetStringOrClear(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
 	flex.SetStringOrClear(&m.InitScripts, db.InitScripts)
+	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
+	m.EnableSSL = types.BoolValue(db.EnableSSL)
+	m.SSLMode = flex.StringToFramework(db.SSLMode)
 }
 
 // --- shared helpers ---
@@ -364,12 +379,68 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		},
 		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container.", Optional: true, Validators: []validator.String{validate.NoShellMetachars()}},
 		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
+		"is_log_drain_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, sends container logs to the configured log drain. Defaults to `false`.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g., `running`, `exited`).", Computed: true},
 	}
 	for k, v := range extra {
 		attrs[k] = v
 	}
 	return attrs
+}
+
+// IsIncludeTimestampsAttr returns the schema attribute for is_include_timestamps,
+// shared by all database types.
+func IsIncludeTimestampsAttr() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		MarkdownDescription: "When `true`, includes timestamps in container log output. Defaults to `false`.",
+		Optional:            true,
+		Computed:            true,
+		Default:             booldefault.StaticBool(false),
+	}
+}
+
+// EnableSSLAttr returns the schema attribute for enable_ssl, shared by all
+// database types except ClickHouse.
+func EnableSSLAttr() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		MarkdownDescription: "When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`.",
+		Optional:            true,
+		Computed:            true,
+		Default:             booldefault.StaticBool(false),
+	}
+}
+
+// SSLModePostgresqlAttr returns the ssl_mode schema attribute for PostgreSQL.
+func SSLModePostgresqlAttr() schema.StringAttribute {
+	return schema.StringAttribute{
+		MarkdownDescription: "The SSL connection mode for PostgreSQL. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-ca`, `verify-full`.",
+		Optional:            true,
+		Computed:            true,
+		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Validators:          []validator.String{stringvalidator.OneOf("allow", "prefer", "require", "verify-ca", "verify-full")},
+	}
+}
+
+// SSLModeMysqlAttr returns the ssl_mode schema attribute for MySQL/MariaDB.
+func SSLModeMysqlAttr() schema.StringAttribute {
+	return schema.StringAttribute{
+		MarkdownDescription: "The SSL connection mode for MySQL. Only applies when `enable_ssl` is `true`. Valid values: `REQUIRED`, `DISABLED`, `PREFERRED`, `VERIFY_CA`, `VERIFY_IDENTITY`.",
+		Optional:            true,
+		Computed:            true,
+		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Validators:          []validator.String{stringvalidator.OneOf("REQUIRED", "DISABLED", "PREFERRED", "VERIFY_CA", "VERIFY_IDENTITY")},
+	}
+}
+
+// SSLModeMongodbAttr returns the ssl_mode schema attribute for MongoDB.
+func SSLModeMongodbAttr() schema.StringAttribute {
+	return schema.StringAttribute{
+		MarkdownDescription: "The SSL connection mode for MongoDB. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-ca`, `verify-full`.",
+		Optional:            true,
+		Computed:            true,
+		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Validators:          []validator.String{stringvalidator.OneOf("allow", "prefer", "require", "verify-ca", "verify-full")},
+	}
 }
 
 // ConfigureDatabase extracts the API client from provider data.
@@ -515,6 +586,7 @@ type DatabaseExtendedPtrs struct {
 	PortsMappings           *types.String
 	CustomDockerRunOptions  *types.String
 	PublicPortTimeout       *types.Int64
+	IsLogDrainEnabled       *types.Bool
 	Status                  *types.String
 }
 
@@ -540,6 +612,8 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	flex.SetStringOrClear(f.PortsMappings, db.PortsMappings)
 	flex.SetStringOrClear(f.CustomDockerRunOptions, db.CustomDockerRunOptions)
 	flex.SetInt64IfConfigured(f.PublicPortTimeout, db.PublicPortTimeout)
+	// Logging settings (boolean with default false — always set from API).
+	*f.IsLogDrainEnabled = types.BoolValue(db.IsLogDrainEnabled)
 	// Status is Computed — always set.
 	*f.Status = flex.StringToFramework(db.Status)
 }
@@ -556,6 +630,7 @@ func SetUpdateExtended(input *client.UpdateDatabaseInput, f DatabaseExtendedPtrs
 	flex.SetInt64Ptr(&input.LimitsMemorySwappiness, *f.LimitsMemorySwappiness)
 	flex.SetInt64Ptr(&input.LimitsCPUShares, *f.LimitsCPUShares)
 	input.PublicPortTimeout = flex.Int64PtrFromFramework(*f.PublicPortTimeout)
+	flex.SetBoolPtr(&input.IsLogDrainEnabled, *f.IsLogDrainEnabled)
 }
 
 // SetUpdateExtendedDiff populates the extended fields in an UpdateDatabaseInput,
@@ -571,6 +646,7 @@ func SetUpdateExtendedDiff(input *client.UpdateDatabaseInput, plan, state Databa
 	input.LimitsMemorySwappiness = flex.Int64IfChanged(*plan.LimitsMemorySwappiness, *state.LimitsMemorySwappiness)
 	input.LimitsCPUShares = flex.Int64IfChanged(*plan.LimitsCPUShares, *state.LimitsCPUShares)
 	input.PublicPortTimeout = flex.Int64IfChanged(*plan.PublicPortTimeout, *state.PublicPortTimeout)
+	input.IsLogDrainEnabled = flex.BoolIfChanged(*plan.IsLogDrainEnabled, *state.IsLogDrainEnabled)
 }
 
 // HasExtendedFields returns true if any extended field is configured (not
@@ -588,12 +664,16 @@ func HasExtendedFields(f DatabaseExtendedPtrs) bool {
 	}
 	strSet := func(v *types.String) bool { return v != nil && !v.IsNull() && !v.IsUnknown() }
 	intSet := func(v *types.Int64) bool { return v != nil && !v.IsNull() && !v.IsUnknown() }
+	boolNonDefault := func(v *types.Bool, dflt bool) bool {
+		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueBool() != dflt
+	}
 	return strNonDefault(f.LimitsMemory, "0") || strNonDefault(f.LimitsMemorySwap, "0") ||
 		strNonDefault(f.LimitsMemoryReservation, "0") || strNonDefault(f.LimitsCPUs, "0") ||
 		strSet(f.LimitsCPUSet) ||
 		intNonDefault(f.LimitsMemorySwappiness, 60) || intNonDefault(f.LimitsCPUShares, 1024) ||
 		strSet(f.PortsMappings) || strSet(f.CustomDockerRunOptions) ||
-		intSet(f.PublicPortTimeout)
+		intSet(f.PublicPortTimeout) ||
+		boolNonDefault(f.IsLogDrainEnabled, false)
 }
 
 // FlattenDatabaseCommon sets the fields shared by all database resource types.

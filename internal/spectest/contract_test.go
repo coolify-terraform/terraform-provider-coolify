@@ -228,18 +228,14 @@ func TestContractCoverage_Databases(t *testing.T) {
 	}
 
 	dbIgnore := map[string]bool{
-		"environment_id":        true,
-		"destination_id":        true,
-		"destination_type":      true,
-		"started_at":            true,
-		"last_online_at":        true,
-		"last_restart_at":       true,
-		"last_restart_type":     true,
-		"restart_count":         true,
-		"is_log_drain_enabled":  true,
-		"is_include_timestamps": true,
-		"enable_ssl":            true,
-		"ssl_mode":              true,
+		"environment_id":    true,
+		"destination_id":    true,
+		"destination_type":  true,
+		"started_at":        true,
+		"last_online_at":    true,
+		"last_restart_at":   true,
+		"last_restart_type": true,
+		"restart_count":     true,
 	}
 
 	for _, modelName := range dbModels {

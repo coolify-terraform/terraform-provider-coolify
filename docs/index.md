@@ -89,7 +89,9 @@ You should not see diffs on `terraform plan` after the initial apply.
 
 ### Optional
 
+- `ca_cert` (String) PEM-encoded CA certificate to trust for TLS connections to the Coolify API. Use this when your Coolify instance uses a self-signed certificate or an internal CA. Env: `COOLIFY_CA_CERT`.
 - `endpoint` (String) Coolify API endpoint. Env: COOLIFY_ENDPOINT.
+- `insecure` (Boolean) Skip TLS certificate verification. **Not recommended for production.** Use `ca_cert` instead when possible. Env: `COOLIFY_INSECURE`.
 - `retry_max` (Number) Maximum number of API request retries (default: 3).
 - `retry_max_wait` (Number) Maximum wait between retries in seconds (default: 30).
 - `retry_min_wait` (Number) Minimum wait between retries in seconds (default: 1).

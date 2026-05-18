@@ -27,11 +27,14 @@ type mysqlDatabaseResource struct{ client *client.Client }
 type mysqlDatabaseResourceModel struct {
 	pg.CommonModel
 	// Type-specific
-	MysqlUser         types.String `tfsdk:"mysql_user"`
-	MysqlPassword     types.String `tfsdk:"mysql_password"`
-	MysqlDatabase     types.String `tfsdk:"mysql_database"`
-	MysqlRootPassword types.String `tfsdk:"mysql_root_password"`
-	MysqlConf         types.String `tfsdk:"mysql_conf"`
+	MysqlUser           types.String `tfsdk:"mysql_user"`
+	MysqlPassword       types.String `tfsdk:"mysql_password"`
+	MysqlDatabase       types.String `tfsdk:"mysql_database"`
+	MysqlRootPassword   types.String `tfsdk:"mysql_root_password"`
+	MysqlConf           types.String `tfsdk:"mysql_conf"`
+	IsIncludeTimestamps types.Bool   `tfsdk:"is_include_timestamps"`
+	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
+	SSLMode             types.String `tfsdk:"ssl_mode"`
 }
 
 func NewResource() resource.Resource { return &mysqlDatabaseResource{} }
@@ -44,11 +47,14 @@ func (r *mysqlDatabaseResource) Schema(ctx context.Context, _ resource.SchemaReq
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a MySQL database resource on Coolify.",
 		Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
-			"mysql_user":          schema.StringAttribute{MarkdownDescription: "The MySQL user name (maps to `MYSQL_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"mysql_password":      schema.StringAttribute{MarkdownDescription: "The MySQL user password (maps to `MYSQL_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"mysql_database":      schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MYSQL_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"mysql_root_password": schema.StringAttribute{MarkdownDescription: "The MySQL root password (maps to `MYSQL_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"mysql_conf":          schema.StringAttribute{MarkdownDescription: "Custom MySQL configuration (base64-encoded `my.cnf` content).", Optional: true},
+			"mysql_user":            schema.StringAttribute{MarkdownDescription: "The MySQL user name (maps to `MYSQL_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"mysql_password":        schema.StringAttribute{MarkdownDescription: "The MySQL user password (maps to `MYSQL_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"mysql_database":        schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MYSQL_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"mysql_root_password":   schema.StringAttribute{MarkdownDescription: "The MySQL root password (maps to `MYSQL_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"mysql_conf":            schema.StringAttribute{MarkdownDescription: "Custom MySQL configuration (base64-encoded `my.cnf` content).", Optional: true},
+			"is_include_timestamps": pg.IsIncludeTimestampsAttr(),
+			"enable_ssl":            pg.EnableSSLAttr(),
+			"ssl_mode":              pg.SSLModeMysqlAttr(),
 		}),
 	}
 }
@@ -161,16 +167,19 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": uuid})
 
 	input := client.UpdateDatabaseInput{
-		Name:              flex.StringIfChanged(plan.Name, state.Name),
-		Description:       flex.StringIfChanged(plan.Description, state.Description),
-		Image:             flex.StringIfChanged(plan.Image, state.Image),
-		IsPublic:          flex.BoolIfChanged(plan.IsPublic, state.IsPublic),
-		PublicPort:        flex.Int64IfChanged(plan.PublicPort, state.PublicPort),
-		MysqlUser:         flex.StringIfChanged(plan.MysqlUser, state.MysqlUser),
-		MysqlPassword:     flex.StringIfChanged(plan.MysqlPassword, state.MysqlPassword),
-		MysqlDatabase:     flex.StringIfChanged(plan.MysqlDatabase, state.MysqlDatabase),
-		MysqlRootPassword: flex.StringIfChanged(plan.MysqlRootPassword, state.MysqlRootPassword),
-		MysqlConf:         flex.StringIfChanged(plan.MysqlConf, state.MysqlConf),
+		Name:                flex.StringIfChanged(plan.Name, state.Name),
+		Description:         flex.StringIfChanged(plan.Description, state.Description),
+		Image:               flex.StringIfChanged(plan.Image, state.Image),
+		IsPublic:            flex.BoolIfChanged(plan.IsPublic, state.IsPublic),
+		PublicPort:          flex.Int64IfChanged(plan.PublicPort, state.PublicPort),
+		MysqlUser:           flex.StringIfChanged(plan.MysqlUser, state.MysqlUser),
+		MysqlPassword:       flex.StringIfChanged(plan.MysqlPassword, state.MysqlPassword),
+		MysqlDatabase:       flex.StringIfChanged(plan.MysqlDatabase, state.MysqlDatabase),
+		MysqlRootPassword:   flex.StringIfChanged(plan.MysqlRootPassword, state.MysqlRootPassword),
+		MysqlConf:           flex.StringIfChanged(plan.MysqlConf, state.MysqlConf),
+		IsIncludeTimestamps: flex.BoolIfChanged(plan.IsIncludeTimestamps, state.IsIncludeTimestamps),
+		EnableSSL:           flex.BoolIfChanged(plan.EnableSSL, state.EnableSSL),
+		SSLMode:             flex.StringIfChanged(plan.SSLMode, state.SSLMode),
 	}
 	pg.SetUpdateExtendedDiff(&input, plan.ExtFields(), state.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, uuid, input)
@@ -217,4 +226,7 @@ func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {
 		m.MysqlRootPassword = types.StringNull()
 	}
 	flex.SetStringOrClear(&m.MysqlConf, db.MysqlConf)
+	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
+	m.EnableSSL = types.BoolValue(db.EnableSSL)
+	m.SSLMode = flex.StringToFramework(db.SSLMode)
 }

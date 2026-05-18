@@ -31,12 +31,17 @@ type databaseListDataSourceModel struct {
 
 // databaseItemModel maps a single database in the list.
 type databaseItemModel struct {
-	UUID        types.String `tfsdk:"uuid"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Type        types.String `tfsdk:"type"`
-	Image       types.String `tfsdk:"image"`
-	IsPublic    types.Bool   `tfsdk:"is_public"`
+	UUID                types.String `tfsdk:"uuid"`
+	Name                types.String `tfsdk:"name"`
+	Description         types.String `tfsdk:"description"`
+	Type                types.String `tfsdk:"type"`
+	Image               types.String `tfsdk:"image"`
+	IsPublic            types.Bool   `tfsdk:"is_public"`
+	IsLogDrainEnabled   types.Bool   `tfsdk:"is_log_drain_enabled"`
+	IsIncludeTimestamps types.Bool   `tfsdk:"is_include_timestamps"`
+	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
+	SSLMode             types.String `tfsdk:"ssl_mode"`
+	Status              types.String `tfsdk:"status"`
 }
 
 // NewListDataSource returns a new databases list data source instance.
@@ -79,6 +84,26 @@ func (d *databaseListDataSource) Schema(_ context.Context, _ datasource.SchemaRe
 						},
 						"is_public": schema.BoolAttribute{
 							MarkdownDescription: "Whether the database is publicly accessible.",
+							Computed:            true,
+						},
+						"is_log_drain_enabled": schema.BoolAttribute{
+							MarkdownDescription: "Whether log drain is enabled for this database.",
+							Computed:            true,
+						},
+						"is_include_timestamps": schema.BoolAttribute{
+							MarkdownDescription: "Whether timestamps are included in log output.",
+							Computed:            true,
+						},
+						"enable_ssl": schema.BoolAttribute{
+							MarkdownDescription: "Whether SSL/TLS is enabled for database connections.",
+							Computed:            true,
+						},
+						"ssl_mode": schema.StringAttribute{
+							MarkdownDescription: "The SSL connection mode.",
+							Computed:            true,
+						},
+						"status": schema.StringAttribute{
+							MarkdownDescription: "The current status of the database.",
 							Computed:            true,
 						},
 					},
@@ -135,6 +160,16 @@ func (d *databaseListDataSource) Read(ctx context.Context, req datasource.ReadRe
 			return db.Image, true
 		case "is_public":
 			return filter.BoolToString(db.IsPublic), true
+		case "is_log_drain_enabled":
+			return filter.BoolToString(db.IsLogDrainEnabled), true
+		case "is_include_timestamps":
+			return filter.BoolToString(db.IsIncludeTimestamps), true
+		case "enable_ssl":
+			return filter.BoolToString(db.EnableSSL), true
+		case "ssl_mode":
+			return db.SSLMode, true
+		case "status":
+			return db.Status, true
 		default:
 			return "", false
 		}
@@ -144,13 +179,18 @@ func (d *databaseListDataSource) Read(ctx context.Context, req datasource.ReadRe
 	state.Filters = config.Filters
 	for _, db := range databases {
 		item := databaseItemModel{
-			UUID:     types.StringValue(db.UUID),
-			Name:     types.StringValue(db.Name),
-			Type:     types.StringValue(db.Type),
-			IsPublic: types.BoolValue(db.IsPublic),
+			UUID:                types.StringValue(db.UUID),
+			Name:                types.StringValue(db.Name),
+			Type:                types.StringValue(db.Type),
+			IsPublic:            types.BoolValue(db.IsPublic),
+			IsLogDrainEnabled:   types.BoolValue(db.IsLogDrainEnabled),
+			IsIncludeTimestamps: types.BoolValue(db.IsIncludeTimestamps),
+			EnableSSL:           types.BoolValue(db.EnableSSL),
 		}
 		item.Description = flex.StringToFramework(db.Description)
 		item.Image = flex.StringToFramework(db.Image)
+		item.SSLMode = flex.StringToFramework(db.SSLMode)
+		item.Status = flex.StringToFramework(db.Status)
 		state.Databases = append(state.Databases, item)
 	}
 

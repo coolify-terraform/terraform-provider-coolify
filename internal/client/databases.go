@@ -43,6 +43,12 @@ type Database struct {
 	LimitsCPUs              string `json:"limits_cpus,omitempty"`
 	LimitsCPUSet            string `json:"limits_cpuset,omitempty"`
 	LimitsCPUShares         *int64 `json:"limits_cpu_shares,omitempty"`
+	// Logging settings
+	IsLogDrainEnabled   bool `json:"is_log_drain_enabled"`
+	IsIncludeTimestamps bool `json:"is_include_timestamps"`
+	// SSL/TLS settings
+	EnableSSL bool   `json:"enable_ssl"`
+	SSLMode   string `json:"ssl_mode,omitempty"`
 	// Container/network settings
 	PortsMappings          string `json:"ports_mappings,omitempty"`
 	CustomDockerRunOptions string `json:"custom_docker_run_options,omitempty"`
@@ -202,6 +208,12 @@ type UpdateDatabaseInput struct {
 	LimitsCPUs              *string `json:"limits_cpus,omitempty"`
 	LimitsCPUSet            *string `json:"limits_cpuset,omitempty"`
 	LimitsCPUShares         *int64  `json:"limits_cpu_shares,omitempty"`
+	// Logging settings
+	IsLogDrainEnabled   *bool `json:"is_log_drain_enabled,omitempty"`
+	IsIncludeTimestamps *bool `json:"is_include_timestamps,omitempty"`
+	// SSL/TLS settings
+	EnableSSL *bool   `json:"enable_ssl,omitempty"`
+	SSLMode   *string `json:"ssl_mode,omitempty"`
 	// Container/network settings
 	PortsMappings          *string `json:"ports_mappings,omitempty"`
 	CustomDockerRunOptions *string `json:"custom_docker_run_options,omitempty"`

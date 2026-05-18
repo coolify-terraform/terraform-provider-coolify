@@ -29,6 +29,7 @@ type model struct {
 	ClickhouseAdminUser     types.String `tfsdk:"clickhouse_admin_user"`
 	ClickhouseAdminPassword types.String `tfsdk:"clickhouse_admin_password"`
 	ClickhouseDB            types.String `tfsdk:"clickhouse_db"`
+	IsIncludeTimestamps     types.Bool   `tfsdk:"is_include_timestamps"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -40,6 +41,7 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 		"clickhouse_admin_user":     schema.StringAttribute{MarkdownDescription: "The ClickHouse admin user name (maps to `CLICKHOUSE_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"clickhouse_admin_password": schema.StringAttribute{MarkdownDescription: "The ClickHouse admin password (maps to `CLICKHOUSE_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"clickhouse_db":             schema.StringAttribute{MarkdownDescription: "The default ClickHouse database name. If omitted, Coolify uses `default`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"is_include_timestamps":     pg.IsIncludeTimestampsAttr(),
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -152,6 +154,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		ClickhouseAdminUser:     flex.StringIfChanged(p.ClickhouseAdminUser, s.ClickhouseAdminUser),
 		ClickhouseAdminPassword: flex.StringIfChanged(p.ClickhouseAdminPassword, s.ClickhouseAdminPassword),
 		ClickhouseDB:            flex.StringIfChanged(p.ClickhouseDB, s.ClickhouseDB),
+		IsIncludeTimestamps:     flex.BoolIfChanged(p.IsIncludeTimestamps, s.IsIncludeTimestamps),
 	}
 	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
@@ -190,4 +193,5 @@ func flattenDatabase(db *client.Database, m *model) {
 		m.ClickhouseAdminPassword = types.StringNull()
 	}
 	m.ClickhouseDB = flex.StringToFramework(db.ClickhouseDB)
+	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
 }

@@ -56,6 +56,8 @@ type coolifyProviderModel struct {
 	RetryMax     types.Int64  `tfsdk:"retry_max"`
 	RetryMinWait types.Int64  `tfsdk:"retry_min_wait"`
 	RetryMaxWait types.Int64  `tfsdk:"retry_max_wait"`
+	CACert       types.String `tfsdk:"ca_cert"`
+	Insecure     types.Bool   `tfsdk:"insecure"`
 }
 
 func New(version string) func() provider.Provider {
@@ -72,6 +74,8 @@ func (p *coolifyProvider) Schema(_ context.Context, _ provider.SchemaRequest, re
 		"retry_max":      schema.Int64Attribute{MarkdownDescription: "Maximum number of API request retries (default: 3).", Optional: true},
 		"retry_min_wait": schema.Int64Attribute{MarkdownDescription: "Minimum wait between retries in seconds (default: 1).", Optional: true},
 		"retry_max_wait": schema.Int64Attribute{MarkdownDescription: "Maximum wait between retries in seconds (default: 30).", Optional: true},
+		"ca_cert":        schema.StringAttribute{MarkdownDescription: "PEM-encoded CA certificate to trust for TLS connections to the Coolify API. Use this when your Coolify instance uses a self-signed certificate or an internal CA. Env: `COOLIFY_CA_CERT`.", Optional: true},
+		"insecure":       schema.BoolAttribute{MarkdownDescription: "Skip TLS certificate verification. **Not recommended for production.** Use `ca_cert` instead when possible. Env: `COOLIFY_INSECURE`.", Optional: true},
 	}}
 }
 func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
@@ -111,17 +115,7 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		return
 	}
 	endpoint = strings.TrimRight(endpoint, "/")
-	var retryCfg client.RetryConfig
-	if !config.RetryMax.IsNull() {
-		retryCfg.Attempts = int(config.RetryMax.ValueInt64())
-	}
-	if !config.RetryMinWait.IsNull() {
-		retryCfg.MinWait = time.Duration(config.RetryMinWait.ValueInt64()) * time.Second
-	}
-	if !config.RetryMaxWait.IsNull() {
-		retryCfg.MaxWait = time.Duration(config.RetryMaxWait.ValueInt64()) * time.Second
-	}
-	c := client.New(endpoint, token, retryCfg)
+	c := client.New(endpoint, token, buildClientConfig(config))
 	if p.version != "" {
 		c.UserAgent = "terraform-provider-coolify/" + p.version
 	}
@@ -239,6 +233,29 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		team.NewMembersDataSource,
 		version.NewDataSource,
 	}
+}
+
+func buildClientConfig(config coolifyProviderModel) client.RetryConfig {
+	var cfg client.RetryConfig
+	if !config.RetryMax.IsNull() {
+		cfg.Attempts = int(config.RetryMax.ValueInt64())
+	}
+	if !config.RetryMinWait.IsNull() {
+		cfg.MinWait = time.Duration(config.RetryMinWait.ValueInt64()) * time.Second
+	}
+	if !config.RetryMaxWait.IsNull() {
+		cfg.MaxWait = time.Duration(config.RetryMaxWait.ValueInt64()) * time.Second
+	}
+	cfg.CACert = os.Getenv("COOLIFY_CA_CERT")
+	if !config.CACert.IsNull() && !config.CACert.IsUnknown() {
+		cfg.CACert = config.CACert.ValueString()
+	}
+	if !config.Insecure.IsNull() && !config.Insecure.IsUnknown() {
+		cfg.Insecure = config.Insecure.ValueBool()
+	} else if strings.EqualFold(os.Getenv("COOLIFY_INSECURE"), "true") {
+		cfg.Insecure = true
+	}
+	return cfg
 }
 
 // isVersionAtLeast compares two semver-like version strings (e.g. "4.0.0").

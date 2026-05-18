@@ -33,8 +33,11 @@ resource "coolify_keydb_database" "example" {
 
 - `custom_docker_run_options` (String) Custom Docker run options passed to the container.
 - `description` (String) A description of the database.
+- `enable_ssl` (Boolean) When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`.
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `image` (String) The Docker image to use.
+- `is_include_timestamps` (Boolean) When `true`, includes timestamps in container log output. Defaults to `false`.
+- `is_log_drain_enabled` (Boolean) When `true`, sends container logs to the configured log drain. Defaults to `false`.
 - `is_public` (Boolean) When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.
 - `keydb_conf` (String) Custom KeyDB configuration (base64-encoded `keydb.conf` content).
 - `keydb_password` (String, Sensitive) The KeyDB password. If omitted, Coolify auto-generates a value readable from state after creation.

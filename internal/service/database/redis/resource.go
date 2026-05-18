@@ -26,8 +26,10 @@ type res struct{ client *client.Client }
 type model struct {
 	pg.CommonModel
 	// Type-specific
-	RedisPassword types.String `tfsdk:"redis_password"`
-	RedisConf     types.String `tfsdk:"redis_conf"`
+	RedisPassword       types.String `tfsdk:"redis_password"`
+	RedisConf           types.String `tfsdk:"redis_conf"`
+	IsIncludeTimestamps types.Bool   `tfsdk:"is_include_timestamps"`
+	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -36,8 +38,10 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Redis database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
-		"redis_password": schema.StringAttribute{MarkdownDescription: "The Redis authentication password. Stored as an encrypted environment variable in Coolify.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"redis_conf":     schema.StringAttribute{MarkdownDescription: "Custom Redis configuration (base64-encoded `redis.conf` content).", Optional: true},
+		"redis_password":        schema.StringAttribute{MarkdownDescription: "The Redis authentication password. Stored as an encrypted environment variable in Coolify.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"redis_conf":            schema.StringAttribute{MarkdownDescription: "Custom Redis configuration (base64-encoded `redis.conf` content).", Optional: true},
+		"is_include_timestamps": pg.IsIncludeTimestampsAttr(),
+		"enable_ssl":            pg.EnableSSLAttr(),
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -137,13 +141,15 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_redis_database", "uuid": s.UUID.ValueString()})
 
 	u := client.UpdateDatabaseInput{
-		Name:          flex.StringIfChanged(p.Name, s.Name),
-		Description:   flex.StringIfChanged(p.Description, s.Description),
-		Image:         flex.StringIfChanged(p.Image, s.Image),
-		IsPublic:      flex.BoolIfChanged(p.IsPublic, s.IsPublic),
-		PublicPort:    flex.Int64IfChanged(p.PublicPort, s.PublicPort),
-		RedisPassword: flex.StringIfChanged(p.RedisPassword, s.RedisPassword),
-		RedisConf:     flex.StringIfChanged(p.RedisConf, s.RedisConf),
+		Name:                flex.StringIfChanged(p.Name, s.Name),
+		Description:         flex.StringIfChanged(p.Description, s.Description),
+		Image:               flex.StringIfChanged(p.Image, s.Image),
+		IsPublic:            flex.BoolIfChanged(p.IsPublic, s.IsPublic),
+		PublicPort:          flex.Int64IfChanged(p.PublicPort, s.PublicPort),
+		RedisPassword:       flex.StringIfChanged(p.RedisPassword, s.RedisPassword),
+		RedisConf:           flex.StringIfChanged(p.RedisConf, s.RedisConf),
+		IsIncludeTimestamps: flex.BoolIfChanged(p.IsIncludeTimestamps, s.IsIncludeTimestamps),
+		EnableSSL:           flex.BoolIfChanged(p.EnableSSL, s.EnableSSL),
 	}
 	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
@@ -183,4 +189,6 @@ func flattenDatabase(db *client.Database, m *model) {
 		m.RedisPassword = types.StringNull()
 	}
 	flex.SetStringOrClear(&m.RedisConf, db.RedisConf)
+	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
+	m.EnableSSL = types.BoolValue(db.EnableSSL)
 }

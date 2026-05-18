@@ -28,11 +28,16 @@ data "coolify_database" "example" {
 ### Read-Only
 
 - `description` (String) A description of the database.
+- `enable_ssl` (Boolean) Whether SSL/TLS is enabled for database connections.
 - `environment_name` (String) The environment name.
 - `image` (String) The Docker image used by the database.
+- `is_include_timestamps` (Boolean) Whether timestamps are included in log output.
+- `is_log_drain_enabled` (Boolean) Whether log drain is enabled for this database.
 - `is_public` (Boolean) Whether the database is publicly accessible.
 - `name` (String) The name of the database.
 - `project_uuid` (String) The UUID of the project this database belongs to.
 - `public_port` (Number) The public port for the database, if publicly accessible.
 - `server_uuid` (String) The UUID of the server the database is deployed on.
+- `ssl_mode` (String) The SSL connection mode (e.g., `require`, `verify-full`). Empty when SSL is not enabled or not supported by the database type.
+- `status` (String) The current status of the database (e.g., running, exited).
 - `type` (String) The type of the database (e.g., postgresql, mysql, redis).

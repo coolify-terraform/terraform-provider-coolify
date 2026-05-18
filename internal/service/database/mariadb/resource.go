@@ -31,6 +31,8 @@ type model struct {
 	MariadbDatabase     types.String `tfsdk:"mariadb_database"`
 	MariadbRootPassword types.String `tfsdk:"mariadb_root_password"`
 	MariadbConf         types.String `tfsdk:"mariadb_conf"`
+	IsIncludeTimestamps types.Bool   `tfsdk:"is_include_timestamps"`
+	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -44,6 +46,8 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 		"mariadb_database":      schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MARIADB_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"mariadb_root_password": schema.StringAttribute{MarkdownDescription: "The MariaDB root password (maps to `MARIADB_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"mariadb_conf":          schema.StringAttribute{MarkdownDescription: "Custom MariaDB configuration (base64-encoded `my.cnf` content).", Optional: true},
+		"is_include_timestamps": pg.IsIncludeTimestampsAttr(),
+		"enable_ssl":            pg.EnableSSLAttr(),
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -159,6 +163,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		MariadbDatabase:     flex.StringIfChanged(p.MariadbDatabase, s.MariadbDatabase),
 		MariadbRootPassword: flex.StringIfChanged(p.MariadbRootPassword, s.MariadbRootPassword),
 		MariadbConf:         flex.StringIfChanged(p.MariadbConf, s.MariadbConf),
+		IsIncludeTimestamps: flex.BoolIfChanged(p.IsIncludeTimestamps, s.IsIncludeTimestamps),
+		EnableSSL:           flex.BoolIfChanged(p.EnableSSL, s.EnableSSL),
 	}
 	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
@@ -202,4 +208,6 @@ func flattenDatabase(db *client.Database, m *model) {
 		m.MariadbRootPassword = types.StringNull()
 	}
 	flex.SetStringOrClear(&m.MariadbConf, db.MariadbConf)
+	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
+	m.EnableSSL = types.BoolValue(db.EnableSSL)
 }

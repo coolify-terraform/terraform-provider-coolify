@@ -24,16 +24,21 @@ type databaseDataSource struct {
 }
 
 type databaseDataSourceModel struct {
-	UUID            types.String `tfsdk:"uuid"`
-	Name            types.String `tfsdk:"name"`
-	Description     types.String `tfsdk:"description"`
-	Type            types.String `tfsdk:"type"`
-	Image           types.String `tfsdk:"image"`
-	IsPublic        types.Bool   `tfsdk:"is_public"`
-	PublicPort      types.Int64  `tfsdk:"public_port"`
-	ServerUUID      types.String `tfsdk:"server_uuid"`
-	ProjectUUID     types.String `tfsdk:"project_uuid"`
-	EnvironmentName types.String `tfsdk:"environment_name"`
+	UUID                types.String `tfsdk:"uuid"`
+	Name                types.String `tfsdk:"name"`
+	Description         types.String `tfsdk:"description"`
+	Type                types.String `tfsdk:"type"`
+	Image               types.String `tfsdk:"image"`
+	IsPublic            types.Bool   `tfsdk:"is_public"`
+	PublicPort          types.Int64  `tfsdk:"public_port"`
+	ServerUUID          types.String `tfsdk:"server_uuid"`
+	ProjectUUID         types.String `tfsdk:"project_uuid"`
+	EnvironmentName     types.String `tfsdk:"environment_name"`
+	IsLogDrainEnabled   types.Bool   `tfsdk:"is_log_drain_enabled"`
+	IsIncludeTimestamps types.Bool   `tfsdk:"is_include_timestamps"`
+	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
+	SSLMode             types.String `tfsdk:"ssl_mode"`
+	Status              types.String `tfsdk:"status"`
 }
 
 func NewDataSource() datasource.DataSource {
@@ -89,6 +94,26 @@ func (d *databaseDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				MarkdownDescription: "The environment name.",
 				Computed:            true,
 			},
+			"is_log_drain_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Whether log drain is enabled for this database.",
+				Computed:            true,
+			},
+			"is_include_timestamps": schema.BoolAttribute{
+				MarkdownDescription: "Whether timestamps are included in log output.",
+				Computed:            true,
+			},
+			"enable_ssl": schema.BoolAttribute{
+				MarkdownDescription: "Whether SSL/TLS is enabled for database connections.",
+				Computed:            true,
+			},
+			"ssl_mode": schema.StringAttribute{
+				MarkdownDescription: "The SSL connection mode (e.g., `require`, `verify-full`). Empty when SSL is not enabled or not supported by the database type.",
+				Computed:            true,
+			},
+			"status": schema.StringAttribute{
+				MarkdownDescription: "The current status of the database (e.g., running, exited).",
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -133,6 +158,11 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	config.ServerUUID = flex.StringToFramework(db.ServerUUID)
 	config.ProjectUUID = flex.StringToFramework(db.ProjectUUID)
 	config.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
+	config.IsLogDrainEnabled = types.BoolValue(db.IsLogDrainEnabled)
+	config.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
+	config.EnableSSL = types.BoolValue(db.EnableSSL)
+	config.SSLMode = flex.StringToFramework(db.SSLMode)
+	config.Status = flex.StringToFramework(db.Status)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }
