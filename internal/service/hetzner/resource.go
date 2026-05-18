@@ -312,9 +312,15 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	// Apply settings via PATCH if the user configured non-default values.
-	if hasNonDefaultSettings(plan) {
+	// The Hetzner create endpoint only accepts Hetzner-specific fields.
+	// General server fields (description, port, user, is_build_server)
+	// and settings must be applied via a follow-up PATCH.
+	if hasNonDefaultHetznerSettings(plan) {
 		settingsUpdate := client.UpdateServerInput{
+			Description:                          flex.StringValueOrNull(plan.Description),
+			Port:                                 flex.IntIfNonDefault(plan.Port, 22),
+			User:                                 flex.StringValueOrNull(plan.User),
+			IsBuildServer:                        flex.BoolValueOrNull(plan.IsBuildServer),
 			ConcurrentBuilds:                     flex.IntIfNonDefault(plan.ConcurrentBuilds, 2),
 			DynamicTimeout:                       flex.IntIfNonDefault(plan.DynamicTimeout, 3600),
 			DeploymentQueueLimit:                 flex.IntIfNonDefault(plan.DeploymentQueueLimit, 25),
@@ -438,14 +444,24 @@ func (r *hetznerServerResource) ImportState(ctx context.Context, req resource.Im
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 
-func hasNonDefaultSettings(plan hetznerServerResourceModel) bool {
+func hasNonDefaultHetznerSettings(plan hetznerServerResourceModel) bool {
 	intNonDefault := func(v types.Int64, dflt int64) bool {
 		return !v.IsNull() && !v.IsUnknown() && v.ValueInt64() != dflt
 	}
 	strSet := func(v types.String) bool {
-		return !v.IsNull() && !v.IsUnknown()
+		return !v.IsNull() && !v.IsUnknown() && v.ValueString() != ""
 	}
-	return intNonDefault(plan.ConcurrentBuilds, 2) ||
+	strNonDefault := func(v types.String, dflt string) bool {
+		return !v.IsNull() && !v.IsUnknown() && v.ValueString() != dflt
+	}
+	boolTrue := func(v types.Bool) bool {
+		return !v.IsNull() && !v.IsUnknown() && v.ValueBool()
+	}
+	return strSet(plan.Description) ||
+		intNonDefault(plan.Port, 22) ||
+		strNonDefault(plan.User, "root") ||
+		boolTrue(plan.IsBuildServer) ||
+		intNonDefault(plan.ConcurrentBuilds, 2) ||
 		intNonDefault(plan.DynamicTimeout, 3600) ||
 		intNonDefault(plan.DeploymentQueueLimit, 25) ||
 		intNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
