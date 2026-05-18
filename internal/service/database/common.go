@@ -211,7 +211,7 @@ func ReadDatabase(ctx context.Context, c *client.Client, uuid string) (*client.D
 // result.
 func UpdateDatabase(ctx context.Context, c *client.Client, uuid string, input client.UpdateDatabaseInput) (*client.Database, error) {
 	if _, err := c.UpdateDatabase(ctx, uuid, input); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("updating database %s: %w", uuid, err)
 	}
 
 	db, err := c.GetDatabase(ctx, uuid)
