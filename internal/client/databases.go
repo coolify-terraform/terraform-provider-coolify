@@ -257,6 +257,9 @@ func (c *Client) CreateDatabase(ctx context.Context, dbType string, input any) (
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/"+url.PathEscape(dbType), input, &d, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating %s database: %w", dbType, err)
 	}
+	if d.UUID == "" {
+		return nil, fmt.Errorf("creating %s database: API returned empty UUID", dbType)
+	}
 	return &d, nil
 }
 func (c *Client) UpdateDatabase(ctx context.Context, uuid string, input UpdateDatabaseInput) (*Database, error) {

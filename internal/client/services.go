@@ -50,6 +50,9 @@ func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/services", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating service: %w", err)
 	}
+	if s.UUID == "" {
+		return nil, fmt.Errorf("creating service: API returned empty UUID")
+	}
 	return &s, nil
 }
 
