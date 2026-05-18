@@ -231,11 +231,11 @@ func (r *deploymentResource) ImportState(ctx context.Context, req resource.Impor
 		return
 	}
 	if err := validate.ImportUUID(parts[0]); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", "application UUID segment: "+err.Error())
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("application UUID segment: %s", err))
 		return
 	}
 	if err := validate.ImportUUID(parts[1]); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", "deployment UUID segment: "+err.Error())
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("deployment UUID segment: %s", err))
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("application_uuid"), parts[0])...)

@@ -150,6 +150,21 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 			DeploymentQueueLimit:                 flex.IntIfNonDefault(plan.DeploymentQueueLimit, 25),
 			ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(plan.ServerDiskUsageNotificationThreshold, 80),
 			ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(plan.ServerDiskUsageCheckFrequency),
+			WildcardDomain:                       flex.StringValueOrNull(plan.WildcardDomain),
+			IsCloudFlareTunnel:                   flex.BoolValueOrNull(plan.IsCloudFlareTunnel),
+			ServerTimezone:                       flex.StringValueOrNull(plan.ServerTimezone),
+			IsMetricsEnabled:                     flex.BoolValueOrNull(plan.IsMetricsEnabled),
+			IsTerminalEnabled:                    flex.BoolValueOrNull(plan.IsTerminalEnabled),
+			IsSentinelEnabled:                    flex.BoolValueOrNull(plan.IsSentinelEnabled),
+			SentinelMetricsHistoryDays:           flex.IntValueOrNull(plan.SentinelMetricsHistoryDays),
+			SentinelMetricsRefreshRateSeconds:    flex.IntValueOrNull(plan.SentinelMetricsRefreshRateSeconds),
+			SentinelPushIntervalSeconds:          flex.IntValueOrNull(plan.SentinelPushIntervalSeconds),
+			DockerCleanupFrequency:               flex.StringValueOrNull(plan.DockerCleanupFrequency),
+			DockerCleanupThreshold:               flex.IntValueOrNull(plan.DockerCleanupThreshold),
+			ForceDockerCleanup:                   flex.BoolValueOrNull(plan.ForceDockerCleanup),
+			DeleteUnusedVolumes:                  flex.BoolValueOrNull(plan.DeleteUnusedVolumes),
+			DeleteUnusedNetworks:                 flex.BoolValueOrNull(plan.DeleteUnusedNetworks),
+			GenerateExactLabels:                  flex.BoolValueOrNull(plan.GenerateExactLabels),
 		}
 		if _, err := r.client.UpdateServer(ctx, created.UUID, settingsUpdate); err != nil {
 			resp.Diagnostics.AddError("Error setting server settings",
@@ -267,11 +282,29 @@ func hasNonDefaultSettings(plan serverResourceModel) bool {
 	strSet := func(v types.String) bool {
 		return !v.IsNull() && !v.IsUnknown()
 	}
+	boolSet := func(v types.Bool) bool {
+		return !v.IsNull() && !v.IsUnknown() && v.ValueBool()
+	}
 	return intNonDefault(plan.ConcurrentBuilds, 2) ||
 		intNonDefault(plan.DynamicTimeout, 3600) ||
 		intNonDefault(plan.DeploymentQueueLimit, 25) ||
 		intNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
-		strSet(plan.ServerDiskUsageCheckFrequency)
+		strSet(plan.ServerDiskUsageCheckFrequency) ||
+		strSet(plan.WildcardDomain) ||
+		boolSet(plan.IsCloudFlareTunnel) ||
+		strSet(plan.ServerTimezone) ||
+		boolSet(plan.IsMetricsEnabled) ||
+		boolSet(plan.IsTerminalEnabled) ||
+		boolSet(plan.IsSentinelEnabled) ||
+		intNonDefault(plan.SentinelMetricsHistoryDays, 0) ||
+		intNonDefault(plan.SentinelMetricsRefreshRateSeconds, 0) ||
+		intNonDefault(plan.SentinelPushIntervalSeconds, 0) ||
+		strSet(plan.DockerCleanupFrequency) ||
+		intNonDefault(plan.DockerCleanupThreshold, 0) ||
+		boolSet(plan.ForceDockerCleanup) ||
+		boolSet(plan.DeleteUnusedVolumes) ||
+		boolSet(plan.DeleteUnusedNetworks) ||
+		boolSet(plan.GenerateExactLabels)
 }
 
 func (m *serverResourceModel) commonPtrs() ServerCommonPtrs {

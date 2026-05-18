@@ -270,11 +270,11 @@ func (r *scheduledTaskResource) ImportState(ctx context.Context, req resource.Im
 	taskUUID := parts[2]
 
 	if err := validate.ImportUUID(parentUUID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", "parent UUID segment: "+err.Error())
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("parent UUID segment: %s", err))
 		return
 	}
 	if err := validate.ImportUUID(taskUUID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", "task UUID segment: "+err.Error())
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("task UUID segment: %s", err))
 		return
 	}
 

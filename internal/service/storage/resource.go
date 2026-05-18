@@ -335,11 +335,11 @@ func (r *storageResource) ImportState(ctx context.Context, req resource.ImportSt
 	storageUUID := parts[2]
 
 	if err := validate.ImportUUID(parentUUID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", "parent UUID segment: "+err.Error())
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("parent UUID segment: %s", err))
 		return
 	}
 	if err := validate.ImportUUID(storageUUID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", "storage UUID segment: "+err.Error())
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("storage UUID segment: %s", err))
 		return
 	}
 

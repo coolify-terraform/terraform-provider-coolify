@@ -308,6 +308,22 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	*plan.IsBuildServer = types.BoolValue(true)
 	*state.IsBuildServer = types.BoolValue(false)
 
+	// Extended settings: plan != state.
+	*plan.WildcardDomain = types.StringValue("new.example.com")
+	*state.WildcardDomain = types.StringValue("old.example.com")
+	*plan.IsCloudFlareTunnel = types.BoolValue(true)
+	*state.IsCloudFlareTunnel = types.BoolValue(false)
+	*plan.ServerTimezone = types.StringValue("America/New_York")
+	*state.ServerTimezone = types.StringValue("UTC")
+	*plan.IsMetricsEnabled = types.BoolValue(true)
+	*state.IsMetricsEnabled = types.BoolValue(false)
+	*plan.DockerCleanupFrequency = types.StringValue("0 3 * * *")
+	*state.DockerCleanupFrequency = types.StringValue("0 0 * * *")
+	*plan.DockerCleanupThreshold = types.Int64Value(90)
+	*state.DockerCleanupThreshold = types.Int64Value(80)
+	*plan.ForceDockerCleanup = types.BoolValue(true)
+	*state.ForceDockerCleanup = types.BoolValue(false)
+
 	input := BuildServerUpdateInput(plan, state)
 
 	// Verify string fields.
@@ -355,5 +371,42 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 		t.Error("IsBuildServer should be non-nil")
 	} else if *input.IsBuildServer != true {
 		t.Errorf("IsBuildServer = %v, want true", *input.IsBuildServer)
+	}
+
+	// Verify extended settings.
+	extStringChecks := []struct {
+		name, want string
+		got        *string
+	}{
+		{"WildcardDomain", "new.example.com", input.WildcardDomain},
+		{"ServerTimezone", "America/New_York", input.ServerTimezone},
+		{"DockerCleanupFrequency", "0 3 * * *", input.DockerCleanupFrequency},
+	}
+	for _, c := range extStringChecks {
+		if c.got == nil {
+			t.Errorf("%s should be non-nil", c.name)
+		} else if *c.got != c.want {
+			t.Errorf("%s = %q, want %q", c.name, *c.got, c.want)
+		}
+	}
+	extBoolChecks := []struct {
+		name string
+		got  *bool
+	}{
+		{"IsCloudFlareTunnel", input.IsCloudFlareTunnel},
+		{"IsMetricsEnabled", input.IsMetricsEnabled},
+		{"ForceDockerCleanup", input.ForceDockerCleanup},
+	}
+	for _, c := range extBoolChecks {
+		if c.got == nil {
+			t.Errorf("%s should be non-nil", c.name)
+		} else if !*c.got {
+			t.Errorf("%s = false, want true", c.name)
+		}
+	}
+	if input.DockerCleanupThreshold == nil {
+		t.Error("DockerCleanupThreshold should be non-nil")
+	} else if *input.DockerCleanupThreshold != 90 {
+		t.Errorf("DockerCleanupThreshold = %d, want 90", *input.DockerCleanupThreshold)
 	}
 }
