@@ -4486,3 +4486,29 @@ func TestRedactJSON_InvalidJSON(t *testing.T) {
 	got := redactJSON([]byte("not json"))
 	assert.Equal(t, "not json", got)
 }
+
+func TestClient_CreateDatabase_EmptyUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Database{UUID: "", Name: "broken"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateDatabase(context.Background(), "postgresql", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty UUID")
+}
+
+func TestClient_CreateService_EmptyUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Service{UUID: "", Name: "broken"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateService(context.Background(), CreateServiceInput{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty UUID")
+}

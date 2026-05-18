@@ -67,6 +67,21 @@ func TestFlattenServerCommon_FullServer(t *testing.T) {
 			DeploymentQueueLimit:                 10,
 			ServerDiskUsageNotificationThreshold: 90,
 			ServerDiskUsageCheckFrequency:        "0 * * * *",
+			WildcardDomain:                       "example.com",
+			IsCloudFlareTunnel:                   true,
+			ServerTimezone:                       "America/New_York",
+			IsMetricsEnabled:                     true,
+			IsTerminalEnabled:                    true,
+			IsSentinelEnabled:                    true,
+			SentinelMetricsHistoryDays:           14,
+			SentinelMetricsRefreshRateSeconds:    30,
+			SentinelPushIntervalSeconds:          120,
+			DockerCleanupFrequency:               "0 3 * * *",
+			DockerCleanupThreshold:               85,
+			ForceDockerCleanup:                   true,
+			DeleteUnusedVolumes:                  true,
+			DeleteUnusedNetworks:                 true,
+			GenerateExactLabels:                  true,
 		},
 	}
 
@@ -79,6 +94,9 @@ func TestFlattenServerCommon_FullServer(t *testing.T) {
 		{"IP", m.IP.ValueString(), "10.0.0.1"},
 		{"User", m.User.ValueString(), "deploy"},
 		{"PrivateKeyUUID", m.PrivateKeyUUID.ValueString(), "key-uuid"},
+		{"WildcardDomain", m.WildcardDomain.ValueString(), "example.com"},
+		{"ServerTimezone", m.ServerTimezone.ValueString(), "America/New_York"},
+		{"DockerCleanupFrequency", m.DockerCleanupFrequency.ValueString(), "0 3 * * *"},
 	}
 	for _, c := range checks {
 		if c.got != c.want {
@@ -105,6 +123,43 @@ func TestFlattenServerCommon_FullServer(t *testing.T) {
 	}
 	if m.ServerDiskUsageCheckFrequency.ValueString() != "0 * * * *" {
 		t.Errorf("DiskUsageFrequency = %q, want %q", m.ServerDiskUsageCheckFrequency.ValueString(), "0 * * * *")
+	}
+	// Extended settings assertions
+	if !m.IsCloudFlareTunnel.ValueBool() {
+		t.Error("IsCloudFlareTunnel = false, want true")
+	}
+	if !m.IsMetricsEnabled.ValueBool() {
+		t.Error("IsMetricsEnabled = false, want true")
+	}
+	if !m.IsTerminalEnabled.ValueBool() {
+		t.Error("IsTerminalEnabled = false, want true")
+	}
+	if !m.IsSentinelEnabled.ValueBool() {
+		t.Error("IsSentinelEnabled = false, want true")
+	}
+	if m.SentinelMetricsHistoryDays.ValueInt64() != 14 {
+		t.Errorf("SentinelMetricsHistoryDays = %d, want 14", m.SentinelMetricsHistoryDays.ValueInt64())
+	}
+	if m.SentinelMetricsRefreshRateSeconds.ValueInt64() != 30 {
+		t.Errorf("SentinelMetricsRefreshRateSeconds = %d, want 30", m.SentinelMetricsRefreshRateSeconds.ValueInt64())
+	}
+	if m.SentinelPushIntervalSeconds.ValueInt64() != 120 {
+		t.Errorf("SentinelPushIntervalSeconds = %d, want 120", m.SentinelPushIntervalSeconds.ValueInt64())
+	}
+	if m.DockerCleanupThreshold.ValueInt64() != 85 {
+		t.Errorf("DockerCleanupThreshold = %d, want 85", m.DockerCleanupThreshold.ValueInt64())
+	}
+	if !m.ForceDockerCleanup.ValueBool() {
+		t.Error("ForceDockerCleanup = false, want true")
+	}
+	if !m.DeleteUnusedVolumes.ValueBool() {
+		t.Error("DeleteUnusedVolumes = false, want true")
+	}
+	if !m.DeleteUnusedNetworks.ValueBool() {
+		t.Error("DeleteUnusedNetworks = false, want true")
+	}
+	if !m.GenerateExactLabels.ValueBool() {
+		t.Error("GenerateExactLabels = false, want true")
 	}
 }
 
