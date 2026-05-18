@@ -39,7 +39,7 @@ resource "coolify_keydb_database" "example" {
 - `is_include_timestamps` (Boolean) When `true`, includes timestamps in container log output. Defaults to `false`.
 - `is_log_drain_enabled` (Boolean) When `true`, sends container logs to the configured log drain. Defaults to `false`.
 - `is_public` (Boolean) When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.
-- `keydb_conf` (String) Custom KeyDB configuration (base64-encoded `keypg.conf` content).
+- `keydb_conf` (String) Custom KeyDB configuration (base64-encoded `keydb.conf` content).
 - `keydb_password` (String, Sensitive) The KeyDB password. If omitted, Coolify auto-generates a value readable from state after creation.
 - `limits_cpu_shares` (Number) CPU shares (relative weight).
 - `limits_cpus` (String) CPU limit (e.g., `0.5`, `2`).
