@@ -141,7 +141,7 @@
 | `POST /projects/{uuid}/environments` | `coolify_environment` | v0.2.0 |
 | `POST /security/keys` | `coolify_private_key` | v0.1.0 |
 | `POST /servers` | `coolify_server` | v0.1.0 |
-| `POST /servers/hetzner` | `client.CreateHetznerServer` | v0.2.0 |
+| `POST /servers/hetzner` | `coolify_hetzner_server` | v0.2.0 |
 | `POST /services` | `coolify_service` | v0.1.0 |
 | `POST /services/{uuid}/envs` | `coolify_environment_variable` | v0.1.0 |
 | `POST /services/{uuid}/scheduled-tasks` | `coolify_scheduled_task` | v0.2.0 |
