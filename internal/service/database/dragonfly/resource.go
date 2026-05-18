@@ -26,9 +26,8 @@ type res struct{ client *client.Client }
 type model struct {
 	pg.CommonModel
 	// Type-specific
-	DragonflyPassword   types.String `tfsdk:"dragonfly_password"`
-	IsIncludeTimestamps types.Bool   `tfsdk:"is_include_timestamps"`
-	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
+	DragonflyPassword types.String `tfsdk:"dragonfly_password"`
+	EnableSSL         types.Bool   `tfsdk:"enable_ssl"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -37,9 +36,8 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Dragonfly database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
-		"dragonfly_password":    schema.StringAttribute{MarkdownDescription: "The Dragonfly password. If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"is_include_timestamps": pg.IsIncludeTimestampsAttr(),
-		"enable_ssl":            pg.EnableSSLAttr(),
+		"dragonfly_password": schema.StringAttribute{MarkdownDescription: "The Dragonfly password. If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"enable_ssl":         pg.EnableSSLAttr(),
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -82,15 +80,12 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		return
 	}
 
-	ext := p.ExtFields()
+	ext := p.ExtFields().WithSSL(&p.EnableSSL, nil)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	boolTrue := func(v types.Bool) bool { return !v.IsNull() && !v.IsUnknown() && v.ValueBool() }
-	if pg.HasExtendedFields(ext) || strSet(p.DragonflyPassword) || boolTrue(p.IsIncludeTimestamps) || boolTrue(p.EnableSSL) {
+	if pg.HasExtendedFields(ext) || strSet(p.DragonflyPassword) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.DragonflyPassword, p.DragonflyPassword)
-		flex.SetBoolPtr(&update.IsIncludeTimestamps, p.IsIncludeTimestamps)
-		flex.SetBoolPtr(&update.EnableSSL, p.EnableSSL)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting Dragonfly database extended fields", fmt.Sprintf("Dragonfly database %s: %s", c.UUID, err))
 			return
@@ -141,16 +136,14 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_dragonfly_database", "uuid": s.UUID.ValueString()})
 
 	u := client.UpdateDatabaseInput{
-		Name:                flex.StringIfChanged(p.Name, s.Name),
-		Description:         flex.StringIfChanged(p.Description, s.Description),
-		Image:               flex.StringIfChanged(p.Image, s.Image),
-		IsPublic:            flex.BoolIfChanged(p.IsPublic, s.IsPublic),
-		PublicPort:          flex.Int64IfChanged(p.PublicPort, s.PublicPort),
-		DragonflyPassword:   flex.StringIfChanged(p.DragonflyPassword, s.DragonflyPassword),
-		IsIncludeTimestamps: flex.BoolIfChanged(p.IsIncludeTimestamps, s.IsIncludeTimestamps),
-		EnableSSL:           flex.BoolIfChanged(p.EnableSSL, s.EnableSSL),
+		Name:              flex.StringIfChanged(p.Name, s.Name),
+		Description:       flex.StringIfChanged(p.Description, s.Description),
+		Image:             flex.StringIfChanged(p.Image, s.Image),
+		IsPublic:          flex.BoolIfChanged(p.IsPublic, s.IsPublic),
+		PublicPort:        flex.Int64IfChanged(p.PublicPort, s.PublicPort),
+		DragonflyPassword: flex.StringIfChanged(p.DragonflyPassword, s.DragonflyPassword),
 	}
-	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
+	pg.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, nil), s.ExtFields().WithSSL(&s.EnableSSL, nil))
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Dragonfly database", fmt.Sprintf("Dragonfly database %s: %s", s.UUID.ValueString(), err))
@@ -177,12 +170,10 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 }
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
-	pg.FlattenDatabaseExtended(db, m.ExtFields())
+	pg.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, nil))
 	if db.DragonflyPassword != "" {
 		m.DragonflyPassword = types.StringValue(db.DragonflyPassword)
 	} else if m.DragonflyPassword.IsUnknown() {
 		m.DragonflyPassword = types.StringNull()
 	}
-	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
-	m.EnableSSL = types.BoolValue(db.EnableSSL)
 }

@@ -30,7 +30,6 @@ type model struct {
 	MongoInitdbRootPassword types.String `tfsdk:"mongo_initdb_root_password"`
 	MongoInitdbDatabase     types.String `tfsdk:"mongo_initdb_database"`
 	MongoConf               types.String `tfsdk:"mongo_conf"`
-	IsIncludeTimestamps     types.Bool   `tfsdk:"is_include_timestamps"`
 	EnableSSL               types.Bool   `tfsdk:"enable_ssl"`
 	SSLMode                 types.String `tfsdk:"ssl_mode"`
 }
@@ -45,7 +44,6 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 		"mongo_initdb_root_password": schema.StringAttribute{MarkdownDescription: "The MongoDB root password (maps to `MONGO_INITDB_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"mongo_initdb_database":      schema.StringAttribute{MarkdownDescription: "The initial database name (maps to `MONGO_INITDB_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"mongo_conf":                 schema.StringAttribute{MarkdownDescription: "Custom MongoDB configuration (base64-encoded `mongod.conf` content).", Optional: true},
-		"is_include_timestamps":      pg.IsIncludeTimestampsAttr(),
 		"enable_ssl":                 pg.EnableSSLAttr(),
 		"ssl_mode":                   pg.SSLModeMongodbAttr(),
 	})}
@@ -90,21 +88,18 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	pg.NormalizeUnknownString(&p.MongoInitdbRootPassword)
 	pg.NormalizeUnknownString(&p.MongoInitdbDatabase)
 	pg.NormalizeUnknownString(&p.MongoConf)
+	pg.NormalizeUnknownString(&p.SSLMode)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	ext := p.ExtFields()
+	ext := p.ExtFields().WithSSL(&p.EnableSSL, &p.SSLMode)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	boolTrue := func(v types.Bool) bool { return !v.IsNull() && !v.IsUnknown() && v.ValueBool() }
-	if pg.HasExtendedFields(ext) || strSet(p.MongoConf) || boolTrue(p.IsIncludeTimestamps) || boolTrue(p.EnableSSL) || strSet(p.SSLMode) {
+	if pg.HasExtendedFields(ext) || strSet(p.MongoConf) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.MongoConf, p.MongoConf)
-		flex.SetBoolPtr(&update.IsIncludeTimestamps, p.IsIncludeTimestamps)
-		flex.SetBoolPtr(&update.EnableSSL, p.EnableSSL)
-		flex.SetStrPtr(&update.SSLMode, p.SSLMode)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting MongoDB database extended fields", fmt.Sprintf("MongoDB database %s: %s", c.UUID, err))
 			return
@@ -164,11 +159,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		MongoInitdbRootPassword: flex.StringIfChanged(p.MongoInitdbRootPassword, s.MongoInitdbRootPassword),
 		MongoInitdbDatabase:     flex.StringIfChanged(p.MongoInitdbDatabase, s.MongoInitdbDatabase),
 		MongoConf:               flex.StringIfChanged(p.MongoConf, s.MongoConf),
-		IsIncludeTimestamps:     flex.BoolIfChanged(p.IsIncludeTimestamps, s.IsIncludeTimestamps),
-		EnableSSL:               flex.BoolIfChanged(p.EnableSSL, s.EnableSSL),
-		SSLMode:                 flex.StringIfChanged(p.SSLMode, s.SSLMode),
 	}
-	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
+	pg.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, &p.SSLMode), s.ExtFields().WithSSL(&s.EnableSSL, &s.SSLMode))
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MongoDB database", fmt.Sprintf("MongoDB database %s: %s", s.UUID.ValueString(), err))
@@ -195,7 +187,7 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 }
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
-	pg.FlattenDatabaseExtended(db, m.ExtFields())
+	pg.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, &m.SSLMode))
 	m.MongoInitdbRootUsername = flex.StringToFramework(db.MongoInitdbRootUsername)
 	// Preserve password from plan/state when the API hides sensitive fields.
 	if db.MongoInitdbRootPassword != "" {
@@ -205,7 +197,4 @@ func flattenDatabase(db *client.Database, m *model) {
 	}
 	m.MongoInitdbDatabase = flex.StringToFramework(db.MongoInitdbDatabase)
 	flex.SetStringOrClear(&m.MongoConf, db.MongoConf)
-	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
-	m.EnableSSL = types.BoolValue(db.EnableSSL)
-	m.SSLMode = flex.StringToFramework(db.SSLMode)
 }

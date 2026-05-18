@@ -57,6 +57,7 @@ type CommonModel struct {
 	CustomDockerRunOptions  types.String   `tfsdk:"custom_docker_run_options"`
 	PublicPortTimeout       types.Int64    `tfsdk:"public_port_timeout"`
 	IsLogDrainEnabled       types.Bool     `tfsdk:"is_log_drain_enabled"`
+	IsIncludeTimestamps     types.Bool     `tfsdk:"is_include_timestamps"`
 	Status                  types.String   `tfsdk:"status"`
 }
 
@@ -84,6 +85,7 @@ func (m *CommonModel) ExtFields() DatabaseExtendedPtrs {
 		CustomDockerRunOptions:  &m.CustomDockerRunOptions,
 		PublicPortTimeout:       &m.PublicPortTimeout,
 		IsLogDrainEnabled:       &m.IsLogDrainEnabled,
+		IsIncludeTimestamps:     &m.IsIncludeTimestamps,
 		Status:                  &m.Status,
 	}
 }
@@ -109,7 +111,6 @@ type postgresqlDatabaseResourceModel struct {
 	PostgresInitdbArgs     types.String `tfsdk:"postgres_initdb_args"`
 	PostgresHostAuthMethod types.String `tfsdk:"postgres_host_auth_method"`
 	InitScripts            types.String `tfsdk:"init_scripts"`
-	IsIncludeTimestamps    types.Bool   `tfsdk:"is_include_timestamps"`
 	EnableSSL              types.Bool   `tfsdk:"enable_ssl"`
 	SSLMode                types.String `tfsdk:"ssl_mode"`
 }
@@ -152,9 +153,8 @@ func (r *postgresqlDatabaseResource) Schema(ctx context.Context, _ resource.Sche
 				MarkdownDescription: "Initialization scripts as a JSON array.",
 				Optional:            true,
 			},
-			"is_include_timestamps": IsIncludeTimestampsAttr(),
-			"enable_ssl":            EnableSSLAttr(),
-			"ssl_mode":              SSLModePostgresqlAttr(),
+			"enable_ssl": EnableSSLAttr(),
+			"ssl_mode":   SSLModePostgresqlAttr(),
 		}),
 	}
 }
@@ -210,16 +210,16 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	NormalizeUnknownString(&plan.PostgresInitdbArgs)
 	NormalizeUnknownString(&plan.PostgresHostAuthMethod)
 	NormalizeUnknownString(&plan.InitScripts)
+	NormalizeUnknownString(&plan.SSLMode)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Apply extended fields that cannot be set during creation.
-	ext := plan.ExtFields()
+	ext := plan.ExtFields().WithSSL(&plan.EnableSSL, &plan.SSLMode)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	boolTrue := func(v types.Bool) bool { return !v.IsNull() && !v.IsUnknown() && v.ValueBool() }
-	needsUpdate := HasExtendedFields(ext) || strSet(plan.PostgresConf) || strSet(plan.PostgresInitdbArgs) || strSet(plan.PostgresHostAuthMethod) || strSet(plan.InitScripts) || boolTrue(plan.IsIncludeTimestamps) || boolTrue(plan.EnableSSL) || strSet(plan.SSLMode)
+	needsUpdate := HasExtendedFields(ext) || strSet(plan.PostgresConf) || strSet(plan.PostgresInitdbArgs) || strSet(plan.PostgresHostAuthMethod) || strSet(plan.InitScripts)
 	if needsUpdate {
 		update := client.UpdateDatabaseInput{}
 		SetUpdateExtended(&update, ext)
@@ -227,9 +227,6 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 		flex.SetStrPtr(&update.PostgresInitdbArgs, plan.PostgresInitdbArgs)
 		flex.SetStrPtr(&update.PostgresHostAuthMethod, plan.PostgresHostAuthMethod)
 		flex.SetStrPtr(&update.InitScripts, plan.InitScripts)
-		flex.SetBoolPtr(&update.IsIncludeTimestamps, plan.IsIncludeTimestamps)
-		flex.SetBoolPtr(&update.EnableSSL, plan.EnableSSL)
-		flex.SetStrPtr(&update.SSLMode, plan.SSLMode)
 		if _, err := r.client.UpdateDatabase(ctx, created.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting PostgreSQL database extended fields", fmt.Sprintf("PostgreSQL database %s: %s", created.UUID, err))
 			return
@@ -296,11 +293,8 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 		PostgresInitdbArgs:     flex.StringIfChanged(plan.PostgresInitdbArgs, state.PostgresInitdbArgs),
 		PostgresHostAuthMethod: flex.StringIfChanged(plan.PostgresHostAuthMethod, state.PostgresHostAuthMethod),
 		InitScripts:            flex.StringIfChanged(plan.InitScripts, state.InitScripts),
-		IsIncludeTimestamps:    flex.BoolIfChanged(plan.IsIncludeTimestamps, state.IsIncludeTimestamps),
-		EnableSSL:              flex.BoolIfChanged(plan.EnableSSL, state.EnableSSL),
-		SSLMode:                flex.StringIfChanged(plan.SSLMode, state.SSLMode),
 	}
-	SetUpdateExtendedDiff(&input, plan.ExtFields(), state.ExtFields())
+	SetUpdateExtendedDiff(&input, plan.ExtFields().WithSSL(&plan.EnableSSL, &plan.SSLMode), state.ExtFields().WithSSL(&state.EnableSSL, &state.SSLMode))
 	db, err := UpdateDatabase(ctx, r.client, uuid, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", uuid, err))
@@ -330,7 +324,7 @@ func (r *postgresqlDatabaseResource) ImportState(ctx context.Context, req resour
 
 func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	FlattenDatabaseCommon(db, m.CommonPtrs())
-	FlattenDatabaseExtended(db, m.ExtFields())
+	FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, &m.SSLMode))
 	m.PostgresUser = flex.StringToFramework(db.PostgresUser)
 	// Preserve password from plan/state when the API hides sensitive fields.
 	if db.PostgresPassword != "" {
@@ -343,9 +337,6 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	flex.SetStringOrClear(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
 	flex.SetStringOrClear(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
 	flex.SetStringOrClear(&m.InitScripts, db.InitScripts)
-	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
-	m.EnableSSL = types.BoolValue(db.EnableSSL)
-	m.SSLMode = flex.StringToFramework(db.SSLMode)
 }
 
 // --- shared helpers ---
@@ -384,6 +375,7 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container.", Optional: true, Validators: []validator.String{validate.NoShellMetachars()}},
 		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
 		"is_log_drain_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, sends container logs to the configured log drain. Defaults to `false`.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
+		"is_include_timestamps":     IsIncludeTimestampsAttr(),
 		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g., `running`, `exited`).", Computed: true},
 	}
 	for k, v := range extra {
@@ -591,7 +583,18 @@ type DatabaseExtendedPtrs struct {
 	CustomDockerRunOptions  *types.String
 	PublicPortTimeout       *types.Int64
 	IsLogDrainEnabled       *types.Bool
+	IsIncludeTimestamps     *types.Bool
+	EnableSSL               *types.Bool
+	SSLMode                 *types.String
 	Status                  *types.String
+}
+
+// WithSSL returns a copy of the DatabaseExtendedPtrs with EnableSSL and SSLMode
+// pointers set. Use this for database types that support SSL (all except ClickHouse).
+func (f DatabaseExtendedPtrs) WithSSL(enableSSL *types.Bool, sslMode *types.String) DatabaseExtendedPtrs {
+	f.EnableSSL = enableSSL
+	f.SSLMode = sslMode
+	return f
 }
 
 // FlattenDatabaseExtended sets the extended fields shared by all database types.
@@ -618,6 +621,14 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	flex.SetInt64IfConfigured(f.PublicPortTimeout, db.PublicPortTimeout)
 	// Logging settings (boolean with default false — always set from API).
 	*f.IsLogDrainEnabled = types.BoolValue(db.IsLogDrainEnabled)
+	*f.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
+	// SSL settings — always set from API.
+	if f.EnableSSL != nil {
+		*f.EnableSSL = types.BoolValue(db.EnableSSL)
+	}
+	if f.SSLMode != nil {
+		*f.SSLMode = flex.StringToFramework(db.SSLMode)
+	}
 	// Status is Computed — always set.
 	*f.Status = flex.StringToFramework(db.Status)
 }
@@ -635,6 +646,13 @@ func SetUpdateExtended(input *client.UpdateDatabaseInput, f DatabaseExtendedPtrs
 	flex.SetInt64Ptr(&input.LimitsCPUShares, *f.LimitsCPUShares)
 	input.PublicPortTimeout = flex.Int64PtrFromFramework(*f.PublicPortTimeout)
 	flex.SetBoolPtr(&input.IsLogDrainEnabled, *f.IsLogDrainEnabled)
+	flex.SetBoolPtr(&input.IsIncludeTimestamps, *f.IsIncludeTimestamps)
+	if f.EnableSSL != nil {
+		flex.SetBoolPtr(&input.EnableSSL, *f.EnableSSL)
+	}
+	if f.SSLMode != nil {
+		flex.SetStrPtr(&input.SSLMode, *f.SSLMode)
+	}
 }
 
 // SetUpdateExtendedDiff populates the extended fields in an UpdateDatabaseInput,
@@ -651,6 +669,13 @@ func SetUpdateExtendedDiff(input *client.UpdateDatabaseInput, plan, state Databa
 	input.LimitsCPUShares = flex.Int64IfChanged(*plan.LimitsCPUShares, *state.LimitsCPUShares)
 	input.PublicPortTimeout = flex.Int64IfChanged(*plan.PublicPortTimeout, *state.PublicPortTimeout)
 	input.IsLogDrainEnabled = flex.BoolIfChanged(*plan.IsLogDrainEnabled, *state.IsLogDrainEnabled)
+	input.IsIncludeTimestamps = flex.BoolIfChanged(*plan.IsIncludeTimestamps, *state.IsIncludeTimestamps)
+	if plan.EnableSSL != nil {
+		input.EnableSSL = flex.BoolIfChanged(*plan.EnableSSL, *state.EnableSSL)
+	}
+	if plan.SSLMode != nil {
+		input.SSLMode = flex.StringIfChanged(*plan.SSLMode, *state.SSLMode)
+	}
 }
 
 // HasExtendedFields returns true if any extended field is configured (not
@@ -677,7 +702,10 @@ func HasExtendedFields(f DatabaseExtendedPtrs) bool {
 		intNonDefault(f.LimitsMemorySwappiness, 60) || intNonDefault(f.LimitsCPUShares, 1024) ||
 		strSet(f.PortsMappings) || strSet(f.CustomDockerRunOptions) ||
 		intSet(f.PublicPortTimeout) ||
-		boolNonDefault(f.IsLogDrainEnabled, false)
+		boolNonDefault(f.IsLogDrainEnabled, false) ||
+		boolNonDefault(f.IsIncludeTimestamps, false) ||
+		(f.EnableSSL != nil && boolNonDefault(f.EnableSSL, false)) ||
+		(f.SSLMode != nil && strSet(f.SSLMode))
 }
 
 // FlattenDatabaseCommon sets the fields shared by all database resource types.

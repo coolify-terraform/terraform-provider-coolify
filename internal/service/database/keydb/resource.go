@@ -26,10 +26,9 @@ type res struct{ client *client.Client }
 type model struct {
 	pg.CommonModel
 	// Type-specific
-	KeydbPassword       types.String `tfsdk:"keydb_password"`
-	KeydbConf           types.String `tfsdk:"keydb_conf"`
-	IsIncludeTimestamps types.Bool   `tfsdk:"is_include_timestamps"`
-	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
+	KeydbPassword types.String `tfsdk:"keydb_password"`
+	KeydbConf     types.String `tfsdk:"keydb_conf"`
+	EnableSSL     types.Bool   `tfsdk:"enable_ssl"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -38,10 +37,9 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a KeyDB database resource on Coolify.", Attributes: pg.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
-		"keydb_password":        schema.StringAttribute{MarkdownDescription: "The KeyDB password. If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"keydb_conf":            schema.StringAttribute{MarkdownDescription: "Custom KeyDB configuration (base64-encoded `keydb.conf` content).", Optional: true},
-		"is_include_timestamps": pg.IsIncludeTimestampsAttr(),
-		"enable_ssl":            pg.EnableSSLAttr(),
+		"keydb_password": schema.StringAttribute{MarkdownDescription: "The KeyDB password. If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"keydb_conf":     schema.StringAttribute{MarkdownDescription: "Custom KeyDB configuration (base64-encoded `keydb.conf` content).", Optional: true},
+		"enable_ssl":     pg.EnableSSLAttr(),
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -85,16 +83,13 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		return
 	}
 
-	ext := p.ExtFields()
+	ext := p.ExtFields().WithSSL(&p.EnableSSL, nil)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	boolTrue := func(v types.Bool) bool { return !v.IsNull() && !v.IsUnknown() && v.ValueBool() }
-	if pg.HasExtendedFields(ext) || strSet(p.KeydbPassword) || strSet(p.KeydbConf) || boolTrue(p.IsIncludeTimestamps) || boolTrue(p.EnableSSL) {
+	if pg.HasExtendedFields(ext) || strSet(p.KeydbPassword) || strSet(p.KeydbConf) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.KeydbPassword, p.KeydbPassword)
 		flex.SetStrPtr(&update.KeydbConf, p.KeydbConf)
-		flex.SetBoolPtr(&update.IsIncludeTimestamps, p.IsIncludeTimestamps)
-		flex.SetBoolPtr(&update.EnableSSL, p.EnableSSL)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting KeyDB database extended fields", fmt.Sprintf("KeyDB database %s: %s", c.UUID, err))
 			return
@@ -145,17 +140,15 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_keydb_database", "uuid": s.UUID.ValueString()})
 
 	u := client.UpdateDatabaseInput{
-		Name:                flex.StringIfChanged(p.Name, s.Name),
-		Description:         flex.StringIfChanged(p.Description, s.Description),
-		Image:               flex.StringIfChanged(p.Image, s.Image),
-		IsPublic:            flex.BoolIfChanged(p.IsPublic, s.IsPublic),
-		PublicPort:          flex.Int64IfChanged(p.PublicPort, s.PublicPort),
-		KeydbPassword:       flex.StringIfChanged(p.KeydbPassword, s.KeydbPassword),
-		KeydbConf:           flex.StringIfChanged(p.KeydbConf, s.KeydbConf),
-		IsIncludeTimestamps: flex.BoolIfChanged(p.IsIncludeTimestamps, s.IsIncludeTimestamps),
-		EnableSSL:           flex.BoolIfChanged(p.EnableSSL, s.EnableSSL),
+		Name:          flex.StringIfChanged(p.Name, s.Name),
+		Description:   flex.StringIfChanged(p.Description, s.Description),
+		Image:         flex.StringIfChanged(p.Image, s.Image),
+		IsPublic:      flex.BoolIfChanged(p.IsPublic, s.IsPublic),
+		PublicPort:    flex.Int64IfChanged(p.PublicPort, s.PublicPort),
+		KeydbPassword: flex.StringIfChanged(p.KeydbPassword, s.KeydbPassword),
+		KeydbConf:     flex.StringIfChanged(p.KeydbConf, s.KeydbConf),
 	}
-	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
+	pg.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, nil), s.ExtFields().WithSSL(&s.EnableSSL, nil))
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating KeyDB database", fmt.Sprintf("KeyDB database %s: %s", s.UUID.ValueString(), err))
@@ -182,13 +175,11 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 }
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
-	pg.FlattenDatabaseExtended(db, m.ExtFields())
+	pg.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, nil))
 	if db.KeydbPassword != "" {
 		m.KeydbPassword = types.StringValue(db.KeydbPassword)
 	} else if m.KeydbPassword.IsUnknown() {
 		m.KeydbPassword = types.StringNull()
 	}
 	flex.SetStringOrClear(&m.KeydbConf, db.KeydbConf)
-	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
-	m.EnableSSL = types.BoolValue(db.EnableSSL)
 }

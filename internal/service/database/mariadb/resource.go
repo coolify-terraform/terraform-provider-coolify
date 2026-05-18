@@ -31,7 +31,6 @@ type model struct {
 	MariadbDatabase     types.String `tfsdk:"mariadb_database"`
 	MariadbRootPassword types.String `tfsdk:"mariadb_root_password"`
 	MariadbConf         types.String `tfsdk:"mariadb_conf"`
-	IsIncludeTimestamps types.Bool   `tfsdk:"is_include_timestamps"`
 	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
 }
 
@@ -46,7 +45,6 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 		"mariadb_database":      schema.StringAttribute{MarkdownDescription: "The default database name (maps to `MARIADB_DATABASE`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"mariadb_root_password": schema.StringAttribute{MarkdownDescription: "The MariaDB root password (maps to `MARIADB_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"mariadb_conf":          schema.StringAttribute{MarkdownDescription: "Custom MariaDB configuration (base64-encoded `my.cnf` content).", Optional: true},
-		"is_include_timestamps": pg.IsIncludeTimestampsAttr(),
 		"enable_ssl":            pg.EnableSSLAttr(),
 	})}
 }
@@ -97,15 +95,12 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		return
 	}
 
-	ext := p.ExtFields()
+	ext := p.ExtFields().WithSSL(&p.EnableSSL, nil)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	boolTrue := func(v types.Bool) bool { return !v.IsNull() && !v.IsUnknown() && v.ValueBool() }
-	if pg.HasExtendedFields(ext) || strSet(p.MariadbConf) || boolTrue(p.IsIncludeTimestamps) || boolTrue(p.EnableSSL) {
+	if pg.HasExtendedFields(ext) || strSet(p.MariadbConf) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.MariadbConf, p.MariadbConf)
-		flex.SetBoolPtr(&update.IsIncludeTimestamps, p.IsIncludeTimestamps)
-		flex.SetBoolPtr(&update.EnableSSL, p.EnableSSL)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting MariaDB database extended fields", fmt.Sprintf("MariaDB database %s: %s", c.UUID, err))
 			return
@@ -166,10 +161,8 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		MariadbDatabase:     flex.StringIfChanged(p.MariadbDatabase, s.MariadbDatabase),
 		MariadbRootPassword: flex.StringIfChanged(p.MariadbRootPassword, s.MariadbRootPassword),
 		MariadbConf:         flex.StringIfChanged(p.MariadbConf, s.MariadbConf),
-		IsIncludeTimestamps: flex.BoolIfChanged(p.IsIncludeTimestamps, s.IsIncludeTimestamps),
-		EnableSSL:           flex.BoolIfChanged(p.EnableSSL, s.EnableSSL),
 	}
-	pg.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
+	pg.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, nil), s.ExtFields().WithSSL(&s.EnableSSL, nil))
 	db, err := pg.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MariaDB database", fmt.Sprintf("MariaDB database %s: %s", s.UUID.ValueString(), err))
@@ -196,7 +189,7 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 }
 func flattenDatabase(db *client.Database, m *model) {
 	pg.FlattenDatabaseCommon(db, m.CommonPtrs())
-	pg.FlattenDatabaseExtended(db, m.ExtFields())
+	pg.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, nil))
 	m.MariadbUser = flex.StringToFramework(db.MariadbUser)
 	// Preserve passwords from plan/state when the API hides sensitive fields.
 	if db.MariadbPassword != "" {
@@ -211,6 +204,4 @@ func flattenDatabase(db *client.Database, m *model) {
 		m.MariadbRootPassword = types.StringNull()
 	}
 	flex.SetStringOrClear(&m.MariadbConf, db.MariadbConf)
-	m.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
-	m.EnableSSL = types.BoolValue(db.EnableSSL)
 }
