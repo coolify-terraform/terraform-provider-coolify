@@ -27,13 +27,13 @@ func (v noShellMetacharsValidator) MarkdownDescription(ctx context.Context) stri
 	return v.Description(ctx)
 }
 
-func (v noShellMetacharsValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+func (v noShellMetacharsValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
 	value := req.ConfigValue.ValueString()
 	if loc := shellMetachars.FindStringIndex(value); loc != nil {
 		resp.Diagnostics.AddAttributeError(req.Path, "Shell Metacharacter Detected",
-			v.Description(context.Background()))
+			v.Description(ctx))
 	}
 }

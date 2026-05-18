@@ -132,20 +132,6 @@ func SetStringOrClear(dst *types.String, v string) {
 	}
 }
 
-// SetInt64OrClear sets dst to the int64 value when v is non-nil, or
-// clears it to null when v is nil (allowing drift detection for nullable
-// API fields). Skips if dst was never configured (null/unknown).
-func SetInt64OrClear(dst *types.Int64, v *int64) {
-	if dst == nil || dst.IsNull() || dst.IsUnknown() {
-		return
-	}
-	if v != nil {
-		*dst = types.Int64Value(*v)
-	} else {
-		*dst = types.Int64Null()
-	}
-}
-
 // SetInt64IfConfigured sets dst to the int64 value only if dst was
 // configured by the user (non-null, non-unknown) and v is non-nil.
 func SetInt64IfConfigured(dst *types.Int64, v *int64) {
