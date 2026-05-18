@@ -40,6 +40,10 @@ func TestDatabaseDataSource(t *testing.T) {
 				"limits_cpus":               "0",
 				"limits_cpuset":             "0",
 				"limits_cpu_shares":         1024,
+				"is_log_drain_enabled":      true,
+				"is_include_timestamps":     true,
+				"enable_ssl":                true,
+				"ssl_mode":                  "require",
 			})
 			return
 		}
@@ -72,6 +76,10 @@ data "coolify_database" "test" {
 					resource.TestCheckResourceAttr("data.coolify_database.test", "server_uuid", "bbbb0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "project_uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "ssl_mode", "require"),
 				),
 			},
 		},

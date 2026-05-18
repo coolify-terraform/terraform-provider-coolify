@@ -78,6 +78,27 @@ resource "coolify_postgresql_database" "test" {
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "Updated description"),
 				),
 			},
+			// Update SSL and log drain fields
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_postgresql_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  name                  = "updated-pg-db"
+  description           = "Updated description"
+  enable_ssl            = true
+  ssl_mode              = "require"
+  is_log_drain_enabled  = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "ssl_mode", "require"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_include_timestamps", "true"),
+				),
+			},
 			// Import
 			{
 				ResourceName:      "coolify_postgresql_database.test",
