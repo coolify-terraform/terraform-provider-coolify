@@ -265,6 +265,76 @@ func TestSetBoolPtr(t *testing.T) {
 	})
 }
 
+func TestNormalizeUnknownString(t *testing.T) {
+	t.Parallel()
+	t.Run("nil pointer is safe", func(t *testing.T) {
+		flex.NormalizeUnknownString(nil)
+	})
+	t.Run("unknown becomes null", func(t *testing.T) {
+		v := types.StringUnknown()
+		flex.NormalizeUnknownString(&v)
+		if !v.IsNull() {
+			t.Fatal("expected null")
+		}
+	})
+	t.Run("null stays null", func(t *testing.T) {
+		v := types.StringNull()
+		flex.NormalizeUnknownString(&v)
+		if !v.IsNull() {
+			t.Fatal("expected null")
+		}
+	})
+	t.Run("known value unchanged", func(t *testing.T) {
+		v := types.StringValue("keep")
+		flex.NormalizeUnknownString(&v)
+		if v.ValueString() != "keep" {
+			t.Fatal("value changed")
+		}
+	})
+}
+
+func TestNormalizeUnknownBool(t *testing.T) {
+	t.Parallel()
+	t.Run("nil pointer is safe", func(t *testing.T) {
+		flex.NormalizeUnknownBool(nil)
+	})
+	t.Run("unknown becomes null", func(t *testing.T) {
+		v := types.BoolUnknown()
+		flex.NormalizeUnknownBool(&v)
+		if !v.IsNull() {
+			t.Fatal("expected null")
+		}
+	})
+	t.Run("known value unchanged", func(t *testing.T) {
+		v := types.BoolValue(true)
+		flex.NormalizeUnknownBool(&v)
+		if !v.ValueBool() {
+			t.Fatal("value changed")
+		}
+	})
+}
+
+func TestNormalizeUnknownInt64(t *testing.T) {
+	t.Parallel()
+	t.Run("nil pointer is safe", func(t *testing.T) {
+		flex.NormalizeUnknownInt64(nil)
+	})
+	t.Run("unknown becomes null", func(t *testing.T) {
+		v := types.Int64Unknown()
+		flex.NormalizeUnknownInt64(&v)
+		if !v.IsNull() {
+			t.Fatal("expected null")
+		}
+	})
+	t.Run("known value unchanged", func(t *testing.T) {
+		v := types.Int64Value(42)
+		flex.NormalizeUnknownInt64(&v)
+		if v.ValueInt64() != 42 {
+			t.Fatal("value changed")
+		}
+	})
+}
+
 // ---------------------------------------------------------------------------
 // StringIfChanged / BoolIfChanged / Int64IfChanged
 // ---------------------------------------------------------------------------

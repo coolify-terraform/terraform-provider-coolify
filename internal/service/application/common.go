@@ -791,6 +791,7 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 		"dockerfile": schema.StringAttribute{
 			MarkdownDescription: "Inline Dockerfile content (base64 encoded).",
 			Optional:            true,
+			Sensitive:           true,
 		},
 		"docker_registry_image_tag": schema.StringAttribute{
 			MarkdownDescription: "The Docker registry image tag.",
@@ -935,6 +936,7 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 		"custom_labels": schema.StringAttribute{
 			MarkdownDescription: "Custom Docker labels for the container, **base64-encoded**. Use `base64encode()` in your configuration.",
 			Optional:            true,
+			Sensitive:           true,
 		},
 		"custom_network_aliases": schema.StringAttribute{
 			MarkdownDescription: "Custom network aliases for the container.",

@@ -103,6 +103,7 @@ func newMockEnvironmentServer(auditT ...testing.TB) (*httptest.Server, *mockEnvi
 			return
 		}
 		env := store.Create(projectUUID, body.Name, body.Description)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(env)
 	})
@@ -111,6 +112,7 @@ func newMockEnvironmentServer(auditT ...testing.TB) (*httptest.Server, *mockEnvi
 	mux.HandleFunc("GET /api/v1/projects/{projectUUID}/environments", func(w http.ResponseWriter, r *http.Request) {
 		projectUUID := r.PathValue("projectUUID")
 		envs := store.List(projectUUID)
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(envs)
 	})
 
@@ -123,6 +125,7 @@ func newMockEnvironmentServer(auditT ...testing.TB) (*httptest.Server, *mockEnvi
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(env)
 	})
 
