@@ -361,9 +361,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 
 	if result != nil {
 		if len(respBody) == 0 {
-			tflog.Warn(ctx, "API returned success with empty body", map[string]interface{}{
-				"method": method, "path": path, "status": resp.StatusCode,
-			})
+			return fmt.Errorf("API returned status %d with empty body for %s %s (expected JSON)", resp.StatusCode, method, path)
 		} else if err := json.Unmarshal(respBody, result); err != nil {
 			return fmt.Errorf("decoding response: %w", err)
 		}

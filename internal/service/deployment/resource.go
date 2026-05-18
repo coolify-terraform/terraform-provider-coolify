@@ -132,6 +132,12 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	if result.DeploymentUUID == "" {
+		resp.Diagnostics.AddError("Deployment triggered but no UUID returned",
+			fmt.Sprintf("Application %s restart was accepted but the API did not return a deployment UUID. Check the Coolify UI for the deployment status.", appUUID))
+		return
+	}
+
 	plan.UUID = types.StringValue(result.DeploymentUUID)
 
 	// Read back the deployment status.
