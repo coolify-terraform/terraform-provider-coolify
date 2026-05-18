@@ -226,6 +226,7 @@ jobs:
         env:
           GIT_BEFORE: ${{ github.event.before }}
           GIT_AFTER: ${{ github.event.after }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
           VER="8.30.1"
@@ -237,7 +238,7 @@ jobs:
               | tar xz -C "$BIN_DIR" gitleaks
           fi
           if [ "$EVENT_NAME" = "pull_request" ]; then
-            gitleaks detect --source . --config .gitleaks.toml --log-opts="origin/main..HEAD" --exit-code 1
+            gitleaks detect --source . --config .gitleaks.toml --log-opts="${PR_BASE_SHA}..HEAD" --exit-code 1
           elif [ "$EVENT_NAME" = "push" ]; then
             gitleaks detect --source . --config .gitleaks.toml --log-opts="${GIT_BEFORE}..${GIT_AFTER}" --exit-code 1
           else
