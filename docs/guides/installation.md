@@ -11,7 +11,7 @@ description: |-
 
 | Requirement | Minimum Version |
 |-------------|-----------------|
-| Terraform   | 1.0+            |
+| Terraform   | 1.6+            |
 | Coolify     | v4.x            |
 
 ## Install from Terraform Registry
