@@ -97,10 +97,14 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	ext := p.ExtFields()
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if pg.HasExtendedFields(ext) || strSet(p.MongoConf) {
+	boolTrue := func(v types.Bool) bool { return !v.IsNull() && !v.IsUnknown() && v.ValueBool() }
+	if pg.HasExtendedFields(ext) || strSet(p.MongoConf) || boolTrue(p.IsIncludeTimestamps) || boolTrue(p.EnableSSL) || strSet(p.SSLMode) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.MongoConf, p.MongoConf)
+		flex.SetBoolPtr(&update.IsIncludeTimestamps, p.IsIncludeTimestamps)
+		flex.SetBoolPtr(&update.EnableSSL, p.EnableSSL)
+		flex.SetStrPtr(&update.SSLMode, p.SSLMode)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting MongoDB database extended fields", fmt.Sprintf("MongoDB database %s: %s", c.UUID, err))
 			return

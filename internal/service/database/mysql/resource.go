@@ -109,10 +109,14 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 
 	ext := plan.ExtFields()
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if pg.HasExtendedFields(ext) || strSet(plan.MysqlConf) {
+	boolTrue := func(v types.Bool) bool { return !v.IsNull() && !v.IsUnknown() && v.ValueBool() }
+	if pg.HasExtendedFields(ext) || strSet(plan.MysqlConf) || boolTrue(plan.IsIncludeTimestamps) || boolTrue(plan.EnableSSL) || strSet(plan.SSLMode) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.MysqlConf, plan.MysqlConf)
+		flex.SetBoolPtr(&update.IsIncludeTimestamps, plan.IsIncludeTimestamps)
+		flex.SetBoolPtr(&update.EnableSSL, plan.EnableSSL)
+		flex.SetStrPtr(&update.SSLMode, plan.SSLMode)
 		if _, err := r.client.UpdateDatabase(ctx, created.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting MySQL database extended fields", fmt.Sprintf("MySQL database %s: %s", created.UUID, err))
 			return

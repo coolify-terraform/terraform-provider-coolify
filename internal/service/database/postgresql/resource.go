@@ -218,7 +218,8 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	// Apply extended fields that cannot be set during creation.
 	ext := plan.ExtFields()
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	needsUpdate := HasExtendedFields(ext) || strSet(plan.PostgresConf) || strSet(plan.PostgresInitdbArgs) || strSet(plan.PostgresHostAuthMethod) || strSet(plan.InitScripts)
+	boolTrue := func(v types.Bool) bool { return !v.IsNull() && !v.IsUnknown() && v.ValueBool() }
+	needsUpdate := HasExtendedFields(ext) || strSet(plan.PostgresConf) || strSet(plan.PostgresInitdbArgs) || strSet(plan.PostgresHostAuthMethod) || strSet(plan.InitScripts) || boolTrue(plan.IsIncludeTimestamps) || boolTrue(plan.EnableSSL) || strSet(plan.SSLMode)
 	if needsUpdate {
 		update := client.UpdateDatabaseInput{}
 		SetUpdateExtended(&update, ext)
@@ -226,6 +227,9 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 		flex.SetStrPtr(&update.PostgresInitdbArgs, plan.PostgresInitdbArgs)
 		flex.SetStrPtr(&update.PostgresHostAuthMethod, plan.PostgresHostAuthMethod)
 		flex.SetStrPtr(&update.InitScripts, plan.InitScripts)
+		flex.SetBoolPtr(&update.IsIncludeTimestamps, plan.IsIncludeTimestamps)
+		flex.SetBoolPtr(&update.EnableSSL, plan.EnableSSL)
+		flex.SetStrPtr(&update.SSLMode, plan.SSLMode)
 		if _, err := r.client.UpdateDatabase(ctx, created.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting PostgreSQL database extended fields", fmt.Sprintf("PostgreSQL database %s: %s", created.UUID, err))
 			return

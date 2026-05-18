@@ -84,10 +84,13 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	ext := p.ExtFields()
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if pg.HasExtendedFields(ext) || strSet(p.DragonflyPassword) {
+	boolTrue := func(v types.Bool) bool { return !v.IsNull() && !v.IsUnknown() && v.ValueBool() }
+	if pg.HasExtendedFields(ext) || strSet(p.DragonflyPassword) || boolTrue(p.IsIncludeTimestamps) || boolTrue(p.EnableSSL) {
 		update := client.UpdateDatabaseInput{}
 		pg.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.DragonflyPassword, p.DragonflyPassword)
+		flex.SetBoolPtr(&update.IsIncludeTimestamps, p.IsIncludeTimestamps)
+		flex.SetBoolPtr(&update.EnableSSL, p.EnableSSL)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
 			resp.Diagnostics.AddError("Error setting Dragonfly database extended fields", fmt.Sprintf("Dragonfly database %s: %s", c.UUID, err))
 			return
