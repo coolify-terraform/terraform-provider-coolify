@@ -197,6 +197,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		privatekey.NewResource,
 		project.NewResource,
 		scheduledtask.NewResource,
+		hetzner.NewResource,
 		server.NewResource,
 		service.NewResource,
 		storage.NewResource,
