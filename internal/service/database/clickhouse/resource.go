@@ -78,9 +78,9 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	p.UUID = types.StringValue(c.UUID)
 	pg.NormalizeCommonCreateState(&p.CommonModel)
-	pg.NormalizeUnknownString(&p.ClickhouseAdminUser)
-	pg.NormalizeUnknownString(&p.ClickhouseAdminPassword)
-	pg.NormalizeUnknownString(&p.ClickhouseDB)
+	flex.NormalizeUnknownString(&p.ClickhouseAdminUser)
+	flex.NormalizeUnknownString(&p.ClickhouseAdminPassword)
+	flex.NormalizeUnknownString(&p.ClickhouseDB)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return

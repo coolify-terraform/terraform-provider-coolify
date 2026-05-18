@@ -95,12 +95,12 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 
 	plan.UUID = types.StringValue(created.UUID)
 	pg.NormalizeCommonCreateState(&plan.CommonModel)
-	pg.NormalizeUnknownString(&plan.MysqlUser)
-	pg.NormalizeUnknownString(&plan.MysqlPassword)
-	pg.NormalizeUnknownString(&plan.MysqlDatabase)
-	pg.NormalizeUnknownString(&plan.MysqlRootPassword)
-	pg.NormalizeUnknownString(&plan.MysqlConf)
-	pg.NormalizeUnknownString(&plan.SSLMode)
+	flex.NormalizeUnknownString(&plan.MysqlUser)
+	flex.NormalizeUnknownString(&plan.MysqlPassword)
+	flex.NormalizeUnknownString(&plan.MysqlDatabase)
+	flex.NormalizeUnknownString(&plan.MysqlRootPassword)
+	flex.NormalizeUnknownString(&plan.MysqlConf)
+	flex.NormalizeUnknownString(&plan.SSLMode)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return

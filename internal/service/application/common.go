@@ -1084,57 +1084,37 @@ func setImportDefaults(ctx context.Context, resp *resource.ImportStateResponse) 
 	set("use_build_server", false)
 }
 
-// normalizeUnknown* converts unknown planned values to null before saving
-// partial state after create.
-func normalizeUnknownString(v *types.String) {
-	if v != nil && v.IsUnknown() {
-		*v = types.StringNull()
-	}
-}
-
-func normalizeUnknownBool(v *types.Bool) {
-	if v != nil && v.IsUnknown() {
-		*v = types.BoolNull()
-	}
-}
-
-func normalizeUnknownInt64(v *types.Int64) {
-	if v != nil && v.IsUnknown() {
-		*v = types.Int64Null()
-	}
-}
-
 func normalizeCommonAppCreateState(m *applicationCommonModel) {
-	normalizeUnknownString(&m.Name)
-	normalizeUnknownString(&m.Description)
-	normalizeUnknownString(&m.EnvironmentName)
-	normalizeUnknownString(&m.FQDN)
-	normalizeUnknownString(&m.Status)
-	normalizeUnknownBool(&m.HealthCheckEnabled)
-	normalizeUnknownBool(&m.IsAutoDeployEnabled)
-	normalizeUnknownString(&m.Redirect)
-	normalizeUnknownString(&m.StaticImage)
-	normalizeUnknownBool(&m.IsStatic)
-	normalizeUnknownBool(&m.IsSPA)
-	normalizeUnknownBool(&m.IsPreserveRepositoryEnabled)
-	normalizeUnknownBool(&m.UseBuildServer)
-	normalizeUnknownString(&m.PreviewURLTemplate)
-	normalizeUnknownString(&m.HealthCheckHost)
-	normalizeUnknownString(&m.HealthCheckMethod)
-	normalizeUnknownInt64(&m.HealthCheckReturnCode)
-	normalizeUnknownString(&m.HealthCheckScheme)
-	normalizeUnknownString(&m.HealthCheckType)
-	normalizeUnknownBool(&m.ConnectToDockerNetwork)
-	normalizeUnknownBool(&m.IsForceHTTPSEnabled)
-	normalizeUnknownBool(&m.IsHTTPBasicAuthEnabled)
-	normalizeUnknownString(&m.HTTPBasicAuthUsername)
-	normalizeUnknownString(&m.HTTPBasicAuthPassword)
-	normalizeUnknownString(&m.ManualWebhookSecretBitbucket)
-	normalizeUnknownString(&m.ManualWebhookSecretGitea)
-	normalizeUnknownString(&m.ManualWebhookSecretGitHub)
-	normalizeUnknownString(&m.ManualWebhookSecretGitLab)
-	normalizeUnknownBool(&m.ForceDomainOverride)
-	normalizeUnknownBool(&m.IsContainerLabelEscapeEnabled)
+	flex.NormalizeUnknownString(&m.Name)
+	flex.NormalizeUnknownString(&m.Description)
+	flex.NormalizeUnknownString(&m.EnvironmentName)
+	flex.NormalizeUnknownString(&m.FQDN)
+	flex.NormalizeUnknownString(&m.Status)
+	flex.NormalizeUnknownBool(&m.HealthCheckEnabled)
+	flex.NormalizeUnknownBool(&m.IsAutoDeployEnabled)
+	flex.NormalizeUnknownString(&m.Redirect)
+	flex.NormalizeUnknownString(&m.StaticImage)
+	flex.NormalizeUnknownBool(&m.IsStatic)
+	flex.NormalizeUnknownBool(&m.IsSPA)
+	flex.NormalizeUnknownBool(&m.IsPreserveRepositoryEnabled)
+	flex.NormalizeUnknownBool(&m.UseBuildServer)
+	flex.NormalizeUnknownString(&m.PreviewURLTemplate)
+	flex.NormalizeUnknownString(&m.HealthCheckHost)
+	flex.NormalizeUnknownString(&m.HealthCheckMethod)
+	flex.NormalizeUnknownInt64(&m.HealthCheckReturnCode)
+	flex.NormalizeUnknownString(&m.HealthCheckScheme)
+	flex.NormalizeUnknownString(&m.HealthCheckType)
+	flex.NormalizeUnknownBool(&m.ConnectToDockerNetwork)
+	flex.NormalizeUnknownBool(&m.IsForceHTTPSEnabled)
+	flex.NormalizeUnknownBool(&m.IsHTTPBasicAuthEnabled)
+	flex.NormalizeUnknownString(&m.HTTPBasicAuthUsername)
+	flex.NormalizeUnknownString(&m.HTTPBasicAuthPassword)
+	flex.NormalizeUnknownString(&m.ManualWebhookSecretBitbucket)
+	flex.NormalizeUnknownString(&m.ManualWebhookSecretGitea)
+	flex.NormalizeUnknownString(&m.ManualWebhookSecretGitHub)
+	flex.NormalizeUnknownString(&m.ManualWebhookSecretGitLab)
+	flex.NormalizeUnknownBool(&m.ForceDomainOverride)
+	flex.NormalizeUnknownBool(&m.IsContainerLabelEscapeEnabled)
 }
 
 const applicationCreateReadBackFailedSummary = "Application created but refresh failed"

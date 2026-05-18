@@ -74,7 +74,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	p.UUID = types.StringValue(c.UUID)
 	pg.NormalizeCommonCreateState(&p.CommonModel)
-	pg.NormalizeUnknownString(&p.DragonflyPassword)
+	flex.NormalizeUnknownString(&p.DragonflyPassword)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return

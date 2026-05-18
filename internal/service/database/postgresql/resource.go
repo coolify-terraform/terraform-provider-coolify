@@ -494,23 +494,13 @@ func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid st
 	return nil
 }
 
-func NormalizeUnknownString(v *types.String) {
-	if v != nil && v.IsUnknown() {
-		*v = types.StringNull()
-	}
-}
-
-func NormalizeUnknownBool(v *types.Bool) {
-	if v != nil && v.IsUnknown() {
-		*v = types.BoolNull()
-	}
-}
-
-func NormalizeUnknownInt64(v *types.Int64) {
-	if v != nil && v.IsUnknown() {
-		*v = types.Int64Null()
-	}
-}
+// NormalizeUnknown* helpers moved to internal/flex package.
+// These aliases preserve backward compatibility for any external callers.
+var (
+	NormalizeUnknownString = flex.NormalizeUnknownString
+	NormalizeUnknownBool   = flex.NormalizeUnknownBool
+	NormalizeUnknownInt64  = flex.NormalizeUnknownInt64
+)
 
 func NormalizeCommonCreateState(m *CommonModel) {
 	NormalizeUnknownString(&m.Name)

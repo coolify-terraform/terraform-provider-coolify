@@ -76,8 +76,8 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	p.UUID = types.StringValue(c.UUID)
 	pg.NormalizeCommonCreateState(&p.CommonModel)
-	pg.NormalizeUnknownString(&p.RedisPassword)
-	pg.NormalizeUnknownString(&p.RedisConf)
+	flex.NormalizeUnknownString(&p.RedisPassword)
+	flex.NormalizeUnknownString(&p.RedisConf)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return

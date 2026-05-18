@@ -85,11 +85,11 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	p.UUID = types.StringValue(c.UUID)
 	pg.NormalizeCommonCreateState(&p.CommonModel)
-	pg.NormalizeUnknownString(&p.MariadbUser)
-	pg.NormalizeUnknownString(&p.MariadbPassword)
-	pg.NormalizeUnknownString(&p.MariadbDatabase)
-	pg.NormalizeUnknownString(&p.MariadbRootPassword)
-	pg.NormalizeUnknownString(&p.MariadbConf)
+	flex.NormalizeUnknownString(&p.MariadbUser)
+	flex.NormalizeUnknownString(&p.MariadbPassword)
+	flex.NormalizeUnknownString(&p.MariadbDatabase)
+	flex.NormalizeUnknownString(&p.MariadbRootPassword)
+	flex.NormalizeUnknownString(&p.MariadbConf)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return

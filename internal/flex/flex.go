@@ -219,3 +219,26 @@ func Float64IfChangedFromInt64(plan, state types.Int64) *float64 {
 	}
 	return Float64PtrFromInt64Framework(plan)
 }
+
+// NormalizeUnknownString converts an unknown String to null. Used before
+// saving state so plan values that the API doesn't return are stored as
+// null instead of unknown, which would cause "inconsistent result" errors.
+func NormalizeUnknownString(v *types.String) {
+	if v != nil && v.IsUnknown() {
+		*v = types.StringNull()
+	}
+}
+
+// NormalizeUnknownBool converts an unknown Bool to null.
+func NormalizeUnknownBool(v *types.Bool) {
+	if v != nil && v.IsUnknown() {
+		*v = types.BoolNull()
+	}
+}
+
+// NormalizeUnknownInt64 converts an unknown Int64 to null.
+func NormalizeUnknownInt64(v *types.Int64) {
+	if v != nil && v.IsUnknown() {
+		*v = types.Int64Null()
+	}
+}
