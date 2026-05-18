@@ -41,6 +41,9 @@ resource "coolify_redis_database" "test" {
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "image", "redis:7"),
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_public", "false"),
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "enable_ssl", "false"),
 				),
 			},
 			// Plan idempotency
@@ -98,7 +101,7 @@ func TestRedisDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
 			if forceReadFailure.Load() {
-				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{

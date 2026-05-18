@@ -42,10 +42,6 @@ func (s *MockState) buildResponse() map[string]interface{} {
 		"limits_cpus":               "0",
 		"limits_cpuset":             "0",
 		"limits_cpu_shares":         1024,
-		"is_log_drain_enabled":      false,
-		"is_include_timestamps":     false,
-		"enable_ssl":                false,
-		"ssl_mode":                  "",
 	}
 	for k, v := range s.ExtraFields {
 		resp[k] = v
@@ -80,11 +76,21 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 // API for the given database type. extraFields are db-specific fields included
 // in GET responses and updatable via PATCH (e.g., {"redis_password": "pass"}).
 func NewMockServer(dbType, name, image string, extraFields map[string]interface{}) (*httptest.Server, *MockState) {
+	// Seed common fields as defaults so applyPatch can update them.
+	merged := map[string]interface{}{
+		"is_log_drain_enabled":  false,
+		"is_include_timestamps": false,
+		"enable_ssl":            false,
+		"ssl_mode":              "",
+	}
+	for k, v := range extraFields {
+		merged[k] = v
+	}
 	state := &MockState{
 		UUID:        "aaaa0001-0001-4000-8000-000000000001",
 		Name:        name,
 		Image:       image,
-		ExtraFields: extraFields,
+		ExtraFields: merged,
 	}
 
 	dbPath := fmt.Sprintf("/api/v1/databases/%s", state.UUID)

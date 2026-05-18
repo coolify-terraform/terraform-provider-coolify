@@ -45,6 +45,9 @@ resource "coolify_mysql_database" "test" {
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "mysql_database", "mydb"),
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "image", "mysql:8"),
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_public", "false"),
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "enable_ssl", "false"),
 				),
 			},
 			// Plan idempotency
@@ -102,7 +105,7 @@ func TestMysqlDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mysqlUUID):
 			if forceReadFailure.Load() {
-				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
@@ -228,6 +231,28 @@ resource "coolify_mysql_database" "test" {
 					acctest.CheckResourceDisappears(srv.URL, "coolify_mysql_database.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestMysqlDatabaseResource_InvalidSSLMode(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_mysql_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  ssl_mode     = "bogus"
+}
+`,
+				ExpectError: regexp.MustCompile(`value must be one of`),
 			},
 		},
 	})

@@ -44,6 +44,9 @@ resource "coolify_mariadb_database" "test" {
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "mariadb_user", "mariauser"),
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "mariadb_database", "mariadb"),
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "image", "mariadb:11"),
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "enable_ssl", "false"),
 				),
 			},
 			// Plan idempotency
@@ -101,7 +104,7 @@ func TestMariadbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mariadbUUID):
 			if forceReadFailure.Load() {
-				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{

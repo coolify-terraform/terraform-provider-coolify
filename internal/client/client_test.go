@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"encoding/pem"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -4309,4 +4310,47 @@ func TestCachedList_DifferentPathsIndependent(t *testing.T) {
 	var r3 []Project
 	require.NoError(t, c.doCachedList(context.Background(), "/path/a", &r3))
 	assert.Equal(t, int32(2), calls.Load())
+}
+
+// --- TLS / CA Cert ---
+
+func TestClient_CustomCACert(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("4.0.0"))
+	}))
+	defer srv.Close()
+
+	caCert := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: srv.TLS.Certificates[0].Certificate[0],
+	})
+
+	c := New(srv.URL, "test-token", RetryConfig{
+		CACert: string(caCert),
+	})
+	version, err := c.GetVersion(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "4.0.0", version)
+}
+
+func TestClient_InsecureSkipsVerification(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("4.0.0"))
+	}))
+	defer srv.Close()
+
+	// Without insecure, TLS should fail (self-signed cert)
+	cNoInsecure := New(srv.URL, "test-token")
+	_, err := cNoInsecure.GetVersion(context.Background())
+	require.Error(t, err)
+
+	// With insecure, TLS should succeed
+	cInsecure := New(srv.URL, "test-token", RetryConfig{
+		Insecure: true,
+	})
+	version, err := cInsecure.GetVersion(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "4.0.0", version)
 }

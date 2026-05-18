@@ -38,6 +38,9 @@ resource "coolify_dragonfly_database" "test" {
 					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "image", "docker.dragonflydb.io/dragonflydb/dragonfly:latest"),
 					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_public", "false"),
 					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "enable_ssl", "false"),
 				),
 			},
 			{
@@ -136,7 +139,7 @@ func TestDragonflyDatabaseResource_CreateReadBackFailurePreservesState(t *testin
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dragonflyUUID):
 			if forceReadFailure.Load() {
-				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{

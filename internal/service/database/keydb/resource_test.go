@@ -38,6 +38,9 @@ resource "coolify_keydb_database" "test" {
 					resource.TestCheckResourceAttr("coolify_keydb_database.test", "image", "eqalpha/keydb:latest"),
 					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_public", "false"),
 					resource.TestCheckResourceAttr("coolify_keydb_database.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_keydb_database.test", "enable_ssl", "false"),
 				),
 			},
 			{
@@ -136,7 +139,7 @@ func TestKeydbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", keydbUUID):
 			if forceReadFailure.Load() {
-				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{

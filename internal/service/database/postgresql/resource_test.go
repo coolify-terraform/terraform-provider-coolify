@@ -46,6 +46,9 @@ resource "coolify_postgresql_database" "test" {
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "image", "postgres:16"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "environment_name", "production"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_public", "false"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "enable_ssl", "false"),
 				),
 			},
 			// Plan idempotency: re-apply same config, expect empty plan
@@ -198,7 +201,7 @@ func TestPostgresqlDatabaseResource_CreateReadBackFailurePreservesState(t *testi
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", pgUUID):
 			if forceReadFailure.Load() {
-				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
@@ -470,6 +473,28 @@ resource "coolify_postgresql_database" "test" {
 				ImportState:   true,
 				ImportStateId: "aaaa0001-0001-4000-8000-000000000001:bbbb0001-0001-4000-8000-000000000001::aaaa0001-0001-4000-8000-000000000001",
 				ExpectError:   regexp.MustCompile(`environment_name must not be empty`),
+			},
+		},
+	})
+}
+
+func TestPostgresqlDatabaseResource_InvalidSSLMode(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  ssl_mode     = "bogus"
+}
+`,
+				ExpectError: regexp.MustCompile(`value must be one of`),
 			},
 		},
 	})
