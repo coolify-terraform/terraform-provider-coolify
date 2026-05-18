@@ -382,7 +382,6 @@ var sensitiveKeys = map[string]bool{
 	"value":              true, // env var payloads use {"key":"DB_PASS","value":"secret"}
 	"docker_compose_raw": true, "docker_compose": true,
 	"cloud_init_script": true, "dockerfile": true,
-	"custom_labels": true,
 }
 
 // redactJSON replaces sensitive field values with [REDACTED] in a JSON byte

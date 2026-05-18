@@ -53,7 +53,7 @@ resource "coolify_application" "example" {
 - `build_command` (String) The command to run during the build phase.
 - `connect_to_docker_network` (Boolean) Whether to connect the application to the Docker network.
 - `custom_docker_run_options` (String) Custom Docker run options passed to the container.
-- `custom_labels` (String, Sensitive) Custom Docker labels for the container, **base64-encoded**. Use `base64encode()` in your configuration.
+- `custom_labels` (String) Custom Docker labels for the container, **base64-encoded**. Use `base64encode()` in your configuration.
 - `custom_network_aliases` (String) Custom network aliases for the container.
 - `custom_nginx_configuration` (String) Custom Nginx configuration for the application, **base64-encoded**. Use `base64encode()` in your configuration.
 - `description` (String) A description of the application.

@@ -936,7 +936,6 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 		"custom_labels": schema.StringAttribute{
 			MarkdownDescription: "Custom Docker labels for the container, **base64-encoded**. Use `base64encode()` in your configuration.",
 			Optional:            true,
-			Sensitive:           true,
 		},
 		"custom_network_aliases": schema.StringAttribute{
 			MarkdownDescription: "Custom network aliases for the container.",
