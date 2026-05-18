@@ -37,6 +37,12 @@ resource "coolify_hetzner_server" "example" {
   # is_build_server   = false
   # concurrent_builds = 2
   # dynamic_timeout   = 3600
+
+  # Extended settings (same as coolify_server):
+  # wildcard_domain    = "example.com"
+  # is_metrics_enabled = true
+  # is_sentinel_enabled = true
+  # docker_cleanup_frequency = "0 0 * * *"
 }
 ```
 

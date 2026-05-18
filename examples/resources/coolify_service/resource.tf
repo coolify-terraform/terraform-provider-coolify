@@ -10,4 +10,7 @@ resource "coolify_service" "monitoring" {
   project_uuid     = coolify_project.example.uuid
   server_uuid      = coolify_server.example.uuid
   environment_name = "production"
+
+  # Optional: connect service containers to the Coolify Docker network
+  # connect_to_docker_network = true
 }
