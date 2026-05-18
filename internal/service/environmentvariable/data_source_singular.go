@@ -125,7 +125,7 @@ func (d *envVarDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	} else if !config.DatabaseUUID.IsNull() {
 		envVars, err = d.client.ListDatabaseEnvVars(ctx, config.DatabaseUUID.ValueString())
 	} else {
-		resp.Diagnostics.AddError("Configuration error", "One of application_uuid, service_uuid, or database_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 

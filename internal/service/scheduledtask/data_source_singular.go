@@ -115,7 +115,7 @@ func (d *scheduledTaskDataSource) Read(ctx context.Context, req datasource.ReadR
 		parentType = "services"
 		parentUUID = config.ServiceUUID.ValueString()
 	} else {
-		resp.Diagnostics.AddError("Configuration error", "One of application_uuid or service_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid or service_uuid must be set")
 		return
 	}
 

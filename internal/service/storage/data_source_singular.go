@@ -120,7 +120,7 @@ func (d *storageDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		parentType = "databases"
 		parentUUID = config.DatabaseUUID.ValueString()
 	} else {
-		resp.Diagnostics.AddError("Configuration error", "One of application_uuid, service_uuid, or database_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
