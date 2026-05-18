@@ -82,7 +82,7 @@ func (r *hetznerServerResource) Schema(ctx context.Context, _ resource.SchemaReq
 	attrs := hetznerSchemaAttributes()
 	attrs["timeouts"] = timeouts.Attributes(ctx, timeouts.Opts{Create: true})
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Provisions a Hetzner Cloud server and registers it with Coolify.\n\n~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.",
+		MarkdownDescription: "Provisions a Hetzner Cloud server and registers it with Coolify.\n\n~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.\n\n~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `cloud_init_script`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state. Set them in your configuration before running `terraform plan` to avoid a forced replacement.",
 		Attributes:          attrs,
 	}
 }
