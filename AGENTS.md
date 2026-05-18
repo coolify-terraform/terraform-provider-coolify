@@ -13,7 +13,7 @@ Read these skills when working in this repo:
 
 Terraform provider for [Coolify](https://coolify.io/), the open-source self-hosted PaaS.
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
-26 resources, 44 data sources, 640+ tests (unit + acceptance), 8 CI jobs.
+26 resources, 44 data sources, 660+ tests (unit + acceptance), 8 CI jobs.
 8 ACME Corp scenario examples with `terraform test` integration tests.
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
@@ -160,7 +160,7 @@ mismatches, and zero validation rules when we compared it against the source.
 ## Testing
 
 - Framework: `hashicorp/terraform-plugin-testing` with `httptest` mock servers
-- 640+ tests (unit + acceptance)
+- 660+ tests (unit + acceptance)
 - Acceptance tests are skipped unless `TF_ACC=1` is set
 - Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, docs-check, api-coverage-check, counts-check, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
 - Before adding a test function, grep for its name to avoid duplicates
