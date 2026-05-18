@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `coolify_database_backup`: The `retain_days` attribute has been renamed to `retain_amount_locally`. The old name was misleading (it stored a count of backup copies, not days). Users must update their `.tf` files to use the new name.
 - `coolify_s3_storage` resource, `coolify_s3_storage` data source, and `coolify_s3_storages` data source have been removed. Current Coolify v4 has no public top-level S3 storage API. Manage S3 storages in the Coolify web UI and reference their UUIDs from `coolify_database_backup.s3_storage_uuid`.
 
+### Fixed
+
+- API response bodies are now redacted in TRACE logs, preventing sensitive fields (passwords, keys) from appearing in debug output
+- Custom TLS configuration (`ca_cert`, `insecure`) no longer silently disables HTTP retry logic
+- `redactJSON` now handles JSON arrays and nested objects (previously only top-level objects were redacted)
+
+### Changed
+
+- Consolidated `is_include_timestamps`, `enable_ssl`, and `ssl_mode` handling into shared database helpers, reducing duplication across all 8 database resources
+- Minimum Terraform version requirement updated to >= 1.6 (consistent across all documentation)
+- Added TRACE-level logging to version and health check endpoints for easier connection debugging
+
 ### Added
 
 - `coolify_deployment`: `wait_for_completion` attribute polls deployment status until `finished` or `error`; `timeouts` block for configurable Create timeout
