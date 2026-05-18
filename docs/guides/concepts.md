@@ -31,6 +31,7 @@ The Terraform provider maps each level to a resource or data source.
 | `coolify_project` | Logical group for applications and databases |
 | `coolify_environment` | Environment within a project (production, staging) |
 | `coolify_server` | A Docker host registered with Coolify |
+| `coolify_hetzner_server` | Provision a Hetzner Cloud server and register it with Coolify |
 | `coolify_private_key` | SSH key for server access or Git clone |
 | `coolify_cloud_token` | Hetzner/cloud provider API token |
 | `coolify_github_app` | GitHub App integration for repository access |
@@ -86,6 +87,10 @@ type. Additional read-only data sources include:
 - `coolify_environment_variables`: list env vars for an app, service, or database
 - `coolify_version`: read the Coolify instance version
 - `coolify_team`: read team info and members
+- `coolify_hetzner_images`: list available Hetzner Cloud images
+- `coolify_hetzner_locations`: list available Hetzner Cloud locations
+- `coolify_hetzner_server_types`: list available Hetzner Cloud server types
+- `coolify_hetzner_ssh_keys`: list SSH keys in Hetzner Cloud
 
 ## Import
 
