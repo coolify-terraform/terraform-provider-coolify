@@ -415,6 +415,7 @@ func (r *hetznerServerResource) Update(ctx context.Context, req resource.UpdateR
 
 	flattenHetznerServer(srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	tflog.Debug(ctx, "updated resource", map[string]interface{}{"resource_type": "coolify_hetzner_server", "uuid": state.UUID.ValueString()})
 }
 
 func (r *hetznerServerResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
