@@ -456,23 +456,18 @@ func TestContractCoverage_ServerSetting(t *testing.T) {
 	t.Parallel()
 	contractCoverageTest(t, "ServerSetting", reflect.TypeOf(client.ServerSettings{}), map[string]bool{
 		"server_id":                                true, // internal FK
-		"wildcard_domain":                          true, // not exposed yet
-		"is_cloudflare_tunnel":                     true, // not exposed yet
+
+
 		"is_build_server":                          true, // on Server, not Settings
-		"server_timezone":                          true, // not exposed yet
-		"force_docker_cleanup":                     true, // not exposed yet
-		"docker_cleanup_frequency":                 true, // not exposed yet
-		"docker_cleanup_threshold":                 true, // not exposed yet
+
 		"is_force_disabled":                        true, // not exposed yet
 		"is_reachable":                             true, // on Server, not Settings
 		"is_usable":                                true, // on Server, not Settings
 		"is_swarm_manager":                         true, // not exposed yet
 		"is_swarm_worker":                          true, // not exposed yet
-		"is_sentinel_enabled":                      true, // not exposed yet
 		"sentinel_custom_url":                      true, // not exposed yet
-		"sentinel_metrics_refresh_rate_in_seconds": true, // not exposed yet
-		"sentinel_metrics_history_days":            true, // not exposed yet
-		"sentinel_push_interval_in_seconds":        true, // not exposed yet
+		"sentinel_metrics_refresh_rate_in_seconds": true, // old contract name, superseded by sentinel_metrics_refresh_rate_seconds
+		"sentinel_push_interval_in_seconds":        true, // old contract name, superseded by sentinel_push_interval_seconds
 		"sentinel_token":                           true, // sensitive, not exposed yet
 		"is_logdrain_axiom_enabled":                true, // not exposed yet
 		"logdrain_axiom_api_key":                   true, // sensitive, not exposed yet
@@ -485,20 +480,13 @@ func TestContractCoverage_ServerSetting(t *testing.T) {
 		"is_logdrain_newrelic_enabled":             true, // not exposed yet
 		"logdrain_newrelic_base_uri":               true, // not exposed yet
 		"logdrain_newrelic_license_key":            true, // sensitive, not exposed yet
-		"is_metrics_enabled":                       true, // not exposed yet
-		"is_terminal_enabled":                      true, // not exposed yet
-		"disable_application_image_retention":      true, // not exposed yet
-		"is_server_api_enabled":                    true, // not exposed yet
-		"docker_max_parallel_image_pulls":          true, // not exposed yet
-		"generate_exact_labels":                    true, // not exposed yet
-		"is_logdrain_enabled":                      true, // not exposed yet
-		"delete_unused_networks":                   true, // not exposed yet
-		"delete_unused_volumes":                    true, // not exposed yet
-		"force_disabled":                           true, // not exposed yet
-		"is_jump_server":                           true, // not exposed yet
-		"is_sentinel_debug_enabled":                true, // not exposed yet
-		"sentinel_metrics_refresh_rate_seconds":    true, // not exposed yet
-		"sentinel_push_interval_seconds":           true, // not exposed yet
+		"disable_application_image_retention":   true, // not exposed yet
+		"is_server_api_enabled":                true, // not exposed yet
+		"docker_max_parallel_image_pulls":      true, // not exposed yet
+		"is_logdrain_enabled":                  true, // not exposed yet
+		"force_disabled":                       true, // not exposed yet
+		"is_jump_server":                       true, // not exposed yet
+		"is_sentinel_debug_enabled":            true, // not exposed yet
 	})
 }
 
