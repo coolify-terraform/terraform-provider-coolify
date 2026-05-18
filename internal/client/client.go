@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -145,6 +146,7 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 				KeepAlive: 30 * time.Second,
 			}).DialContext,
 			MaxIdleConns:          100,
+			MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1, // match go-cleanhttp default
 			IdleConnTimeout:       90 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,

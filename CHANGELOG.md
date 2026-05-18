@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `coolify_github_app`: The `private_key` attribute has been renamed to `private_key_uuid` to match the Coolify API spec. This field now accepts a UUID referencing an existing `coolify_private_key` resource instead of raw key content.
 - `coolify_database_backup`: The `retain_days` attribute has been renamed to `retain_amount_locally`. The old name was misleading (it stored a count of backup copies, not days). Users must update their `.tf` files to use the new name.
-- `coolify_s3_storage` resource, `coolify_s3_storage` data source, and `coolify_s3_storages` data source have been removed. Current Coolify v4 has no public top-level S3 storage API. Manage S3 storages in the Coolify web UI and reference their UUIDs from `coolify_database_backup.s3_storage_uuid`.
+- `coolify_s3_storage` resource, `coolify_s3_storage` data source, and `coolify_s3_storages` data source have been removed. Current Coolify v4 has no public top-level S3 storage API. Manage S3 storages in the Coolify web UI and reference their UUIDs from `coolify_database_backup.s3_storage_uuid`. Before upgrading, remove these from state: `terraform state rm coolify_s3_storage.<name>`.
 
 ### Added
 
