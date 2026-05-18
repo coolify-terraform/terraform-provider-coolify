@@ -40,7 +40,7 @@ resource "coolify_scheduled_task" "health_check" {
 ### Required
 
 - `command` (String) The command to execute.
-- `frequency` (String) The cron expression for the schedule (e.g. `*/5 * * * *`).
+- `frequency` (String) The cron expression for the schedule (e.g., `*/5 * * * *`).
 - `name` (String) The name of the scheduled task.
 
 ### Optional

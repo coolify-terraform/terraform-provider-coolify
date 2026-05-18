@@ -54,10 +54,10 @@ resource "coolify_postgresql_database" "example" {
 - `limits_memory_swap` (String) Memory swap limit (e.g., `1g`).
 - `limits_memory_swappiness` (Number) Memory swappiness (0-100).
 - `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
-- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g. `8080:5432`).
+- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`).
 - `postgres_conf` (String) Custom PostgreSQL configuration (base64-encoded `postgresql.conf` content).
 - `postgres_db` (String) The default database name (maps to `POSTGRES_DB`). If omitted, Coolify auto-generates a value readable from state after creation.
-- `postgres_host_auth_method` (String) Host authentication method (maps to `POSTGRES_HOST_AUTH_METHOD`, e.g. `trust`, `scram-sha-256`).
+- `postgres_host_auth_method` (String) Host authentication method (maps to `POSTGRES_HOST_AUTH_METHOD`, e.g., `trust`, `scram-sha-256`).
 - `postgres_initdb_args` (String) Additional arguments passed to `initdb` (maps to `POSTGRES_INITDB_ARGS`).
 - `postgres_password` (String, Sensitive) The PostgreSQL superuser password (maps to `POSTGRES_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `postgres_user` (String) The PostgreSQL superuser name (maps to `POSTGRES_USER`). If omitted, Coolify auto-generates a value readable from state after creation.
@@ -67,7 +67,7 @@ resource "coolify_postgresql_database" "example" {
 
 ### Read-Only
 
-- `status` (String) The current status of the database (e.g. `running`, `exited`).
+- `status` (String) The current status of the database (e.g., `running`, `exited`).
 - `uuid` (String) The UUID of the database.
 
 <a id="nestedatt--timeouts"></a>

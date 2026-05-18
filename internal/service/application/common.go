@@ -615,10 +615,10 @@ func gitAppSourceAttrs(gitRepositoryDescription string) map[string]schema.Attrib
 			},
 		},
 		"ports_exposes": schema.StringAttribute{
-			MarkdownDescription: "The ports to expose, as a comma-separated list (e.g. `3000` or `3000,8080`).",
+			MarkdownDescription: "The ports to expose, as a comma-separated list (e.g., `3000` or `3000,8080`).",
 			Required:            true,
 			Validators: []validator.String{
-				stringvalidator.RegexMatches(regexp.MustCompile(`^\d+(,\d+)*$`), "must be a comma-separated list of port numbers (e.g. \"3000\" or \"3000,8080\")"),
+				stringvalidator.RegexMatches(regexp.MustCompile(`^\d+(,\d+)*$`), "must be a comma-separated list of port numbers (e.g., \"3000\" or \"3000,8080\")"),
 			},
 		},
 		"dockerfile_location": schema.StringAttribute{
@@ -694,7 +694,7 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			Validators:          []validator.String{validate.FQDN()},
 		},
 		"status": schema.StringAttribute{
-			MarkdownDescription: "The current status of the application (e.g. running, stopped, exited). Read-only.",
+			MarkdownDescription: "The current status of the application (e.g., running, stopped, exited). Read-only.",
 			Computed:            true,
 		},
 		// Resource limits
@@ -945,7 +945,7 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 			Optional:            true,
 		},
 		"ports_mappings": schema.StringAttribute{
-			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g. `8080:80` or `8080:80,8443:443`).",
+			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g., `8080:80` or `8080:80,8443:443`).",
 			Optional:            true,
 			Validators: []validator.String{
 				validate.PortMappings(),

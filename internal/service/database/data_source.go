@@ -62,7 +62,7 @@ func (d *databaseDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Computed:            true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The type of the database (e.g. postgresql, mysql, redis).",
+				MarkdownDescription: "The type of the database (e.g., postgresql, mysql, redis).",
 				Computed:            true,
 			},
 			"image": schema.StringAttribute{

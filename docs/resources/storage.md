@@ -38,7 +38,7 @@ resource "coolify_storage" "db_data" {
 ### Required
 
 - `mount_path` (String) The mount path inside the container.
-- `name` (String) The name of the persistent storage. Note: Coolify prepends an internal resource UUID to this name (e.g. `my-vol` becomes `{resource-uuid}-my-vol`).
+- `name` (String) The name of the persistent storage. Note: Coolify prepends an internal resource UUID to this name (e.g., `my-vol` becomes `{resource-uuid}-my-vol`).
 
 ### Optional
 

@@ -139,7 +139,7 @@ func (r *postgresqlDatabaseResource) Schema(ctx context.Context, _ resource.Sche
 				Optional:            true,
 			},
 			"postgres_host_auth_method": schema.StringAttribute{
-				MarkdownDescription: "Host authentication method (maps to `POSTGRES_HOST_AUTH_METHOD`, e.g. `trust`, `scram-sha-256`).",
+				MarkdownDescription: "Host authentication method (maps to `POSTGRES_HOST_AUTH_METHOD`, e.g., `trust`, `scram-sha-256`).",
 				Optional:            true,
 			},
 			"init_scripts": schema.StringAttribute{
@@ -356,7 +356,7 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"limits_cpu_shares":         schema.Int64Attribute{MarkdownDescription: "CPU shares (relative weight).", Optional: true, Computed: true, Default: int64default.StaticInt64(1024)},
 		// Container/network settings
 		"ports_mappings": schema.StringAttribute{
-			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g. `8080:5432`).",
+			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`).",
 			Optional:            true,
 			Validators: []validator.String{
 				validate.PortMappings(),
@@ -364,7 +364,7 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		},
 		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container.", Optional: true, Validators: []validator.String{validate.NoShellMetachars()}},
 		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
-		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g. `running`, `exited`).", Computed: true},
+		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g., `running`, `exited`).", Computed: true},
 	}
 	for k, v := range extra {
 		attrs[k] = v

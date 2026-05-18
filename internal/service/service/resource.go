@@ -52,7 +52,7 @@ func (r *serviceResource) Metadata(_ context.Context, req resource.MetadataReque
 
 func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g. plausible, uptime-kuma, minio).",
+		MarkdownDescription: "Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g., plausible, uptime-kuma, minio).",
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"uuid": schema.StringAttribute{
@@ -108,7 +108,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The service type from the Coolify service catalog (e.g. `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service).",
+				MarkdownDescription: "The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service).",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),

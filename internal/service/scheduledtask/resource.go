@@ -96,12 +96,12 @@ func (r *scheduledTaskResource) Schema(_ context.Context, _ resource.SchemaReque
 				Required:            true,
 			},
 			"frequency": schema.StringAttribute{
-				MarkdownDescription: "The cron expression for the schedule (e.g. `*/5 * * * *`).",
+				MarkdownDescription: "The cron expression for the schedule (e.g., `*/5 * * * *`).",
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
 						regexp.MustCompile(`^(\S+\s+){4,5}\S+$|^@(annually|yearly|monthly|weekly|daily|hourly)$`),
-						"must be a valid cron expression (e.g. \"*/5 * * * *\" or \"@daily\")",
+						"must be a valid cron expression (e.g., \"*/5 * * * *\" or \"@daily\")",
 					),
 				},
 			},

@@ -107,7 +107,7 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Validators: []validator.String{validate.UUID()},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the persistent storage. Note: Coolify prepends an internal resource UUID to this name (e.g. `my-vol` becomes `{resource-uuid}-my-vol`).",
+				MarkdownDescription: "The name of the persistent storage. Note: Coolify prepends an internal resource UUID to this name (e.g., `my-vol` becomes `{resource-uuid}-my-vol`).",
 				Required:            true,
 			},
 			"mount_path": schema.StringAttribute{

@@ -49,7 +49,7 @@ func (r *environmentResource) Metadata(_ context.Context, req resource.MetadataR
 
 func (r *environmentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify environment within a project. Every project auto-creates a `production` environment. Use this resource to create additional environments (e.g. `staging`, `dev`). Applications, databases, and services reference environments via their `environment_name` attribute.\n\n~> **Warning:** Deleting an environment will cascade-delete all applications, databases, and services within it.",
+		MarkdownDescription: "Manages a Coolify environment within a project. Every project auto-creates a `production` environment. Use this resource to create additional environments (e.g., `staging`, `dev`). Applications, databases, and services reference environments via their `environment_name` attribute.\n\n~> **Warning:** Deleting an environment will cascade-delete all applications, databases, and services within it.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				MarkdownDescription: "The numeric ID of the environment.",

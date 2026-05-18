@@ -159,14 +159,14 @@ func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"server_disk_usage_check_frequency": schema.StringAttribute{
-				MarkdownDescription: "Cron expression for how often disk usage is checked (e.g. `*/5 * * * *` or `@daily`).",
+				MarkdownDescription: "Cron expression for how often disk usage is checked (e.g., `*/5 * * * *` or `@daily`).",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(
 						regexp.MustCompile(`^(\S+\s+){4}\S+$|^@(annually|yearly|monthly|weekly|daily|hourly)$`),
-						"must be a valid cron expression (e.g. \"*/5 * * * *\" or \"@daily\")",
+						"must be a valid cron expression (e.g., \"*/5 * * * *\" or \"@daily\")",
 					),
 				},
 			},

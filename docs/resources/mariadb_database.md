@@ -63,14 +63,14 @@ resource "coolify_mariadb_database" "example" {
 - `mariadb_root_password` (String, Sensitive) The MariaDB root password (maps to `MARIADB_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `mariadb_user` (String) The MariaDB user name (maps to `MARIADB_USER`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
-- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g. `8080:5432`).
+- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`).
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 - `public_port_timeout` (Number) Timeout in seconds for public port allocation.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only
 
-- `status` (String) The current status of the database (e.g. `running`, `exited`).
+- `status` (String) The current status of the database (e.g., `running`, `exited`).
 - `uuid` (String) The UUID of the database.
 
 <a id="nestedatt--timeouts"></a>

@@ -3,12 +3,12 @@
 page_title: "coolify_service Resource - coolify"
 subcategory: ""
 description: |-
-  Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g. plausible, uptime-kuma, minio).
+  Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g., plausible, uptime-kuma, minio).
 ---
 
 # coolify_service (Resource)
 
-Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g. plausible, uptime-kuma, minio).
+Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g., plausible, uptime-kuma, minio).
 
 ## Example Usage
 
@@ -35,7 +35,7 @@ resource "coolify_service" "monitoring" {
 
 - `project_uuid` (String) The UUID of the project this service belongs to.
 - `server_uuid` (String) The UUID of the server to deploy the service on.
-- `type` (String) The service type from the Coolify service catalog (e.g. `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service).
+- `type` (String) The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service).
 
 ### Optional
 

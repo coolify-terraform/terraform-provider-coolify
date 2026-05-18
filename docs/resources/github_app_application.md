@@ -36,7 +36,7 @@ resource "coolify_github_app_application" "app" {
 - `build_pack` (String) The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`.
 - `git_repository` (String) The Git repository URL (for example `https://github.com/org/repo` or `org/repo`). Coolify checks repository access during create.
 - `github_app_uuid` (String) The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`.
-- `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g. `3000` or `3000,8080`).
+- `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g., `3000` or `3000,8080`).
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing this forces a new resource.
 
@@ -95,7 +95,7 @@ resource "coolify_github_app_application" "app" {
 - `manual_webhook_secret_github` (String, Sensitive) Manual webhook secret for GitHub.
 - `manual_webhook_secret_gitlab` (String, Sensitive) Manual webhook secret for GitLab.
 - `name` (String) The name of the application.
-- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g. `8080:80` or `8080:80,8443:443`).
+- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:80` or `8080:80,8443:443`).
 - `post_deployment_command` (String) Command to run after deployment.
 - `post_deployment_command_container` (String) Container to run the post-deployment command in.
 - `pre_deployment_command` (String) Command to run before deployment.
@@ -111,7 +111,7 @@ resource "coolify_github_app_application" "app" {
 ### Read-Only
 
 - `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.
-- `status` (String) The current status of the application (e.g. running, stopped, exited). Read-only.
+- `status` (String) The current status of the application (e.g., running, stopped, exited). Read-only.
 - `uuid` (String) The unique identifier of the application.
 
 <a id="nestedatt--timeouts"></a>

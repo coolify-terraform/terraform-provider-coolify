@@ -49,5 +49,5 @@ Read-Only:
 - `image` (String) The Docker image used by the database.
 - `is_public` (Boolean) Whether the database is publicly accessible.
 - `name` (String) The name of the database.
-- `type` (String) The type of the database (e.g. postgresql, mysql, redis).
+- `type` (String) The type of the database (e.g., postgresql, mysql, redis).
 - `uuid` (String) The unique identifier of the database.

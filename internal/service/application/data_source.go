@@ -121,7 +121,7 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Computed:            true,
 			},
 			"status": schema.StringAttribute{
-				MarkdownDescription: "The current status of the application (e.g. running, stopped, exited).",
+				MarkdownDescription: "The current status of the application (e.g., running, stopped, exited).",
 				Computed:            true,
 			},
 			"docker_compose_raw": schema.StringAttribute{

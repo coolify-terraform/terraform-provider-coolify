@@ -35,4 +35,4 @@ data "coolify_database" "example" {
 - `project_uuid` (String) The UUID of the project this database belongs to.
 - `public_port` (Number) The public port for the database, if publicly accessible.
 - `server_uuid` (String) The UUID of the server the database is deployed on.
-- `type` (String) The type of the database (e.g. postgresql, mysql, redis).
+- `type` (String) The type of the database (e.g., postgresql, mysql, redis).

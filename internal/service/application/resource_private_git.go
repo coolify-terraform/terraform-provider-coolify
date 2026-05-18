@@ -50,7 +50,7 @@ func (r *privateGitApplicationResource) Metadata(_ context.Context, req resource
 func (r *privateGitApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify application deployed from a private Git repository using a deploy key.",
-		Attributes: gitAppAttrs(ctx, "The Git SSH URL for the private repository (e.g. `git@github.com:org/repo.git`).", map[string]schema.Attribute{
+		Attributes: gitAppAttrs(ctx, "The Git SSH URL for the private repository (e.g., `git@github.com:org/repo.git`).", map[string]schema.Attribute{
 			"private_key_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the SSH private key used for Git clone authentication. Changing this forces a new resource.",
 				Required:            true,

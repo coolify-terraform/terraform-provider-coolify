@@ -31,8 +31,8 @@ resource "coolify_docker_image_application" "nginx" {
 
 ### Required
 
-- `docker_image` (String) The Docker image to deploy (e.g. `nginx:latest`, `ghcr.io/org/app:v1`). Note: Coolify strips image tags internally (e.g. `redis:7-alpine` is stored as `redis`). The provider preserves your configured value.
-- `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g. `80` or `80,443`). Note: Coolify may override this value internally; the provider preserves your configured value.
+- `docker_image` (String) The Docker image to deploy (e.g., `nginx:latest`, `ghcr.io/org/app:v1`). Note: Coolify strips image tags internally (e.g., `redis:7-alpine` is stored as `redis`). The provider preserves your configured value.
+- `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g., `80` or `80,443`). Note: Coolify may override this value internally; the provider preserves your configured value.
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing this forces a new resource.
 
@@ -88,7 +88,7 @@ resource "coolify_docker_image_application" "nginx" {
 - `manual_webhook_secret_github` (String, Sensitive) Manual webhook secret for GitHub.
 - `manual_webhook_secret_gitlab` (String, Sensitive) Manual webhook secret for GitLab.
 - `name` (String) The name of the application.
-- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g. `8080:80` or `8080:80,8443:443`).
+- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:80` or `8080:80,8443:443`).
 - `post_deployment_command` (String) Command to run after deployment.
 - `post_deployment_command_container` (String) Container to run the post-deployment command in.
 - `pre_deployment_command` (String) Command to run before deployment.
@@ -104,7 +104,7 @@ resource "coolify_docker_image_application" "nginx" {
 ### Read-Only
 
 - `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.
-- `status` (String) The current status of the application (e.g. running, stopped, exited). Read-only.
+- `status` (String) The current status of the application (e.g., running, stopped, exited). Read-only.
 - `uuid` (String) The unique identifier of the application.
 
 <a id="nestedatt--timeouts"></a>

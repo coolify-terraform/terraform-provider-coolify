@@ -43,4 +43,4 @@ data "coolify_application" "example" {
 - `project_uuid` (String) The UUID of the project the application belongs to.
 - `server_uuid` (String) The UUID of the server the application is deployed on.
 - `start_command` (String) The start command.
-- `status` (String) The current status of the application (e.g. running, stopped, exited).
+- `status` (String) The current status of the application (e.g., running, stopped, exited).
