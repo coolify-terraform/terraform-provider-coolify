@@ -1,0 +1,195 @@
+package server
+
+import (
+	"testing"
+
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+func newTestPtrs() (ServerCommonPtrs, *testModel) {
+	m := &testModel{}
+	return ServerCommonPtrs{
+		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
+		IP: &m.IP, User: &m.User, PrivateKeyUUID: &m.PrivateKeyUUID,
+		Port: &m.Port, ConcurrentBuilds: &m.ConcurrentBuilds, DynamicTimeout: &m.DynamicTimeout,
+		DeploymentQueueLimit:                 &m.DeploymentQueueLimit,
+		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
+		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
+		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
+	}, m
+}
+
+type testModel struct {
+	UUID, Name, Description, IP, User, PrivateKeyUUID types.String
+	Port, ConcurrentBuilds, DynamicTimeout            types.Int64
+	DeploymentQueueLimit                              types.Int64
+	ServerDiskUsageNotificationThreshold              types.Int64
+	ServerDiskUsageCheckFrequency                     types.String
+	IsBuildServer, IsReachable, IsUsable              types.Bool
+}
+
+func TestFlattenServerCommon_FullServer(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	srv := &client.Server{
+		UUID: "test-uuid", Name: "my-server", Description: "desc",
+		IP: "10.0.0.1", Port: 2222, User: "deploy",
+		PrivateKeyUUID: "key-uuid",
+		IsBuildServer:  true, IsReachable: true, IsUsable: true,
+		Settings: &client.ServerSettings{
+			ConcurrentBuilds:                     4,
+			DynamicTimeout:                       7200,
+			DeploymentQueueLimit:                 10,
+			ServerDiskUsageNotificationThreshold: 90,
+			ServerDiskUsageCheckFrequency:        "0 * * * *",
+		},
+	}
+
+	FlattenServerCommon(srv, ptrs)
+
+	checks := []struct{ name, got, want string }{
+		{"UUID", m.UUID.ValueString(), "test-uuid"},
+		{"Name", m.Name.ValueString(), "my-server"},
+		{"Description", m.Description.ValueString(), "desc"},
+		{"IP", m.IP.ValueString(), "10.0.0.1"},
+		{"User", m.User.ValueString(), "deploy"},
+		{"PrivateKeyUUID", m.PrivateKeyUUID.ValueString(), "key-uuid"},
+	}
+	for _, c := range checks {
+		if c.got != c.want {
+			t.Errorf("%s = %q, want %q", c.name, c.got, c.want)
+		}
+	}
+	if m.Port.ValueInt64() != 2222 {
+		t.Errorf("Port = %d, want 2222", m.Port.ValueInt64())
+	}
+	if !m.IsBuildServer.ValueBool() {
+		t.Error("IsBuildServer = false, want true")
+	}
+	if m.ConcurrentBuilds.ValueInt64() != 4 {
+		t.Errorf("ConcurrentBuilds = %d, want 4", m.ConcurrentBuilds.ValueInt64())
+	}
+	if m.DynamicTimeout.ValueInt64() != 7200 {
+		t.Errorf("DynamicTimeout = %d, want 7200", m.DynamicTimeout.ValueInt64())
+	}
+	if m.DeploymentQueueLimit.ValueInt64() != 10 {
+		t.Errorf("DeploymentQueueLimit = %d, want 10", m.DeploymentQueueLimit.ValueInt64())
+	}
+	if m.ServerDiskUsageNotificationThreshold.ValueInt64() != 90 {
+		t.Errorf("DiskUsageThreshold = %d, want 90", m.ServerDiskUsageNotificationThreshold.ValueInt64())
+	}
+	if m.ServerDiskUsageCheckFrequency.ValueString() != "0 * * * *" {
+		t.Errorf("DiskUsageFrequency = %q, want %q", m.ServerDiskUsageCheckFrequency.ValueString(), "0 * * * *")
+	}
+}
+
+func TestFlattenServerCommon_NilSettings(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	// Pre-populate settings fields to verify they are NOT overwritten when Settings is nil.
+	m.ConcurrentBuilds = types.Int64Value(99)
+	m.DynamicTimeout = types.Int64Value(99)
+
+	srv := &client.Server{
+		UUID: "uuid", Name: "n", IP: "1.2.3.4", Port: 22, User: "root",
+		Settings: nil,
+	}
+
+	FlattenServerCommon(srv, ptrs)
+
+	if m.ConcurrentBuilds.ValueInt64() != 99 {
+		t.Errorf("ConcurrentBuilds changed to %d, want 99 (preserved)", m.ConcurrentBuilds.ValueInt64())
+	}
+	if m.DynamicTimeout.ValueInt64() != 99 {
+		t.Errorf("DynamicTimeout changed to %d, want 99 (preserved)", m.DynamicTimeout.ValueInt64())
+	}
+}
+
+func TestFlattenServerCommon_EmptyPrivateKeyUUID(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	m.PrivateKeyUUID = types.StringValue("original-key")
+
+	srv := &client.Server{
+		UUID: "uuid", Name: "n", IP: "1.2.3.4", Port: 22, User: "root",
+		PrivateKeyUUID: "", // API omits this on GET
+	}
+
+	FlattenServerCommon(srv, ptrs)
+
+	if m.PrivateKeyUUID.ValueString() != "original-key" {
+		t.Errorf("PrivateKeyUUID = %q, want %q (preserved)", m.PrivateKeyUUID.ValueString(), "original-key")
+	}
+}
+
+func TestBuildServerUpdateInput_NoChanges(t *testing.T) {
+	t.Parallel()
+	plan, _ := newTestPtrs()
+	state, _ := newTestPtrs()
+
+	// Set identical values on both.
+	v := types.StringValue("same")
+	*plan.Name = v
+	*state.Name = v
+	*plan.Description = v
+	*state.Description = v
+	*plan.IP = v
+	*state.IP = v
+	*plan.User = v
+	*state.User = v
+	*plan.PrivateKeyUUID = v
+	*state.PrivateKeyUUID = v
+	*plan.ServerDiskUsageCheckFrequency = v
+	*state.ServerDiskUsageCheckFrequency = v
+
+	p := types.Int64Value(22)
+	*plan.Port = p
+	*state.Port = p
+	*plan.ConcurrentBuilds = p
+	*state.ConcurrentBuilds = p
+	*plan.DynamicTimeout = p
+	*state.DynamicTimeout = p
+	*plan.DeploymentQueueLimit = p
+	*state.DeploymentQueueLimit = p
+	*plan.ServerDiskUsageNotificationThreshold = p
+	*state.ServerDiskUsageNotificationThreshold = p
+
+	b := types.BoolValue(false)
+	*plan.IsBuildServer = b
+	*state.IsBuildServer = b
+
+	input := BuildServerUpdateInput(plan, state)
+
+	if input.Name != nil {
+		t.Errorf("Name should be nil when unchanged, got %v", *input.Name)
+	}
+	if input.Port != nil {
+		t.Errorf("Port should be nil when unchanged, got %v", *input.Port)
+	}
+	if input.IsBuildServer != nil {
+		t.Errorf("IsBuildServer should be nil when unchanged, got %v", *input.IsBuildServer)
+	}
+}
+
+func TestBuildServerUpdateInput_PartialChange(t *testing.T) {
+	t.Parallel()
+	plan, _ := newTestPtrs()
+	state, _ := newTestPtrs()
+
+	*plan.Name = types.StringValue("new-name")
+	*state.Name = types.StringValue("old-name")
+	// Keep port identical.
+	*plan.Port = types.Int64Value(22)
+	*state.Port = types.Int64Value(22)
+	// All other fields null.
+
+	input := BuildServerUpdateInput(plan, state)
+
+	if input.Name == nil || *input.Name != "new-name" {
+		t.Errorf("Name should be %q, got %v", "new-name", input.Name)
+	}
+	if input.Port != nil {
+		t.Errorf("Port should be nil when unchanged, got %v", *input.Port)
+	}
+}

@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -330,6 +332,94 @@ resource "coolify_hetzner_server" "test" {
 					"enable_ipv6",
 					"private_key_uuid",
 				},
+			},
+		},
+	})
+}
+
+func TestHetznerServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
+	t.Parallel()
+	servers := make(map[string]*client.Server)
+	var mu sync.Mutex
+	var forceReadFailure atomic.Bool
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers/hetzner":
+			created := &client.Server{UUID: "aaaa0009-0009-4000-8000-000000000009"}
+			servers[created.UUID] = created
+			forceReadFailure.Store(true)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(created)
+
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			if forceReadFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			server, ok := servers[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(server)
+
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			delete(servers, uuid)
+			w.WriteHeader(http.StatusOK)
+
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_hetzner_server" "test" {
+  name                       = "readback-failure"
+  cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
+  server_type                = "cx22"
+  location                   = "fsn1"
+  image                      = "ubuntu-24.04"
+  private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
+}`,
+				ExpectError: regexp.MustCompile(`(?s)Hetzner server created but refresh failed.*partial Terraform state was saved`),
+			},
+		},
+	})
+}
+
+func TestHetznerServerResource_InvalidPort(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_hetzner_server" "test" {
+  name                       = "bad-port-server"
+  cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
+  server_type                = "cx22"
+  location                   = "fsn1"
+  image                      = "ubuntu-24.04"
+  port                       = 99999
+  private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
+}`,
+				ExpectError: regexp.MustCompile(`must be between 1 and 65535`),
 			},
 		},
 	})
