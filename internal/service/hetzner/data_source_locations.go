@@ -97,7 +97,7 @@ func (d *locationsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	locations = filter.Apply(locations, config.Filters, func(loc client.HetznerLocation, field string) (string, bool) {
+	locations = filter.Apply(ctx, locations, config.Filters, func(loc client.HetznerLocation, field string) (string, bool) {
 		switch field {
 		case "id":
 			return filter.Int64ToString(loc.ID), true

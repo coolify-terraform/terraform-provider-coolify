@@ -111,7 +111,7 @@ func (d *gitHubAppReposDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	repos = filter.Apply(repos, config.Filters, func(r client.GitHubRepository, field string) (string, bool) {
+	repos = filter.Apply(ctx, repos, config.Filters, func(r client.GitHubRepository, field string) (string, bool) {
 		switch field {
 		case "name":
 			return r.Name, true

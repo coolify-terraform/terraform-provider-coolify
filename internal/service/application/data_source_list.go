@@ -126,7 +126,7 @@ func (d *applicationListDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	apps = filter.Apply(apps, config.Filters, func(a client.Application, field string) (string, bool) {
+	apps = filter.Apply(ctx, apps, config.Filters, func(a client.Application, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return a.UUID, true

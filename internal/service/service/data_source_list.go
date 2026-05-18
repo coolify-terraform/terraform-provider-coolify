@@ -111,7 +111,7 @@ func (d *serviceListDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	services = filter.Apply(services, config.Filters, func(s client.Service, field string) (string, bool) {
+	services = filter.Apply(ctx, services, config.Filters, func(s client.Service, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return s.UUID, true

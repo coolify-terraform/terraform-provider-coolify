@@ -94,7 +94,7 @@ func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	keys = filter.Apply(keys, config.Filters, func(k client.HetznerSSHKey, field string) (string, bool) {
+	keys = filter.Apply(ctx, keys, config.Filters, func(k client.HetznerSSHKey, field string) (string, bool) {
 		switch field {
 		case "id":
 			return filter.Int64ToString(k.ID), true

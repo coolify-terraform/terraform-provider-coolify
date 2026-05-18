@@ -99,7 +99,7 @@ func (d *serverTypesDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	serverTypes = filter.Apply(serverTypes, config.Filters, func(st client.HetznerServerType, field string) (string, bool) {
+	serverTypes = filter.Apply(ctx, serverTypes, config.Filters, func(st client.HetznerServerType, field string) (string, bool) {
 		switch field {
 		case "id":
 			return filter.Int64ToString(st.ID), true

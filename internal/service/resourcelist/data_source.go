@@ -106,7 +106,7 @@ func (d *resourcesDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	resources = filter.Apply(resources, config.Filters, func(r client.Resource, field string) (string, bool) {
+	resources = filter.Apply(ctx, resources, config.Filters, func(r client.Resource, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return r.UUID, true

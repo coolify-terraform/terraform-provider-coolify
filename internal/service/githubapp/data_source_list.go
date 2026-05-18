@@ -132,7 +132,7 @@ func (d *gitHubAppListDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
-	apps = filter.Apply(apps, config.Filters, func(a client.GitHubApp, field string) (string, bool) {
+	apps = filter.Apply(ctx, apps, config.Filters, func(a client.GitHubApp, field string) (string, bool) {
 		switch field {
 		case "id":
 			return filter.Int64ToString(a.ID), true

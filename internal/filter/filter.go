@@ -1,11 +1,13 @@
 package filter
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Block returns the schema block for the filter attribute.
@@ -51,10 +53,12 @@ func Match(value string, filterValues []types.String) bool {
 
 // Apply filters a slice of items using the filter configs and a field accessor function.
 // The accessor returns the string value for a given field name, or ("", false) if the field doesn't exist.
-func Apply[T any](items []T, filters []Config, accessor func(T, string) (string, bool)) []T {
+// Unrecognized field names are logged as warnings via tflog.
+func Apply[T any](ctx context.Context, items []T, filters []Config, accessor func(T, string) (string, bool)) []T {
 	if len(filters) == 0 {
 		return items
 	}
+	warned := make(map[string]bool)
 	var result []T
 	for _, item := range items {
 		match := true
@@ -62,6 +66,12 @@ func Apply[T any](items []T, filters []Config, accessor func(T, string) (string,
 			fieldName := f.Name.ValueString()
 			val, ok := accessor(item, fieldName)
 			if !ok {
+				if !warned[fieldName] {
+					tflog.Warn(ctx, "filter references unrecognized field name, all items will be excluded by this filter", map[string]interface{}{
+						"field_name": fieldName,
+					})
+					warned[fieldName] = true
+				}
 				match = false
 				break
 			}

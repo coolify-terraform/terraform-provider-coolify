@@ -134,7 +134,7 @@ func (d *storageListDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	storages = filter.Apply(storages, config.Filters, func(s client.Storage, field string) (string, bool) {
+	storages = filter.Apply(ctx, storages, config.Filters, func(s client.Storage, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return s.UUID, true

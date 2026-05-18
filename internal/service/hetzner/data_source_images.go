@@ -94,7 +94,7 @@ func (d *imagesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	images = filter.Apply(images, config.Filters, func(img client.HetznerImage, field string) (string, bool) {
+	images = filter.Apply(ctx, images, config.Filters, func(img client.HetznerImage, field string) (string, bool) {
 		switch field {
 		case "id":
 			return filter.Int64ToString(img.ID), true

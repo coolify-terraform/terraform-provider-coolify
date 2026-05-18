@@ -121,7 +121,7 @@ func (d *databaseListDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	databases = filter.Apply(databases, config.Filters, func(db client.Database, field string) (string, bool) {
+	databases = filter.Apply(ctx, databases, config.Filters, func(db client.Database, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return db.UUID, true

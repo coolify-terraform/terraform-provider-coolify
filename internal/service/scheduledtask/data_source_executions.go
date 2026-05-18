@@ -126,7 +126,7 @@ func (d *taskExecutionsDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	execs = filter.Apply(execs, config.Filters, func(e client.TaskExecution, field string) (string, bool) {
+	execs = filter.Apply(ctx, execs, config.Filters, func(e client.TaskExecution, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return e.UUID, true

@@ -1,6 +1,7 @@
 package filter_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
@@ -60,7 +61,7 @@ func testAccessor(item testItem, field string) (string, bool) {
 func TestApply_NoFilters(t *testing.T) {
 	t.Parallel()
 	items := []testItem{{Name: "a"}, {Name: "b"}}
-	result := filter.Apply(items, nil, testAccessor)
+	result := filter.Apply(context.Background(), items, nil, testAccessor)
 	assert.Equal(t, items, result)
 }
 
@@ -74,7 +75,7 @@ func TestApply_SingleFilter(t *testing.T) {
 	filters := []filter.Config{
 		{Name: types.StringValue("name"), Values: []types.String{types.StringValue("prod-*")}},
 	}
-	result := filter.Apply(items, filters, testAccessor)
+	result := filter.Apply(context.Background(), items, filters, testAccessor)
 	assert.Len(t, result, 2)
 	assert.Equal(t, "prod-web", result[0].Name)
 	assert.Equal(t, "prod-api", result[1].Name)
@@ -91,7 +92,7 @@ func TestApply_MultipleFiltersANDed(t *testing.T) {
 		{Name: types.StringValue("name"), Values: []types.String{types.StringValue("prod-*")}},
 		{Name: types.StringValue("status"), Values: []types.String{types.StringValue("running")}},
 	}
-	result := filter.Apply(items, filters, testAccessor)
+	result := filter.Apply(context.Background(), items, filters, testAccessor)
 	assert.Len(t, result, 1)
 	assert.Equal(t, "prod-web", result[0].Name)
 }
@@ -102,7 +103,7 @@ func TestApply_UnknownField(t *testing.T) {
 	filters := []filter.Config{
 		{Name: types.StringValue("nonexistent"), Values: []types.String{types.StringValue("x")}},
 	}
-	result := filter.Apply(items, filters, testAccessor)
+	result := filter.Apply(context.Background(), items, filters, testAccessor)
 	assert.Empty(t, result)
 }
 
@@ -111,7 +112,7 @@ func TestApply_EmptySlice(t *testing.T) {
 	filters := []filter.Config{
 		{Name: types.StringValue("name"), Values: []types.String{types.StringValue("a")}},
 	}
-	result := filter.Apply([]testItem{}, filters, testAccessor)
+	result := filter.Apply(context.Background(), []testItem{}, filters, testAccessor)
 	assert.Empty(t, result)
 }
 
@@ -124,7 +125,7 @@ func TestApply_IntField(t *testing.T) {
 	filters := []filter.Config{
 		{Name: types.StringValue("count"), Values: []types.String{types.StringValue("5")}},
 	}
-	result := filter.Apply(items, filters, testAccessor)
+	result := filter.Apply(context.Background(), items, filters, testAccessor)
 	assert.Len(t, result, 1)
 	assert.Equal(t, "a", result[0].Name)
 }

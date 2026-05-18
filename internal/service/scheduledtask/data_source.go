@@ -126,7 +126,7 @@ func (d *scheduledTaskListDataSource) Read(ctx context.Context, req datasource.R
 		return
 	}
 
-	tasks = filter.Apply(tasks, config.Filters, func(t client.ScheduledTask, field string) (string, bool) {
+	tasks = filter.Apply(ctx, tasks, config.Filters, func(t client.ScheduledTask, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return t.UUID, true

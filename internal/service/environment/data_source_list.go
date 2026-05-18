@@ -114,7 +114,7 @@ func (d *environmentListDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	envs = filter.Apply(envs, config.Filters, func(e client.Environment, field string) (string, bool) {
+	envs = filter.Apply(ctx, envs, config.Filters, func(e client.Environment, field string) (string, bool) {
 		switch field {
 		case "id":
 			return filter.Int64ToString(e.ID), true

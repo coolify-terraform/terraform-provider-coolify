@@ -115,7 +115,7 @@ func (d *deploymentsDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	deployments = filter.Apply(deployments, config.Filters, func(d client.Deployment, field string) (string, bool) {
+	deployments = filter.Apply(ctx, deployments, config.Filters, func(d client.Deployment, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return d.UUID, true

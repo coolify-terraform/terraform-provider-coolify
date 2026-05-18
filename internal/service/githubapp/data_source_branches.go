@@ -116,7 +116,7 @@ func (d *gitHubAppBranchesDataSource) Read(ctx context.Context, req datasource.R
 		return
 	}
 
-	branches = filter.Apply(branches, config.Filters, func(b client.GitHubBranch, field string) (string, bool) {
+	branches = filter.Apply(ctx, branches, config.Filters, func(b client.GitHubBranch, field string) (string, bool) {
 		switch field {
 		case "name":
 			return b.Name, true

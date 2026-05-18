@@ -100,7 +100,7 @@ func (d *executionsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	execs = filter.Apply(execs, config.Filters, func(e client.BackupExecution, field string) (string, bool) {
+	execs = filter.Apply(ctx, execs, config.Filters, func(e client.BackupExecution, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return e.UUID, true

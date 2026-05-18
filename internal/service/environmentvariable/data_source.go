@@ -133,7 +133,7 @@ func (d *envVarListDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	envVars = filter.Apply(envVars, config.Filters, func(ev client.EnvironmentVariable, field string) (string, bool) {
+	envVars = filter.Apply(ctx, envVars, config.Filters, func(ev client.EnvironmentVariable, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return ev.UUID, true

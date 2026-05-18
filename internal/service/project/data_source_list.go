@@ -106,7 +106,7 @@ func (d *projectListDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	projects = filter.Apply(projects, config.Filters, func(p client.Project, field string) (string, bool) {
+	projects = filter.Apply(ctx, projects, config.Filters, func(p client.Project, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return p.UUID, true

@@ -105,7 +105,7 @@ func (d *cloudTokenListDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	tokens = filter.Apply(tokens, config.Filters, func(t client.CloudToken, field string) (string, bool) {
+	tokens = filter.Apply(ctx, tokens, config.Filters, func(t client.CloudToken, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return t.UUID, true

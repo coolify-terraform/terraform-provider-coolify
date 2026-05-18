@@ -103,7 +103,7 @@ func (d *serverDomainsDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
-	domains = filter.Apply(domains, config.Filters, func(d client.ServerDomain, field string) (string, bool) {
+	domains = filter.Apply(ctx, domains, config.Filters, func(d client.ServerDomain, field string) (string, bool) {
 		switch field {
 		case "domain":
 			return d.Domain, true

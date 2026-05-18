@@ -119,7 +119,7 @@ func (d *applicationLogsDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	logs = filter.Apply(logs, config.Filters, func(l client.ApplicationLog, field string) (string, bool) {
+	logs = filter.Apply(ctx, logs, config.Filters, func(l client.ApplicationLog, field string) (string, bool) {
 		switch field {
 		case "line":
 			return l.Line, true

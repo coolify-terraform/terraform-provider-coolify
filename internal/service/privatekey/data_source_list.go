@@ -121,7 +121,7 @@ func (d *privateKeyListDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	keys = filter.Apply(keys, config.Filters, func(k client.PrivateKey, field string) (string, bool) {
+	keys = filter.Apply(ctx, keys, config.Filters, func(k client.PrivateKey, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return k.UUID, true

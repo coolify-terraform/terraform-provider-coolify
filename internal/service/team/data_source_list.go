@@ -101,7 +101,7 @@ func (d *teamsDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	teams = filter.Apply(teams, config.Filters, func(t client.Team, field string) (string, bool) {
+	teams = filter.Apply(ctx, teams, config.Filters, func(t client.Team, field string) (string, bool) {
 		switch field {
 		case "id":
 			return filter.IntToString(t.ID), true

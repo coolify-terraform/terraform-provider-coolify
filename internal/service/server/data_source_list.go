@@ -84,7 +84,7 @@ func (d *serversDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	servers = filter.Apply(servers, config.Filters, func(s client.Server, field string) (string, bool) {
+	servers = filter.Apply(ctx, servers, config.Filters, func(s client.Server, field string) (string, bool) {
 		switch field {
 		case "uuid":
 			return s.UUID, true
