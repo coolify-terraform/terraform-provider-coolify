@@ -369,3 +369,4 @@ server validation (see Step 4), then rerun `terraform apply`.
 | `acme-multi-env` | Advanced | Terraform module composition for dev + staging environments |
 | `acme-platform` | Intermediate | Private keys, environments, storage, data sources |
 | `acme-backups` | Beginner | Full backup lifecycle: schedule, trigger, monitor execution status |
+| `acme-private-repo` | Intermediate | Private SSH key + private Git repo app + env vars + deployment with wait |
