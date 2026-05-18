@@ -44,6 +44,7 @@ resource "coolify_redis_database" "test" {
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_log_drain_enabled", "false"),
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_include_timestamps", "false"),
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "status", "running"),
 				),
 			},
 			// Plan idempotency

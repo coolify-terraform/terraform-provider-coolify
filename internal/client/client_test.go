@@ -4354,3 +4354,37 @@ func TestClient_InsecureSkipsVerification(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "4.0.0", version)
 }
+
+func TestRedactJSON_Object(t *testing.T) {
+	t.Parallel()
+	input := `{"name":"db","postgres_password":"secret123","image":"pg:16"}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"name":"db"`)
+	assert.Contains(t, got, `[REDACTED]`)
+	assert.NotContains(t, got, "secret123")
+}
+
+func TestRedactJSON_Array(t *testing.T) {
+	t.Parallel()
+	input := `[{"uuid":"a","redis_password":"pass1"},{"uuid":"b","redis_password":"pass2"}]`
+	got := redactJSON([]byte(input))
+	assert.NotContains(t, got, "pass1")
+	assert.NotContains(t, got, "pass2")
+	assert.Contains(t, got, `[REDACTED]`)
+	assert.Contains(t, got, `"uuid":"a"`)
+}
+
+func TestRedactJSON_Nested(t *testing.T) {
+	t.Parallel()
+	input := `{"settings":{"password":"nested-secret"},"name":"ok"}`
+	got := redactJSON([]byte(input))
+	assert.NotContains(t, got, "nested-secret")
+	assert.Contains(t, got, `[REDACTED]`)
+	assert.Contains(t, got, `"name":"ok"`)
+}
+
+func TestRedactJSON_InvalidJSON(t *testing.T) {
+	t.Parallel()
+	got := redactJSON([]byte("not json"))
+	assert.Equal(t, "not json", got)
+}

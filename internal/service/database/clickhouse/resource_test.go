@@ -46,6 +46,7 @@ resource "coolify_clickhouse_database" "test" {
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "clickhouse_admin_user", "default"),
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_log_drain_enabled", "false"),
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "status", "running"),
 				),
 			},
 			// Plan idempotency

@@ -373,24 +373,38 @@ var sensitiveKeys = map[string]bool{
 }
 
 // redactJSON replaces sensitive field values with [REDACTED] in a JSON byte
-// slice for safe logging. Returns the original string if unmarshaling fails.
+// slice for safe logging. Handles objects, arrays, and nested structures.
+// Returns the original string (truncated) if unmarshaling fails.
 func redactJSON(data []byte) string {
-	var obj map[string]interface{}
-	if err := json.Unmarshal(data, &obj); err != nil {
+	var raw interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return truncateString(string(data), 500)
 	}
-	for k := range obj {
-		lower := strings.ToLower(k)
-		if sensitiveKeys[lower] || strings.Contains(lower, "password") ||
-			strings.Contains(lower, "secret") || strings.Contains(lower, "private_key") {
-			obj[k] = "[REDACTED]"
-		}
-	}
-	out, err := json.Marshal(obj)
+	redactValue(raw)
+	out, err := json.Marshal(raw)
 	if err != nil {
 		return truncateString(string(data), 500)
 	}
 	return truncateString(string(out), 500)
+}
+
+func redactValue(v interface{}) {
+	switch val := v.(type) {
+	case map[string]interface{}:
+		for k, child := range val {
+			lower := strings.ToLower(k)
+			if sensitiveKeys[lower] || strings.Contains(lower, "password") ||
+				strings.Contains(lower, "secret") || strings.Contains(lower, "private_key") {
+				val[k] = "[REDACTED]"
+			} else {
+				redactValue(child)
+			}
+		}
+	case []interface{}:
+		for _, item := range val {
+			redactValue(item)
+		}
+	}
 }
 
 // truncateString truncates s to maxLen runes, appending "..." if truncated.

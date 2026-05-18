@@ -47,6 +47,7 @@ resource "coolify_mariadb_database" "test" {
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_log_drain_enabled", "false"),
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_include_timestamps", "false"),
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "status", "running"),
 				),
 			},
 			// Plan idempotency
