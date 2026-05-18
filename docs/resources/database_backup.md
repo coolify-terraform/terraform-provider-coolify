@@ -40,7 +40,7 @@ resource "coolify_database_backup" "daily" {
 ### Optional
 
 - `backup_now` (Boolean) Trigger an immediate backup after creation. Only used during create, ignored on updates.
-- `databases_to_backup` (String) Comma-separated list of database names to back up selectively.
+- `databases_to_backup` (String) Comma-separated list of database names to back up selectively. Defaults to the primary database name if not specified.
 - `dump_all` (Boolean) Whether to dump all databases.
 - `enabled` (Boolean) Whether the backup schedule is active.
 - `retain_amount_locally` (Number) Number of backup copies to retain locally.

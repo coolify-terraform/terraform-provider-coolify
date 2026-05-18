@@ -323,7 +323,7 @@ func TestDatabaseBackupResource_Update(t *testing.T) {
 	})
 }
 
-func TestDatabaseBackupResource_UpdateClearsDatabasesToBackup(t *testing.T) {
+func TestDatabaseBackupResource_UpdateDatabasesToBackup(t *testing.T) {
 	t.Parallel()
 	srv, state := newMockBackupServer()
 	state.frequency = "0 2 * * *"
@@ -343,31 +343,35 @@ func TestDatabaseBackupResource_UpdateClearsDatabasesToBackup(t *testing.T) {
 				`),
 				Check: resource.TestCheckResourceAttr("coolify_database_backup.test", "databases_to_backup", "app,queue"),
 			},
+			// Update databases_to_backup to a different value.
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "eeee0001-0001-4000-8000-000000000001"
-					frequency     = "0 2 * * *"
-					enabled       = true
+					database_uuid        = "eeee0001-0001-4000-8000-000000000001"
+					frequency            = "0 2 * * *"
+					enabled              = true
+					databases_to_backup  = "orders"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckNoResourceAttr("coolify_database_backup.test", "databases_to_backup"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "databases_to_backup", "orders"),
 					func(_ *terraform.State) error {
 						state.mu.Lock()
 						defer state.mu.Unlock()
 
-						if state.databasesToBackup != "" {
-							return fmt.Errorf("expected remote databases_to_backup to be cleared, got %q", state.databasesToBackup)
+						if state.databasesToBackup != "orders" {
+							return fmt.Errorf("expected remote databases_to_backup to be \"orders\", got %q", state.databasesToBackup)
 						}
 
 						return nil
 					},
 				),
 			},
+			// Verify idempotent plan.
 			{
 				Config: testBackupConfig(srv.URL, `
-					database_uuid = "eeee0001-0001-4000-8000-000000000001"
-					frequency     = "0 2 * * *"
-					enabled       = true
+					database_uuid        = "eeee0001-0001-4000-8000-000000000001"
+					frequency            = "0 2 * * *"
+					enabled              = true
+					databases_to_backup  = "orders"
 				`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,

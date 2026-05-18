@@ -117,8 +117,12 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Validators:          []validator.String{validate.UUID()},
 			},
 			"databases_to_backup": schema.StringAttribute{
-				MarkdownDescription: "Comma-separated list of database names to back up selectively.",
+				MarkdownDescription: "Comma-separated list of database names to back up selectively. Defaults to the primary database name if not specified.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"dump_all": schema.BoolAttribute{
 				MarkdownDescription: "Whether to dump all databases.",
