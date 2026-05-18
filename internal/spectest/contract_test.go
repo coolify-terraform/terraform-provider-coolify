@@ -352,10 +352,6 @@ func TestContractCoverage_Service(t *testing.T) {
 		"destination_id":                      true,
 		"destination_type":                    true,
 		"server_id":                           true,
-		"config_hash":                         true,
-		"docker_compose_raw":                  true, // sensitive, hidden
-		"docker_compose":                      true, // sensitive, hidden
-		"connect_to_docker_network":           true,
 		"is_container_label_escape_enabled":   true,
 		"is_container_label_readonly_enabled": true,
 		"is_readonly":                         true,
