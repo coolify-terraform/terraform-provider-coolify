@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_storage` - Manage persistent storage volumes
   - `coolify_cloud_token` - Manage cloud provider tokens (Hetzner)
   - `coolify_github_app` - Manage GitHub App integrations
+  - `coolify_hetzner_server` - Provision Hetzner Cloud servers via Coolify
 - **Data Sources:**
   - `coolify_project` / `coolify_projects` - Read project(s)
   - `coolify_server` / `coolify_servers` - Read server(s)
@@ -98,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input validators: `build_pack` OneOf, FQDN format, cron syntax, port range (1-65535), UUID format, environment variable name format
 - Configurable `timeouts` block on all application resources
 - Graceful handling of out-of-band resource deletion (404 in Read removes from state)
-- 420+ unit tests with race detection across 34 packages
+- 640+ unit tests with race detection across 34 packages
 - CI pipeline: 8 jobs (detect changes, test, lint, validate, scenario tests, acceptance tests, spec freshness, CI gate)
 - GoReleaser config for GPG-signed releases
 - Computed `status` field on all application resources

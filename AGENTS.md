@@ -157,7 +157,7 @@ mismatches, and zero validation rules when we compared it against the source.
 ## Testing
 
 - Framework: `hashicorp/terraform-plugin-testing` with `httptest` mock servers
-- 620+ tests (unit + acceptance)
+- 640+ tests (unit + acceptance)
 - Acceptance tests are skipped unless `TF_ACC=1` is set
 - Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, docs-check, api-coverage-check, counts-check, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
 - Before adding a test function, grep for its name to avoid duplicates
