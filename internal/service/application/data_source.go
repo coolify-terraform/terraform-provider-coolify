@@ -127,6 +127,7 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 			"docker_compose_raw": schema.StringAttribute{
 				MarkdownDescription: "The raw Docker Compose content.",
 				Computed:            true,
+				Sensitive:           true,
 			},
 			"docker_registry_image_name": schema.StringAttribute{
 				MarkdownDescription: "The Docker registry image name.",

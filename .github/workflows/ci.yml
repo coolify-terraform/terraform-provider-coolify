@@ -350,7 +350,7 @@ jobs:
           COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          if curl -sf -H "Authorization: Bearer $COOLIFY_TOKEN" \
+          if curl -sf --connect-timeout 10 --max-time 30 -H "Authorization: Bearer $COOLIFY_TOKEN" \
             "$COOLIFY_ENDPOINT/api/v1/version" > /dev/null 2>&1; then
             echo "healthy=true" >> "$GITHUB_OUTPUT"
           else
@@ -432,7 +432,7 @@ jobs:
           COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          if curl -sf -H "Authorization: Bearer $COOLIFY_TOKEN" \
+          if curl -sf --connect-timeout 10 --max-time 30 -H "Authorization: Bearer $COOLIFY_TOKEN" \
             "$COOLIFY_ENDPOINT/api/v1/version" > /dev/null 2>&1; then
             echo "healthy=true" >> "$GITHUB_OUTPUT"
           else

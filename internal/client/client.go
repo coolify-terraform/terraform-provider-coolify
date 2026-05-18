@@ -151,8 +151,11 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 		}
 	}
 
+	// Set timeout on the inner HTTP client so it applies per-attempt, not
+	// across the entire retry chain. The outer operation-level context
+	// (e.g., resource Create timeouts) provides the overall ceiling.
+	rc.HTTPClient.Timeout = 30 * time.Second
 	httpClient := rc.StandardClient()
-	httpClient.Timeout = 30 * time.Second
 
 	return &Client{
 		BaseURL:    baseURL,
@@ -400,7 +403,8 @@ func redactValue(v interface{}) {
 		for k, child := range val {
 			lower := strings.ToLower(k)
 			if sensitiveKeys[lower] || strings.Contains(lower, "password") ||
-				strings.Contains(lower, "secret") || strings.Contains(lower, "private_key") {
+				strings.Contains(lower, "secret") || strings.Contains(lower, "private_key") ||
+				strings.Contains(lower, "token") {
 				val[k] = "[REDACTED]"
 			} else {
 				redactValue(child)
