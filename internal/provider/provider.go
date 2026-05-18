@@ -117,6 +117,11 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 	endpoint = strings.TrimRight(endpoint, "/")
 	cfg := buildClientConfig(config)
+	if cfg.Insecure && cfg.CACert != "" {
+		resp.Diagnostics.AddWarning("CA certificate ignored",
+			"Both insecure and ca_cert are set. When insecure is true, "+
+				"TLS certificate verification is skipped entirely and ca_cert is not used.")
+	}
 	if cfg.CACert != "" {
 		pool := x509.NewCertPool()
 		if !pool.AppendCertsFromPEM([]byte(cfg.CACert)) {
