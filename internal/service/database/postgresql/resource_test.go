@@ -49,6 +49,8 @@ resource "coolify_postgresql_database" "test" {
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_log_drain_enabled", "false"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_include_timestamps", "false"),
 					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "status", "running"),
+					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "limits_cpu_shares", "1024"),
 				),
 			},
 			// Plan idempotency: re-apply same config, expect empty plan

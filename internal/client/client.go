@@ -124,9 +124,10 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 		return false, nil
 	}
 	rc.Logger = retryablehttp.LeveledLogger(&retryLogger{})
-	httpClient := rc.StandardClient()
-	httpClient.Timeout = 30 * time.Second
 
+	// Configure custom TLS before StandardClient() so the retry transport
+	// wraps the correct underlying transport. Setting httpClient.Transport
+	// after StandardClient() would overwrite the retry layer.
 	if cfg.CACert != "" || cfg.Insecure {
 		tlsCfg := &tls.Config{InsecureSkipVerify: cfg.Insecure} //nolint:gosec // user-opted insecure
 		if cfg.CACert != "" {
@@ -137,7 +138,7 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 			pool.AppendCertsFromPEM([]byte(cfg.CACert))
 			tlsCfg.RootCAs = pool
 		}
-		httpClient.Transport = &http.Transport{
+		rc.HTTPClient.Transport = &http.Transport{
 			TLSClientConfig: tlsCfg,
 			DialContext: (&net.Dialer{
 				Timeout:   30 * time.Second,
@@ -149,6 +150,9 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 			ExpectContinueTimeout: 1 * time.Second,
 		}
 	}
+
+	httpClient := rc.StandardClient()
+	httpClient.Timeout = 30 * time.Second
 
 	return &Client{
 		BaseURL:    baseURL,
@@ -265,7 +269,7 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 
 	tflog.Trace(ctx, "API response", map[string]interface{}{
 		"path": path, "status": resp.StatusCode,
-		"body": truncateString(string(respBody), 1024),
+		"body": redactJSON(respBody),
 	})
 
 	if resp.StatusCode == http.StatusNotFound {
@@ -330,7 +334,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	tflog.Trace(ctx, "API response", map[string]interface{}{
 		"method": method, "path": path,
 		"status":       resp.StatusCode,
-		"body_excerpt": truncateString(string(respBody), 500),
+		"body_excerpt": redactJSON(respBody),
 	})
 
 	// Check 404 first, regardless of expectedStatus.
