@@ -49,6 +49,8 @@ provider "coolify" {
 - **[Concepts](guides/concepts)** - How Coolify resources map to Terraform
 - **[Import Guide](guides/import)** - Bring existing Coolify resources under Terraform management
 - **[Scenario Examples](guides/scenario-testing)** - Real-world ACME Corp deployment scenarios
+- **[Troubleshooting](guides/troubleshooting)** - Debugging tips and diagnostic logs
+- **[API Contract Accuracy](guides/api-contract-accuracy)** - OpenAPI spec vs real Coolify source code
 
 ## Resource Overview
 
