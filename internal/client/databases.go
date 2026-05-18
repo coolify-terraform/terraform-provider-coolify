@@ -157,17 +157,19 @@ type CreateKeydbInput struct {
 	Image           string `json:"image,omitempty"`
 	IsPublic        *bool  `json:"is_public,omitempty"`
 	PublicPort      *int64 `json:"public_port,omitempty"`
+	KeydbPassword   string `json:"keydb_password,omitempty"`
 }
 type CreateDragonflyInput struct {
-	ProjectUUID     string `json:"project_uuid"`
-	ServerUUID      string `json:"server_uuid"`
-	EnvironmentName string `json:"environment_name"`
-	EnvironmentUUID string `json:"environment_uuid,omitempty"`
-	Name            string `json:"name,omitempty"`
-	Description     string `json:"description,omitempty"`
-	Image           string `json:"image,omitempty"`
-	IsPublic        *bool  `json:"is_public,omitempty"`
-	PublicPort      *int64 `json:"public_port,omitempty"`
+	ProjectUUID       string `json:"project_uuid"`
+	ServerUUID        string `json:"server_uuid"`
+	EnvironmentName   string `json:"environment_name"`
+	EnvironmentUUID   string `json:"environment_uuid,omitempty"`
+	Name              string `json:"name,omitempty"`
+	Description       string `json:"description,omitempty"`
+	Image             string `json:"image,omitempty"`
+	IsPublic          *bool  `json:"is_public,omitempty"`
+	PublicPort        *int64 `json:"public_port,omitempty"`
+	DragonflyPassword string `json:"dragonfly_password,omitempty"`
 }
 
 type UpdateDatabaseInput struct {
