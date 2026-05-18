@@ -72,6 +72,25 @@ resource "coolify_redis_database" "test" {
 					resource.TestCheckResourceAttr("coolify_redis_database.test", "description", "Updated Redis"),
 				),
 			},
+			// Update SSL and log drain fields
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_redis_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  name                  = "updated-redis"
+  description           = "Updated Redis"
+  enable_ssl            = true
+  is_log_drain_enabled  = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_include_timestamps", "true"),
+				),
+			},
 			// Import
 			{
 				ResourceName:      "coolify_redis_database.test",
@@ -79,6 +98,34 @@ resource "coolify_redis_database" "test" {
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"redis_password"},
+			},
+		},
+	})
+}
+
+func TestRedisDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
+	t.Parallel()
+	srv, _ := dbtest.NewMockServer("redis", "redis-ssl-db", "redis:7", map[string]interface{}{
+		"redis_password": "redis-ssl-pass",
+	})
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_redis_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  enable_ssl            = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_include_timestamps", "true"),
+				),
 			},
 		},
 	})

@@ -74,6 +74,23 @@ resource "coolify_clickhouse_database" "test" {
 					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "description", "Updated ClickHouse"),
 				),
 			},
+			// Update logging fields
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_clickhouse_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  name                  = "updated-ch"
+  description           = "Updated ClickHouse"
+  is_log_drain_enabled  = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_include_timestamps", "true"),
+				),
+			},
 			// Import
 			{
 				ResourceName:      "coolify_clickhouse_database.test",
@@ -81,6 +98,35 @@ resource "coolify_clickhouse_database" "test" {
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"clickhouse_admin_password"},
+			},
+		},
+	})
+}
+
+func TestClickhouseDatabaseResource_CreateWithTimestamps(t *testing.T) {
+	t.Parallel()
+	srv, _ := dbtest.NewMockServer("clickhouse", "ch-ts-db", "clickhouse/clickhouse-server:latest", map[string]interface{}{
+		"clickhouse_admin_user":     "default",
+		"clickhouse_admin_password": "secret123",
+	})
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_clickhouse_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  is_log_drain_enabled  = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_include_timestamps", "true"),
+				),
 			},
 		},
 	})

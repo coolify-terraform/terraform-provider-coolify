@@ -76,6 +76,27 @@ resource "coolify_mysql_database" "test" {
 					resource.TestCheckResourceAttr("coolify_mysql_database.test", "description", "Updated MySQL"),
 				),
 			},
+			// Update SSL and log drain fields
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_mysql_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  name                  = "updated-mysql-db"
+  description           = "Updated MySQL"
+  enable_ssl            = true
+  ssl_mode              = "REQUIRED"
+  is_log_drain_enabled  = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "ssl_mode", "REQUIRED"),
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_include_timestamps", "true"),
+				),
+			},
 			// Import
 			{
 				ResourceName:      "coolify_mysql_database.test",
@@ -83,6 +104,39 @@ resource "coolify_mysql_database" "test" {
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"mysql_password", "mysql_root_password"},
+			},
+		},
+	})
+}
+
+func TestMysqlDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
+	t.Parallel()
+	srv, _ := dbtest.NewMockServer("mysql", "mysql-ssl-db", "mysql:8", map[string]interface{}{
+		"mysql_user":          "mysqluser",
+		"mysql_password":      "mysqlpass",
+		"mysql_database":      "mydb",
+		"mysql_root_password": "rootsecret",
+	})
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_mysql_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  enable_ssl            = true
+  ssl_mode              = "REQUIRED"
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "ssl_mode", "REQUIRED"),
+					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_include_timestamps", "true"),
+				),
 			},
 		},
 	})

@@ -75,6 +75,25 @@ resource "coolify_mariadb_database" "test" {
 					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "description", "Updated MariaDB"),
 				),
 			},
+			// Update SSL and log drain fields
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_mariadb_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  name                  = "updated-mariadb"
+  description           = "Updated MariaDB"
+  enable_ssl            = true
+  is_log_drain_enabled  = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_include_timestamps", "true"),
+				),
+			},
 			// Import
 			{
 				ResourceName:      "coolify_mariadb_database.test",
@@ -82,6 +101,37 @@ resource "coolify_mariadb_database" "test" {
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"mariadb_password", "mariadb_root_password"},
+			},
+		},
+	})
+}
+
+func TestMariadbDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
+	t.Parallel()
+	srv, _ := dbtest.NewMockServer("mariadb", "mariadb-ssl-db", "mariadb:11", map[string]interface{}{
+		"mariadb_user":          "mariadbuser",
+		"mariadb_password":      "mariadbpass",
+		"mariadb_database":      "mydb",
+		"mariadb_root_password": "rootsecret",
+	})
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_mariadb_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  enable_ssl            = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_include_timestamps", "true"),
+				),
 			},
 		},
 	})

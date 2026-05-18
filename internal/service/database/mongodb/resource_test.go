@@ -74,6 +74,27 @@ resource "coolify_mongodb_database" "test" {
 					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "description", "Updated MongoDB"),
 				),
 			},
+			// Update SSL and log drain fields
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_mongodb_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  name                  = "updated-mongo"
+  description           = "Updated MongoDB"
+  enable_ssl            = true
+  ssl_mode              = "require"
+  is_log_drain_enabled  = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "ssl_mode", "require"),
+					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "is_include_timestamps", "true"),
+				),
+			},
 			// Import
 			{
 				ResourceName:      "coolify_mongodb_database.test",
@@ -81,6 +102,38 @@ resource "coolify_mongodb_database" "test" {
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore: []string{"mongo_initdb_root_password"},
+			},
+		},
+	})
+}
+
+func TestMongodbDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
+	t.Parallel()
+	srv, _ := dbtest.NewMockServer("mongodb", "mongo-ssl-db", "mongo:7", map[string]interface{}{
+		"mongo_initdb_root_username": "admin",
+		"mongo_initdb_root_password": "secret",
+		"mongo_initdb_database":      "mydb",
+	})
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_mongodb_database" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  enable_ssl            = true
+  ssl_mode              = "require"
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "ssl_mode", "require"),
+					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "is_include_timestamps", "true"),
+				),
 			},
 		},
 	})
