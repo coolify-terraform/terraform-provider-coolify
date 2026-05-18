@@ -250,8 +250,9 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": uuid})
 
 	input := client.UpdateServiceInput{
-		Name:        flex.StringIfChanged(plan.Name, state.Name),
-		Description: flex.StringIfChanged(plan.Description, state.Description),
+		Name:             flex.StringIfChanged(plan.Name, state.Name),
+		Description:      flex.StringIfChanged(plan.Description, state.Description),
+		ConnectToNetwork: flex.BoolIfChanged(plan.ConnectToNetwork, state.ConnectToNetwork),
 	}
 	if _, err := r.client.UpdateService(ctx, uuid, input); err != nil {
 		resp.Diagnostics.AddError("Error updating service", fmt.Sprintf("service %s: %s", uuid, err))

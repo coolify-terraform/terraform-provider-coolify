@@ -38,7 +38,7 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a KeyDB database resource on Coolify.", Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 		"keydb_password": schema.StringAttribute{MarkdownDescription: "The KeyDB password. If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"keydb_conf":     schema.StringAttribute{MarkdownDescription: "Custom KeyDB configuration (base64-encoded `keypg.conf` content).", Optional: true},
+		"keydb_conf":     schema.StringAttribute{MarkdownDescription: "Custom KeyDB configuration (base64-encoded `keydb.conf` content).", Optional: true},
 		"enable_ssl":     dbcommon.EnableSSLAttr(),
 	})}
 }
