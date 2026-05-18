@@ -132,7 +132,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 
 	created, err := r.client.CreatePrivateKey(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating private key", err.Error())
+		resp.Diagnostics.AddError("Error creating private key", fmt.Sprintf("private key %q: %s", plan.Name.ValueString(), err))
 		return
 	}
 

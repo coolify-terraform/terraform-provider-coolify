@@ -107,7 +107,7 @@ func (r *cloudTokenResource) Create(ctx context.Context, req resource.CreateRequ
 
 	created, err := r.client.CreateCloudToken(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating cloud token", err.Error())
+		resp.Diagnostics.AddError("Error creating cloud token", fmt.Sprintf("cloud token %q: %s", plan.Name.ValueString(), err))
 		return
 	}
 

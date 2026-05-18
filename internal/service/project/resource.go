@@ -106,7 +106,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 
 	project, err := r.client.CreateProject(ctx, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating project", err.Error())
+		resp.Diagnostics.AddError("Error creating project", fmt.Sprintf("project %q: %s", plan.Name.ValueString(), err))
 		return
 	}
 

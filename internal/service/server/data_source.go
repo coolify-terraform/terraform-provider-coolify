@@ -178,7 +178,7 @@ func (d *serverDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 
 	srv, err := d.client.GetServer(ctx, config.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading server", err.Error())
+		resp.Diagnostics.AddError("Error reading server", fmt.Sprintf("server %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 

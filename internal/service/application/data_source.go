@@ -163,7 +163,7 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	app, err := d.client.GetApplication(ctx, config.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading application", err.Error())
+		resp.Diagnostics.AddError("Error reading application", fmt.Sprintf("application %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 

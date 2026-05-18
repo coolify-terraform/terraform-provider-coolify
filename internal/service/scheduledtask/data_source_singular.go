@@ -121,7 +121,7 @@ func (d *scheduledTaskDataSource) Read(ctx context.Context, req datasource.ReadR
 
 	tasks, err := d.client.ListScheduledTasks(ctx, parentType, parentUUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading scheduled task", err.Error())
+		resp.Diagnostics.AddError("Error reading scheduled task", fmt.Sprintf("scheduled task %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 

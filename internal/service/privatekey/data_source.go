@@ -108,7 +108,7 @@ func (d *privateKeyDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	key, err := d.client.GetPrivateKey(ctx, config.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading private key", err.Error())
+		resp.Diagnostics.AddError("Error reading private key", fmt.Sprintf("private key %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 

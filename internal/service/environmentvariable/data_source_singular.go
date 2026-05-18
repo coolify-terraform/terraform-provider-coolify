@@ -130,7 +130,7 @@ func (d *envVarDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading environment variable", err.Error())
+		resp.Diagnostics.AddError("Error reading environment variable", fmt.Sprintf("env var %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 

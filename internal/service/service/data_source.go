@@ -104,7 +104,7 @@ func (d *serviceDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	svc, err := d.client.GetService(ctx, config.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading service", err.Error())
+		resp.Diagnostics.AddError("Error reading service", fmt.Sprintf("service %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 

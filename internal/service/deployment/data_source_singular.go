@@ -80,7 +80,7 @@ func (d *deploymentDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	dep, err := d.client.GetDeployment(ctx, config.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading deployment", err.Error())
+		resp.Diagnostics.AddError("Error reading deployment", fmt.Sprintf("deployment %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 

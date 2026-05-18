@@ -126,7 +126,7 @@ func (d *storageDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	storages, err := d.client.ListStorages(ctx, parentType, parentUUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading storage", err.Error())
+		resp.Diagnostics.AddError("Error reading storage", fmt.Sprintf("storage %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 

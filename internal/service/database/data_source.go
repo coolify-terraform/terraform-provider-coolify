@@ -144,7 +144,7 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	db, err := d.client.GetDatabase(ctx, config.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading database", err.Error())
+		resp.Diagnostics.AddError("Error reading database", fmt.Sprintf("database %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 
