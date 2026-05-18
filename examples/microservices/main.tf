@@ -46,6 +46,12 @@ variable "domain" {
   default     = ""
 }
 
+variable "postgres_password" {
+  description = "PostgreSQL database password"
+  type        = string
+  sensitive   = true
+}
+
 # --- Project ---
 
 resource "coolify_project" "ecommerce" {
@@ -62,7 +68,7 @@ resource "coolify_postgresql_database" "api_db" {
   environment_name  = "production"
   image             = "postgres:16"
   postgres_user     = "ecommerce"
-  postgres_password = "change-me-in-production"
+  postgres_password = var.postgres_password
   postgres_db       = "ecommerce"
 }
 

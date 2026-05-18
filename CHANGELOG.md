@@ -13,24 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `coolify_database_backup`: The `retain_days` attribute has been renamed to `retain_amount_locally`. The old name was misleading (it stored a count of backup copies, not days). Users must update their `.tf` files to use the new name.
 - `coolify_s3_storage` resource, `coolify_s3_storage` data source, and `coolify_s3_storages` data source have been removed. Current Coolify v4 has no public top-level S3 storage API. Manage S3 storages in the Coolify web UI and reference their UUIDs from `coolify_database_backup.s3_storage_uuid`.
 
-### Fixed
-
-- API response bodies are now redacted in TRACE logs, preventing sensitive fields (passwords, keys) from appearing in debug output
-- Custom TLS configuration (`ca_cert`, `insecure`) no longer silently disables HTTP retry logic
-- `redactJSON` now handles JSON arrays and nested objects (previously only top-level objects were redacted)
-
 ### Added
 
 - UUID format validation on 13 attributes across server, Hetzner, backup, scheduled task, and GitHub App resources/data sources (catches malformed input at plan time instead of API time)
-
-### Changed
-
-- Consolidated `is_include_timestamps`, `enable_ssl`, and `ssl_mode` handling into shared database helpers, reducing duplication across all 8 database resources
-- Minimum Terraform version requirement updated to >= 1.6 (consistent across all documentation)
-- Added TRACE-level logging to version and health check endpoints for easier connection debugging
-
-### Added
-
 - `coolify_deployment`: `wait_for_completion` attribute polls deployment status until `finished` or `error`; `timeouts` block for configurable Create timeout
 - `coolify_database_backup`: 12 new fields for S3 toggle, selective backup, retention policies, and job timeout
 - All application resources: 16 new fields for resource limits, health checks, and auto-deploy control
@@ -107,10 +92,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Consolidated `is_include_timestamps`, `enable_ssl`, and `ssl_mode` handling into shared database helpers, reducing duplication across all 8 database resources
+- Minimum Terraform version requirement updated to >= 1.6 (consistent across all documentation)
+- Added TRACE-level logging to version and health check endpoints for easier connection debugging
 - `coolify_github_app`: `app_id`, `installation_id`, `client_id`, `client_secret`, `private_key_uuid`, and `organization_name` can now be updated in-place (previously forced destroy/recreate). This matches the Coolify API's PATCH support for these fields.
 - `coolify_github_app_application`: `github_app_uuid` can now be updated in-place (previously forced destroy/recreate).
 
 ### Fixed
+
+- API response bodies are now redacted in TRACE logs, preventing sensitive fields (passwords, keys) from appearing in debug output
+- Custom TLS configuration (`ca_cert`, `insecure`) no longer silently disables HTTP retry logic
+- `redactJSON` now handles JSON arrays and nested objects (previously only top-level objects were redacted)
 
 - `coolify_service` resource: changing `name`, `description`, or `environment_name` now triggers destroy/recreate (previously produced an "Update not supported" error during apply)
 - `coolify_clickhouse_database`: `clickhouse_admin_user` and `clickhouse_admin_password` are now sent during resource creation (previously silently ignored, only applied on update)

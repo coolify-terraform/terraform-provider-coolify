@@ -4,7 +4,7 @@
 # a data source to verify it exists.
 #
 # Prerequisites:
-#   - Terraform >= 1.0
+#   - Terraform >= 1.6
 #   - Coolify v4.x with an API token
 #   - export COOLIFY_ENDPOINT="https://coolify.example.com"
 #   - export COOLIFY_TOKEN="your-api-token"

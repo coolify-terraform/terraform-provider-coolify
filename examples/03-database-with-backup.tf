@@ -48,6 +48,7 @@ resource "coolify_database_backup" "daily" {
   frequency             = "0 2 * * *"
   retain_amount_locally = 7 # Number of backup copies to keep (not days)
   enabled               = true
+  save_s3               = true
 }
 
 output "database_uuid" {
