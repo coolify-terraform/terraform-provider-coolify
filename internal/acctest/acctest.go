@@ -140,6 +140,9 @@ func CheckResourceDisappears(serverURL, resourceAddr, apiPathPrefix string) reso
 			return err
 		}
 		_ = resp.Body.Close()
+		if resp.StatusCode >= 400 {
+			return fmt.Errorf("DELETE %s%s%s returned status %d", serverURL, apiPathPrefix, uuid, resp.StatusCode)
+		}
 		return nil
 	}
 }
