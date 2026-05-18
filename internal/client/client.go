@@ -526,20 +526,29 @@ func toMap(keysAndValues []interface{}) map[string]interface{} {
 	return m
 }
 
-// PollUntilDeleted polls a get function every 5s for up to 2 minutes,
-// returning true when the resource is confirmed gone (NotFound) or false
-// if the poll timed out or the context was cancelled. Use after an async
-// delete to wait for Coolify to finish tearing down containers.
+// PollUntilDeleted polls a get function with exponential backoff (500ms to 5s)
+// for up to 2 minutes, returning true when the resource is confirmed gone
+// (NotFound) or false if the poll timed out or the context was cancelled.
+// Use after an async delete to wait for Coolify to finish tearing down
+// containers.
 func PollUntilDeleted(ctx context.Context, getFn func() error) bool {
-	for range 24 {
+	delay := 500 * time.Millisecond
+	const maxDelay = 5 * time.Second
+	deadline := time.After(2 * time.Minute)
+	for {
 		select {
 		case <-ctx.Done():
 			return false
-		case <-time.After(5 * time.Second):
+		case <-deadline:
+			return false
+		case <-time.After(delay):
 		}
 		if IsNotFound(getFn()) {
 			return true
 		}
+		delay *= 2
+		if delay > maxDelay {
+			delay = maxDelay
+		}
 	}
-	return false
 }
