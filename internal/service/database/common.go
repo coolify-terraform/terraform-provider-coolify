@@ -191,15 +191,7 @@ func SSLModeMongodbAttr() schema.StringAttribute {
 // ConfigureDatabase extracts the API client from provider data.
 // Returns nil when ProviderData is nil (expected during early configure).
 func ConfigureDatabase(req resource.ConfigureRequest, resp *resource.ConfigureResponse) *client.Client {
-	if req.ProviderData == nil {
-		return nil
-	}
-	c, ok := req.ProviderData.(*client.Client)
-	if !ok {
-		resp.Diagnostics.AddError("Unexpected Configure Type", fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData))
-		return nil
-	}
-	return c
+	return flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
 // ReadDatabase fetches a database by UUID. Returns (nil, nil) when the
