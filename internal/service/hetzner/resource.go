@@ -3,23 +3,18 @@ package hetzner
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/server"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -79,36 +74,19 @@ func (r *hetznerServerResource) Metadata(_ context.Context, req resource.Metadat
 }
 
 func (r *hetznerServerResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	attrs := hetznerSchemaAttributes()
-	attrs["timeouts"] = timeouts.Attributes(ctx, timeouts.Opts{Create: true})
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Provisions a Hetzner Cloud server and registers it with Coolify.\n\n~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.\n\n~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `cloud_init_script`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state. Set them in your configuration before running `terraform plan` to avoid a forced replacement.",
-		Attributes:          attrs,
+		Attributes:          server.CommonServerAttrs(ctx, hetznerSchemaAttributes()),
 	}
 }
 
 func hetznerSchemaAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		// Computed after create.
-		"uuid": schema.StringAttribute{
-			MarkdownDescription: "The unique identifier of the server.",
-			Computed:            true,
-			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-		},
 		"ip": schema.StringAttribute{
 			MarkdownDescription: "The IP address assigned to the server by Hetzner.",
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
-		"is_reachable": schema.BoolAttribute{
-			MarkdownDescription: "Whether the server is currently reachable.",
-			Computed:            true,
-		},
-		"is_usable": schema.BoolAttribute{
-			MarkdownDescription: "Whether the server is currently usable for deployments.",
-			Computed:            true,
-		},
-
 		// Hetzner create-only fields.
 		"cloud_provider_token_uuid": schema.StringAttribute{
 			MarkdownDescription: "The UUID of the Hetzner cloud provider token (from `coolify_cloud_token`). Changing this forces a new resource.",
@@ -159,82 +137,6 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
-		},
-
-		// Shared server fields (updatable).
-		"name": schema.StringAttribute{
-			MarkdownDescription: "The name of the server.",
-			Required:            true,
-		},
-		"description": schema.StringAttribute{
-			MarkdownDescription: "A description of the server.",
-			Optional:            true,
-			Computed:            true,
-			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-		},
-		"port": schema.Int64Attribute{
-			MarkdownDescription: "The SSH port of the server.",
-			Optional:            true,
-			Computed:            true,
-			Default:             int64default.StaticInt64(22),
-			Validators:          []validator.Int64{int64validator.Between(1, 65535)},
-		},
-		"user": schema.StringAttribute{
-			MarkdownDescription: "The SSH user for connecting to the server.",
-			Optional:            true,
-			Computed:            true,
-			Default:             stringdefault.StaticString("root"),
-		},
-		"private_key_uuid": schema.StringAttribute{
-			MarkdownDescription: "The UUID of the private key used for SSH authentication.",
-			Required:            true,
-			Validators:          []validator.String{validate.UUID()},
-		},
-		"is_build_server": schema.BoolAttribute{
-			MarkdownDescription: "Whether this server is used for building applications.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(false),
-		},
-		"concurrent_builds": schema.Int64Attribute{
-			MarkdownDescription: "How many deployments can run in parallel on this server.",
-			Optional:            true,
-			Computed:            true,
-			Default:             int64default.StaticInt64(2),
-			Validators:          []validator.Int64{int64validator.AtLeast(1)},
-		},
-		"dynamic_timeout": schema.Int64Attribute{
-			MarkdownDescription: "Timeout in seconds for Docker operations (pull, build, health check) during deployment.",
-			Optional:            true,
-			Computed:            true,
-			Default:             int64default.StaticInt64(3600),
-			Validators:          []validator.Int64{int64validator.AtLeast(1)},
-		},
-		"deployment_queue_limit": schema.Int64Attribute{
-			MarkdownDescription: "Maximum number of queued deployments (default 25).",
-			Optional:            true,
-			Computed:            true,
-			Default:             int64default.StaticInt64(25),
-			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
-		},
-		"server_disk_usage_notification_threshold": schema.Int64Attribute{
-			MarkdownDescription: "Disk usage percentage at which a notification is sent.",
-			Optional:            true,
-			Computed:            true,
-			Default:             int64default.StaticInt64(80),
-			Validators:          []validator.Int64{int64validator.Between(1, 100)},
-		},
-		"server_disk_usage_check_frequency": schema.StringAttribute{
-			MarkdownDescription: "Cron expression for how often disk usage is checked (e.g., `*/5 * * * *` or `@daily`).",
-			Optional:            true,
-			Computed:            true,
-			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			Validators: []validator.String{
-				stringvalidator.RegexMatches(
-					regexp.MustCompile(`^(\S+\s+){4}\S+$|^@(annually|yearly|monthly|weekly|daily|hourly)$`),
-					"must be a valid cron expression (e.g., \"*/5 * * * *\" or \"@daily\")",
-				),
-			},
 		},
 	}
 }
@@ -387,20 +289,7 @@ func (r *hetznerServerResource) Update(ctx context.Context, req resource.UpdateR
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_hetzner_server", "uuid": state.UUID.ValueString()})
 
-	input := client.UpdateServerInput{
-		Name:                                 flex.StringIfChanged(plan.Name, state.Name),
-		Description:                          flex.StringIfChanged(plan.Description, state.Description),
-		IP:                                   flex.StringIfChanged(plan.IP, state.IP),
-		Port:                                 flex.IntIfChanged(plan.Port, state.Port),
-		User:                                 flex.StringIfChanged(plan.User, state.User),
-		PrivateKeyUUID:                       flex.StringIfChanged(plan.PrivateKeyUUID, state.PrivateKeyUUID),
-		IsBuildServer:                        flex.BoolIfChanged(plan.IsBuildServer, state.IsBuildServer),
-		ConcurrentBuilds:                     flex.IntIfChanged(plan.ConcurrentBuilds, state.ConcurrentBuilds),
-		DynamicTimeout:                       flex.IntIfChanged(plan.DynamicTimeout, state.DynamicTimeout),
-		DeploymentQueueLimit:                 flex.IntIfChanged(plan.DeploymentQueueLimit, state.DeploymentQueueLimit),
-		ServerDiskUsageNotificationThreshold: flex.IntIfChanged(plan.ServerDiskUsageNotificationThreshold, state.ServerDiskUsageNotificationThreshold),
-		ServerDiskUsageCheckFrequency:        flex.StringIfChanged(plan.ServerDiskUsageCheckFrequency, state.ServerDiskUsageCheckFrequency),
-	}
+	input := server.BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
 	if _, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating Hetzner server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
@@ -469,25 +358,18 @@ func hasNonDefaultHetznerSettings(plan hetznerServerResourceModel) bool {
 		strSet(plan.ServerDiskUsageCheckFrequency)
 }
 
-func flattenHetznerServer(srv *client.Server, model *hetznerServerResourceModel) {
-	model.UUID = types.StringValue(srv.UUID)
-	model.Name = types.StringValue(srv.Name)
-	model.Description = flex.StringToFramework(srv.Description)
-	model.IP = types.StringValue(srv.IP)
-	model.Port = types.Int64Value(int64(srv.Port))
-	model.User = types.StringValue(srv.User)
-	if srv.PrivateKeyUUID != "" {
-		model.PrivateKeyUUID = types.StringValue(srv.PrivateKeyUUID)
+func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
+	return server.ServerCommonPtrs{
+		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
+		IP: &m.IP, User: &m.User, PrivateKeyUUID: &m.PrivateKeyUUID,
+		Port: &m.Port, ConcurrentBuilds: &m.ConcurrentBuilds, DynamicTimeout: &m.DynamicTimeout,
+		DeploymentQueueLimit:                 &m.DeploymentQueueLimit,
+		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
+		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
+		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
 	}
-	model.IsBuildServer = types.BoolValue(srv.IsBuildServer)
-	model.IsReachable = types.BoolValue(srv.IsReachable)
-	model.IsUsable = types.BoolValue(srv.IsUsable)
+}
 
-	if srv.Settings != nil {
-		model.ConcurrentBuilds = types.Int64Value(int64(srv.Settings.ConcurrentBuilds))
-		model.DynamicTimeout = types.Int64Value(int64(srv.Settings.DynamicTimeout))
-		model.DeploymentQueueLimit = types.Int64Value(int64(srv.Settings.DeploymentQueueLimit))
-		model.ServerDiskUsageNotificationThreshold = types.Int64Value(int64(srv.Settings.ServerDiskUsageNotificationThreshold))
-		model.ServerDiskUsageCheckFrequency = flex.StringToFramework(srv.Settings.ServerDiskUsageCheckFrequency)
-	}
+func flattenHetznerServer(srv *client.Server, model *hetznerServerResourceModel) {
+	server.FlattenServerCommon(srv, model.commonPtrs())
 }
