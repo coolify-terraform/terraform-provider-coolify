@@ -121,3 +121,70 @@ func TestImportUUID_Invalid(t *testing.T) {
 		t.Errorf("error should contain the bad ID, got: %v", err)
 	}
 }
+
+func TestParseCompoundImportID_SimpleUUID(t *testing.T) {
+	t.Parallel()
+	parsed, compound, err := validate.ParseCompoundImportID("deey8xhb2bm3fxpobcxyddfv")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if compound {
+		t.Error("expected compound=false for simple UUID")
+	}
+	if parsed.UUID != "deey8xhb2bm3fxpobcxyddfv" {
+		t.Errorf("expected UUID=%q, got %q", "deey8xhb2bm3fxpobcxyddfv", parsed.UUID)
+	}
+}
+
+func TestParseCompoundImportID_CompoundFormat(t *testing.T) {
+	t.Parallel()
+	id := "550e8400-e29b-41d4-a716-446655440000:aaaa0001-0001-4000-8000-000000000001:production:deey8xhb2bm3fxpobcxyddfv"
+	parsed, compound, err := validate.ParseCompoundImportID(id)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !compound {
+		t.Error("expected compound=true for 4-part ID")
+	}
+	if parsed.ProjectUUID != "550e8400-e29b-41d4-a716-446655440000" {
+		t.Errorf("wrong ProjectUUID: %s", parsed.ProjectUUID)
+	}
+	if parsed.ServerUUID != "aaaa0001-0001-4000-8000-000000000001" {
+		t.Errorf("wrong ServerUUID: %s", parsed.ServerUUID)
+	}
+	if parsed.EnvironmentName != "production" {
+		t.Errorf("wrong EnvironmentName: %s", parsed.EnvironmentName)
+	}
+	if parsed.UUID != "deey8xhb2bm3fxpobcxyddfv" {
+		t.Errorf("wrong UUID: %s", parsed.UUID)
+	}
+}
+
+func TestParseCompoundImportID_InvalidFormats(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		id   string
+		want string
+	}{
+		{"two parts", "abc:def", "expected UUID or"},
+		{"three parts", "a:b:c", "expected UUID or"},
+		{"invalid simple UUID", "../../admin", "not a valid UUID"},
+		{"empty env name", "deey8xhb2bm3fxpobcxyddfv:deey8xhb2bm3fxpobcxyddfv::deey8xhb2bm3fxpobcxyddfv", "environment_name must not be empty"},
+		{"invalid project UUID", "bad:deey8xhb2bm3fxpobcxyddfv:prod:deey8xhb2bm3fxpobcxyddfv", "project_uuid"},
+		{"invalid server UUID", "deey8xhb2bm3fxpobcxyddfv:bad:prod:deey8xhb2bm3fxpobcxyddfv", "server_uuid"},
+		{"invalid resource UUID", "deey8xhb2bm3fxpobcxyddfv:deey8xhb2bm3fxpobcxyddfv:prod:bad", "uuid"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, _, err := validate.ParseCompoundImportID(tc.id)
+			if err == nil {
+				t.Fatalf("expected error for %q", tc.id)
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("error %q should contain %q", err.Error(), tc.want)
+			}
+		})
+	}
+}

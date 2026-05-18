@@ -786,3 +786,74 @@ func checkGitHubAppDestroy(serverURL string) resource.TestCheckFunc {
 		return nil
 	}
 }
+
+func TestGitHubAppResource_UpgradeStateV0(t *testing.T) {
+	t.Parallel()
+
+	store := &mockGitHubAppStore{apps: make(map[int64]*mockGitHubApp)}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/github-apps", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			store.mu.Lock()
+			apps := make([]*mockGitHubApp, 0, len(store.apps))
+			for _, a := range store.apps {
+				apps = append(apps, a)
+			}
+			store.mu.Unlock()
+			json.NewEncoder(w).Encode(apps)
+		case http.MethodPost:
+			var input struct {
+				Name           string `json:"name"`
+				AppID          int64  `json:"app_id"`
+				InstallationID int64  `json:"installation_id"`
+				ClientID       string `json:"client_id"`
+				WebhookSecret  string `json:"webhook_secret"`
+			}
+			json.NewDecoder(r.Body).Decode(&input)
+			app := store.Create(input.Name, "", input.AppID, input.InstallationID, input.ClientID, input.WebhookSecret)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(app)
+		}
+	})
+	mux.HandleFunc("/api/v1/github-apps/", func(w http.ResponseWriter, r *http.Request) {
+		idStr := r.URL.Path[len("/api/v1/github-apps/"):]
+		id, _ := strconv.ParseInt(idStr, 10, 64)
+		switch r.Method {
+		case http.MethodPatch:
+			app, ok := store.Get(id)
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(app)
+		case http.MethodDelete:
+			store.Delete(id)
+			w.WriteHeader(http.StatusNoContent)
+		}
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	config := testGitHubAppResourceConfig(srv.URL, `
+name              = "migrated-app"
+app_id            = 111
+installation_id   = 222
+client_id         = "Iv1.test"
+client_secret     = "secret"
+private_key_uuid  = "dddd0001-0001-4000-8000-000000000001"
+`)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_github_app.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "name", "migrated-app"),
+				),
+			},
+		},
+	})
+}
