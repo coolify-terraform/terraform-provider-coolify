@@ -86,7 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_version` - Read the Coolify instance version
   - `coolify_hetzner_images` / `coolify_hetzner_locations` / `coolify_hetzner_server_types` / `coolify_hetzner_ssh_keys` - Read Hetzner cloud resources
 - All resources support `terraform import`
-- 100% Coolify v4 API coverage (135/135 endpoints)
+- 99%+ Coolify v4 API coverage (134/135 endpoints)
 - OpenAPI spec-driven test validation with libopenapi-validator
 - API coverage tracking with auto-generated `API_COVERAGE.md`
 - UUID format validators on all UUID input fields
