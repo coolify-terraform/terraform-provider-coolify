@@ -58,8 +58,11 @@ Eight database engines are supported:
 `coolify_mongodb_database`, `coolify_clickhouse_database`,
 `coolify_keydb_database`, `coolify_dragonfly_database`
 
-All database resources share the same base schema (`project_uuid`,
-`server_uuid`, `image`, `is_public`, `public_port`).
+All database resources share a common schema: placement (`project_uuid`,
+`server_uuid`, `environment_name`), networking (`image`, `is_public`,
+`public_port`), resource limits (`limits_memory`, `limits_cpus`, etc.),
+logging (`is_log_drain_enabled`, `is_include_timestamps`), and SSL/TLS
+(`enable_ssl`, `ssl_mode` where applicable).
 
 ### Operations
 
