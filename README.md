@@ -134,8 +134,8 @@ See the [examples/](examples/) directory for more, including the full
 that models `postgres_password` as a sensitive variable, and the
 [`coolify_github_app` example](examples/resources/coolify_github_app/resource.tf)
 that models both `client_secret` and `webhook_secret` as sensitive
-variables. The [examples/scenarios/](examples/scenarios/) directory has 8
-real-world scenarios tested against a live Coolify instance:
+variables. The [examples/scenarios/](examples/scenarios/) directory has 9
+real-world scenarios (8 with `terraform test`, 1 credentials-dependent):
 
 | Scenario | What it tests |
 |---|---|
@@ -147,6 +147,7 @@ real-world scenarios tested against a live Coolify instance:
 | `acme-platform` | Private keys, environments, storage, data sources |
 | `acme-docker` | Docker image tag normalization, scheduled tasks, storage |
 | `acme-integrations` | Managed services from the Coolify catalog |
+| `acme-private-repo` | SSH deploy key, private Git repo app, env vars, deployment with wait |
 
 ## Authentication
 
