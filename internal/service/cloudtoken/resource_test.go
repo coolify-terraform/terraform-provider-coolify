@@ -338,6 +338,33 @@ resource "coolify_cloud_token" "test" {
 	})
 }
 
+func TestCloudTokenResource_ImportBadUUID(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockCoolifyServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_cloud_token" "test" {
+  name           = "import-token"
+  cloud_provider = "hetzner"
+  token          = "import-secret"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_cloud_token.test",
+				ImportState:   true,
+				ImportStateId: "not-a-uuid",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
 func TestCloudTokenResource_PreservesTokenWhenReadOmitsIt(t *testing.T) {
 	t.Parallel()
 	server, store := newMockCoolifyServer()

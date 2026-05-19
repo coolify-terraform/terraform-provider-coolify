@@ -447,6 +447,32 @@ resource "coolify_project" "test" {
 	})
 }
 
+func TestProjectResource_ImportBadUUID(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockCoolifyServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_project" "test" {
+  name        = "import-project"
+  description = "import test"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_project.test",
+				ImportState:   true,
+				ImportStateId: "not-a-uuid",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
 func TestProjectResource_Disappears(t *testing.T) {
 	t.Parallel()
 	server, store := newMockCoolifyServer()

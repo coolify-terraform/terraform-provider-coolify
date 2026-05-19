@@ -355,6 +355,35 @@ resource "coolify_hetzner_server" "test" {
 	})
 }
 
+func TestHetznerServerResource_ImportBadUUID(t *testing.T) {
+	t.Parallel()
+	srv := newHetznerServerMockServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_hetzner_server" "test" {
+  name                       = "my-hetzner"
+  cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
+  server_type                = "cx22"
+  location                   = "fsn1"
+  image                      = "ubuntu-24.04"
+  private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
+}`,
+			},
+			{
+				ResourceName:  "coolify_hetzner_server.test",
+				ImportState:   true,
+				ImportStateId: "not-a-uuid",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
 func TestHetznerServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	t.Parallel()
 	servers := make(map[string]*client.Server)

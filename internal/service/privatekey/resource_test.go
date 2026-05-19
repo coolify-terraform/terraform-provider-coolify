@@ -259,6 +259,31 @@ resource "coolify_private_key" "test" {
 	})
 }
 
+func TestPrivateKeyResource_ImportBadUUID(t *testing.T) {
+	t.Parallel()
+	srv := newPrivateKeyMockServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_private_key" "test" {
+  name        = "import-key"
+  private_key = "ssh-ed25519 AAAA-import"
+}`,
+			},
+			{
+				ResourceName:  "coolify_private_key.test",
+				ImportState:   true,
+				ImportStateId: "not-a-uuid",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
 // TestPrivateKeyResource_DeleteRetry verifies that private key deletion
 // retries on "in use" errors (Coolify's async app cleanup).
 func TestPrivateKeyResource_DeleteRetry(t *testing.T) {
