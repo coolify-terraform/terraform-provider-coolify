@@ -51,7 +51,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"DELETE /servers/{uuid}":        covered("coolify_server", "v0.1.0"),
 		"GET /servers/{uuid}/domains":   covered("data.coolify_server_domains", "v0.1.0"),
 		"GET /servers/{uuid}/resources": covered("data.coolify_server_resources", "v0.1.0"),
-		"POST /servers/hetzner":         covered("coolify_hetzner_server", "v0.2.0"),
+		"POST /servers/hetzner":         covered("coolify_server_hetzner", "v0.2.0"),
 		"GET /servers/{uuid}/validate":  covered("data.coolify_server_validation", "v0.2.0"),
 
 		// ── Applications ──

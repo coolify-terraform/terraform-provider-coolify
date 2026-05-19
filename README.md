@@ -29,7 +29,7 @@ Coolify gives you a self-hosted PaaS with a great UI. This provider adds the thi
 |----------|-------------|
 | `coolify_project` | Manage projects (logical grouping for resources) |
 | `coolify_server` | Register and configure servers |
-| `coolify_hetzner_server` | Provision Hetzner Cloud servers via Coolify |
+| `coolify_server_hetzner` | Provision Hetzner Cloud servers via Coolify |
 | `coolify_private_key` | Manage SSH keys for server access |
 | `coolify_application` | Deploy apps from public Git repositories |
 | `coolify_application_dockerfile` | Deploy apps from Dockerfiles |

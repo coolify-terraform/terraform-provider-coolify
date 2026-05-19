@@ -140,11 +140,11 @@ func TestHetznerServerResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_hetzner_server", "/api/v1/servers/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_server_hetzner", "/api/v1/servers/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "my-hetzner"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
   server_type                = "cx22"
@@ -153,24 +153,24 @@ resource "coolify_hetzner_server" "test" {
   private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "name", "my-hetzner"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "ip", "203.0.113.42"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "port", "22"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "user", "root"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "private_key_uuid", "dddd0002-0002-4000-8000-000000000002"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "is_build_server", "false"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "is_reachable", "true"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "is_usable", "true"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "concurrent_builds", "2"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "dynamic_timeout", "3600"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "server_disk_usage_notification_threshold", "80"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "name", "my-hetzner"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "ip", "203.0.113.42"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "port", "22"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "user", "root"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "private_key_uuid", "dddd0002-0002-4000-8000-000000000002"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "is_build_server", "false"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "is_reachable", "true"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "is_usable", "true"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "concurrent_builds", "2"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "dynamic_timeout", "3600"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "server_disk_usage_notification_threshold", "80"),
 				),
 			},
 			// Idempotent plan check.
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "my-hetzner"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
   server_type                = "cx22"
@@ -195,7 +195,7 @@ func TestHetznerServerResource_CreateWithSettings(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                                   = "my-hetzner"
   description                            = "Build node"
   cloud_provider_token_uuid              = "cccc0001-0001-4000-8000-000000000001"
@@ -213,21 +213,21 @@ resource "coolify_hetzner_server" "test" {
   server_disk_usage_check_frequency      = "0 * * * *"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "description", "Build node"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "port", "2222"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "user", "deployer"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "is_build_server", "true"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "concurrent_builds", "8"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "dynamic_timeout", "1800"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "deployment_queue_limit", "10"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "server_disk_usage_notification_threshold", "90"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "server_disk_usage_check_frequency", "0 * * * *"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "description", "Build node"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "port", "2222"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "user", "deployer"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "is_build_server", "true"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "concurrent_builds", "8"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "dynamic_timeout", "1800"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "deployment_queue_limit", "10"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "server_disk_usage_notification_threshold", "90"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "server_disk_usage_check_frequency", "0 * * * *"),
 				),
 			},
 			// Verify single-apply convergence: no second apply needed.
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                                   = "my-hetzner"
   description                            = "Build node"
   cloud_provider_token_uuid              = "cccc0001-0001-4000-8000-000000000001"
@@ -261,7 +261,7 @@ func TestHetznerServerResource_Update(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "my-hetzner"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
   server_type                = "cx22"
@@ -269,11 +269,11 @@ resource "coolify_hetzner_server" "test" {
   image                      = "ubuntu-24.04"
   private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
 }`,
-				Check: resource.TestCheckResourceAttr("coolify_hetzner_server.test", "name", "my-hetzner"),
+				Check: resource.TestCheckResourceAttr("coolify_server_hetzner.test", "name", "my-hetzner"),
 			},
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "renamed-hetzner"
   description                = "Updated description"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
@@ -285,16 +285,16 @@ resource "coolify_hetzner_server" "test" {
   concurrent_builds          = 4
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "name", "renamed-hetzner"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "description", "Updated description"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "is_build_server", "true"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "concurrent_builds", "4"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "name", "renamed-hetzner"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "description", "Updated description"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "is_build_server", "true"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "concurrent_builds", "4"),
 				),
 			},
 			// Post-update idempotency check.
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "renamed-hetzner"
   description                = "Updated description"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
@@ -322,7 +322,7 @@ func TestHetznerServerResource_Import(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "my-hetzner"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
   server_type                = "cx22"
@@ -332,7 +332,7 @@ resource "coolify_hetzner_server" "test" {
 }`,
 			},
 			{
-				ResourceName:                         "coolify_hetzner_server.test",
+				ResourceName:                         "coolify_server_hetzner.test",
 				ImportState:                          true,
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
@@ -365,7 +365,7 @@ func TestHetznerServerResource_ImportBadUUID(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "my-hetzner"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
   server_type                = "cx22"
@@ -375,7 +375,7 @@ resource "coolify_hetzner_server" "test" {
 }`,
 			},
 			{
-				ResourceName:  "coolify_hetzner_server.test",
+				ResourceName:  "coolify_server_hetzner.test",
 				ImportState:   true,
 				ImportStateId: "not-a-uuid",
 				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
@@ -433,7 +433,7 @@ func TestHetznerServerResource_CreateReadBackFailurePreservesState(t *testing.T)
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "readback-failure"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
   server_type                = "cx22"
@@ -457,7 +457,7 @@ func TestHetznerServerResource_InvalidPort(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "bad-port-server"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
   server_type                = "cx22"
@@ -482,7 +482,7 @@ func TestHetznerServerResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "my-hetzner"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
   server_type                = "cx22"
@@ -491,8 +491,8 @@ resource "coolify_hetzner_server" "test" {
   private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_hetzner_server.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_hetzner_server.test", "/api/v1/servers/"),
+					resource.TestCheckResourceAttrSet("coolify_server_hetzner.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_server_hetzner.test", "/api/v1/servers/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -568,11 +568,11 @@ func TestHetznerServerResource_DeleteUsesForce(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_hetzner_server", "/api/v1/servers/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_server_hetzner", "/api/v1/servers/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = "force-delete-hetzner"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
   server_type                = "cx22"

@@ -1,4 +1,4 @@
-resource "coolify_hetzner_server" "example" {
+resource "coolify_server_hetzner" "example" {
   name                      = "my-hetzner-server"
   cloud_provider_token_uuid = coolify_cloud_token.hetzner.uuid
   server_type               = "cx22"

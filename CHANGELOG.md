@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_storage` - Manage persistent storage volumes
   - `coolify_cloud_token` - Manage cloud provider tokens (Hetzner)
   - `coolify_github_app` - Manage GitHub App integrations
-  - `coolify_hetzner_server` - Provision Hetzner Cloud servers via Coolify
+  - `coolify_server_hetzner` - Provision Hetzner Cloud servers via Coolify
 - **Data Sources:**
   - `coolify_project` / `coolify_projects` - Read project(s)
   - `coolify_server` / `coolify_servers` - Read server(s)
