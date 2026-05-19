@@ -712,6 +712,7 @@ func TestClient_DeleteServer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		assert.Equal(t, "/api/v1/servers/srv-del", r.URL.Path)
+		assert.Equal(t, "force=true", r.URL.RawQuery)
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()

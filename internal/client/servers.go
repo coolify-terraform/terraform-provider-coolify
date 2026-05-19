@@ -115,7 +115,8 @@ func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServ
 	return &s, nil
 }
 func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/servers/%s", url.PathEscape(uuid)), nil, nil); err != nil {
+	path := fmt.Sprintf("/api/v1/servers/%s?force=true", url.PathEscape(uuid))
+	if err := c.do(ctx, http.MethodDelete, path, nil, nil); err != nil {
 		return fmt.Errorf("deleting server %s: %w", uuid, err)
 	}
 	return nil
