@@ -375,6 +375,58 @@ resource "coolify_environment" "test" {
 	})
 }
 
+func TestEnvironmentResource_ImportBadFormat(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockEnvironmentServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_environment" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "import-env"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_environment.test",
+				ImportState:   true,
+				ImportStateId: "missing-colon",
+				ExpectError:   regexp.MustCompile(`Invalid import ID format`),
+			},
+		},
+	})
+}
+
+func TestEnvironmentResource_ImportBadProjectUUID(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockEnvironmentServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_environment" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "import-env"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_environment.test",
+				ImportState:   true,
+				ImportStateId: "not-a-uuid:import-env",
+				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*project UUID segment`),
+			},
+		},
+	})
+}
+
 func TestEnvironmentResource_Disappears(t *testing.T) {
 	t.Parallel()
 	server, store := newMockEnvironmentServer()
