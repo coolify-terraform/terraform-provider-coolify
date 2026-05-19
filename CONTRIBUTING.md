@@ -82,12 +82,7 @@ make validate          # Check HCL formatting in examples/
 make goreleaser-check  # Validate .goreleaser.yml (requires goreleaser v2.x)
 ```
 
-**Required local tools** (match the versions pinned in CI):
-
-- `golangci-lint` v2.12.2 exactly (match CI: `curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b ~/.local/bin v2.12.2`)
-- `terraform` >= 1.6 (for `terraform fmt` on examples)
-- `goreleaser` v2.x (match CI major version: `go install github.com/goreleaser/goreleaser/v2@latest`)
-- `tfplugindocs` (`cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs`)
+**Required local tools:** Run `make tools` to install `golangci-lint`, `goreleaser`, and `tfplugindocs` automatically. You also need `terraform` >= 1.6 (for `terraform fmt` on examples).
 
 ## Project Structure
 
