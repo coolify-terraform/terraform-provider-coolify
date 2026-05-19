@@ -255,6 +255,78 @@ resource "coolify_resource_action" "start_db" {
 	})
 }
 
+func TestResourceActionResource_AlreadyStopped(t *testing.T) {
+	t.Parallel()
+	dbUUID := "aaaa0003-0003-4000-8000-000000000003"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/databases/{uuid}/stop", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"message":"Database is already stopped."}`)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_resource_action" "stop_db" {
+  resource_uuid = %q
+  resource_type = "database"
+  action        = "stop"
+}
+`, srv.URL, dbUUID),
+				Check: resource.TestCheckResourceAttr("coolify_resource_action.stop_db", "action", "stop"),
+			},
+		},
+	})
+}
+
+func TestResourceActionResource_AlreadyRunning(t *testing.T) {
+	t.Parallel()
+	svcUUID := "aaaa0004-0004-4000-8000-000000000004"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/services/{uuid}/start", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"message":"Service is already running."}`)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_resource_action" "start_svc" {
+  resource_uuid = %q
+  resource_type = "service"
+  action        = "start"
+}
+`, srv.URL, svcUUID),
+				Check: resource.TestCheckResourceAttr("coolify_resource_action.start_svc", "action", "start"),
+			},
+		},
+	})
+}
+
 func TestResourceActionResource_InvalidResourceType(t *testing.T) {
 	t.Parallel()
 

@@ -3,6 +3,7 @@ package resourceaction
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
@@ -126,27 +127,51 @@ func (r *resourceActionResource) Delete(_ context.Context, _ resource.DeleteRequ
 }
 
 func (r *resourceActionResource) executeAction(ctx context.Context, resType, action, uuid string) error {
+	var err error
 	switch resType + ":" + action {
 	case "application:start":
-		return r.client.StartApplication(ctx, uuid)
+		err = r.client.StartApplication(ctx, uuid)
 	case "application:stop":
-		return r.client.StopApplication(ctx, uuid)
+		err = r.client.StopApplication(ctx, uuid)
 	case "application:restart":
-		_, err := r.client.RestartApplication(ctx, uuid)
-		return err
+		_, err = r.client.RestartApplication(ctx, uuid)
 	case "database:start":
-		return r.client.StartDatabase(ctx, uuid)
+		err = r.client.StartDatabase(ctx, uuid)
 	case "database:stop":
-		return r.client.StopDatabase(ctx, uuid)
+		err = r.client.StopDatabase(ctx, uuid)
 	case "database:restart":
-		return r.client.RestartDatabase(ctx, uuid)
+		err = r.client.RestartDatabase(ctx, uuid)
 	case "service:start":
-		return r.client.StartService(ctx, uuid)
+		err = r.client.StartService(ctx, uuid)
 	case "service:stop":
-		return r.client.StopService(ctx, uuid)
+		err = r.client.StopService(ctx, uuid)
 	case "service:restart":
-		return r.client.RestartService(ctx, uuid)
+		err = r.client.RestartService(ctx, uuid)
 	default:
 		return fmt.Errorf("unsupported combination: %s/%s", resType, action)
+	}
+
+	if err != nil && isAlreadyInDesiredState(err, action) {
+		tflog.Debug(ctx, "resource already in desired state, treating as success", map[string]interface{}{
+			"action": action,
+			"uuid":   uuid,
+		})
+		return nil
+	}
+	return err
+}
+
+// isAlreadyInDesiredState returns true when Coolify reports a 400 because
+// the resource is already in the target state (e.g. "Database is already
+// stopped." when action is "stop"). These are idempotent successes.
+func isAlreadyInDesiredState(err error, action string) bool {
+	msg := err.Error()
+	switch action {
+	case "start":
+		return strings.Contains(msg, "already running")
+	case "stop":
+		return strings.Contains(msg, "already stopped")
+	default:
+		return false
 	}
 }
