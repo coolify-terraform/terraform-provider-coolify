@@ -43,6 +43,42 @@ func TestStringValueOrNull(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// IntValueOrNull
+// ---------------------------------------------------------------------------
+
+func TestIntValueOrNull(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name   string
+		input  types.Int64
+		wantNl bool
+		want   int
+	}{
+		{"positive value", types.Int64Value(42), false, 42},
+		{"zero value", types.Int64Value(0), false, 0},
+		{"negative value", types.Int64Value(-1), false, -1},
+		{"null", types.Int64Null(), true, 0},
+		{"unknown", types.Int64Unknown(), true, 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flex.IntValueOrNull(tc.input)
+			if tc.wantNl {
+				if got != nil {
+					t.Fatalf("expected nil, got %v", *got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("expected non-nil pointer, got nil")
+			}
+			if *got != tc.want {
+				t.Fatalf("expected %v, got %v", tc.want, *got)
+			}
+		})
+	}
+}
+
 // BoolValue / BoolValueOrNull
 // ---------------------------------------------------------------------------
 
