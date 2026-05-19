@@ -652,6 +652,58 @@ resource "coolify_deployment" "test" {
 	})
 }
 
+func TestDeploymentResource_ImportBadDeploymentUUID(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "bbbb0004-0004-4000-8000-000000000004"
+	appUUID := "cccc0004-0004-4000-8000-000000000004"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"deployment_uuid": deploymentUUID,
+			"message":         "Restart request queued.",
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "queued",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+			},
+			{
+				ResourceName:  "coolify_deployment.test",
+				ImportState:   true,
+				ImportStateId: appUUID + ":not-a-uuid",
+				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*deployment UUID segment`),
+			},
+		},
+	})
+}
+
 func TestDeploymentResource_UpdateWaitForCompletion(t *testing.T) {
 	t.Parallel()
 	deploymentUUID := "aaaa0006-0006-4000-8000-000000000006"
