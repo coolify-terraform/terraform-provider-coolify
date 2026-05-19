@@ -35,6 +35,10 @@ You can configure credentials in two ways:
 ```bash
 export COOLIFY_ENDPOINT="https://coolify.example.com"
 export COOLIFY_TOKEN="your-api-token"
+
+# Optional: Cloudflare Access (when Coolify is behind CF Access)
+export COOLIFY_CF_ACCESS_CLIENT_ID="your-cf-client-id"
+export COOLIFY_CF_ACCESS_CLIENT_SECRET="your-cf-client-secret"
 ```
 
 ### Provider block
@@ -43,6 +47,10 @@ export COOLIFY_TOKEN="your-api-token"
 provider "coolify" {
   endpoint = var.coolify_endpoint # Or set COOLIFY_ENDPOINT env var
   token    = var.coolify_token    # Or set COOLIFY_TOKEN env var
+
+  # Optional: Cloudflare Access (when Coolify is behind CF Access)
+  # cf_access_client_id     = var.cf_access_client_id     # Or set COOLIFY_CF_ACCESS_CLIENT_ID
+  # cf_access_client_secret = var.cf_access_client_secret  # Or set COOLIFY_CF_ACCESS_CLIENT_SECRET
 }
 ```
 
@@ -96,6 +104,8 @@ You should not see diffs on `terraform plan` after the initial apply.
 ### Optional
 
 - `ca_cert` (String) PEM-encoded CA certificate to trust for TLS connections to the Coolify API. Use this when your Coolify instance uses a self-signed certificate or an internal CA. Env: `COOLIFY_CA_CERT`.
+- `cf_access_client_id` (String) Cloudflare Access `CF-Access-Client-Id` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_ID`.
+- `cf_access_client_secret` (String, Sensitive) Cloudflare Access `CF-Access-Client-Secret` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_SECRET`.
 - `endpoint` (String) Coolify API endpoint. Env: COOLIFY_ENDPOINT.
 - `insecure` (Boolean) Skip TLS certificate verification. **Not recommended for production.** Use `ca_cert` instead when possible. Env: `COOLIFY_INSECURE`.
 - `retry_max` (Number) Maximum number of API request retries (default: 3).

@@ -4662,3 +4662,36 @@ func TestClient_ListHetznerSSHKeys(t *testing.T) {
 	assert.Equal(t, "deploy-key", keys[0].Name)
 	assert.Equal(t, "aa:bb:cc:dd", keys[0].Fingerprint)
 }
+
+// --- Cloudflare Access Headers ---
+
+func TestClient_CFAccessHeaders_Set(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "test-cf-id", r.Header.Get("CF-Access-Client-Id"))
+		assert.Equal(t, "test-cf-secret", r.Header.Get("CF-Access-Client-Secret"))
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode("4.0.0")
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token", RetryConfig{
+		CFAccessClientID:  "test-cf-id",
+		CFAccessClientSec: "test-cf-secret",
+	})
+	_, err := c.GetVersion(context.Background())
+	require.NoError(t, err)
+}
+
+func TestClient_CFAccessHeaders_NotSet(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.Header.Get("CF-Access-Client-Id"))
+		assert.Empty(t, r.Header.Get("CF-Access-Client-Secret"))
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode("4.0.0")
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.GetVersion(context.Background())
+	require.NoError(t, err)
+}
