@@ -57,7 +57,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		// ── Applications ──
 		"GET /applications":                                               covered("data.coolify_applications", "v0.1.0"),
 		"POST /applications/public":                                       covered("coolify_application", "v0.1.0"),
-		"POST /applications/dockercompose":                                {category: "skipped", resource: "Removed: Coolify v4 endpoint creates a Service, not an Application"},
+		"POST /applications/dockercompose":                                {category: "skipped", resource: "Deprecated alias: use POST /services instead because this flow creates a Service, not an Application"},
 		"POST /applications/dockerimage":                                  covered("coolify_docker_image_application", "v0.1.0"),
 		"POST /applications/private-deploy-key":                           covered("coolify_private_git_application", "v0.1.0"),
 		"GET /applications/{uuid}":                                        covered("data.coolify_application", "v0.1.0"),
@@ -339,7 +339,7 @@ func TestSpecCoverage_GenerateDoc(t *testing.T) {
 
 	// Skipped
 	b.WriteString("\n## Intentionally Skipped\n\n")
-	b.WriteString("These endpoints are not appropriate for Terraform resource management.\n\n")
+	b.WriteString("These endpoints are intentionally not modeled directly in Terraform.\n\n")
 	b.WriteString("| Endpoint | Reason |\n")
 	b.WriteString("|----------|--------|\n")
 	for _, e := range skippedList {

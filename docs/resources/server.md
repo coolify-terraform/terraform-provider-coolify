@@ -25,6 +25,7 @@ resource "coolify_server" "example" {
   private_key_uuid = coolify_private_key.example.uuid
 
   # Optional server settings (uncomment as needed):
+  # is_build_server                      = true    # Use this server for application builds
   # concurrent_builds                      = 2       # Max parallel deployments (default: 2)
   # dynamic_timeout                        = 3600    # Deployment timeout in seconds (default: 3600)
   # deployment_queue_limit                 = 25      # Max queued deployments, 0 = unlimited (default: 25)

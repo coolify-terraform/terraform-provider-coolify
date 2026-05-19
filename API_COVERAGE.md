@@ -156,11 +156,11 @@ Ordered by priority (1 = most needed by users).
 
 ## Intentionally Skipped
 
-These endpoints are not appropriate for Terraform resource management.
+These endpoints are intentionally not modeled directly in Terraform.
 
 | Endpoint | Reason |
 |----------|--------|
-| `POST /applications/dockercompose` | Removed: Coolify v4 endpoint creates a Service, not an Application |
+| `POST /applications/dockercompose` | Deprecated alias: use POST /services instead because this flow creates a Service, not an Application |
 
 ## New in Spec (Unclassified)
 
