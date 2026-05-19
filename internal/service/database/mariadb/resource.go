@@ -36,7 +36,7 @@ type model struct {
 
 func NewResource() resource.Resource { return &res{} }
 func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_mariadb_database"
+	resp.TypeName = req.ProviderTypeName + "_database_mariadb"
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a MariaDB database resource on Coolify.", Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
@@ -64,7 +64,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_mariadb_database"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_mariadb"})
 
 	in := client.CreateMariadbInput{ServerUUID: p.ServerUUID.ValueString(), ProjectUUID: p.ProjectUUID.ValueString(), EnvironmentName: p.EnvironmentName.ValueString()}
 	flex.SetIfKnown(&in.Name, p.Name)
@@ -114,7 +114,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 	flattenDatabase(db, &p)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_mariadb_database", "uuid": c.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_database_mariadb", "uuid": c.UUID})
 }
 func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var s model
@@ -122,7 +122,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_mariadb_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_mariadb", "uuid": s.UUID.ValueString()})
 
 	db, err := dbcommon.ReadDatabase(ctx, r.client, s.UUID.ValueString())
 	if err != nil {
@@ -130,7 +130,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 		return
 	}
 	if db == nil {
-		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_mariadb_database", "uuid": s.UUID.ValueString()})
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_mariadb", "uuid": s.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -148,7 +148,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_mariadb_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_database_mariadb", "uuid": s.UUID.ValueString()})
 
 	u := client.UpdateDatabaseInput{
 		Name:                flex.StringIfChanged(p.Name, s.Name),
@@ -177,9 +177,9 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_mariadb_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_mariadb", "uuid": s.UUID.ValueString()})
 
-	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_mariadb_database", s.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_database_mariadb", s.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting MariaDB database", fmt.Sprintf("MariaDB database %s: %s", s.UUID.ValueString(), err))
 		return
 	}

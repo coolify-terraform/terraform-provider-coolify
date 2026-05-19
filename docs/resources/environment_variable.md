@@ -30,7 +30,7 @@ resource "coolify_environment_variable" "database_url" {
 # that are already managed by the database resource's own attributes.
 # `is_build` is application-only; omit it for database/service variables.
 resource "coolify_environment_variable" "db_log_level" {
-  database_uuid = coolify_postgresql_database.example.uuid
+  database_uuid = coolify_database_postgresql.example.uuid
   key           = "POSTGRES_LOG_MIN_MESSAGES"
   value         = "warning"
 }

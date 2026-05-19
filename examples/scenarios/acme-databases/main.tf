@@ -25,7 +25,7 @@ resource "coolify_project" "eval" {
 
 # --- All 8 Database Engines ---
 
-resource "coolify_postgresql_database" "pg" {
+resource "coolify_database_postgresql" "pg" {
   name             = "eval-postgres"
   project_uuid     = coolify_project.eval.uuid
   server_uuid      = var.server_uuid
@@ -36,7 +36,7 @@ resource "coolify_postgresql_database" "pg" {
   is_public        = false
 }
 
-resource "coolify_mysql_database" "mysql" {
+resource "coolify_database_mysql" "mysql" {
   name             = "eval-mysql"
   project_uuid     = coolify_project.eval.uuid
   server_uuid      = var.server_uuid
@@ -46,7 +46,7 @@ resource "coolify_mysql_database" "mysql" {
   mysql_database   = "eval_db"
 }
 
-resource "coolify_mariadb_database" "mariadb" {
+resource "coolify_database_mariadb" "mariadb" {
   name             = "eval-mariadb"
   project_uuid     = coolify_project.eval.uuid
   server_uuid      = var.server_uuid
@@ -56,7 +56,7 @@ resource "coolify_mariadb_database" "mariadb" {
   mariadb_database = "eval_db"
 }
 
-resource "coolify_redis_database" "redis" {
+resource "coolify_database_redis" "redis" {
   name             = "eval-redis"
   project_uuid     = coolify_project.eval.uuid
   server_uuid      = var.server_uuid
@@ -64,7 +64,7 @@ resource "coolify_redis_database" "redis" {
   image            = "redis:7"
 }
 
-resource "coolify_mongodb_database" "mongo" {
+resource "coolify_database_mongodb" "mongo" {
   name             = "eval-mongo"
   project_uuid     = coolify_project.eval.uuid
   server_uuid      = var.server_uuid
@@ -72,7 +72,7 @@ resource "coolify_mongodb_database" "mongo" {
   image            = "mongo:7"
 }
 
-resource "coolify_clickhouse_database" "clickhouse" {
+resource "coolify_database_clickhouse" "clickhouse" {
   name             = "eval-clickhouse"
   project_uuid     = coolify_project.eval.uuid
   server_uuid      = var.server_uuid
@@ -80,7 +80,7 @@ resource "coolify_clickhouse_database" "clickhouse" {
   image            = "clickhouse/clickhouse-server:latest"
 }
 
-resource "coolify_keydb_database" "keydb" {
+resource "coolify_database_keydb" "keydb" {
   name             = "eval-keydb"
   project_uuid     = coolify_project.eval.uuid
   server_uuid      = var.server_uuid
@@ -88,7 +88,7 @@ resource "coolify_keydb_database" "keydb" {
   image            = "eqalpha/keydb:latest"
 }
 
-resource "coolify_dragonfly_database" "dragonfly" {
+resource "coolify_database_dragonfly" "dragonfly" {
   name             = "eval-dragonfly"
   project_uuid     = coolify_project.eval.uuid
   server_uuid      = var.server_uuid

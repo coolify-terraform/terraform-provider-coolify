@@ -44,7 +44,7 @@ func TestAccIntegration_FullStack(t *testing.T) {
 					resource.TestCheckResourceAttrSet("coolify_scheduled_task.stack", "uuid"),
 					resource.TestCheckResourceAttr("coolify_scheduled_task.stack", "command", "echo stack"),
 					// Database
-					resource.TestCheckResourceAttrSet("coolify_postgresql_database.stack", "uuid"),
+					resource.TestCheckResourceAttrSet("coolify_database_postgresql.stack", "uuid"),
 					// Backup
 					resource.TestCheckResourceAttrSet("coolify_database_backup.stack", "uuid"),
 					resource.TestCheckResourceAttr("coolify_database_backup.stack", "frequency", "0 3 * * *"),
@@ -97,14 +97,14 @@ resource "coolify_scheduled_task" "stack" {
   frequency        = "0 * * * *"
 }
 
-resource "coolify_postgresql_database" "stack" {
+resource "coolify_database_postgresql" "stack" {
   project_uuid = coolify_project.stack.uuid
   server_uuid  = %[2]q
   name         = "%[1]s-db"
 }
 
 resource "coolify_database_backup" "stack" {
-  database_uuid         = coolify_postgresql_database.stack.uuid
+  database_uuid         = coolify_database_postgresql.stack.uuid
   frequency             = "0 3 * * *"
   enabled               = true
   retain_amount_locally = 3

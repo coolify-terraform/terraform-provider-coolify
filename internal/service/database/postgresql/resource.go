@@ -40,7 +40,7 @@ type postgresqlDatabaseResourceModel struct {
 func NewResource() resource.Resource { return &postgresqlDatabaseResource{} }
 
 func (r *postgresqlDatabaseResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_postgresql_database"
+	resp.TypeName = req.ProviderTypeName + "_database_postgresql"
 }
 
 func (r *postgresqlDatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -100,7 +100,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
 
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_postgresql_database"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_postgresql"})
 
 	input := client.CreatePostgresqlInput{
 		ServerUUID:      plan.ServerUUID.ValueString(),
@@ -162,7 +162,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	}
 	flattenDatabase(db, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": created.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_database_postgresql", "uuid": created.UUID})
 }
 
 func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -171,7 +171,7 @@ func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": state.UUID.ValueString()})
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_postgresql", "uuid": state.UUID.ValueString()})
 
 	db, err := dbcommon.ReadDatabase(ctx, r.client, state.UUID.ValueString())
 	if err != nil {
@@ -179,7 +179,7 @@ func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 	if db == nil {
-		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": state.UUID.ValueString()})
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_postgresql", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -200,7 +200,7 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 	}
 	uuid := state.UUID.ValueString()
 
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": uuid})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_database_postgresql", "uuid": uuid})
 
 	input := client.UpdateDatabaseInput{
 		Name:                   flex.StringIfChanged(plan.Name, state.Name),
@@ -232,9 +232,9 @@ func (r *postgresqlDatabaseResource) Delete(ctx context.Context, req resource.De
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_postgresql_database", "uuid": state.UUID.ValueString()})
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_postgresql", "uuid": state.UUID.ValueString()})
 
-	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_postgresql_database", state.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_database_postgresql", state.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}

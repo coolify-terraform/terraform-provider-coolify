@@ -14,16 +14,16 @@ run "create_and_verify" {
 
   # --- Databases ---
   assert {
-    condition     = coolify_postgresql_database.orders.name == "acme-orders-db"
-    error_message = "PostgreSQL name mismatch: got ${coolify_postgresql_database.orders.name}"
+    condition     = coolify_database_postgresql.orders.name == "acme-orders-db"
+    error_message = "PostgreSQL name mismatch: got ${coolify_database_postgresql.orders.name}"
   }
   assert {
-    condition     = coolify_postgresql_database.orders.postgres_user == "orders"
-    error_message = "PostgreSQL user mismatch: got ${coolify_postgresql_database.orders.postgres_user}"
+    condition     = coolify_database_postgresql.orders.postgres_user == "orders"
+    error_message = "PostgreSQL user mismatch: got ${coolify_database_postgresql.orders.postgres_user}"
   }
   assert {
-    condition     = coolify_redis_database.queue.name == "acme-queue"
-    error_message = "Redis name mismatch: got ${coolify_redis_database.queue.name}"
+    condition     = coolify_database_redis.queue.name == "acme-queue"
+    error_message = "Redis name mismatch: got ${coolify_database_redis.queue.name}"
   }
 
   # --- Applications ---

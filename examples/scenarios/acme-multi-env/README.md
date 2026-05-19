@@ -19,7 +19,7 @@ Each module call provisions:
 | Resource | Description |
 |---|---|
 | `coolify_project` | A Coolify project that groups the environment's resources |
-| `coolify_postgresql_database` | A PostgreSQL database for the app |
+| `coolify_database_postgresql` | A PostgreSQL database for the app |
 | `coolify_application` | The web application deployed from Git via Nixpacks |
 | `coolify_environment_variable` | `DATABASE_URL` connecting the app to its database |
 

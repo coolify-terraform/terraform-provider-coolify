@@ -30,7 +30,7 @@ resource "coolify_project" "acme" {
 
 # --- Databases ---
 
-resource "coolify_postgresql_database" "orders" {
+resource "coolify_database_postgresql" "orders" {
   name             = "acme-orders-db"
   project_uuid     = coolify_project.acme.uuid
   server_uuid      = var.server_uuid
@@ -41,7 +41,7 @@ resource "coolify_postgresql_database" "orders" {
   is_public        = false
 }
 
-resource "coolify_redis_database" "queue" {
+resource "coolify_database_redis" "queue" {
   name             = "acme-queue"
   project_uuid     = coolify_project.acme.uuid
   server_uuid      = var.server_uuid
@@ -84,7 +84,7 @@ resource "coolify_docker_image_application" "worker" {
 resource "coolify_environment_variable" "api_db_url" {
   application_uuid = coolify_dockerfile_application.api.uuid
   key              = "DATABASE_URL"
-  value            = "postgresql://${coolify_postgresql_database.orders.postgres_user}:${coolify_postgresql_database.orders.postgres_password}@${coolify_postgresql_database.orders.name}:5432/${coolify_postgresql_database.orders.postgres_db}"
+  value            = "postgresql://${coolify_database_postgresql.orders.postgres_user}:${coolify_database_postgresql.orders.postgres_password}@${coolify_database_postgresql.orders.name}:5432/${coolify_database_postgresql.orders.postgres_db}"
   is_build         = false
   is_preview       = false
 }
@@ -92,7 +92,7 @@ resource "coolify_environment_variable" "api_db_url" {
 resource "coolify_environment_variable" "api_redis_url" {
   application_uuid = coolify_dockerfile_application.api.uuid
   key              = "REDIS_URL"
-  value            = "redis://${coolify_redis_database.queue.name}:6379"
+  value            = "redis://${coolify_database_redis.queue.name}:6379"
   is_build         = false
   is_preview       = false
 }
@@ -100,7 +100,7 @@ resource "coolify_environment_variable" "api_redis_url" {
 resource "coolify_environment_variable" "worker_db_url" {
   application_uuid = coolify_docker_image_application.worker.uuid
   key              = "DATABASE_URL"
-  value            = "postgresql://${coolify_postgresql_database.orders.postgres_user}:${coolify_postgresql_database.orders.postgres_password}@${coolify_postgresql_database.orders.name}:5432/${coolify_postgresql_database.orders.postgres_db}"
+  value            = "postgresql://${coolify_database_postgresql.orders.postgres_user}:${coolify_database_postgresql.orders.postgres_password}@${coolify_database_postgresql.orders.name}:5432/${coolify_database_postgresql.orders.postgres_db}"
   is_build         = false
   is_preview       = false
 }
@@ -108,7 +108,7 @@ resource "coolify_environment_variable" "worker_db_url" {
 resource "coolify_environment_variable" "worker_redis_url" {
   application_uuid = coolify_docker_image_application.worker.uuid
   key              = "REDIS_URL"
-  value            = "redis://${coolify_redis_database.queue.name}:6379"
+  value            = "redis://${coolify_database_redis.queue.name}:6379"
   is_build         = false
   is_preview       = false
 }
@@ -137,7 +137,7 @@ data "coolify_application" "verify_api" {
 # When s3_storage_uuid is omitted, backups are stored locally on the server.
 
 resource "coolify_database_backup" "orders" {
-  database_uuid         = coolify_postgresql_database.orders.uuid
+  database_uuid         = coolify_database_postgresql.orders.uuid
   frequency             = "@daily"
   enabled               = true
   retain_amount_locally = 7

@@ -35,7 +35,7 @@ resource "coolify_project" "data" {
   name = "data-tier"
 }
 
-resource "coolify_postgresql_database" "main" {
+resource "coolify_database_postgresql" "main" {
   name         = "app-database"
   project_uuid = coolify_project.data.uuid
   server_uuid  = var.server_uuid
@@ -43,7 +43,7 @@ resource "coolify_postgresql_database" "main" {
 }
 
 resource "coolify_database_backup" "daily" {
-  database_uuid         = coolify_postgresql_database.main.uuid
+  database_uuid         = coolify_database_postgresql.main.uuid
   s3_storage_uuid       = var.existing_s3_storage_uuid
   frequency             = "0 2 * * *"
   retain_amount_locally = 7 # Number of backup copies to keep (not days)
@@ -52,5 +52,5 @@ resource "coolify_database_backup" "daily" {
 }
 
 output "database_uuid" {
-  value = coolify_postgresql_database.main.uuid
+  value = coolify_database_postgresql.main.uuid
 }

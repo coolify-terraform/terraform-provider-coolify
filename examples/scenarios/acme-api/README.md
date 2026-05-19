@@ -17,8 +17,8 @@ Docker networking, and managed entirely through Terraform.
 | # | Resource | Type | Purpose |
 |---|----------|------|---------|
 | 1 | `coolify_project.acme` | Project | Groups all order-processing resources |
-| 2 | `coolify_postgresql_database.orders` | Database | Stores orders, customers, payments |
-| 3 | `coolify_redis_database.queue` | Database | Job queues and response caching |
+| 2 | `coolify_database_postgresql.orders` | Database | Stores orders, customers, payments |
+| 3 | `coolify_database_redis.queue` | Database | Job queues and response caching |
 | 4 | `coolify_dockerfile_application.api` | Application | REST API built from a Dockerfile |
 | 5 | `coolify_docker_image_application.worker` | Application | Background worker from a Docker image |
 | 6 | `coolify_environment_variable.api_db_url` | Env var | Connects the API to PostgreSQL |

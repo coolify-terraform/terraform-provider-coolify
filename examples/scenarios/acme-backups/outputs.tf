@@ -1,6 +1,6 @@
 output "database_uuid" {
   description = "UUID of the PostgreSQL database"
-  value       = coolify_postgresql_database.app_db.uuid
+  value       = coolify_database_postgresql.app_db.uuid
 }
 
 output "backup_uuid" {

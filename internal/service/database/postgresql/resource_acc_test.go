@@ -16,35 +16,35 @@ func TestAccPostgresqlDatabaseResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_postgresql_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_postgresql", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create and verify
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "uuid"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "name", name),
-					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "image"),
+					resource.TestCheckResourceAttrSet("coolify_database_postgresql.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "name", name),
+					resource.TestCheckResourceAttrSet("coolify_database_postgresql.test", "image"),
 				),
 			},
 			// Idempotency check
 			{
-				Config:             acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, ""),
+				Config:             acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, ""),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			// Update description
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, `description = "Updated via acc test"`),
-				Check:  resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "Updated via acc test"),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, `description = "Updated via acc test"`),
+				Check:  resource.TestCheckResourceAttr("coolify_database_postgresql.test", "description", "Updated via acc test"),
 			},
 			// Import
 			{
-				ResourceName:                         "coolify_postgresql_database.test",
+				ResourceName:                         "coolify_database_postgresql.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_postgresql_database.test", "uuid"),
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_database_postgresql.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"postgres_password", "project_uuid", "server_uuid", "environment_name"},
 			},
 		},
@@ -60,13 +60,13 @@ func TestAccPostgresqlDatabaseResource_Disappears(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_postgresql_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_postgresql", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "uuid"),
-					acctest.AccCheckResourceDisappears("coolify_postgresql_database.test", "/api/v1/databases/"),
+					resource.TestCheckResourceAttrSet("coolify_database_postgresql.test", "uuid"),
+					acctest.AccCheckResourceDisappears("coolify_database_postgresql.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -83,27 +83,27 @@ func TestAccPostgresqlDatabaseDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_postgresql_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_postgresql", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_postgresql_database", name, serverUUID, "") + `
+				Config: acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, "") + `
 data "coolify_database" "test" {
-  uuid = coolify_postgresql_database.test.uuid
+  uuid = coolify_database_postgresql.test.uuid
 }
 
 data "coolify_databases" "all" {
-  depends_on = [coolify_postgresql_database.test]
+  depends_on = [coolify_database_postgresql.test]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Single data source
 					resource.TestCheckResourceAttrPair(
 						"data.coolify_database.test", "uuid",
-						"coolify_postgresql_database.test", "uuid",
+						"coolify_database_postgresql.test", "uuid",
 					),
 					resource.TestCheckResourceAttrPair(
 						"data.coolify_database.test", "name",
-						"coolify_postgresql_database.test", "name",
+						"coolify_database_postgresql.test", "name",
 					),
 					// List data source
 					resource.TestCheckResourceAttrSet("data.coolify_databases.all", "databases.#"),

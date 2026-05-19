@@ -22,20 +22,20 @@ run "create_and_verify" {
 
   # --- Database ---
   assert {
-    condition     = coolify_postgresql_database.content.uuid != ""
+    condition     = coolify_database_postgresql.content.uuid != ""
     error_message = "PostgreSQL database was not created: uuid is empty"
   }
   assert {
-    condition     = coolify_postgresql_database.content.name == "acme-content"
-    error_message = "Database name mismatch: got ${coolify_postgresql_database.content.name}"
+    condition     = coolify_database_postgresql.content.name == "acme-content"
+    error_message = "Database name mismatch: got ${coolify_database_postgresql.content.name}"
   }
   assert {
-    condition     = coolify_postgresql_database.content.postgres_user == "acme"
-    error_message = "Database user mismatch: got ${coolify_postgresql_database.content.postgres_user}"
+    condition     = coolify_database_postgresql.content.postgres_user == "acme"
+    error_message = "Database user mismatch: got ${coolify_database_postgresql.content.postgres_user}"
   }
   assert {
-    condition     = coolify_postgresql_database.content.postgres_db == "acme_content"
-    error_message = "Database name mismatch: got ${coolify_postgresql_database.content.postgres_db}"
+    condition     = coolify_database_postgresql.content.postgres_db == "acme_content"
+    error_message = "Database name mismatch: got ${coolify_database_postgresql.content.postgres_db}"
   }
 
   # --- Application ---

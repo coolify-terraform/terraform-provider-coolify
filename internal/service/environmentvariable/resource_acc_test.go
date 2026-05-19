@@ -160,7 +160,7 @@ func TestAccEnvironmentVariableResource_DatabaseCRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"value"},
-				ImportStateIdFunc:                    testAccEnvVarDbImportStateIdFunc("coolify_postgresql_database.test", "coolify_environment_variable.test"),
+				ImportStateIdFunc:                    testAccEnvVarDbImportStateIdFunc("coolify_database_postgresql.test", "coolify_environment_variable.test"),
 			},
 		},
 	})
@@ -281,14 +281,14 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
   name         = %[1]q
 }
 
 resource "coolify_environment_variable" "test" {
-  database_uuid = coolify_postgresql_database.test.uuid
+  database_uuid = coolify_database_postgresql.test.uuid
   key           = "DB_TEST_VAR"
   value         = %[3]q
 }

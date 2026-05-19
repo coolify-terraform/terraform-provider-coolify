@@ -40,14 +40,14 @@ Coolify gives you a self-hosted PaaS with a great UI. This provider adds the thi
 | `coolify_environment_variable` | Manage env vars for applications, services, and databases |
 | `coolify_deployment` | Trigger application deployments |
 | `coolify_service` | Deploy one-click services from the Coolify catalog |
-| `coolify_postgresql_database` | Provision PostgreSQL databases |
-| `coolify_mysql_database` | Provision MySQL databases |
-| `coolify_mariadb_database` | Provision MariaDB databases |
-| `coolify_redis_database` | Provision Redis instances |
-| `coolify_mongodb_database` | Provision MongoDB databases |
-| `coolify_clickhouse_database` | Provision ClickHouse databases |
-| `coolify_keydb_database` | Provision KeyDB databases (Redis-compatible) |
-| `coolify_dragonfly_database` | Provision DragonFly databases (Redis-compatible) |
+| `coolify_database_postgresql` | Provision PostgreSQL databases |
+| `coolify_database_mysql` | Provision MySQL databases |
+| `coolify_database_mariadb` | Provision MariaDB databases |
+| `coolify_database_redis` | Provision Redis instances |
+| `coolify_database_mongodb` | Provision MongoDB databases |
+| `coolify_database_clickhouse` | Provision ClickHouse databases |
+| `coolify_database_keydb` | Provision KeyDB databases (Redis-compatible) |
+| `coolify_database_dragonfly` | Provision DragonFly databases (Redis-compatible) |
 | `coolify_database_backup` | Schedule automated database backups |
 | `coolify_scheduled_task` | Manage scheduled tasks on applications/services |
 | `coolify_storage` | Manage persistent storage volumes |
@@ -136,7 +136,7 @@ resource "coolify_project" "example" {
   description = "Managed by Terraform"
 }
 
-resource "coolify_postgresql_database" "db" {
+resource "coolify_database_postgresql" "db" {
   name          = "my-database"
   project_uuid  = coolify_project.example.uuid
   server_uuid   = "your-server-uuid"
@@ -161,7 +161,7 @@ resource "coolify_application" "web" {
 
 See the [examples/](examples/) directory for per-resource examples (including
 sensitive variable handling for
-[`coolify_postgresql_database`](examples/resources/coolify_postgresql_database/resource.tf)
+[`coolify_database_postgresql`](examples/resources/coolify_database_postgresql/resource.tf)
 and [`coolify_github_app`](examples/resources/coolify_github_app/resource.tf)),
 and the [ACME Corp scenarios](#what-you-can-do) above for full-stack examples.
 

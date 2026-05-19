@@ -29,7 +29,7 @@ resource "coolify_project" "backups" {
 
 # --- Database ---
 
-resource "coolify_postgresql_database" "app_db" {
+resource "coolify_database_postgresql" "app_db" {
   name             = "acme-app-db"
   project_uuid     = coolify_project.backups.uuid
   server_uuid      = var.server_uuid
@@ -46,7 +46,7 @@ resource "coolify_postgresql_database" "app_db" {
 # set backup_now = true on create.
 
 resource "coolify_database_backup" "daily" {
-  database_uuid = coolify_postgresql_database.app_db.uuid
+  database_uuid = coolify_database_postgresql.app_db.uuid
   frequency     = "0 2 * * *" # Daily at 2 AM
   enabled       = true
   backup_now    = true # Trigger an immediate backup on creation
@@ -64,6 +64,6 @@ resource "coolify_database_backup" "daily" {
 # source. Each execution has a status: "success", "failed", or "running".
 
 data "coolify_backup_executions" "latest" {
-  database_uuid = coolify_postgresql_database.app_db.uuid
+  database_uuid = coolify_database_postgresql.app_db.uuid
   backup_uuid   = coolify_database_backup.daily.uuid
 }

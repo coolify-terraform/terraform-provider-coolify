@@ -68,14 +68,14 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
   name         = %[1]q
 }
 
 resource "coolify_database_backup" "test" {
-  database_uuid = coolify_postgresql_database.test.uuid
+  database_uuid = coolify_database_postgresql.test.uuid
   frequency     = %[3]q
   enabled       = true
   retain_amount_locally   = 7
@@ -145,14 +145,14 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
   name         = %[1]q
 }
 
 resource "coolify_database_backup" "test" {
-  database_uuid   = coolify_postgresql_database.test.uuid
+  database_uuid   = coolify_database_postgresql.test.uuid
   frequency       = "0 3 * * *"
   enabled         = true
   save_s3         = %[4]t
@@ -191,18 +191,18 @@ func testAccBackupExecutionsConfig(name, serverUUID string) string {
 resource "coolify_project" "test" {
   name = %[1]q
 }
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
   name         = %[1]q
 }
 resource "coolify_database_backup" "test" {
-  database_uuid = coolify_postgresql_database.test.uuid
+  database_uuid = coolify_database_postgresql.test.uuid
   frequency     = "0 2 * * *"
   enabled       = true
 }
 data "coolify_backup_executions" "test" {
-  database_uuid = coolify_postgresql_database.test.uuid
+  database_uuid = coolify_database_postgresql.test.uuid
   backup_uuid   = coolify_database_backup.test.uuid
 }
 `, name, serverUUID)

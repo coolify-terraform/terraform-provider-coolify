@@ -12,7 +12,7 @@ resource "coolify_storage" "app_data" {
 
 # Attach a persistent storage to a database (Docker volume, no host_path)
 resource "coolify_storage" "db_data" {
-  database_uuid = coolify_postgresql_database.example.uuid
+  database_uuid = coolify_database_postgresql.example.uuid
   name          = "pg-data"
   mount_path    = "/var/lib/postgresql/data"
 }

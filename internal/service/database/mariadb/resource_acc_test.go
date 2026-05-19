@@ -16,21 +16,21 @@ func TestAccMariadbDatabaseDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_mariadb_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_mariadb", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_mariadb_database", name, serverUUID, "") + `
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mariadb", name, serverUUID, "") + `
 data "coolify_database" "test" {
-  uuid = coolify_mariadb_database.test.uuid
+  uuid = coolify_database_mariadb.test.uuid
 }
 
 data "coolify_databases" "all" {
-  depends_on = [coolify_mariadb_database.test]
+  depends_on = [coolify_database_mariadb.test]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrPair("data.coolify_database.test", "uuid", "coolify_mariadb_database.test", "uuid"),
-					resource.TestCheckResourceAttrPair("data.coolify_database.test", "name", "coolify_mariadb_database.test", "name"),
+					resource.TestCheckResourceAttrPair("data.coolify_database.test", "uuid", "coolify_database_mariadb.test", "uuid"),
+					resource.TestCheckResourceAttrPair("data.coolify_database.test", "name", "coolify_database_mariadb.test", "name"),
 					resource.TestCheckResourceAttrSet("data.coolify_databases.all", "databases.#"),
 				),
 			},
@@ -47,32 +47,32 @@ func TestAccMariadbDatabaseResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_mariadb_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_mariadb", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_mariadb_database", name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mariadb", name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_mariadb_database.test", "uuid"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "name", name),
-					resource.TestCheckResourceAttrSet("coolify_mariadb_database.test", "image"),
+					resource.TestCheckResourceAttrSet("coolify_database_mariadb.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "name", name),
+					resource.TestCheckResourceAttrSet("coolify_database_mariadb.test", "image"),
 				),
 			},
 			// Idempotency check
 			{
-				Config:             acctest.AccTestDatabaseConfig("coolify_mariadb_database", name, serverUUID, ""),
+				Config:             acctest.AccTestDatabaseConfig("coolify_database_mariadb", name, serverUUID, ""),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_mariadb_database", name, serverUUID, `description = "Updated via acc test"`),
-				Check:  resource.TestCheckResourceAttr("coolify_mariadb_database.test", "description", "Updated via acc test"),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mariadb", name, serverUUID, `description = "Updated via acc test"`),
+				Check:  resource.TestCheckResourceAttr("coolify_database_mariadb.test", "description", "Updated via acc test"),
 			},
 			{
-				ResourceName:                         "coolify_mariadb_database.test",
+				ResourceName:                         "coolify_database_mariadb.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_mariadb_database.test", "uuid"),
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_database_mariadb.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"mariadb_password", "mariadb_root_password", "project_uuid", "server_uuid", "environment_name"},
 			},
 		},

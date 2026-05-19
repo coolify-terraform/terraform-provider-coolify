@@ -16,63 +16,63 @@ run "create_all_databases" {
 
   # --- PostgreSQL ---
   assert {
-    condition     = coolify_postgresql_database.pg.name == "eval-postgres"
-    error_message = "PostgreSQL name mismatch: got ${coolify_postgresql_database.pg.name}"
+    condition     = coolify_database_postgresql.pg.name == "eval-postgres"
+    error_message = "PostgreSQL name mismatch: got ${coolify_database_postgresql.pg.name}"
   }
   assert {
-    condition     = coolify_postgresql_database.pg.postgres_user == "eval"
-    error_message = "PostgreSQL user mismatch: got ${coolify_postgresql_database.pg.postgres_user}"
+    condition     = coolify_database_postgresql.pg.postgres_user == "eval"
+    error_message = "PostgreSQL user mismatch: got ${coolify_database_postgresql.pg.postgres_user}"
   }
 
   # --- MySQL ---
   assert {
-    condition     = coolify_mysql_database.mysql.name == "eval-mysql"
-    error_message = "MySQL name mismatch: got ${coolify_mysql_database.mysql.name}"
+    condition     = coolify_database_mysql.mysql.name == "eval-mysql"
+    error_message = "MySQL name mismatch: got ${coolify_database_mysql.mysql.name}"
   }
   assert {
-    condition     = coolify_mysql_database.mysql.mysql_user == "eval"
-    error_message = "MySQL user mismatch: got ${coolify_mysql_database.mysql.mysql_user}"
+    condition     = coolify_database_mysql.mysql.mysql_user == "eval"
+    error_message = "MySQL user mismatch: got ${coolify_database_mysql.mysql.mysql_user}"
   }
 
   # --- MariaDB ---
   assert {
-    condition     = coolify_mariadb_database.mariadb.name == "eval-mariadb"
-    error_message = "MariaDB name mismatch: got ${coolify_mariadb_database.mariadb.name}"
+    condition     = coolify_database_mariadb.mariadb.name == "eval-mariadb"
+    error_message = "MariaDB name mismatch: got ${coolify_database_mariadb.mariadb.name}"
   }
 
   # --- Redis ---
   assert {
-    condition     = coolify_redis_database.redis.name == "eval-redis"
-    error_message = "Redis name mismatch: got ${coolify_redis_database.redis.name}"
+    condition     = coolify_database_redis.redis.name == "eval-redis"
+    error_message = "Redis name mismatch: got ${coolify_database_redis.redis.name}"
   }
 
   # --- MongoDB ---
   assert {
-    condition     = coolify_mongodb_database.mongo.name == "eval-mongo"
-    error_message = "MongoDB name mismatch: got ${coolify_mongodb_database.mongo.name}"
+    condition     = coolify_database_mongodb.mongo.name == "eval-mongo"
+    error_message = "MongoDB name mismatch: got ${coolify_database_mongodb.mongo.name}"
   }
 
   # --- ClickHouse ---
   assert {
-    condition     = coolify_clickhouse_database.clickhouse.name == "eval-clickhouse"
-    error_message = "ClickHouse name mismatch: got ${coolify_clickhouse_database.clickhouse.name}"
+    condition     = coolify_database_clickhouse.clickhouse.name == "eval-clickhouse"
+    error_message = "ClickHouse name mismatch: got ${coolify_database_clickhouse.clickhouse.name}"
   }
 
   # --- KeyDB ---
   assert {
-    condition     = coolify_keydb_database.keydb.name == "eval-keydb"
-    error_message = "KeyDB name mismatch: got ${coolify_keydb_database.keydb.name}"
+    condition     = coolify_database_keydb.keydb.name == "eval-keydb"
+    error_message = "KeyDB name mismatch: got ${coolify_database_keydb.keydb.name}"
   }
 
   # --- Dragonfly ---
   assert {
-    condition     = coolify_dragonfly_database.dragonfly.name == "eval-dragonfly"
-    error_message = "Dragonfly name mismatch: got ${coolify_dragonfly_database.dragonfly.name}"
+    condition     = coolify_database_dragonfly.dragonfly.name == "eval-dragonfly"
+    error_message = "Dragonfly name mismatch: got ${coolify_database_dragonfly.dragonfly.name}"
   }
 
   # --- All UUIDs are unique ---
   assert {
-    condition     = coolify_postgresql_database.pg.uuid != coolify_mysql_database.mysql.uuid
+    condition     = coolify_database_postgresql.pg.uuid != coolify_database_mysql.mysql.uuid
     error_message = "PostgreSQL and MySQL have the same UUID"
   }
 }

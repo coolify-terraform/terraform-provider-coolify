@@ -20,7 +20,7 @@ variable "existing_s3_storage_uuid" {
 }
 
 resource "coolify_database_backup" "daily" {
-  database_uuid         = coolify_postgresql_database.example.uuid
+  database_uuid         = coolify_database_postgresql.example.uuid
   frequency             = "0 2 * * *"
   enabled               = true
   save_s3               = true

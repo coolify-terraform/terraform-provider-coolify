@@ -34,7 +34,7 @@ resource "coolify_environment" "this" {
   name         = var.environment
 }
 
-resource "coolify_postgresql_database" "db" {
+resource "coolify_database_postgresql" "db" {
   depends_on        = [coolify_environment.this]
   name              = "${var.project_name}-db"
   project_uuid      = coolify_project.this.uuid
@@ -61,5 +61,5 @@ resource "coolify_application" "app" {
 resource "coolify_environment_variable" "db_url" {
   application_uuid = coolify_application.app.uuid
   key              = "DATABASE_URL"
-  value            = "postgresql://postgres:${var.db_password}@${coolify_postgresql_database.db.name}:5432/${var.project_name}"
+  value            = "postgresql://postgres:${var.db_password}@${coolify_database_postgresql.db.name}:5432/${var.project_name}"
 }

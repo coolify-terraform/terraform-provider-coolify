@@ -33,7 +33,7 @@ type model struct {
 
 func NewResource() resource.Resource { return &res{} }
 func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_keydb_database"
+	resp.TypeName = req.ProviderTypeName + "_database_keydb"
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a KeyDB database resource on Coolify.", Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
@@ -58,7 +58,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_keydb_database"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_keydb"})
 
 	in := client.CreateKeydbInput{ServerUUID: p.ServerUUID.ValueString(), ProjectUUID: p.ProjectUUID.ValueString(), EnvironmentName: p.EnvironmentName.ValueString()}
 	flex.SetIfKnown(&in.Name, p.Name)
@@ -103,7 +103,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 	flattenDatabase(db, &p)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_keydb_database", "uuid": c.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_database_keydb", "uuid": c.UUID})
 }
 func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var s model
@@ -111,7 +111,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_keydb_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_keydb", "uuid": s.UUID.ValueString()})
 
 	db, err := dbcommon.ReadDatabase(ctx, r.client, s.UUID.ValueString())
 	if err != nil {
@@ -119,7 +119,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 		return
 	}
 	if db == nil {
-		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_keydb_database", "uuid": s.UUID.ValueString()})
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_keydb", "uuid": s.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -137,7 +137,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_keydb_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_database_keydb", "uuid": s.UUID.ValueString()})
 
 	u := client.UpdateDatabaseInput{
 		Name:          flex.StringIfChanged(p.Name, s.Name),
@@ -163,9 +163,9 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_keydb_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_keydb", "uuid": s.UUID.ValueString()})
 
-	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_keydb_database", s.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_database_keydb", s.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting KeyDB database", fmt.Sprintf("KeyDB database %s: %s", s.UUID.ValueString(), err))
 		return
 	}

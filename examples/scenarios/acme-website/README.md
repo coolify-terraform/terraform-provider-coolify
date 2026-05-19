@@ -18,7 +18,7 @@ UI-managed S3 storage) in a single `terraform apply`.
 | # | Resource | Purpose |
 |---|----------|---------|
 | 1 | `coolify_project.acme` | Logical grouping for all ACME resources |
-| 2 | `coolify_postgresql_database.content` | PostgreSQL 16 database for page content |
+| 2 | `coolify_database_postgresql.content` | PostgreSQL 16 database for page content |
 | 3 | `coolify_application.website` | Node.js marketing site from Git |
 | 4 | `coolify_environment_variable.database_url` | Connects the app to the database |
 | 5 | `coolify_environment_variable.node_env` | Sets NODE_ENV=production for builds |

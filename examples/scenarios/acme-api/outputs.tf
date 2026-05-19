@@ -15,10 +15,10 @@ output "worker_app_uuid" {
 
 output "orders_db_uuid" {
   description = "UUID of the PostgreSQL orders database"
-  value       = coolify_postgresql_database.orders.uuid
+  value       = coolify_database_postgresql.orders.uuid
 }
 
 output "redis_uuid" {
   description = "UUID of the Redis queue database"
-  value       = coolify_redis_database.queue.uuid
+  value       = coolify_database_redis.queue.uuid
 }

@@ -54,10 +54,10 @@ All application resources support configurable `timeouts` for long builds.
 
 Eight database engines are supported:
 
-`coolify_postgresql_database`, `coolify_mysql_database`,
-`coolify_mariadb_database`, `coolify_redis_database`,
-`coolify_mongodb_database`, `coolify_clickhouse_database`,
-`coolify_keydb_database`, `coolify_dragonfly_database`
+`coolify_database_postgresql`, `coolify_database_mysql`,
+`coolify_database_mariadb`, `coolify_database_redis`,
+`coolify_database_mongodb`, `coolify_database_clickhouse`,
+`coolify_database_keydb`, `coolify_database_dragonfly`
 
 All database resources share a common schema: placement (`project_uuid`,
 `server_uuid`, `environment_name`), networking (`image`, `is_public`,

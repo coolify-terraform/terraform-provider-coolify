@@ -61,7 +61,7 @@ resource "coolify_project" "ecommerce" {
 
 # --- Databases ---
 
-resource "coolify_postgresql_database" "api_db" {
+resource "coolify_database_postgresql" "api_db" {
   name              = "ecommerce-db"
   project_uuid      = coolify_project.ecommerce.uuid
   server_uuid       = var.server_uuid
@@ -72,7 +72,7 @@ resource "coolify_postgresql_database" "api_db" {
   postgres_db       = "ecommerce"
 }
 
-resource "coolify_redis_database" "cache" {
+resource "coolify_database_redis" "cache" {
   name         = "app-cache"
   project_uuid = coolify_project.ecommerce.uuid
   server_uuid  = var.server_uuid
@@ -82,7 +82,7 @@ resource "coolify_redis_database" "cache" {
 # --- Database Backup ---
 
 resource "coolify_database_backup" "daily" {
-  database_uuid         = coolify_postgresql_database.api_db.uuid
+  database_uuid         = coolify_database_postgresql.api_db.uuid
   frequency             = "0 3 * * *"
   enabled               = true
   retain_amount_locally = 14
@@ -118,25 +118,25 @@ resource "coolify_docker_image_application" "worker" {
 resource "coolify_environment_variable" "api_database_url" {
   application_uuid = coolify_application.api.uuid
   key              = "DATABASE_URL"
-  value            = "postgresql://${coolify_postgresql_database.api_db.postgres_user}:${coolify_postgresql_database.api_db.postgres_password}@${coolify_postgresql_database.api_db.name}:5432/${coolify_postgresql_database.api_db.postgres_db}"
+  value            = "postgresql://${coolify_database_postgresql.api_db.postgres_user}:${coolify_database_postgresql.api_db.postgres_password}@${coolify_database_postgresql.api_db.name}:5432/${coolify_database_postgresql.api_db.postgres_db}"
 }
 
 resource "coolify_environment_variable" "api_redis_url" {
   application_uuid = coolify_application.api.uuid
   key              = "REDIS_URL"
-  value            = "redis://${coolify_redis_database.cache.name}:6379"
+  value            = "redis://${coolify_database_redis.cache.name}:6379"
 }
 
 resource "coolify_environment_variable" "worker_database_url" {
   application_uuid = coolify_docker_image_application.worker.uuid
   key              = "DATABASE_URL"
-  value            = "postgresql://${coolify_postgresql_database.api_db.postgres_user}:${coolify_postgresql_database.api_db.postgres_password}@${coolify_postgresql_database.api_db.name}:5432/${coolify_postgresql_database.api_db.postgres_db}"
+  value            = "postgresql://${coolify_database_postgresql.api_db.postgres_user}:${coolify_database_postgresql.api_db.postgres_password}@${coolify_database_postgresql.api_db.name}:5432/${coolify_database_postgresql.api_db.postgres_db}"
 }
 
 resource "coolify_environment_variable" "worker_redis_url" {
   application_uuid = coolify_docker_image_application.worker.uuid
   key              = "REDIS_URL"
-  value            = "redis://${coolify_redis_database.cache.name}:6379"
+  value            = "redis://${coolify_database_redis.cache.name}:6379"
 }
 
 resource "coolify_environment_variable" "worker_api_url" {
@@ -160,5 +160,5 @@ output "worker_uuid" {
 }
 
 output "database_uuid" {
-  value = coolify_postgresql_database.api_db.uuid
+  value = coolify_database_postgresql.api_db.uuid
 }

@@ -26,7 +26,7 @@ Most resources use a single UUID:
 terraform import coolify_project.main <project-uuid>
 terraform import coolify_server.web <server-uuid>
 terraform import coolify_application.api <app-uuid>
-terraform import coolify_postgresql_database.db <db-uuid>
+terraform import coolify_database_postgresql.db <db-uuid>
 terraform import coolify_service.plausible <service-uuid>
 terraform import coolify_private_key.deploy <key-uuid>
 terraform import coolify_cloud_token.hetzner <token-uuid>
@@ -42,7 +42,7 @@ that populates `project_uuid`, `server_uuid`, and `environment_name` automatical
 terraform import coolify_application.api \
   <project-uuid>:<server-uuid>:production:<app-uuid>
 
-terraform import coolify_postgresql_database.db \
+terraform import coolify_database_postgresql.db \
   <project-uuid>:<server-uuid>:production:<db-uuid>
 
 terraform import coolify_service.plausible \
@@ -106,12 +106,12 @@ must be set in your `.tf` configuration before running `terraform plan`:
 
 | Resource Type | Fields the API may not return |
 |---|---|
-| `coolify_postgresql_database` | `postgres_password`, `project_uuid`, `server_uuid`, `environment_name` |
-| `coolify_mysql_database` | `mysql_password`, `mysql_root_password`, `project_uuid`, `server_uuid`, `environment_name` |
-| `coolify_mariadb_database` | `mariadb_password`, `mariadb_root_password`, `project_uuid`, `server_uuid`, `environment_name` |
-| `coolify_mongodb_database` | `mongo_initdb_root_password`, `project_uuid`, `server_uuid`, `environment_name` |
-| `coolify_clickhouse_database` | `clickhouse_admin_password`, `project_uuid`, `server_uuid`, `environment_name` |
-| `coolify_redis_database`, `coolify_keydb_database`, `coolify_dragonfly_database` | `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_database_postgresql` | `postgres_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_database_mysql` | `mysql_password`, `mysql_root_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_database_mariadb` | `mariadb_password`, `mariadb_root_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_database_mongodb` | `mongo_initdb_root_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_database_clickhouse` | `clickhouse_admin_password`, `project_uuid`, `server_uuid`, `environment_name` |
+| `coolify_database_redis`, `coolify_database_keydb`, `coolify_database_dragonfly` | `project_uuid`, `server_uuid`, `environment_name` |
 | All applications | `project_uuid`, `server_uuid`, `environment_name` |
 | `coolify_private_git_application` | `private_key_uuid` (Coolify stores only the linked `private_key_id`, so import cannot reconstruct the original UUID) |
 | `coolify_github_app_application` | `github_app_uuid` (Coolify stores the linked GitHub App as `source_id`/`source_type`, so import cannot recover the original UUID) |

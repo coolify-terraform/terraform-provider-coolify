@@ -23,30 +23,30 @@ func TestDragonflyDatabaseResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_dragonfly_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_dragonfly", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_dragonfly_database" "test" {
+resource "coolify_database_dragonfly" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "name", "dragonfly-test-db"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "image", "docker.dragonflydb.io/dragonflydb/dragonfly:latest"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_public", "false"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "environment_name", "production"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "enable_ssl", "false"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "status", "running"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "name", "dragonfly-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "image", "docker.dragonflydb.io/dragonflydb/dragonfly:latest"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "is_public", "false"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "status", "running"),
 				),
 			},
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_dragonfly_database" "test" {
+resource "coolify_database_dragonfly" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -68,18 +68,18 @@ func TestDragonflyDatabaseResource_Update(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_dragonfly_database" "test" {
+resource "coolify_database_dragonfly" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "name", "dragonfly-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "name", "dragonfly-test-db"),
 				),
 			},
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_dragonfly_database" "test" {
+resource "coolify_database_dragonfly" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-dragonfly"
@@ -87,14 +87,14 @@ resource "coolify_dragonfly_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "name", "updated-dragonfly"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "description", "Updated Dragonfly"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "name", "updated-dragonfly"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "description", "Updated Dragonfly"),
 				),
 			},
 			// Update SSL and log drain fields
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_dragonfly_database" "test" {
+resource "coolify_database_dragonfly" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-dragonfly"
@@ -105,9 +105,9 @@ resource "coolify_dragonfly_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -124,7 +124,7 @@ func TestDragonflyDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_dragonfly_database" "test" {
+resource "coolify_database_dragonfly" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   enable_ssl            = true
@@ -132,8 +132,8 @@ resource "coolify_dragonfly_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_dragonfly_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_dragonfly.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -150,14 +150,14 @@ func TestDragonflyDatabaseResource_Import(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_dragonfly_database" "test" {
+resource "coolify_database_dragonfly" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 			},
 			{
-				ResourceName:                         "coolify_dragonfly_database.test",
+				ResourceName:                         "coolify_database_dragonfly.test",
 				ImportState:                          true,
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
@@ -223,7 +223,7 @@ func TestDragonflyDatabaseResource_CreateReadBackFailurePreservesState(t *testin
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
 			Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_dragonfly_database" "test" {
+resource "coolify_database_dragonfly" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -281,14 +281,14 @@ func TestDragonflyDatabaseResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_dragonfly_database" "test" {
+resource "coolify_database_dragonfly" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_dragonfly_database.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_dragonfly_database.test", "/api/v1/databases/"),
+					resource.TestCheckResourceAttrSet("coolify_database_dragonfly.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_database_dragonfly.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},

@@ -16,21 +16,21 @@ func TestAccMongodbDatabaseDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_mongodb_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_mongodb", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_mongodb_database", name, serverUUID, "") + `
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, "") + `
 data "coolify_database" "test" {
-  uuid = coolify_mongodb_database.test.uuid
+  uuid = coolify_database_mongodb.test.uuid
 }
 
 data "coolify_databases" "all" {
-  depends_on = [coolify_mongodb_database.test]
+  depends_on = [coolify_database_mongodb.test]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrPair("data.coolify_database.test", "uuid", "coolify_mongodb_database.test", "uuid"),
-					resource.TestCheckResourceAttrPair("data.coolify_database.test", "name", "coolify_mongodb_database.test", "name"),
+					resource.TestCheckResourceAttrPair("data.coolify_database.test", "uuid", "coolify_database_mongodb.test", "uuid"),
+					resource.TestCheckResourceAttrPair("data.coolify_database.test", "name", "coolify_database_mongodb.test", "name"),
 					resource.TestCheckResourceAttrSet("data.coolify_databases.all", "databases.#"),
 				),
 			},
@@ -47,32 +47,32 @@ func TestAccMongodbDatabaseResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_mongodb_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_mongodb", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_mongodb_database", name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_mongodb_database.test", "uuid"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "name", name),
-					resource.TestCheckResourceAttrSet("coolify_mongodb_database.test", "image"),
+					resource.TestCheckResourceAttrSet("coolify_database_mongodb.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "name", name),
+					resource.TestCheckResourceAttrSet("coolify_database_mongodb.test", "image"),
 				),
 			},
 			// Idempotency check
 			{
-				Config:             acctest.AccTestDatabaseConfig("coolify_mongodb_database", name, serverUUID, ""),
+				Config:             acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, ""),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_mongodb_database", name, serverUUID, `description = "Updated via acc test"`),
-				Check:  resource.TestCheckResourceAttr("coolify_mongodb_database.test", "description", "Updated via acc test"),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, `description = "Updated via acc test"`),
+				Check:  resource.TestCheckResourceAttr("coolify_database_mongodb.test", "description", "Updated via acc test"),
 			},
 			{
-				ResourceName:                         "coolify_mongodb_database.test",
+				ResourceName:                         "coolify_database_mongodb.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_mongodb_database.test", "uuid"),
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_database_mongodb.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"mongo_initdb_root_password", "project_uuid", "server_uuid", "environment_name"},
 			},
 		},

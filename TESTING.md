@@ -284,7 +284,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_private_key` | Yes | Yes | Yes | Yes | |
 | `coolify_environment` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
 | `coolify_dockerfile_application` | Yes | Yes | Yes | Yes | |
-| `coolify_postgresql_database` | Yes | Yes | Yes | Yes | |
+| `coolify_database_postgresql` | Yes | Yes | Yes | Yes | |
 | `coolify_service` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
 | `coolify_deployment` | Yes | Yes | N/A | Yes | Trigger resource, no update |
 | `coolify_environment_variable` | Yes | Yes | Yes | Yes | |
@@ -293,18 +293,18 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_cloud_token` | Yes | Yes | Yes | Yes | |
 | `coolify_scheduled_task` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
 | `coolify_storage` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
-| `coolify_mysql_database` | Yes | Yes | Yes | Yes | Second DB type for coverage |
+| `coolify_database_mysql` | Yes | Yes | Yes | Yes | Second DB type for coverage |
 | `coolify_application` | Yes | Yes | Yes | Yes | Public git with coollabsio/coolify-examples |
 | `coolify_private_git_application` | Yes | Yes | Yes | Yes | SSH URL, dummy key |
 | `coolify_github_app_application` | Yes | Yes | Yes | Yes | Requires live `COOLIFY_GITHUB_APP_*` fixture env vars with repository access |
 | `coolify_github_app` | Yes | Yes | N/A | Yes | Uses a Terraform-managed private key fixture; create/update work without repository access |
 | `coolify_server` | Yes | Yes | Yes | Yes | RFC 5737 IP (192.0.2.1), not reachable |
-| `coolify_clickhouse_database` | Yes | Yes | Yes | Yes | |
-| `coolify_mariadb_database` | Yes | Yes | Yes | Yes | |
-| `coolify_mongodb_database` | Yes | Yes | Yes | Yes | |
-| `coolify_redis_database` | Yes | Yes | Yes | Yes | |
-| `coolify_dragonfly_database` | Yes | Yes | Yes | Yes | |
-| `coolify_keydb_database` | Yes | Yes | Yes | Yes | |
+| `coolify_database_clickhouse` | Yes | Yes | Yes | Yes | |
+| `coolify_database_mariadb` | Yes | Yes | Yes | Yes | |
+| `coolify_database_mongodb` | Yes | Yes | Yes | Yes | |
+| `coolify_database_redis` | Yes | Yes | Yes | Yes | |
+| `coolify_database_dragonfly` | Yes | Yes | Yes | Yes | |
+| `coolify_database_keydb` | Yes | Yes | Yes | Yes | |
 
 ### Data Sources (44 total)
 

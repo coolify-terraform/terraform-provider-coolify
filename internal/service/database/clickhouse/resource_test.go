@@ -27,32 +27,32 @@ func TestClickhouseDatabaseResource_CreateUpdateImport(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_clickhouse_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_clickhouse", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_clickhouse_database" "test" {
+resource "coolify_database_clickhouse" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "name", "ch-test-db"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "image", "clickhouse/clickhouse-server:latest"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_public", "false"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "environment_name", "production"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "clickhouse_admin_user", "default"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "status", "running"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "name", "ch-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "image", "clickhouse/clickhouse-server:latest"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_public", "false"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "clickhouse_admin_user", "default"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "status", "running"),
 				),
 			},
 			// Plan idempotency
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_clickhouse_database" "test" {
+resource "coolify_database_clickhouse" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -63,7 +63,7 @@ resource "coolify_clickhouse_database" "test" {
 			// Update
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_clickhouse_database" "test" {
+resource "coolify_database_clickhouse" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-ch"
@@ -71,14 +71,14 @@ resource "coolify_clickhouse_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "name", "updated-ch"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "description", "Updated ClickHouse"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "name", "updated-ch"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "description", "Updated ClickHouse"),
 				),
 			},
 			// Update logging fields
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_clickhouse_database" "test" {
+resource "coolify_database_clickhouse" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-ch"
@@ -88,13 +88,13 @@ resource "coolify_clickhouse_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_include_timestamps", "true"),
 				),
 			},
 			// Import
 			{
-				ResourceName:      "coolify_clickhouse_database.test",
+				ResourceName:      "coolify_database_clickhouse.test",
 				ImportState:       true,
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
@@ -117,7 +117,7 @@ func TestClickhouseDatabaseResource_CreateWithTimestamps(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_clickhouse_database" "test" {
+resource "coolify_database_clickhouse" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   is_log_drain_enabled  = true
@@ -125,8 +125,8 @@ resource "coolify_clickhouse_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -185,7 +185,7 @@ func TestClickhouseDatabaseResource_CreateWithCredentials(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_clickhouse_database" "test" {
+resource "coolify_database_clickhouse" "test" {
   project_uuid              = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid               = "bbbb0001-0001-4000-8000-000000000001"
   clickhouse_admin_user     = "myadmin"
@@ -193,7 +193,7 @@ resource "coolify_clickhouse_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_clickhouse_database.test", "clickhouse_admin_user", "myadmin"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "clickhouse_admin_user", "myadmin"),
 					func(s *terraform.State) error {
 						mu.Lock()
 						defer mu.Unlock()
@@ -271,7 +271,7 @@ func TestClickhouseDatabaseResource_CreateReadBackFailurePreservesState(t *testi
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
 			Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_clickhouse_database" "test" {
+resource "coolify_database_clickhouse" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -343,14 +343,14 @@ func TestClickhouseDatabaseResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_clickhouse_database" "test" {
+resource "coolify_database_clickhouse" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_clickhouse_database.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_clickhouse_database.test", "/api/v1/databases/"),
+					resource.TestCheckResourceAttrSet("coolify_database_clickhouse.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_database_clickhouse.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},

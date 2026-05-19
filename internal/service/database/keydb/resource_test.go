@@ -23,30 +23,30 @@ func TestKeydbDatabaseResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_keydb_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_keydb", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_keydb_database" "test" {
+resource "coolify_database_keydb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "name", "keydb-test-db"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "image", "eqalpha/keydb:latest"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_public", "false"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "environment_name", "production"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "enable_ssl", "false"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "status", "running"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "name", "keydb-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "image", "eqalpha/keydb:latest"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_public", "false"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "status", "running"),
 				),
 			},
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_keydb_database" "test" {
+resource "coolify_database_keydb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -68,18 +68,18 @@ func TestKeydbDatabaseResource_Update(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_keydb_database" "test" {
+resource "coolify_database_keydb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "name", "keydb-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "name", "keydb-test-db"),
 				),
 			},
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_keydb_database" "test" {
+resource "coolify_database_keydb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-keydb"
@@ -87,14 +87,14 @@ resource "coolify_keydb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "name", "updated-keydb"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "description", "Updated KeyDB"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "name", "updated-keydb"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "description", "Updated KeyDB"),
 				),
 			},
 			// Update SSL and log drain fields
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_keydb_database" "test" {
+resource "coolify_database_keydb" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-keydb"
@@ -105,9 +105,9 @@ resource "coolify_keydb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -124,7 +124,7 @@ func TestKeydbDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_keydb_database" "test" {
+resource "coolify_database_keydb" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   enable_ssl            = true
@@ -132,8 +132,8 @@ resource "coolify_keydb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_keydb_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -150,14 +150,14 @@ func TestKeydbDatabaseResource_Import(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_keydb_database" "test" {
+resource "coolify_database_keydb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 			},
 			{
-				ResourceName:                         "coolify_keydb_database.test",
+				ResourceName:                         "coolify_database_keydb.test",
 				ImportState:                          true,
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
@@ -223,7 +223,7 @@ func TestKeydbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
 			Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_keydb_database" "test" {
+resource "coolify_database_keydb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -281,14 +281,14 @@ func TestKeydbDatabaseResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_keydb_database" "test" {
+resource "coolify_database_keydb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_keydb_database.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_keydb_database.test", "/api/v1/databases/"),
+					resource.TestCheckResourceAttrSet("coolify_database_keydb.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_database_keydb.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},

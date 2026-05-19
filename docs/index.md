@@ -62,7 +62,7 @@ provider "coolify" {
 |----------|-----------|
 | Infrastructure | `coolify_project`, `coolify_environment`, `coolify_server`, `coolify_hetzner_server`, `coolify_private_key`, `coolify_cloud_token`, `coolify_github_app` |
 | Applications | `coolify_application`, `coolify_dockerfile_application`, `coolify_docker_image_application`, `coolify_private_git_application`, `coolify_github_app_application` |
-| Databases | `coolify_postgresql_database`, `coolify_mysql_database`, `coolify_mariadb_database`, `coolify_redis_database`, `coolify_mongodb_database`, `coolify_clickhouse_database`, `coolify_keydb_database`, `coolify_dragonfly_database` |
+| Databases | `coolify_database_postgresql`, `coolify_database_mysql`, `coolify_database_mariadb`, `coolify_database_redis`, `coolify_database_mongodb`, `coolify_database_clickhouse`, `coolify_database_keydb`, `coolify_database_dragonfly` |
 | Services | `coolify_service` |
 | Operations | `coolify_environment_variable`, `coolify_storage`, `coolify_scheduled_task`, `coolify_deployment`, `coolify_database_backup` |
 
