@@ -40,7 +40,7 @@ spec-update: ## Download latest Coolify OpenAPI spec
 spec-check: ## Run OpenAPI spec compliance tests
 	go test -race -count=1 -run 'TestClientEndpoints_SpecCompliance' ./internal/spectest/ -v
 
-contract-extract: ## Extract contract from Coolify source (usage: make contract-extract VERSION=v4.0.1)
+contract-extract: check-python3 ## Extract contract from Coolify source (usage: make contract-extract VERSION=v4.0.1)
 	scripts/extract-contract.sh $(or $(VERSION),latest)
 
 contract-check: ## Verify client structs cover all contract fields
@@ -106,8 +106,8 @@ check-goreleaser-version: ## Verify goreleaser major version matches CI
 		exit 1; \
 	fi
 
-check-python3: ## Verify Python 3 is installed for script unit tests
-	@command -v python3 >/dev/null 2>&1 || (echo "ERROR: python3 is required for make python-test and make ci. Install Python 3.9+ and re-run."; exit 1)
+check-python3: ## Verify Python 3 is installed for Python-backed tooling
+	@command -v python3 >/dev/null 2>&1 || (echo "ERROR: python3 is required for Python-backed Make targets in this repo. Install Python 3.9+ and re-run."; exit 1)
 
 check-tfplugindocs: ## Verify tfplugindocs is installed for docs generation
 	@command -v tfplugindocs >/dev/null 2>&1 || (echo "ERROR: tfplugindocs is required for docs generation. Install with: (cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs)"; exit 1)

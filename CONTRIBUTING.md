@@ -23,7 +23,7 @@ If you plan to run `make ci`, install the required local tools first:
 make tools
 ```
 
-This installs `golangci-lint`, `goreleaser`, and `tfplugindocs` in one step. Python remains a separate prerequisite for `make ci`, `make python-test`, and the Python-backed spec tooling targets. On a fresh clone, `make ci` fails early if a required tool is missing. Run `make help` to see every supported local target from [GNUmakefile](GNUmakefile).
+This installs `golangci-lint`, `goreleaser`, and `tfplugindocs` in one step. Python remains a separate prerequisite for `make ci`, `make python-test`, and the other Python-backed tooling targets. On a fresh clone, `make ci` fails early if a required tool is missing. Run `make help` to see every supported local target from [GNUmakefile](GNUmakefile).
 
 ### Running Tests
 
