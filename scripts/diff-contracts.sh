@@ -12,11 +12,26 @@
 
 set -euo pipefail
 
+if [[ $# -ne 2 ]]; then
+    echo "Usage: scripts/diff-contracts.sh <old-contract.json> <new-contract.json>" >&2
+    exit 1
+fi
+
 OLD="$1"
 NEW="$2"
 
-if ! command -v python3 &>/dev/null; then
-    echo "Error: python3 required" >&2
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "ERROR: python3 is required to run scripts/diff-contracts.sh. Install Python 3.9+ and re-run." >&2
+    exit 1
+fi
+
+if [[ ! -f "$OLD" ]]; then
+    echo "ERROR: contract file not found: $OLD" >&2
+    exit 1
+fi
+
+if [[ ! -f "$NEW" ]]; then
+    echo "ERROR: contract file not found: $NEW" >&2
     exit 1
 fi
 
