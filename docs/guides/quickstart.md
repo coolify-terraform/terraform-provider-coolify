@@ -7,9 +7,13 @@ description: |-
 
 # Quick Start
 
-This walkthrough takes you from zero to a running application on Coolify in
-under five minutes. You will create a project and deploy a web application
-from a public Git repository.
+By the end of this guide, you will have a running application on Coolify,
+deployed entirely from a Terraform configuration. The same `.tf` file can
+rebuild the setup from scratch on a new server, share it with teammates, or
+promote it through dev/staging/production with zero manual steps.
+
+You will create a project and deploy a web application from a public Git
+repository in under five minutes.
 
 ## 1. Set up credentials
 
