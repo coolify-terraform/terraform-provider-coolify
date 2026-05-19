@@ -473,6 +473,88 @@ func TestScheduledTaskResource_ImportBadType(t *testing.T) {
 	})
 }
 
+func TestScheduledTaskResource_ImportBadParentUUID(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": "task-err3-uuid"})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.ScheduledTask{{UUID: "task-err3-uuid", Name: "t", Command: "c", Frequency: "* * * * *", Enabled: true}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "t"
+					command          = "c"
+					frequency        = "* * * * *"
+				`),
+			},
+			{
+				ResourceName:  "coolify_scheduled_task.test",
+				ImportState:   true,
+				ImportStateId: "application:not-a-uuid:bbbb0001-0001-4000-8000-000000000001",
+				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*parent UUID segment`),
+			},
+		},
+	})
+}
+
+func TestScheduledTaskResource_ImportBadTaskUUID(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": "task-err4-uuid"})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.ScheduledTask{{UUID: "task-err4-uuid", Name: "t", Command: "c", Frequency: "* * * * *", Enabled: true}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "t"
+					command          = "c"
+					frequency        = "* * * * *"
+				`),
+			},
+			{
+				ResourceName:  "coolify_scheduled_task.test",
+				ImportState:   true,
+				ImportStateId: "application:aaaa0001-0001-4000-8000-000000000001:not-a-uuid",
+				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*task UUID segment`),
+			},
+		},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // TestScheduledTaskResource_Disappears
 // ---------------------------------------------------------------------------

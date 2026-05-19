@@ -693,6 +693,82 @@ func TestEnvironmentVariableResource_ImportBadType(t *testing.T) {
 	})
 }
 
+func TestEnvironmentVariableResource_ImportBadParentUUID(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": "eeee0003-0003-4000-8000-000000000001"})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{{UUID: "eeee0003-0003-4000-8000-000000000001", Key: "K", Value: "V"}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "K"
+					value            = "V"
+				`),
+			},
+			{
+				ResourceName:  "coolify_environment_variable.test",
+				ImportState:   true,
+				ImportStateId: "application:not-a-uuid:eeee0003-0003-4000-8000-000000000001",
+				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*parent UUID segment`),
+			},
+		},
+	})
+}
+
+func TestEnvironmentVariableResource_ImportBadEnvUUID(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": "eeee0004-0004-4000-8000-000000000001"})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{{UUID: "eeee0004-0004-4000-8000-000000000001", Key: "K", Value: "V"}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "K"
+					value            = "V"
+				`),
+			},
+			{
+				ResourceName:  "coolify_environment_variable.test",
+				ImportState:   true,
+				ImportStateId: "application:aaaa0001-0001-4000-8000-000000000001:not-a-uuid",
+				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*env variable UUID segment`),
+			},
+		},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // TestEnvironmentVariableResource_Disappears
 // ---------------------------------------------------------------------------
