@@ -564,6 +564,72 @@ func TestStorageResource_CreateWithServiceUUIDMissingResourceUUID(t *testing.T) 
 }
 
 // ---------------------------------------------------------------------------
+// TestStorageResource_ImportServiceRecoversResourceUUID
+// ---------------------------------------------------------------------------
+
+func TestStorageResource_ImportServiceRecoversResourceUUID(t *testing.T) {
+	t.Parallel()
+	svcUUID := "ffff0002-0002-4000-8000-000000000002"
+	resourceUUID := "eeee0002-0002-4000-8000-000000000002"
+	stor := client.Storage{
+		UUID:         "dddd0003-0003-4000-8000-000000000003",
+		Name:         "svc-import-data",
+		MountPath:    "/data",
+		ResourceUUID: resourceUUID,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/services/{svcUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != svcUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/services/{svcUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != svcUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
+	})
+	mux.HandleFunc("DELETE /api/v1/services/{svcUUID}/storages/{storUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("svcUUID") != svcUUID || r.PathValue("storUUID") != stor.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testStorageResourceConfig(srv.URL, fmt.Sprintf(`
+					service_uuid  = %q
+					resource_uuid = %q
+					name          = "svc-import-data"
+					mount_path    = "/data"
+				`, svcUUID, resourceUUID)),
+			},
+			{
+				ResourceName:                         "coolify_storage.test",
+				ImportState:                          true,
+				ImportStateId:                        fmt.Sprintf("service:%s:%s", svcUUID, stor.UUID),
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "uuid",
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // TestStorageResource_Disappears
 // ---------------------------------------------------------------------------
 
