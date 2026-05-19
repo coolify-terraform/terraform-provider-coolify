@@ -517,6 +517,32 @@ func TestDatabaseBackupResource_ImportBadFormat(t *testing.T) {
 	})
 }
 
+func TestDatabaseBackupResource_ImportBadDatabaseUUID(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockBackupServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
+					frequency     = "0 2 * * *"
+					enabled       = true
+					retain_amount_locally   = 7
+				`),
+			},
+			{
+				ResourceName:  "coolify_database_backup.test",
+				ImportState:   true,
+				ImportStateId: "not-a-uuid:1",
+				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*database UUID segment`),
+			},
+		},
+	})
+}
+
 func TestDatabaseBackupResource_ImportBadID(t *testing.T) {
 	t.Parallel()
 	srv, _ := newMockBackupServer()
