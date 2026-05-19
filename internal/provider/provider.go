@@ -44,6 +44,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 const minCoolifyVersion = "4.0.0"
@@ -155,6 +156,11 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		)
 		return
 	}
+
+	tflog.Debug(ctx, "provider configured", map[string]interface{}{
+		"endpoint": endpoint,
+		"version":  p.version,
+	})
 
 	resp.DataSourceData = c
 	resp.ResourceData = c
