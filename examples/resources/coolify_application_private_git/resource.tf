@@ -1,4 +1,4 @@
-resource "coolify_private_git_application" "api" {
+resource "coolify_application_private_git" "api" {
   name             = "api-server"
   project_uuid     = coolify_project.example.uuid
   server_uuid      = coolify_server.example.uuid

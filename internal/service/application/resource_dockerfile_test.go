@@ -71,7 +71,7 @@ func TestDockerfileApplicationResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_dockerfile_application", "/api/v1/applications/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_dockerfile", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testDockerfileResourceConfig(srv.URL, `
@@ -82,11 +82,11 @@ func TestDockerfileApplicationResource_Create(t *testing.T) {
 					ports_exposes       = "80"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "uuid", "dockerfile-app-uuid"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "name", "my-dockerfile-app"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "dockerfile_location", "/Dockerfile"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "ports_exposes", "80"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "uuid", "dockerfile-app-uuid"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "name", "my-dockerfile-app"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "dockerfile_location", "/Dockerfile"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "ports_exposes", "80"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "environment_name", "production"),
 				),
 			},
 			{
@@ -256,7 +256,7 @@ func TestDockerfileApplicationResource_Update(t *testing.T) {
 					ports_exposes       = "80"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "name", "my-dockerfile-app"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "name", "my-dockerfile-app"),
 				),
 			},
 			{
@@ -271,12 +271,12 @@ func TestDockerfileApplicationResource_Update(t *testing.T) {
 					build_command       = "npm run build"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "uuid", "dockerfile-upd-uuid"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "name", "updated-dockerfile-app"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "description", "Updated via test"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "dockerfile_location", "/Dockerfile"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "install_command", "npm install"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "build_command", "npm run build"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "uuid", "dockerfile-upd-uuid"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "name", "updated-dockerfile-app"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "description", "Updated via test"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "dockerfile_location", "/Dockerfile"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "install_command", "npm install"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "build_command", "npm run build"),
 				),
 			},
 		},
@@ -340,7 +340,7 @@ func TestDockerfileApplicationResource_Import(t *testing.T) {
 				`),
 			},
 			{
-				ResourceName:                         "coolify_dockerfile_application.test",
+				ResourceName:                         "coolify_application_dockerfile.test",
 				ImportState:                          true,
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
@@ -414,8 +414,8 @@ func TestDockerfileApplicationResource_Disappears(t *testing.T) {
 					ports_exposes       = "80"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_dockerfile_application.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_dockerfile_application.test", "/api/v1/applications/"),
+					resource.TestCheckResourceAttrSet("coolify_application_dockerfile.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_application_dockerfile.test", "/api/v1/applications/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -428,5 +428,5 @@ func TestDockerfileApplicationResource_Disappears(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func testDockerfileResourceConfig(endpoint, attrs string) string {
-	return acctest.TestResourceConfig(endpoint, "coolify_dockerfile_application", "test", attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_application_dockerfile", "test", attrs)
 }

@@ -114,10 +114,10 @@
 | `PATCH /services/{uuid}/envs/bulk` | `client.BulkUpdateServiceEnvVars` | v0.2.0 |
 | `PATCH /services/{uuid}/scheduled-tasks/{task_uuid}` | `coolify_scheduled_task` | v0.2.0 |
 | `PATCH /services/{uuid}/storages` | `coolify_storage` | v0.2.0 |
-| `POST /applications/dockerfile` | `coolify_dockerfile_application` | v0.2.0 |
-| `POST /applications/dockerimage` | `coolify_docker_image_application` | v0.1.0 |
-| `POST /applications/private-deploy-key` | `coolify_private_git_application` | v0.1.0 |
-| `POST /applications/private-github-app` | `coolify_github_app_application` | v0.2.0 |
+| `POST /applications/dockerfile` | `coolify_application_dockerfile` | v0.2.0 |
+| `POST /applications/dockerimage` | `coolify_application_docker_image` | v0.1.0 |
+| `POST /applications/private-deploy-key` | `coolify_application_private_git` | v0.1.0 |
+| `POST /applications/private-github-app` | `coolify_application_github_app` | v0.2.0 |
 | `POST /applications/public` | `coolify_application` | v0.1.0 |
 | `POST /applications/{uuid}/envs` | `coolify_environment_variable` | v0.1.0 |
 | `POST /applications/{uuid}/scheduled-tasks` | `coolify_scheduled_task` | v0.2.0 |

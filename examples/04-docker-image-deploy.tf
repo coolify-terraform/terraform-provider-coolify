@@ -30,7 +30,7 @@ resource "coolify_project" "containers" {
   name = "container-apps"
 }
 
-resource "coolify_docker_image_application" "nginx" {
+resource "coolify_application_docker_image" "nginx" {
   name          = "nginx-proxy"
   project_uuid  = coolify_project.containers.uuid
   server_uuid   = var.server_uuid
@@ -44,5 +44,5 @@ resource "coolify_docker_image_application" "nginx" {
 }
 
 output "nginx_uuid" {
-  value = coolify_docker_image_application.nginx.uuid
+  value = coolify_application_docker_image.nginx.uuid
 }

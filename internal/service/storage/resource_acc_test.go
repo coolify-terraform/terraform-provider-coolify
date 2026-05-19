@@ -52,7 +52,7 @@ func TestAccStorageResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    testAccStorageImportStateIdFunc("coolify_dockerfile_application.test", "coolify_storage.test"),
+				ImportStateIdFunc:                    testAccStorageImportStateIdFunc("coolify_application_dockerfile.test", "coolify_storage.test"),
 			},
 		},
 	})
@@ -105,7 +105,7 @@ func TestAccStorageSingularDataSource(t *testing.T) {
 				Config: testAccStorageConfig(name, serverUUID, "") + `
 data "coolify_storage" "test" {
   uuid             = coolify_storage.test.uuid
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -127,7 +127,7 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
   dockerfile_location = base64encode(<<-DOCKERFILE
@@ -139,7 +139,7 @@ resource "coolify_dockerfile_application" "test" {
 }
 
 resource "coolify_storage" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   name             = %[1]q
   mount_path       = "/data"
   %[3]s
@@ -153,7 +153,7 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
   dockerfile_location = base64encode(<<-DOCKERFILE
@@ -165,13 +165,13 @@ resource "coolify_dockerfile_application" "test" {
 }
 
 resource "coolify_storage" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   name             = %[1]q
   mount_path       = "/data"
 }
 
 data "coolify_storages" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   depends_on       = [coolify_storage.test]
 }
 `, name, serverUUID)

@@ -1,6 +1,6 @@
 # dockerfile_location expects base64-encoded Dockerfile content,
 # not a file path (despite the field name).
-resource "coolify_dockerfile_application" "app" {
+resource "coolify_application_dockerfile" "app" {
   name         = "my-dockerfile-app"
   project_uuid = coolify_project.example.uuid
   server_uuid  = coolify_server.example.uuid

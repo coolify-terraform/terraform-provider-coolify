@@ -430,7 +430,7 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
   name         = %[1]q

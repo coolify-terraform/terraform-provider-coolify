@@ -29,10 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `coolify_server` - Register and configure servers
   - `coolify_private_key` - Manage SSH keys
   - `coolify_application` - Deploy applications from public Git repositories
-  - `coolify_dockerfile_application` - Deploy applications from Dockerfiles
-  - `coolify_docker_image_application` - Deploy applications from Docker images (Docker Hub, GHCR, etc.)
-  - `coolify_private_git_application` - Deploy applications from private Git repositories (SSH deploy key)
-  - `coolify_github_app_application` - Deploy applications via GitHub App integration
+  - `coolify_application_dockerfile` - Deploy applications from Dockerfiles
+  - `coolify_application_docker_image` - Deploy applications from Docker images (Docker Hub, GHCR, etc.)
+  - `coolify_application_private_git` - Deploy applications from private Git repositories (SSH deploy key)
+  - `coolify_application_github_app` - Deploy applications via GitHub App integration
   - `coolify_environment` - Manage project environments
   - `coolify_environment_variable` - Manage env vars for applications, services, and databases
   - `coolify_deployment` - Trigger application deployments (with `triggers` map for force-redeploy)
@@ -98,7 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minimum Terraform version requirement updated to >= 1.6 (consistent across all documentation)
 - Added TRACE-level logging to version and health check endpoints for easier connection debugging
 - `coolify_github_app`: `app_id`, `installation_id`, `client_id`, `client_secret`, `private_key_uuid`, and `organization_name` can now be updated in-place (previously forced destroy/recreate). This matches the Coolify API's PATCH support for these fields.
-- `coolify_github_app_application`: `github_app_uuid` can now be updated in-place (previously forced destroy/recreate).
+- `coolify_application_github_app`: `github_app_uuid` can now be updated in-place (previously forced destroy/recreate).
 
 ### Fixed
 

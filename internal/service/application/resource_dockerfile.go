@@ -45,7 +45,7 @@ func NewDockerfileResource() resource.Resource {
 }
 
 func (r *dockerfileApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_dockerfile_application"
+	resp.TypeName = req.ProviderTypeName + "_application_dockerfile"
 }
 
 func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -112,7 +112,7 @@ func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_dockerfile_application"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_application_dockerfile"})
 
 	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
@@ -162,7 +162,7 @@ func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource
 
 	flattenDockerfileApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_dockerfile_application", "uuid": created.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application_dockerfile", "uuid": created.UUID})
 }
 
 func (r *dockerfileApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -171,7 +171,7 @@ func (r *dockerfileApplicationResource) Read(ctx context.Context, req resource.R
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	readApplication(ctx, r.client, "coolify_dockerfile_application", state.UUID.ValueString(), resp, func(app *client.Application) {
+	readApplication(ctx, r.client, "coolify_application_dockerfile", state.UUID.ValueString(), resp, func(app *client.Application) {
 		flattenDockerfileApplication(app, &state)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	})
@@ -189,7 +189,7 @@ func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_dockerfile_application", "uuid": plan.UUID.ValueString()})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_application_dockerfile", "uuid": plan.UUID.ValueString()})
 
 	input := buildUpdateInput(plan.common(), state.common())
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
@@ -207,7 +207,7 @@ func (r *dockerfileApplicationResource) Delete(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	deleteApplication(ctx, r.client, "coolify_dockerfile_application", state.UUID.ValueString(), resp)
+	deleteApplication(ctx, r.client, "coolify_application_dockerfile", state.UUID.ValueString(), resp)
 }
 
 func (r *dockerfileApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

@@ -60,7 +60,7 @@ func TestAccEnvironmentVariableResource_ApplicationCRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"value"},
-				ImportStateIdFunc:                    testAccEnvVarImportStateIdFunc("coolify_dockerfile_application.test", "coolify_environment_variable.test"),
+				ImportStateIdFunc:                    testAccEnvVarImportStateIdFunc("coolify_application_dockerfile.test", "coolify_environment_variable.test"),
 			},
 		},
 	})
@@ -87,7 +87,7 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
   dockerfile_location = base64encode(<<-DOCKERFILE
@@ -99,13 +99,13 @@ resource "coolify_dockerfile_application" "test" {
 }
 
 resource "coolify_environment_variable" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   key              = "TEST_DS_VAR"
   value            = "ds-value"
 }
 
 data "coolify_environment_variables" "by_app" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   depends_on       = [coolify_environment_variable.test]
 }
 `, name, serverUUID),
@@ -234,7 +234,7 @@ func TestAccEnvironmentVariableSingularDataSource(t *testing.T) {
 				Config: testAccEnvVarAppConfig(name, serverUUID, "singular-ds-value") + `
 data "coolify_environment_variable" "test" {
   uuid             = coolify_environment_variable.test.uuid
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -256,7 +256,7 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
   dockerfile_location = base64encode(<<-DOCKERFILE
@@ -268,7 +268,7 @@ resource "coolify_dockerfile_application" "test" {
 }
 
 resource "coolify_environment_variable" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   key              = "TEST_VAR"
   value            = %[3]q
 }

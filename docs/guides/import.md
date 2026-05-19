@@ -95,8 +95,8 @@ terraform import coolify_environment.staging <project-uuid>:staging
 ~> **Important:** Application imports default to `environment_name = "production"`. If your
 application is in a different environment, set `environment_name` in your `.tf` file to match
 **before** running `terraform plan`, otherwise Terraform will propose replacing the resource.
-This applies to all 5 application types: `coolify_application`, `coolify_docker_image_application`,
-`coolify_dockerfile_application`, `coolify_github_app_application`, and `coolify_private_git_application`.
+This applies to all 5 application types: `coolify_application`, `coolify_application_docker_image`,
+`coolify_application_dockerfile`, `coolify_application_github_app`, and `coolify_application_private_git`.
 
 ## Known Limitations
 
@@ -113,8 +113,8 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | `coolify_database_clickhouse` | `clickhouse_admin_password`, `project_uuid`, `server_uuid`, `environment_name` |
 | `coolify_database_redis`, `coolify_database_keydb`, `coolify_database_dragonfly` | `project_uuid`, `server_uuid`, `environment_name` |
 | All applications | `project_uuid`, `server_uuid`, `environment_name` |
-| `coolify_private_git_application` | `private_key_uuid` (Coolify stores only the linked `private_key_id`, so import cannot reconstruct the original UUID) |
-| `coolify_github_app_application` | `github_app_uuid` (Coolify stores the linked GitHub App as `source_id`/`source_type`, so import cannot recover the original UUID) |
+| `coolify_application_private_git` | `private_key_uuid` (Coolify stores only the linked `private_key_id`, so import cannot reconstruct the original UUID) |
+| `coolify_application_github_app` | `github_app_uuid` (Coolify stores the linked GitHub App as `source_id`/`source_type`, so import cannot recover the original UUID) |
 | `coolify_service` | `project_uuid`, `server_uuid`, `environment_name`, `type` |
 | `coolify_server` | `private_key_uuid` (Coolify stores only the linked `private_key_id`, so import cannot reconstruct the original UUID) |
 | `coolify_hetzner_server` | `cloud_provider_token_uuid`, `server_type`, `location`, `image`, `private_key_uuid`, `hetzner_ssh_key_ids`, `cloud_init_script`, `enable_ipv4`, `enable_ipv6`, `instant_validate` (Hetzner-specific fields are only sent at creation time and not returned by the server GET endpoint) |
@@ -130,7 +130,7 @@ If these fields are missing, `terraform plan` will either show a diff
 or propose replacing the resource. Set them in your config to match
 your actual Coolify setup.
 
-For `coolify_github_app_application`, import also cannot reconstruct
+For `coolify_application_github_app`, import also cannot reconstruct
 `github_app_uuid` from the API. Keep that field in your configuration
 before the first `terraform plan`, or expect a post-import diff.
 
@@ -140,7 +140,7 @@ Additionally, Coolify normalizes some input values:
 |---|---|
 | `git_repository` | Strips `https://github.com/` prefix (e.g. `https://github.com/org/repo` becomes `org/repo`). The provider reconstructs the full URL on import. |
 | `docker_image` | Strips image tags (e.g. `redis:7-alpine` becomes `redis`, `nginx:latest` becomes `nginx`). The provider cannot reconstruct the original tag; expect a one-time diff after import. |
-| `dockerfile_location` | For `coolify_dockerfile_application`: base64-encoded Dockerfile content (not a file path); not returned on GET. For other app types: a file path relative to the repository root. |
+| `dockerfile_location` | For `coolify_application_dockerfile`: base64-encoded Dockerfile content (not a file path); not returned on GET. For other app types: a file path relative to the repository root. |
 | `ports_exposes` | May be overridden by Coolify for Dockerfile apps (e.g. returns `80` instead of configured `3000`) |
 | Storage `name` | Coolify prepends the application UUID (e.g. `my-vol` becomes `{app-uuid}-my-vol`) |
 

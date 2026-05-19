@@ -72,7 +72,7 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_private_git_application", "/api/v1/applications/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_private_git", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testPrivateGitResourceConfig(srv.URL, `
@@ -86,13 +86,13 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 					ports_exposes    = "8080"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "uuid", "pgit-app-uuid"),
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "name", "api-server"),
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "git_repository", "git@github.com:myorg/api-server.git"),
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "git_branch", "main"),
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "build_pack", "dockerfile"),
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "ports_exposes", "8080"),
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "uuid", "pgit-app-uuid"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "name", "api-server"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "git_repository", "git@github.com:myorg/api-server.git"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "git_branch", "main"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "build_pack", "dockerfile"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "ports_exposes", "8080"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "environment_name", "production"),
 				),
 			},
 			{
@@ -193,7 +193,7 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 					description      = "initial desc"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "description", "initial desc"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "description", "initial desc"),
 				),
 			},
 			{
@@ -208,7 +208,7 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 					description      = "updated desc"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "description", "updated desc"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "description", "updated desc"),
 				),
 			},
 		},
@@ -276,7 +276,7 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 				`),
 			},
 			{
-				ResourceName:                         "coolify_private_git_application.test",
+				ResourceName:                         "coolify_application_private_git.test",
 				ImportState:                          true,
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
@@ -356,8 +356,8 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 					private_key_uuid = "dddd0005-0005-4000-8000-000000000005"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_private_git_application.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_private_git_application.test", "/api/v1/applications/"),
+					resource.TestCheckResourceAttrSet("coolify_application_private_git.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_application_private_git.test", "/api/v1/applications/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -426,7 +426,7 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 					}
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "uuid", "privgit-timeout-uuid"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "uuid", "privgit-timeout-uuid"),
 				),
 			},
 		},
@@ -576,5 +576,5 @@ func TestPrivateGitApplicationResource_CreateReadBackFailurePreservesState(t *te
 // ---------------------------------------------------------------------------
 
 func testPrivateGitResourceConfig(endpoint, attrs string) string {
-	return acctest.TestResourceConfig(endpoint, "coolify_private_git_application", "test", attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_application_private_git", "test", attrs)
 }

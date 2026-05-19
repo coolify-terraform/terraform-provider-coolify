@@ -32,10 +32,10 @@ Coolify gives you a self-hosted PaaS with a great UI. This provider adds the thi
 | `coolify_hetzner_server` | Provision Hetzner Cloud servers via Coolify |
 | `coolify_private_key` | Manage SSH keys for server access |
 | `coolify_application` | Deploy apps from public Git repositories |
-| `coolify_dockerfile_application` | Deploy apps from Dockerfiles |
-| `coolify_docker_image_application` | Deploy apps from Docker images (Docker Hub, GHCR, etc.) |
-| `coolify_private_git_application` | Deploy apps from private Git repos (SSH deploy key) |
-| `coolify_github_app_application` | Deploy apps via GitHub App integration |
+| `coolify_application_dockerfile` | Deploy apps from Dockerfiles |
+| `coolify_application_docker_image` | Deploy apps from Docker images (Docker Hub, GHCR, etc.) |
+| `coolify_application_private_git` | Deploy apps from private Git repos (SSH deploy key) |
+| `coolify_application_github_app` | Deploy apps via GitHub App integration |
 | `coolify_environment` | Manage project environments |
 | `coolify_environment_variable` | Manage env vars for applications, services, and databases |
 | `coolify_deployment` | Trigger application deployments |

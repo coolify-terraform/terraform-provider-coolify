@@ -43,10 +43,10 @@ Five application types cover different deployment methods:
 | Resource | Source |
 |----------|--------|
 | `coolify_application` | Public Git repository |
-| `coolify_private_git_application` | Private Git repository (SSH key) |
-| `coolify_github_app_application` | GitHub App integration |
-| `coolify_dockerfile_application` | Dockerfile (no Git repo required) |
-| `coolify_docker_image_application` | Docker image (Docker Hub, GHCR) |
+| `coolify_application_private_git` | Private Git repository (SSH key) |
+| `coolify_application_github_app` | GitHub App integration |
+| `coolify_application_dockerfile` | Dockerfile (no Git repo required) |
+| `coolify_application_docker_image` | Docker image (Docker Hub, GHCR) |
 
 All application resources support configurable `timeouts` for long builds.
 

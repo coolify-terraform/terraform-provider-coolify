@@ -5,12 +5,12 @@ output "project_uuid" {
 
 output "api_app_uuid" {
   description = "UUID of the order processing API application"
-  value       = coolify_dockerfile_application.api.uuid
+  value       = coolify_application_dockerfile.api.uuid
 }
 
 output "worker_app_uuid" {
   description = "UUID of the background worker application"
-  value       = coolify_docker_image_application.worker.uuid
+  value       = coolify_application_docker_image.worker.uuid
 }
 
 output "orders_db_uuid" {

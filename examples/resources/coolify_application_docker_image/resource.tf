@@ -1,4 +1,4 @@
-resource "coolify_docker_image_application" "nginx" {
+resource "coolify_application_docker_image" "nginx" {
   name          = "nginx-proxy"
   project_uuid  = coolify_project.example.uuid
   server_uuid   = coolify_server.example.uuid

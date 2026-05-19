@@ -7,8 +7,8 @@ normalization quirk, scheduled tasks, and persistent storage volumes.
 
 | Resource | Purpose |
 |---|---|
-| `coolify_docker_image_application` | Docker image app with `:latest` tag (normalization test) |
-| `coolify_docker_image_application` | Docker image app with specific tag |
+| `coolify_application_docker_image` | Docker image app with `:latest` tag (normalization test) |
+| `coolify_application_docker_image` | Docker image app with specific tag |
 | `coolify_scheduled_task` | Cron task attached to app |
 | `coolify_storage` | Persistent volume mount |
 

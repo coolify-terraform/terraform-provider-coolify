@@ -220,7 +220,7 @@ func myAppConfig(name, serverUUID string) string {
 resource "coolify_project" "test" {
   name = %[1]q
 }
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
   dockerfile_location = base64encode(<<-DOCKERFILE
@@ -283,20 +283,20 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_project` | Yes | Yes | Yes | Yes | |
 | `coolify_private_key` | Yes | Yes | Yes | Yes | |
 | `coolify_environment` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
-| `coolify_dockerfile_application` | Yes | Yes | Yes | Yes | |
+| `coolify_application_dockerfile` | Yes | Yes | Yes | Yes | |
 | `coolify_database_postgresql` | Yes | Yes | Yes | Yes | |
 | `coolify_service` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
 | `coolify_deployment` | Yes | Yes | N/A | Yes | Trigger resource, no update |
 | `coolify_environment_variable` | Yes | Yes | Yes | Yes | |
 | `coolify_database_backup` | Yes | Yes | Yes | Yes | |
-| `coolify_docker_image_application` | Yes | Yes | Yes | Yes | Uses nginx:alpine |
+| `coolify_application_docker_image` | Yes | Yes | Yes | Yes | Uses nginx:alpine |
 | `coolify_cloud_token` | Yes | Yes | Yes | Yes | |
 | `coolify_scheduled_task` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
 | `coolify_storage` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
 | `coolify_database_mysql` | Yes | Yes | Yes | Yes | Second DB type for coverage |
 | `coolify_application` | Yes | Yes | Yes | Yes | Public git with coollabsio/coolify-examples |
-| `coolify_private_git_application` | Yes | Yes | Yes | Yes | SSH URL, dummy key |
-| `coolify_github_app_application` | Yes | Yes | Yes | Yes | Requires live `COOLIFY_GITHUB_APP_*` fixture env vars with repository access |
+| `coolify_application_private_git` | Yes | Yes | Yes | Yes | SSH URL, dummy key |
+| `coolify_application_github_app` | Yes | Yes | Yes | Yes | Requires live `COOLIFY_GITHUB_APP_*` fixture env vars with repository access |
 | `coolify_github_app` | Yes | Yes | N/A | Yes | Uses a Terraform-managed private key fixture; create/update work without repository access |
 | `coolify_server` | Yes | Yes | Yes | Yes | RFC 5737 IP (192.0.2.1), not reachable |
 | `coolify_database_clickhouse` | Yes | Yes | Yes | Yes | |

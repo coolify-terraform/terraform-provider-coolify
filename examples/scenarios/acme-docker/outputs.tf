@@ -1,9 +1,9 @@
 output "nginx_uuid" {
-  value = coolify_docker_image_application.nginx.uuid
+  value = coolify_application_docker_image.nginx.uuid
 }
 
 output "redis_uuid" {
-  value = coolify_docker_image_application.redis.uuid
+  value = coolify_application_docker_image.redis.uuid
 }
 
 output "task_uuid" {

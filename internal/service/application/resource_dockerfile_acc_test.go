@@ -20,15 +20,15 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_dockerfile_application", "/api/v1/applications/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_dockerfile", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
 				Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_dockerfile_application.test", "uuid"),
-					resource.TestCheckResourceAttrSet("coolify_dockerfile_application.test", "dockerfile_location"),
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "ports_exposes", "80"),
+					resource.TestCheckResourceAttrSet("coolify_application_dockerfile.test", "uuid"),
+					resource.TestCheckResourceAttrSet("coolify_application_dockerfile.test", "dockerfile_location"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "ports_exposes", "80"),
 				),
 			},
 			// Idempotency check
@@ -41,16 +41,16 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 			{
 				Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, `description = "Updated via acc test"`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_dockerfile_application.test", "description", "Updated via acc test"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "description", "Updated via acc test"),
 				),
 			},
 			// Step 3: Import
 			{
-				ResourceName:                         "coolify_dockerfile_application.test",
+				ResourceName:                         "coolify_application_dockerfile.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_dockerfile_application.test", "uuid"),
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application_dockerfile.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"environment_name", "project_uuid", "server_uuid", "dockerfile_location"},
 			},
 		},
@@ -70,21 +70,21 @@ func TestAccDockerfileApplicationDataSources(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_dockerfile_application", "/api/v1/applications/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_dockerfile", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDockerfileAppWithDataSourcesConfig(name, serverUUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify the resource was created
-					resource.TestCheckResourceAttrSet("coolify_dockerfile_application.test", "uuid"),
+					resource.TestCheckResourceAttrSet("coolify_application_dockerfile.test", "uuid"),
 					// Verify the singular data source reads the application
 					resource.TestCheckResourceAttrPair(
 						"data.coolify_application.test", "uuid",
-						"coolify_dockerfile_application.test", "uuid",
+						"coolify_application_dockerfile.test", "uuid",
 					),
 					resource.TestCheckResourceAttrPair(
 						"data.coolify_application.test", "name",
-						"coolify_dockerfile_application.test", "name",
+						"coolify_application_dockerfile.test", "name",
 					),
 					// Verify the list data source contains at least one application
 					resource.TestCheckResourceAttrSet("data.coolify_applications.test", "applications.#"),
@@ -101,11 +101,11 @@ func TestAccDockerfileApplicationDataSources(t *testing.T) {
 func testAccDockerfileAppWithDataSourcesConfig(name, serverUUID string) string {
 	return acctest.AccTestDockerfileAppConfig(name, serverUUID, "") + `
 data "coolify_application" "test" {
-  uuid = coolify_dockerfile_application.test.uuid
+  uuid = coolify_application_dockerfile.test.uuid
 }
 
 data "coolify_applications" "test" {
-  depends_on = [coolify_dockerfile_application.test]
+  depends_on = [coolify_application_dockerfile.test]
 }
 `
 }
@@ -123,7 +123,7 @@ func TestAccApplicationLogsDataSource(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_dockerfile_application", "/api/v1/applications/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_dockerfile", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAppLogsConfig(name, serverUUID),
@@ -138,7 +138,7 @@ func TestAccApplicationLogsDataSource(t *testing.T) {
 func testAccAppLogsConfig(name, serverUUID string) string {
 	return acctest.AccTestDockerfileAppConfig(name, serverUUID, "") + `
 data "coolify_application_logs" "test" {
-  uuid = coolify_dockerfile_application.test.uuid
+  uuid = coolify_application_dockerfile.test.uuid
 }
 `
 }

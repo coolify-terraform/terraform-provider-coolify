@@ -53,7 +53,7 @@ func TestAccScheduledTaskResource_CRUD(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    testAccScheduledTaskImportStateIdFunc("coolify_dockerfile_application.test", "coolify_scheduled_task.test"),
+				ImportStateIdFunc:                    testAccScheduledTaskImportStateIdFunc("coolify_application_dockerfile.test", "coolify_scheduled_task.test"),
 			},
 		},
 	})
@@ -106,7 +106,7 @@ func TestAccScheduledTaskSingularDataSource(t *testing.T) {
 				Config: testAccScheduledTaskConfig(name, serverUUID, "echo singular") + `
 data "coolify_scheduled_task" "test" {
   uuid             = coolify_scheduled_task.test.uuid
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -129,7 +129,7 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
   dockerfile_location = base64encode(<<-DOCKERFILE
@@ -141,7 +141,7 @@ resource "coolify_dockerfile_application" "test" {
 }
 
 resource "coolify_scheduled_task" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   name             = %[1]q
   command          = %[3]q
   frequency        = "* * * * *"
@@ -155,7 +155,7 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
   dockerfile_location = base64encode(<<-DOCKERFILE
@@ -167,14 +167,14 @@ resource "coolify_dockerfile_application" "test" {
 }
 
 resource "coolify_scheduled_task" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   name             = %[1]q
   command          = "echo hello"
   frequency        = "* * * * *"
 }
 
 data "coolify_scheduled_tasks" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   depends_on       = [coolify_scheduled_task.test]
 }
 `, name, serverUUID)
@@ -210,7 +210,7 @@ func testAccTaskExecutionsConfig(name, serverUUID string) string {
 resource "coolify_project" "test" {
   name = %[1]q
 }
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid        = coolify_project.test.uuid
   server_uuid         = %[2]q
   dockerfile_location = base64encode(<<-DOCKERFILE
@@ -221,13 +221,13 @@ resource "coolify_dockerfile_application" "test" {
   ports_exposes = "80"
 }
 resource "coolify_scheduled_task" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   name             = %[1]q
   command          = "echo hello"
   frequency        = "0 * * * *"
 }
 data "coolify_task_executions" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   task_uuid        = coolify_scheduled_task.test.uuid
 }
 `, name, serverUUID)

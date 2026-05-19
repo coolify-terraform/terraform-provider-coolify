@@ -102,7 +102,7 @@ resource "coolify_application" "api" {
   fqdn             = var.domain != "" ? "https://${var.domain}" : null
 }
 
-resource "coolify_docker_image_application" "worker" {
+resource "coolify_application_docker_image" "worker" {
   name             = "order-worker"
   project_uuid     = coolify_project.ecommerce.uuid
   server_uuid      = var.server_uuid
@@ -128,19 +128,19 @@ resource "coolify_environment_variable" "api_redis_url" {
 }
 
 resource "coolify_environment_variable" "worker_database_url" {
-  application_uuid = coolify_docker_image_application.worker.uuid
+  application_uuid = coolify_application_docker_image.worker.uuid
   key              = "DATABASE_URL"
   value            = "postgresql://${coolify_database_postgresql.api_db.postgres_user}:${coolify_database_postgresql.api_db.postgres_password}@${coolify_database_postgresql.api_db.name}:5432/${coolify_database_postgresql.api_db.postgres_db}"
 }
 
 resource "coolify_environment_variable" "worker_redis_url" {
-  application_uuid = coolify_docker_image_application.worker.uuid
+  application_uuid = coolify_application_docker_image.worker.uuid
   key              = "REDIS_URL"
   value            = "redis://${coolify_database_redis.cache.name}:6379"
 }
 
 resource "coolify_environment_variable" "worker_api_url" {
-  application_uuid = coolify_docker_image_application.worker.uuid
+  application_uuid = coolify_application_docker_image.worker.uuid
   key              = "API_URL"
   value            = var.domain != "" ? "https://${var.domain}" : "http://${coolify_application.api.name}:8080"
 }
@@ -156,7 +156,7 @@ output "api_uuid" {
 }
 
 output "worker_uuid" {
-  value = coolify_docker_image_application.worker.uuid
+  value = coolify_application_docker_image.worker.uuid
 }
 
 output "database_uuid" {

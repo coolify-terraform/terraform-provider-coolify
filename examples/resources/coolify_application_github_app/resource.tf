@@ -1,6 +1,6 @@
 # Requires an existing coolify_github_app backed by a live GitHub App
 # installation that can access the target repository.
-resource "coolify_github_app_application" "app" {
+resource "coolify_application_github_app" "app" {
   name            = "my-github-app"
   project_uuid    = coolify_project.example.uuid
   server_uuid     = coolify_server.example.uuid

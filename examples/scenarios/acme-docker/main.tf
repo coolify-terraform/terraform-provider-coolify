@@ -26,7 +26,7 @@ resource "coolify_project" "docker" {
 # --- Docker Image Applications ---
 
 # Uses :latest tag to test Coolify's tag stripping normalization (quirk #2).
-resource "coolify_docker_image_application" "nginx" {
+resource "coolify_application_docker_image" "nginx" {
   name             = "acme-nginx"
   project_uuid     = coolify_project.docker.uuid
   server_uuid      = var.server_uuid
@@ -36,7 +36,7 @@ resource "coolify_docker_image_application" "nginx" {
 }
 
 # Uses a specific tag (no normalization needed).
-resource "coolify_docker_image_application" "redis" {
+resource "coolify_application_docker_image" "redis" {
   name             = "acme-redis-app"
   project_uuid     = coolify_project.docker.uuid
   server_uuid      = var.server_uuid
@@ -48,7 +48,7 @@ resource "coolify_docker_image_application" "redis" {
 # --- Scheduled Task (attached to nginx app) ---
 
 resource "coolify_scheduled_task" "cleanup" {
-  application_uuid = coolify_docker_image_application.nginx.uuid
+  application_uuid = coolify_application_docker_image.nginx.uuid
   name             = "log-cleanup"
   command          = "echo 'Cleaning logs...'"
   frequency        = "0 2 * * *"
@@ -58,7 +58,7 @@ resource "coolify_scheduled_task" "cleanup" {
 # --- Persistent Storage (attached to nginx app) ---
 
 resource "coolify_storage" "static" {
-  application_uuid = coolify_docker_image_application.nginx.uuid
+  application_uuid = coolify_application_docker_image.nginx.uuid
   name             = "nginx-static"
   mount_path       = "/usr/share/nginx/html"
 }

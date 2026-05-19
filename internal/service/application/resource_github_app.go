@@ -42,7 +42,7 @@ func NewGitHubAppResource() resource.Resource {
 }
 
 func (r *gitHubAppApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_github_app_application"
+	resp.TypeName = req.ProviderTypeName + "_application_github_app"
 }
 
 func (r *gitHubAppApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -70,7 +70,7 @@ func (r *gitHubAppApplicationResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_github_app_application"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_application_github_app"})
 
 	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
@@ -122,7 +122,7 @@ func (r *gitHubAppApplicationResource) Create(ctx context.Context, req resource.
 
 	flattenGitHubAppApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_github_app_application", "uuid": created.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application_github_app", "uuid": created.UUID})
 }
 
 func (r *gitHubAppApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -131,7 +131,7 @@ func (r *gitHubAppApplicationResource) Read(ctx context.Context, req resource.Re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	readApplication(ctx, r.client, "coolify_github_app_application", state.UUID.ValueString(), resp, func(app *client.Application) {
+	readApplication(ctx, r.client, "coolify_application_github_app", state.UUID.ValueString(), resp, func(app *client.Application) {
 		flattenGitHubAppApplication(app, &state)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	})
@@ -149,7 +149,7 @@ func (r *gitHubAppApplicationResource) Update(ctx context.Context, req resource.
 		return
 	}
 
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_github_app_application", "uuid": plan.UUID.ValueString()})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_application_github_app", "uuid": plan.UUID.ValueString()})
 
 	input := buildUpdateInput(plan.common(), state.common())
 	input.GitHubAppUUID = flex.StringIfChanged(plan.GitHubAppUUID, state.GitHubAppUUID)
@@ -168,7 +168,7 @@ func (r *gitHubAppApplicationResource) Delete(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	deleteApplication(ctx, r.client, "coolify_github_app_application", state.UUID.ValueString(), resp)
+	deleteApplication(ctx, r.client, "coolify_application_github_app", state.UUID.ValueString(), resp)
 }
 
 func (r *gitHubAppApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

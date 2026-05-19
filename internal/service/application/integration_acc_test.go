@@ -33,7 +33,7 @@ func TestAccIntegration_FullStack(t *testing.T) {
 					// Project
 					resource.TestCheckResourceAttrSet("coolify_project.stack", "uuid"),
 					// Application
-					resource.TestCheckResourceAttrSet("coolify_dockerfile_application.stack", "uuid"),
+					resource.TestCheckResourceAttrSet("coolify_application_dockerfile.stack", "uuid"),
 					// Env var
 					resource.TestCheckResourceAttrSet("coolify_environment_variable.stack", "uuid"),
 					resource.TestCheckResourceAttr("coolify_environment_variable.stack", "key", "STACK_VAR"),
@@ -66,7 +66,7 @@ resource "coolify_project" "stack" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "stack" {
+resource "coolify_application_dockerfile" "stack" {
   project_uuid        = coolify_project.stack.uuid
   server_uuid         = %[2]q
   name                = "%[1]s-app"
@@ -79,19 +79,19 @@ resource "coolify_dockerfile_application" "stack" {
 }
 
 resource "coolify_environment_variable" "stack" {
-  application_uuid = coolify_dockerfile_application.stack.uuid
+  application_uuid = coolify_application_dockerfile.stack.uuid
   key              = "STACK_VAR"
   value            = "stack-value"
 }
 
 resource "coolify_storage" "stack" {
-  application_uuid = coolify_dockerfile_application.stack.uuid
+  application_uuid = coolify_application_dockerfile.stack.uuid
   name             = "%[1]s-vol"
   mount_path       = "/data"
 }
 
 resource "coolify_scheduled_task" "stack" {
-  application_uuid = coolify_dockerfile_application.stack.uuid
+  application_uuid = coolify_application_dockerfile.stack.uuid
   name             = "%[1]s-task"
   command          = "echo stack"
   frequency        = "0 * * * *"

@@ -74,7 +74,7 @@ func TestGitHubAppApplicationResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_github_app_application", "/api/v1/applications/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_github_app", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testGitHubAppResourceConfig(srv.URL, `
@@ -88,13 +88,13 @@ func TestGitHubAppApplicationResource_Create(t *testing.T) {
 					ports_exposes    = "3000"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "uuid", "ghapp-app-uuid"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "name", "my-github-app"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "git_repository", "github.com/myorg/myrepo"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "git_branch", "main"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "build_pack", "nixpacks"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "ports_exposes", "3000"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "uuid", "ghapp-app-uuid"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "name", "my-github-app"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "git_repository", "github.com/myorg/myrepo"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "git_branch", "main"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "build_pack", "nixpacks"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "ports_exposes", "3000"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "environment_name", "production"),
 				),
 			},
 			{
@@ -209,7 +209,7 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 					ports_exposes    = "3000"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "name", "my-github-app"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "name", "my-github-app"),
 				),
 			},
 			{
@@ -227,11 +227,11 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 					start_command    = "yarn start"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "uuid", "ghapp-upd-uuid"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "name", "updated-github-app"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "description", "Updated via test"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "install_command", "yarn install"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "start_command", "yarn start"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "uuid", "ghapp-upd-uuid"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "name", "updated-github-app"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "description", "Updated via test"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "install_command", "yarn install"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "start_command", "yarn start"),
 				),
 			},
 		},
@@ -301,7 +301,7 @@ func TestGitHubAppApplicationResource_Import(t *testing.T) {
 				`),
 			},
 			{
-				ResourceName:                         "coolify_github_app_application.test",
+				ResourceName:                         "coolify_application_github_app.test",
 				ImportState:                          true,
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
@@ -381,8 +381,8 @@ func TestGitHubAppApplicationResource_Disappears(t *testing.T) {
 					ports_exposes    = "3000"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_github_app_application.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_github_app_application.test", "/api/v1/applications/"),
+					resource.TestCheckResourceAttrSet("coolify_application_github_app.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_application_github_app.test", "/api/v1/applications/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -463,5 +463,5 @@ func TestGitHubAppApplicationResource_CreateReadBackFailurePreservesState(t *tes
 // ---------------------------------------------------------------------------
 
 func testGitHubAppResourceConfig(endpoint, attrs string) string {
-	return acctest.TestResourceConfig(endpoint, "coolify_github_app_application", "test", attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_application_github_app", "test", attrs)
 }

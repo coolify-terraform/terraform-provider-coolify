@@ -44,7 +44,7 @@ func NewPrivateGitResource() resource.Resource {
 }
 
 func (r *privateGitApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_private_git_application"
+	resp.TypeName = req.ProviderTypeName + "_application_private_git"
 }
 
 func (r *privateGitApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -75,7 +75,7 @@ func (r *privateGitApplicationResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_private_git_application"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_application_private_git"})
 
 	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
@@ -127,7 +127,7 @@ func (r *privateGitApplicationResource) Create(ctx context.Context, req resource
 
 	flattenPrivateGitApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_private_git_application", "uuid": created.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application_private_git", "uuid": created.UUID})
 }
 
 func (r *privateGitApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -136,7 +136,7 @@ func (r *privateGitApplicationResource) Read(ctx context.Context, req resource.R
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	readApplication(ctx, r.client, "coolify_private_git_application", state.UUID.ValueString(), resp, func(app *client.Application) {
+	readApplication(ctx, r.client, "coolify_application_private_git", state.UUID.ValueString(), resp, func(app *client.Application) {
 		flattenPrivateGitApplication(app, &state)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	})
@@ -154,7 +154,7 @@ func (r *privateGitApplicationResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_private_git_application", "uuid": plan.UUID.ValueString()})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_application_private_git", "uuid": plan.UUID.ValueString()})
 
 	input := buildUpdateInput(plan.common(), state.common())
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
@@ -172,7 +172,7 @@ func (r *privateGitApplicationResource) Delete(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	deleteApplication(ctx, r.client, "coolify_private_git_application", state.UUID.ValueString(), resp)
+	deleteApplication(ctx, r.client, "coolify_application_private_git", state.UUID.ValueString(), resp)
 }
 
 func (r *privateGitApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
