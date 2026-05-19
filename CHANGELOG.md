@@ -84,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input validators: `build_pack` OneOf, FQDN format, cron syntax, port range (1-65535), UUID format, environment variable name format
 - Configurable `timeouts` block on all application resources
 - Graceful handling of out-of-band resource deletion (404 in Read removes from state)
-- 640+ unit tests with race detection across 34 packages
+- 690+ unit tests with race detection across 34 packages
 - CI pipeline: 8 jobs (detect changes, test, lint, validate, scenario tests, acceptance tests, spec freshness, CI gate)
 - GoReleaser config for GPG-signed releases
 - Computed `status` field on all application resources
