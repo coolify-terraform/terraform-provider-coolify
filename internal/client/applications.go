@@ -237,6 +237,9 @@ func (c *Client) CreatePublicApplication(ctx context.Context, input CreatePublic
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/public", input, &a, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating public application: %w", err)
 	}
+	if a.UUID == "" {
+		return nil, fmt.Errorf("creating public application: API returned empty UUID")
+	}
 	return &a, nil
 }
 func (c *Client) UpdateApplication(ctx context.Context, uuid string, input UpdateApplicationInput) (*Application, error) {
@@ -291,6 +294,9 @@ func (c *Client) CreatePrivateGitApplication(ctx context.Context, input CreatePr
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-deploy-key", input, &a, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating private git application: %w", err)
 	}
+	if a.UUID == "" {
+		return nil, fmt.Errorf("creating private git application: API returned empty UUID")
+	}
 	return &a, nil
 }
 
@@ -312,6 +318,9 @@ func (c *Client) CreateDockerImageApplication(ctx context.Context, input CreateD
 	var a Application
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockerimage", input, &a, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating docker image application: %w", err)
+	}
+	if a.UUID == "" {
+		return nil, fmt.Errorf("creating docker image application: API returned empty UUID")
 	}
 	return &a, nil
 }
@@ -335,6 +344,9 @@ func (c *Client) CreateDockerfileApplication(ctx context.Context, input CreateDo
 	var a Application
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockerfile", input, &a, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating dockerfile application: %w", err)
+	}
+	if a.UUID == "" {
+		return nil, fmt.Errorf("creating dockerfile application: API returned empty UUID")
 	}
 	return &a, nil
 }
@@ -362,6 +374,9 @@ func (c *Client) CreateGitHubAppApplication(ctx context.Context, input CreateGit
 	var a Application
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-github-app", input, &a, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating github app application: %w", err)
+	}
+	if a.UUID == "" {
+		return nil, fmt.Errorf("creating github app application: API returned empty UUID")
 	}
 	return &a, nil
 }
