@@ -127,6 +127,7 @@ type commonAppFields struct {
 	IsContainerLabelEscapeEnabled *types.Bool
 	IsPreserveRepositoryEnabled   *types.Bool
 	UseBuildServer                *types.Bool
+	InstantDeploy                 *types.Bool
 }
 
 // applicationCommonModel holds the fields shared by all application resource
@@ -199,6 +200,7 @@ type applicationCommonModel struct {
 	IsContainerLabelEscapeEnabled  types.Bool     `tfsdk:"is_container_label_escape_enabled"`
 	IsPreserveRepositoryEnabled    types.Bool     `tfsdk:"is_preserve_repository_enabled"`
 	UseBuildServer                 types.Bool     `tfsdk:"use_build_server"`
+	InstantDeploy                  types.Bool     `tfsdk:"instant_deploy"`
 	Timeouts                       timeouts.Value `tfsdk:"timeouts"`
 }
 
@@ -241,6 +243,7 @@ func (m *applicationCommonModel) common() commonAppFields {
 		ManualWebhookSecretGitHub: &m.ManualWebhookSecretGitHub, ManualWebhookSecretGitLab: &m.ManualWebhookSecretGitLab,
 		ForceDomainOverride: &m.ForceDomainOverride, IsContainerLabelEscapeEnabled: &m.IsContainerLabelEscapeEnabled,
 		IsPreserveRepositoryEnabled: &m.IsPreserveRepositoryEnabled, UseBuildServer: &m.UseBuildServer,
+		InstantDeploy: &m.InstantDeploy,
 	}
 }
 
@@ -422,6 +425,11 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	setBoolDefault(f.IsContainerLabelEscapeEnabled, app.IsContainerLabelEscapeEnabled, true)
 	setBoolDefault(f.IsPreserveRepositoryEnabled, app.IsPreserveRepositoryEnabled, false)
 	setBoolDefault(f.UseBuildServer, app.UseBuildServer, false)
+	// instant_deploy is create-only and never returned by the API.
+	// Preserve state value when set; default to false otherwise (import).
+	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {
+		*f.InstantDeploy = types.BoolValue(false)
+	}
 	// Optional bool fields (no default)
 	if f.ForceDomainOverride != nil && app.ForceDomainOverride != nil {
 		if !f.ForceDomainOverride.IsNull() && !f.ForceDomainOverride.IsUnknown() {
@@ -842,6 +850,12 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 		},
 		"use_build_server": schema.BoolAttribute{
 			MarkdownDescription: "Whether to use a build server for building the application.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"instant_deploy": schema.BoolAttribute{
+			MarkdownDescription: "Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),

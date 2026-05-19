@@ -132,6 +132,7 @@ func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
 	flex.SetIfKnown(&input.Domains, plan.Domains)
+	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
 	flex.SetIfKnown(&input.InstallCommand, plan.InstallCommand)
 	flex.SetIfKnown(&input.BuildCommand, plan.BuildCommand)
 	flex.SetIfKnown(&input.StartCommand, plan.StartCommand)

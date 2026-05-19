@@ -66,6 +66,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.Image, p.Image)
 	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
 	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
+	in.InstantDeploy = flex.BoolValueOrNull(p.InstantDeploy)
 	flex.SetIfKnown(&in.KeydbPassword, p.KeydbPassword)
 	c, err := r.client.CreateDatabase(ctx, "keydb", in)
 	if err != nil {

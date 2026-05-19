@@ -67,6 +67,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.RedisPassword, p.RedisPassword)
 	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
 	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
+	in.InstantDeploy = flex.BoolValueOrNull(p.InstantDeploy)
 	c, err := r.client.CreateDatabase(ctx, "redis", in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating Redis database",

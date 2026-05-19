@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -45,6 +46,7 @@ type serviceResourceModel struct {
 	DockerComposeRaw types.String   `tfsdk:"docker_compose_raw"`
 	ConnectToNetwork types.Bool     `tfsdk:"connect_to_docker_network"`
 	ConfigHash       types.String   `tfsdk:"config_hash"`
+	InstantDeploy    types.Bool     `tfsdk:"instant_deploy"`
 }
 
 func NewResource() resource.Resource {
@@ -143,6 +145,12 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "Hash of the current service configuration. Changes when the compose or settings are modified.",
 				Computed:            true,
 			},
+			"instant_deploy": schema.BoolAttribute{
+				MarkdownDescription: "Whether to immediately deploy the service after creation. When `true`, Coolify starts the service containers right away. When `false` (default), the service is created but not started.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
 		},
 	}
 }
@@ -176,6 +184,7 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
+	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
 	created, err := r.client.CreateService(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating service",
@@ -316,6 +325,11 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 	model.Name = flex.StringToFramework(svc.Name)
 	model.Description = flex.StringToFramework(svc.Description)
 	model.Status = flex.StringToFramework(svc.Status)
+	// instant_deploy is create-only and never returned by the API.
+	// Preserve state value when set; default to false otherwise (import).
+	if model.InstantDeploy.IsNull() || model.InstantDeploy.IsUnknown() {
+		model.InstantDeploy = types.BoolValue(false)
+	}
 	model.DockerCompose = flex.StringToFramework(svc.DockerCompose)
 	model.DockerComposeRaw = flex.StringToFramework(svc.DockerComposeRaw)
 	model.ConfigHash = flex.StringToFramework(svc.ConfigHash)

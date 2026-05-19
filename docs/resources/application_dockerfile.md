@@ -81,6 +81,7 @@ resource "coolify_application_dockerfile" "app" {
 - `http_basic_auth_password` (String, Sensitive) Password for HTTP Basic Authentication.
 - `http_basic_auth_username` (String) Username for HTTP Basic Authentication.
 - `install_command` (String) The command to run during the install phase.
+- `instant_deploy` (Boolean) Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.
 - `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled.
 - `is_force_https_enabled` (Boolean) Whether to force HTTPS for the application.

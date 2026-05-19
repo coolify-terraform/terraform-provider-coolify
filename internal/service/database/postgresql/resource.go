@@ -115,6 +115,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	flex.SetIfKnown(&input.PostgresDB, plan.PostgresDB)
 	input.IsPublic = flex.BoolValueOrNull(plan.IsPublic)
 	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
+	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
 
 	created, err := r.client.CreateDatabase(ctx, "postgresql", input)
 	if err != nil {
