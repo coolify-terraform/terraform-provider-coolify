@@ -30,6 +30,18 @@ MODEL_TO_SCHEMA = {
     "PrivateKey": "PrivateKey",
     "ScheduledTask": "ScheduledTask",
     "ScheduledDatabaseBackup": "ScheduledDatabaseBackup",
+    "StandalonePostgresql": "StandalonePostgresql",
+    "StandaloneMysql": "StandaloneMysql",
+    "StandaloneMariadb": "StandaloneMariadb",
+    "StandaloneMongodb": "StandaloneMongodb",
+    "StandaloneRedis": "StandaloneRedis",
+    "StandaloneClickhouse": "StandaloneClickhouse",
+    "StandaloneKeydb": "StandaloneKeydb",
+    "StandaloneDragonfly": "StandaloneDragonfly",
+    "GithubApp": "GithubApp",
+    "S3Storage": "S3Storage",
+    "LocalPersistentVolume": "LocalPersistentVolume",
+    "CloudProviderToken": "CloudProviderToken",
 }
 
 # Map contract field types to OpenAPI types
@@ -161,6 +173,26 @@ def patch_request_bodies(spec: dict, contract: dict):
                     schema.pop("required", None)
 
 
+def build_schema_from_contract(contract_model: dict) -> dict:
+    """Build a complete OpenAPI schema from a contract model."""
+    fields = contract_model.get("fields", {})
+    settings_fields = contract_model.get("settings_fields", {})
+    all_fields = {**fields, **settings_fields}
+
+    properties = {}
+    for field_name, field_info in all_fields.items():
+        prop = _build_property(field_name, field_info)
+        if prop:
+            if field_info.get("nullable", False):
+                prop["nullable"] = True
+            properties[field_name] = prop
+
+    return {
+        "type": "object",
+        "properties": dict(sorted(properties.items())),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate corrected OpenAPI spec from contract"
@@ -176,10 +208,16 @@ def main():
     schemas = spec.get("components", {}).get("schemas", {})
 
     patched_count = 0
+    created_count = 0
     for model_name, schema_name in MODEL_TO_SCHEMA.items():
         if model_name not in contract.get("models", {}):
             continue
         if schema_name not in schemas:
+            # Create a new schema from the contract
+            schemas[schema_name] = build_schema_from_contract(
+                contract["models"][model_name]
+            )
+            created_count += 1
             continue
         schemas[schema_name] = patch_schema(
             schemas[schema_name], contract["models"][model_name]
@@ -190,7 +228,10 @@ def main():
     patch_request_bodies(spec, contract)
 
     Path(args.output).write_text(json.dumps(spec, indent=4, ensure_ascii=False) + "\n")
-    print(f"Patched {patched_count} schemas, wrote {args.output}", file=sys.stderr)
+    print(
+        f"Patched {patched_count}, created {created_count} schemas, wrote {args.output}",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

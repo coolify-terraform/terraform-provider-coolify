@@ -12421,11 +12421,6 @@
             "Application": {
                 "description": "Application model",
                 "properties": {
-                    "additional_destinations": {
-                        "type": "string",
-                        "description": "Additional destinations.",
-                        "maxLength": 255
-                    },
                     "application_id": {
                         "type": "integer",
                         "description": "Application id."
@@ -12451,15 +12446,17 @@
                     },
                     "compose_parsing_version": {
                         "type": "string",
-                        "description": "How Coolify parse the compose file."
+                        "description": "How Coolify parse the compose file.",
+                        "default": "1"
                     },
                     "config_hash": {
                         "type": "string",
                         "description": "Configuration hash."
                     },
                     "connect_to_docker_network": {
-                        "type": "string",
-                        "description": "Connect to docker network."
+                        "type": "boolean",
+                        "description": "Connect to docker network.",
+                        "default": false
                     },
                     "created_at": {
                         "type": "string",
@@ -12472,12 +12469,14 @@
                         "description": "Custom docker run options."
                     },
                     "custom_healthcheck_found": {
-                        "type": "string",
-                        "description": "Custom healthcheck found."
+                        "type": "boolean",
+                        "description": "Custom healthcheck found.",
+                        "default": false
                     },
                     "custom_internal_name": {
                         "type": "string",
-                        "description": "Custom internal name."
+                        "description": "Custom internal name.",
+                        "maxLength": 255
                     },
                     "custom_labels": {
                         "type": "string",
@@ -12514,8 +12513,9 @@
                         "description": "Destination type."
                     },
                     "disable_build_cache": {
-                        "type": "string",
-                        "description": "Disable build cache."
+                        "type": "boolean",
+                        "description": "Disable build cache.",
+                        "default": false
                     },
                     "docker_compose": {
                         "type": "string",
@@ -12539,7 +12539,8 @@
                     },
                     "docker_compose_location": {
                         "type": "string",
-                        "description": "Docker compose location."
+                        "description": "Docker compose location.",
+                        "default": "/docker-compose.yaml"
                     },
                     "docker_compose_pr": {
                         "type": "string",
@@ -12547,9 +12548,7 @@
                     },
                     "docker_compose_pr_location": {
                         "type": "string",
-                        "description": "Docker compose pr location.",
-                        "default": "/docker-compose.yaml",
-                        "maxLength": 255
+                        "description": "Docker compose pr location."
                     },
                     "docker_compose_pr_raw": {
                         "type": "string",
@@ -12561,8 +12560,9 @@
                         "description": "Docker compose raw content."
                     },
                     "docker_images_to_keep": {
-                        "type": "string",
-                        "description": "Docker images to keep."
+                        "type": "integer",
+                        "description": "Docker images to keep.",
+                        "default": 2
                     },
                     "docker_registry_image_name": {
                         "type": "string",
@@ -12621,15 +12621,19 @@
                     },
                     "gpu_count": {
                         "type": "string",
-                        "description": "Gpu count."
+                        "description": "Gpu count.",
+                        "maxLength": 255
                     },
                     "gpu_device_ids": {
                         "type": "string",
-                        "description": "Gpu device ids."
+                        "description": "Gpu device ids.",
+                        "maxLength": 255
                     },
                     "gpu_driver": {
                         "type": "string",
-                        "description": "Gpu driver."
+                        "description": "Gpu driver.",
+                        "default": "nvidia",
+                        "maxLength": 255
                     },
                     "gpu_options": {
                         "type": "string",
@@ -12643,7 +12647,7 @@
                     "health_check_enabled": {
                         "type": "boolean",
                         "description": "Health check enabled.",
-                        "default": true
+                        "default": false
                     },
                     "health_check_host": {
                         "type": "string",
@@ -12707,7 +12711,8 @@
                         "enum": [
                             "http",
                             "cmd"
-                        ]
+                        ],
+                        "default": "http"
                     },
                     "http_basic_auth_password": {
                         "type": "string",
@@ -12724,12 +12729,14 @@
                         "description": "The application identifier in the database."
                     },
                     "include_source_commit_in_build": {
-                        "type": "string",
-                        "description": "Include source commit in build."
+                        "type": "boolean",
+                        "description": "Include source commit in build.",
+                        "default": false
                     },
                     "inject_build_args_to_dockerfile": {
-                        "type": "string",
-                        "description": "Inject build args to dockerfile."
+                        "type": "boolean",
+                        "description": "Inject build args to dockerfile.",
+                        "default": true
                     },
                     "install_command": {
                         "type": "string",
@@ -12741,21 +12748,24 @@
                         "default": true
                     },
                     "is_build_server_enabled": {
-                        "type": "string",
-                        "description": "Is build server enabled."
+                        "type": "boolean",
+                        "description": "Is build server enabled.",
+                        "default": false
                     },
                     "is_consistent_container_name_enabled": {
-                        "type": "string",
-                        "description": "Is consistent container name enabled."
+                        "type": "boolean",
+                        "description": "Is consistent container name enabled.",
+                        "default": false
                     },
                     "is_container_label_escape_enabled": {
-                        "type": "string",
-                        "description": "Is container label escape enabled."
+                        "type": "boolean",
+                        "description": "Is container label escape enabled.",
+                        "default": true
                     },
                     "is_container_label_readonly_enabled": {
                         "type": "boolean",
                         "description": "Is container label readonly enabled.",
-                        "default": false
+                        "default": true
                     },
                     "is_custom_ssl": {
                         "type": "boolean",
@@ -12788,8 +12798,9 @@
                         "default": true
                     },
                     "is_git_shallow_clone_enabled": {
-                        "type": "string",
-                        "description": "Is git shallow clone enabled."
+                        "type": "boolean",
+                        "description": "Is git shallow clone enabled.",
+                        "default": true
                     },
                     "is_git_submodules_enabled": {
                         "type": "boolean",
@@ -12797,12 +12808,14 @@
                         "default": true
                     },
                     "is_gpu_enabled": {
-                        "type": "string",
-                        "description": "Is gpu enabled."
+                        "type": "boolean",
+                        "description": "Is gpu enabled.",
+                        "default": false
                     },
                     "is_gzip_enabled": {
-                        "type": "string",
-                        "description": "Is gzip enabled."
+                        "type": "boolean",
+                        "description": "Is gzip enabled.",
+                        "default": true
                     },
                     "is_http2": {
                         "type": "boolean",
@@ -12810,24 +12823,29 @@
                         "default": false
                     },
                     "is_http_basic_auth_enabled": {
-                        "type": "string",
-                        "description": "HTTP Basic Authentication enabled."
+                        "type": "boolean",
+                        "description": "HTTP Basic Authentication enabled.",
+                        "default": false
                     },
                     "is_include_timestamps": {
-                        "type": "string",
-                        "description": "Is include timestamps."
+                        "type": "boolean",
+                        "description": "Is include timestamps.",
+                        "default": false
                     },
                     "is_log_drain_enabled": {
-                        "type": "string",
-                        "description": "Is log drain enabled."
+                        "type": "boolean",
+                        "description": "Is log drain enabled.",
+                        "default": false
                     },
                     "is_pr_deployments_public_enabled": {
-                        "type": "string",
-                        "description": "Is pr deployments public enabled."
+                        "type": "boolean",
+                        "description": "Is pr deployments public enabled.",
+                        "default": false
                     },
                     "is_preserve_repository_enabled": {
-                        "type": "string",
-                        "description": "Is preserve repository enabled."
+                        "type": "boolean",
+                        "description": "Is preserve repository enabled.",
+                        "default": false
                     },
                     "is_preview_deployments_enabled": {
                         "type": "boolean",
@@ -12835,12 +12853,14 @@
                         "default": false
                     },
                     "is_raw_compose_deployment_enabled": {
-                        "type": "string",
-                        "description": "Is raw compose deployment enabled."
+                        "type": "boolean",
+                        "description": "Is raw compose deployment enabled.",
+                        "default": false
                     },
                     "is_spa": {
-                        "type": "string",
-                        "description": "Is spa."
+                        "type": "boolean",
+                        "description": "Is spa.",
+                        "default": false
                     },
                     "is_static": {
                         "type": "boolean",
@@ -12848,16 +12868,20 @@
                         "default": false
                     },
                     "is_stripprefix_enabled": {
-                        "type": "string",
-                        "description": "Is stripprefix enabled."
+                        "type": "boolean",
+                        "description": "Is stripprefix enabled.",
+                        "default": true
                     },
                     "is_swarm_only_worker_nodes": {
-                        "type": "string",
-                        "description": "Is swarm only worker nodes."
+                        "type": "boolean",
+                        "description": "Is swarm only worker nodes.",
+                        "default": true
                     },
                     "last_online_at": {
                         "type": "string",
-                        "description": "Last online at."
+                        "description": "Last online at.",
+                        "default": "now(",
+                        "format": "date-time"
                     },
                     "last_restart_at": {
                         "type": "string",
@@ -12882,8 +12906,7 @@
                     "limits_cpuset": {
                         "type": "string",
                         "nullable": true,
-                        "description": "CPU set.",
-                        "default": "0"
+                        "description": "CPU set."
                     },
                     "limits_memory": {
                         "type": "string",
@@ -12984,7 +13007,8 @@
                             "www",
                             "non-www",
                             "both"
-                        ]
+                        ],
+                        "default": "both"
                     },
                     "repository_project_id": {
                         "type": "integer",
@@ -13025,9 +13049,10 @@
                         "description": "Swarm placement constraints. Only used for swarm deployments."
                     },
                     "swarm_replicas": {
-                        "type": "string",
+                        "type": "integer",
                         "nullable": true,
-                        "description": "Swarm replicas. Only used for swarm deployments."
+                        "description": "Swarm replicas. Only used for swarm deployments.",
+                        "default": 1
                     },
                     "updated_at": {
                         "type": "string",
@@ -13035,8 +13060,9 @@
                         "description": "The date and time when the application was last updated."
                     },
                     "use_build_secrets": {
-                        "type": "string",
-                        "description": "Use build secrets."
+                        "type": "boolean",
+                        "description": "Use build secrets.",
+                        "default": false
                     },
                     "use_build_server": {
                         "type": "string",
@@ -13156,7 +13182,8 @@
                     },
                     "uuid": {
                         "type": "string",
-                        "description": "Uuid."
+                        "description": "Uuid.",
+                        "maxLength": 255
                     }
                 },
                 "type": "object"
@@ -13164,10 +13191,6 @@
             "EnvironmentVariable": {
                 "description": "Environment Variable model",
                 "properties": {
-                    "application_id": {
-                        "type": "integer",
-                        "description": "Application id."
-                    },
                     "comment": {
                         "type": "string",
                         "nullable": true
@@ -13175,102 +13198,57 @@
                     "created_at": {
                         "type": "string"
                     },
-                    "database_id": {
-                        "type": "integer",
-                        "description": "Database id."
-                    },
                     "id": {
                         "type": "integer"
                     },
-                    "is_build_time": {
-                        "type": "boolean",
-                        "description": "Is build time.",
-                        "default": false
-                    },
                     "is_buildtime": {
-                        "type": "string",
+                        "type": "boolean",
                         "default": true
                     },
-                    "is_buildtime_only": {
+                    "is_literal": {
                         "type": "boolean",
-                        "description": "Is buildtime only.",
                         "default": false
                     },
-                    "is_literal": {
-                        "type": "string"
-                    },
                     "is_multiline": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "is_preview": {
                         "type": "boolean",
                         "default": false
                     },
                     "is_required": {
-                        "type": "string",
-                        "description": "Is required."
+                        "type": "boolean",
+                        "description": "Is required.",
+                        "default": false
                     },
                     "is_runtime": {
-                        "type": "string",
+                        "type": "boolean",
                         "default": true
                     },
                     "is_shared": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "is_shown_once": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "key": {
                         "type": "string"
                     },
                     "order": {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Order."
                     },
                     "real_value": {
                         "type": "string"
                     },
                     "resourceable_id": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "resourceable_type": {
                         "type": "string"
-                    },
-                    "service_id": {
-                        "type": "integer",
-                        "description": "Service id."
-                    },
-                    "standalone_clickhouse_id": {
-                        "type": "integer",
-                        "description": "Standalone clickhouse id."
-                    },
-                    "standalone_dragonfly_id": {
-                        "type": "integer",
-                        "description": "Standalone dragonfly id."
-                    },
-                    "standalone_keydb_id": {
-                        "type": "integer",
-                        "description": "Standalone keydb id."
-                    },
-                    "standalone_mariadb_id": {
-                        "type": "integer",
-                        "description": "Standalone mariadb id."
-                    },
-                    "standalone_mongodb_id": {
-                        "type": "integer",
-                        "description": "Standalone mongodb id."
-                    },
-                    "standalone_mysql_id": {
-                        "type": "integer",
-                        "description": "Standalone mysql id."
-                    },
-                    "standalone_postgresql_id": {
-                        "type": "integer",
-                        "description": "Standalone postgresql id."
-                    },
-                    "standalone_redis_id": {
-                        "type": "integer",
-                        "description": "Standalone redis id."
                     },
                     "updated_at": {
                         "type": "string"
@@ -13282,7 +13260,8 @@
                         "type": "string"
                     },
                     "version": {
-                        "type": "string"
+                        "type": "string",
+                        "default": "4.0.0-beta.239"
                     }
                 },
                 "type": "object"
@@ -13391,8 +13370,9 @@
                         "description": "Service id."
                     },
                     "timeout": {
-                        "type": "string",
-                        "description": "The timeout of the scheduled task in seconds."
+                        "type": "integer",
+                        "description": "The timeout of the scheduled task in seconds.",
+                        "default": 300
                     },
                     "updated_at": {
                         "type": "string",
@@ -13465,7 +13445,7 @@
                 "description": "Server model",
                 "properties": {
                     "cloud_provider_token_id": {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Cloud provider token id."
                     },
                     "description": {
@@ -13474,19 +13454,22 @@
                     },
                     "detected_traefik_version": {
                         "type": "string",
-                        "description": "Detected traefik version."
+                        "description": "Detected traefik version.",
+                        "maxLength": 255
                     },
                     "hetzner_server_id": {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Hetzner server id."
                     },
                     "hetzner_server_status": {
                         "type": "string",
-                        "description": "Hetzner server status."
+                        "description": "Hetzner server status.",
+                        "maxLength": 255
                     },
                     "high_disk_usage_notification_sent": {
                         "type": "boolean",
-                        "description": "The flag to indicate if the high disk usage notification has been sent."
+                        "description": "The flag to indicate if the high disk usage notification has been sent.",
+                        "default": false
                     },
                     "id": {
                         "type": "integer",
@@ -13498,20 +13481,18 @@
                     },
                     "ip_previous": {
                         "type": "string",
-                        "description": "Ip previous."
-                    },
-                    "is_metrics_enabled": {
-                        "type": "boolean",
-                        "description": "Is metrics enabled.",
-                        "default": true
+                        "description": "Ip previous.",
+                        "maxLength": 255
                     },
                     "is_validating": {
-                        "type": "string",
-                        "description": "Is validating."
+                        "type": "boolean",
+                        "description": "Is validating.",
+                        "default": false
                     },
                     "log_drain_notification_sent": {
                         "type": "boolean",
-                        "description": "The flag to indicate if the log drain notification has been sent."
+                        "description": "The flag to indicate if the log drain notification has been sent.",
+                        "default": false
                     },
                     "name": {
                         "type": "string",
@@ -13540,23 +13521,29 @@
                         "description": "The proxy type."
                     },
                     "server_metadata": {
-                        "type": "string",
+                        "type": "object",
                         "description": "Server metadata."
                     },
                     "settings": {
                         "$ref": "#/components/schemas/ServerSetting"
                     },
                     "swarm_cluster": {
-                        "type": "string",
+                        "type": "integer",
                         "description": "The swarm cluster configuration."
                     },
                     "traefik_outdated_info": {
-                        "type": "string",
+                        "type": "object",
                         "description": "Traefik outdated info."
                     },
                     "unreachable_count": {
                         "type": "integer",
-                        "description": "The unreachable count for your server."
+                        "description": "The unreachable count for your server.",
+                        "default": 0
+                    },
+                    "unreachable_email_sent": {
+                        "type": "boolean",
+                        "description": "Unreachable email sent.",
+                        "default": false
                     },
                     "unreachable_notification_sent": {
                         "type": "boolean",
@@ -13581,57 +13568,60 @@
             "ServerSetting": {
                 "description": "Server Settings model",
                 "properties": {
-                    "cleanup_after_percentage": {
-                        "type": "integer",
-                        "description": "Cleanup after percentage.",
-                        "default": 80
-                    },
                     "concurrent_builds": {
-                        "type": "string"
+                        "type": "integer",
+                        "default": 2
                     },
                     "created_at": {
                         "type": "string"
                     },
                     "delete_unused_networks": {
-                        "type": "string",
-                        "description": "The flag to indicate if the unused networks should be deleted."
+                        "type": "boolean",
+                        "description": "The flag to indicate if the unused networks should be deleted.",
+                        "default": false
                     },
                     "delete_unused_volumes": {
-                        "type": "string",
-                        "description": "The flag to indicate if the unused volumes should be deleted."
+                        "type": "boolean",
+                        "description": "The flag to indicate if the unused volumes should be deleted.",
+                        "default": false
                     },
                     "deployment_queue_limit": {
-                        "type": "string"
+                        "type": "integer",
+                        "default": 25
                     },
                     "disable_application_image_retention": {
-                        "type": "string",
-                        "description": "Disable application image retention."
+                        "type": "boolean",
+                        "description": "Disable application image retention.",
+                        "default": false
                     },
                     "docker_cleanup_frequency": {
                         "type": "string",
-                        "default": "*/10 * * * *"
+                        "default": "0 0 * * *"
                     },
                     "docker_cleanup_threshold": {
-                        "type": "string"
+                        "type": "integer",
+                        "default": 80
                     },
                     "dynamic_timeout": {
-                        "type": "string"
+                        "type": "integer",
+                        "default": 3600
                     },
                     "force_disabled": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "force_docker_cleanup": {
                         "type": "boolean",
                         "description": "Force docker cleanup.",
-                        "default": false
+                        "default": true
                     },
                     "force_server_cleanup": {
-                        "type": "boolean",
-                        "default": false
+                        "type": "boolean"
                     },
                     "generate_exact_labels": {
-                        "type": "string",
-                        "description": "Generate exact labels."
+                        "type": "boolean",
+                        "description": "Generate exact labels.",
+                        "default": false
                     },
                     "id": {
                         "type": "integer"
@@ -13641,11 +13631,7 @@
                         "default": false
                     },
                     "is_cloudflare_tunnel": {
-                        "type": "string"
-                    },
-                    "is_force_cleanup_enabled": {
                         "type": "boolean",
-                        "description": "Is force cleanup enabled.",
                         "default": false
                     },
                     "is_jump_server": {
@@ -13653,19 +13639,24 @@
                         "default": false
                     },
                     "is_logdrain_axiom_enabled": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "is_logdrain_custom_enabled": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "is_logdrain_highlight_enabled": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "is_logdrain_newrelic_enabled": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "is_metrics_enabled": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "is_part_of_swarm": {
                         "type": "boolean",
@@ -13677,26 +13668,24 @@
                         "default": false
                     },
                     "is_sentinel_debug_enabled": {
-                        "type": "string",
-                        "description": "Is sentinel debug enabled."
+                        "type": "boolean",
+                        "description": "Is sentinel debug enabled.",
+                        "default": false
                     },
                     "is_sentinel_enabled": {
                         "type": "boolean",
-                        "default": false
-                    },
-                    "is_server_api_enabled": {
-                        "type": "boolean",
-                        "description": "Is server api enabled.",
-                        "default": false
+                        "default": true
                     },
                     "is_swarm_manager": {
                         "type": "string"
                     },
                     "is_swarm_worker": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": false
                     },
                     "is_terminal_enabled": {
-                        "type": "string"
+                        "type": "boolean",
+                        "default": true
                     },
                     "is_usable": {
                         "type": "boolean",
@@ -13723,45 +13712,37 @@
                     "logdrain_newrelic_license_key": {
                         "type": "string"
                     },
-                    "metrics_history_days": {
-                        "type": "integer",
-                        "description": "Metrics history days.",
-                        "default": 30
-                    },
-                    "metrics_refresh_rate_seconds": {
-                        "type": "integer",
-                        "description": "Metrics refresh rate seconds.",
-                        "default": 5
-                    },
-                    "metrics_token": {
-                        "type": "string",
-                        "description": "Metrics token.",
-                        "maxLength": 255
-                    },
                     "sentinel_custom_url": {
                         "type": "string",
-                        "description": "Sentinel custom url."
+                        "description": "Sentinel custom url.",
+                        "maxLength": 255
                     },
                     "sentinel_metrics_history_days": {
-                        "type": "string"
+                        "type": "integer",
+                        "default": 7
                     },
                     "sentinel_metrics_refresh_rate_seconds": {
-                        "type": "string"
+                        "type": "integer",
+                        "default": 10
                     },
                     "sentinel_push_interval_seconds": {
-                        "type": "string",
-                        "description": "Sentinel push interval seconds."
+                        "type": "integer",
+                        "description": "Sentinel push interval seconds.",
+                        "default": 60
                     },
                     "sentinel_token": {
                         "type": "string"
                     },
                     "server_disk_usage_check_frequency": {
                         "type": "string",
-                        "description": "Server disk usage check frequency."
+                        "description": "Server disk usage check frequency.",
+                        "default": "0 23 * * *",
+                        "maxLength": 255
                     },
                     "server_disk_usage_notification_threshold": {
-                        "type": "string",
-                        "description": "Server disk usage notification threshold."
+                        "type": "integer",
+                        "description": "Server disk usage notification threshold.",
+                        "default": 80
                     },
                     "server_id": {
                         "type": "integer"
@@ -13769,7 +13750,7 @@
                     "server_timezone": {
                         "type": "string",
                         "description": "Server timezone.",
-                        "default": "",
+                        "default": "UTC",
                         "maxLength": 255
                     },
                     "updated_at": {
@@ -13786,15 +13767,18 @@
                 "properties": {
                     "compose_parsing_version": {
                         "type": "string",
-                        "description": "Compose parsing version."
+                        "description": "Compose parsing version.",
+                        "default": "2",
+                        "maxLength": 255
                     },
                     "config_hash": {
                         "type": "string",
                         "description": "The hash of the service configuration."
                     },
                     "connect_to_docker_network": {
-                        "type": "string",
-                        "description": "The flag to connect the service to the predefined Docker network."
+                        "type": "boolean",
+                        "description": "The flag to connect the service to the predefined Docker network.",
+                        "default": false
                     },
                     "created_at": {
                         "type": "string",
@@ -13833,8 +13817,9 @@
                         "description": "The unique identifier of the service. Only used for database identification."
                     },
                     "is_container_label_escape_enabled": {
-                        "type": "string",
-                        "description": "The flag to enable the container label escape."
+                        "type": "boolean",
+                        "description": "The flag to enable the container label escape.",
+                        "default": true
                     },
                     "is_container_label_readonly_enabled": {
                         "type": "boolean",
@@ -13845,7 +13830,7 @@
                         "description": "The name of the service."
                     },
                     "server_id": {
-                        "type": "string",
+                        "type": "integer",
                         "description": "The unique identifier of the server where the service is running."
                     },
                     "service_type": {
@@ -13949,6 +13934,1741 @@
                     }
                 },
                 "type": "object"
+            },
+            "ScheduledDatabaseBackup": {
+                "type": "object",
+                "properties": {
+                    "database_backup_retention_amount_locally": {
+                        "type": "integer",
+                        "description": "Database backup retention amount locally.",
+                        "default": 0
+                    },
+                    "database_backup_retention_amount_s3": {
+                        "type": "integer",
+                        "description": "Database backup retention amount s3.",
+                        "default": 0
+                    },
+                    "database_backup_retention_days_locally": {
+                        "type": "integer",
+                        "description": "Database backup retention days locally.",
+                        "default": 0
+                    },
+                    "database_backup_retention_days_s3": {
+                        "type": "integer",
+                        "description": "Database backup retention days s3.",
+                        "default": 0
+                    },
+                    "database_backup_retention_max_storage_locally": {
+                        "type": "string",
+                        "description": "Database backup retention max storage locally."
+                    },
+                    "database_backup_retention_max_storage_s3": {
+                        "type": "string",
+                        "description": "Database backup retention max storage s3."
+                    },
+                    "database_id": {
+                        "type": "integer",
+                        "description": "Database id."
+                    },
+                    "database_type": {
+                        "type": "string",
+                        "description": "Database type."
+                    },
+                    "databases_to_backup": {
+                        "type": "string",
+                        "description": "Databases to backup.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "nullable": true
+                    },
+                    "disable_local_backup": {
+                        "type": "boolean",
+                        "description": "Disable local backup.",
+                        "default": false
+                    },
+                    "dump_all": {
+                        "type": "boolean",
+                        "description": "Dump all.",
+                        "default": false
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "description": "Enabled.",
+                        "default": true
+                    },
+                    "frequency": {
+                        "type": "string",
+                        "description": "Frequency.",
+                        "maxLength": 255
+                    },
+                    "number_of_backups_locally": {
+                        "type": "integer",
+                        "description": "Number of backups locally.",
+                        "default": 7
+                    },
+                    "s3_storage_id": {
+                        "type": "integer",
+                        "description": "S3 storage id.",
+                        "nullable": true
+                    },
+                    "save_s3": {
+                        "type": "boolean",
+                        "description": "Save s3.",
+                        "default": true
+                    },
+                    "timeout": {
+                        "type": "integer",
+                        "description": "Timeout.",
+                        "default": 3600
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "StandalonePostgresql": {
+                "type": "object",
+                "properties": {
+                    "config_hash": {
+                        "type": "string",
+                        "description": "Config hash.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "custom_docker_run_options": {
+                        "type": "string",
+                        "description": "Custom docker run options.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "destination_id": {
+                        "type": "integer",
+                        "description": "Destination id."
+                    },
+                    "destination_type": {
+                        "type": "string",
+                        "description": "Destination type."
+                    },
+                    "enable_ssl": {
+                        "type": "boolean",
+                        "description": "Enable ssl.",
+                        "default": false
+                    },
+                    "environment_id": {
+                        "type": "integer",
+                        "description": "Environment id.",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Image.",
+                        "default": "postgres:16-alpine",
+                        "maxLength": 255
+                    },
+                    "init_scripts": {
+                        "type": "object",
+                        "description": "Init scripts.",
+                        "nullable": true
+                    },
+                    "is_include_timestamps": {
+                        "type": "boolean",
+                        "description": "Is include timestamps.",
+                        "default": false
+                    },
+                    "is_log_drain_enabled": {
+                        "type": "boolean",
+                        "description": "Is log drain enabled.",
+                        "default": false
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Is public.",
+                        "default": false
+                    },
+                    "last_online_at": {
+                        "type": "string",
+                        "description": "Last online at.",
+                        "default": "now(",
+                        "format": "date-time"
+                    },
+                    "last_restart_at": {
+                        "type": "string",
+                        "description": "Last restart at."
+                    },
+                    "last_restart_type": {
+                        "type": "string",
+                        "description": "Last restart type."
+                    },
+                    "limits_cpu_shares": {
+                        "type": "integer",
+                        "description": "Limits cpu shares.",
+                        "default": 1024
+                    },
+                    "limits_cpus": {
+                        "type": "string",
+                        "description": "Limits cpus.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_cpuset": {
+                        "type": "string",
+                        "description": "Limits cpuset.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "limits_memory": {
+                        "type": "string",
+                        "description": "Limits memory.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_reservation": {
+                        "type": "string",
+                        "description": "Limits memory reservation.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swap": {
+                        "type": "string",
+                        "description": "Limits memory swap.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swappiness": {
+                        "type": "integer",
+                        "description": "Limits memory swappiness.",
+                        "default": 60
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "ports_mappings": {
+                        "type": "string",
+                        "description": "Ports mappings.",
+                        "nullable": true
+                    },
+                    "postgres_conf": {
+                        "type": "string",
+                        "description": "Postgres conf.",
+                        "nullable": true
+                    },
+                    "postgres_db": {
+                        "type": "string",
+                        "description": "Postgres db.",
+                        "default": "postgres",
+                        "maxLength": 255
+                    },
+                    "postgres_host_auth_method": {
+                        "type": "string",
+                        "description": "Postgres host auth method.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "postgres_initdb_args": {
+                        "type": "string",
+                        "description": "Postgres initdb args.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "postgres_password": {
+                        "type": "string",
+                        "description": "Postgres password."
+                    },
+                    "postgres_user": {
+                        "type": "string",
+                        "description": "Postgres user.",
+                        "default": "postgres",
+                        "maxLength": 255
+                    },
+                    "public_port": {
+                        "type": "integer",
+                        "description": "Public port.",
+                        "nullable": true
+                    },
+                    "public_port_timeout": {
+                        "type": "string",
+                        "description": "Public port timeout."
+                    },
+                    "restart_count": {
+                        "type": "string",
+                        "description": "Restart count."
+                    },
+                    "ssl_mode": {
+                        "type": "string",
+                        "description": "Ssl mode.",
+                        "default": "require",
+                        "enum": [
+                            "allow",
+                            "prefer",
+                            "require",
+                            "verify-ca",
+                            "verify-full"
+                        ]
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "description": "Started at.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status.",
+                        "default": "exited",
+                        "maxLength": 255
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "StandaloneMysql": {
+                "type": "object",
+                "properties": {
+                    "config_hash": {
+                        "type": "string",
+                        "description": "Config hash.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "custom_docker_run_options": {
+                        "type": "string",
+                        "description": "Custom docker run options.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "destination_id": {
+                        "type": "integer",
+                        "description": "Destination id."
+                    },
+                    "destination_type": {
+                        "type": "string",
+                        "description": "Destination type."
+                    },
+                    "enable_ssl": {
+                        "type": "boolean",
+                        "description": "Enable ssl.",
+                        "default": false
+                    },
+                    "environment_id": {
+                        "type": "integer",
+                        "description": "Environment id.",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Image.",
+                        "default": "mysql:8",
+                        "maxLength": 255
+                    },
+                    "is_include_timestamps": {
+                        "type": "boolean",
+                        "description": "Is include timestamps.",
+                        "default": false
+                    },
+                    "is_log_drain_enabled": {
+                        "type": "boolean",
+                        "description": "Is log drain enabled.",
+                        "default": false
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Is public.",
+                        "default": false
+                    },
+                    "last_online_at": {
+                        "type": "string",
+                        "description": "Last online at.",
+                        "default": "now(",
+                        "format": "date-time"
+                    },
+                    "last_restart_at": {
+                        "type": "string",
+                        "description": "Last restart at."
+                    },
+                    "last_restart_type": {
+                        "type": "string",
+                        "description": "Last restart type."
+                    },
+                    "limits_cpu_shares": {
+                        "type": "integer",
+                        "description": "Limits cpu shares.",
+                        "default": 1024
+                    },
+                    "limits_cpus": {
+                        "type": "string",
+                        "description": "Limits cpus.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_cpuset": {
+                        "type": "string",
+                        "description": "Limits cpuset.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "limits_memory": {
+                        "type": "string",
+                        "description": "Limits memory.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_reservation": {
+                        "type": "string",
+                        "description": "Limits memory reservation.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swap": {
+                        "type": "string",
+                        "description": "Limits memory swap.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swappiness": {
+                        "type": "integer",
+                        "description": "Limits memory swappiness.",
+                        "default": 60
+                    },
+                    "mysql_conf": {
+                        "type": "string",
+                        "description": "Mysql conf.",
+                        "nullable": true
+                    },
+                    "mysql_database": {
+                        "type": "string",
+                        "description": "Mysql database.",
+                        "default": "default",
+                        "maxLength": 255
+                    },
+                    "mysql_password": {
+                        "type": "string",
+                        "description": "Mysql password."
+                    },
+                    "mysql_root_password": {
+                        "type": "string",
+                        "description": "Mysql root password."
+                    },
+                    "mysql_user": {
+                        "type": "string",
+                        "description": "Mysql user.",
+                        "default": "mysql",
+                        "maxLength": 255
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "ports_mappings": {
+                        "type": "string",
+                        "description": "Ports mappings.",
+                        "nullable": true
+                    },
+                    "public_port": {
+                        "type": "integer",
+                        "description": "Public port.",
+                        "nullable": true
+                    },
+                    "public_port_timeout": {
+                        "type": "string",
+                        "description": "Public port timeout."
+                    },
+                    "restart_count": {
+                        "type": "string",
+                        "description": "Restart count."
+                    },
+                    "ssl_mode": {
+                        "type": "string",
+                        "description": "Ssl mode.",
+                        "default": "REQUIRED",
+                        "enum": [
+                            "PREFERRED",
+                            "REQUIRED",
+                            "VERIFY_CA",
+                            "VERIFY_IDENTITY"
+                        ]
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "description": "Started at.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status.",
+                        "default": "exited",
+                        "maxLength": 255
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "StandaloneMariadb": {
+                "type": "object",
+                "properties": {
+                    "config_hash": {
+                        "type": "string",
+                        "description": "Config hash.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "custom_docker_run_options": {
+                        "type": "string",
+                        "description": "Custom docker run options.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "destination_id": {
+                        "type": "integer",
+                        "description": "Destination id."
+                    },
+                    "destination_type": {
+                        "type": "string",
+                        "description": "Destination type."
+                    },
+                    "enable_ssl": {
+                        "type": "boolean",
+                        "description": "Enable ssl.",
+                        "default": false
+                    },
+                    "environment_id": {
+                        "type": "integer",
+                        "description": "Environment id.",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Image.",
+                        "default": "mariadb:11",
+                        "maxLength": 255
+                    },
+                    "is_log_drain_enabled": {
+                        "type": "boolean",
+                        "description": "Is log drain enabled.",
+                        "default": false
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Is public.",
+                        "default": false
+                    },
+                    "last_online_at": {
+                        "type": "string",
+                        "description": "Last online at.",
+                        "default": "now(",
+                        "format": "date-time"
+                    },
+                    "last_restart_at": {
+                        "type": "string",
+                        "description": "Last restart at."
+                    },
+                    "last_restart_type": {
+                        "type": "string",
+                        "description": "Last restart type."
+                    },
+                    "limits_cpu_shares": {
+                        "type": "integer",
+                        "description": "Limits cpu shares.",
+                        "default": 1024
+                    },
+                    "limits_cpus": {
+                        "type": "string",
+                        "description": "Limits cpus.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_cpuset": {
+                        "type": "string",
+                        "description": "Limits cpuset.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "limits_memory": {
+                        "type": "string",
+                        "description": "Limits memory.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_reservation": {
+                        "type": "string",
+                        "description": "Limits memory reservation.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swap": {
+                        "type": "string",
+                        "description": "Limits memory swap.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swappiness": {
+                        "type": "integer",
+                        "description": "Limits memory swappiness.",
+                        "default": 60
+                    },
+                    "mariadb_conf": {
+                        "type": "string",
+                        "description": "Mariadb conf.",
+                        "nullable": true
+                    },
+                    "mariadb_database": {
+                        "type": "string",
+                        "description": "Mariadb database.",
+                        "default": "default",
+                        "maxLength": 255
+                    },
+                    "mariadb_password": {
+                        "type": "string",
+                        "description": "Mariadb password."
+                    },
+                    "mariadb_root_password": {
+                        "type": "string",
+                        "description": "Mariadb root password."
+                    },
+                    "mariadb_user": {
+                        "type": "string",
+                        "description": "Mariadb user.",
+                        "default": "mariadb",
+                        "maxLength": 255
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "ports_mappings": {
+                        "type": "string",
+                        "description": "Ports mappings.",
+                        "nullable": true
+                    },
+                    "public_port": {
+                        "type": "integer",
+                        "description": "Public port.",
+                        "nullable": true
+                    },
+                    "public_port_timeout": {
+                        "type": "string",
+                        "description": "Public port timeout."
+                    },
+                    "restart_count": {
+                        "type": "string",
+                        "description": "Restart count."
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "description": "Started at.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status.",
+                        "default": "exited",
+                        "maxLength": 255
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "StandaloneMongodb": {
+                "type": "object",
+                "properties": {
+                    "config_hash": {
+                        "type": "string",
+                        "description": "Config hash.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "custom_docker_run_options": {
+                        "type": "string",
+                        "description": "Custom docker run options.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "destination_id": {
+                        "type": "integer",
+                        "description": "Destination id."
+                    },
+                    "destination_type": {
+                        "type": "string",
+                        "description": "Destination type."
+                    },
+                    "enable_ssl": {
+                        "type": "boolean",
+                        "description": "Enable ssl.",
+                        "default": false
+                    },
+                    "environment_id": {
+                        "type": "integer",
+                        "description": "Environment id.",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Image.",
+                        "default": "mongo:7",
+                        "maxLength": 255
+                    },
+                    "is_include_timestamps": {
+                        "type": "boolean",
+                        "description": "Is include timestamps.",
+                        "default": false
+                    },
+                    "is_log_drain_enabled": {
+                        "type": "boolean",
+                        "description": "Is log drain enabled.",
+                        "default": false
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Is public.",
+                        "default": false
+                    },
+                    "last_online_at": {
+                        "type": "string",
+                        "description": "Last online at.",
+                        "default": "now(",
+                        "format": "date-time"
+                    },
+                    "last_restart_at": {
+                        "type": "string",
+                        "description": "Last restart at."
+                    },
+                    "last_restart_type": {
+                        "type": "string",
+                        "description": "Last restart type."
+                    },
+                    "limits_cpu_shares": {
+                        "type": "integer",
+                        "description": "Limits cpu shares.",
+                        "default": 1024
+                    },
+                    "limits_cpus": {
+                        "type": "string",
+                        "description": "Limits cpus.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_cpuset": {
+                        "type": "string",
+                        "description": "Limits cpuset.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "limits_memory": {
+                        "type": "string",
+                        "description": "Limits memory.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_reservation": {
+                        "type": "string",
+                        "description": "Limits memory reservation.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swap": {
+                        "type": "string",
+                        "description": "Limits memory swap.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swappiness": {
+                        "type": "integer",
+                        "description": "Limits memory swappiness.",
+                        "default": 60
+                    },
+                    "mongo_conf": {
+                        "type": "string",
+                        "description": "Mongo conf.",
+                        "nullable": true
+                    },
+                    "mongo_initdb_database": {
+                        "type": "string",
+                        "description": "Mongo initdb database.",
+                        "default": "default"
+                    },
+                    "mongo_initdb_root_password": {
+                        "type": "string",
+                        "description": "Mongo initdb root password."
+                    },
+                    "mongo_initdb_root_username": {
+                        "type": "string",
+                        "description": "Mongo initdb root username.",
+                        "default": "root"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "ports_mappings": {
+                        "type": "string",
+                        "description": "Ports mappings.",
+                        "nullable": true
+                    },
+                    "public_port": {
+                        "type": "integer",
+                        "description": "Public port.",
+                        "nullable": true
+                    },
+                    "public_port_timeout": {
+                        "type": "string",
+                        "description": "Public port timeout."
+                    },
+                    "restart_count": {
+                        "type": "string",
+                        "description": "Restart count."
+                    },
+                    "ssl_mode": {
+                        "type": "string",
+                        "description": "Ssl mode.",
+                        "default": "require",
+                        "enum": [
+                            "allow",
+                            "prefer",
+                            "require",
+                            "verify-full"
+                        ]
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "description": "Started at.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status.",
+                        "default": "exited",
+                        "maxLength": 255
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "StandaloneRedis": {
+                "type": "object",
+                "properties": {
+                    "config_hash": {
+                        "type": "string",
+                        "description": "Config hash.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "custom_docker_run_options": {
+                        "type": "string",
+                        "description": "Custom docker run options.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "destination_id": {
+                        "type": "integer",
+                        "description": "Destination id."
+                    },
+                    "destination_type": {
+                        "type": "string",
+                        "description": "Destination type."
+                    },
+                    "enable_ssl": {
+                        "type": "boolean",
+                        "description": "Enable ssl.",
+                        "default": false
+                    },
+                    "environment_id": {
+                        "type": "integer",
+                        "description": "Environment id.",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Image.",
+                        "default": "redis:7.2",
+                        "maxLength": 255
+                    },
+                    "is_include_timestamps": {
+                        "type": "boolean",
+                        "description": "Is include timestamps.",
+                        "default": false
+                    },
+                    "is_log_drain_enabled": {
+                        "type": "boolean",
+                        "description": "Is log drain enabled.",
+                        "default": false
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Is public.",
+                        "default": false
+                    },
+                    "last_online_at": {
+                        "type": "string",
+                        "description": "Last online at.",
+                        "default": "now(",
+                        "format": "date-time"
+                    },
+                    "last_restart_at": {
+                        "type": "string",
+                        "description": "Last restart at."
+                    },
+                    "last_restart_type": {
+                        "type": "string",
+                        "description": "Last restart type."
+                    },
+                    "limits_cpu_shares": {
+                        "type": "integer",
+                        "description": "Limits cpu shares.",
+                        "default": 1024
+                    },
+                    "limits_cpus": {
+                        "type": "string",
+                        "description": "Limits cpus.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_cpuset": {
+                        "type": "string",
+                        "description": "Limits cpuset.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "limits_memory": {
+                        "type": "string",
+                        "description": "Limits memory.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_reservation": {
+                        "type": "string",
+                        "description": "Limits memory reservation.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swap": {
+                        "type": "string",
+                        "description": "Limits memory swap.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swappiness": {
+                        "type": "integer",
+                        "description": "Limits memory swappiness.",
+                        "default": 60
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "ports_mappings": {
+                        "type": "string",
+                        "description": "Ports mappings.",
+                        "nullable": true
+                    },
+                    "public_port": {
+                        "type": "integer",
+                        "description": "Public port.",
+                        "nullable": true
+                    },
+                    "public_port_timeout": {
+                        "type": "string",
+                        "description": "Public port timeout."
+                    },
+                    "redis_conf": {
+                        "type": "string",
+                        "description": "Redis conf.",
+                        "nullable": true
+                    },
+                    "restart_count": {
+                        "type": "string",
+                        "description": "Restart count."
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "description": "Started at.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status.",
+                        "default": "exited",
+                        "maxLength": 255
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "StandaloneClickhouse": {
+                "type": "object",
+                "properties": {
+                    "clickhouse_admin_password": {
+                        "type": "string",
+                        "description": "Clickhouse admin password."
+                    },
+                    "clickhouse_admin_user": {
+                        "type": "string",
+                        "description": "Clickhouse admin user.",
+                        "default": "default",
+                        "maxLength": 255
+                    },
+                    "clickhouse_db": {
+                        "type": "string",
+                        "description": "Clickhouse db.",
+                        "default": "default",
+                        "maxLength": 255
+                    },
+                    "config_hash": {
+                        "type": "string",
+                        "description": "Config hash.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "custom_docker_run_options": {
+                        "type": "string",
+                        "description": "Custom docker run options.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "destination_id": {
+                        "type": "integer",
+                        "description": "Destination id."
+                    },
+                    "destination_type": {
+                        "type": "string",
+                        "description": "Destination type."
+                    },
+                    "environment_id": {
+                        "type": "integer",
+                        "description": "Environment id.",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Image.",
+                        "default": "clickhouse/clickhouse-server:25.11",
+                        "maxLength": 255
+                    },
+                    "is_include_timestamps": {
+                        "type": "boolean",
+                        "description": "Is include timestamps.",
+                        "default": false
+                    },
+                    "is_log_drain_enabled": {
+                        "type": "boolean",
+                        "description": "Is log drain enabled.",
+                        "default": false
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Is public.",
+                        "default": false
+                    },
+                    "last_online_at": {
+                        "type": "string",
+                        "description": "Last online at.",
+                        "default": "now(",
+                        "format": "date-time"
+                    },
+                    "last_restart_at": {
+                        "type": "string",
+                        "description": "Last restart at."
+                    },
+                    "last_restart_type": {
+                        "type": "string",
+                        "description": "Last restart type."
+                    },
+                    "limits_cpu_shares": {
+                        "type": "integer",
+                        "description": "Limits cpu shares.",
+                        "default": 1024
+                    },
+                    "limits_cpus": {
+                        "type": "string",
+                        "description": "Limits cpus.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_cpuset": {
+                        "type": "string",
+                        "description": "Limits cpuset.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "limits_memory": {
+                        "type": "string",
+                        "description": "Limits memory.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_reservation": {
+                        "type": "string",
+                        "description": "Limits memory reservation.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swap": {
+                        "type": "string",
+                        "description": "Limits memory swap.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swappiness": {
+                        "type": "integer",
+                        "description": "Limits memory swappiness.",
+                        "default": 60
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "ports_mappings": {
+                        "type": "string",
+                        "description": "Ports mappings.",
+                        "nullable": true
+                    },
+                    "public_port": {
+                        "type": "integer",
+                        "description": "Public port.",
+                        "nullable": true
+                    },
+                    "public_port_timeout": {
+                        "type": "string",
+                        "description": "Public port timeout."
+                    },
+                    "restart_count": {
+                        "type": "string",
+                        "description": "Restart count."
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "description": "Started at.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status.",
+                        "default": "exited",
+                        "maxLength": 255
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "StandaloneKeydb": {
+                "type": "object",
+                "properties": {
+                    "config_hash": {
+                        "type": "string",
+                        "description": "Config hash.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "custom_docker_run_options": {
+                        "type": "string",
+                        "description": "Custom docker run options.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "destination_id": {
+                        "type": "integer",
+                        "description": "Destination id."
+                    },
+                    "destination_type": {
+                        "type": "string",
+                        "description": "Destination type."
+                    },
+                    "enable_ssl": {
+                        "type": "boolean",
+                        "description": "Enable ssl.",
+                        "default": false
+                    },
+                    "environment_id": {
+                        "type": "integer",
+                        "description": "Environment id.",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Image.",
+                        "default": "eqalpha/keydb:latest",
+                        "maxLength": 255
+                    },
+                    "is_include_timestamps": {
+                        "type": "boolean",
+                        "description": "Is include timestamps.",
+                        "default": false
+                    },
+                    "is_log_drain_enabled": {
+                        "type": "boolean",
+                        "description": "Is log drain enabled.",
+                        "default": false
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Is public.",
+                        "default": false
+                    },
+                    "keydb_conf": {
+                        "type": "string",
+                        "description": "Keydb conf.",
+                        "nullable": true
+                    },
+                    "keydb_password": {
+                        "type": "string",
+                        "description": "Keydb password."
+                    },
+                    "last_online_at": {
+                        "type": "string",
+                        "description": "Last online at.",
+                        "default": "now(",
+                        "format": "date-time"
+                    },
+                    "last_restart_at": {
+                        "type": "string",
+                        "description": "Last restart at."
+                    },
+                    "last_restart_type": {
+                        "type": "string",
+                        "description": "Last restart type."
+                    },
+                    "limits_cpu_shares": {
+                        "type": "integer",
+                        "description": "Limits cpu shares.",
+                        "default": 1024
+                    },
+                    "limits_cpus": {
+                        "type": "string",
+                        "description": "Limits cpus.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_cpuset": {
+                        "type": "string",
+                        "description": "Limits cpuset.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "limits_memory": {
+                        "type": "string",
+                        "description": "Limits memory.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_reservation": {
+                        "type": "string",
+                        "description": "Limits memory reservation.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swap": {
+                        "type": "string",
+                        "description": "Limits memory swap.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swappiness": {
+                        "type": "integer",
+                        "description": "Limits memory swappiness.",
+                        "default": 60
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "ports_mappings": {
+                        "type": "string",
+                        "description": "Ports mappings.",
+                        "nullable": true
+                    },
+                    "public_port": {
+                        "type": "integer",
+                        "description": "Public port.",
+                        "nullable": true
+                    },
+                    "public_port_timeout": {
+                        "type": "string",
+                        "description": "Public port timeout."
+                    },
+                    "restart_count": {
+                        "type": "string",
+                        "description": "Restart count."
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "description": "Started at.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status.",
+                        "default": "exited",
+                        "maxLength": 255
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "StandaloneDragonfly": {
+                "type": "object",
+                "properties": {
+                    "config_hash": {
+                        "type": "string",
+                        "description": "Config hash.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "custom_docker_run_options": {
+                        "type": "string",
+                        "description": "Custom docker run options.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "destination_id": {
+                        "type": "integer",
+                        "description": "Destination id."
+                    },
+                    "destination_type": {
+                        "type": "string",
+                        "description": "Destination type."
+                    },
+                    "dragonfly_password": {
+                        "type": "string",
+                        "description": "Dragonfly password."
+                    },
+                    "enable_ssl": {
+                        "type": "boolean",
+                        "description": "Enable ssl.",
+                        "default": false
+                    },
+                    "environment_id": {
+                        "type": "integer",
+                        "description": "Environment id.",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "string",
+                        "description": "Image.",
+                        "default": "docker.dragonflydb.io/dragonflydb/dragonfly",
+                        "maxLength": 255
+                    },
+                    "is_include_timestamps": {
+                        "type": "boolean",
+                        "description": "Is include timestamps.",
+                        "default": false
+                    },
+                    "is_log_drain_enabled": {
+                        "type": "boolean",
+                        "description": "Is log drain enabled.",
+                        "default": false
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Is public.",
+                        "default": false
+                    },
+                    "last_online_at": {
+                        "type": "string",
+                        "description": "Last online at.",
+                        "default": "now(",
+                        "format": "date-time"
+                    },
+                    "last_restart_at": {
+                        "type": "string",
+                        "description": "Last restart at."
+                    },
+                    "last_restart_type": {
+                        "type": "string",
+                        "description": "Last restart type."
+                    },
+                    "limits_cpu_shares": {
+                        "type": "integer",
+                        "description": "Limits cpu shares.",
+                        "default": 1024
+                    },
+                    "limits_cpus": {
+                        "type": "string",
+                        "description": "Limits cpus.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_cpuset": {
+                        "type": "string",
+                        "description": "Limits cpuset.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "limits_memory": {
+                        "type": "string",
+                        "description": "Limits memory.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_reservation": {
+                        "type": "string",
+                        "description": "Limits memory reservation.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swap": {
+                        "type": "string",
+                        "description": "Limits memory swap.",
+                        "default": "0",
+                        "maxLength": 255
+                    },
+                    "limits_memory_swappiness": {
+                        "type": "integer",
+                        "description": "Limits memory swappiness.",
+                        "default": 60
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "ports_mappings": {
+                        "type": "string",
+                        "description": "Ports mappings.",
+                        "nullable": true
+                    },
+                    "public_port": {
+                        "type": "integer",
+                        "description": "Public port.",
+                        "nullable": true
+                    },
+                    "public_port_timeout": {
+                        "type": "string",
+                        "description": "Public port timeout."
+                    },
+                    "restart_count": {
+                        "type": "string",
+                        "description": "Restart count."
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "description": "Started at.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status.",
+                        "default": "exited",
+                        "maxLength": 255
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "GithubApp": {
+                "type": "object",
+                "properties": {
+                    "administration": {
+                        "type": "string",
+                        "description": "Administration.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "api_url": {
+                        "type": "string",
+                        "description": "Api url.",
+                        "maxLength": 255
+                    },
+                    "app_id": {
+                        "type": "integer",
+                        "description": "App id.",
+                        "nullable": true
+                    },
+                    "client_id": {
+                        "type": "string",
+                        "description": "Client id.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "client_secret": {
+                        "type": "string",
+                        "description": "Client secret.",
+                        "nullable": true
+                    },
+                    "contents": {
+                        "type": "string",
+                        "description": "Contents.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "custom_port": {
+                        "type": "integer",
+                        "description": "Custom port.",
+                        "default": 22
+                    },
+                    "custom_user": {
+                        "type": "string",
+                        "description": "Custom user.",
+                        "default": "git",
+                        "maxLength": 255
+                    },
+                    "html_url": {
+                        "type": "string",
+                        "description": "Html url.",
+                        "maxLength": 255
+                    },
+                    "installation_id": {
+                        "type": "integer",
+                        "description": "Installation id.",
+                        "nullable": true
+                    },
+                    "is_public": {
+                        "type": "boolean",
+                        "description": "Is public.",
+                        "default": false
+                    },
+                    "is_system_wide": {
+                        "type": "boolean",
+                        "description": "Is system wide.",
+                        "default": false
+                    },
+                    "metadata": {
+                        "type": "string",
+                        "description": "Metadata.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "organization": {
+                        "type": "string",
+                        "description": "Organization.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "private_key_id": {
+                        "type": "integer",
+                        "description": "Private key id.",
+                        "nullable": true
+                    },
+                    "pull_requests": {
+                        "type": "string",
+                        "description": "Pull requests.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    },
+                    "webhook_secret": {
+                        "type": "string",
+                        "description": "Webhook secret.",
+                        "nullable": true
+                    }
+                }
+            },
+            "S3Storage": {
+                "type": "object",
+                "properties": {
+                    "bucket": {
+                        "type": "string",
+                        "description": "Bucket."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description.",
+                        "nullable": true
+                    },
+                    "endpoint": {
+                        "type": "string",
+                        "description": "Endpoint.",
+                        "nullable": true
+                    },
+                    "is_usable": {
+                        "type": "boolean",
+                        "description": "Is usable.",
+                        "default": false
+                    },
+                    "key": {
+                        "type": "string",
+                        "description": "Key."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "region": {
+                        "type": "string",
+                        "description": "Region.",
+                        "default": "us-east-1",
+                        "maxLength": 255
+                    },
+                    "secret": {
+                        "type": "string",
+                        "description": "Secret."
+                    },
+                    "unusable_email_sent": {
+                        "type": "boolean",
+                        "description": "Unusable email sent.",
+                        "default": false
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "LocalPersistentVolume": {
+                "type": "object",
+                "properties": {
+                    "container_id": {
+                        "type": "string",
+                        "description": "Container id.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "host_path": {
+                        "type": "string",
+                        "description": "Host path.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "is_preview_suffix_enabled": {
+                        "type": "boolean",
+                        "description": "Is preview suffix enabled.",
+                        "default": true
+                    },
+                    "mount_path": {
+                        "type": "string",
+                        "description": "Mount path.",
+                        "maxLength": 255
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255
+                    },
+                    "resource_id": {
+                        "type": "integer",
+                        "description": "Resource id.",
+                        "nullable": true
+                    },
+                    "resource_type": {
+                        "type": "string",
+                        "description": "Resource type.",
+                        "nullable": true
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255,
+                        "nullable": true
+                    }
+                }
+            },
+            "CloudProviderToken": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name.",
+                        "maxLength": 255,
+                        "nullable": true
+                    },
+                    "provider": {
+                        "type": "string",
+                        "description": "Provider.",
+                        "maxLength": 255
+                    },
+                    "token": {
+                        "type": "string",
+                        "description": "Token."
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "description": "Uuid.",
+                        "maxLength": 255,
+                        "nullable": true
+                    }
+                }
             }
         },
         "responses": {
