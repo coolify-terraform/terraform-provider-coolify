@@ -4514,6 +4514,71 @@ func TestClient_CreateService_EmptyUUID(t *testing.T) {
 	assert.Contains(t, err.Error(), "empty UUID")
 }
 
+func TestClient_CreatePublicApplication_EmptyUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "", Name: "broken"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreatePublicApplication(context.Background(), CreatePublicAppInput{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty UUID")
+}
+
+func TestClient_CreatePrivateGitApplication_EmptyUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "", Name: "broken"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreatePrivateGitApplication(context.Background(), CreatePrivateGitAppInput{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty UUID")
+}
+
+func TestClient_CreateDockerImageApplication_EmptyUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "", Name: "broken"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateDockerImageApplication(context.Background(), CreateDockerImageAppInput{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty UUID")
+}
+
+func TestClient_CreateDockerfileApplication_EmptyUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "", Name: "broken"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateDockerfileApplication(context.Background(), CreateDockerfileAppInput{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty UUID")
+}
+
+func TestClient_CreateGitHubAppApplication_EmptyUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "", Name: "broken"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateGitHubAppApplication(context.Background(), CreateGitHubAppInput{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty UUID")
+}
+
 // --- Hetzner List Endpoints ---
 
 func TestClient_ListHetznerImages(t *testing.T) {
