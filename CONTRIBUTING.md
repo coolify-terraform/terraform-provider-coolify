@@ -5,6 +5,7 @@
 ### Prerequisites
 
 - [Go](https://golang.org/doc/install) >= 1.26
+- [Python](https://www.python.org/downloads/) >= 3.9 (required for script unit tests run by `make ci`)
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.6 (required for `terraform fmt` validation)
 - [golangci-lint](https://golangci-lint.run/welcome/install/) v2.12.2 exactly (must match CI)
 
@@ -22,7 +23,7 @@ If you plan to run `make ci`, install the required local tools first:
 make tools
 ```
 
-This installs `golangci-lint`, `goreleaser`, and `tfplugindocs` in one step. On a fresh clone, `make ci` fails early if any of these are missing. Run `make help` to see every supported local target from [GNUmakefile](GNUmakefile).
+This installs `golangci-lint`, `goreleaser`, and `tfplugindocs` in one step. Python remains a separate prerequisite for `make ci`, `make python-test`, and the Python-backed spec tooling targets. On a fresh clone, `make ci` fails early if a required tool is missing. Run `make help` to see every supported local target from [GNUmakefile](GNUmakefile).
 
 ### Running Tests
 
@@ -60,6 +61,7 @@ From [GNUmakefile](GNUmakefile), `make ci` runs these local targets:
 - `lint`
 - `test`
 - `validate`
+- `python-test`
 - `docs-check`
 - `api-coverage-check`
 - `counts-check`

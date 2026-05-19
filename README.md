@@ -160,8 +160,9 @@ The provider requires a Coolify API token. Coolify's API is disabled by default,
 
 ## Development
 
-Install the CI-pinned local tools before running the commands below:
+Install the local prerequisites and CI-pinned tools before running the commands below:
 
+- Python 3.9+
 - `golangci-lint` v2.12.2 exactly
 - `goreleaser` v2.x
 - `tfplugindocs`
@@ -178,8 +179,9 @@ make lint        # Run golangci-lint
 make fmt         # Format code (gofmt + go mod tidy)
 make docs        # Regenerate documentation via tfplugindocs
 make validate    # Check HCL formatting in examples/
+make python-test # Run Python unit tests for scripts/
 make install     # Install provider to local Go bin
-make ci          # Run the aggregate local checks (acceptance tests run separately)
+make ci          # Run the aggregate local checks (includes python-test; acceptance tests run separately)
 ```
 
 `make ci` does not run acceptance tests. If your change touches real Coolify

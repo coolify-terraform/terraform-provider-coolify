@@ -26,7 +26,7 @@ docs: check-tfplugindocs ## Regenerate documentation via tfplugindocs
 validate: ## Check HCL formatting in examples/
 	terraform fmt -check -recursive examples/
 
-python-test: ## Run Python unit tests for scripts/
+python-test: check-python3 ## Run Python unit tests for scripts/
 	python3 -m unittest discover -s scripts -p '*test*.py' -v
 
 install: ## Install provider to local Go bin
@@ -46,10 +46,10 @@ contract-extract: ## Extract contract from Coolify source (usage: make contract-
 contract-check: ## Verify client structs cover all contract fields
 	go test -race -count=1 -run 'TestContractCoverage' ./internal/spectest/ -v
 
-contract-matrix: ## Generate API contract accuracy matrix page
+contract-matrix: check-python3 ## Generate API contract accuracy matrix page
 	python3 scripts/generate-contract-matrix.py
 
-spec-generate: ## Regenerate OpenAPI spec from contract (idempotent: always patches from original)
+spec-generate: check-python3 ## Regenerate OpenAPI spec from contract (idempotent: always patches from original)
 	python3 scripts/generate-openapi.py \
 		--contract testdata/contracts/coolify-v4.json \
 		--spec testdata/specs/coolify-v4.original.json \
@@ -106,6 +106,9 @@ check-goreleaser-version: ## Verify goreleaser major version matches CI
 		exit 1; \
 	fi
 
+check-python3: ## Verify Python 3 is installed for script unit tests
+	@command -v python3 >/dev/null 2>&1 || (echo "ERROR: python3 is required for make python-test and make ci. Install Python 3.9+ and re-run."; exit 1)
+
 check-tfplugindocs: ## Verify tfplugindocs is installed for docs generation
 	@command -v tfplugindocs >/dev/null 2>&1 || (echo "ERROR: tfplugindocs is required for docs generation. Install with: (cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs)"; exit 1)
 
@@ -127,4 +130,4 @@ tools: ## Install all required development tools
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-tfplugindocs goreleaser-check modverify ci scaffold tools help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-python3 check-tfplugindocs goreleaser-check modverify ci scaffold tools help

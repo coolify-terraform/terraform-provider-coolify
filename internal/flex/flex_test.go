@@ -34,6 +34,7 @@ func TestStringValueOrNull(t *testing.T) {
 			}
 			if got == nil {
 				t.Fatal("expected non-nil pointer, got nil")
+				return
 			}
 			if *got != tc.want {
 				t.Fatalf("expected %q, got %q", tc.want, *got)
@@ -71,6 +72,7 @@ func TestIntValueOrNull(t *testing.T) {
 			}
 			if got == nil {
 				t.Fatal("expected non-nil pointer, got nil")
+				return
 			}
 			if *got != tc.want {
 				t.Fatalf("expected %v, got %v", tc.want, *got)
@@ -106,6 +108,7 @@ func TestBoolValueOrNull(t *testing.T) {
 			}
 			if got == nil {
 				t.Fatal("expected non-nil pointer, got nil")
+				return
 			}
 			if *got != tc.want {
 				t.Fatalf("expected %v, got %v", tc.want, *got)
@@ -210,6 +213,7 @@ func TestInt64PtrFromFramework(t *testing.T) {
 			}
 			if got == nil {
 				t.Fatal("expected non-nil pointer, got nil")
+				return
 			}
 			if *got != tc.want {
 				t.Fatalf("expected %d, got %d", tc.want, *got)
@@ -748,6 +752,7 @@ func TestFloat64PtrFromInt64Framework(t *testing.T) {
 		got := flex.Float64PtrFromInt64Framework(types.Int64Value(42))
 		if got == nil {
 			t.Fatal("expected non-nil")
+			return
 		}
 		if *got != 42.0 {
 			t.Fatalf("expected 42.0, got %v", *got)
@@ -805,6 +810,7 @@ func TestIntIfNonDefault(t *testing.T) {
 		got := flex.IntIfNonDefault(types.Int64Value(8), 2)
 		if got == nil {
 			t.Fatal("expected non-nil")
+			return
 		}
 		if *got != 8 {
 			t.Fatalf("expected 8, got %d", *got)
