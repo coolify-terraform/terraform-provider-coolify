@@ -152,7 +152,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - `gofmt -s` for formatting (enforced by CI)
 - golangci-lint v2 with 20 linters: errcheck, errorlint, govet, ineffassign, staticcheck,
   unused, misspell, bodyclose, nilerr, unconvert, wastedassign, whitespace,
-  funlen (150 lines/80 statements), godox (no FIXME/HACK/XXX), dupl (250 tokens),
+  funlen (150 lines/80 statements), godox (no TODO/FIXME/HACK/XXX), dupl (250 tokens),
   gocognit (complexity 20), nestif (depth 5), forbidigo (no fmt.Print), gocritic, dupword
 - errcheck excluded from test files
 - No em dashes in human-facing text
