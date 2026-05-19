@@ -16,6 +16,12 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONTRACTS_DIR="$REPO_ROOT/testdata/contracts"
 
 VERSION="${1:-latest}"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "ERROR: python3 is required to run scripts/extract-contract.sh. Install Python 3.9+ and re-run." >&2
+    exit 1
+fi
+
 CLONE_DIR="$(mktemp -d)"
 trap 'rm -rf "$CLONE_DIR"' EXIT
 

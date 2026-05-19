@@ -10,7 +10,7 @@
 #   - openssh-server installed on host
 #   - /data/coolify/ssh owned by UID 9999
 #   - Passwordless sudo for current user
-#   - Python 3 with playwright installed (auto-installs if missing)
+#   - Python 3 with venv support (used only when bootstrapping the first user; Playwright is auto-installed if missing)
 #
 # Usage:
 #   ./scripts/setup-coolify-test.sh              # setup only
@@ -65,6 +65,14 @@ if [[ "$USER_COUNT" == "0" ]]; then
   # Ensure playwright is available
   PW_VENV="/tmp/pw-venv"
   if [[ ! -f "$PW_VENV/bin/python3" ]]; then
+    if ! command -v python3 >/dev/null 2>&1; then
+      echo "ERROR: python3 is required the first time this script bootstraps a Coolify user. Install Python 3.9+ with venv support and re-run." >&2
+      exit 1
+    fi
+    if ! python3 -c "import venv" >/dev/null 2>&1; then
+      echo "ERROR: python3 venv support is required the first time this script bootstraps a Coolify user. Install python3-venv and re-run." >&2
+      exit 1
+    fi
     python3 -m venv "$PW_VENV"
   fi
   if ! "$PW_VENV/bin/python3" -c "import playwright" 2>/dev/null; then
