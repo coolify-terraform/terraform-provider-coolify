@@ -70,8 +70,8 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /applications/{uuid}/restart":                                covered("coolify_deployment", "v0.1.0"),
 		"POST /applications/dockerfile":                                   covered("coolify_application_dockerfile", "v0.2.0"),
 		"POST /applications/private-github-app":                           covered("coolify_application_github_app", "v0.2.0"),
-		"GET /applications/{uuid}/start":                                  covered("client.StartApplication", "v0.2.0"),
-		"GET /applications/{uuid}/stop":                                   covered("client.StopApplication", "v0.2.0"),
+		"GET /applications/{uuid}/start":                                  covered("coolify_resource_action", "v0.3.0"),
+		"GET /applications/{uuid}/stop":                                   covered("coolify_resource_action", "v0.3.0"),
 		"GET /applications/{uuid}/scheduled-tasks":                        covered("data.coolify_scheduled_tasks", "v0.2.0"),
 		"POST /applications/{uuid}/scheduled-tasks":                       covered("coolify_scheduled_task", "v0.2.0"),
 		"PATCH /applications/{uuid}/scheduled-tasks/{task_uuid}":          covered("coolify_scheduled_task", "v0.2.0"),
@@ -113,9 +113,9 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /databases/{uuid}/backups/{scheduled_backup_uuid}/executions": covered("data.coolify_backup_executions", "v0.2.0"),
 		"DELETE /databases/{uuid}/backups/{scheduled_backup_uuid}/executions/{execution_uuid}": covered("client.DeleteBackupExecution", "v0.2.0"),
 		"PATCH /databases/{uuid}/envs/bulk":                                                    covered("client.BulkUpdateDatabaseEnvVars", "v0.2.0"),
-		"GET /databases/{uuid}/restart":                                                        covered("client.RestartDatabase", "v0.2.0"),
-		"GET /databases/{uuid}/start":                                                          covered("client.StartDatabase", "v0.1.0"),
-		"GET /databases/{uuid}/stop":                                                           covered("client.StopDatabase", "v0.1.0"),
+		"GET /databases/{uuid}/restart":                                                        covered("coolify_resource_action", "v0.3.0"),
+		"GET /databases/{uuid}/start":                                                          covered("coolify_resource_action", "v0.3.0"),
+		"GET /databases/{uuid}/stop":                                                           covered("coolify_resource_action", "v0.3.0"),
 
 		// ── Services ──
 		"GET /services":                                               covered("data.coolify_services", "v0.1.0"),
@@ -137,9 +137,9 @@ func coveredEndpoints() map[string]coverageStatus {
 		"PATCH /services/{uuid}/storages":                             covered("coolify_storage", "v0.2.0"),
 		"DELETE /services/{uuid}/storages/{storage_uuid}":             covered("coolify_storage", "v0.2.0"),
 		"PATCH /services/{uuid}/envs/bulk":                            covered("client.BulkUpdateServiceEnvVars", "v0.2.0"),
-		"GET /services/{uuid}/restart":                                covered("client.RestartService", "v0.2.0"),
-		"GET /services/{uuid}/start":                                  covered("client.StartService", "v0.1.0"),
-		"GET /services/{uuid}/stop":                                   covered("client.StopService", "v0.1.0"),
+		"GET /services/{uuid}/restart":                                covered("coolify_resource_action", "v0.3.0"),
+		"GET /services/{uuid}/start":                                  covered("coolify_resource_action", "v0.3.0"),
+		"GET /services/{uuid}/stop":                                   covered("coolify_resource_action", "v0.3.0"),
 
 		// ── Security Keys ──
 		"GET /security/keys":           covered("data.coolify_private_keys", "v0.1.0"),

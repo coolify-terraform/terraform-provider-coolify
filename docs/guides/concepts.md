@@ -73,6 +73,7 @@ logging (`is_log_drain_enabled`, `is_include_timestamps`), and SSL/TLS
 | `coolify_storage` | Persistent volume mount for apps, services, or databases |
 | `coolify_scheduled_task` | Cron-based task on apps or services |
 | `coolify_deployment` | Trigger a deploy (with force-redeploy via `triggers`) |
+| `coolify_resource_action` | Start, stop, or restart an application, database, or service |
 | `coolify_database_backup` | Schedule automated backups with cron syntax |
 | `coolify_service` | Deploy one-click services from the Coolify catalog |
 

@@ -32,6 +32,7 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/hetzner"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/privatekey"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/project"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/resourceaction"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/resourcelist"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/scheduledtask"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/server"
@@ -204,6 +205,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		backup.NewResource,
 		cloudtoken.NewResource,
 		deployment.NewResource,
+		resourceaction.NewResource,
 		environment.NewResource,
 		environmentvariable.NewResource,
 		githubapp.NewResource,
