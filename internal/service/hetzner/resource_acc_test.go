@@ -23,23 +23,23 @@ func TestAccHetznerServerResource_CRUD(t *testing.T) {
 			{
 				Config: testAccHetznerServerConfig(name, privKey, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_hetzner_server.test", "uuid"),
-					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "name", name),
-					resource.TestCheckResourceAttrSet("coolify_hetzner_server.test", "ip"),
+					resource.TestCheckResourceAttrSet("coolify_server_hetzner.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "name", name),
+					resource.TestCheckResourceAttrSet("coolify_server_hetzner.test", "ip"),
 				),
 			},
 			// Update name.
 			{
 				Config: testAccHetznerServerConfig(name+"-renamed", privKey, ""),
-				Check:  resource.TestCheckResourceAttr("coolify_hetzner_server.test", "name", name+"-renamed"),
+				Check:  resource.TestCheckResourceAttr("coolify_server_hetzner.test", "name", name+"-renamed"),
 			},
 			// Import.
 			{
-				ResourceName:                         "coolify_hetzner_server.test",
+				ResourceName:                         "coolify_server_hetzner.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_hetzner_server.test", "uuid"),
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_server_hetzner.test", "uuid"),
 				ImportStateVerifyIgnore: []string{
 					"cloud_provider_token_uuid",
 					"server_type",
@@ -64,7 +64,7 @@ resource "coolify_private_key" "hetzner_test" {
   private_key = %[2]q
 }
 
-resource "coolify_hetzner_server" "test" {
+resource "coolify_server_hetzner" "test" {
   name                       = %[1]q
   cloud_provider_token_uuid  = coolify_cloud_token.hetzner_test.uuid
   server_type                = "cx22"

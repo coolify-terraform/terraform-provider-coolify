@@ -40,7 +40,7 @@ func NewDockerResource() resource.Resource {
 }
 
 func (r *dockerImageApplicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_docker_image_application"
+	resp.TypeName = req.ProviderTypeName + "_application_docker_image"
 }
 
 func (r *dockerImageApplicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -81,7 +81,7 @@ func (r *dockerImageApplicationResource) Create(ctx context.Context, req resourc
 		return
 	}
 
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_docker_image_application"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_application_docker_image"})
 
 	createTimeout, diags := plan.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
@@ -100,7 +100,8 @@ func (r *dockerImageApplicationResource) Create(ctx context.Context, req resourc
 	flex.SetIfKnown(&input.EnvironmentName, plan.EnvironmentName)
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
-	flex.SetIfKnown(&input.FQDN, plan.FQDN)
+	flex.SetIfKnown(&input.Domains, plan.Domains)
+	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
 	flex.SetIfKnown(&input.InstallCommand, plan.InstallCommand)
 	flex.SetIfKnown(&input.StartCommand, plan.StartCommand)
 
@@ -127,7 +128,7 @@ func (r *dockerImageApplicationResource) Create(ctx context.Context, req resourc
 
 	flattenDockerImageApplication(app, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_docker_image_application", "uuid": created.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application_docker_image", "uuid": created.UUID})
 }
 
 func (r *dockerImageApplicationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -136,7 +137,7 @@ func (r *dockerImageApplicationResource) Read(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	readApplication(ctx, r.client, "coolify_docker_image_application", state.UUID.ValueString(), resp, func(app *client.Application) {
+	readApplication(ctx, r.client, "coolify_application_docker_image", state.UUID.ValueString(), resp, func(app *client.Application) {
 		flattenDockerImageApplication(app, &state)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	})
@@ -154,7 +155,7 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 		return
 	}
 
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_docker_image_application", "uuid": plan.UUID.ValueString()})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_application_docker_image", "uuid": plan.UUID.ValueString()})
 
 	input := buildUpdateInput(plan.common(), state.common())
 	input.DockerRegistryImageName = flex.StringIfChanged(plan.DockerImage, state.DockerImage)
@@ -174,7 +175,7 @@ func (r *dockerImageApplicationResource) Delete(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	deleteApplication(ctx, r.client, "coolify_docker_image_application", state.UUID.ValueString(), resp)
+	deleteApplication(ctx, r.client, "coolify_application_docker_image", state.UUID.ValueString(), resp)
 }
 
 func (r *dockerImageApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

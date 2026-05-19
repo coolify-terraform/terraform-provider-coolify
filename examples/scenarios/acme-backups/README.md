@@ -20,7 +20,7 @@ The actual results of each backup run are **executions**. Use the
 
 ```hcl
 data "coolify_backup_executions" "latest" {
-  database_uuid = coolify_postgresql_database.app_db.uuid
+  database_uuid = coolify_database_postgresql.app_db.uuid
   backup_uuid   = coolify_database_backup.daily.uuid
 }
 
@@ -43,7 +43,7 @@ the Coolify web UI, then enable `save_s3` and point the backup at that UUID:
 
 ```hcl
 resource "coolify_database_backup" "daily" {
-  database_uuid         = coolify_postgresql_database.app_db.uuid
+  database_uuid         = coolify_database_postgresql.app_db.uuid
   frequency             = "0 2 * * *"
   enabled               = true
   save_s3               = true

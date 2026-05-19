@@ -27,32 +27,32 @@ func TestMongodbDatabaseResource_CreateUpdateImport(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_mongodb_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_mongodb", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mongodb_database" "test" {
+resource "coolify_database_mongodb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "name", "mongo-test-db"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "mongo_initdb_root_username", "root"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "mongo_initdb_database", "admin"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "image", "mongo:7"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "enable_ssl", "false"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "status", "running"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "name", "mongo-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "mongo_initdb_root_username", "root"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "mongo_initdb_database", "admin"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "image", "mongo:7"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "status", "running"),
 				),
 			},
 			// Plan idempotency
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mongodb_database" "test" {
+resource "coolify_database_mongodb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -63,7 +63,7 @@ resource "coolify_mongodb_database" "test" {
 			// Update
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mongodb_database" "test" {
+resource "coolify_database_mongodb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-mongo"
@@ -71,14 +71,14 @@ resource "coolify_mongodb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "name", "updated-mongo"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "description", "Updated MongoDB"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "name", "updated-mongo"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "description", "Updated MongoDB"),
 				),
 			},
 			// Update SSL and log drain fields
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mongodb_database" "test" {
+resource "coolify_database_mongodb" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-mongo"
@@ -90,15 +90,15 @@ resource "coolify_mongodb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "ssl_mode", "require"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "ssl_mode", "require"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_include_timestamps", "true"),
 				),
 			},
 			// Import
 			{
-				ResourceName:      "coolify_mongodb_database.test",
+				ResourceName:      "coolify_database_mongodb.test",
 				ImportState:       true,
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
@@ -122,7 +122,7 @@ func TestMongodbDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mongodb_database" "test" {
+resource "coolify_database_mongodb" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   enable_ssl            = true
@@ -131,9 +131,9 @@ resource "coolify_mongodb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "ssl_mode", "require"),
-					resource.TestCheckResourceAttr("coolify_mongodb_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "ssl_mode", "require"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -198,7 +198,7 @@ func TestMongodbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
 			Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mongodb_database" "test" {
+resource "coolify_database_mongodb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -271,14 +271,14 @@ func TestMongodbDatabaseResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mongodb_database" "test" {
+resource "coolify_database_mongodb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_mongodb_database.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_mongodb_database.test", "/api/v1/databases/"),
+					resource.TestCheckResourceAttrSet("coolify_database_mongodb.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_database_mongodb.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -296,7 +296,7 @@ func TestMongodbDatabaseResource_InvalidSSLMode(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mongodb_database" "test" {
+resource "coolify_database_mongodb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   ssl_mode     = "bogus"

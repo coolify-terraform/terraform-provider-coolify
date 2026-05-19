@@ -1,6 +1,6 @@
 output "application_uuid" {
   description = "UUID of the deployed application."
-  value       = coolify_private_git_application.backend.uuid
+  value       = coolify_application_private_git.backend.uuid
 }
 
 output "deployment_uuid" {

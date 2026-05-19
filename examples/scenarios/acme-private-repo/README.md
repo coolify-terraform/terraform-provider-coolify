@@ -5,7 +5,7 @@ demonstrating the full dependency chain for production workflows:
 
 1. **SSH deploy key** (`coolify_private_key`) for authenticating to the
    private Git repository.
-2. **Private Git application** (`coolify_private_git_application`) that
+2. **Private Git application** (`coolify_application_private_git`) that
    clones and builds the repository.
 3. **Environment variables** (`coolify_environment_variable`) for
    secrets and configuration.
@@ -28,7 +28,7 @@ terraform apply
 |----------|---------|
 | `coolify_project.acme` | Project container |
 | `coolify_private_key.deploy` | SSH key for Git auth |
-| `coolify_private_git_application.backend` | Application from private repo |
+| `coolify_application_private_git.backend` | Application from private repo |
 | `coolify_environment_variable.database_url` | Database connection string |
 | `coolify_environment_variable.app_secret` | Application secret |
 | `coolify_deployment.backend` | Initial deployment (waits for completion) |

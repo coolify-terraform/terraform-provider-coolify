@@ -71,7 +71,7 @@ Fields: 133 | Type matches: 133/133 | Nullable matches: 120/133 | Client JSON ma
 | dockerfile_target_build | string | string | yes | reviewed drift | - | mapped |
 | environment_id | integer | integer | yes | yes | - | n/a |
 | force_domain_override | string | string | yes | yes | - | mapped |
-| fqdn | string | string | yes | yes | - | mapped |
+| domains | string | string | yes | yes | - | mapped |
 | git_branch | string | string | yes | yes | - | mapped |
 | git_commit_sha | string | string | yes | yes | HEAD | mapped |
 | git_full_url | string | string | yes | yes | - | n/a |

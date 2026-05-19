@@ -48,6 +48,8 @@ type CommonModel struct {
 	IsLogDrainEnabled       types.Bool     `tfsdk:"is_log_drain_enabled"`
 	IsIncludeTimestamps     types.Bool     `tfsdk:"is_include_timestamps"`
 	Status                  types.String   `tfsdk:"status"`
+	InternalDBUrl           types.String   `tfsdk:"internal_db_url"`
+	InstantDeploy           types.Bool     `tfsdk:"instant_deploy"`
 }
 
 // DatabaseCommonPtrs groups pointers to the core database model fields
@@ -76,6 +78,8 @@ func (m *CommonModel) ExtFields() DatabaseExtendedPtrs {
 		IsLogDrainEnabled:       &m.IsLogDrainEnabled,
 		IsIncludeTimestamps:     &m.IsIncludeTimestamps,
 		Status:                  &m.Status,
+		InternalDBUrl:           &m.InternalDBUrl,
+		InstantDeploy:           &m.InstantDeploy,
 	}
 }
 
@@ -126,6 +130,8 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"is_log_drain_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, sends container logs to the configured log drain. Defaults to `false`.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"is_include_timestamps":     IsIncludeTimestampsAttr(),
 		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g., `running`, `exited`).", Computed: true},
+		"internal_db_url":           schema.StringAttribute{MarkdownDescription: "Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.", Computed: true, Sensitive: true},
+		"instant_deploy":            schema.BoolAttribute{MarkdownDescription: "Whether to immediately deploy the database after creation. When `true`, Coolify starts the database container right away. When `false` (default), the database is created but not started.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 	}
 	for k, v := range extra {
 		attrs[k] = v
@@ -288,6 +294,8 @@ type DatabaseExtendedPtrs struct {
 	EnableSSL               *types.Bool
 	SSLMode                 *types.String
 	Status                  *types.String
+	InternalDBUrl           *types.String
+	InstantDeploy           *types.Bool
 }
 
 // WithSSL returns a copy of the DatabaseExtendedPtrs with EnableSSL and SSLMode
@@ -332,6 +340,15 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	}
 	// Status is Computed — always set.
 	*f.Status = flex.StringToFramework(db.Status)
+	// Internal DB URL is Computed + Sensitive — always set from API.
+	if f.InternalDBUrl != nil {
+		*f.InternalDBUrl = flex.StringToFramework(db.InternalDBUrl)
+	}
+	// instant_deploy is create-only and never returned by the API.
+	// Preserve state value when set; default to false otherwise (import).
+	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {
+		*f.InstantDeploy = types.BoolValue(false)
+	}
 }
 
 // SetUpdateExtended populates the extended fields in an UpdateDatabaseInput.

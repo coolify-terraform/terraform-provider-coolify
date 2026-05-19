@@ -92,7 +92,7 @@ Check the application status:
 ```bash
 curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" \
   "$COOLIFY_ENDPOINT/api/v1/applications/$(terraform output -raw app_uuid)" \
-  | jq '{name, status, fqdn}'
+  | jq '{name, status, domains}'
 ```
 
 Or use a data source to read it back:

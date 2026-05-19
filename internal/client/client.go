@@ -26,11 +26,13 @@ const maxResponseSize = 10 << 20
 
 // Client is the Coolify API client.
 type Client struct {
-	BaseURL    string
-	apiToken   string // unexported: prevents %+v leaking the token
-	HTTPClient *http.Client
-	UserAgent  string
-	listCache  listCache
+	BaseURL           string
+	apiToken          string // unexported: prevents %+v leaking the token
+	HTTPClient        *http.Client
+	UserAgent         string
+	cfAccessClientID  string // Cloudflare Access CF-Access-Client-Id header
+	cfAccessClientSec string // Cloudflare Access CF-Access-Client-Secret header
+	listCache         listCache
 }
 
 // listCache is a short-lived, thread-safe cache for GET list responses.
@@ -83,11 +85,13 @@ func (lc *listCache) invalidate(path string) {
 
 // RetryConfig holds user-configurable retry and TLS settings.
 type RetryConfig struct {
-	Attempts int
-	MinWait  time.Duration
-	MaxWait  time.Duration
-	CACert   string // PEM-encoded CA certificate to trust
-	Insecure bool   // Skip TLS certificate verification
+	Attempts          int
+	MinWait           time.Duration
+	MaxWait           time.Duration
+	CACert            string // PEM-encoded CA certificate to trust
+	Insecure          bool   // Skip TLS certificate verification
+	CFAccessClientID  string // Cloudflare Access client ID header
+	CFAccessClientSec string // Cloudflare Access client secret header
 }
 
 // New creates a new Coolify API client.
@@ -160,10 +164,24 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 	httpClient := rc.StandardClient()
 
 	return &Client{
-		BaseURL:    baseURL,
-		apiToken:   apiToken,
-		HTTPClient: httpClient,
-		UserAgent:  "terraform-provider-coolify",
+		BaseURL:           baseURL,
+		apiToken:          apiToken,
+		HTTPClient:        httpClient,
+		UserAgent:         "terraform-provider-coolify",
+		cfAccessClientID:  cfg.CFAccessClientID,
+		cfAccessClientSec: cfg.CFAccessClientSec,
+	}
+}
+
+// setCommonHeaders sets Authorization, User-Agent, and optional Cloudflare Access headers.
+func (c *Client) setCommonHeaders(req *http.Request) {
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+	req.Header.Set("User-Agent", c.UserAgent)
+	if c.cfAccessClientID != "" {
+		req.Header.Set("CF-Access-Client-Id", c.cfAccessClientID)
+	}
+	if c.cfAccessClientSec != "" {
+		req.Header.Set("CF-Access-Client-Secret", c.cfAccessClientSec)
 	}
 }
 
@@ -184,8 +202,7 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("creating request for %s: %w", path, err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.apiToken)
-	req.Header.Set("User-Agent", c.UserAgent)
+	c.setCommonHeaders(req)
 	tflog.Trace(ctx, "API request", map[string]interface{}{
 		"method": http.MethodGet, "path": path,
 	})
@@ -263,9 +280,8 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+	c.setCommonHeaders(req)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", c.UserAgent)
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -324,9 +340,8 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+	c.setCommonHeaders(req)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", c.UserAgent)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

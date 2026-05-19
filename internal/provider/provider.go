@@ -32,6 +32,7 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/hetzner"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/privatekey"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/project"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/resourceaction"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/resourcelist"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/scheduledtask"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/server"
@@ -53,13 +54,15 @@ var _ provider.Provider = (*coolifyProvider)(nil)
 
 type coolifyProvider struct{ version string }
 type coolifyProviderModel struct {
-	Endpoint     types.String `tfsdk:"endpoint"`
-	Token        types.String `tfsdk:"token"`
-	RetryMax     types.Int64  `tfsdk:"retry_max"`
-	RetryMinWait types.Int64  `tfsdk:"retry_min_wait"`
-	RetryMaxWait types.Int64  `tfsdk:"retry_max_wait"`
-	CACert       types.String `tfsdk:"ca_cert"`
-	Insecure     types.Bool   `tfsdk:"insecure"`
+	Endpoint          types.String `tfsdk:"endpoint"`
+	Token             types.String `tfsdk:"token"`
+	RetryMax          types.Int64  `tfsdk:"retry_max"`
+	RetryMinWait      types.Int64  `tfsdk:"retry_min_wait"`
+	RetryMaxWait      types.Int64  `tfsdk:"retry_max_wait"`
+	CACert            types.String `tfsdk:"ca_cert"`
+	Insecure          types.Bool   `tfsdk:"insecure"`
+	CFAccessClientID  types.String `tfsdk:"cf_access_client_id"`
+	CFAccessClientSec types.String `tfsdk:"cf_access_client_secret"`
 }
 
 func New(version string) func() provider.Provider {
@@ -71,13 +74,15 @@ func (p *coolifyProvider) Metadata(_ context.Context, _ provider.MetadataRequest
 }
 func (p *coolifyProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "The Coolify provider manages resources in a Coolify instance.", Attributes: map[string]schema.Attribute{
-		"endpoint":       schema.StringAttribute{MarkdownDescription: "Coolify API endpoint. Env: COOLIFY_ENDPOINT.", Optional: true},
-		"token":          schema.StringAttribute{MarkdownDescription: "Coolify API token. Env: COOLIFY_TOKEN.", Optional: true, Sensitive: true},
-		"retry_max":      schema.Int64Attribute{MarkdownDescription: "Maximum number of API request retries (default: 3).", Optional: true},
-		"retry_min_wait": schema.Int64Attribute{MarkdownDescription: "Minimum wait between retries in seconds (default: 1).", Optional: true},
-		"retry_max_wait": schema.Int64Attribute{MarkdownDescription: "Maximum wait between retries in seconds (default: 30).", Optional: true},
-		"ca_cert":        schema.StringAttribute{MarkdownDescription: "PEM-encoded CA certificate to trust for TLS connections to the Coolify API. Use this when your Coolify instance uses a self-signed certificate or an internal CA. Env: `COOLIFY_CA_CERT`.", Optional: true},
-		"insecure":       schema.BoolAttribute{MarkdownDescription: "Skip TLS certificate verification. **Not recommended for production.** Use `ca_cert` instead when possible. Env: `COOLIFY_INSECURE`.", Optional: true},
+		"endpoint":                schema.StringAttribute{MarkdownDescription: "Coolify API endpoint. Env: COOLIFY_ENDPOINT.", Optional: true},
+		"token":                   schema.StringAttribute{MarkdownDescription: "Coolify API token. Env: COOLIFY_TOKEN.", Optional: true, Sensitive: true},
+		"retry_max":               schema.Int64Attribute{MarkdownDescription: "Maximum number of API request retries (default: 3).", Optional: true},
+		"retry_min_wait":          schema.Int64Attribute{MarkdownDescription: "Minimum wait between retries in seconds (default: 1).", Optional: true},
+		"retry_max_wait":          schema.Int64Attribute{MarkdownDescription: "Maximum wait between retries in seconds (default: 30).", Optional: true},
+		"ca_cert":                 schema.StringAttribute{MarkdownDescription: "PEM-encoded CA certificate to trust for TLS connections to the Coolify API. Use this when your Coolify instance uses a self-signed certificate or an internal CA. Env: `COOLIFY_CA_CERT`.", Optional: true},
+		"insecure":                schema.BoolAttribute{MarkdownDescription: "Skip TLS certificate verification. **Not recommended for production.** Use `ca_cert` instead when possible. Env: `COOLIFY_INSECURE`.", Optional: true},
+		"cf_access_client_id":     schema.StringAttribute{MarkdownDescription: "Cloudflare Access `CF-Access-Client-Id` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_ID`.", Optional: true},
+		"cf_access_client_secret": schema.StringAttribute{MarkdownDescription: "Cloudflare Access `CF-Access-Client-Secret` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_SECRET`.", Optional: true, Sensitive: true},
 	}}
 }
 func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
@@ -200,6 +205,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		backup.NewResource,
 		cloudtoken.NewResource,
 		deployment.NewResource,
+		resourceaction.NewResource,
 		environment.NewResource,
 		environmentvariable.NewResource,
 		githubapp.NewResource,
@@ -281,6 +287,14 @@ func buildClientConfig(config coolifyProviderModel) client.RetryConfig {
 		cfg.Insecure = config.Insecure.ValueBool()
 	} else if strings.EqualFold(os.Getenv("COOLIFY_INSECURE"), "true") {
 		cfg.Insecure = true
+	}
+	cfg.CFAccessClientID = os.Getenv("COOLIFY_CF_ACCESS_CLIENT_ID")
+	if !config.CFAccessClientID.IsNull() && !config.CFAccessClientID.IsUnknown() {
+		cfg.CFAccessClientID = config.CFAccessClientID.ValueString()
+	}
+	cfg.CFAccessClientSec = os.Getenv("COOLIFY_CF_ACCESS_CLIENT_SECRET")
+	if !config.CFAccessClientSec.IsNull() && !config.CFAccessClientSec.IsUnknown() {
+		cfg.CFAccessClientSec = config.CFAccessClientSec.ValueString()
 	}
 	return cfg
 }

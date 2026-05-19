@@ -11,7 +11,7 @@ type Application struct {
 	UUID                    string `json:"uuid"`
 	Name                    string `json:"name"`
 	Description             string `json:"description,omitempty"`
-	FQDN                    string `json:"fqdn,omitempty"`
+	Domains                 string `json:"fqdn,omitempty"`
 	GitRepository           string `json:"git_repository,omitempty"`
 	GitBranch               string `json:"git_branch,omitempty"`
 	BuildPack               string `json:"build_pack,omitempty"`
@@ -111,16 +111,17 @@ type CreatePublicAppInput struct {
 	PortsExposes       string `json:"ports_exposes"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
-	FQDN               string `json:"domains,omitempty"`
+	Domains            string `json:"domains,omitempty"`
 	DockerfileLocation string `json:"dockerfile_location,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
 	StartCommand       string `json:"start_command,omitempty"`
+	InstantDeploy      *bool  `json:"instant_deploy,omitempty"`
 }
 type UpdateApplicationInput struct {
 	Name                    *string `json:"name,omitempty"`
 	Description             *string `json:"description,omitempty"`
-	FQDN                    *string `json:"domains,omitempty"`
+	Domains                 *string `json:"domains,omitempty"`
 	GitRepository           *string `json:"git_repository,omitempty"`
 	GitBranch               *string `json:"git_branch,omitempty"`
 	BuildPack               *string `json:"build_pack,omitempty"`
@@ -282,11 +283,12 @@ type CreatePrivateGitAppInput struct {
 	PrivateKeyUUID     string `json:"private_key_uuid"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
-	FQDN               string `json:"domains,omitempty"`
+	Domains            string `json:"domains,omitempty"`
 	DockerfileLocation string `json:"dockerfile_location,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
 	StartCommand       string `json:"start_command,omitempty"`
+	InstantDeploy      *bool  `json:"instant_deploy,omitempty"`
 }
 
 func (c *Client) CreatePrivateGitApplication(ctx context.Context, input CreatePrivateGitAppInput) (*Application, error) {
@@ -309,9 +311,10 @@ type CreateDockerImageAppInput struct {
 	PortsExposes    string `json:"ports_exposes"`
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
-	FQDN            string `json:"domains,omitempty"`
+	Domains         string `json:"domains,omitempty"`
 	InstallCommand  string `json:"install_command,omitempty"`
 	StartCommand    string `json:"start_command,omitempty"`
+	InstantDeploy   *bool  `json:"instant_deploy,omitempty"`
 }
 
 func (c *Client) CreateDockerImageApplication(ctx context.Context, input CreateDockerImageAppInput) (*Application, error) {
@@ -334,10 +337,11 @@ type CreateDockerfileAppInput struct {
 	PortsExposes       string `json:"ports_exposes"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
-	FQDN               string `json:"domains,omitempty"`
+	Domains            string `json:"domains,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
 	StartCommand       string `json:"start_command,omitempty"`
+	InstantDeploy      *bool  `json:"instant_deploy,omitempty"`
 }
 
 func (c *Client) CreateDockerfileApplication(ctx context.Context, input CreateDockerfileAppInput) (*Application, error) {
@@ -363,11 +367,12 @@ type CreateGitHubAppInput struct {
 	PortsExposes       string `json:"ports_exposes"`
 	Name               string `json:"name,omitempty"`
 	Description        string `json:"description,omitempty"`
-	FQDN               string `json:"domains,omitempty"`
+	Domains            string `json:"domains,omitempty"`
 	DockerfileLocation string `json:"dockerfile_location,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
 	StartCommand       string `json:"start_command,omitempty"`
+	InstantDeploy      *bool  `json:"instant_deploy,omitempty"`
 }
 
 func (c *Client) CreateGitHubAppApplication(ctx context.Context, input CreateGitHubAppInput) (*Application, error) {

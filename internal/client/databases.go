@@ -54,6 +54,7 @@ type Database struct {
 	CustomDockerRunOptions string `json:"custom_docker_run_options,omitempty"`
 	PublicPortTimeout      *int64 `json:"public_port_timeout,omitempty"`
 	Status                 string `json:"status,omitempty"`
+	InternalDBUrl          string `json:"internal_db_url,omitempty"`
 	// Type-specific configs
 	PostgresConf           string `json:"postgres_conf,omitempty"`
 	PostgresInitdbArgs     string `json:"postgres_initdb_args,omitempty"`
@@ -82,6 +83,7 @@ type CreatePostgresqlInput struct {
 	PostgresDB       string `json:"postgres_db,omitempty"`
 	IsPublic         *bool  `json:"is_public,omitempty"`
 	PublicPort       *int64 `json:"public_port,omitempty"`
+	InstantDeploy    *bool  `json:"instant_deploy,omitempty"`
 }
 type CreateMysqlInput struct {
 	ServerUUID        string `json:"server_uuid"`
@@ -97,6 +99,7 @@ type CreateMysqlInput struct {
 	MysqlDatabase     string `json:"mysql_database,omitempty"`
 	IsPublic          *bool  `json:"is_public,omitempty"`
 	PublicPort        *int64 `json:"public_port,omitempty"`
+	InstantDeploy     *bool  `json:"instant_deploy,omitempty"`
 }
 type CreateMariadbInput struct {
 	ServerUUID          string `json:"server_uuid"`
@@ -112,6 +115,7 @@ type CreateMariadbInput struct {
 	MariadbDatabase     string `json:"mariadb_database,omitempty"`
 	IsPublic            *bool  `json:"is_public,omitempty"`
 	PublicPort          *int64 `json:"public_port,omitempty"`
+	InstantDeploy       *bool  `json:"instant_deploy,omitempty"`
 }
 type CreateRedisInput struct {
 	ServerUUID      string `json:"server_uuid"`
@@ -124,6 +128,7 @@ type CreateRedisInput struct {
 	RedisPassword   string `json:"redis_password,omitempty"`
 	IsPublic        *bool  `json:"is_public,omitempty"`
 	PublicPort      *int64 `json:"public_port,omitempty"`
+	InstantDeploy   *bool  `json:"instant_deploy,omitempty"`
 }
 type CreateMongodbInput struct {
 	ServerUUID              string `json:"server_uuid"`
@@ -138,6 +143,7 @@ type CreateMongodbInput struct {
 	MongoInitdbDatabase     string `json:"mongo_initdb_database,omitempty"`
 	IsPublic                *bool  `json:"is_public,omitempty"`
 	PublicPort              *int64 `json:"public_port,omitempty"`
+	InstantDeploy           *bool  `json:"instant_deploy,omitempty"`
 }
 type CreateClickhouseInput struct {
 	ProjectUUID             string `json:"project_uuid"`
@@ -149,6 +155,7 @@ type CreateClickhouseInput struct {
 	Image                   string `json:"image,omitempty"`
 	IsPublic                *bool  `json:"is_public,omitempty"`
 	PublicPort              *int64 `json:"public_port,omitempty"`
+	InstantDeploy           *bool  `json:"instant_deploy,omitempty"`
 	ClickhouseAdminUser     string `json:"clickhouse_admin_user,omitempty"`
 	ClickhouseAdminPassword string `json:"clickhouse_admin_password,omitempty"`
 }
@@ -163,6 +170,7 @@ type CreateKeydbInput struct {
 	Image           string `json:"image,omitempty"`
 	IsPublic        *bool  `json:"is_public,omitempty"`
 	PublicPort      *int64 `json:"public_port,omitempty"`
+	InstantDeploy   *bool  `json:"instant_deploy,omitempty"`
 	KeydbPassword   string `json:"keydb_password,omitempty"`
 }
 type CreateDragonflyInput struct {
@@ -175,6 +183,7 @@ type CreateDragonflyInput struct {
 	Image             string `json:"image,omitempty"`
 	IsPublic          *bool  `json:"is_public,omitempty"`
 	PublicPort        *int64 `json:"public_port,omitempty"`
+	InstantDeploy     *bool  `json:"instant_deploy,omitempty"`
 	DragonflyPassword string `json:"dragonfly_password,omitempty"`
 }
 

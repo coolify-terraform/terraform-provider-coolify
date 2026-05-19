@@ -110,6 +110,7 @@ func TestServiceResource_CreateImport(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_service.test", "name", "plausible-svc"),
 					resource.TestCheckResourceAttr("coolify_service.test", "type", "plausible"),
 					resource.TestCheckResourceAttr("coolify_service.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_service.test", "instant_deploy", "false"),
 				),
 			},
 			// Idempotency

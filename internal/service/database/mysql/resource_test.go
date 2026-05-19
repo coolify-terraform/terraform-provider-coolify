@@ -28,33 +28,33 @@ func TestMysqlDatabaseResource_CreateUpdateImport(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_mysql_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_mysql", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mysql_database" "test" {
+resource "coolify_database_mysql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "name", "mysql-test-db"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "mysql_user", "mysqluser"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "mysql_database", "mydb"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "image", "mysql:8"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_public", "false"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "enable_ssl", "false"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "status", "running"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "name", "mysql-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "mysql_user", "mysqluser"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "mysql_database", "mydb"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "image", "mysql:8"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "is_public", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "status", "running"),
 				),
 			},
 			// Plan idempotency
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mysql_database" "test" {
+resource "coolify_database_mysql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -65,7 +65,7 @@ resource "coolify_mysql_database" "test" {
 			// Update
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mysql_database" "test" {
+resource "coolify_database_mysql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-mysql-db"
@@ -73,14 +73,14 @@ resource "coolify_mysql_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "name", "updated-mysql-db"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "description", "Updated MySQL"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "name", "updated-mysql-db"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "description", "Updated MySQL"),
 				),
 			},
 			// Update SSL and log drain fields
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mysql_database" "test" {
+resource "coolify_database_mysql" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-mysql-db"
@@ -92,15 +92,15 @@ resource "coolify_mysql_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "ssl_mode", "REQUIRED"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "ssl_mode", "REQUIRED"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "is_include_timestamps", "true"),
 				),
 			},
 			// Import
 			{
-				ResourceName:      "coolify_mysql_database.test",
+				ResourceName:      "coolify_database_mysql.test",
 				ImportState:       true,
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
@@ -125,7 +125,7 @@ func TestMysqlDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mysql_database" "test" {
+resource "coolify_database_mysql" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   enable_ssl            = true
@@ -134,9 +134,9 @@ resource "coolify_mysql_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "ssl_mode", "REQUIRED"),
-					resource.TestCheckResourceAttr("coolify_mysql_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "ssl_mode", "REQUIRED"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -202,7 +202,7 @@ func TestMysqlDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
 			Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mysql_database" "test" {
+resource "coolify_database_mysql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -276,14 +276,14 @@ func TestMysqlDatabaseResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mysql_database" "test" {
+resource "coolify_database_mysql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_mysql_database.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_mysql_database.test", "/api/v1/databases/"),
+					resource.TestCheckResourceAttrSet("coolify_database_mysql.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_database_mysql.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -301,7 +301,7 @@ func TestMysqlDatabaseResource_InvalidSSLMode(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mysql_database" "test" {
+resource "coolify_database_mysql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   ssl_mode     = "bogus"

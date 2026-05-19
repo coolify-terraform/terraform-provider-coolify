@@ -23,7 +23,7 @@ import (
 )
 
 // ServerCommonPtrs holds pointers to the model fields shared by all server
-// resource types (coolify_server, coolify_hetzner_server).
+// resource types (coolify_server, coolify_server_hetzner).
 type ServerCommonPtrs struct {
 	UUID, Name, Description, IP, User, PrivateKeyUUID *types.String
 	Port, ConcurrentBuilds, DynamicTimeout            *types.Int64

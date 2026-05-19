@@ -28,35 +28,36 @@ func TestPostgresqlDatabaseResource_CreateUpdateImport(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_postgresql_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_postgresql", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create and verify
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "name", "pg-test-db"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "postgres_user", "postgres"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "postgres_db", "defaultdb"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "image", "postgres:16"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "environment_name", "production"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_public", "false"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "enable_ssl", "false"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "status", "running"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "limits_cpu_shares", "1024"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "name", "pg-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "postgres_user", "postgres"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "postgres_db", "defaultdb"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "image", "postgres:16"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_public", "false"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "status", "running"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "limits_cpu_shares", "1024"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "instant_deploy", "false"),
 				),
 			},
 			// Plan idempotency: re-apply same config, expect empty plan
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -67,7 +68,7 @@ resource "coolify_postgresql_database" "test" {
 			// Update name and description
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-pg-db"
@@ -75,15 +76,15 @@ resource "coolify_postgresql_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "name", "updated-pg-db"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "Updated description"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "name", "updated-pg-db"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "description", "Updated description"),
 				),
 			},
 			// Update SSL and log drain fields
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-pg-db"
@@ -95,15 +96,15 @@ resource "coolify_postgresql_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "ssl_mode", "require"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "ssl_mode", "require"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_include_timestamps", "true"),
 				),
 			},
 			// Import
 			{
-				ResourceName:      "coolify_postgresql_database.test",
+				ResourceName:      "coolify_database_postgresql.test",
 				ImportState:       true,
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
@@ -177,14 +178,14 @@ func TestPostgresqlDatabaseResource_DescriptionNullHandling(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   description  = "initial"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "description", "initial"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "description", "initial"),
 				),
 			},
 			{
@@ -194,13 +195,43 @@ resource "coolify_postgresql_database" "test" {
 					mu.Unlock()
 				},
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckNoResourceAttr("coolify_postgresql_database.test", "description"),
+					resource.TestCheckNoResourceAttr("coolify_database_postgresql.test", "description"),
+				),
+			},
+		},
+	})
+}
+
+func TestPostgresqlDatabaseResource_InternalDBUrlAndInstantDeploy(t *testing.T) {
+	t.Parallel()
+	srv, _ := dbtest.NewMockServer("postgresql", "pg-url-db", "postgres:16", map[string]interface{}{
+		"postgres_user":     "postgres",
+		"postgres_password": "secret123",
+		"postgres_db":       "mydb",
+		"internal_db_url":   "postgresql://postgres:secret123@pg-url-db:5432/mydb",
+	})
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_postgresql" "test" {
+  project_uuid   = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid    = "bbbb0001-0001-4000-8000-000000000001"
+  instant_deploy = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "internal_db_url", "postgresql://postgres:secret123@pg-url-db:5432/mydb"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "instant_deploy", "true"),
 				),
 			},
 		},
@@ -221,7 +252,7 @@ func TestPostgresqlDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   enable_ssl            = true
@@ -230,9 +261,9 @@ resource "coolify_postgresql_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "ssl_mode", "require"),
-					resource.TestCheckResourceAttr("coolify_postgresql_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "ssl_mode", "require"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -297,7 +328,7 @@ func TestPostgresqlDatabaseResource_CreateReadBackFailurePreservesState(t *testi
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
 			Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -317,7 +348,7 @@ func TestPostgresqlDatabaseResource_InvalidPort(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   public_port  = 99999
@@ -392,14 +423,14 @@ func TestPostgresqlDatabaseResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_postgresql_database.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_postgresql_database.test", "/api/v1/databases/"),
+					resource.TestCheckResourceAttrSet("coolify_database_postgresql.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_database_postgresql.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -432,14 +463,14 @@ func TestPostgresqlDatabaseResource_ImportCompound(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 			},
 			{
-				ResourceName:  "coolify_postgresql_database.test",
+				ResourceName:  "coolify_database_postgresql.test",
 				ImportState:   true,
 				ImportStateId: projUUID + ":" + srvUUID + ":" + envName + ":" + dbUUID,
 				ImportStateCheck: func(states []*terraform.InstanceState) error {
@@ -479,14 +510,14 @@ func TestPostgresqlDatabaseResource_ImportBadSimpleUUID(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 			},
 			{
-				ResourceName:  "coolify_postgresql_database.test",
+				ResourceName:  "coolify_database_postgresql.test",
 				ImportState:   true,
 				ImportStateId: "not-a-uuid",
 				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
@@ -513,14 +544,14 @@ func TestPostgresqlDatabaseResource_ImportCompoundBadParts(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 			},
 			{
-				ResourceName:  "coolify_postgresql_database.test",
+				ResourceName:  "coolify_database_postgresql.test",
 				ImportState:   true,
 				ImportStateId: "a:b:c",
 				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
@@ -547,14 +578,14 @@ func TestPostgresqlDatabaseResource_ImportCompoundEmptyEnv(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 			},
 			{
-				ResourceName:  "coolify_postgresql_database.test",
+				ResourceName:  "coolify_database_postgresql.test",
 				ImportState:   true,
 				ImportStateId: "aaaa0001-0001-4000-8000-000000000001:bbbb0001-0001-4000-8000-000000000001::aaaa0001-0001-4000-8000-000000000001",
 				ExpectError:   regexp.MustCompile(`environment_name must not be empty`),
@@ -573,7 +604,7 @@ func TestPostgresqlDatabaseResource_InvalidSSLMode(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_postgresql_database" "test" {
+resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   ssl_mode     = "bogus"

@@ -64,10 +64,13 @@ func TestAccCoverage_ResourcesHaveCRUDSteps(t *testing.T) {
 
 	// Resources where Update is not applicable (all mutable fields use RequiresReplace).
 	noUpdate := map[string]bool{
-		"coolify_deployment": true,
+		"coolify_deployment":      true,
+		"coolify_resource_action": true,
 	}
 	// Resources where Import is not applicable.
-	noImport := map[string]bool{}
+	noImport := map[string]bool{
+		"coolify_resource_action": true,
+	}
 
 	accFiles := loadAccTestFiles(t)
 

@@ -33,7 +33,7 @@ type model struct {
 
 func NewResource() resource.Resource { return &res{} }
 func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_redis_database"
+	resp.TypeName = req.ProviderTypeName + "_database_redis"
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a Redis database resource on Coolify.", Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
@@ -59,7 +59,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
 
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_redis_database"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_redis"})
 	in := client.CreateRedisInput{ServerUUID: p.ServerUUID.ValueString(), ProjectUUID: p.ProjectUUID.ValueString(), EnvironmentName: p.EnvironmentName.ValueString()}
 	flex.SetIfKnown(&in.Name, p.Name)
 	flex.SetIfKnown(&in.Description, p.Description)
@@ -67,6 +67,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.RedisPassword, p.RedisPassword)
 	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
 	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
+	in.InstantDeploy = flex.BoolValueOrNull(p.InstantDeploy)
 	c, err := r.client.CreateDatabase(ctx, "redis", in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating Redis database",
@@ -102,7 +103,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 	flattenDatabase(db, &p)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_redis_database", "uuid": c.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_database_redis", "uuid": c.UUID})
 }
 func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var s model
@@ -110,7 +111,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_redis_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_redis", "uuid": s.UUID.ValueString()})
 
 	db, err := dbcommon.ReadDatabase(ctx, r.client, s.UUID.ValueString())
 	if err != nil {
@@ -118,7 +119,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 		return
 	}
 	if db == nil {
-		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_redis_database", "uuid": s.UUID.ValueString()})
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_redis", "uuid": s.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -136,7 +137,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_redis_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_database_redis", "uuid": s.UUID.ValueString()})
 
 	u := client.UpdateDatabaseInput{
 		Name:          flex.StringIfChanged(p.Name, s.Name),
@@ -162,9 +163,9 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_redis_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_redis", "uuid": s.UUID.ValueString()})
 
-	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_redis_database", s.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_database_redis", s.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting Redis database", fmt.Sprintf("Redis database %s: %s", s.UUID.ValueString(), err))
 		return
 	}

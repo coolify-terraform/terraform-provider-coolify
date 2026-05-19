@@ -35,6 +35,10 @@ You can configure credentials in two ways:
 ```bash
 export COOLIFY_ENDPOINT="https://coolify.example.com"
 export COOLIFY_TOKEN="your-api-token"
+
+# Optional: Cloudflare Access (when Coolify is behind CF Access)
+export COOLIFY_CF_ACCESS_CLIENT_ID="your-cf-client-id"
+export COOLIFY_CF_ACCESS_CLIENT_SECRET="your-cf-client-secret"
 ```
 
 ### Provider block
@@ -55,9 +59,9 @@ export COOLIFY_TOKEN="your-api-token"
 
 | Category | Resources |
 |----------|-----------|
-| Infrastructure | `coolify_project`, `coolify_environment`, `coolify_server`, `coolify_hetzner_server`, `coolify_private_key`, `coolify_cloud_token`, `coolify_github_app` |
-| Applications | `coolify_application`, `coolify_dockerfile_application`, `coolify_docker_image_application`, `coolify_private_git_application`, `coolify_github_app_application` |
-| Databases | `coolify_postgresql_database`, `coolify_mysql_database`, `coolify_mariadb_database`, `coolify_redis_database`, `coolify_mongodb_database`, `coolify_clickhouse_database`, `coolify_keydb_database`, `coolify_dragonfly_database` |
+| Infrastructure | `coolify_project`, `coolify_environment`, `coolify_server`, `coolify_server_hetzner`, `coolify_private_key`, `coolify_cloud_token`, `coolify_github_app` |
+| Applications | `coolify_application`, `coolify_application_dockerfile`, `coolify_application_docker_image`, `coolify_application_private_git`, `coolify_application_github_app` |
+| Databases | `coolify_database_postgresql`, `coolify_database_mysql`, `coolify_database_mariadb`, `coolify_database_redis`, `coolify_database_mongodb`, `coolify_database_clickhouse`, `coolify_database_keydb`, `coolify_database_dragonfly` |
 | Services | `coolify_service` |
 | Operations | `coolify_environment_variable`, `coolify_storage`, `coolify_scheduled_task`, `coolify_deployment`, `coolify_database_backup` |
 
@@ -72,14 +76,14 @@ automatically, but they are worth knowing:
 | Behavior | Affected Resources | What happens |
 |---|---|---|
 | **Git URL prefix stripping** | All application types | `https://github.com/org/repo` is stored as `org/repo` |
-| **Docker image tag stripping** | `coolify_docker_image_application` | `redis:7-alpine` is stored as `redis` (all tags, not just `:latest`) |
-| **Port override** | `coolify_dockerfile_application` | Coolify may return a different port than configured |
+| **Docker image tag stripping** | `coolify_application_docker_image` | `redis:7-alpine` is stored as `redis` (all tags, not just `:latest`) |
+| **Port override** | `coolify_application_dockerfile` | Coolify may return a different port than configured |
 | **Immutable fields omitted** | All databases, apps, services | `project_uuid`, `server_uuid`, `environment_name` not returned by GET |
 | **Storage name prefixing** | `coolify_storage` | Coolify prepends an internal resource UUID to the storage name |
-| **Base64 encoding required** | `coolify_dockerfile_application` | `dockerfile_location` must be base64-encoded despite the field name; use `base64encode()` |
+| **Base64 encoding required** | `coolify_application_dockerfile` | `dockerfile_location` must be base64-encoded despite the field name; use `base64encode()` |
 | **Application refresh can lag create** | All applications | Terraform fails with `Application created but refresh failed` if Coolify returns a UUID but the app is not yet readable through the API |
 | **Cloud token validation** | `coolify_cloud_token` | Coolify validates the token against the cloud provider's API on creation (cannot use placeholder values) |
-| **GitHub App repository validation** | `coolify_github_app_application` | Coolify verifies repository access during create, so the referenced `coolify_github_app` must have installation access to the target repository |
+| **GitHub App repository validation** | `coolify_application_github_app` | Coolify verifies repository access during create, so the referenced `coolify_github_app` must have installation access to the target repository |
 | **Async deletion** | `coolify_project` | Child resources are deleted asynchronously; project delete retries automatically |
 
 The provider preserves your configured values for all normalized fields.

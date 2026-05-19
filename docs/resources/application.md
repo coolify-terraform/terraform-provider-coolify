@@ -21,7 +21,7 @@ resource "coolify_application" "example" {
   git_branch     = "main"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
-  fqdn           = "https://app.example.com"
+  domains        = "https://app.example.com"
 
   # Optional fields (uncomment as needed):
   # redirect                 = "both"                # WWW redirect: "www", "non-www", or "both" (default: "both")
@@ -61,9 +61,9 @@ resource "coolify_application" "example" {
 - `docker_registry_image_tag` (String) The Docker registry image tag.
 - `dockerfile` (String, Sensitive) Inline Dockerfile content (base64 encoded).
 - `dockerfile_location` (String) The path to the Dockerfile, relative to the repository root.
+- `domains` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
 - `force_domain_override` (Boolean) Whether to force domain override.
-- `fqdn` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `git_branch` (String) The Git branch to deploy (defaults to `main`).
 - `git_commit_sha` (String) The specific Git commit SHA to deploy.
 - `health_check_command` (String) Custom health check command (used when type is `cmd`).
@@ -83,6 +83,7 @@ resource "coolify_application" "example" {
 - `http_basic_auth_password` (String, Sensitive) Password for HTTP Basic Authentication.
 - `http_basic_auth_username` (String) Username for HTTP Basic Authentication.
 - `install_command` (String) The command to run during the install phase.
+- `instant_deploy` (Boolean) Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.
 - `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled.
 - `is_force_https_enabled` (Boolean) Whether to force HTTPS for the application.

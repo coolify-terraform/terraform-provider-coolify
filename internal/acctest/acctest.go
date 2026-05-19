@@ -85,7 +85,7 @@ provider "coolify" {
 // TestResourceConfig returns a Terraform config with a provider block and a single resource.
 // This is the standard bootstrap helper for unit tests:
 //
-//	acctest.TestResourceConfig(srv.URL, "coolify_postgresql_database", "test", `
+//	acctest.TestResourceConfig(srv.URL, "coolify_database_postgresql", "test", `
 //	  project_uuid = "proj-uuid-1"
 //	  server_uuid  = "srv-uuid-1"
 //	`)
@@ -307,7 +307,7 @@ func AccTestServerUUID(t *testing.T) string {
 
 // AccTestDatabaseConfig returns a Terraform config for an acceptance test of a
 // database resource, including a project dependency. The resourceType should be
-// the full Terraform resource type (e.g. "coolify_postgresql_database").
+// the full Terraform resource type (e.g. "coolify_database_postgresql").
 func AccTestDatabaseConfig(resourceType, name, serverUUID, extra string) string {
 	return ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" { name = %[1]q }
@@ -430,7 +430,7 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
   name         = %[1]q

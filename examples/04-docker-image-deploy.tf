@@ -30,13 +30,13 @@ resource "coolify_project" "containers" {
   name = "container-apps"
 }
 
-resource "coolify_docker_image_application" "nginx" {
+resource "coolify_application_docker_image" "nginx" {
   name          = "nginx-proxy"
   project_uuid  = coolify_project.containers.uuid
   server_uuid   = var.server_uuid
   docker_image  = "nginx:alpine"
   ports_exposes = "80"
-  fqdn          = "https://proxy.example.com"
+  domains       = "https://proxy.example.com"
 
   timeouts = {
     create = "10m"
@@ -44,5 +44,5 @@ resource "coolify_docker_image_application" "nginx" {
 }
 
 output "nginx_uuid" {
-  value = coolify_docker_image_application.nginx.uuid
+  value = coolify_application_docker_image.nginx.uuid
 }

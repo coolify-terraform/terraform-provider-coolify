@@ -25,32 +25,32 @@ func TestRedisDatabaseResource_CreateUpdateImport(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_redis_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_redis", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_redis_database" "test" {
+resource "coolify_database_redis" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "name", "redis-test-db"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "image", "redis:7"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_public", "false"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "environment_name", "production"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "enable_ssl", "false"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "status", "running"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "name", "redis-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "image", "redis:7"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "is_public", "false"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "status", "running"),
 				),
 			},
 			// Plan idempotency
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_redis_database" "test" {
+resource "coolify_database_redis" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -61,7 +61,7 @@ resource "coolify_redis_database" "test" {
 			// Update
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_redis_database" "test" {
+resource "coolify_database_redis" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-redis"
@@ -69,14 +69,14 @@ resource "coolify_redis_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "name", "updated-redis"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "description", "Updated Redis"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "name", "updated-redis"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "description", "Updated Redis"),
 				),
 			},
 			// Update SSL and log drain fields
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_redis_database" "test" {
+resource "coolify_database_redis" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-redis"
@@ -87,14 +87,14 @@ resource "coolify_redis_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "is_include_timestamps", "true"),
 				),
 			},
 			// Import
 			{
-				ResourceName:      "coolify_redis_database.test",
+				ResourceName:      "coolify_database_redis.test",
 				ImportState:       true,
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
@@ -116,7 +116,7 @@ func TestRedisDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_redis_database" "test" {
+resource "coolify_database_redis" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   enable_ssl            = true
@@ -124,8 +124,8 @@ resource "coolify_redis_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_redis_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -188,7 +188,7 @@ func TestRedisDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
 			Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_redis_database" "test" {
+resource "coolify_database_redis" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -259,14 +259,14 @@ func TestRedisDatabaseResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_redis_database" "test" {
+resource "coolify_database_redis" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_redis_database.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_redis_database.test", "/api/v1/databases/"),
+					resource.TestCheckResourceAttrSet("coolify_database_redis.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_database_redis.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},

@@ -34,24 +34,24 @@ run "plan_only" {
 
   # --- Application ---
   assert {
-    condition     = coolify_private_git_application.backend.name == "acme-backend"
-    error_message = "Application name mismatch: got ${coolify_private_git_application.backend.name}"
+    condition     = coolify_application_private_git.backend.name == "acme-backend"
+    error_message = "Application name mismatch: got ${coolify_application_private_git.backend.name}"
   }
   assert {
-    condition     = coolify_private_git_application.backend.build_pack == "dockerfile"
-    error_message = "Build pack mismatch: got ${coolify_private_git_application.backend.build_pack}"
+    condition     = coolify_application_private_git.backend.build_pack == "dockerfile"
+    error_message = "Build pack mismatch: got ${coolify_application_private_git.backend.build_pack}"
   }
   assert {
-    condition     = coolify_private_git_application.backend.git_repository == "git@github.com:example/test-repo.git"
-    error_message = "Git repository mismatch: got ${coolify_private_git_application.backend.git_repository}"
+    condition     = coolify_application_private_git.backend.git_repository == "git@github.com:example/test-repo.git"
+    error_message = "Git repository mismatch: got ${coolify_application_private_git.backend.git_repository}"
   }
   assert {
-    condition     = coolify_private_git_application.backend.git_branch == "main"
-    error_message = "Git branch mismatch: got ${coolify_private_git_application.backend.git_branch}"
+    condition     = coolify_application_private_git.backend.git_branch == "main"
+    error_message = "Git branch mismatch: got ${coolify_application_private_git.backend.git_branch}"
   }
   assert {
-    condition     = coolify_private_git_application.backend.ports_exposes == "3000"
-    error_message = "Ports exposes mismatch: got ${coolify_private_git_application.backend.ports_exposes}"
+    condition     = coolify_application_private_git.backend.ports_exposes == "3000"
+    error_message = "Ports exposes mismatch: got ${coolify_application_private_git.backend.ports_exposes}"
   }
 
   # --- Environment Variables ---

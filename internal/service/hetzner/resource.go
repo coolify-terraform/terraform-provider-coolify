@@ -86,7 +86,7 @@ func NewResource() resource.Resource {
 }
 
 func (r *hetznerServerResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_hetzner_server"
+	resp.TypeName = req.ProviderTypeName + "_server_hetzner"
 }
 
 func (r *hetznerServerResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -176,7 +176,7 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
 
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_hetzner_server"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server_hetzner"})
 
 	input := client.CreateHetznerServerInput{
 		Name:                   plan.Name.ValueString(),
@@ -271,7 +271,7 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 
 	flattenHetznerServer(srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_hetzner_server", "uuid": created.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": created.UUID})
 }
 
 func (r *hetznerServerResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -281,12 +281,12 @@ func (r *hetznerServerResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_hetzner_server", "uuid": state.UUID.ValueString()})
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": state.UUID.ValueString()})
 
 	srv, err := r.client.GetServer(ctx, state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
-			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_hetzner_server", "uuid": state.UUID.ValueString()})
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": state.UUID.ValueString()})
 			resp.State.RemoveResource(ctx)
 			return
 		}
@@ -310,7 +310,7 @@ func (r *hetznerServerResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_hetzner_server", "uuid": state.UUID.ValueString()})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": state.UUID.ValueString()})
 
 	input := server.BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
@@ -327,7 +327,7 @@ func (r *hetznerServerResource) Update(ctx context.Context, req resource.UpdateR
 
 	flattenHetznerServer(srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Debug(ctx, "updated resource", map[string]interface{}{"resource_type": "coolify_hetzner_server", "uuid": state.UUID.ValueString()})
+	tflog.Debug(ctx, "updated resource", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": state.UUID.ValueString()})
 }
 
 func (r *hetznerServerResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -337,7 +337,7 @@ func (r *hetznerServerResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_hetzner_server", "uuid": state.UUID.ValueString()})
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": state.UUID.ValueString()})
 
 	if err := r.client.DeleteServer(ctx, state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {
@@ -346,7 +346,7 @@ func (r *hetznerServerResource) Delete(ctx context.Context, req resource.DeleteR
 		resp.Diagnostics.AddError("Error deleting Hetzner server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
 	}
-	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_hetzner_server", "uuid": state.UUID.ValueString()})
+	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": state.UUID.ValueString()})
 }
 
 func (r *hetznerServerResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

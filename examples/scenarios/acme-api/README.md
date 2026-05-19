@@ -17,10 +17,10 @@ Docker networking, and managed entirely through Terraform.
 | # | Resource | Type | Purpose |
 |---|----------|------|---------|
 | 1 | `coolify_project.acme` | Project | Groups all order-processing resources |
-| 2 | `coolify_postgresql_database.orders` | Database | Stores orders, customers, payments |
-| 3 | `coolify_redis_database.queue` | Database | Job queues and response caching |
-| 4 | `coolify_dockerfile_application.api` | Application | REST API built from a Dockerfile |
-| 5 | `coolify_docker_image_application.worker` | Application | Background worker from a Docker image |
+| 2 | `coolify_database_postgresql.orders` | Database | Stores orders, customers, payments |
+| 3 | `coolify_database_redis.queue` | Database | Job queues and response caching |
+| 4 | `coolify_application_dockerfile.api` | Application | REST API built from a Dockerfile |
+| 5 | `coolify_application_docker_image.worker` | Application | Background worker from a Docker image |
 | 6 | `coolify_environment_variable.api_db_url` | Env var | Connects the API to PostgreSQL |
 | 7 | `coolify_environment_variable.api_redis_url` | Env var | Connects the API to Redis |
 | 8 | `coolify_environment_variable.worker_db_url` | Env var | Connects the worker to PostgreSQL |
@@ -100,10 +100,10 @@ server_uuid      = "your-server-uuid"
 1. **Project**: a `coolify_project` groups all resources under "acme-orders".
 2. **Databases**: PostgreSQL stores order data; Redis provides job queues and
    caching. Both are internal-only (not publicly exposed).
-3. **API application**: built from a Dockerfile (`coolify_dockerfile_application`).
+3. **API application**: built from a Dockerfile (`coolify_application_dockerfile`).
    Environment variables inject the database and Redis connection strings.
 4. **Worker application**: deployed from a pre-built Docker image
-   (`coolify_docker_image_application`). Shares the same database and Redis
+   (`coolify_application_docker_image`). Shares the same database and Redis
    connections so it can pick up jobs enqueued by the API.
 5. **Scheduled task**: a `coolify_scheduled_task` runs a nightly cleanup
    command inside the API container.
@@ -123,9 +123,9 @@ terraform destroy \
 
 ### Dockerfile vs Docker Image Deployment
 
-- **`coolify_dockerfile_application`**: Coolify builds the image from a
+- **`coolify_application_dockerfile`**: Coolify builds the image from a
   Dockerfile you provide. Use this when you have source code and a build step.
-- **`coolify_docker_image_application`**: Coolify pulls a pre-built image
+- **`coolify_application_docker_image`**: Coolify pulls a pre-built image
   from a registry (Docker Hub, GHCR, etc.). Use this for off-the-shelf images
   or images built by your CI/CD pipeline.
 

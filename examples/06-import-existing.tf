@@ -12,7 +12,7 @@
 # Step 2: Import each resource:
 #   terraform import coolify_project.existing <project-uuid>
 #   terraform import coolify_application.existing <app-uuid>
-#   terraform import coolify_postgresql_database.existing <db-uuid>
+#   terraform import coolify_database_postgresql.existing <db-uuid>
 #
 # Step 3: Run terraform plan to verify no changes are detected.
 # Step 4: Adjust attributes until plan shows no diff.

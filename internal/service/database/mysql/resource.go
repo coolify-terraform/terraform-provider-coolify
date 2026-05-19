@@ -39,7 +39,7 @@ type mysqlDatabaseResourceModel struct {
 func NewResource() resource.Resource { return &mysqlDatabaseResource{} }
 
 func (r *mysqlDatabaseResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_mysql_database"
+	resp.TypeName = req.ProviderTypeName + "_database_mysql"
 }
 
 func (r *mysqlDatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -74,7 +74,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	}
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_mysql_database"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_mysql"})
 
 	input := client.CreateMysqlInput{ServerUUID: plan.ServerUUID.ValueString(), ProjectUUID: plan.ProjectUUID.ValueString(), EnvironmentName: plan.EnvironmentName.ValueString()}
 	flex.SetIfKnown(&input.Name, plan.Name)
@@ -86,6 +86,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	flex.SetIfKnown(&input.MysqlRootPassword, plan.MysqlRootPassword)
 	input.IsPublic = flex.BoolValueOrNull(plan.IsPublic)
 	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
+	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
 	created, err := r.client.CreateDatabase(ctx, "mysql", input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating MySQL database",
@@ -125,7 +126,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	}
 	flattenDatabase(db, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": created.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_database_mysql", "uuid": created.UUID})
 }
 
 func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -134,7 +135,7 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_mysql", "uuid": state.UUID.ValueString()})
 
 	db, err := dbcommon.ReadDatabase(ctx, r.client, state.UUID.ValueString())
 	if err != nil {
@@ -142,7 +143,7 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 	if db == nil {
-		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_mysql", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -163,7 +164,7 @@ func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateR
 	}
 	uuid := state.UUID.ValueString()
 
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": uuid})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_database_mysql", "uuid": uuid})
 
 	input := client.UpdateDatabaseInput{
 		Name:              flex.StringIfChanged(plan.Name, state.Name),
@@ -193,9 +194,9 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_mysql_database", "uuid": state.UUID.ValueString()})
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_mysql", "uuid": state.UUID.ValueString()})
 
-	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_mysql_database", state.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_database_mysql", state.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
 		return
 	}

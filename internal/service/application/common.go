@@ -47,7 +47,7 @@ type commonAppFields struct {
 	GitBranch          *types.String
 	BuildPack          *types.String
 	PortsExposes       *types.String
-	FQDN               *types.String
+	Domains            *types.String
 	DockerfileLocation *types.String
 	InstallCommand     *types.String
 	BuildCommand       *types.String
@@ -127,6 +127,7 @@ type commonAppFields struct {
 	IsContainerLabelEscapeEnabled *types.Bool
 	IsPreserveRepositoryEnabled   *types.Bool
 	UseBuildServer                *types.Bool
+	InstantDeploy                 *types.Bool
 }
 
 // applicationCommonModel holds the fields shared by all application resource
@@ -139,7 +140,7 @@ type applicationCommonModel struct {
 	ServerUUID                     types.String   `tfsdk:"server_uuid"`
 	EnvironmentName                types.String   `tfsdk:"environment_name"`
 	PortsExposes                   types.String   `tfsdk:"ports_exposes"`
-	FQDN                           types.String   `tfsdk:"fqdn"`
+	Domains                        types.String   `tfsdk:"domains"`
 	InstallCommand                 types.String   `tfsdk:"install_command"`
 	StartCommand                   types.String   `tfsdk:"start_command"`
 	Status                         types.String   `tfsdk:"status"`
@@ -199,6 +200,7 @@ type applicationCommonModel struct {
 	IsContainerLabelEscapeEnabled  types.Bool     `tfsdk:"is_container_label_escape_enabled"`
 	IsPreserveRepositoryEnabled    types.Bool     `tfsdk:"is_preserve_repository_enabled"`
 	UseBuildServer                 types.Bool     `tfsdk:"use_build_server"`
+	InstantDeploy                  types.Bool     `tfsdk:"instant_deploy"`
 	Timeouts                       timeouts.Value `tfsdk:"timeouts"`
 }
 
@@ -207,7 +209,7 @@ type applicationCommonModel struct {
 func (m *applicationCommonModel) common() commonAppFields {
 	return commonAppFields{
 		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
-		PortsExposes: &m.PortsExposes, FQDN: &m.FQDN,
+		PortsExposes: &m.PortsExposes, Domains: &m.Domains,
 		InstallCommand: &m.InstallCommand, StartCommand: &m.StartCommand,
 		Status: &m.Status, ProjectUUID: &m.ProjectUUID, ServerUUID: &m.ServerUUID,
 		EnvironmentName: &m.EnvironmentName,
@@ -241,6 +243,7 @@ func (m *applicationCommonModel) common() commonAppFields {
 		ManualWebhookSecretGitHub: &m.ManualWebhookSecretGitHub, ManualWebhookSecretGitLab: &m.ManualWebhookSecretGitLab,
 		ForceDomainOverride: &m.ForceDomainOverride, IsContainerLabelEscapeEnabled: &m.IsContainerLabelEscapeEnabled,
 		IsPreserveRepositoryEnabled: &m.IsPreserveRepositoryEnabled, UseBuildServer: &m.UseBuildServer,
+		InstantDeploy: &m.InstantDeploy,
 	}
 }
 
@@ -267,7 +270,7 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 			*f.PortsExposes = types.StringValue(app.PortsExposes)
 		}
 	}
-	*f.FQDN = flex.StringToFramework(app.FQDN)
+	*f.Domains = flex.StringToFramework(app.Domains)
 	// Coolify does not return dockerfile_location on GET for most app types.
 	// Preserve the user's configured value to avoid "inconsistent result after apply".
 	// The value IS sent on Create/Update, just not returned on read-back.
@@ -422,6 +425,11 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	setBoolDefault(f.IsContainerLabelEscapeEnabled, app.IsContainerLabelEscapeEnabled, true)
 	setBoolDefault(f.IsPreserveRepositoryEnabled, app.IsPreserveRepositoryEnabled, false)
 	setBoolDefault(f.UseBuildServer, app.UseBuildServer, false)
+	// instant_deploy is create-only and never returned by the API.
+	// Preserve state value when set; default to false otherwise (import).
+	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {
+		*f.InstantDeploy = types.BoolValue(false)
+	}
 	// Optional bool fields (no default)
 	if f.ForceDomainOverride != nil && app.ForceDomainOverride != nil {
 		if !f.ForceDomainOverride.IsNull() && !f.ForceDomainOverride.IsUnknown() {
@@ -447,7 +455,7 @@ func buildCoreUpdateFields(plan, state commonAppFields) client.UpdateApplication
 	input := client.UpdateApplicationInput{
 		Name:        strDiff(*plan.Name, *state.Name),
 		Description: strDiff(*plan.Description, *state.Description),
-		FQDN:        strDiff(*plan.FQDN, *state.FQDN),
+		Domains:     strDiff(*plan.Domains, *state.Domains),
 		// Resource limits
 		LimitsMemory:            strDiff(*plan.LimitsMemory, *state.LimitsMemory),
 		LimitsMemorySwap:        strDiff(*plan.LimitsMemorySwap, *state.LimitsMemorySwap),
@@ -686,12 +694,12 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			Default:             stringdefault.StaticString("production"),
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},
-		"fqdn": schema.StringAttribute{
+		"domains": schema.StringAttribute{
 			MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			Validators:          []validator.String{validate.FQDN()},
+			Validators:          []validator.String{validate.Domains()},
 		},
 		"status": schema.StringAttribute{
 			MarkdownDescription: "The current status of the application (e.g., running, stopped, exited). Read-only.",
@@ -842,6 +850,12 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 		},
 		"use_build_server": schema.BoolAttribute{
 			MarkdownDescription: "Whether to use a build server for building the application.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"instant_deploy": schema.BoolAttribute{
+			MarkdownDescription: "Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
@@ -1089,7 +1103,7 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 	flex.NormalizeUnknownString(&m.Name)
 	flex.NormalizeUnknownString(&m.Description)
 	flex.NormalizeUnknownString(&m.EnvironmentName)
-	flex.NormalizeUnknownString(&m.FQDN)
+	flex.NormalizeUnknownString(&m.Domains)
 	flex.NormalizeUnknownString(&m.Status)
 	flex.NormalizeUnknownBool(&m.HealthCheckEnabled)
 	flex.NormalizeUnknownBool(&m.IsAutoDeployEnabled)

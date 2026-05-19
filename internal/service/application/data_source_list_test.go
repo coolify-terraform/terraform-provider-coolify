@@ -18,7 +18,7 @@ func TestApplicationsListDataSource(t *testing.T) {
 		{
 			UUID:          "app-list-uuid-1",
 			Name:          "app-alpha",
-			FQDN:          "https://alpha.example.com",
+			Domains:       "https://alpha.example.com",
 			GitRepository: "https://github.com/example/alpha",
 			GitBranch:     "main",
 			BuildPack:     "nixpacks",
@@ -27,7 +27,7 @@ func TestApplicationsListDataSource(t *testing.T) {
 		{
 			UUID:          "app-list-uuid-2",
 			Name:          "app-beta",
-			FQDN:          "https://beta.example.com",
+			Domains:       "https://beta.example.com",
 			GitRepository: "https://github.com/example/beta",
 			GitBranch:     "develop",
 			BuildPack:     "dockerfile",
@@ -62,7 +62,7 @@ data "coolify_applications" "test" {}
 					resource.TestCheckResourceAttr("data.coolify_applications.test", "applications.#", "2"),
 					resource.TestCheckResourceAttr("data.coolify_applications.test", "applications.0.uuid", "app-list-uuid-1"),
 					resource.TestCheckResourceAttr("data.coolify_applications.test", "applications.0.name", "app-alpha"),
-					resource.TestCheckResourceAttr("data.coolify_applications.test", "applications.0.fqdn", "https://alpha.example.com"),
+					resource.TestCheckResourceAttr("data.coolify_applications.test", "applications.0.domains", "https://alpha.example.com"),
 					resource.TestCheckResourceAttr("data.coolify_applications.test", "applications.0.git_repository", "https://github.com/example/alpha"),
 					resource.TestCheckResourceAttr("data.coolify_applications.test", "applications.0.git_branch", "main"),
 					resource.TestCheckResourceAttr("data.coolify_applications.test", "applications.0.build_pack", "nixpacks"),

@@ -6,7 +6,7 @@
 # - Deployment with wait-for-completion
 #
 # This scenario demonstrates the full dependency chain:
-# coolify_private_key -> coolify_private_git_application ->
+# coolify_private_key -> coolify_application_private_git ->
 # coolify_environment_variable -> coolify_deployment
 
 terraform {
@@ -39,7 +39,7 @@ resource "coolify_private_key" "deploy" {
 
 # --- Application from private Git repo ---
 
-resource "coolify_private_git_application" "backend" {
+resource "coolify_application_private_git" "backend" {
   name                = "acme-backend"
   project_uuid        = coolify_project.acme.uuid
   server_uuid         = var.server_uuid
@@ -56,7 +56,7 @@ resource "coolify_private_git_application" "backend" {
 # --- Environment Variables ---
 
 resource "coolify_environment_variable" "database_url" {
-  application_uuid = coolify_private_git_application.backend.uuid
+  application_uuid = coolify_application_private_git.backend.uuid
   key              = "DATABASE_URL"
   value            = var.database_url
   is_build_time    = false
@@ -64,7 +64,7 @@ resource "coolify_environment_variable" "database_url" {
 }
 
 resource "coolify_environment_variable" "app_secret" {
-  application_uuid = coolify_private_git_application.backend.uuid
+  application_uuid = coolify_application_private_git.backend.uuid
   key              = "APP_SECRET"
   value            = var.app_secret
   is_build_time    = false
@@ -74,7 +74,7 @@ resource "coolify_environment_variable" "app_secret" {
 # --- Deploy with wait ---
 
 resource "coolify_deployment" "backend" {
-  application_uuid    = coolify_private_git_application.backend.uuid
+  application_uuid    = coolify_application_private_git.backend.uuid
   wait_for_completion = true
 
   triggers = {

@@ -83,7 +83,7 @@ resource "coolify_server" "web" {
 
 # --- Database ---
 
-resource "coolify_postgresql_database" "app_db" {
+resource "coolify_database_postgresql" "app_db" {
   name              = "app-database"
   project_uuid      = coolify_project.main.uuid
   server_uuid       = coolify_server.web.uuid
@@ -106,7 +106,7 @@ resource "coolify_application" "web" {
   git_branch       = "main"
   build_pack       = "nixpacks"
   ports_exposes    = "3000"
-  fqdn             = var.app_domain != "" ? "https://${var.app_domain}" : null
+  domains          = var.app_domain != "" ? "https://${var.app_domain}" : null
 }
 
 # --- Environment Variables ---
@@ -116,7 +116,7 @@ resource "coolify_application" "web" {
 resource "coolify_environment_variable" "database_url" {
   application_uuid = coolify_application.web.uuid
   key              = "DATABASE_URL"
-  value            = "postgresql://${coolify_postgresql_database.app_db.postgres_user}:${coolify_postgresql_database.app_db.postgres_password}@${coolify_postgresql_database.app_db.name}:5432/${coolify_postgresql_database.app_db.postgres_db}"
+  value            = "postgresql://${coolify_database_postgresql.app_db.postgres_user}:${coolify_database_postgresql.app_db.postgres_password}@${coolify_database_postgresql.app_db.name}:5432/${coolify_database_postgresql.app_db.postgres_db}"
   is_build         = false
   is_preview       = false
 }
@@ -140,7 +140,7 @@ output "server_uuid" {
 }
 
 output "database_uuid" {
-  value = coolify_postgresql_database.app_db.uuid
+  value = coolify_database_postgresql.app_db.uuid
 }
 
 output "application_uuid" {

@@ -29,7 +29,7 @@ type ApplicationDataSourceModel struct {
 	UUID                    types.String `tfsdk:"uuid"`
 	Name                    types.String `tfsdk:"name"`
 	Description             types.String `tfsdk:"description"`
-	FQDN                    types.String `tfsdk:"fqdn"`
+	Domains                 types.String `tfsdk:"domains"`
 	GitRepository           types.String `tfsdk:"git_repository"`
 	GitBranch               types.String `tfsdk:"git_branch"`
 	BuildPack               types.String `tfsdk:"build_pack"`
@@ -72,7 +72,7 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				MarkdownDescription: "The description of the application.",
 				Computed:            true,
 			},
-			"fqdn": schema.StringAttribute{
+			"domains": schema.StringAttribute{
 				MarkdownDescription: "The fully qualified domain name of the application.",
 				Computed:            true,
 			},
@@ -159,7 +159,7 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	config.UUID = types.StringValue(app.UUID)
 	config.Name = flex.StringToFramework(app.Name)
 	config.Description = flex.StringToFramework(app.Description)
-	config.FQDN = flex.StringToFramework(app.FQDN)
+	config.Domains = flex.StringToFramework(app.Domains)
 	config.GitRepository = flex.StringToFramework(app.GitRepository)
 	config.GitBranch = flex.StringToFramework(app.GitBranch)
 	config.BuildPack = flex.StringToFramework(app.BuildPack)

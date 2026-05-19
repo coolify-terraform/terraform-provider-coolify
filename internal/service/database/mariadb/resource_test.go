@@ -28,32 +28,32 @@ func TestMariadbDatabaseResource_CreateUpdateImport(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_mariadb_database", "/api/v1/databases/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_mariadb", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			// Create
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mariadb_database" "test" {
+resource "coolify_database_mariadb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "name", "mariadb-test-db"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "mariadb_user", "mariauser"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "mariadb_database", "mariadb"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "image", "mariadb:11"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "enable_ssl", "false"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "status", "running"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "name", "mariadb-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "mariadb_user", "mariauser"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "mariadb_database", "mariadb"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "image", "mariadb:11"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "status", "running"),
 				),
 			},
 			// Plan idempotency
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mariadb_database" "test" {
+resource "coolify_database_mariadb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -64,7 +64,7 @@ resource "coolify_mariadb_database" "test" {
 			// Update
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mariadb_database" "test" {
+resource "coolify_database_mariadb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   name         = "updated-mariadb"
@@ -72,14 +72,14 @@ resource "coolify_mariadb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "name", "updated-mariadb"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "description", "Updated MariaDB"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "name", "updated-mariadb"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "description", "Updated MariaDB"),
 				),
 			},
 			// Update SSL and log drain fields
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mariadb_database" "test" {
+resource "coolify_database_mariadb" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-mariadb"
@@ -90,14 +90,14 @@ resource "coolify_mariadb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_include_timestamps", "true"),
 				),
 			},
 			// Import
 			{
-				ResourceName:      "coolify_mariadb_database.test",
+				ResourceName:      "coolify_database_mariadb.test",
 				ImportState:       true,
 				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
@@ -122,7 +122,7 @@ func TestMariadbDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mariadb_database" "test" {
+resource "coolify_database_mariadb" "test" {
   project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   enable_ssl            = true
@@ -130,8 +130,8 @@ resource "coolify_mariadb_database" "test" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_mariadb_database.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_include_timestamps", "true"),
 				),
 			},
 		},
@@ -197,7 +197,7 @@ func TestMariadbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
 			Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mariadb_database" "test" {
+resource "coolify_database_mariadb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
@@ -271,14 +271,14 @@ func TestMariadbDatabaseResource_Disappears(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mariadb_database" "test" {
+resource "coolify_database_mariadb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_mariadb_database.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_mariadb_database.test", "/api/v1/databases/"),
+					resource.TestCheckResourceAttrSet("coolify_database_mariadb.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_database_mariadb.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -296,7 +296,7 @@ func TestMariadbDatabaseResource_InvalidPort(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mariadb_database" "test" {
+resource "coolify_database_mariadb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   public_port  = 99999
@@ -318,7 +318,7 @@ func TestMariadbDatabaseResource_InvalidUUID(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
-resource "coolify_mariadb_database" "test" {
+resource "coolify_database_mariadb" "test" {
   project_uuid = "not-a-uuid"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }

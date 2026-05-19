@@ -31,7 +31,7 @@ The Terraform provider maps each level to a resource or data source.
 | `coolify_project` | Logical group for applications and databases |
 | `coolify_environment` | Environment within a project (production, staging) |
 | `coolify_server` | A Docker host registered with Coolify |
-| `coolify_hetzner_server` | Provision a Hetzner Cloud server and register it with Coolify |
+| `coolify_server_hetzner` | Provision a Hetzner Cloud server and register it with Coolify |
 | `coolify_private_key` | SSH key for server access or Git clone |
 | `coolify_cloud_token` | Hetzner/cloud provider API token |
 | `coolify_github_app` | GitHub App integration for repository access |
@@ -43,10 +43,10 @@ Five application types cover different deployment methods:
 | Resource | Source |
 |----------|--------|
 | `coolify_application` | Public Git repository |
-| `coolify_private_git_application` | Private Git repository (SSH key) |
-| `coolify_github_app_application` | GitHub App integration |
-| `coolify_dockerfile_application` | Dockerfile (no Git repo required) |
-| `coolify_docker_image_application` | Docker image (Docker Hub, GHCR) |
+| `coolify_application_private_git` | Private Git repository (SSH key) |
+| `coolify_application_github_app` | GitHub App integration |
+| `coolify_application_dockerfile` | Dockerfile (no Git repo required) |
+| `coolify_application_docker_image` | Docker image (Docker Hub, GHCR) |
 
 All application resources support configurable `timeouts` for long builds.
 
@@ -54,10 +54,10 @@ All application resources support configurable `timeouts` for long builds.
 
 Eight database engines are supported:
 
-`coolify_postgresql_database`, `coolify_mysql_database`,
-`coolify_mariadb_database`, `coolify_redis_database`,
-`coolify_mongodb_database`, `coolify_clickhouse_database`,
-`coolify_keydb_database`, `coolify_dragonfly_database`
+`coolify_database_postgresql`, `coolify_database_mysql`,
+`coolify_database_mariadb`, `coolify_database_redis`,
+`coolify_database_mongodb`, `coolify_database_clickhouse`,
+`coolify_database_keydb`, `coolify_database_dragonfly`
 
 All database resources share a common schema: placement (`project_uuid`,
 `server_uuid`, `environment_name`), networking (`image`, `is_public`,
@@ -73,6 +73,7 @@ logging (`is_log_drain_enabled`, `is_include_timestamps`), and SSL/TLS
 | `coolify_storage` | Persistent volume mount for apps, services, or databases |
 | `coolify_scheduled_task` | Cron-based task on apps or services |
 | `coolify_deployment` | Trigger a deploy (with force-redeploy via `triggers`) |
+| `coolify_resource_action` | Start, stop, or restart an application, database, or service |
 | `coolify_database_backup` | Schedule automated backups with cron syntax |
 | `coolify_service` | Deploy one-click services from the Coolify catalog |
 

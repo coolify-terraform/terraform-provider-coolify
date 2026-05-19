@@ -1,31 +1,31 @@
 output "postgresql_uuid" {
-  value = coolify_postgresql_database.pg.uuid
+  value = coolify_database_postgresql.pg.uuid
 }
 
 output "mysql_uuid" {
-  value = coolify_mysql_database.mysql.uuid
+  value = coolify_database_mysql.mysql.uuid
 }
 
 output "mariadb_uuid" {
-  value = coolify_mariadb_database.mariadb.uuid
+  value = coolify_database_mariadb.mariadb.uuid
 }
 
 output "redis_uuid" {
-  value = coolify_redis_database.redis.uuid
+  value = coolify_database_redis.redis.uuid
 }
 
 output "mongodb_uuid" {
-  value = coolify_mongodb_database.mongo.uuid
+  value = coolify_database_mongodb.mongo.uuid
 }
 
 output "clickhouse_uuid" {
-  value = coolify_clickhouse_database.clickhouse.uuid
+  value = coolify_database_clickhouse.clickhouse.uuid
 }
 
 output "keydb_uuid" {
-  value = coolify_keydb_database.keydb.uuid
+  value = coolify_database_keydb.keydb.uuid
 }
 
 output "dragonfly_uuid" {
-  value = coolify_dragonfly_database.dragonfly.uuid
+  value = coolify_database_dragonfly.dragonfly.uuid
 }

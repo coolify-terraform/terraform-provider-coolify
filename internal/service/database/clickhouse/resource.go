@@ -33,7 +33,7 @@ type model struct {
 
 func NewResource() resource.Resource { return &res{} }
 func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_clickhouse_database"
+	resp.TypeName = req.ProviderTypeName + "_database_clickhouse"
 }
 func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a ClickHouse database resource on Coolify.", Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
@@ -52,7 +52,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		return
 	}
 
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_clickhouse"})
 
 	createTimeout, diags := p.Timeouts.Create(ctx, 10*time.Minute)
 	resp.Diagnostics.Append(diags...)
@@ -69,6 +69,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.SetIfKnown(&in.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
 	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
 	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
+	in.InstantDeploy = flex.BoolValueOrNull(p.InstantDeploy)
 	c, err := r.client.CreateDatabase(ctx, "clickhouse", in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating ClickHouse database",
@@ -105,7 +106,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 	flattenDatabase(db, &p)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": c.UUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_database_clickhouse", "uuid": c.UUID})
 }
 func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var s model
@@ -114,7 +115,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 		return
 	}
 
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_clickhouse", "uuid": s.UUID.ValueString()})
 
 	db, err := dbcommon.ReadDatabase(ctx, r.client, s.UUID.ValueString())
 	if err != nil {
@@ -122,7 +123,7 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 		return
 	}
 	if db == nil {
-		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": s.UUID.ValueString()})
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_clickhouse", "uuid": s.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
@@ -141,7 +142,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		return
 	}
 
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_database_clickhouse", "uuid": s.UUID.ValueString()})
 
 	u := client.UpdateDatabaseInput{
 		Name:                    flex.StringIfChanged(p.Name, s.Name),
@@ -169,9 +170,9 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 		return
 	}
 
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_clickhouse_database", "uuid": s.UUID.ValueString()})
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_clickhouse", "uuid": s.UUID.ValueString()})
 
-	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_clickhouse_database", s.UUID.ValueString()); err != nil {
+	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_database_clickhouse", s.UUID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting ClickHouse database", fmt.Sprintf("ClickHouse database %s: %s", s.UUID.ValueString(), err))
 		return
 	}

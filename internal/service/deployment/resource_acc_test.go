@@ -122,7 +122,7 @@ resource "coolify_project" "test" {
   name = %[1]q
 }
 
-resource "coolify_dockerfile_application" "test" {
+resource "coolify_application_dockerfile" "test" {
   project_uuid = coolify_project.test.uuid
   server_uuid  = %[2]q
   dockerfile_location = base64encode(<<-DOCKERFILE
@@ -134,7 +134,7 @@ resource "coolify_dockerfile_application" "test" {
 }
 
 resource "coolify_deployment" "test" {
-  application_uuid = coolify_dockerfile_application.test.uuid
+  application_uuid = coolify_application_dockerfile.test.uuid
   triggers = {
     version = "1"
   }

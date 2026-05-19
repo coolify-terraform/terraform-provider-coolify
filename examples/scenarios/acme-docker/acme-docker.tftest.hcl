@@ -17,22 +17,22 @@ run "create_and_verify" {
 
   # --- Docker Image: nginx with :latest (quirk #2) ---
   assert {
-    condition     = coolify_docker_image_application.nginx.name == "acme-nginx"
-    error_message = "Nginx app name mismatch: got ${coolify_docker_image_application.nginx.name}"
+    condition     = coolify_application_docker_image.nginx.name == "acme-nginx"
+    error_message = "Nginx app name mismatch: got ${coolify_application_docker_image.nginx.name}"
   }
   assert {
-    condition     = coolify_docker_image_application.nginx.docker_image == "nginx:latest"
-    error_message = "Docker :latest tag not preserved: got ${coolify_docker_image_application.nginx.docker_image}"
+    condition     = coolify_application_docker_image.nginx.docker_image == "nginx:latest"
+    error_message = "Docker :latest tag not preserved: got ${coolify_application_docker_image.nginx.docker_image}"
   }
   assert {
-    condition     = coolify_docker_image_application.nginx.ports_exposes == "80"
-    error_message = "Nginx ports_exposes mismatch: got ${coolify_docker_image_application.nginx.ports_exposes}"
+    condition     = coolify_application_docker_image.nginx.ports_exposes == "80"
+    error_message = "Nginx ports_exposes mismatch: got ${coolify_application_docker_image.nginx.ports_exposes}"
   }
 
   # --- Docker Image: redis with specific tag ---
   assert {
-    condition     = coolify_docker_image_application.redis.docker_image == "redis:7-alpine"
-    error_message = "Redis image tag mismatch: got ${coolify_docker_image_application.redis.docker_image}"
+    condition     = coolify_application_docker_image.redis.docker_image == "redis:7-alpine"
+    error_message = "Redis image tag mismatch: got ${coolify_application_docker_image.redis.docker_image}"
   }
 
   # --- Scheduled Task ---

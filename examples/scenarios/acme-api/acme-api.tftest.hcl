@@ -14,35 +14,35 @@ run "create_and_verify" {
 
   # --- Databases ---
   assert {
-    condition     = coolify_postgresql_database.orders.name == "acme-orders-db"
-    error_message = "PostgreSQL name mismatch: got ${coolify_postgresql_database.orders.name}"
+    condition     = coolify_database_postgresql.orders.name == "acme-orders-db"
+    error_message = "PostgreSQL name mismatch: got ${coolify_database_postgresql.orders.name}"
   }
   assert {
-    condition     = coolify_postgresql_database.orders.postgres_user == "orders"
-    error_message = "PostgreSQL user mismatch: got ${coolify_postgresql_database.orders.postgres_user}"
+    condition     = coolify_database_postgresql.orders.postgres_user == "orders"
+    error_message = "PostgreSQL user mismatch: got ${coolify_database_postgresql.orders.postgres_user}"
   }
   assert {
-    condition     = coolify_redis_database.queue.name == "acme-queue"
-    error_message = "Redis name mismatch: got ${coolify_redis_database.queue.name}"
+    condition     = coolify_database_redis.queue.name == "acme-queue"
+    error_message = "Redis name mismatch: got ${coolify_database_redis.queue.name}"
   }
 
   # --- Applications ---
   assert {
-    condition     = coolify_dockerfile_application.api.name == "acme-orders-api"
-    error_message = "API app name mismatch: got ${coolify_dockerfile_application.api.name}"
+    condition     = coolify_application_dockerfile.api.name == "acme-orders-api"
+    error_message = "API app name mismatch: got ${coolify_application_dockerfile.api.name}"
   }
   assert {
-    condition     = coolify_dockerfile_application.api.ports_exposes == "3000"
-    error_message = "API ports_exposes mismatch: got ${coolify_dockerfile_application.api.ports_exposes}"
+    condition     = coolify_application_dockerfile.api.ports_exposes == "3000"
+    error_message = "API ports_exposes mismatch: got ${coolify_application_dockerfile.api.ports_exposes}"
   }
   assert {
-    condition     = coolify_docker_image_application.worker.name == "acme-orders-worker"
-    error_message = "Worker app name mismatch: got ${coolify_docker_image_application.worker.name}"
+    condition     = coolify_application_docker_image.worker.name == "acme-orders-worker"
+    error_message = "Worker app name mismatch: got ${coolify_application_docker_image.worker.name}"
   }
   # Quirk #2: Coolify strips :latest tag. Provider must preserve original.
   assert {
-    condition     = coolify_docker_image_application.worker.docker_image == "alpine:latest"
-    error_message = "Docker image :latest not preserved: got ${coolify_docker_image_application.worker.docker_image}"
+    condition     = coolify_application_docker_image.worker.docker_image == "alpine:latest"
+    error_message = "Docker image :latest not preserved: got ${coolify_application_docker_image.worker.docker_image}"
   }
 
   # --- Environment Variables ---
@@ -92,7 +92,7 @@ run "verify_data_sources" {
     error_message = "Project data source name does not match resource"
   }
   assert {
-    condition     = data.coolify_application.verify_api.name == coolify_dockerfile_application.api.name
+    condition     = data.coolify_application.verify_api.name == coolify_application_dockerfile.api.name
     error_message = "API application data source name does not match resource"
   }
 }

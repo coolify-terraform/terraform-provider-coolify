@@ -31,15 +31,15 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_github_app_application", "/api/v1/applications/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_github_app", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
 				Config: createConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_github_app_application.test", "uuid"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "build_pack", "nixpacks"),
-					resource.TestCheckResourceAttr("coolify_github_app_application.test", "ports_exposes", "3000"),
+					resource.TestCheckResourceAttrSet("coolify_application_github_app.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "build_pack", "nixpacks"),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "ports_exposes", "3000"),
 				),
 			},
 			// Step 2: Idempotency check after create
@@ -51,7 +51,7 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 			// Step 3: Update description
 			{
 				Config: updatedConfig,
-				Check:  resource.TestCheckResourceAttr("coolify_github_app_application.test", "description", updatedDescription),
+				Check:  resource.TestCheckResourceAttr("coolify_application_github_app.test", "description", updatedDescription),
 			},
 			// Step 4: Idempotency check
 			{
@@ -61,11 +61,11 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 			},
 			// Step 5: Import by UUID
 			{
-				ResourceName:                         "coolify_github_app_application.test",
+				ResourceName:                         "coolify_application_github_app.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_github_app_application.test", "uuid"),
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application_github_app.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"environment_name", "github_app_uuid", "project_uuid", "server_uuid"}, // github_app_uuid is not returned by the API after import
 			},
 		},
@@ -167,7 +167,7 @@ resource "coolify_github_app" "test" {
   private_key_uuid = coolify_private_key.test.uuid
 }
 
-resource "coolify_github_app_application" "test" {
+resource "coolify_application_github_app" "test" {
   project_uuid    = coolify_project.test.uuid
   server_uuid     = %[2]q
   github_app_uuid = coolify_github_app.test.uuid

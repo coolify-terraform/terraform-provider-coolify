@@ -18,16 +18,16 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.AccCheckDestroy("coolify_private_git_application", "/api/v1/applications/"),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_private_git", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
 				Config: testAccPrivateGitAppConfig(name, serverUUID, privKey, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_private_git_application.test", "uuid"),
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "git_repository", "git@github.com:coollabsio/coolify-examples.git"),
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "build_pack", "nixpacks"),
-					resource.TestCheckResourceAttr("coolify_private_git_application.test", "ports_exposes", "3000"),
+					resource.TestCheckResourceAttrSet("coolify_application_private_git.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "git_repository", "git@github.com:coollabsio/coolify-examples.git"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "build_pack", "nixpacks"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "ports_exposes", "3000"),
 				),
 			},
 			// Idempotency check
@@ -39,15 +39,15 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 			// Step 2: Update description
 			{
 				Config: testAccPrivateGitAppConfig(name, serverUUID, privKey, `description = "Updated private git app"`),
-				Check:  resource.TestCheckResourceAttr("coolify_private_git_application.test", "description", "Updated private git app"),
+				Check:  resource.TestCheckResourceAttr("coolify_application_private_git.test", "description", "Updated private git app"),
 			},
 			// Step 3: Import by UUID
 			{
-				ResourceName:                         "coolify_private_git_application.test",
+				ResourceName:                         "coolify_application_private_git.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_private_git_application.test", "uuid"),
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application_private_git.test", "uuid"),
 				ImportStateVerifyIgnore:              []string{"environment_name", "private_key_uuid", "project_uuid", "server_uuid"},
 			},
 		},
@@ -65,7 +65,7 @@ resource "coolify_private_key" "test" {
   private_key = %[3]q
 }
 
-resource "coolify_private_git_application" "test" {
+resource "coolify_application_private_git" "test" {
   project_uuid     = coolify_project.test.uuid
   server_uuid      = %[2]q
   private_key_uuid = coolify_private_key.test.uuid

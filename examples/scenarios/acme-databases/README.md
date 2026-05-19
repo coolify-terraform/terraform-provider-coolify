@@ -8,14 +8,14 @@ right attributes, and destroys cleanly.
 
 | Resource | Engine | Image |
 |---|---|---|
-| `coolify_postgresql_database` | PostgreSQL 16 | `postgres:16` |
-| `coolify_mysql_database` | MySQL 8 | `mysql:8` |
-| `coolify_mariadb_database` | MariaDB 11 | `mariadb:11` |
-| `coolify_redis_database` | Redis 7 | `redis:7` |
-| `coolify_mongodb_database` | MongoDB 7 | `mongo:7` |
-| `coolify_clickhouse_database` | ClickHouse | `clickhouse/clickhouse-server:latest` |
-| `coolify_keydb_database` | KeyDB | `eqalpha/keydb:latest` |
-| `coolify_dragonfly_database` | Dragonfly | `docker.dragonflydb.io/dragonflydb/dragonfly:latest` |
+| `coolify_database_postgresql` | PostgreSQL 16 | `postgres:16` |
+| `coolify_database_mysql` | MySQL 8 | `mysql:8` |
+| `coolify_database_mariadb` | MariaDB 11 | `mariadb:11` |
+| `coolify_database_redis` | Redis 7 | `redis:7` |
+| `coolify_database_mongodb` | MongoDB 7 | `mongo:7` |
+| `coolify_database_clickhouse` | ClickHouse | `clickhouse/clickhouse-server:latest` |
+| `coolify_database_keydb` | KeyDB | `eqalpha/keydb:latest` |
+| `coolify_database_dragonfly` | Dragonfly | `docker.dragonflydb.io/dragonflydb/dragonfly:latest` |
 
 ## Prerequisites
 

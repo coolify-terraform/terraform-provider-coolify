@@ -26,7 +26,7 @@ resource "coolify_project" "acme" {
 
 # --- Database ---
 
-resource "coolify_postgresql_database" "content" {
+resource "coolify_database_postgresql" "content" {
   name          = "acme-content"
   project_uuid  = coolify_project.acme.uuid
   server_uuid   = var.server_uuid
@@ -55,7 +55,7 @@ resource "coolify_application" "website" {
 resource "coolify_environment_variable" "database_url" {
   application_uuid = coolify_application.website.uuid
   key              = "DATABASE_URL"
-  value            = "postgresql://${coolify_postgresql_database.content.postgres_user}:${coolify_postgresql_database.content.postgres_password}@${coolify_postgresql_database.content.name}:5432/${coolify_postgresql_database.content.postgres_db}"
+  value            = "postgresql://${coolify_database_postgresql.content.postgres_user}:${coolify_database_postgresql.content.postgres_password}@${coolify_database_postgresql.content.name}:5432/${coolify_database_postgresql.content.postgres_db}"
   is_build         = false
   is_preview       = false
 }
@@ -84,7 +84,7 @@ data "coolify_application" "verify" {
 resource "coolify_database_backup" "daily" {
   count = var.enable_backups ? 1 : 0
 
-  database_uuid   = coolify_postgresql_database.content.uuid
+  database_uuid   = coolify_database_postgresql.content.uuid
   s3_storage_uuid = var.existing_s3_storage_uuid
   frequency       = "@daily"
   enabled         = true

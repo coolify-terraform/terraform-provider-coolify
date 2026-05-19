@@ -69,7 +69,7 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_docker_image_application", "/api/v1/applications/"),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_docker_image", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testDockerImageResourceConfig(srv.URL, `
@@ -80,11 +80,11 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 					ports_exposes  = "80"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "uuid", "docker-app-uuid"),
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "name", "nginx-proxy"),
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "docker_image", "nginx:latest"),
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "ports_exposes", "80"),
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "uuid", "docker-app-uuid"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "name", "nginx-proxy"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "nginx:latest"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "ports_exposes", "80"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "environment_name", "production"),
 				),
 			},
 			{
@@ -175,7 +175,7 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 					ports_exposes  = "80"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "docker_image", "nginx:latest"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "nginx:latest"),
 				),
 			},
 			{
@@ -187,7 +187,7 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 					ports_exposes  = "80"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "docker_image", "nginx:1.25"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "nginx:1.25"),
 				),
 			},
 		},
@@ -251,7 +251,7 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 				`),
 			},
 			{
-				ResourceName:                         "coolify_docker_image_application.test",
+				ResourceName:                         "coolify_application_docker_image.test",
 				ImportState:                          true,
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
@@ -325,8 +325,8 @@ func TestDockerImageApplicationResource_Disappears(t *testing.T) {
 					ports_exposes = "80"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_docker_image_application.test", "uuid"),
-					acctest.CheckResourceDisappears(srv.URL, "coolify_docker_image_application.test", "/api/v1/applications/"),
+					resource.TestCheckResourceAttrSet("coolify_application_docker_image.test", "uuid"),
+					acctest.CheckResourceDisappears(srv.URL, "coolify_application_docker_image.test", "/api/v1/applications/"),
 				),
 				ExpectNonEmptyPlan: true,
 			},
@@ -388,7 +388,7 @@ func TestDockerImageApplicationResource_Status(t *testing.T) {
 					ports_exposes  = "80"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "status", "running:healthy"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "status", "running:healthy"),
 				),
 			},
 		},
@@ -451,7 +451,7 @@ func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
 					}
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "uuid", "docker-timeout-uuid"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "uuid", "docker-timeout-uuid"),
 				),
 			},
 		},
@@ -479,7 +479,7 @@ func TestDockerImageApplicationResource_InvalidPortsExposes(t *testing.T) {
 	})
 }
 
-func TestDockerImageApplicationResource_InvalidFQDN(t *testing.T) {
+func TestDockerImageApplicationResource_InvalidDomains(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
@@ -493,7 +493,7 @@ func TestDockerImageApplicationResource_InvalidFQDN(t *testing.T) {
 					server_uuid  = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image = "nginx:latest"
 					ports_exposes = "3000"
-					fqdn          = "app.example.com"
+					domains = "app.example.com"
 				`),
 				ExpectError: regexp.MustCompile(`must be a valid URL starting with http:// or https://`),
 			},
@@ -622,7 +622,7 @@ func TestDockerImageApplicationResource_LatestTagNormalization(t *testing.T) {
 					ports_exposes  = "8080"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_docker_image_application.test", "docker_image", "alpine:latest"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "alpine:latest"),
 				),
 			},
 			{
@@ -642,5 +642,5 @@ func TestDockerImageApplicationResource_LatestTagNormalization(t *testing.T) {
 }
 
 func testDockerImageResourceConfig(endpoint, attrs string) string {
-	return acctest.TestResourceConfig(endpoint, "coolify_docker_image_application", "test", attrs)
+	return acctest.TestResourceConfig(endpoint, "coolify_application_docker_image", "test", attrs)
 }

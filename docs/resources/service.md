@@ -45,6 +45,7 @@ resource "coolify_service" "example" {
 - `connect_to_docker_network` (Boolean) Whether the service containers connect to the Coolify Docker network.
 - `description` (String) A description of the service.
 - `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
+- `instant_deploy` (Boolean) Whether to immediately deploy the service after creation. When `true`, Coolify starts the service containers right away. When `false` (default), the service is created but not started.
 - `name` (String) The name of the service.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 

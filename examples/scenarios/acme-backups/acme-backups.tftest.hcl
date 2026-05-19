@@ -17,12 +17,12 @@ run "setup_and_backup" {
 
   # --- Database ---
   assert {
-    condition     = coolify_postgresql_database.app_db.name == "acme-app-db"
-    error_message = "Database name mismatch: got ${coolify_postgresql_database.app_db.name}"
+    condition     = coolify_database_postgresql.app_db.name == "acme-app-db"
+    error_message = "Database name mismatch: got ${coolify_database_postgresql.app_db.name}"
   }
   assert {
-    condition     = coolify_postgresql_database.app_db.postgres_user == "acme"
-    error_message = "Database user mismatch: got ${coolify_postgresql_database.app_db.postgres_user}"
+    condition     = coolify_database_postgresql.app_db.postgres_user == "acme"
+    error_message = "Database user mismatch: got ${coolify_database_postgresql.app_db.postgres_user}"
   }
 
   # --- Backup Configuration ---
