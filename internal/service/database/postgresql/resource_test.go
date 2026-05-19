@@ -465,6 +465,36 @@ resource "coolify_postgresql_database" "test" {
 	})
 }
 
+func TestPostgresqlDatabaseResource_ImportBadSimpleUUID(t *testing.T) {
+	t.Parallel()
+	srv, _ := dbtest.NewMockServer("postgresql", "pg-test-db", "postgres:16", map[string]interface{}{
+		"postgres_user":     "postgres",
+		"postgres_password": "secret123",
+		"postgres_db":       "defaultdb",
+	})
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_postgresql_database" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_postgresql_database.test",
+				ImportState:   true,
+				ImportStateId: "not-a-uuid",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // TestPostgresqlDatabaseResource_ImportCompoundBadParts
 // ---------------------------------------------------------------------------
