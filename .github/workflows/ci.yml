@@ -28,6 +28,7 @@ jobs:
       docs: ${{ steps.filter.outputs.docs }}
       terraform: ${{ steps.filter.outputs.terraform }}
       ci: ${{ steps.filter.outputs.ci }}
+      scripts: ${{ steps.filter.outputs.scripts }}
       scenarios: ${{ steps.filter.outputs.scenarios }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -54,6 +55,9 @@ jobs:
               - '.codecov.yml'
               - '.goreleaser.yml'
               - 'GNUmakefile'
+            scripts:
+              - 'scripts/**'
+              - '.github/workflows/ci.yml'
             scenarios:
               - 'examples/scenarios/**'
               - '.github/workflows/ci.yml'
@@ -167,6 +171,7 @@ jobs:
         needs.changes.outputs.docs == 'true' ||
         needs.changes.outputs.terraform == 'true' ||
         needs.changes.outputs.ci == 'true' ||
+        needs.changes.outputs.scripts == 'true' ||
         github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch'
       )
@@ -198,6 +203,9 @@ jobs:
       - name: Verify AGENTS.md counts
         if: ${{ !cancelled() }}
         run: make counts-check
+      - name: Run Python script tests
+        if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+        run: make python-test
       - name: Trivy filesystem scan
         if: ${{ !cancelled() }}
         id: trivy

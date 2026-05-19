@@ -26,6 +26,9 @@ docs: check-tfplugindocs ## Regenerate documentation via tfplugindocs
 validate: ## Check HCL formatting in examples/
 	terraform fmt -check -recursive examples/
 
+python-test: ## Run Python unit tests for scripts/
+	python3 -m unittest discover -s scripts -p '*test*.py' -v
+
 install: ## Install provider to local Go bin
 	go install .
 
@@ -58,7 +61,7 @@ api-coverage: ## Regenerate API_COVERAGE.md from coverage registry
 scaffold: ## Scaffold a new resource (usage: make scaffold NAME=webhook)
 	@./scripts/new-resource.sh $(NAME)
 
-ci: build lint test validate docs-check api-coverage-check counts-check vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
+ci: build lint test validate python-test docs-check api-coverage-check counts-check vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
 
 modverify: ## Verify module cache integrity against go.sum
 	go mod verify
@@ -124,4 +127,4 @@ tools: ## Install all required development tools
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-tfplugindocs goreleaser-check modverify ci scaffold tools help
+.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-tfplugindocs goreleaser-check modverify ci scaffold tools help
