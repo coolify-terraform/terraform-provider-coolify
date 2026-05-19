@@ -19,7 +19,7 @@ Manages a service resource on Coolify. Services are pre-built application stacks
 #   meilisearch, umami, fider, appsmith, directus
 #
 # See the full list in the Coolify UI under Services > New Service.
-resource "coolify_service" "monitoring" {
+resource "coolify_service" "example" {
   name             = "uptime-kuma"
   type             = "uptime-kuma"
   project_uuid     = coolify_project.example.uuid

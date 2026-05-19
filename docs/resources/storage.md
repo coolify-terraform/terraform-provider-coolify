@@ -38,7 +38,7 @@ resource "coolify_storage" "db_data" {
 # Attach a persistent storage to a specific sub-resource inside a service.
 # resource_uuid must be the nested application or database UUID from the service.
 resource "coolify_storage" "service_data" {
-  service_uuid  = coolify_service.monitoring.uuid
+  service_uuid  = coolify_service.example.uuid
   resource_uuid = var.service_resource_uuid
   name          = "service-data"
   mount_path    = "/data"
