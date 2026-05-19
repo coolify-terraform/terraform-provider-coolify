@@ -81,7 +81,7 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"service_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. When set, `resource_uuid` must also be provided to identify which sub-resource within the service owns the storage. Changing this forces a new resource.",
+				MarkdownDescription: "The UUID of the service that contains the target application or database. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. When set, `resource_uuid` must also be provided to identify which sub-resource within the service the storage attaches to. Changing this forces a new resource.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -97,7 +97,7 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Validators: []validator.String{validate.UUID()},
 			},
 			"resource_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the nested application or database inside a service. Required when `service_uuid` is set because Coolify services contain multiple sub-resources and the storage must target a specific one. Ignored for `application_uuid` and `database_uuid`. Changing this forces a new resource.",
+				MarkdownDescription: "The UUID of the application or database within a service that the storage attaches to. Required when `service_uuid` is set because Coolify services contain multiple sub-resources and the storage must target a specific one. Ignored for `application_uuid` and `database_uuid`. Changing this forces a new resource.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{

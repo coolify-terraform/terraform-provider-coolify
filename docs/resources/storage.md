@@ -16,6 +16,10 @@ Manages a persistent storage volume on a Coolify application, service, or databa
 ## Example Usage
 
 ```terraform
+variable "service_resource_uuid" {
+  type = string
+}
+
 # Attach a persistent storage to an application
 resource "coolify_storage" "app_data" {
   application_uuid = coolify_application.example.uuid
@@ -29,6 +33,15 @@ resource "coolify_storage" "db_data" {
   database_uuid = coolify_postgresql_database.example.uuid
   name          = "pg-data"
   mount_path    = "/var/lib/postgresql/data"
+}
+
+# Attach a persistent storage to a specific sub-resource inside a service.
+# resource_uuid must be the nested application or database UUID from the service.
+resource "coolify_storage" "service_data" {
+  service_uuid  = coolify_service.monitoring.uuid
+  resource_uuid = var.service_resource_uuid
+  name          = "service-data"
+  mount_path    = "/data"
 }
 ```
 
@@ -45,8 +58,8 @@ resource "coolify_storage" "db_data" {
 - `application_uuid` (String) The UUID of the application to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `database_uuid` (String) The UUID of the database to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `host_path` (String) The host path to mount (optional; leave empty for a Docker volume).
-- `resource_uuid` (String) The UUID of the nested application or database inside a service. Required when `service_uuid` is set because Coolify services contain multiple sub-resources and the storage must target a specific one. Ignored for `application_uuid` and `database_uuid`. Changing this forces a new resource.
-- `service_uuid` (String) The UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. When set, `resource_uuid` must also be provided to identify which sub-resource within the service owns the storage. Changing this forces a new resource.
+- `resource_uuid` (String) The UUID of the application or database within a service that the storage attaches to. Required when `service_uuid` is set because Coolify services contain multiple sub-resources and the storage must target a specific one. Ignored for `application_uuid` and `database_uuid`. Changing this forces a new resource.
+- `service_uuid` (String) The UUID of the service that contains the target application or database. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. When set, `resource_uuid` must also be provided to identify which sub-resource within the service the storage attaches to. Changing this forces a new resource.
 
 ### Read-Only
 

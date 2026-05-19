@@ -1,3 +1,7 @@
+variable "service_resource_uuid" {
+  type = string
+}
+
 # Attach a persistent storage to an application
 resource "coolify_storage" "app_data" {
   application_uuid = coolify_application.example.uuid
@@ -11,4 +15,13 @@ resource "coolify_storage" "db_data" {
   database_uuid = coolify_postgresql_database.example.uuid
   name          = "pg-data"
   mount_path    = "/var/lib/postgresql/data"
+}
+
+# Attach a persistent storage to a specific sub-resource inside a service.
+# resource_uuid must be the nested application or database UUID from the service.
+resource "coolify_storage" "service_data" {
+  service_uuid  = coolify_service.monitoring.uuid
+  resource_uuid = var.service_resource_uuid
+  name          = "service-data"
+  mount_path    = "/data"
 }
