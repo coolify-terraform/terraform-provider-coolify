@@ -125,14 +125,14 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 
 	plan.UUID = types.StringValue(created.UUID)
 	dbcommon.NormalizeCommonCreateState(&plan.CommonModel)
-	dbcommon.NormalizeUnknownString(&plan.PostgresUser)
-	dbcommon.NormalizeUnknownString(&plan.PostgresPassword)
-	dbcommon.NormalizeUnknownString(&plan.PostgresDB)
-	dbcommon.NormalizeUnknownString(&plan.PostgresConf)
-	dbcommon.NormalizeUnknownString(&plan.PostgresInitdbArgs)
-	dbcommon.NormalizeUnknownString(&plan.PostgresHostAuthMethod)
-	dbcommon.NormalizeUnknownString(&plan.InitScripts)
-	dbcommon.NormalizeUnknownString(&plan.SSLMode)
+	flex.NormalizeUnknownString(&plan.PostgresUser)
+	flex.NormalizeUnknownString(&plan.PostgresPassword)
+	flex.NormalizeUnknownString(&plan.PostgresDB)
+	flex.NormalizeUnknownString(&plan.PostgresConf)
+	flex.NormalizeUnknownString(&plan.PostgresInitdbArgs)
+	flex.NormalizeUnknownString(&plan.PostgresHostAuthMethod)
+	flex.NormalizeUnknownString(&plan.InitScripts)
+	flex.NormalizeUnknownString(&plan.SSLMode)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return

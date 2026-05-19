@@ -237,22 +237,14 @@ func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid st
 	return nil
 }
 
-// NormalizeUnknown* helpers moved to internal/flex package.
-// These aliases preserve backward compatibility for any external callers.
-var (
-	NormalizeUnknownString = flex.NormalizeUnknownString
-	NormalizeUnknownBool   = flex.NormalizeUnknownBool
-	NormalizeUnknownInt64  = flex.NormalizeUnknownInt64
-)
-
 func NormalizeCommonCreateState(m *CommonModel) {
-	NormalizeUnknownString(&m.Name)
-	NormalizeUnknownString(&m.Description)
-	NormalizeUnknownString(&m.EnvironmentName)
-	NormalizeUnknownString(&m.Image)
-	NormalizeUnknownBool(&m.IsPublic)
-	NormalizeUnknownInt64(&m.PublicPort)
-	NormalizeUnknownString(&m.Status)
+	flex.NormalizeUnknownString(&m.Name)
+	flex.NormalizeUnknownString(&m.Description)
+	flex.NormalizeUnknownString(&m.EnvironmentName)
+	flex.NormalizeUnknownString(&m.Image)
+	flex.NormalizeUnknownBool(&m.IsPublic)
+	flex.NormalizeUnknownInt64(&m.PublicPort)
+	flex.NormalizeUnknownString(&m.Status)
 }
 
 func AddCreateReadBackError(resp *resource.CreateResponse, label, identifier string, err error) {
