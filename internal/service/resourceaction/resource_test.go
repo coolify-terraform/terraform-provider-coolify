@@ -221,6 +221,40 @@ resource "coolify_resource_action" "bad" {
 	})
 }
 
+func TestResourceActionResource_APIError(t *testing.T) {
+	t.Parallel()
+	dbUUID := "aaaa0001-0001-4000-8000-000000000001"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"Server is not reachable."}`, http.StatusServiceUnavailable)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_resource_action" "start_db" {
+  resource_uuid = %q
+  resource_type = "database"
+  action        = "start"
+}
+`, srv.URL, dbUUID),
+				ExpectError: regexp.MustCompile(`Could not start database`),
+			},
+		},
+	})
+}
+
 func TestResourceActionResource_InvalidResourceType(t *testing.T) {
 	t.Parallel()
 
