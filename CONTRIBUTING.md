@@ -94,8 +94,11 @@ internal/
     project/    coolify_project resource + data sources + tests
     server/     coolify_server resource + data sources + tests
     ...
-  flex/         Type conversion helpers
+  flex/         Type conversion helpers (incl. Configure helpers)
   acctest/      Shared test utilities
+  validate/     Input validators (UUID format, FQDN URL, cron)
+  filter/       Generic data source filtering helpers
+  spectest/     OpenAPI spec compliance and contract coverage tests
 ```
 
 ## Adding a New Resource
