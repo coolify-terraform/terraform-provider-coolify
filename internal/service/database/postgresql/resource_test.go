@@ -51,6 +51,7 @@ resource "coolify_database_postgresql" "test" {
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "enable_ssl", "false"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "status", "running"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "limits_cpu_shares", "1024"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "instant_deploy", "false"),
 				),
 			},
 			// Plan idempotency: re-apply same config, expect empty plan
@@ -201,6 +202,36 @@ resource "coolify_database_postgresql" "test" {
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckNoResourceAttr("coolify_database_postgresql.test", "description"),
+				),
+			},
+		},
+	})
+}
+
+func TestPostgresqlDatabaseResource_InternalDBUrlAndInstantDeploy(t *testing.T) {
+	t.Parallel()
+	srv, _ := dbtest.NewMockServer("postgresql", "pg-url-db", "postgres:16", map[string]interface{}{
+		"postgres_user":     "postgres",
+		"postgres_password": "secret123",
+		"postgres_db":       "mydb",
+		"internal_db_url":   "postgresql://postgres:secret123@pg-url-db:5432/mydb",
+	})
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_postgresql" "test" {
+  project_uuid   = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid    = "bbbb0001-0001-4000-8000-000000000001"
+  instant_deploy = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "internal_db_url", "postgresql://postgres:secret123@pg-url-db:5432/mydb"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "instant_deploy", "true"),
 				),
 			},
 		},

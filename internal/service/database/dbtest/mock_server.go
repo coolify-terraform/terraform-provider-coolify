@@ -43,6 +43,7 @@ func (s *MockState) buildResponse() map[string]interface{} {
 		"limits_cpuset":             "0",
 		"limits_cpu_shares":         1024,
 		"status":                    "running",
+		"internal_db_url":           "",
 	}
 	for k, v := range s.ExtraFields {
 		resp[k] = v
