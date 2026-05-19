@@ -54,6 +54,7 @@ type Database struct {
 	CustomDockerRunOptions string `json:"custom_docker_run_options,omitempty"`
 	PublicPortTimeout      *int64 `json:"public_port_timeout,omitempty"`
 	Status                 string `json:"status,omitempty"`
+	InternalDBUrl          string `json:"internal_db_url,omitempty"`
 	// Type-specific configs
 	PostgresConf           string `json:"postgres_conf,omitempty"`
 	PostgresInitdbArgs     string `json:"postgres_initdb_args,omitempty"`

@@ -48,6 +48,7 @@ Read-Only:
 - `description` (String) A description of the database.
 - `enable_ssl` (Boolean) Whether SSL/TLS is enabled for database connections.
 - `image` (String) The Docker image used by the database.
+- `internal_db_url` (String, Sensitive) Internal connection URL for the database.
 - `is_include_timestamps` (Boolean) Whether timestamps are included in log output.
 - `is_log_drain_enabled` (Boolean) Whether log drain is enabled for this database.
 - `is_public` (Boolean) Whether the database is publicly accessible.

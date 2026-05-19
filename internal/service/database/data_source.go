@@ -39,6 +39,7 @@ type databaseDataSourceModel struct {
 	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
 	SSLMode             types.String `tfsdk:"ssl_mode"`
 	Status              types.String `tfsdk:"status"`
+	InternalDBUrl       types.String `tfsdk:"internal_db_url"`
 }
 
 func NewDataSource() datasource.DataSource {
@@ -114,6 +115,11 @@ func (d *databaseDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				MarkdownDescription: "The current status of the database (e.g., running, exited).",
 				Computed:            true,
 			},
+			"internal_db_url": schema.StringAttribute{
+				MarkdownDescription: "Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.",
+				Computed:            true,
+				Sensitive:           true,
+			},
 		},
 	}
 }
@@ -152,6 +158,7 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	config.EnableSSL = types.BoolValue(db.EnableSSL)
 	config.SSLMode = flex.StringToFramework(db.SSLMode)
 	config.Status = flex.StringToFramework(db.Status)
+	config.InternalDBUrl = flex.StringToFramework(db.InternalDBUrl)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

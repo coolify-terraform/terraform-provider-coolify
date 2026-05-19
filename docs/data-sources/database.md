@@ -31,6 +31,7 @@ data "coolify_database" "example" {
 - `enable_ssl` (Boolean) Whether SSL/TLS is enabled for database connections.
 - `environment_name` (String) The environment name.
 - `image` (String) The Docker image used by the database.
+- `internal_db_url` (String, Sensitive) Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.
 - `is_include_timestamps` (Boolean) Whether timestamps are included in log output.
 - `is_log_drain_enabled` (Boolean) Whether log drain is enabled for this database.
 - `is_public` (Boolean) Whether the database is publicly accessible.

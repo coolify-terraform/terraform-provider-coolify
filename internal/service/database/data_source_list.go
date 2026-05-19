@@ -42,6 +42,7 @@ type databaseItemModel struct {
 	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
 	SSLMode             types.String `tfsdk:"ssl_mode"`
 	Status              types.String `tfsdk:"status"`
+	InternalDBUrl       types.String `tfsdk:"internal_db_url"`
 }
 
 // NewListDataSource returns a new databases list data source instance.
@@ -105,6 +106,11 @@ func (d *databaseListDataSource) Schema(_ context.Context, _ datasource.SchemaRe
 						"status": schema.StringAttribute{
 							MarkdownDescription: "The current status of the database.",
 							Computed:            true,
+						},
+						"internal_db_url": schema.StringAttribute{
+							MarkdownDescription: "Internal connection URL for the database.",
+							Computed:            true,
+							Sensitive:           true,
 						},
 					},
 				},
@@ -180,6 +186,7 @@ func (d *databaseListDataSource) Read(ctx context.Context, req datasource.ReadRe
 		item.Image = flex.StringToFramework(db.Image)
 		item.SSLMode = flex.StringToFramework(db.SSLMode)
 		item.Status = flex.StringToFramework(db.Status)
+		item.InternalDBUrl = flex.StringToFramework(db.InternalDBUrl)
 		state.Databases = append(state.Databases, item)
 	}
 

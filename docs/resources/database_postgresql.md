@@ -71,6 +71,7 @@ resource "coolify_database_postgresql" "example" {
 
 ### Read-Only
 
+- `internal_db_url` (String, Sensitive) Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.
 - `status` (String) The current status of the database (e.g., `running`, `exited`).
 - `uuid` (String) The UUID of the database.
 
