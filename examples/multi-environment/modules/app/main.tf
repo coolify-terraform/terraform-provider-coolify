@@ -54,7 +54,7 @@ resource "coolify_application" "app" {
   git_branch       = var.git_branch
   build_pack       = "nixpacks"
   ports_exposes    = "3000"
-  fqdn             = "https://${var.domain}"
+  domains          = "https://${var.domain}"
 }
 
 # The database 'name' is the Docker container name, used as internal hostname.

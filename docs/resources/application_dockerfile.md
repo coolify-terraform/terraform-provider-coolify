@@ -29,7 +29,7 @@ resource "coolify_application_dockerfile" "app" {
   DOCKERFILE
   )
   ports_exposes = "3000"
-  fqdn          = "https://app.example.com"
+  domains       = "https://app.example.com"
 
   # Optional fields (uncomment as needed):
   # dockerfile_target_build = "production"  # Target stage for multi-stage Docker builds
@@ -60,9 +60,9 @@ resource "coolify_application_dockerfile" "app" {
 - `docker_registry_image_tag` (String) The Docker registry image tag.
 - `dockerfile` (String, Sensitive) Inline Dockerfile content (base64 encoded).
 - `dockerfile_target_build` (String) The target stage for multi-stage Docker builds.
+- `domains` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
 - `force_domain_override` (Boolean) Whether to force domain override.
-- `fqdn` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `git_commit_sha` (String) The specific Git commit SHA to deploy.
 - `health_check_command` (String) Custom health check command (used when type is `cmd`).
 - `health_check_enabled` (Boolean) Whether health checks are enabled. Coolify defaults to `false` for new applications.

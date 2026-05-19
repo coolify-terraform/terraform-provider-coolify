@@ -1049,7 +1049,7 @@ func TestApplicationResource_InvalidPortsExposes(t *testing.T) {
 	})
 }
 
-func TestApplicationResource_InvalidFQDN(t *testing.T) {
+func TestApplicationResource_InvalidDomains(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
@@ -1064,7 +1064,7 @@ func TestApplicationResource_InvalidFQDN(t *testing.T) {
 					git_repository = "https://github.com/example/repo"
 					build_pack     = "nixpacks"
 					ports_exposes  = "3000"
-					fqdn           = "app.example.com"
+					domains = "app.example.com"
 				`),
 				ExpectError: regexp.MustCompile(`must be a valid URL starting with http:// or https://`),
 			},

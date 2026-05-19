@@ -19,7 +19,7 @@ resource "coolify_application_docker_image" "nginx" {
   server_uuid   = coolify_server.example.uuid
   docker_image  = "nginx:latest"
   ports_exposes = "80"
-  fqdn          = "https://proxy.example.com"
+  domains       = "https://proxy.example.com"
 
   # Optional fields (uncomment as needed):
   # docker_registry_image_tag = "1.27-alpine"  # Pin to a specific image tag instead of :latest
@@ -48,9 +48,9 @@ resource "coolify_application_docker_image" "nginx" {
 - `docker_compose_domains` (String) Domain mappings for Docker Compose services.
 - `docker_registry_image_tag` (String) The Docker registry image tag.
 - `dockerfile` (String, Sensitive) Inline Dockerfile content (base64 encoded).
+- `domains` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
 - `force_domain_override` (Boolean) Whether to force domain override.
-- `fqdn` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `git_commit_sha` (String) The specific Git commit SHA to deploy.
 - `health_check_command` (String) Custom health check command (used when type is `cmd`).
 - `health_check_enabled` (Boolean) Whether health checks are enabled. Coolify defaults to `false` for new applications.

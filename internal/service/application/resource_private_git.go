@@ -97,7 +97,7 @@ func (r *privateGitApplicationResource) Create(ctx context.Context, req resource
 	flex.SetIfKnown(&input.GitBranch, plan.GitBranch)
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
-	flex.SetIfKnown(&input.FQDN, plan.FQDN)
+	flex.SetIfKnown(&input.Domains, plan.Domains)
 	flex.SetIfKnown(&input.DockerfileLocation, plan.DockerfileLocation)
 	flex.SetIfKnown(&input.InstallCommand, plan.InstallCommand)
 	flex.SetIfKnown(&input.BuildCommand, plan.BuildCommand)

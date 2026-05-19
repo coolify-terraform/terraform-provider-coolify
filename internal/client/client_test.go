@@ -420,13 +420,13 @@ func TestClient_CreatePublicApplication(t *testing.T) {
 			t.Errorf("expected ports_exposes 3000, got %s", input.PortsExposes)
 		}
 
-		// Verify FQDN is sent as "domains" key (spec requirement)
+		// Verify Domains is sent as "domains" key (spec requirement)
 		var raw map[string]interface{}
 		if err := json.Unmarshal(body, &raw); err != nil {
 			t.Fatalf("failed to unmarshal raw body: %v", err)
 		}
 		if _, ok := raw["domains"]; !ok {
-			t.Error("expected 'domains' key in JSON body (FQDN field)")
+			t.Error("expected 'domains' key in JSON body (Domains field)")
 		}
 		if _, ok := raw["fqdn"]; ok {
 			t.Error("unexpected 'fqdn' key in JSON body (should be 'domains')")
@@ -452,7 +452,7 @@ func TestClient_CreatePublicApplication(t *testing.T) {
 		GitBranch:       "main",
 		BuildPack:       "dockerfile",
 		PortsExposes:    "3000",
-		FQDN:            "https://app.example.com",
+		Domains:         "https://app.example.com",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1361,7 +1361,7 @@ func TestClient_GetApplication(t *testing.T) {
 			UUID:               "app-get-1",
 			Name:               "My App",
 			Description:        "A test app",
-			FQDN:               "https://app.example.com",
+			Domains:            "https://app.example.com",
 			GitRepository:      "https://github.com/org/repo",
 			GitBranch:          "main",
 			BuildPack:          "nixpacks",
@@ -1383,7 +1383,7 @@ func TestClient_GetApplication(t *testing.T) {
 	assert.Equal(t, "app-get-1", app.UUID)
 	assert.Equal(t, "My App", app.Name)
 	assert.Equal(t, "A test app", app.Description)
-	assert.Equal(t, "https://app.example.com", app.FQDN)
+	assert.Equal(t, "https://app.example.com", app.Domains)
 	assert.Equal(t, "https://github.com/org/repo", app.GitRepository)
 	assert.Equal(t, "main", app.GitBranch)
 	assert.Equal(t, "nixpacks", app.BuildPack)

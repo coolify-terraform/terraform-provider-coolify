@@ -99,7 +99,7 @@ resource "coolify_application" "api" {
   git_branch       = "main"
   build_pack       = "nixpacks"
   ports_exposes    = "8080"
-  fqdn             = var.domain != "" ? "https://${var.domain}" : null
+  domains          = var.domain != "" ? "https://${var.domain}" : null
 }
 
 resource "coolify_application_docker_image" "worker" {

@@ -33,7 +33,7 @@ type applicationListDataSourceModel struct {
 type applicationItemModel struct {
 	UUID          types.String `tfsdk:"uuid"`
 	Name          types.String `tfsdk:"name"`
-	FQDN          types.String `tfsdk:"fqdn"`
+	Domains       types.String `tfsdk:"domains"`
 	GitRepository types.String `tfsdk:"git_repository"`
 	GitBranch     types.String `tfsdk:"git_branch"`
 	BuildPack     types.String `tfsdk:"build_pack"`
@@ -66,7 +66,7 @@ func (d *applicationListDataSource) Schema(_ context.Context, _ datasource.Schem
 							MarkdownDescription: "The name of the application.",
 							Computed:            true,
 						},
-						"fqdn": schema.StringAttribute{
+						"domains": schema.StringAttribute{
 							MarkdownDescription: "The fully qualified domain name of the application.",
 							Computed:            true,
 						},
@@ -121,8 +121,8 @@ func (d *applicationListDataSource) Read(ctx context.Context, req datasource.Rea
 			return a.UUID, true
 		case "name":
 			return a.Name, true
-		case "fqdn":
-			return a.FQDN, true
+		case "domains":
+			return a.Domains, true
 		case "git_repository":
 			return a.GitRepository, true
 		case "git_branch":
@@ -143,7 +143,7 @@ func (d *applicationListDataSource) Read(ctx context.Context, req datasource.Rea
 			UUID: types.StringValue(a.UUID),
 		}
 		item.Name = flex.StringToFramework(a.Name)
-		item.FQDN = flex.StringToFramework(a.FQDN)
+		item.Domains = flex.StringToFramework(a.Domains)
 		item.GitRepository = flex.StringToFramework(a.GitRepository)
 		item.GitBranch = flex.StringToFramework(a.GitBranch)
 		item.BuildPack = flex.StringToFramework(a.BuildPack)

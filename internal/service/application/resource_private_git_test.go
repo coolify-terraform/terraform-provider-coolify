@@ -456,7 +456,7 @@ func TestPrivateGitApplicationResource_InvalidPortsExposes(t *testing.T) {
 	})
 }
 
-func TestPrivateGitApplicationResource_InvalidFQDN(t *testing.T) {
+func TestPrivateGitApplicationResource_InvalidDomains(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
@@ -472,7 +472,7 @@ func TestPrivateGitApplicationResource_InvalidFQDN(t *testing.T) {
 					git_repository   = "git@github.com:example/repo.git"
 					build_pack       = "nixpacks"
 					ports_exposes    = "3000"
-					fqdn             = "app.example.com"
+					domains = "app.example.com"
 				`),
 				ExpectError: regexp.MustCompile(`must be a valid URL starting with http:// or https://`),
 			},

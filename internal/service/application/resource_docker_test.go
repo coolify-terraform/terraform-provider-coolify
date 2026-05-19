@@ -479,7 +479,7 @@ func TestDockerImageApplicationResource_InvalidPortsExposes(t *testing.T) {
 	})
 }
 
-func TestDockerImageApplicationResource_InvalidFQDN(t *testing.T) {
+func TestDockerImageApplicationResource_InvalidDomains(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
@@ -493,7 +493,7 @@ func TestDockerImageApplicationResource_InvalidFQDN(t *testing.T) {
 					server_uuid  = "bbbb0002-0002-4000-8000-000000000002"
 					docker_image = "nginx:latest"
 					ports_exposes = "3000"
-					fqdn          = "app.example.com"
+					domains = "app.example.com"
 				`),
 				ExpectError: regexp.MustCompile(`must be a valid URL starting with http:// or https://`),
 			},

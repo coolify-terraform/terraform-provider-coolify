@@ -4,7 +4,7 @@ resource "coolify_application_docker_image" "nginx" {
   server_uuid   = coolify_server.example.uuid
   docker_image  = "nginx:latest"
   ports_exposes = "80"
-  fqdn          = "https://proxy.example.com"
+  domains       = "https://proxy.example.com"
 
   # Optional fields (uncomment as needed):
   # docker_registry_image_tag = "1.27-alpine"  # Pin to a specific image tag instead of :latest

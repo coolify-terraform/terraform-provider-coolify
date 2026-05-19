@@ -106,7 +106,7 @@ resource "coolify_application" "web" {
   git_branch       = "main"
   build_pack       = "nixpacks"
   ports_exposes    = "3000"
-  fqdn             = var.app_domain != "" ? "https://${var.app_domain}" : null
+  domains          = var.app_domain != "" ? "https://${var.app_domain}" : null
 }
 
 # --- Environment Variables ---

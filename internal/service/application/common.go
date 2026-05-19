@@ -47,7 +47,7 @@ type commonAppFields struct {
 	GitBranch          *types.String
 	BuildPack          *types.String
 	PortsExposes       *types.String
-	FQDN               *types.String
+	Domains            *types.String
 	DockerfileLocation *types.String
 	InstallCommand     *types.String
 	BuildCommand       *types.String
@@ -139,7 +139,7 @@ type applicationCommonModel struct {
 	ServerUUID                     types.String   `tfsdk:"server_uuid"`
 	EnvironmentName                types.String   `tfsdk:"environment_name"`
 	PortsExposes                   types.String   `tfsdk:"ports_exposes"`
-	FQDN                           types.String   `tfsdk:"fqdn"`
+	Domains                        types.String   `tfsdk:"domains"`
 	InstallCommand                 types.String   `tfsdk:"install_command"`
 	StartCommand                   types.String   `tfsdk:"start_command"`
 	Status                         types.String   `tfsdk:"status"`
@@ -207,7 +207,7 @@ type applicationCommonModel struct {
 func (m *applicationCommonModel) common() commonAppFields {
 	return commonAppFields{
 		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
-		PortsExposes: &m.PortsExposes, FQDN: &m.FQDN,
+		PortsExposes: &m.PortsExposes, Domains: &m.Domains,
 		InstallCommand: &m.InstallCommand, StartCommand: &m.StartCommand,
 		Status: &m.Status, ProjectUUID: &m.ProjectUUID, ServerUUID: &m.ServerUUID,
 		EnvironmentName: &m.EnvironmentName,
@@ -267,7 +267,7 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 			*f.PortsExposes = types.StringValue(app.PortsExposes)
 		}
 	}
-	*f.FQDN = flex.StringToFramework(app.FQDN)
+	*f.Domains = flex.StringToFramework(app.Domains)
 	// Coolify does not return dockerfile_location on GET for most app types.
 	// Preserve the user's configured value to avoid "inconsistent result after apply".
 	// The value IS sent on Create/Update, just not returned on read-back.
@@ -447,7 +447,7 @@ func buildCoreUpdateFields(plan, state commonAppFields) client.UpdateApplication
 	input := client.UpdateApplicationInput{
 		Name:        strDiff(*plan.Name, *state.Name),
 		Description: strDiff(*plan.Description, *state.Description),
-		FQDN:        strDiff(*plan.FQDN, *state.FQDN),
+		Domains:     strDiff(*plan.Domains, *state.Domains),
 		// Resource limits
 		LimitsMemory:            strDiff(*plan.LimitsMemory, *state.LimitsMemory),
 		LimitsMemorySwap:        strDiff(*plan.LimitsMemorySwap, *state.LimitsMemorySwap),
@@ -686,12 +686,12 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			Default:             stringdefault.StaticString("production"),
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},
-		"fqdn": schema.StringAttribute{
+		"domains": schema.StringAttribute{
 			MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			Validators:          []validator.String{validate.FQDN()},
+			Validators:          []validator.String{validate.Domains()},
 		},
 		"status": schema.StringAttribute{
 			MarkdownDescription: "The current status of the application (e.g., running, stopped, exited). Read-only.",
@@ -1089,7 +1089,7 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 	flex.NormalizeUnknownString(&m.Name)
 	flex.NormalizeUnknownString(&m.Description)
 	flex.NormalizeUnknownString(&m.EnvironmentName)
-	flex.NormalizeUnknownString(&m.FQDN)
+	flex.NormalizeUnknownString(&m.Domains)
 	flex.NormalizeUnknownString(&m.Status)
 	flex.NormalizeUnknownBool(&m.HealthCheckEnabled)
 	flex.NormalizeUnknownBool(&m.IsAutoDeployEnabled)

@@ -7,23 +7,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
-type fqdnValidator struct{}
+type domainsValidator struct{}
 
-// FQDN returns a string validator that checks if the value is a valid HTTP(S) URL
+// Domains returns a string validator that checks if the value is a valid HTTP(S) URL
 // with a non-empty host.
-func FQDN() validator.String {
-	return fqdnValidator{}
+func Domains() validator.String {
+	return domainsValidator{}
 }
 
-func (v fqdnValidator) Description(_ context.Context) string {
+func (v domainsValidator) Description(_ context.Context) string {
 	return "must be a valid URL starting with http:// or https:// with a non-empty host"
 }
 
-func (v fqdnValidator) MarkdownDescription(ctx context.Context) string {
+func (v domainsValidator) MarkdownDescription(ctx context.Context) string {
 	return v.Description(ctx)
 }
 
-func (v fqdnValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+func (v domainsValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}

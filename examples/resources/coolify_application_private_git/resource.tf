@@ -7,5 +7,5 @@ resource "coolify_application_private_git" "api" {
   private_key_uuid = coolify_private_key.deploy.uuid
   build_pack       = "dockerfile"
   ports_exposes    = "8080"
-  fqdn             = "https://api.example.com"
+  domains          = "https://api.example.com"
 }

@@ -36,7 +36,7 @@ resource "coolify_application_docker_image" "nginx" {
   server_uuid   = var.server_uuid
   docker_image  = "nginx:alpine"
   ports_exposes = "80"
-  fqdn          = "https://proxy.example.com"
+  domains       = "https://proxy.example.com"
 
   timeouts = {
     create = "10m"

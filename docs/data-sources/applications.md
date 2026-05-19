@@ -46,7 +46,7 @@ Required:
 Read-Only:
 
 - `build_pack` (String) The build pack type used by the application.
-- `fqdn` (String) The fully qualified domain name of the application.
+- `domains` (String) The fully qualified domain name of the application.
 - `git_branch` (String) The Git branch used by the application.
 - `git_repository` (String) The Git repository URL of the application.
 - `name` (String) The name of the application.

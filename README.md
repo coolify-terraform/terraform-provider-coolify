@@ -155,7 +155,7 @@ resource "coolify_application" "web" {
   git_branch     = "main"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
-  fqdn           = "https://app.example.com"
+  domains = "https://app.example.com"
 }
 ```
 
