@@ -11,7 +11,7 @@ Define your entire [Coolify](https://coolify.io/) infrastructure as code. Deploy
 
 Coolify gives you a self-hosted PaaS with a great UI. This provider adds what the UI cannot: reproducible environments, pull-request-based infrastructure reviews, disaster recovery from state, and CI/CD integration. Whether you run a single VPS or manage Coolify for a team, Terraform turns your infrastructure into a reviewable, testable, git-tracked configuration.
 
-**26 resources, 44 data sources, 99%+ Coolify API coverage.**
+**27 resources, 44 data sources, 99%+ Coolify API coverage.**
 
 ## Requirements
 
@@ -63,7 +63,7 @@ export COOLIFY_CF_ACCESS_CLIENT_SECRET="your-cf-client-secret"
 | Applications | `coolify_application`, `coolify_application_dockerfile`, `coolify_application_docker_image`, `coolify_application_private_git`, `coolify_application_github_app` |
 | Databases | `coolify_database_postgresql`, `coolify_database_mysql`, `coolify_database_mariadb`, `coolify_database_redis`, `coolify_database_mongodb`, `coolify_database_clickhouse`, `coolify_database_keydb`, `coolify_database_dragonfly` |
 | Services | `coolify_service` |
-| Operations | `coolify_environment_variable`, `coolify_storage`, `coolify_scheduled_task`, `coolify_deployment`, `coolify_database_backup` |
+| Operations | `coolify_environment_variable`, `coolify_storage`, `coolify_scheduled_task`, `coolify_deployment`, `coolify_resource_action`, `coolify_database_backup` |
 
 All resources support `terraform import`. See the [Import Guide](guides/import)
 for composite ID formats, known limitations, and field normalization behaviors.
