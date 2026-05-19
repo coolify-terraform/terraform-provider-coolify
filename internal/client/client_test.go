@@ -4513,3 +4513,87 @@ func TestClient_CreateService_EmptyUUID(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "empty UUID")
 }
+
+// --- Hetzner List Endpoints ---
+
+func TestClient_ListHetznerImages(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/hetzner/images", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]HetznerImage{
+			{ID: 1, Name: "ubuntu-22.04", Description: "Ubuntu 22.04"},
+			{ID: 2, Name: "debian-12", Description: "Debian 12"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	images, err := c.ListHetznerImages(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, images, 2)
+	assert.Equal(t, int64(1), images[0].ID)
+	assert.Equal(t, "ubuntu-22.04", images[0].Name)
+}
+
+func TestClient_ListHetznerLocations(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/hetzner/locations", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]HetznerLocation{
+			{ID: 1, Name: "fsn1", Description: "Falkenstein DC Park 1", City: "Falkenstein", Country: "DE"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	locations, err := c.ListHetznerLocations(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, locations, 1)
+	assert.Equal(t, "fsn1", locations[0].Name)
+	assert.Equal(t, "DE", locations[0].Country)
+}
+
+func TestClient_ListHetznerServerTypes(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/hetzner/server-types", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]HetznerServerType{
+			{ID: 1, Name: "cx22", Description: "CX22", Cores: 2, Memory: 4, Disk: 40},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	types, err := c.ListHetznerServerTypes(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, types, 1)
+	assert.Equal(t, "cx22", types[0].Name)
+	assert.Equal(t, int64(2), types[0].Cores)
+	assert.Equal(t, int64(4), types[0].Memory)
+}
+
+func TestClient_ListHetznerSSHKeys(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/hetzner/ssh-keys", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]HetznerSSHKey{
+			{ID: 1, Name: "deploy-key", Fingerprint: "aa:bb:cc:dd"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	keys, err := c.ListHetznerSSHKeys(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, keys, 1)
+	assert.Equal(t, "deploy-key", keys[0].Name)
+	assert.Equal(t, "aa:bb:cc:dd", keys[0].Fingerprint)
+}
