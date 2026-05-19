@@ -4,13 +4,24 @@
 ![Go Version](https://img.shields.io/github/go-mod/go-version/SebTardifLabs/terraform-provider-coolify)
 ![License](https://img.shields.io/github/license/SebTardifLabs/terraform-provider-coolify)
 
-A Terraform provider for managing resources in [Coolify](https://coolify.io/), the open-source, self-hosted Platform-as-a-Service. 26 resources, 44 data sources, 660+ tests, 99%+ API coverage.
+Define your entire [Coolify](https://coolify.io/) infrastructure as code: applications, databases, servers, backups, and environment variables, all version-controlled and reproducible with a single `terraform apply`.
+
+## Why Terraform for Coolify?
+
+Coolify gives you a self-hosted PaaS with a great UI. This provider adds the things the UI cannot:
+
+- **Reproducibility** -- rebuild your entire stack from scratch after a server failure, in minutes instead of hours of clicking
+- **Version control** -- review infrastructure changes in pull requests before they hit production
+- **Multi-environment consistency** -- stamp out identical dev, staging, and production setups from the same configuration
+- **Team collaboration** -- stop sharing screenshots of Coolify settings; share `.tf` files instead
+- **Disaster recovery** -- your Terraform state is a complete inventory of what should be running and how it should be configured
+- **Automation** -- integrate Coolify deployments into your existing CI/CD pipeline
 
 ## Getting Started
 
+- [Quick Start](docs/guides/quickstart.md) -- deploy your first app in under 5 minutes
 - [Installation](docs/guides/installation.md) -- install and configure the provider
 - [Core Concepts](docs/guides/concepts.md) -- understand the resource model
-- [Quick Start](docs/guides/quickstart.md) -- deploy your first app in under 5 minutes
 
 ## Resources
 
@@ -70,14 +81,33 @@ A Terraform provider for managing resources in [Coolify](https://coolify.io/), t
 | `coolify_version` | Read the Coolify instance version |
 | `coolify_hetzner_images` / `coolify_hetzner_locations` / `coolify_hetzner_server_types` / `coolify_hetzner_ssh_keys` | Read Hetzner cloud resources |
 
+## What You Can Do
+
+Deploy a full stack (app, database, backups, env vars) in a single `terraform apply`, or adopt the provider incrementally by importing your existing Coolify resources.
+
+**Real-world scenarios included** -- 9 tested ACME Corp examples cover common patterns:
+
+| Scenario | What it deploys |
+|---|---|
+| [acme-website](examples/scenarios/acme-website) | Project + PostgreSQL + web app + env vars |
+| [acme-api](examples/scenarios/acme-api) | Dockerfile + Docker image apps + Redis + scheduled tasks + backups |
+| [acme-backups](examples/scenarios/acme-backups) | Backup scheduling, S3 off-site storage, execution monitoring |
+| [acme-multi-env](examples/scenarios/acme-multi-env) | Terraform modules for dev/staging environments |
+| [acme-databases](examples/scenarios/acme-databases) | All 8 database engines side by side |
+| [acme-platform](examples/scenarios/acme-platform) | Private keys, environments, storage, data sources |
+| [acme-docker](examples/scenarios/acme-docker) | Docker image tag handling, scheduled tasks, storage |
+| [acme-integrations](examples/scenarios/acme-integrations) | Managed services from the Coolify catalog |
+| [acme-private-repo](examples/scenarios/acme-private-repo) | SSH deploy key + private Git repo + deployment with wait |
+
+Every scenario has `terraform test` integration tests that run against a real Coolify instance.
+
 ## Features
 
-- **Configurable timeouts** on all application resources (`timeouts = { create = "30m" }`)
-- **Input validators**: UUID format, FQDN format, cron syntax, port range (1-65535), build pack enum, env var name format
-- **Provider health check**: validates API connection during configuration
-- **Import support**: all resources support `terraform import` ([guide](docs/guides/import.md))
-- **Retryable HTTP client**: automatic retry on 429/5xx with exponential backoff
-- **Versioned User-Agent** header for API diagnostics
+- **Import existing resources** -- bring your current Coolify setup under Terraform management without rebuilding ([guide](docs/guides/import.md))
+- **Configurable timeouts** -- handle slow builds gracefully (`timeouts = { create = "30m" }`)
+- **Input validation** -- catch mistakes at plan time (invalid UUIDs, bad cron expressions, out-of-range ports)
+- **Connection health check** -- the provider validates your API connection before making any changes
+- **Reliable API calls** -- automatic retry with exponential backoff on transient failures (429, 5xx, network errors)
 
 ## Requirements
 
@@ -129,25 +159,11 @@ resource "coolify_application" "web" {
 }
 ```
 
-See the [examples/](examples/) directory for more, including the full
-[`coolify_postgresql_database` example](examples/resources/coolify_postgresql_database/resource.tf)
-that models `postgres_password` as a sensitive variable, and the
-[`coolify_github_app` example](examples/resources/coolify_github_app/resource.tf)
-that models both `client_secret` and `webhook_secret` as sensitive
-variables. The [examples/scenarios/](examples/scenarios/) directory has 9
-real-world scenarios (8 with `terraform test`, 1 credentials-dependent):
-
-| Scenario | What it tests |
-|---|---|
-| `acme-website` | Project, PostgreSQL, application, env vars |
-| `acme-api` | Dockerfile + Docker image apps, Redis, scheduled tasks, backups |
-| `acme-backups` | Database backup lifecycle: scheduling, S3 off-site storage, execution monitoring |
-| `acme-multi-env` | Terraform modules for dev/staging environments |
-| `acme-databases` | All 8 database engines (PostgreSQL, MySQL, MariaDB, Redis, MongoDB, ClickHouse, KeyDB, Dragonfly) |
-| `acme-platform` | Private keys, environments, storage, data sources |
-| `acme-docker` | Docker image tag normalization, scheduled tasks, storage |
-| `acme-integrations` | Managed services from the Coolify catalog |
-| `acme-private-repo` | SSH deploy key, private Git repo app, env vars, deployment with wait |
+See the [examples/](examples/) directory for per-resource examples (including
+sensitive variable handling for
+[`coolify_postgresql_database`](examples/resources/coolify_postgresql_database/resource.tf)
+and [`coolify_github_app`](examples/resources/coolify_github_app/resource.tf)),
+and the [ACME Corp scenarios](#what-you-can-do) above for full-stack examples.
 
 ## Authentication
 

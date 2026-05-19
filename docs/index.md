@@ -2,12 +2,16 @@
 page_title: "Coolify Provider"
 subcategory: ""
 description: |-
-  The Coolify provider manages resources in a Coolify instance.
+  Manage your Coolify infrastructure as code: applications, databases, servers, backups, and environment variables, all version-controlled and reproducible.
 ---
 
 # Coolify Provider
 
-The Coolify provider allows you to manage resources in a [Coolify](https://coolify.io/) instance, the open-source, self-hosted Platform-as-a-Service. It supports the full lifecycle of projects, servers, applications, databases, services, environment variables, backups, and more.
+Define your entire [Coolify](https://coolify.io/) infrastructure as code. Deploy applications, provision databases, configure backups, and manage environment variables, all version-controlled and reproducible with `terraform apply`.
+
+Coolify gives you a self-hosted PaaS with a great UI. This provider adds what the UI cannot: reproducible environments, pull-request-based infrastructure reviews, disaster recovery from state, and CI/CD integration. Whether you run a single VPS or manage Coolify for a team, Terraform turns your infrastructure into a reviewable, testable, git-tracked configuration.
+
+**26 resources, 44 data sources, 99%+ Coolify API coverage.**
 
 ## Requirements
 
