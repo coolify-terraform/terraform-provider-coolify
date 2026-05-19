@@ -699,6 +699,27 @@ func TestDatabaseBackupResource_InvalidCron(t *testing.T) {
 	})
 }
 
+func TestDatabaseBackupResource_SaveS3WithoutUUID(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockBackupServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid = "eeee0001-0001-4000-8000-000000000001"
+					frequency     = "0 2 * * *"
+					enabled       = true
+					save_s3       = true
+				`),
+				ExpectError: regexp.MustCompile(`Missing S3 Storage UUID`),
+			},
+		},
+	})
+}
+
 // TestDatabaseBackupResource_CreateWithZeroID verifies that when Coolify
 // returns id=0 for a newly created backup, the provider resolves the real
 // ID by listing backups and matching by UUID.
