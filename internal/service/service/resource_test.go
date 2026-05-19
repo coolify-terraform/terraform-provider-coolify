@@ -130,6 +130,27 @@ func TestServiceResource_CreateImport(t *testing.T) {
 	})
 }
 
+func TestServiceResource_ImportBadSimpleUUID(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockServiceServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: serviceConfig(srv.URL),
+			},
+			{
+				ResourceName:  "coolify_service.test",
+				ImportState:   true,
+				ImportStateId: "not-a-uuid",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
 func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	t.Parallel()
 	state := &mockServiceState{uuid: "dddd0009-0009-4000-8000-000000000009", name: "plausible-svc"}
