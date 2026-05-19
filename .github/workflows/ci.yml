@@ -262,10 +262,10 @@ jobs:
         run: |
           curl -sL https://raw.githubusercontent.com/coollabsio/coolify/v4.x/openapi.json \
             -o /tmp/coolify-latest.json
-          if ! diff -q testdata/specs/coolify-v4.json /tmp/coolify-latest.json > /dev/null 2>&1; then
+          if ! diff -q testdata/specs/coolify-v4.original.json /tmp/coolify-latest.json > /dev/null 2>&1; then
             echo "drift=true" >> "$GITHUB_OUTPUT"
             echo "::warning::Coolify OpenAPI spec has changed upstream"
-            diff testdata/specs/coolify-v4.json /tmp/coolify-latest.json | head -50
+            diff testdata/specs/coolify-v4.original.json /tmp/coolify-latest.json | head -50
           else
             echo "Spec is up to date"
           fi
