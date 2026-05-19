@@ -196,35 +196,53 @@ func TestHetznerServerResource_CreateWithSettings(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_hetzner_server" "test" {
-  name                       = "my-hetzner"
-  description                = "Build node"
-  cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
-  server_type                = "cx22"
-  location                   = "fsn1"
-  image                      = "ubuntu-24.04"
-  private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
-  is_build_server            = true
-  concurrent_builds          = 8
+  name                                   = "my-hetzner"
+  description                            = "Build node"
+  cloud_provider_token_uuid              = "cccc0001-0001-4000-8000-000000000001"
+  server_type                            = "cx22"
+  location                               = "fsn1"
+  image                                  = "ubuntu-24.04"
+  port                                   = 2222
+  user                                   = "deployer"
+  private_key_uuid                       = "dddd0002-0002-4000-8000-000000000002"
+  is_build_server                        = true
+  concurrent_builds                      = 8
+  dynamic_timeout                        = 1800
+  deployment_queue_limit                 = 10
+  server_disk_usage_notification_threshold = 90
+  server_disk_usage_check_frequency      = "0 * * * *"
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "description", "Build node"),
+					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "port", "2222"),
+					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "user", "deployer"),
 					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "is_build_server", "true"),
 					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "concurrent_builds", "8"),
+					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "dynamic_timeout", "1800"),
+					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "deployment_queue_limit", "10"),
+					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "server_disk_usage_notification_threshold", "90"),
+					resource.TestCheckResourceAttr("coolify_hetzner_server.test", "server_disk_usage_check_frequency", "0 * * * *"),
 				),
 			},
 			// Verify single-apply convergence: no second apply needed.
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_hetzner_server" "test" {
-  name                       = "my-hetzner"
-  description                = "Build node"
-  cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
-  server_type                = "cx22"
-  location                   = "fsn1"
-  image                      = "ubuntu-24.04"
-  private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
-  is_build_server            = true
-  concurrent_builds          = 8
+  name                                   = "my-hetzner"
+  description                            = "Build node"
+  cloud_provider_token_uuid              = "cccc0001-0001-4000-8000-000000000001"
+  server_type                            = "cx22"
+  location                               = "fsn1"
+  image                                  = "ubuntu-24.04"
+  port                                   = 2222
+  user                                   = "deployer"
+  private_key_uuid                       = "dddd0002-0002-4000-8000-000000000002"
+  is_build_server                        = true
+  concurrent_builds                      = 8
+  dynamic_timeout                        = 1800
+  deployment_queue_limit                 = 10
+  server_disk_usage_notification_threshold = 90
+  server_disk_usage_check_frequency      = "0 * * * *"
 }`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
