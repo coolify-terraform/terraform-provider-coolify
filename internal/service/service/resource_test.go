@@ -178,6 +178,10 @@ func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			if state.deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			if forceReadFailure.Load() {
 				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
 				return

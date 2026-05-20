@@ -137,6 +137,7 @@ func TestClickhouseDatabaseResource_CreateWithCredentials(t *testing.T) {
 	t.Parallel()
 	var capturedBody map[string]interface{}
 	mu := sync.Mutex{}
+	deleted := false
 	chUUID := "ch-creds-uuid-001"
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -151,6 +152,10 @@ func TestClickhouseDatabaseResource_CreateWithCredentials(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]string{"uuid": chUUID})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", chUUID):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":                      chUUID,
 				"name":                      "ch-creds-db",
@@ -171,6 +176,7 @@ func TestClickhouseDatabaseResource_CreateWithCredentials(t *testing.T) {
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", chUUID):
+			deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 

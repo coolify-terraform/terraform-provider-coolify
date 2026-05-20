@@ -118,6 +118,7 @@ func TestPostgresqlDatabaseResource_DescriptionNullHandling(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
 	description := "initial"
+	deleted := false
 	pgUUID := "pg-desc-uuid-001"
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -127,10 +128,15 @@ func TestPostgresqlDatabaseResource_DescriptionNullHandling(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/postgresql":
+			deleted = false
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]string{"uuid": pgUUID})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", pgUUID):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":                      pgUUID,
 				"name":                      "pg-desc-db",
@@ -164,6 +170,7 @@ func TestPostgresqlDatabaseResource_DescriptionNullHandling(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
 
 		case r.Method == http.MethodDelete:
+			deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
@@ -192,6 +199,7 @@ resource "coolify_database_postgresql" "test" {
 				PreConfig: func() {
 					mu.Lock()
 					description = ""
+					deleted = false
 					mu.Unlock()
 				},
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
