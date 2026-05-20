@@ -153,20 +153,21 @@ fixture variables because Coolify verifies repository access during
 `POST /applications/private-github-app`. The main affected test today is
 `internal/service/application.TestAccGitHubAppApplicationResource_CRUD`.
 
-**Important**: Running all tests in parallel can overwhelm the Coolify API
-and cause false timeout failures. Use `-p 1` to run packages sequentially.
-These are the lower-level `go test` equivalents of the Make targets above:
+**Important**: Running acceptance tests in parallel can overwhelm the
+Coolify API and cause false timeout failures. Serialize both packages and
+in-package tests. The Make targets above already do that for package-scoped
+runs. These are the lower-level `go test` equivalents:
 
 ```bash
 # Run all acceptance tests (sequential packages, avoids API overload)
 TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -p 1 -run 'TestAcc' ./...
 
 # Run a specific test
-TF_ACC=1 go test -race -v -cover -count=1 -timeout=30m \
+TF_ACC=1 go test -race -v -cover -count=1 -parallel=1 -timeout=30m \
   -run TestAccProjectResource_CRUD ./internal/service/project/
 
 # Run all acceptance tests for a package
-TF_ACC=1 go test -race -v -cover -count=1 -timeout=30m \
+TF_ACC=1 go test -race -v -cover -count=1 -parallel=1 -timeout=30m \
   -run TestAcc ./internal/service/application/
 ```
 

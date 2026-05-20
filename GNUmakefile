@@ -43,8 +43,8 @@ check-pkg: ## Verify PKG is set for package-scoped test targets
 test-pkg: check-pkg ## Run unit tests for one package (usage: make test-pkg PKG=./internal/service/project/)
 	go test -race -cover -count=1 -timeout=$(or $(TIMEOUT),15m) $(PKG)
 
-testacc-pkg: check-pkg ## Run acceptance tests for one package (usage: make testacc-pkg PKG=./internal/service/project/ [RUN=TestAcc])
-	TF_ACC=1 go test -race -v -cover -count=1 -timeout=$(or $(TIMEOUT),30m) -run '$(or $(RUN),TestAcc)' $(PKG)
+testacc-pkg: check-pkg ## Run acceptance tests for one package with serialized execution (usage: make testacc-pkg PKG=./internal/service/project/ [RUN=TestAcc])
+	TF_ACC=1 go test -race -v -cover -count=1 -parallel=1 -timeout=$(or $(TIMEOUT),30m) -run '$(or $(RUN),TestAcc)' $(PKG)
 
 lint: check-golangci-lint-version ## Run golangci-lint + go mod tidy check (CI-pinned golangci-lint)
 	golangci-lint run ./...
