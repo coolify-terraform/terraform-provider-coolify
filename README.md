@@ -183,15 +183,19 @@ The provider requires a Coolify API token. Coolify's API is disabled by default,
 
 ## Development
 
-Install the local prerequisites and CI-pinned tools before running the commands below:
+Install the local prerequisites, then bootstrap the repo-managed tools before
+running the commands below:
 
 - Python 3.9+
-- `golangci-lint` v2.12.2 exactly
-- `goreleaser` v2.x
-- `tfplugindocs`
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the exact install commands and
-full local setup. Run `make help` to list the supported local targets from
+```bash
+make tools       # Install CI-pinned local tools into ./bin
+```
+
+`make tools` installs the pinned local versions of `golangci-lint`,
+`goreleaser`, and `tfplugindocs` used by the repo workflows. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for full local setup details, and run
+`make help` to list the supported local targets from
 [GNUmakefile](GNUmakefile).
 
 ```bash
@@ -242,8 +246,9 @@ TF_LOG_PROVIDER=DEBUG terraform plan
 TF_LOG_PROVIDER=TRACE terraform plan
 ```
 
-Sensitive fields (passwords, tokens, private keys) are automatically
-redacted in log output. See the
+Sensitive fields in structured JSON payloads, including passwords, tokens,
+private keys, and environment variable values, are automatically redacted in
+log output. Non-JSON bodies are omitted. See the
 [Troubleshooting Guide](https://registry.terraform.io/providers/SebTardifLabs/coolify/latest/docs/guides/troubleshooting)
 for details.
 
