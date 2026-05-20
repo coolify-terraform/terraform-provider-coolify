@@ -134,6 +134,7 @@ func TestGitHubAppApplicationResource_Create(t *testing.T) {
 func TestGitHubAppApplicationResource_Update(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
+	deleted := false
 	app := client.Application{
 		UUID:            "ghapp-upd-uuid",
 		Name:            "my-github-app",
@@ -160,6 +161,10 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -200,6 +205,9 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -271,6 +279,9 @@ func TestGitHubAppApplicationResource_Import(t *testing.T) {
 		GitHubAppUUID:   "cccc0001-0001-4000-8000-000000000001",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -282,6 +293,12 @@ func TestGitHubAppApplicationResource_Import(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -290,6 +307,9 @@ func TestGitHubAppApplicationResource_Import(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -412,6 +432,8 @@ func TestGitHubAppApplicationResource_CreateReadBackFailurePreservesState(t *tes
 	const appUUID = "ghapp-readback-fail-uuid"
 
 	var forceReadFailure atomic.Bool
+	mu := sync.Mutex{}
+	deleted := false
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
@@ -422,6 +444,12 @@ func TestGitHubAppApplicationResource_CreateReadBackFailurePreservesState(t *tes
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
@@ -448,6 +476,10 @@ func TestGitHubAppApplicationResource_CreateReadBackFailurePreservesState(t *tes
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		forceReadFailure.Store(false)
 		w.WriteHeader(http.StatusNoContent)
 	})
 

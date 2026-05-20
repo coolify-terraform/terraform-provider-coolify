@@ -126,6 +126,7 @@ func TestApplicationResource_Create(t *testing.T) {
 func TestApplicationResource_Update(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
+	deleted := false
 	currentApp := client.Application{
 		UUID:            "update-app-uuid",
 		Name:            "my-app",
@@ -152,6 +153,10 @@ func TestApplicationResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)
 	})
@@ -177,6 +182,9 @@ func TestApplicationResource_Update(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -226,6 +234,7 @@ func TestApplicationResource_UpdateReadBackFailure(t *testing.T) {
 	const appUUID = "update-readback-app-uuid"
 
 	mu := sync.Mutex{}
+	deleted := false
 	readBackFailsAfterPatch := false
 	currentApp := client.Application{
 		UUID:            appUUID,
@@ -253,6 +262,10 @@ func TestApplicationResource_UpdateReadBackFailure(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		if readBackFailsAfterPatch {
 			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
 			return
@@ -283,6 +296,9 @@ func TestApplicationResource_UpdateReadBackFailure(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -338,6 +354,9 @@ func TestApplicationResource_Import(t *testing.T) {
 		EnvironmentName: "production",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -349,6 +368,12 @@ func TestApplicationResource_Import(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -357,6 +382,9 @@ func TestApplicationResource_Import(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -403,6 +431,9 @@ func TestApplicationResource_ImportBadSimpleUUID(t *testing.T) {
 		EnvironmentName: "production",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -414,6 +445,12 @@ func TestApplicationResource_ImportBadSimpleUUID(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -422,6 +459,9 @@ func TestApplicationResource_ImportBadSimpleUUID(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -570,6 +610,9 @@ func TestApplicationResource_GitRepoNormalization(t *testing.T) {
 		EnvironmentName: "production",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -581,6 +624,12 @@ func TestApplicationResource_GitRepoNormalization(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -589,6 +638,9 @@ func TestApplicationResource_GitRepoNormalization(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -635,6 +687,7 @@ func TestApplicationResource_GitRepoNormalization(t *testing.T) {
 func TestApplicationResource_GitRepoExternalChange(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
+	deleted := false
 	currentRepo := "myexample/repo" // initial API value (matches user config)
 	app := client.Application{
 		UUID:            "git-change-uuid",
@@ -659,10 +712,13 @@ func TestApplicationResource_GitRepoExternalChange(t *testing.T) {
 			return
 		}
 		mu.Lock()
-		repo := currentRepo
-		mu.Unlock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		a := app
-		a.GitRepository = repo
+		a.GitRepository = currentRepo
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(a)
 	})
@@ -684,6 +740,9 @@ func TestApplicationResource_GitRepoExternalChange(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -737,6 +796,7 @@ func TestApplicationResource_GitRepoExternalChange(t *testing.T) {
 func TestApplicationResource_LimitsAndHealthChecks(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
+	deleted := false
 
 	swappiness := int64(60)
 	cpuShares := int64(1024)
@@ -790,6 +850,10 @@ func TestApplicationResource_LimitsAndHealthChecks(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)
 	})
@@ -863,6 +927,9 @@ func TestApplicationResource_LimitsAndHealthChecks(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -1212,6 +1279,7 @@ func TestApplicationResource_InvalidUUID(t *testing.T) {
 func TestApplicationResource_ExtendedFields(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
+	deleted := false
 
 	isStatic := true
 	isForceHTTPS := false
@@ -1283,6 +1351,10 @@ func TestApplicationResource_ExtendedFields(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)
 	})
@@ -1345,6 +1417,9 @@ func TestApplicationResource_ExtendedFields(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -1612,6 +1687,9 @@ func TestApplicationResource_ImportCompoundBadParts(t *testing.T) {
 		EnvironmentName: "production",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -1623,10 +1701,19 @@ func TestApplicationResource_ImportCompoundBadParts(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -1673,6 +1760,9 @@ func TestApplicationResource_ImportCompoundEmptyEnv(t *testing.T) {
 		EnvironmentName: "production",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -1684,10 +1774,19 @@ func TestApplicationResource_ImportCompoundEmptyEnv(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 

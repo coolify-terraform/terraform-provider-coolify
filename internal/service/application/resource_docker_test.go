@@ -121,6 +121,7 @@ func TestDockerImageApplicationResource_Create(t *testing.T) {
 func TestDockerImageApplicationResource_Update(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
+	deleted := false
 	currentApp := client.Application{
 		UUID:                    "docker-upd-uuid",
 		Name:                    "nginx-proxy",
@@ -144,6 +145,10 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)
 	})
@@ -169,6 +174,9 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -225,6 +233,9 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 		EnvironmentName:         "production",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -236,6 +247,12 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -244,6 +261,9 @@ func TestDockerImageApplicationResource_Import(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -363,6 +383,9 @@ func TestDockerImageApplicationResource_Status(t *testing.T) {
 		Status:                  "running:healthy",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -374,6 +397,12 @@ func TestDockerImageApplicationResource_Status(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -382,6 +411,9 @@ func TestDockerImageApplicationResource_Status(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -423,6 +455,9 @@ func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
 		EnvironmentName:         "production",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -434,6 +469,12 @@ func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -442,6 +483,9 @@ func TestDockerImageApplicationResource_Timeouts(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -523,6 +567,8 @@ func TestDockerImageApplicationResource_CreateReadBackFailurePreservesState(t *t
 	const appUUID = "docker-readback-fail-uuid"
 
 	var forceReadFailure atomic.Bool
+	mu := sync.Mutex{}
+	deleted := false
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
@@ -533,6 +579,12 @@ func TestDockerImageApplicationResource_CreateReadBackFailurePreservesState(t *t
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
@@ -556,6 +608,10 @@ func TestDockerImageApplicationResource_CreateReadBackFailurePreservesState(t *t
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		forceReadFailure.Store(false)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -596,6 +652,9 @@ func TestDockerImageApplicationResource_LatestTagNormalization(t *testing.T) {
 		EnvironmentName:         "production",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -607,6 +666,12 @@ func TestDockerImageApplicationResource_LatestTagNormalization(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -615,6 +680,9 @@ func TestDockerImageApplicationResource_LatestTagNormalization(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 

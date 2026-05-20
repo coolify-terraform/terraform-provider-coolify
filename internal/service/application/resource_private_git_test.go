@@ -132,6 +132,7 @@ func TestPrivateGitApplicationResource_Create(t *testing.T) {
 func TestPrivateGitApplicationResource_Update(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
+	deleted := false
 	currentApp := client.Application{
 		UUID:            "pgit-upd-uuid",
 		Name:            "api-server",
@@ -159,6 +160,10 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)
 	})
@@ -184,6 +189,9 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -248,6 +256,9 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 		PrivateKeyUUID:  "dddd0001-0001-4000-8000-000000000001",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -259,6 +270,12 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -267,6 +284,9 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -396,6 +416,9 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 		PrivateKeyUUID:  "dddd0006-0006-4000-8000-000000000006",
 	}
 
+	mu := sync.Mutex{}
+	deleted := false
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -407,6 +430,12 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -415,6 +444,9 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -525,6 +557,8 @@ func TestPrivateGitApplicationResource_CreateReadBackFailurePreservesState(t *te
 	const appUUID = "pgit-readback-fail-uuid"
 
 	var forceReadFailure atomic.Bool
+	mu := sync.Mutex{}
+	deleted := false
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
@@ -535,6 +569,12 @@ func TestPrivateGitApplicationResource_CreateReadBackFailurePreservesState(t *te
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
@@ -561,6 +601,10 @@ func TestPrivateGitApplicationResource_CreateReadBackFailurePreservesState(t *te
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		forceReadFailure.Store(false)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
