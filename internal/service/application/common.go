@@ -128,6 +128,7 @@ type commonAppFields struct {
 	IsPreserveRepositoryEnabled   *types.Bool
 	UseBuildServer                *types.Bool
 	InstantDeploy                 *types.Bool
+	RedeployOnUpdate              *types.Bool
 }
 
 // applicationCommonModel holds the fields shared by all application resource
@@ -201,6 +202,7 @@ type applicationCommonModel struct {
 	IsPreserveRepositoryEnabled    types.Bool     `tfsdk:"is_preserve_repository_enabled"`
 	UseBuildServer                 types.Bool     `tfsdk:"use_build_server"`
 	InstantDeploy                  types.Bool     `tfsdk:"instant_deploy"`
+	RedeployOnUpdate               types.Bool     `tfsdk:"redeploy_on_update"`
 	Timeouts                       timeouts.Value `tfsdk:"timeouts"`
 }
 
@@ -243,7 +245,7 @@ func (m *applicationCommonModel) common() commonAppFields {
 		ManualWebhookSecretGitHub: &m.ManualWebhookSecretGitHub, ManualWebhookSecretGitLab: &m.ManualWebhookSecretGitLab,
 		ForceDomainOverride: &m.ForceDomainOverride, IsContainerLabelEscapeEnabled: &m.IsContainerLabelEscapeEnabled,
 		IsPreserveRepositoryEnabled: &m.IsPreserveRepositoryEnabled, UseBuildServer: &m.UseBuildServer,
-		InstantDeploy: &m.InstantDeploy,
+		InstantDeploy: &m.InstantDeploy, RedeployOnUpdate: &m.RedeployOnUpdate,
 	}
 }
 
@@ -300,6 +302,13 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	}
 	flattenLimitsAndHealth(app, f)
 	flattenExtendedFields(app, f)
+	// redeploy_on_update is a Terraform-only flag not returned by the API.
+	// Preserve the existing state value; default to false on import.
+	if f.RedeployOnUpdate != nil {
+		if f.RedeployOnUpdate.IsNull() || f.RedeployOnUpdate.IsUnknown() {
+			*f.RedeployOnUpdate = types.BoolValue(false)
+		}
+	}
 }
 
 // flattenLimitsAndHealth sets resource limits, health checks, and auto-deploy
@@ -782,6 +791,12 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
 		},
+		"redeploy_on_update": schema.BoolAttribute{
+			MarkdownDescription: "When `true`, the application is automatically restarted after a Terraform update that changes runtime-affecting fields (e.g., `ports_exposes`, `domains`, `limits_*`, `health_check_*`, `custom_labels`). Defaults to `false`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
 	}
 }
 
@@ -1179,7 +1194,8 @@ func readBackAfterCreate(ctx context.Context, c *client.Client, uuid string, res
 }
 
 // updateAndReadBack performs the shared update-then-read pattern for all
-// application resources.
+// application resources. If redeployOnUpdate is true and runtime-affecting
+// fields changed, it automatically restarts the application after the update.
 func updateAndReadBack(
 	ctx context.Context,
 	c *client.Client,
@@ -1187,17 +1203,87 @@ func updateAndReadBack(
 	input client.UpdateApplicationInput,
 	resp *resource.UpdateResponse,
 	flatten func(*client.Application),
+	redeployOnUpdate bool,
+	plan, state commonAppFields,
 ) {
 	if _, err := c.UpdateApplication(ctx, uuid, input); err != nil {
 		resp.Diagnostics.AddError("Error updating application", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
+
+	if redeployOnUpdate && runtimeFieldsChanged(plan, state) {
+		tflog.Info(ctx, "runtime fields changed, restarting application", map[string]interface{}{"uuid": uuid})
+		if _, err := c.RestartApplication(ctx, uuid); err != nil {
+			resp.Diagnostics.AddWarning("Application updated but restart failed",
+				fmt.Sprintf("The configuration was saved but the restart failed: %s. You may need to restart manually.", err))
+		}
+	}
+
 	app, err := readApplicationAfterUpdate(ctx, c, uuid)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating application", err.Error())
 		return
 	}
 	flatten(app)
+}
+
+// runtimeFieldsChanged returns true if any field that affects the running
+// container was changed between plan and state. Metadata-only changes (name,
+// description) do not trigger a redeploy.
+func runtimeFieldsChanged(plan, state commonAppFields) bool {
+	return stringFieldChanged(plan.PortsExposes, state.PortsExposes) ||
+		stringFieldChanged(plan.PortsMappings, state.PortsMappings) ||
+		stringFieldChanged(plan.Domains, state.Domains) ||
+		stringFieldChanged(plan.LimitsMemory, state.LimitsMemory) ||
+		stringFieldChanged(plan.LimitsMemorySwap, state.LimitsMemorySwap) ||
+		stringFieldChanged(plan.LimitsMemoryReservation, state.LimitsMemoryReservation) ||
+		stringFieldChanged(plan.LimitsCPUs, state.LimitsCPUs) ||
+		stringFieldChanged(plan.LimitsCPUSet, state.LimitsCPUSet) ||
+		int64FieldChanged(plan.LimitsCPUShares, state.LimitsCPUShares) ||
+		int64FieldChanged(plan.LimitsMemorySwappiness, state.LimitsMemorySwappiness) ||
+		boolFieldChanged(plan.IsForceHTTPSEnabled, state.IsForceHTTPSEnabled) ||
+		boolFieldChanged(plan.ConnectToDockerNetwork, state.ConnectToDockerNetwork) ||
+		boolFieldChanged(plan.HealthCheckEnabled, state.HealthCheckEnabled) ||
+		stringFieldChanged(plan.HealthCheckPath, state.HealthCheckPath) ||
+		stringFieldChanged(plan.HealthCheckPort, state.HealthCheckPort) ||
+		int64FieldChanged(plan.HealthCheckInterval, state.HealthCheckInterval) ||
+		int64FieldChanged(plan.HealthCheckTimeout, state.HealthCheckTimeout) ||
+		int64FieldChanged(plan.HealthCheckRetries, state.HealthCheckRetries) ||
+		int64FieldChanged(plan.HealthCheckStartPeriod, state.HealthCheckStartPeriod) ||
+		stringFieldChanged(plan.HealthCheckCommand, state.HealthCheckCommand) ||
+		stringFieldChanged(plan.HealthCheckHost, state.HealthCheckHost) ||
+		stringFieldChanged(plan.HealthCheckMethod, state.HealthCheckMethod) ||
+		stringFieldChanged(plan.HealthCheckScheme, state.HealthCheckScheme) ||
+		stringFieldChanged(plan.CustomLabels, state.CustomLabels) ||
+		stringFieldChanged(plan.CustomDockerRunOptions, state.CustomDockerRunOptions) ||
+		stringFieldChanged(plan.CustomNginxConfiguration, state.CustomNginxConfiguration) ||
+		stringFieldChanged(plan.GitRepository, state.GitRepository) ||
+		stringFieldChanged(plan.GitBranch, state.GitBranch) ||
+		stringFieldChanged(plan.DockerfileLocation, state.DockerfileLocation) ||
+		stringFieldChanged(plan.BuildCommand, state.BuildCommand) ||
+		stringFieldChanged(plan.StartCommand, state.StartCommand) ||
+		stringFieldChanged(plan.InstallCommand, state.InstallCommand)
+}
+
+func stringFieldChanged(plan, state *types.String) bool {
+	if plan == nil || state == nil {
+		return false
+	}
+	return plan.ValueString() != state.ValueString()
+}
+
+func int64FieldChanged(plan, state *types.Int64) bool {
+	if plan == nil || state == nil {
+		return false
+	}
+	return plan.ValueInt64() != state.ValueInt64()
+}
+
+func boolFieldChanged(plan, state *types.Bool) bool {
+	if plan == nil || state == nil {
+		return false
+	}
+	return plan.ValueBool() != state.ValueBool()
 }
 
 func readApplicationAfterUpdate(ctx context.Context, c *client.Client, uuid string) (*client.Application, error) {

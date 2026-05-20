@@ -141,10 +141,12 @@ func (r *applicationResource) Update(ctx context.Context, req resource.UpdateReq
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_application", "uuid": plan.UUID.ValueString()})
 
-	input := buildUpdateInput(plan.common(), state.common())
+	planFields := plan.common()
+	stateFields := state.common()
+	input := buildUpdateInput(planFields, stateFields)
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenApplication(app, &plan)
-	})
+	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields)
 	if resp.Diagnostics.HasError() {
 		return
 	}

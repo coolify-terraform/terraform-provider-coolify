@@ -1,0 +1,270 @@
+package envsbulk
+
+import (
+	"context"
+	"fmt"
+	"sort"
+	"strings"
+
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+)
+
+var (
+	_ resource.Resource                = (*envsBulkResource)(nil)
+	_ resource.ResourceWithConfigure   = (*envsBulkResource)(nil)
+	_ resource.ResourceWithImportState = (*envsBulkResource)(nil)
+)
+
+type envsBulkResource struct {
+	client *client.Client
+}
+
+type envsBulkModel struct {
+	ResourceType types.String `tfsdk:"resource_type"`
+	ResourceUUID types.String `tfsdk:"resource_uuid"`
+	Variables    types.Map    `tfsdk:"variables"`
+}
+
+func NewResource() resource.Resource {
+	return &envsBulkResource{}
+}
+
+func (r *envsBulkResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_envs_bulk"
+}
+
+func (r *envsBulkResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		MarkdownDescription: "Manages all environment variables for a Coolify resource as a single atomic set. All variables are set in a single API call, preventing partial state.",
+		Attributes: map[string]schema.Attribute{
+			"resource_type": schema.StringAttribute{
+				MarkdownDescription: "The type of the target resource. Must be one of: `application`, `database`, `service`.",
+				Required:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+				Validators: []validator.String{
+					stringvalidator.OneOf("application", "database", "service"),
+				},
+			},
+			"resource_uuid": schema.StringAttribute{
+				MarkdownDescription: "The UUID of the target resource.",
+				Required:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+				Validators:          []validator.String{validate.UUID()},
+			},
+			"variables": schema.MapAttribute{
+				MarkdownDescription: "A map of environment variable key-value pairs.",
+				Required:            true,
+				ElementType:         types.StringType,
+				Sensitive:           true,
+			},
+		},
+	}
+}
+
+func (r *envsBulkResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
+}
+
+func (r *envsBulkResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan envsBulkModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_envs_bulk"})
+
+	if err := r.bulkUpdate(ctx, &plan); err != nil {
+		resp.Diagnostics.AddError("Error creating bulk env vars", err.Error())
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}
+
+func (r *envsBulkResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state envsBulkModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_envs_bulk"})
+
+	resType := state.ResourceType.ValueString()
+	uuid := state.ResourceUUID.ValueString()
+
+	envs, err := r.listEnvVars(ctx, resType, uuid)
+	if err != nil {
+		if client.IsNotFound(err) {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError("Error reading bulk env vars", err.Error())
+		return
+	}
+
+	// Rebuild the map from the API response.
+	vars := make(map[string]string, len(envs))
+	for _, ev := range envs {
+		vars[ev.Key] = ev.Value
+	}
+
+	// Only keep keys that are in the current state to avoid pulling in
+	// environment variables managed by other resources.
+	stateVars := make(map[string]string)
+	diags := state.Variables.ElementsAs(ctx, &stateVars, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	managed := make(map[string]string, len(stateVars))
+	for k := range stateVars {
+		if v, ok := vars[k]; ok {
+			managed[k] = v
+		}
+	}
+
+	mapVal, diags := types.MapValueFrom(ctx, types.StringType, managed)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	state.Variables = mapVal
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func (r *envsBulkResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan envsBulkModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_envs_bulk"})
+
+	if err := r.bulkUpdate(ctx, &plan); err != nil {
+		resp.Diagnostics.AddError("Error updating bulk env vars", err.Error())
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}
+
+func (r *envsBulkResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state envsBulkModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_envs_bulk"})
+
+	// Send empty array to clear all managed env vars.
+	input := client.BulkEnvVarInput{Variables: []client.EnvVarEntry{}}
+	resType := state.ResourceType.ValueString()
+	uuid := state.ResourceUUID.ValueString()
+
+	if err := r.doBulk(ctx, resType, uuid, input); err != nil {
+		if !client.IsNotFound(err) {
+			resp.Diagnostics.AddError("Error deleting bulk env vars", err.Error())
+		}
+	}
+}
+
+func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Import format: resource_type/resource_uuid
+	parts := strings.SplitN(req.ID, "/", 2)
+	if len(parts) != 2 {
+		resp.Diagnostics.AddError("Invalid import ID", "Expected format: resource_type/resource_uuid")
+		return
+	}
+
+	resType := parts[0]
+	uuid := parts[1]
+
+	envs, err := r.listEnvVars(ctx, resType, uuid)
+	if err != nil {
+		resp.Diagnostics.AddError("Error importing bulk env vars", err.Error())
+		return
+	}
+
+	vars := make(map[string]string, len(envs))
+	for _, ev := range envs {
+		vars[ev.Key] = ev.Value
+	}
+
+	mapVal, diags := types.MapValueFrom(ctx, types.StringType, vars)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	state := envsBulkModel{
+		ResourceType: types.StringValue(resType),
+		ResourceUUID: types.StringValue(uuid),
+		Variables:    mapVal,
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func (r *envsBulkResource) bulkUpdate(ctx context.Context, model *envsBulkModel) error {
+	vars := make(map[string]string)
+	diags := model.Variables.ElementsAs(ctx, &vars, false)
+	if diags.HasError() {
+		return fmt.Errorf("reading variables map: %s", diags.Errors())
+	}
+
+	entries := make([]client.EnvVarEntry, 0, len(vars))
+	// Sort keys for deterministic ordering.
+	keys := make([]string, 0, len(vars))
+	for k := range vars {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		entries = append(entries, client.EnvVarEntry{Key: k, Value: vars[k]})
+	}
+
+	input := client.BulkEnvVarInput{Variables: entries}
+	return r.doBulk(ctx, model.ResourceType.ValueString(), model.ResourceUUID.ValueString(), input)
+}
+
+func (r *envsBulkResource) doBulk(ctx context.Context, resType, uuid string, input client.BulkEnvVarInput) error {
+	switch resType {
+	case "application":
+		return r.client.BulkUpdateAppEnvVars(ctx, uuid, input)
+	case "database":
+		return r.client.BulkUpdateDatabaseEnvVars(ctx, uuid, input)
+	case "service":
+		return r.client.BulkUpdateServiceEnvVars(ctx, uuid, input)
+	default:
+		return fmt.Errorf("unsupported resource type: %s", resType)
+	}
+}
+
+func (r *envsBulkResource) listEnvVars(ctx context.Context, resType, uuid string) ([]client.EnvironmentVariable, error) {
+	switch resType {
+	case "application":
+		return r.client.ListApplicationEnvVars(ctx, uuid)
+	case "database":
+		return r.client.ListDatabaseEnvVars(ctx, uuid)
+	case "service":
+		return r.client.ListServiceEnvVars(ctx, uuid)
+	default:
+		return nil, fmt.Errorf("unsupported resource type: %s", resType)
+	}
+}

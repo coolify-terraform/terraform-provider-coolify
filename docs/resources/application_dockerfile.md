@@ -107,6 +107,7 @@ resource "coolify_application_dockerfile" "app" {
 - `pre_deployment_command` (String) Command to run before deployment.
 - `pre_deployment_command_container` (String) Container to run the pre-deployment command in.
 - `publish_directory` (String) The directory to publish for static sites.
+- `redeploy_on_update` (Boolean) When `true`, the application is automatically restarted after a Terraform update that changes runtime-affecting fields (e.g., `ports_exposes`, `domains`, `limits_*`, `health_check_*`, `custom_labels`). Defaults to `false`.
 - `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
 - `start_command` (String) The command to run to start the application.
 - `static_image` (String) The Docker image to use for serving static sites.

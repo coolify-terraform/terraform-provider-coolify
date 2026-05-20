@@ -157,12 +157,14 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_application_docker_image", "uuid": plan.UUID.ValueString()})
 
-	input := buildUpdateInput(plan.common(), state.common())
+	planFields := plan.common()
+	stateFields := state.common()
+	input := buildUpdateInput(planFields, stateFields)
 	input.DockerRegistryImageName = flex.StringIfChanged(plan.DockerImage, state.DockerImage)
 
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenDockerImageApplication(app, &plan)
-	})
+	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields)
 	if resp.Diagnostics.HasError() {
 		return
 	}

@@ -152,11 +152,13 @@ func (r *gitHubAppApplicationResource) Update(ctx context.Context, req resource.
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_application_github_app", "uuid": plan.UUID.ValueString()})
 
-	input := buildUpdateInput(plan.common(), state.common())
+	planFields := plan.common()
+	stateFields := state.common()
+	input := buildUpdateInput(planFields, stateFields)
 	input.GitHubAppUUID = flex.StringIfChanged(plan.GitHubAppUUID, state.GitHubAppUUID)
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenGitHubAppApplication(app, &plan)
-	})
+	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields)
 	if resp.Diagnostics.HasError() {
 		return
 	}

@@ -12,8 +12,12 @@ import (
 	"time"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/apisettings"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/application"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/applicationpreview"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/backupexecution"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/cloudtoken"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/cloudtokenvalidate"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/backup"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/database/clickhouse"
@@ -27,6 +31,7 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/deployment"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/environment"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/environmentvariable"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/envsbulk"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/githubapp"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/health"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/hetzner"
@@ -36,6 +41,7 @@ import (
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/resourcelist"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/scheduledtask"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/server"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/servervalidate"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/service"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/storage"
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/service/team"
@@ -202,18 +208,24 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		postgresql.NewResource,
 		redis.NewResource,
 		// Other resources (sorted alphabetically by type name).
+		apisettings.NewResource,
+		applicationpreview.NewResource,
 		backup.NewResource,
+		backupexecution.NewResource,
 		cloudtoken.NewResource,
+		cloudtokenvalidate.NewResource,
 		deployment.NewResource,
 		resourceaction.NewResource,
 		environment.NewResource,
 		environmentvariable.NewResource,
+		envsbulk.NewResource,
 		githubapp.NewResource,
 		hetzner.NewResource,
 		privatekey.NewResource,
 		project.NewResource,
 		scheduledtask.NewResource,
 		server.NewResource,
+		servervalidate.NewResource,
 		service.NewResource,
 		storage.NewResource,
 	}
