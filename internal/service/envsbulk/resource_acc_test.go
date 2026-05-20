@@ -6,6 +6,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccEnvsBulk_Application(t *testing.T) {
@@ -34,7 +35,7 @@ func TestAccEnvsBulk_Application(t *testing.T) {
 			{
 				ResourceName:                         "coolify_envs_bulk.test",
 				ImportState:                          true,
-				ImportStateId:                        "application/placeholder",
+				ImportStateIdFunc:                    testAccEnvsBulkImportStateIDFunc("coolify_application_dockerfile.test", "coolify_envs_bulk.test"),
 				ImportStateVerify:                    false,
 				ImportStateVerifyIdentifierAttribute: "resource_uuid",
 			},
@@ -58,4 +59,17 @@ resource "coolify_envs_bulk" "test" {
   variables     = %[3]s
 }
 `, name, serverUUID, vars)
+}
+
+func testAccEnvsBulkImportStateIDFunc(appResourceName, envsBulkResourceName string) resource.ImportStateIdFunc {
+	return func(s *terraform.State) (string, error) {
+		appRS, ok := s.RootModule().Resources[appResourceName]
+		if !ok {
+			return "", fmt.Errorf("resource %s not found in state", appResourceName)
+		}
+		if _, ok := s.RootModule().Resources[envsBulkResourceName]; !ok {
+			return "", fmt.Errorf("resource %s not found in state", envsBulkResourceName)
+		}
+		return "application/" + appRS.Primary.Attributes["uuid"], nil
+	}
 }

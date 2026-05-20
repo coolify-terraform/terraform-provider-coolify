@@ -114,11 +114,7 @@ func (r *envsBulkResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	// Rebuild the map from the API response.
-	vars := make(map[string]string, len(envs))
-	for _, ev := range envs {
-		vars[ev.Key] = ev.Value
-	}
+	vars := flattenEnvVars(envs)
 
 	// Only keep keys that are in the current state to avoid pulling in
 	// environment variables managed by other resources.
@@ -130,9 +126,13 @@ func (r *envsBulkResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	managed := make(map[string]string, len(stateVars))
-	for k := range stateVars {
+	for k, prior := range stateVars {
 		if v, ok := vars[k]; ok {
-			managed[k] = v
+			if v != "" || prior == "" {
+				managed[k] = v
+			} else {
+				managed[k] = prior
+			}
 		}
 	}
 
@@ -188,10 +188,7 @@ func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportS
 		return
 	}
 
-	vars := make(map[string]string, len(envs))
-	for _, ev := range envs {
-		vars[ev.Key] = ev.Value
-	}
+	vars := flattenEnvVars(envs)
 
 	mapVal, diags := types.MapValueFrom(ctx, types.StringType, vars)
 	resp.Diagnostics.Append(diags...)
@@ -205,6 +202,23 @@ func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportS
 		Variables:    mapVal,
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func flattenEnvVars(envs []client.EnvironmentVariable) map[string]string {
+	vars := make(map[string]string, len(envs))
+	nonPreviewSeen := make(map[string]bool, len(envs))
+	for _, ev := range envs {
+		if ev.IsPreview {
+			if nonPreviewSeen[ev.Key] {
+				continue
+			}
+			vars[ev.Key] = ev.Value
+			continue
+		}
+		vars[ev.Key] = ev.Value
+		nonPreviewSeen[ev.Key] = true
+	}
+	return vars
 }
 
 func (r *envsBulkResource) bulkUpdate(ctx context.Context, model *envsBulkModel) error {

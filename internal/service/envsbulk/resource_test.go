@@ -1,6 +1,7 @@
 package envsbulk_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -127,6 +128,129 @@ func TestEnvsBulkResource_Update(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.DB_HOST", "db.example.com"),
 					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.DB_PORT", "5432"),
 				),
+			},
+		},
+	})
+}
+
+func TestEnvsBulkResource_PrefersNonPreviewDuplicateValues(t *testing.T) {
+	t.Parallel()
+	var lastPayload []byte
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440013/envs/bulk", func(w http.ResponseWriter, r *http.Request) {
+		lastPayload, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("GET /api/v1/applications/550e8400-e29b-41d4-a716-446655440013/envs", func(w http.ResponseWriter, _ *http.Request) {
+		if bytes.Contains(lastPayload, []byte(`"ANOTHER"`)) {
+			_, _ = w.Write([]byte(`[
+				{"uuid":"u-TEST_KEY","key":"TEST_KEY","value":"updated_value","is_preview":false,"is_buildtime":true},
+				{"uuid":"u-ANOTHER","key":"ANOTHER","value":"val","is_preview":false,"is_buildtime":true},
+				{"uuid":"u-TEST_KEY-preview","key":"TEST_KEY","value":"test_value","is_preview":true,"is_buildtime":true},
+				{"uuid":"u-ANOTHER-preview","key":"ANOTHER","value":"val","is_preview":true,"is_buildtime":true}
+			]`))
+			return
+		}
+		_, _ = w.Write([]byte(`[
+			{"uuid":"u-TEST_KEY","key":"TEST_KEY","value":"test_value","is_preview":false,"is_buildtime":true},
+			{"uuid":"u-TEST_KEY-preview","key":"TEST_KEY","value":"test_value","is_preview":true,"is_buildtime":true}
+		]`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "550e8400-e29b-41d4-a716-446655440013"
+					variables = {
+						TEST_KEY = "test_value"
+					}
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.TEST_KEY", "test_value"),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "550e8400-e29b-41d4-a716-446655440013"
+					variables = {
+						TEST_KEY = "updated_value"
+						ANOTHER  = "val"
+					}
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.TEST_KEY", "updated_value"),
+					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.ANOTHER", "val"),
+				),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "550e8400-e29b-41d4-a716-446655440013"
+					variables = {
+						TEST_KEY = "updated_value"
+						ANOTHER  = "val"
+					}
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestEnvsBulkResource_PreservesSensitiveValuesOnBlankReadBack(t *testing.T) {
+	t.Parallel()
+	var lastPayload []byte
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440013/envs/bulk", func(w http.ResponseWriter, r *http.Request) {
+		lastPayload, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("GET /api/v1/applications/550e8400-e29b-41d4-a716-446655440013/envs", func(w http.ResponseWriter, _ *http.Request) {
+		if len(lastPayload) == 0 {
+			_, _ = w.Write([]byte(`[]`))
+			return
+		}
+		_, _ = w.Write([]byte(`[
+			{"uuid":"u-TEST_KEY","key":"TEST_KEY","value":"","is_preview":false,"is_buildtime":false},
+			{"uuid":"u-ANOTHER","key":"ANOTHER","value":"val","is_preview":false,"is_buildtime":false}
+		]`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "550e8400-e29b-41d4-a716-446655440013"
+					variables = {
+						TEST_KEY = "updated_value"
+						ANOTHER  = "val"
+					}
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.TEST_KEY", "updated_value"),
+					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.ANOTHER", "val"),
+				),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "550e8400-e29b-41d4-a716-446655440013"
+					variables = {
+						TEST_KEY = "updated_value"
+						ANOTHER  = "val"
+					}
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
