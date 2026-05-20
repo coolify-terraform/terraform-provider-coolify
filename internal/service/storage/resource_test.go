@@ -226,6 +226,80 @@ func TestStorageResource_Update(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestStorageResource_UpdateReadBackCatchesNormalization
+// ---------------------------------------------------------------------------
+
+func TestStorageResource_UpdateReadBackCatchesNormalization(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	currentStor := client.Storage{
+		UUID:      "stor-norm-uuid",
+		Name:      "my-vol",
+		MountPath: "/data",
+	}
+	normalized := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentStor.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {currentStor}, "file_storages": {}})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		var body map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["mount_path"].(string); ok {
+			currentStor.MountPath = v
+		}
+		// Simulate server-side normalization: API returns a different
+		// mount_path than what the user sent (e.g. trailing slash added).
+		if !normalized {
+			currentStor.MountPath += "/"
+			normalized = true
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testStorageResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "my-vol"
+					mount_path       = "/data"
+				`),
+			},
+			{
+				Config: testStorageResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "my-vol"
+					mount_path       = "/data/updated"
+				`),
+				// After PATCH, the server normalizes mount_path (appends "/").
+				// The read-back catches this and Terraform surfaces the
+				// inconsistency instead of silently diverging from reality.
+				ExpectError: regexp.MustCompile(`inconsistent result after apply`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // TestStorageResource_Import
 // ---------------------------------------------------------------------------
 
