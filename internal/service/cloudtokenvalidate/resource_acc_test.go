@@ -29,8 +29,9 @@ func testAccCloudTokenValidateConfig() string {
 	name := acctest.RandomWithPrefix("tf-acc-validate")
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_cloud_token" "test" {
-  name  = %q
-  token = "test-token-for-validation"
+  name           = %q
+  cloud_provider = "hetzner"
+  token          = "test-token-for-validation"
 }
 resource "coolify_cloud_token_validate" "test" {
   cloud_token_uuid = coolify_cloud_token.test.uuid

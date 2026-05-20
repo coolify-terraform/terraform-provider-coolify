@@ -6,6 +6,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccBackupExecution_Basic(t *testing.T) {
@@ -30,6 +31,15 @@ func TestAccBackupExecution_Basic(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "execution_uuid",
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs := s.RootModule().Resources["coolify_backup_execution.test"]
+					if rs == nil {
+						return "", fmt.Errorf("resource not found")
+					}
+					return rs.Primary.Attributes["database_uuid"] + ":" +
+						rs.Primary.Attributes["backup_uuid"] + ":" +
+						rs.Primary.Attributes["execution_uuid"], nil
+				},
 			},
 		},
 	})
