@@ -47,6 +47,14 @@ var (
 	accServerDiscoveryErr    error
 )
 
+func resetAccTestCaches() {
+	accConnectivityCheckOnce = sync.Once{}
+	accConnectivityCheckErr = nil
+	accServerDiscoveryOnce = sync.Once{}
+	accServerDiscoveryUUID = ""
+	accServerDiscoveryErr = nil
+}
+
 // TestAccPreCheck validates that required environment variables are set.
 func TestAccPreCheck(t *testing.T) {
 	t.Helper()
@@ -307,33 +315,56 @@ func AccTestClient(t *testing.T) *client.Client {
 	return client.New(os.Getenv("COOLIFY_ENDPOINT"), os.Getenv("COOLIFY_TOKEN"))
 }
 
-// AccTestServerUUID returns the UUID of a usable server from the Coolify
-// instance. Checks COOLIFY_SERVER_UUID first, then queries the API for the
-// first available server. Skips the test if no server is available.
-func AccTestServerUUID(t *testing.T) string {
-	t.Helper()
-	if v := os.Getenv("COOLIFY_SERVER_UUID"); v != "" {
-		return v
+// discoverServerUUID resolves a server UUID from the Coolify API. When
+// overrideUUID is non-empty, it must appear in the server list; otherwise the
+// first visible server is used.
+func discoverServerUUID(endpoint, token, overrideUUID string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	c := client.New(endpoint, token)
+	servers, err := c.ListServers(ctx)
+	if err != nil {
+		return "", fmt.Errorf("listing servers: %w", err)
 	}
 
-	TestAccPreCheck(t)
-	accServerDiscoveryOnce.Do(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+	first := ""
+	for _, s := range servers {
+		if s.UUID == "" {
+			continue
+		}
+		if overrideUUID != "" && s.UUID == overrideUUID {
+			return s.UUID, nil
+		}
+		if first == "" {
+			first = s.UUID
+		}
+	}
 
-		c := client.New(os.Getenv("COOLIFY_ENDPOINT"), os.Getenv("COOLIFY_TOKEN"))
-		servers, err := c.ListServers(ctx)
-		if err != nil {
-			accServerDiscoveryErr = fmt.Errorf("listing servers: %w", err)
-			return
-		}
-		for _, s := range servers {
-			if s.UUID != "" {
-				accServerDiscoveryUUID = s.UUID
-				return
-			}
-		}
-		accServerDiscoveryErr = fmt.Errorf("no visible servers returned by the API")
+	if overrideUUID != "" {
+		return "", fmt.Errorf("COOLIFY_SERVER_UUID %q was not returned by the API", overrideUUID)
+	}
+	if first == "" {
+		return "", fmt.Errorf("no visible servers returned by the API")
+	}
+	return first, nil
+}
+
+// AccTestServerUUID returns the UUID of a usable server from the Coolify
+// instance. If COOLIFY_SERVER_UUID is set, it must be visible to the current
+// API token. Otherwise the first visible server is used. Skips the test if no
+// server is available.
+func AccTestServerUUID(t *testing.T) string {
+	t.Helper()
+	TestAccPreCheck(t)
+
+	overrideUUID := os.Getenv("COOLIFY_SERVER_UUID")
+	accServerDiscoveryOnce.Do(func() {
+		accServerDiscoveryUUID, accServerDiscoveryErr = discoverServerUUID(
+			os.Getenv("COOLIFY_ENDPOINT"),
+			os.Getenv("COOLIFY_TOKEN"),
+			overrideUUID,
+		)
 	})
 	if accServerDiscoveryErr != nil {
 		t.Skipf("No server fixture available for acceptance tests: %v. Set COOLIFY_SERVER_UUID explicitly, or run 'make acc-preflight' / 'make acc-bootstrap' to validate a local server.", accServerDiscoveryErr)
