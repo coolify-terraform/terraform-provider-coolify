@@ -1410,9 +1410,10 @@ func updateAndReadBack(
 	flatten(app)
 }
 
-// runtimeFieldsChanged returns true if any field that affects the running
-// container was changed between plan and state. Metadata-only changes (name,
-// description) do not trigger a redeploy.
+// runtimeFieldsChanged returns true if any non-meta/non-immutable field was
+// changed between plan and state. When redeploy_on_update is true every
+// configuration change (including name, description, webhook secrets, etc.)
+// triggers a redeploy so the running container always reflects the latest state.
 func runtimeFieldsChanged(plan, state commonAppFields) bool {
 	return stringFieldChanged(plan.PortsExposes, state.PortsExposes) ||
 		stringFieldChanged(plan.PortsMappings, state.PortsMappings) ||
@@ -1471,7 +1472,20 @@ func runtimeFieldsChanged(plan, state commonAppFields) bool {
 		stringFieldChanged(plan.StaticImage, state.StaticImage) ||
 		boolFieldChanged(plan.IsStatic, state.IsStatic) ||
 		boolFieldChanged(plan.IsSPA, state.IsSPA) ||
-		stringFieldChanged(plan.WatchPaths, state.WatchPaths)
+		stringFieldChanged(plan.WatchPaths, state.WatchPaths) ||
+		stringFieldChanged(plan.DockerRegistryImageTag, state.DockerRegistryImageTag) ||
+		boolFieldChanged(plan.ForceDomainOverride, state.ForceDomainOverride) ||
+		boolFieldChanged(plan.IsContainerLabelEscapeEnabled, state.IsContainerLabelEscapeEnabled) ||
+		boolFieldChanged(plan.IsPreserveRepositoryEnabled, state.IsPreserveRepositoryEnabled) ||
+		boolFieldChanged(plan.UseBuildServer, state.UseBuildServer) ||
+		stringFieldChanged(plan.Name, state.Name) ||
+		stringFieldChanged(plan.Description, state.Description) ||
+		boolFieldChanged(plan.IsAutoDeployEnabled, state.IsAutoDeployEnabled) ||
+		stringFieldChanged(plan.PreviewURLTemplate, state.PreviewURLTemplate) ||
+		stringFieldChanged(plan.ManualWebhookSecretBitbucket, state.ManualWebhookSecretBitbucket) ||
+		stringFieldChanged(plan.ManualWebhookSecretGitea, state.ManualWebhookSecretGitea) ||
+		stringFieldChanged(plan.ManualWebhookSecretGitHub, state.ManualWebhookSecretGitHub) ||
+		stringFieldChanged(plan.ManualWebhookSecretGitLab, state.ManualWebhookSecretGitLab)
 }
 
 func stringFieldChanged(plan, state *types.String) bool {
