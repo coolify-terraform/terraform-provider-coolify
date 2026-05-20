@@ -53,6 +53,13 @@ Coolify gives you a self-hosted PaaS with a great UI. This provider adds the thi
 | `coolify_storage` | Manage persistent storage volumes |
 | `coolify_cloud_token` | Manage cloud provider tokens (Hetzner) |
 | `coolify_github_app` | Manage GitHub App integrations |
+| `coolify_envs_bulk` | Manage environment variables as a single atomic set |
+| `coolify_application_preview` | Manage application preview deployments |
+| `coolify_api_settings` | Apply Coolify API settings |
+| `coolify_backup_execution` | Trigger database backup executions |
+| `coolify_cloud_token_validate` | Validate cloud provider tokens |
+| `coolify_resource_action` | Trigger start/stop/restart actions on resources |
+| `coolify_server_validate` | Validate server SSH connectivity |
 
 ## Data Sources
 
@@ -189,7 +196,7 @@ full local setup. Run `make help` to list the supported local targets from
 
 ```bash
 make build       # Compile the provider
-make test        # Run unit tests (690+ tests, race detector enabled)
+make test        # Run unit tests (740+ tests, race detector enabled)
 make testacc     # Run acceptance tests (needs running Coolify instance)
 make lint        # Run golangci-lint
 make fmt         # Format code (gofmt + go mod tidy)

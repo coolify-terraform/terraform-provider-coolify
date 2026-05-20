@@ -1263,6 +1263,12 @@ func runtimeFieldsChanged(plan, state commonAppFields) bool {
 		int64FieldChanged(plan.HealthCheckReturnCode, state.HealthCheckReturnCode) ||
 		stringFieldChanged(plan.HealthCheckType, state.HealthCheckType) ||
 		boolFieldChanged(plan.IsHTTPBasicAuthEnabled, state.IsHTTPBasicAuthEnabled) ||
+		stringFieldChanged(plan.HTTPBasicAuthUsername, state.HTTPBasicAuthUsername) ||
+		stringFieldChanged(plan.HTTPBasicAuthPassword, state.HTTPBasicAuthPassword) ||
+		stringFieldChanged(plan.CustomNetworkAliases, state.CustomNetworkAliases) ||
+		stringFieldChanged(plan.DockerComposeDomains, state.DockerComposeDomains) ||
+		stringFieldChanged(plan.PreDeploymentCommandContainer, state.PreDeploymentCommandContainer) ||
+		stringFieldChanged(plan.PostDeploymentCommandContainer, state.PostDeploymentCommandContainer) ||
 		stringFieldChanged(plan.CustomLabels, state.CustomLabels) ||
 		stringFieldChanged(plan.CustomDockerRunOptions, state.CustomDockerRunOptions) ||
 		stringFieldChanged(plan.CustomNginxConfiguration, state.CustomNginxConfiguration) ||

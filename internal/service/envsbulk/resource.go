@@ -45,7 +45,7 @@ func (r *envsBulkResource) Metadata(_ context.Context, req resource.MetadataRequ
 
 func (r *envsBulkResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages all environment variables for a Coolify resource as a single atomic set. All variables are set in a single API call, preventing partial state.",
+		MarkdownDescription: "Manages all environment variables for a Coolify resource as a single atomic set. All variables are set in a single API call, preventing partial state.\n\n~> **Note:** Destroying this resource removes it from Terraform state but **does not** delete the environment variables from Coolify. To remove variables, delete them manually or use individual `coolify_environment_variable` resources. After importing, ensure your `variables` map includes all variables you want to keep; variables not present in your configuration will be overwritten on the next apply.",
 		Attributes: map[string]schema.Attribute{
 			"resource_type": schema.StringAttribute{
 				MarkdownDescription: "The type of the target resource. Must be one of: `application`, `database`, `service`.",
