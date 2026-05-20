@@ -92,8 +92,8 @@ terraform import coolify_deployment.web <app-uuid>:<deployment-uuid>
 terraform import coolify_environment.staging <project-uuid>:staging
 
 # Bulk environment variables: resource_type/resource_uuid
-terraform import coolify_envs_bulk.app application:<app-uuid>
-terraform import coolify_envs_bulk.db database:<db-uuid>
+terraform import coolify_envs_bulk.app application/<app-uuid>
+terraform import coolify_envs_bulk.db database/<db-uuid>
 
 # Backup execution: database_uuid:backup_uuid:execution_uuid
 terraform import coolify_backup_execution.old <db-uuid>:<backup-uuid>:<exec-uuid>

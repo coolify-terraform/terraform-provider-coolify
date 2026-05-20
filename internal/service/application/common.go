@@ -1195,7 +1195,10 @@ func readBackAfterCreate(ctx context.Context, c *client.Client, uuid string, res
 
 // updateAndReadBack performs the shared update-then-read pattern for all
 // application resources. If redeployOnUpdate is true and runtime-affecting
-// fields changed, it automatically restarts the application after the update.
+// fields changed (common or type-specific), it automatically restarts the
+// application after the update. Set typeSpecificFieldChanged to true when
+// the caller detects changes to type-specific runtime fields (e.g.,
+// docker_image for docker image apps, github_app_uuid for github app apps).
 func updateAndReadBack(
 	ctx context.Context,
 	c *client.Client,
@@ -1205,13 +1208,15 @@ func updateAndReadBack(
 	flatten func(*client.Application),
 	redeployOnUpdate bool,
 	plan, state commonAppFields,
+	typeSpecificFieldChanged ...bool,
 ) {
 	if _, err := c.UpdateApplication(ctx, uuid, input); err != nil {
 		resp.Diagnostics.AddError("Error updating application", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
 
-	if redeployOnUpdate && runtimeFieldsChanged(plan, state) {
+	extraChanged := len(typeSpecificFieldChanged) > 0 && typeSpecificFieldChanged[0]
+	if redeployOnUpdate && (runtimeFieldsChanged(plan, state) || extraChanged) {
 		tflog.Info(ctx, "runtime fields changed, restarting application", map[string]interface{}{"uuid": uuid})
 		if _, err := c.RestartApplication(ctx, uuid); err != nil {
 			resp.Diagnostics.AddWarning("Application updated but restart failed",

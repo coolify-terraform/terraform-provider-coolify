@@ -162,9 +162,10 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 	input := buildUpdateInput(planFields, stateFields)
 	input.DockerRegistryImageName = flex.StringIfChanged(plan.DockerImage, state.DockerImage)
 
+	dockerImageChanged := plan.DockerImage.ValueString() != state.DockerImage.ValueString()
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenDockerImageApplication(app, &plan)
-	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields)
+	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields, dockerImageChanged)
 	if resp.Diagnostics.HasError() {
 		return
 	}
