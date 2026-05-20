@@ -792,7 +792,7 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(true),
 		},
 		"redeploy_on_update": schema.BoolAttribute{
-			MarkdownDescription: "When `true`, the application is automatically restarted after a Terraform update that changes runtime-affecting fields (e.g., `ports_exposes`, `domains`, `limits_*`, `health_check_*`, `custom_labels`). Defaults to `false`.",
+			MarkdownDescription: "When `true`, the application is automatically restarted after a Terraform update that changes runtime-affecting fields. This includes network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands (`pre_deployment_command`, `post_deployment_command`), static site settings (`is_static`, `is_spa`, `redirect`), and type-specific fields (e.g., `docker_image` for docker image apps, `github_app_uuid` for GitHub App apps). Defaults to `false`.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),

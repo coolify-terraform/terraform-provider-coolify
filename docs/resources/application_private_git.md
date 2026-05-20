@@ -100,7 +100,7 @@ resource "coolify_application_private_git" "api" {
 - `pre_deployment_command` (String) Command to run before deployment.
 - `pre_deployment_command_container` (String) Container to run the pre-deployment command in.
 - `publish_directory` (String) The directory to publish for static sites.
-- `redeploy_on_update` (Boolean) When `true`, the application is automatically restarted after a Terraform update that changes runtime-affecting fields (e.g., `ports_exposes`, `domains`, `limits_*`, `health_check_*`, `custom_labels`). Defaults to `false`.
+- `redeploy_on_update` (Boolean) When `true`, the application is automatically restarted after a Terraform update that changes runtime-affecting fields. This includes network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands (`pre_deployment_command`, `post_deployment_command`), static site settings (`is_static`, `is_spa`, `redirect`), and type-specific fields (e.g., `docker_image` for docker image apps, `github_app_uuid` for GitHub App apps). Defaults to `false`.
 - `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
 - `start_command` (String) The command to run to start the application.
 - `static_image` (String) The Docker image to use for serving static sites.
