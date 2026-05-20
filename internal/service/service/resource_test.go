@@ -280,6 +280,7 @@ func TestServiceResource_Update(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
 	currentDesc := "initial description"
+	deleted := false
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -308,6 +309,10 @@ func TestServiceResource_Update(t *testing.T) {
 			})
 
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/services/svc-uuid-"):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":             "svc-uuid-1",
 				"name":             "plausible-svc",
@@ -319,6 +324,7 @@ func TestServiceResource_Update(t *testing.T) {
 			})
 
 		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
+			deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
