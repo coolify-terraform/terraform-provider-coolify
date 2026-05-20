@@ -2,6 +2,7 @@ package spectest
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -172,7 +173,8 @@ var fieldsToIgnore = map[string]map[string]bool{
 }
 
 // TestContractCoverage_Application checks that client.Application has JSON
-// tags for all user-facing fillable fields in the contract.
+// tags for all user-facing fillable fields in the contract, and that the
+// Go types are compatible with the contract types.
 func TestContractCoverage_Application(t *testing.T) {
 	t.Parallel()
 	c := loadContract(t)
@@ -186,15 +188,18 @@ func TestContractCoverage_Application(t *testing.T) {
 	ignore := fieldsToIgnore["Application"]
 
 	var missing []string
+	var typeMismatches []string
 	for fieldName, field := range appContract.Fields {
-		if !field.Fillable {
+		if !field.Fillable || ignore[fieldName] {
 			continue
 		}
-		if ignore[fieldName] {
-			continue
-		}
-		if _, ok := goTags[fieldName]; !ok {
+		goField, ok := goTags[fieldName]
+		if !ok {
 			missing = append(missing, fieldName)
+			continue
+		}
+		if err := checkTypeCompatibility(field, goField.Type); err != nil {
+			typeMismatches = append(typeMismatches, fmt.Sprintf("%s: %s", fieldName, err))
 		}
 	}
 
@@ -213,9 +218,15 @@ func TestContractCoverage_Application(t *testing.T) {
 		t.Errorf("client.Application is missing %d contract fields:\n  %s",
 			len(missing), strings.Join(missing, "\n  "))
 	}
+	sort.Strings(typeMismatches)
+	if len(typeMismatches) > 0 {
+		t.Errorf("client.Application has %d type mismatches:\n  %s",
+			len(typeMismatches), strings.Join(typeMismatches, "\n  "))
+	}
 }
 
-// TestContractCoverage_Databases checks all database model structs.
+// TestContractCoverage_Databases checks all database model structs for
+// both field name coverage and Go type compatibility.
 func TestContractCoverage_Databases(t *testing.T) {
 	t.Parallel()
 	c := loadContract(t)
@@ -246,21 +257,29 @@ func TestContractCoverage_Databases(t *testing.T) {
 		}
 
 		var missing []string
+		var typeMismatches []string
 		for fieldName, field := range model.Fields {
-			if !field.Fillable {
+			if !field.Fillable || dbIgnore[fieldName] {
 				continue
 			}
-			if dbIgnore[fieldName] {
-				continue
-			}
-			if _, ok := goTags[fieldName]; !ok {
+			goField, ok := goTags[fieldName]
+			if !ok {
 				missing = append(missing, fieldName)
+				continue
+			}
+			if err := checkTypeCompatibility(field, goField.Type); err != nil {
+				typeMismatches = append(typeMismatches, fmt.Sprintf("%s: %s", fieldName, err))
 			}
 		}
 		sort.Strings(missing)
 		if len(missing) > 0 {
 			t.Errorf("client.Database is missing %d fields from %s:\n  %s",
 				len(missing), modelName, strings.Join(missing, "\n  "))
+		}
+		sort.Strings(typeMismatches)
+		if len(typeMismatches) > 0 {
+			t.Errorf("client.Database has %d type mismatches in %s:\n  %s",
+				len(typeMismatches), modelName, strings.Join(typeMismatches, "\n  "))
 		}
 	}
 }
@@ -285,7 +304,52 @@ func TestContractCoverage_Sensitive(t *testing.T) {
 		len(sensitiveFields), strings.Join(sensitiveFields, "\n  "))
 }
 
+// checkTypeCompatibility validates that a Go struct field type is compatible
+// with the contract's declared type and cast. Returns an error description
+// on mismatch, nil when compatible.
+func checkTypeCompatibility(field contractField, goType reflect.Type) error {
+	// Dereference pointers to get the base type.
+	base := goType
+	for base.Kind() == reflect.Pointer {
+		base = base.Elem()
+	}
+
+	cast := ""
+	if field.Cast != nil {
+		cast = *field.Cast
+	}
+
+	switch {
+	case field.Type == "json" && cast == "array":
+		// json.RawMessage (which is []byte) is the correct Go type.
+		// Reject plain string, which would fail json.Unmarshal on arrays.
+		if base.Kind() == reflect.String {
+			return fmt.Errorf("contract type json (cast:array) requires json.RawMessage, got string")
+		}
+
+	case field.Type == "boolean" || (field.Type == "boolean" && cast == "boolean"):
+		if base.Kind() != reflect.Bool {
+			return fmt.Errorf("contract type boolean requires bool, got %s", base.Kind())
+		}
+
+	case field.Type == "integer" || field.Type == "bigInteger":
+		switch base.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+			reflect.Float32, reflect.Float64:
+			// numeric types are acceptable
+		default:
+			return fmt.Errorf("contract type %s requires numeric Go type, got %s", field.Type, base.Kind())
+		}
+	}
+	// string, text, longText, enum, timestamp, and cast variants (integer,
+	// float, encrypted, datetime, string) are all represented as Go strings.
+	// No check needed for those.
+	return nil
+}
+
 // contractCoverageTest is a reusable helper for model contract tests.
+// It checks both field name coverage and Go type compatibility.
 func contractCoverageTest(t *testing.T, modelName string, goType reflect.Type, ignore map[string]bool) {
 	t.Helper()
 	c := loadContract(t)
@@ -297,19 +361,33 @@ func contractCoverageTest(t *testing.T, modelName string, goType reflect.Type, i
 	if ignore == nil {
 		ignore = map[string]bool{}
 	}
+
 	var missing []string
+	var typeMismatches []string
+
 	for fieldName, field := range model.Fields {
 		if !field.Fillable || ignore[fieldName] {
 			continue
 		}
-		if _, ok := goTags[fieldName]; !ok {
+		goField, ok := goTags[fieldName]
+		if !ok {
 			missing = append(missing, fieldName)
+			continue
+		}
+		if err := checkTypeCompatibility(field, goField.Type); err != nil {
+			typeMismatches = append(typeMismatches, fmt.Sprintf("%s: %s", fieldName, err))
 		}
 	}
+
 	sort.Strings(missing)
 	if len(missing) > 0 {
 		t.Errorf("client struct is missing %d contract fields from %s:\n  %s",
 			len(missing), modelName, strings.Join(missing, "\n  "))
+	}
+	sort.Strings(typeMismatches)
+	if len(typeMismatches) > 0 {
+		t.Errorf("client struct has %d type mismatches in %s:\n  %s",
+			len(typeMismatches), modelName, strings.Join(typeMismatches, "\n  "))
 	}
 }
 
@@ -352,7 +430,6 @@ func TestContractCoverage_Service(t *testing.T) {
 		"destination_id":                      true,
 		"destination_type":                    true,
 		"server_id":                           true,
-		"is_container_label_escape_enabled":   true,
 		"is_container_label_readonly_enabled": true,
 		"is_readonly":                         true,
 		"compose_parsing_version":             true, // internal config

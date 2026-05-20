@@ -8,18 +8,19 @@ import (
 )
 
 type Service struct {
-	UUID             string `json:"uuid"`
-	Name             string `json:"name"`
-	Description      string `json:"description,omitempty"`
-	Type             string `json:"type"`
-	ServerUUID       string `json:"server_uuid,omitempty"`
-	ProjectUUID      string `json:"project_uuid,omitempty"`
-	EnvironmentName  string `json:"environment_name,omitempty"`
-	Status           string `json:"status,omitempty"`
-	DockerCompose    string `json:"docker_compose,omitempty"`
-	DockerComposeRaw string `json:"docker_compose_raw,omitempty"`
-	ConnectToNetwork *bool  `json:"connect_to_docker_network,omitempty"`
-	ConfigHash       string `json:"config_hash,omitempty"`
+	UUID                          string `json:"uuid"`
+	Name                          string `json:"name"`
+	Description                   string `json:"description,omitempty"`
+	Type                          string `json:"type"`
+	ServerUUID                    string `json:"server_uuid,omitempty"`
+	ProjectUUID                   string `json:"project_uuid,omitempty"`
+	EnvironmentName               string `json:"environment_name,omitempty"`
+	Status                        string `json:"status,omitempty"`
+	DockerCompose                 string `json:"docker_compose,omitempty"`
+	DockerComposeRaw              string `json:"docker_compose_raw,omitempty"`
+	ConnectToNetwork              *bool  `json:"connect_to_docker_network,omitempty"`
+	IsContainerLabelEscapeEnabled *bool  `json:"is_container_label_escape_enabled,omitempty"`
+	ConfigHash                    string `json:"config_hash,omitempty"`
 }
 type CreateServiceInput struct {
 	Type            string `json:"type"`
@@ -58,9 +59,14 @@ func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*
 }
 
 type UpdateServiceInput struct {
-	Name             *string `json:"name,omitempty"`
-	Description      *string `json:"description,omitempty"`
-	ConnectToNetwork *bool   `json:"connect_to_docker_network,omitempty"`
+	Name                          *string `json:"name,omitempty"`
+	Description                   *string `json:"description,omitempty"`
+	DockerComposeRaw              *string `json:"docker_compose_raw,omitempty"`
+	ConnectToNetwork              *bool   `json:"connect_to_docker_network,omitempty"`
+	IsContainerLabelEscapeEnabled *bool   `json:"is_container_label_escape_enabled,omitempty"`
+	InstantDeploy                 *bool   `json:"instant_deploy,omitempty"`
+	URLs                          *string `json:"urls,omitempty"`
+	ForceDomainOverride           *bool   `json:"force_domain_override,omitempty"`
 }
 
 func (c *Client) UpdateService(ctx context.Context, uuid string, input UpdateServiceInput) (*Service, error) {

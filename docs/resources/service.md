@@ -44,8 +44,10 @@ resource "coolify_service" "example" {
 
 - `connect_to_docker_network` (Boolean) Whether the service containers connect to the Coolify Docker network.
 - `description` (String) A description of the service.
+- `docker_compose_raw` (String, Sensitive) The raw Docker Compose configuration. Set this to customize the service's compose after creation. Requires API token with `read:sensitive` permission.
 - `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
 - `instant_deploy` (Boolean) Whether to immediately deploy the service after creation. When `true`, Coolify starts the service containers right away. When `false` (default), the service is created but not started.
+- `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled for this service.
 - `name` (String) The name of the service.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
@@ -53,7 +55,6 @@ resource "coolify_service" "example" {
 
 - `config_hash` (String) Hash of the current service configuration. Changes when the compose or settings are modified.
 - `docker_compose` (String, Sensitive) The parsed Docker Compose configuration. Requires API token with `read:sensitive` permission.
-- `docker_compose_raw` (String, Sensitive) The raw Docker Compose configuration. Requires API token with `read:sensitive` permission.
 - `status` (String) The current status of the service (e.g., `running`, `stopped`, `exited`). Read-only.
 - `uuid` (String) The UUID of the service.
 

@@ -33,20 +33,21 @@ type serviceResource struct {
 }
 
 type serviceResourceModel struct {
-	Timeouts         timeouts.Value `tfsdk:"timeouts"`
-	UUID             types.String   `tfsdk:"uuid"`
-	Name             types.String   `tfsdk:"name"`
-	Description      types.String   `tfsdk:"description"`
-	ProjectUUID      types.String   `tfsdk:"project_uuid"`
-	ServerUUID       types.String   `tfsdk:"server_uuid"`
-	EnvironmentName  types.String   `tfsdk:"environment_name"`
-	Type             types.String   `tfsdk:"type"`
-	Status           types.String   `tfsdk:"status"`
-	DockerCompose    types.String   `tfsdk:"docker_compose"`
-	DockerComposeRaw types.String   `tfsdk:"docker_compose_raw"`
-	ConnectToNetwork types.Bool     `tfsdk:"connect_to_docker_network"`
-	ConfigHash       types.String   `tfsdk:"config_hash"`
-	InstantDeploy    types.Bool     `tfsdk:"instant_deploy"`
+	Timeouts                      timeouts.Value `tfsdk:"timeouts"`
+	UUID                          types.String   `tfsdk:"uuid"`
+	Name                          types.String   `tfsdk:"name"`
+	Description                   types.String   `tfsdk:"description"`
+	ProjectUUID                   types.String   `tfsdk:"project_uuid"`
+	ServerUUID                    types.String   `tfsdk:"server_uuid"`
+	EnvironmentName               types.String   `tfsdk:"environment_name"`
+	Type                          types.String   `tfsdk:"type"`
+	Status                        types.String   `tfsdk:"status"`
+	DockerCompose                 types.String   `tfsdk:"docker_compose"`
+	DockerComposeRaw              types.String   `tfsdk:"docker_compose_raw"`
+	ConnectToNetwork              types.Bool     `tfsdk:"connect_to_docker_network"`
+	IsContainerLabelEscapeEnabled types.Bool     `tfsdk:"is_container_label_escape_enabled"`
+	ConfigHash                    types.String   `tfsdk:"config_hash"`
+	InstantDeploy                 types.Bool     `tfsdk:"instant_deploy"`
 }
 
 func NewResource() resource.Resource {
@@ -131,12 +132,22 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				Sensitive:           true,
 			},
 			"docker_compose_raw": schema.StringAttribute{
-				MarkdownDescription: "The raw Docker Compose configuration. Requires API token with `read:sensitive` permission.",
+				MarkdownDescription: "The raw Docker Compose configuration. Set this to customize the service's compose after creation. Requires API token with `read:sensitive` permission.",
+				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"connect_to_docker_network": schema.BoolAttribute{
 				MarkdownDescription: "Whether the service containers connect to the Coolify Docker network.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"is_container_label_escape_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Whether container label escaping is enabled for this service.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
@@ -259,9 +270,11 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": uuid})
 
 	input := client.UpdateServiceInput{
-		Name:             flex.StringIfChanged(plan.Name, state.Name),
-		Description:      flex.StringIfChanged(plan.Description, state.Description),
-		ConnectToNetwork: flex.BoolIfChanged(plan.ConnectToNetwork, state.ConnectToNetwork),
+		Name:                          flex.StringIfChanged(plan.Name, state.Name),
+		Description:                   flex.StringIfChanged(plan.Description, state.Description),
+		DockerComposeRaw:              flex.StringIfChanged(plan.DockerComposeRaw, state.DockerComposeRaw),
+		ConnectToNetwork:              flex.BoolIfChanged(plan.ConnectToNetwork, state.ConnectToNetwork),
+		IsContainerLabelEscapeEnabled: flex.BoolIfChanged(plan.IsContainerLabelEscapeEnabled, state.IsContainerLabelEscapeEnabled),
 	}
 	if _, err := r.client.UpdateService(ctx, uuid, input); err != nil {
 		resp.Diagnostics.AddError("Error updating service", fmt.Sprintf("service %s: %s", uuid, err))
@@ -337,6 +350,11 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 		model.ConnectToNetwork = types.BoolValue(*svc.ConnectToNetwork)
 	} else {
 		model.ConnectToNetwork = types.BoolNull()
+	}
+	if svc.IsContainerLabelEscapeEnabled != nil {
+		model.IsContainerLabelEscapeEnabled = types.BoolValue(*svc.IsContainerLabelEscapeEnabled)
+	} else {
+		model.IsContainerLabelEscapeEnabled = types.BoolNull()
 	}
 
 	// Immutable fields: only update if the API returns them because

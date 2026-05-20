@@ -532,6 +532,94 @@ sed -i "s|MODULEPLACEHOLDER|${MODULE}|g" "$SVC_DIR/data_source_test.go"
 sed -i "s/PASCALPLACEHOLDER/${PASCAL}/g" "$SVC_DIR/data_source_test.go"
 sed -i "s/NAMEPLACEHOLDER/${NAME}/g" "$SVC_DIR/data_source_test.go"
 
+# --- Acceptance test ---
+cat > "$SVC_DIR/resource_acc_test.go" << 'GOEOF'
+package PKGPLACEHOLDER_test
+
+import (
+	"fmt"
+	"testing"
+
+	"MODULEPLACEHOLDER/internal/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+)
+
+func TestAccPASCALPLACEHOLDERResource_basic(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	name := acctest.RandomWithPrefix("tf-acc-NAMEPLACEHOLDER")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_NAMEPLACEHOLDER", "/api/v1/NAMEPLACEHOLDERs/"),
+		Steps: []resource.TestStep{
+			// Create and verify
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_NAMEPLACEHOLDER" "test" {
+  name = %q
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_NAMEPLACEHOLDER.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_NAMEPLACEHOLDER.test", "name", name),
+				),
+			},
+			// Idempotency
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_NAMEPLACEHOLDER" "test" {
+  name = %q
+}
+`, name),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			// Import
+			{
+				ResourceName:                         "coolify_NAMEPLACEHOLDER.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_NAMEPLACEHOLDER.test", "uuid"),
+			},
+		},
+	})
+}
+
+func TestAccPASCALPLACEHOLDERResource_Disappears(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	name := acctest.RandomWithPrefix("tf-acc-NAMEPLACEHOLDER-dis")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_NAMEPLACEHOLDER", "/api/v1/NAMEPLACEHOLDERs/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_NAMEPLACEHOLDER" "test" {
+  name = %q
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_NAMEPLACEHOLDER.test", "uuid"),
+					acctest.AccCheckResourceDisappears("coolify_NAMEPLACEHOLDER.test", "/api/v1/NAMEPLACEHOLDERs/"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+GOEOF
+
+sed -i "s/PKGPLACEHOLDER/${PKG}/g" "$SVC_DIR/resource_acc_test.go"
+sed -i "s|MODULEPLACEHOLDER|${MODULE}|g" "$SVC_DIR/resource_acc_test.go"
+sed -i "s/PASCALPLACEHOLDER/${PASCAL}/g" "$SVC_DIR/resource_acc_test.go"
+sed -i "s/NAMEPLACEHOLDER/${NAME}/g" "$SVC_DIR/resource_acc_test.go"
+
 # --- Example files ---
 cat > "$EXAMPLE_RES_DIR/resource.tf" << TFEOF
 resource "coolify_${NAME}" "example" {
@@ -549,7 +637,7 @@ data "coolify_${NAME}" "example" {
 }
 TFEOF
 
-# Format generated Go files so CI lint never fails on heredoc drift.
+# Format all generated Go files so CI lint never fails on heredoc drift.
 gofmt -w "$SVC_DIR"/*.go "$CLIENT_FILE"
 
 echo ""
@@ -558,6 +646,7 @@ echo "  $SVC_DIR/resource.go"
 echo "  $SVC_DIR/data_source.go"
 echo "  $SVC_DIR/resource_test.go"
 echo "  $SVC_DIR/data_source_test.go"
+echo "  $SVC_DIR/resource_acc_test.go"
 echo "  $CLIENT_FILE"
 echo "  $EXAMPLE_RES_DIR/resource.tf"
 echo "  $EXAMPLE_RES_DIR/import.sh"
@@ -568,7 +657,7 @@ echo "  1. Register in internal/provider/provider.go:"
 echo "     - Add ${PKG}.NewResource() to Resources()"
 echo "     - Add ${PKG}.NewDataSource() to DataSources()"
 echo "  2. Fill in TODO placeholders in generated files"
-echo "  3. Add acceptance tests in ${SVC_DIR}/resource_acc_test.go"
+echo "  3. Customize acceptance tests in ${SVC_DIR}/resource_acc_test.go"
 echo "  4. Add API endpoints to coveredEndpoints() in internal/spectest/"
 echo "  5. Run: make api-coverage"
 echo "  6. Run: make docs"

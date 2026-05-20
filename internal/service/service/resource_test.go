@@ -20,12 +20,17 @@ import (
 )
 
 // expectedWritableServiceUpdateKeys lists the JSON keys that UpdateServiceInput
-// must expose. Add to this list when the provider gains support for additional
-// writable service fields. See #335 for the remaining API-accepted fields.
+// must expose. These match the 8 fields accepted by
+// ServicesController::update_by_uuid in the Coolify API.
 var expectedWritableServiceUpdateKeys = []string{
 	"connect_to_docker_network",
 	"description",
+	"docker_compose_raw",
+	"force_domain_override",
+	"instant_deploy",
+	"is_container_label_escape_enabled",
 	"name",
+	"urls",
 }
 
 func TestUpdateServiceInput_PublicPatchSurfaceMatchesExpectedKeys(t *testing.T) {
