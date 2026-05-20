@@ -66,8 +66,11 @@ export COOLIFY_CF_ACCESS_CLIENT_SECRET="your-cf-client-secret"
 | Operations | `coolify_environment_variable`, `coolify_envs_bulk`, `coolify_storage`, `coolify_scheduled_task`, `coolify_deployment`, `coolify_resource_action`, `coolify_database_backup`, `coolify_backup_execution`, `coolify_application_preview` |
 | Validation | `coolify_server_validate`, `coolify_cloud_token_validate`, `coolify_api_settings` |
 
-All resources support `terraform import`. See the [Import Guide](guides/import)
-for composite ID formats, known limitations, and field normalization behaviors.
+All stateful resources support `terraform import`. Action and validation resources
+(`coolify_api_settings`, `coolify_application_preview`, `coolify_cloud_token_validate`,
+`coolify_server_validate`, `coolify_resource_action`) are lifecycle-only and do not
+support import. See the [Import Guide](guides/import) for composite ID formats,
+known limitations, and field normalization behaviors.
 
 ## Coolify API Behaviors
 

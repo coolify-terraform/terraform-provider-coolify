@@ -95,7 +95,7 @@ type. Additional read-only data sources include:
 
 ## Import
 
-All resources support `terraform import`. Most use a single UUID:
+All stateful resources support `terraform import` (action and validation resources are lifecycle-only). Most use a single UUID:
 
 ```bash
 terraform import coolify_project.main <uuid>

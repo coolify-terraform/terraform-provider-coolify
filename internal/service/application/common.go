@@ -584,6 +584,159 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	}
 }
 
+// hasNonDefaultAppExtendedFields returns true if any field that the Create POST
+// does not accept is configured with a non-default value, requiring a post-create
+// PATCH to converge in a single apply.
+func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
+	strNonDefault := func(v *types.String, dflt string) bool {
+		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueString() != dflt
+	}
+	strSet := func(v *types.String) bool {
+		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueString() != ""
+	}
+	intNonDefault := func(v *types.Int64, dflt int64) bool {
+		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueInt64() != dflt
+	}
+	boolNonDefault := func(v *types.Bool, dflt bool) bool {
+		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueBool() != dflt
+	}
+	return strNonDefault(f.LimitsMemory, "0") ||
+		strNonDefault(f.LimitsMemorySwap, "0") ||
+		strNonDefault(f.LimitsMemoryReservation, "0") ||
+		strNonDefault(f.LimitsCPUs, "0") ||
+		strSet(f.LimitsCPUSet) ||
+		intNonDefault(f.LimitsMemorySwappiness, 60) ||
+		intNonDefault(f.LimitsCPUShares, 1024) ||
+		strSet(f.HealthCheckPort) ||
+		strSet(f.HealthCheckCommand) ||
+		strSet(f.HealthCheckResponseText) ||
+		strSet(f.CustomDockerRunOptions) ||
+		strSet(f.CustomLabels) ||
+		strSet(f.CustomNetworkAliases) ||
+		strSet(f.CustomNginxConfiguration) ||
+		strSet(f.PortsMappings) ||
+		boolNonDefault(f.IsHTTPBasicAuthEnabled, false) ||
+		strSet(f.HTTPBasicAuthUsername) ||
+		strSet(f.HTTPBasicAuthPassword) ||
+		strSet(f.PreDeploymentCommand) ||
+		strSet(f.PreDeploymentCommandContainer) ||
+		strSet(f.PostDeploymentCommand) ||
+		strSet(f.PostDeploymentCommandContainer) ||
+		strSet(f.PublishDirectory) ||
+		strSet(f.DockerComposeDomains) ||
+		strSet(f.WatchPaths) ||
+		boolNonDefault(f.ConnectToDockerNetwork, false) ||
+		boolNonDefault(f.IsForceHTTPSEnabled, true) ||
+		boolNonDefault(f.IsStatic, false) ||
+		boolNonDefault(f.IsSPA, false) ||
+		boolNonDefault(f.IsContainerLabelEscapeEnabled, true) ||
+		boolNonDefault(f.IsPreserveRepositoryEnabled, false) ||
+		boolNonDefault(f.UseBuildServer, false) ||
+		strNonDefault(f.Redirect, defaultRedirect) ||
+		strNonDefault(f.StaticImage, defaultStaticImage)
+}
+
+// buildPostCreatePatch builds an UpdateApplicationInput from the plan's extended
+// fields, including only fields that are configured (non-null, non-unknown).
+func buildPostCreatePatch(f commonAppFields) client.UpdateApplicationInput {
+	var input client.UpdateApplicationInput
+	safeStr := func(v *types.String) types.String {
+		if v == nil {
+			return types.StringNull()
+		}
+		return *v
+	}
+	safeInt := func(v *types.Int64) types.Int64 {
+		if v == nil {
+			return types.Int64Null()
+		}
+		return *v
+	}
+	safeBool := func(v *types.Bool) types.Bool {
+		if v == nil {
+			return types.BoolNull()
+		}
+		return *v
+	}
+	// Resource limits
+	flex.SetStrPtr(&input.LimitsMemory, safeStr(f.LimitsMemory))
+	flex.SetStrPtr(&input.LimitsMemorySwap, safeStr(f.LimitsMemorySwap))
+	flex.SetInt64Ptr(&input.LimitsMemorySwappiness, safeInt(f.LimitsMemorySwappiness))
+	flex.SetStrPtr(&input.LimitsMemoryReservation, safeStr(f.LimitsMemoryReservation))
+	flex.SetStrPtr(&input.LimitsCPUs, safeStr(f.LimitsCPUs))
+	flex.SetStrPtr(&input.LimitsCPUSet, safeStr(f.LimitsCPUSet))
+	flex.SetInt64Ptr(&input.LimitsCPUShares, safeInt(f.LimitsCPUShares))
+	// Health checks
+	flex.SetBoolPtr(&input.HealthCheckEnabled, safeBool(f.HealthCheckEnabled))
+	flex.SetStrPtr(&input.HealthCheckPath, safeStr(f.HealthCheckPath))
+	flex.SetStrPtr(&input.HealthCheckPort, safeStr(f.HealthCheckPort))
+	flex.SetInt64Ptr(&input.HealthCheckInterval, safeInt(f.HealthCheckInterval))
+	flex.SetInt64Ptr(&input.HealthCheckTimeout, safeInt(f.HealthCheckTimeout))
+	flex.SetInt64Ptr(&input.HealthCheckRetries, safeInt(f.HealthCheckRetries))
+	flex.SetInt64Ptr(&input.HealthCheckStartPeriod, safeInt(f.HealthCheckStartPeriod))
+	flex.SetStrPtr(&input.HealthCheckCommand, safeStr(f.HealthCheckCommand))
+	flex.SetStrPtr(&input.HealthCheckHost, safeStr(f.HealthCheckHost))
+	flex.SetStrPtr(&input.HealthCheckMethod, safeStr(f.HealthCheckMethod))
+	flex.SetStrPtr(&input.HealthCheckResponseText, safeStr(f.HealthCheckResponseText))
+	flex.SetInt64Ptr(&input.HealthCheckReturnCode, safeInt(f.HealthCheckReturnCode))
+	flex.SetStrPtr(&input.HealthCheckScheme, safeStr(f.HealthCheckScheme))
+	flex.SetStrPtr(&input.HealthCheckType, safeStr(f.HealthCheckType))
+	// Auto-deploy
+	flex.SetBoolPtr(&input.IsAutoDeployEnabled, safeBool(f.IsAutoDeployEnabled))
+	// Build/deploy
+	flex.SetStrPtr(&input.BaseDirectory, safeStr(f.BaseDirectory))
+	flex.SetStrPtr(&input.PublishDirectory, safeStr(f.PublishDirectory))
+	flex.SetStrPtr(&input.DockerRegistryImageTag, safeStr(f.DockerRegistryImageTag))
+	flex.SetStrPtr(&input.DockerComposeDomains, safeStr(f.DockerComposeDomains))
+	flex.SetStrPtr(&input.GitCommitSha, safeStr(f.GitCommitSha))
+	flex.SetStrPtr(&input.WatchPaths, safeStr(f.WatchPaths))
+	// Container/Network
+	flex.SetStrPtr(&input.CustomDockerRunOptions, safeStr(f.CustomDockerRunOptions))
+	flex.SetStrPtr(&input.CustomLabels, safeStr(f.CustomLabels))
+	flex.SetStrPtr(&input.CustomNetworkAliases, safeStr(f.CustomNetworkAliases))
+	flex.SetStrPtr(&input.CustomNginxConfiguration, safeStr(f.CustomNginxConfiguration))
+	flex.SetStrPtr(&input.PortsMappings, safeStr(f.PortsMappings))
+	// Redirect & static
+	flex.SetStrPtr(&input.Redirect, safeStr(f.Redirect))
+	flex.SetStrPtr(&input.StaticImage, safeStr(f.StaticImage))
+	flex.SetBoolPtr(&input.IsStatic, safeBool(f.IsStatic))
+	flex.SetBoolPtr(&input.IsSPA, safeBool(f.IsSPA))
+	// Security & Auth
+	flex.SetBoolPtr(&input.IsForceHTTPSEnabled, safeBool(f.IsForceHTTPSEnabled))
+	flex.SetBoolPtr(&input.IsHTTPBasicAuthEnabled, safeBool(f.IsHTTPBasicAuthEnabled))
+	flex.SetStrPtr(&input.HTTPBasicAuthUsername, safeStr(f.HTTPBasicAuthUsername))
+	flex.SetStrPtr(&input.HTTPBasicAuthPassword, safeStr(f.HTTPBasicAuthPassword))
+	// Deployment commands
+	flex.SetStrPtr(&input.PreDeploymentCommand, safeStr(f.PreDeploymentCommand))
+	flex.SetStrPtr(&input.PreDeploymentCommandContainer, safeStr(f.PreDeploymentCommandContainer))
+	flex.SetStrPtr(&input.PostDeploymentCommand, safeStr(f.PostDeploymentCommand))
+	flex.SetStrPtr(&input.PostDeploymentCommandContainer, safeStr(f.PostDeploymentCommandContainer))
+	// Other settings
+	flex.SetBoolPtr(&input.ConnectToDockerNetwork, safeBool(f.ConnectToDockerNetwork))
+	flex.SetBoolPtr(&input.IsContainerLabelEscapeEnabled, safeBool(f.IsContainerLabelEscapeEnabled))
+	flex.SetBoolPtr(&input.IsPreserveRepositoryEnabled, safeBool(f.IsPreserveRepositoryEnabled))
+	flex.SetBoolPtr(&input.UseBuildServer, safeBool(f.UseBuildServer))
+	flex.SetBoolPtr(&input.ForceDomainOverride, safeBool(f.ForceDomainOverride))
+	return input
+}
+
+// postCreatePatchExtendedFields sends a PATCH after Create when the plan includes
+// extended fields not accepted by the Create POST (resource limits, health checks,
+// deployment commands, auth, custom docker options, etc.). Without this, those
+// fields cause "Provider produced inconsistent result after apply".
+func postCreatePatchExtendedFields(ctx context.Context, c *client.Client, uuid string, f commonAppFields, resp *resource.CreateResponse) {
+	if !hasNonDefaultAppExtendedFields(f) {
+		return
+	}
+	tflog.Debug(ctx, "patching extended fields after create", map[string]interface{}{"uuid": uuid})
+	input := buildPostCreatePatch(f)
+	if _, err := c.UpdateApplication(ctx, uuid, input); err != nil {
+		resp.Diagnostics.AddError("Error setting application extended fields",
+			fmt.Sprintf("Application %s was created, but the post-create PATCH for extended fields failed: %s. "+
+				"Run terraform apply again to converge.", uuid, err))
+	}
+}
+
 // CommonAppAttrs returns the shared schema attributes for all application types.
 func CommonAppAttrs(ctx context.Context, extra map[string]schema.Attribute) map[string]schema.Attribute {
 	attrs := coreAppAttrs(ctx)

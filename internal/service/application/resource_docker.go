@@ -121,6 +121,11 @@ func (r *dockerImageApplicationResource) Create(ctx context.Context, req resourc
 		return
 	}
 
+	postCreatePatchExtendedFields(ctx, r.client, created.UUID, plan.common(), resp)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	app := readBackAfterCreate(ctx, r.client, created.UUID, resp)
 	if app == nil {
 		return

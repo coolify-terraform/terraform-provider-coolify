@@ -7,7 +7,7 @@ description: |-
 
 # Importing Existing Resources
 
-All Coolify provider resources support `terraform import`.
+All stateful Coolify provider resources support `terraform import`. Action and validation resources (`coolify_api_settings`, `coolify_application_preview`, `coolify_cloud_token_validate`, `coolify_server_validate`, `coolify_resource_action`) are lifecycle-only and do not support import.
 
 ## Finding Resource UUIDs
 

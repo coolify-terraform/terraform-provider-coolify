@@ -116,6 +116,11 @@ func (r *gitHubAppApplicationResource) Create(ctx context.Context, req resource.
 		return
 	}
 
+	postCreatePatchExtendedFields(ctx, r.client, created.UUID, plan.common(), resp)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	app := readBackAfterCreate(ctx, r.client, created.UUID, resp)
 	if app == nil {
 		return
