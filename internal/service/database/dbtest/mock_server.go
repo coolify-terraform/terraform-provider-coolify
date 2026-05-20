@@ -74,6 +74,23 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+// validateCreateBody decodes the POST body and checks that all required fields
+// are present. Returns true on success, or writes an error response and returns false.
+func validateCreateBody(w http.ResponseWriter, r *http.Request) bool {
+	var body map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return false
+	}
+	for _, field := range []string{"project_uuid", "server_uuid", "environment_name"} {
+		if _, ok := body[field]; !ok {
+			http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
+			return false
+		}
+	}
+	return true
+}
+
 // NewMockServer creates an httptest.Server that simulates the Coolify database
 // API for the given database type. extraFields are db-specific fields included
 // in GET responses and updatable via PATCH (e.g., {"redis_password": "pass"}).
@@ -103,6 +120,9 @@ func NewMockServer(dbType, name, image string, extraFields map[string]interface{
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/"+dbType:
+			if !validateCreateBody(w, r) {
+				return
+			}
 			writeJSON(w, http.StatusCreated, map[string]string{"uuid": state.UUID})
 
 		case r.Method == http.MethodGet && r.URL.Path == dbPath:

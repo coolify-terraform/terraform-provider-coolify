@@ -167,6 +167,21 @@ func (r *environmentVariableResource) ValidateConfig(ctx context.Context, req re
 	}
 }
 
+// parentTypeAndUUID resolves which parent resource UUID is set and returns the
+// API parent type ("applications", "services", or "databases") and the UUID.
+func parentTypeAndUUID(m *environmentVariableResourceModel) (string, string, bool) {
+	if !m.ApplicationUUID.IsNull() && !m.ApplicationUUID.IsUnknown() {
+		return "applications", m.ApplicationUUID.ValueString(), true
+	}
+	if !m.ServiceUUID.IsNull() && !m.ServiceUUID.IsUnknown() {
+		return "services", m.ServiceUUID.ValueString(), true
+	}
+	if !m.DatabaseUUID.IsNull() && !m.DatabaseUUID.IsUnknown() {
+		return "databases", m.DatabaseUUID.ValueString(), true
+	}
+	return "", "", false
+}
+
 func (r *environmentVariableResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan environmentVariableResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -176,13 +191,19 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_environment_variable"})
 
+	parentType, parentUUID, ok := parentTypeAndUUID(&plan)
+	if !ok {
+		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
+		return
+	}
+
 	isPreview := plan.IsPreview.ValueBool()
 	stateIsBuild := false
 	var createIsBuild *bool
 	if !plan.IsBuild.IsNull() && !plan.IsBuild.IsUnknown() {
 		stateIsBuild = plan.IsBuild.ValueBool()
 		createIsBuild = &stateIsBuild
-	} else if !plan.ApplicationUUID.IsNull() && !plan.ApplicationUUID.IsUnknown() {
+	} else if parentType == "applications" {
 		stateIsBuild = true
 	}
 
@@ -193,29 +214,13 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 		IsBuild:   stateIsBuild,
 	}
 
-	var createResp *client.CreateEnvVarResponse
-	var err error
-
-	//nolint:gocritic // if-else chain dispatches to different client methods; switch not applicable
-	if !plan.ApplicationUUID.IsNull() && !plan.ApplicationUUID.IsUnknown() {
-		createResp, err = r.client.CreateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev, createIsBuild)
-	} else if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
-		createResp, err = r.client.CreateServiceEnvVar(ctx, plan.ServiceUUID.ValueString(), ev)
-	} else if !plan.DatabaseUUID.IsNull() && !plan.DatabaseUUID.IsUnknown() {
-		createResp, err = r.client.CreateDatabaseEnvVar(ctx, plan.DatabaseUUID.ValueString(), ev)
-	} else {
-		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
-		return
-	}
-
+	createResp, err := r.client.CreateEnvVar(ctx, parentType, parentUUID, ev, createIsBuild)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating environment variable", fmt.Sprintf("env var %s: %s", plan.Key.ValueString(), err))
 		return
 	}
 
 	plan.UUID = types.StringValue(createResp.UUID)
-	// Ensure bool fields are known after apply (they may be unknown if
-	// the user omitted them and there is no schema default).
 	plan.IsPreview = types.BoolValue(isPreview)
 	plan.IsBuild = types.BoolValue(stateIsBuild)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -231,21 +236,13 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 
 	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": state.UUID.ValueString()})
 
-	var envVars []client.EnvironmentVariable
-	var err error
-
-	//nolint:gocritic // if-else chain dispatches to different client methods; switch not applicable
-	if !state.ApplicationUUID.IsNull() && !state.ApplicationUUID.IsUnknown() {
-		envVars, err = r.client.ListApplicationEnvVars(ctx, state.ApplicationUUID.ValueString())
-	} else if !state.ServiceUUID.IsNull() && !state.ServiceUUID.IsUnknown() {
-		envVars, err = r.client.ListServiceEnvVars(ctx, state.ServiceUUID.ValueString())
-	} else if !state.DatabaseUUID.IsNull() && !state.DatabaseUUID.IsUnknown() {
-		envVars, err = r.client.ListDatabaseEnvVars(ctx, state.DatabaseUUID.ValueString())
-	} else {
+	parentType, parentUUID, ok := parentTypeAndUUID(&state)
+	if !ok {
 		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
+	envVars, err := r.client.ListEnvVars(ctx, parentType, parentUUID)
 	if err != nil {
 		if client.IsNotFound(err) {
 			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": state.UUID.ValueString()})
@@ -295,21 +292,13 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 		IsBuild:   plan.IsBuild.ValueBool(),
 	}
 
-	var err error
-
-	//nolint:gocritic // if-else chain dispatches to different client methods; switch not applicable
-	if !plan.ApplicationUUID.IsNull() && !plan.ApplicationUUID.IsUnknown() {
-		err = r.client.UpdateApplicationEnvVar(ctx, plan.ApplicationUUID.ValueString(), ev)
-	} else if !plan.ServiceUUID.IsNull() && !plan.ServiceUUID.IsUnknown() {
-		err = r.client.UpdateServiceEnvVar(ctx, plan.ServiceUUID.ValueString(), ev)
-	} else if !plan.DatabaseUUID.IsNull() && !plan.DatabaseUUID.IsUnknown() {
-		err = r.client.UpdateDatabaseEnvVar(ctx, plan.DatabaseUUID.ValueString(), ev)
-	} else {
+	parentType, parentUUID, ok := parentTypeAndUUID(&plan)
+	if !ok {
 		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
-	if err != nil {
+	if err := r.client.UpdateEnvVar(ctx, parentType, parentUUID, ev); err != nil {
 		resp.Diagnostics.AddError("Error updating environment variable", fmt.Sprintf("env var %s: %s", plan.UUID.ValueString(), err))
 		return
 	}
@@ -328,21 +317,13 @@ func (r *environmentVariableResource) Delete(ctx context.Context, req resource.D
 
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": state.UUID.ValueString()})
 
-	var err error
-
-	//nolint:gocritic // if-else chain dispatches to different client methods; switch not applicable
-	if !state.ApplicationUUID.IsNull() && !state.ApplicationUUID.IsUnknown() {
-		err = r.client.DeleteApplicationEnvVar(ctx, state.ApplicationUUID.ValueString(), state.UUID.ValueString())
-	} else if !state.ServiceUUID.IsNull() && !state.ServiceUUID.IsUnknown() {
-		err = r.client.DeleteServiceEnvVar(ctx, state.ServiceUUID.ValueString(), state.UUID.ValueString())
-	} else if !state.DatabaseUUID.IsNull() && !state.DatabaseUUID.IsUnknown() {
-		err = r.client.DeleteDatabaseEnvVar(ctx, state.DatabaseUUID.ValueString(), state.UUID.ValueString())
-	} else {
+	parentType, parentUUID, ok := parentTypeAndUUID(&state)
+	if !ok {
 		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
-	if err != nil {
+	if err := r.client.DeleteEnvVar(ctx, parentType, parentUUID, state.UUID.ValueString()); err != nil {
 		if client.IsNotFound(err) {
 			return
 		}

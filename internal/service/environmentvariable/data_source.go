@@ -41,6 +41,21 @@ type envVarItemModel struct {
 	IsBuild   types.Bool   `tfsdk:"is_build"`
 }
 
+// dsParentTypeAndUUID resolves which parent UUID attribute is set and returns
+// the API parent type ("applications", "services", or "databases") plus UUID.
+func dsParentTypeAndUUID(appUUID, svcUUID, dbUUID types.String) (string, string, bool) {
+	if !appUUID.IsNull() && !appUUID.IsUnknown() {
+		return "applications", appUUID.ValueString(), true
+	}
+	if !svcUUID.IsNull() && !svcUUID.IsUnknown() {
+		return "services", svcUUID.ValueString(), true
+	}
+	if !dbUUID.IsNull() && !dbUUID.IsUnknown() {
+		return "databases", dbUUID.ValueString(), true
+	}
+	return "", "", false
+}
+
 func NewListDataSource() datasource.DataSource { return &envVarListDataSource{} }
 
 func (d *envVarListDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -105,21 +120,13 @@ func (d *envVarListDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_environment_variables"})
 
-	var envVars []client.EnvironmentVariable
-	var err error
-
-	//nolint:gocritic // if-else chain with different client calls and early return; switch not clearer
-	if !config.ApplicationUUID.IsNull() {
-		envVars, err = d.client.ListApplicationEnvVars(ctx, config.ApplicationUUID.ValueString())
-	} else if !config.ServiceUUID.IsNull() {
-		envVars, err = d.client.ListServiceEnvVars(ctx, config.ServiceUUID.ValueString())
-	} else if !config.DatabaseUUID.IsNull() {
-		envVars, err = d.client.ListDatabaseEnvVars(ctx, config.DatabaseUUID.ValueString())
-	} else {
+	parentType, parentUUID, ok := dsParentTypeAndUUID(config.ApplicationUUID, config.ServiceUUID, config.DatabaseUUID)
+	if !ok {
 		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
+	envVars, err := d.client.ListEnvVars(ctx, parentType, parentUUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing environment variables", err.Error())
 		return

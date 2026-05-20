@@ -107,21 +107,13 @@ func (d *envVarDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 
 	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_environment_variable"})
 
-	var envVars []client.EnvironmentVariable
-	var err error
-
-	//nolint:gocritic // if-else chain with different client calls and early return; switch not clearer
-	if !config.ApplicationUUID.IsNull() {
-		envVars, err = d.client.ListApplicationEnvVars(ctx, config.ApplicationUUID.ValueString())
-	} else if !config.ServiceUUID.IsNull() {
-		envVars, err = d.client.ListServiceEnvVars(ctx, config.ServiceUUID.ValueString())
-	} else if !config.DatabaseUUID.IsNull() {
-		envVars, err = d.client.ListDatabaseEnvVars(ctx, config.DatabaseUUID.ValueString())
-	} else {
+	parentType, parentUUID, ok := dsParentTypeAndUUID(config.ApplicationUUID, config.ServiceUUID, config.DatabaseUUID)
+	if !ok {
 		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
+	envVars, err := d.client.ListEnvVars(ctx, parentType, parentUUID)
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading environment variable", fmt.Sprintf("env var %s: %s", config.UUID.ValueString(), err))
 		return

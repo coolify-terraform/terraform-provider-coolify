@@ -230,28 +230,13 @@ func (r *envsBulkResource) bulkUpdate(ctx context.Context, model *envsBulkModel)
 	return r.doBulk(ctx, model.ResourceType.ValueString(), model.ResourceUUID.ValueString(), input)
 }
 
+// apiParentType maps the schema's singular resource_type to the API's plural path segment.
+func apiParentType(resType string) string { return resType + "s" }
+
 func (r *envsBulkResource) doBulk(ctx context.Context, resType, uuid string, input client.BulkEnvVarInput) error {
-	switch resType {
-	case "application":
-		return r.client.BulkUpdateAppEnvVars(ctx, uuid, input)
-	case "database":
-		return r.client.BulkUpdateDatabaseEnvVars(ctx, uuid, input)
-	case "service":
-		return r.client.BulkUpdateServiceEnvVars(ctx, uuid, input)
-	default:
-		return fmt.Errorf("unsupported resource type: %s", resType)
-	}
+	return r.client.BulkUpdateEnvVars(ctx, apiParentType(resType), uuid, input)
 }
 
 func (r *envsBulkResource) listEnvVars(ctx context.Context, resType, uuid string) ([]client.EnvironmentVariable, error) {
-	switch resType {
-	case "application":
-		return r.client.ListApplicationEnvVars(ctx, uuid)
-	case "database":
-		return r.client.ListDatabaseEnvVars(ctx, uuid)
-	case "service":
-		return r.client.ListServiceEnvVars(ctx, uuid)
-	default:
-		return nil, fmt.Errorf("unsupported resource type: %s", resType)
-	}
+	return r.client.ListEnvVars(ctx, apiParentType(resType), uuid)
 }

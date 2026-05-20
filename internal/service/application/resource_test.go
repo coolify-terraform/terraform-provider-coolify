@@ -39,6 +39,17 @@ func TestApplicationResource_Create(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		for _, field := range []string{"project_uuid", "server_uuid"} {
+			if _, exists := body[field]; !exists {
+				t.Errorf("POST /api/v1/applications/public missing required field %q", field)
+				http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
+				return
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})

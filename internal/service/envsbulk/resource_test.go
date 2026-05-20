@@ -13,15 +13,38 @@ import (
 
 func TestEnvsBulkResource_Create(t *testing.T) {
 	t.Parallel()
+	var lastPayload []byte
 	mux := http.NewServeMux()
 	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440010/envs/bulk", func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		var payload map[string]interface{}
-		_ = json.Unmarshal(body, &payload)
+		lastPayload, _ = io.ReadAll(r.Body)
+		var payload struct {
+			Data []struct {
+				Key string `json:"key"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(lastPayload, &payload); err != nil || len(payload.Data) == 0 {
+			http.Error(w, `{"error":"invalid or empty bulk payload"}`, http.StatusBadRequest)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 	})
 	mux.HandleFunc("GET /api/v1/applications/550e8400-e29b-41d4-a716-446655440010/envs", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(`[{"uuid":"env-1","key":"APP_ENV","value":"production","is_preview":false,"is_buildtime":false},{"uuid":"env-2","key":"LOG_LEVEL","value":"info","is_preview":false,"is_buildtime":false}]`))
+		// Reconstruct GET response from the last PATCH payload (same pattern as Update test).
+		var payload struct {
+			Data []struct {
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			} `json:"data"`
+		}
+		if len(lastPayload) > 0 {
+			_ = json.Unmarshal(lastPayload, &payload)
+		}
+		var envs []map[string]interface{}
+		for _, e := range payload.Data {
+			envs = append(envs, map[string]interface{}{"uuid": "u-" + e.Key, "key": e.Key, "value": e.Value, "is_preview": false, "is_buildtime": false})
+		}
+		out, _ := json.Marshal(envs)
+		_, _ = w.Write(out)
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()

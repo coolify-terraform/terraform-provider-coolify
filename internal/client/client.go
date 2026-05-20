@@ -541,20 +541,25 @@ func toMap(keysAndValues []interface{}) map[string]interface{} {
 	return m
 }
 
-// PollUntilDeleted polls a get function with exponential backoff (500ms to 5s)
-// for up to 2 minutes, returning true when the resource is confirmed gone
-// (NotFound) or false if the poll timed out or the context was cancelled.
-// Use after an async delete to wait for Coolify to finish tearing down
-// containers.
+// PollUntilDeleted polls a get function with exponential backoff (500ms to 5s),
+// returning true when the resource is confirmed gone (NotFound) or false if the
+// poll timed out or the context was cancelled. It respects the parent context's
+// deadline (e.g., Terraform operation timeout) if set, otherwise falls back to a
+// 5-minute deadline. Use after an async delete to wait for Coolify to finish
+// tearing down containers.
 func PollUntilDeleted(ctx context.Context, getFn func() error) bool {
+	pollCtx := ctx
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		var cancel context.CancelFunc
+		pollCtx, cancel = context.WithTimeout(ctx, 2*time.Minute)
+		defer cancel()
+	}
+
 	delay := 500 * time.Millisecond
 	const maxDelay = 5 * time.Second
-	deadline := time.After(2 * time.Minute)
 	for {
 		select {
-		case <-ctx.Done():
-			return false
-		case <-deadline:
+		case <-pollCtx.Done():
 			return false
 		case <-time.After(delay):
 		}

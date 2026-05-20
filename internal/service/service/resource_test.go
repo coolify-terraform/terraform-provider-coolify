@@ -50,7 +50,16 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
 			var body map[string]interface{}
-			json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+				return
+			}
+			for _, field := range []string{"project_uuid", "server_uuid", "type"} {
+				if _, ok := body[field]; !ok {
+					http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
+					return
+				}
+			}
 			if v, ok := body["name"].(string); ok && v != "" {
 				state.name = v
 			}
