@@ -199,10 +199,11 @@ make acc-preflight # Verify required env, API reachability, and optional accepta
 wraps the supported [`scripts/setup-coolify-test.sh`](scripts/setup-coolify-test.sh)
 helper and prints the `COOLIFY_*` exports to copy into your shell once the
 local Coolify instance is up. `make acc-preflight` checks the required
-acceptance environment, confirms the API is reachable, and warns when optional
-fixtures are still missing. See [CONTRIBUTING.md](CONTRIBUTING.md) for full
-local setup details, and run `make help` to list the supported local targets
-from [GNUmakefile](GNUmakefile).
+acceptance environment, confirms the API is reachable, validates any
+user-supplied `COOLIFY_SERVER_UUID` against `/api/v1/servers`, and warns when
+optional fixtures are still missing. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for full local setup details, and run `make help` to list the supported local
+targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
@@ -224,9 +225,10 @@ API behavior, run `make acc-preflight` first, then `make testacc` or
 `make testacc-pkg PKG=...`.
 
 Required acceptance env vars are `COOLIFY_ENDPOINT` and `COOLIFY_TOKEN`.
-`COOLIFY_SERVER_UUID` is an optional override. Otherwise the acceptance helpers
-use the first visible server returned by the API. Optional fixture gates are:
-`COOLIFY_HETZNER_TOKEN` for cloud token and Hetzner packages,
+`COOLIFY_SERVER_UUID` is an optional override, but `make acc-preflight`
+expects it to be returned by `/api/v1/servers`. Otherwise the acceptance
+helpers use the first visible server returned by the API. Optional fixture
+gates are: `COOLIFY_HETZNER_TOKEN` for cloud token and Hetzner packages,
 `COOLIFY_S3_STORAGE_UUID` for S3 backup coverage, and `COOLIFY_GITHUB_APP_*`
 for the GitHub App application acceptance test.
 

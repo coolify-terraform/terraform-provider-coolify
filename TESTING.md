@@ -109,15 +109,16 @@ make acc-preflight
 It registers the first admin user if needed, enables the API, creates a local
 API token, validates the default localhost server, and creates the local MinIO
 S3 fixture used by backup acceptance coverage. `make acc-preflight` requires
-`COOLIFY_ENDPOINT` and `COOLIFY_TOKEN`, checks API reachability, warns when no
-visible server is available, and reports which optional fixtures are still
-missing.
+`COOLIFY_ENDPOINT` and `COOLIFY_TOKEN`, checks API reachability, fails if
+`COOLIFY_SERVER_UUID` is set but not returned by `/api/v1/servers`, warns when
+no visible server is available without an override, and reports which optional
+fixtures are still missing.
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `COOLIFY_ENDPOINT` | Yes | Coolify API base URL |
 | `COOLIFY_TOKEN` | Yes | API bearer token |
-| `COOLIFY_SERVER_UUID` | No | Override server auto-discovery for acceptance helpers |
+| `COOLIFY_SERVER_UUID` | No | Override server auto-discovery for acceptance helpers. `make acc-preflight` verifies that the UUID is visible to the current API token. |
 | `COOLIFY_HETZNER_TOKEN` | No | Required only for `cloudtoken` and Hetzner-related acceptance packages |
 | `COOLIFY_S3_STORAGE_UUID` | No | Required for S3 backup coverage if you are not using `make acc-bootstrap` |
 | `COOLIFY_GITHUB_APP_*` | No | Required for the GitHub App application acceptance test |

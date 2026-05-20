@@ -49,11 +49,12 @@ repo-supported local fixture setup by enabling the API, generating a token,
 validating the default server, and creating the local S3 backup fixture.
 
 `make acc-preflight` requires `COOLIFY_ENDPOINT` and `COOLIFY_TOKEN`,
-auto-discovers a visible server unless `COOLIFY_SERVER_UUID` is set, and warns
-when optional fixtures are missing. `COOLIFY_HETZNER_TOKEN` gates the cloud
-token and Hetzner acceptance packages. `COOLIFY_S3_STORAGE_UUID` gates S3
-backup coverage. `COOLIFY_GITHUB_APP_*` gates the GitHub App application
-acceptance test.
+auto-discovers a visible server unless `COOLIFY_SERVER_UUID` is set, and fails
+if that override UUID is not returned by `/api/v1/servers`. It also warns when
+optional fixtures are missing. `COOLIFY_HETZNER_TOKEN` gates the cloud token
+and Hetzner acceptance packages. `COOLIFY_S3_STORAGE_UUID` gates S3 backup
+coverage. `COOLIFY_GITHUB_APP_*` gates the GitHub App application acceptance
+test.
 
 **Note**: See [TESTING.md](TESTING.md) for the full local Coolify installation
 procedure, API token creation, and server validation steps.
@@ -81,8 +82,10 @@ From [GNUmakefile](GNUmakefile), `make ci` runs these local targets:
 
 `make ci` does not run acceptance tests or the CI-only security scanners
 (`trivy` and `gitleaks`) from the GitHub Actions pipeline. If your change
-touches real Coolify API behavior, also run `make testacc` or targeted
-`TF_ACC=1 go test ...` commands.
+touches real Coolify API behavior, also run `make acc-preflight`, then
+`make testacc` or `make testacc-pkg PKG=./internal/service/<package>/`.
+The lower-level `TF_ACC=1 go test ...` equivalents are documented in
+[TESTING.md](TESTING.md).
 
 Or run individual checks:
 

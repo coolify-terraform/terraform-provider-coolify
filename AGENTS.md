@@ -71,12 +71,12 @@ mismatches, and zero validation rules when we compared it against the source.
 ## Commands
 
 - **Run all checks before pushing**: `make ci` + targeted acceptance tests
-- **Note**: `make ci` does NOT include acceptance tests. It DOES include `python-test`, so ensure Python 3.9+ is available locally. Run acc tests for changed packages: `TF_ACC=1 go test -race -v -count=1 -timeout=10m ./internal/service/<changed-package>/`
+- **Note**: `make ci` does NOT include acceptance tests. It DOES include `python-test`, so ensure Python 3.9+ is available locally. For real-API changes, run `make acc-preflight` first, then `make testacc-pkg PKG=./internal/service/<changed-package>/` or `make testacc` for the full suite.
 - **If `make ci` fails on `check-tfplugindocs`**: install it with `cd tools && GOBIN=$(cd .. && pwd)/bin go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs` then re-run with `PATH="$(pwd)/bin:$PATH" make ci`. Do NOT skip `make ci` and run individual targets instead; that misses `docs-check` and causes CI failures when schema descriptions or templates change.
 - Use `make testacc` for the full suite when changing shared code (client, provider, flex, validate)
 - Build: `make build`
 - Test (all, with race detector): `make test`
-- Test (single package): `go test -race -count=1 -timeout=5m ./internal/service/project/`
+- Test (single package): `make test-pkg PKG=./internal/service/project/`
 - Acceptance tests (needs running Coolify): `make testacc`
 - Lint: `make lint`
 - Format: `make fmt`
