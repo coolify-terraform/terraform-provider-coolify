@@ -406,6 +406,96 @@ resource "coolify_service" "test" {
 }
 
 // ---------------------------------------------------------------------------
+// TestServiceResource_UpdateBoolFields
+// ---------------------------------------------------------------------------
+
+func TestServiceResource_UpdateBoolFields(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	labelEscape := false
+	deleted := false
+
+	svcResponse := func() map[string]interface{} {
+		return map[string]interface{}{
+			"uuid":                              "svc-bool-uuid-1",
+			"name":                              "plausible-svc",
+			"type":                              "plausible",
+			"project_uuid":                      "aaaa0001-0001-4000-8000-000000000001",
+			"server_uuid":                       "bbbb0001-0001-4000-8000-000000000001",
+			"environment_name":                  "production",
+			"is_container_label_escape_enabled": labelEscape,
+		}
+	}
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": "svc-bool-uuid-1"})
+
+		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
+			var body map[string]interface{}
+			json.NewDecoder(r.Body).Decode(&body)
+			if v, ok := body["is_container_label_escape_enabled"].(bool); ok {
+				labelEscape = v
+			}
+			json.NewEncoder(w).Encode(svcResponse())
+
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/services/svc-bool-uuid-"):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(svcResponse())
+
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
+			deleted = true
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	configFn := func(escape bool) string {
+		return acctest.ProviderBlockForURL(srv.URL) + fmt.Sprintf(`
+resource "coolify_service" "test" {
+  project_uuid                       = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid                        = "bbbb0001-0001-4000-8000-000000000001"
+  type                               = "plausible"
+  is_container_label_escape_enabled  = %t
+}
+`, escape)
+	}
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: configFn(false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-bool-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_service.test", "is_container_label_escape_enabled", "false"),
+				),
+			},
+			{
+				Config: configFn(true),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-bool-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_service.test", "is_container_label_escape_enabled", "true"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // TestServiceResource_ImportCompound
 // ---------------------------------------------------------------------------
 
