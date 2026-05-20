@@ -156,9 +156,10 @@ func (r *gitHubAppApplicationResource) Update(ctx context.Context, req resource.
 	stateFields := state.common()
 	input := buildUpdateInput(planFields, stateFields)
 	input.GitHubAppUUID = flex.StringIfChanged(plan.GitHubAppUUID, state.GitHubAppUUID)
+	githubAppChanged := plan.GitHubAppUUID.ValueString() != state.GitHubAppUUID.ValueString()
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenGitHubAppApplication(app, &plan)
-	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields)
+	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields, githubAppChanged)
 	if resp.Diagnostics.HasError() {
 		return
 	}

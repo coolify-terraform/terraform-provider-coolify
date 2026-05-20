@@ -1264,10 +1264,26 @@ func runtimeFieldsChanged(plan, state commonAppFields) bool {
 		stringFieldChanged(plan.CustomNginxConfiguration, state.CustomNginxConfiguration) ||
 		stringFieldChanged(plan.GitRepository, state.GitRepository) ||
 		stringFieldChanged(plan.GitBranch, state.GitBranch) ||
+		stringFieldChanged(plan.GitCommitSha, state.GitCommitSha) ||
 		stringFieldChanged(plan.DockerfileLocation, state.DockerfileLocation) ||
+		stringFieldChanged(plan.Dockerfile, state.Dockerfile) ||
+		stringFieldChanged(plan.DockerfileTargetBuild, state.DockerfileTargetBuild) ||
+		stringFieldChanged(plan.DockerComposeLocation, state.DockerComposeLocation) ||
+		stringFieldChanged(plan.DockerComposeCustomBuildCommand, state.DockerComposeCustomBuildCommand) ||
+		stringFieldChanged(plan.DockerComposeCustomStartCommand, state.DockerComposeCustomStartCommand) ||
+		stringFieldChanged(plan.BuildPack, state.BuildPack) ||
 		stringFieldChanged(plan.BuildCommand, state.BuildCommand) ||
 		stringFieldChanged(plan.StartCommand, state.StartCommand) ||
-		stringFieldChanged(plan.InstallCommand, state.InstallCommand)
+		stringFieldChanged(plan.InstallCommand, state.InstallCommand) ||
+		stringFieldChanged(plan.BaseDirectory, state.BaseDirectory) ||
+		stringFieldChanged(plan.PublishDirectory, state.PublishDirectory) ||
+		stringFieldChanged(plan.PreDeploymentCommand, state.PreDeploymentCommand) ||
+		stringFieldChanged(plan.PostDeploymentCommand, state.PostDeploymentCommand) ||
+		stringFieldChanged(plan.Redirect, state.Redirect) ||
+		stringFieldChanged(plan.StaticImage, state.StaticImage) ||
+		boolFieldChanged(plan.IsStatic, state.IsStatic) ||
+		boolFieldChanged(plan.IsSPA, state.IsSPA) ||
+		stringFieldChanged(plan.WatchPaths, state.WatchPaths)
 }
 
 func stringFieldChanged(plan, state *types.String) bool {

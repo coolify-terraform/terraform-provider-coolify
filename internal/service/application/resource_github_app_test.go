@@ -459,6 +459,131 @@ func TestGitHubAppApplicationResource_CreateReadBackFailurePreservesState(t *tes
 }
 
 // ---------------------------------------------------------------------------
+// TestGitHubAppApplicationResource_RedeployOnUpdate
+// ---------------------------------------------------------------------------
+
+func TestGitHubAppApplicationResource_RedeployOnUpdate(t *testing.T) {
+	t.Parallel()
+
+	var restartCalled atomic.Bool
+	mu := sync.Mutex{}
+	deleted := false
+	app := client.Application{
+		UUID:            "ghapp-redeploy-uuid",
+		Name:            "my-ghapp",
+		GitRepository:   "github.com/myorg/myrepo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName: "production",
+		GitHubAppUUID:   "cccc0001-0001-4000-8000-000000000001",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		if deleted {
+			mu.Unlock()
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+		mu.Unlock()
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["github_app_uuid"].(string); ok {
+			app.GitHubAppUUID = v
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+	})
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") == app.UUID {
+			restartCalled.Store(true)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"deployment_uuid": "deploy-uuid-001",
+				"message":         "Restart request queued.",
+			})
+			return
+		}
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testGitHubAppResourceConfig(srv.URL, `
+					name               = "my-ghapp"
+					project_uuid       = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid        = "bbbb0001-0001-4000-8000-000000000001"
+					github_app_uuid    = "cccc0001-0001-4000-8000-000000000001"
+					git_repository     = "github.com/myorg/myrepo"
+					git_branch         = "main"
+					build_pack         = "nixpacks"
+					ports_exposes      = "3000"
+					redeploy_on_update = true
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_application_github_app.test", "github_app_uuid", "cccc0001-0001-4000-8000-000000000001"),
+			},
+			{
+				Config: testGitHubAppResourceConfig(srv.URL, `
+					name               = "my-ghapp"
+					project_uuid       = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid        = "bbbb0001-0001-4000-8000-000000000001"
+					github_app_uuid    = "dddd0001-0001-4000-8000-000000000001"
+					git_repository     = "github.com/myorg/myrepo"
+					git_branch         = "main"
+					build_pack         = "nixpacks"
+					ports_exposes      = "3000"
+					redeploy_on_update = true
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_application_github_app.test", "github_app_uuid", "dddd0001-0001-4000-8000-000000000001"),
+			},
+		},
+	})
+	if !restartCalled.Load() {
+		t.Error("expected restart to be called when github_app_uuid changed with redeploy_on_update=true")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
