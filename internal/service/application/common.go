@@ -1259,6 +1259,10 @@ func runtimeFieldsChanged(plan, state commonAppFields) bool {
 		stringFieldChanged(plan.HealthCheckHost, state.HealthCheckHost) ||
 		stringFieldChanged(plan.HealthCheckMethod, state.HealthCheckMethod) ||
 		stringFieldChanged(plan.HealthCheckScheme, state.HealthCheckScheme) ||
+		stringFieldChanged(plan.HealthCheckResponseText, state.HealthCheckResponseText) ||
+		int64FieldChanged(plan.HealthCheckReturnCode, state.HealthCheckReturnCode) ||
+		stringFieldChanged(plan.HealthCheckType, state.HealthCheckType) ||
+		boolFieldChanged(plan.IsHTTPBasicAuthEnabled, state.IsHTTPBasicAuthEnabled) ||
 		stringFieldChanged(plan.CustomLabels, state.CustomLabels) ||
 		stringFieldChanged(plan.CustomDockerRunOptions, state.CustomDockerRunOptions) ||
 		stringFieldChanged(plan.CustomNginxConfiguration, state.CustomNginxConfiguration) ||
