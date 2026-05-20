@@ -600,6 +600,7 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 	boolNonDefault := func(v *types.Bool, dflt bool) bool {
 		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueBool() != dflt
 	}
+	// Resource limits
 	return strNonDefault(f.LimitsMemory, "0") ||
 		strNonDefault(f.LimitsMemorySwap, "0") ||
 		strNonDefault(f.LimitsMemoryReservation, "0") ||
@@ -607,24 +608,46 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		strSet(f.LimitsCPUSet) ||
 		intNonDefault(f.LimitsMemorySwappiness, 60) ||
 		intNonDefault(f.LimitsCPUShares, 1024) ||
+		// Health checks
+		boolNonDefault(f.HealthCheckEnabled, false) ||
+		strNonDefault(f.HealthCheckPath, "/") ||
 		strSet(f.HealthCheckPort) ||
+		intNonDefault(f.HealthCheckInterval, 5) ||
+		intNonDefault(f.HealthCheckTimeout, 5) ||
+		intNonDefault(f.HealthCheckRetries, 10) ||
+		intNonDefault(f.HealthCheckStartPeriod, 5) ||
 		strSet(f.HealthCheckCommand) ||
+		strNonDefault(f.HealthCheckHost, defaultHealthCheckHost) ||
+		strNonDefault(f.HealthCheckMethod, defaultHealthCheckMeth) ||
 		strSet(f.HealthCheckResponseText) ||
+		intNonDefault(f.HealthCheckReturnCode, defaultHealthCheckCode) ||
+		strNonDefault(f.HealthCheckScheme, defaultHealthCheckSchm) ||
+		strNonDefault(f.HealthCheckType, defaultHealthCheckType) ||
+		// Auto-deploy
+		boolNonDefault(f.IsAutoDeployEnabled, true) ||
+		// Build/deploy
+		strSet(f.BaseDirectory) ||
+		strSet(f.PublishDirectory) ||
+		strSet(f.DockerRegistryImageTag) ||
+		strSet(f.DockerComposeDomains) ||
+		strSet(f.GitCommitSha) ||
+		strSet(f.WatchPaths) ||
+		// Container/Network
 		strSet(f.CustomDockerRunOptions) ||
 		strSet(f.CustomLabels) ||
 		strSet(f.CustomNetworkAliases) ||
 		strSet(f.CustomNginxConfiguration) ||
 		strSet(f.PortsMappings) ||
+		// Auth
 		boolNonDefault(f.IsHTTPBasicAuthEnabled, false) ||
 		strSet(f.HTTPBasicAuthUsername) ||
 		strSet(f.HTTPBasicAuthPassword) ||
+		// Deployment commands
 		strSet(f.PreDeploymentCommand) ||
 		strSet(f.PreDeploymentCommandContainer) ||
 		strSet(f.PostDeploymentCommand) ||
 		strSet(f.PostDeploymentCommandContainer) ||
-		strSet(f.PublishDirectory) ||
-		strSet(f.DockerComposeDomains) ||
-		strSet(f.WatchPaths) ||
+		// Bool overrides
 		boolNonDefault(f.ConnectToDockerNetwork, false) ||
 		boolNonDefault(f.IsForceHTTPSEnabled, true) ||
 		boolNonDefault(f.IsStatic, false) ||
@@ -632,6 +655,8 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		boolNonDefault(f.IsContainerLabelEscapeEnabled, true) ||
 		boolNonDefault(f.IsPreserveRepositoryEnabled, false) ||
 		boolNonDefault(f.UseBuildServer, false) ||
+		boolNonDefault(f.ForceDomainOverride, false) ||
+		// String overrides
 		strNonDefault(f.Redirect, defaultRedirect) ||
 		strNonDefault(f.StaticImage, defaultStaticImage)
 }
