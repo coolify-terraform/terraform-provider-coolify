@@ -58,41 +58,41 @@ resource "coolify_server_hetzner" "example" {
 - `cloud_init_script` (String, Sensitive) Cloud-init script to run on server creation. Changing this forces a new resource.
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
-- `delete_unused_networks` (Boolean) Whether to delete unused Docker networks during cleanup.
-- `delete_unused_volumes` (Boolean) Whether to delete unused Docker volumes during cleanup.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
 - `description` (String) A description of the server.
-- `docker_cleanup_frequency` (String) Cron expression for Docker cleanup schedule.
-- `docker_cleanup_threshold` (Number) Disk usage percentage threshold for Docker cleanup.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `enable_ipv4` (Boolean) Whether to enable IPv4 on the server.
 - `enable_ipv6` (Boolean) Whether to enable IPv6 on the server.
-- `force_docker_cleanup` (Boolean) Whether to force Docker cleanup regardless of disk usage.
-- `generate_exact_labels` (Boolean) Whether to generate exact Docker labels (removes extra labels from containers).
 - `hetzner_ssh_key_ids` (String) Comma-separated list of Hetzner SSH key IDs to install on the server. Use `coolify_hetzner_ssh_keys` data source to list available keys. Changing this forces a new resource.
 - `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation.
 - `is_build_server` (Boolean) Whether this server is used for building applications.
-- `is_cloudflare_tunnel` (Boolean) Whether this server uses a Cloudflare Tunnel.
-- `is_metrics_enabled` (Boolean) Whether metrics collection is enabled on this server.
-- `is_sentinel_enabled` (Boolean) Whether the Sentinel monitoring agent is enabled.
-- `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server.
 - `port` (Number) The SSH port of the server.
-- `sentinel_metrics_history_days` (Number) Number of days to retain Sentinel metrics.
-- `sentinel_metrics_refresh_rate_seconds` (Number) Sentinel metrics refresh rate in seconds.
-- `sentinel_push_interval_seconds` (Number) Interval in seconds between Sentinel metric pushes.
 - `server_disk_usage_check_frequency` (String) Cron expression for how often disk usage is checked (e.g., `*/5 * * * *` or `@daily`).
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
-- `server_timezone` (String) Server timezone (e.g., `UTC`, `America/New_York`).
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `user` (String) The SSH user for connecting to the server.
-- `wildcard_domain` (String) Wildcard domain for applications on this server (e.g., `example.com`).
 
 ### Read-Only
 
+- `delete_unused_networks` (Boolean) Whether to delete unused Docker networks during cleanup.
+- `delete_unused_volumes` (Boolean) Whether to delete unused Docker volumes during cleanup.
+- `docker_cleanup_frequency` (String) Cron expression for Docker cleanup schedule.
+- `docker_cleanup_threshold` (Number) Disk usage percentage threshold for Docker cleanup.
+- `force_docker_cleanup` (Boolean) Whether to force Docker cleanup regardless of disk usage.
+- `generate_exact_labels` (Boolean) Whether to generate exact Docker labels (removes extra labels from containers).
 - `ip` (String) The IP address assigned to the server by Hetzner.
+- `is_cloudflare_tunnel` (Boolean) Whether this server uses a Cloudflare Tunnel.
+- `is_metrics_enabled` (Boolean) Whether metrics collection is enabled on this server.
 - `is_reachable` (Boolean) Whether the server is currently reachable.
+- `is_sentinel_enabled` (Boolean) Whether the Sentinel monitoring agent is enabled.
+- `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server.
 - `is_usable` (Boolean) Whether the server is currently usable for deployments.
+- `sentinel_metrics_history_days` (Number) Number of days to retain Sentinel metrics.
+- `sentinel_metrics_refresh_rate_seconds` (Number) Sentinel metrics refresh rate in seconds.
+- `sentinel_push_interval_seconds` (Number) Interval in seconds between Sentinel metric pushes.
+- `server_timezone` (String) Server timezone (e.g., `UTC`, `America/New_York`).
 - `uuid` (String) The unique identifier of the server.
+- `wildcard_domain` (String) Wildcard domain for applications on this server (e.g., `example.com`).
 
 <a id="nestedatt--timeouts"></a>
 ### Nested Schema for `timeouts`

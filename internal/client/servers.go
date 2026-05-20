@@ -57,6 +57,10 @@ type CreateServerInput struct {
 	PrivateKeyUUID string `json:"private_key_uuid"`
 	IsBuildServer  *bool  `json:"is_build_server,omitempty"`
 }
+
+// UpdateServerInput matches the public server PATCH contract.
+// Extended settings returned under ServerSettings are intentionally omitted
+// because the public controller does not accept them on update.
 type UpdateServerInput struct {
 	Name                                 *string `json:"name,omitempty"`
 	Description                          *string `json:"description,omitempty"`
@@ -71,21 +75,6 @@ type UpdateServerInput struct {
 	ServerDiskUsageNotificationThreshold *int    `json:"server_disk_usage_notification_threshold,omitempty"`
 	ServerDiskUsageCheckFrequency        *string `json:"server_disk_usage_check_frequency,omitempty"`
 	ConnectionTimeout                    *int    `json:"connection_timeout,omitempty"`
-	WildcardDomain                       *string `json:"wildcard_domain,omitempty"`
-	IsCloudFlareTunnel                   *bool   `json:"is_cloudflare_tunnel,omitempty"`
-	ServerTimezone                       *string `json:"server_timezone,omitempty"`
-	IsMetricsEnabled                     *bool   `json:"is_metrics_enabled,omitempty"`
-	IsTerminalEnabled                    *bool   `json:"is_terminal_enabled,omitempty"`
-	IsSentinelEnabled                    *bool   `json:"is_sentinel_enabled,omitempty"`
-	SentinelMetricsHistoryDays           *int    `json:"sentinel_metrics_history_days,omitempty"`
-	SentinelMetricsRefreshRateSeconds    *int    `json:"sentinel_metrics_refresh_rate_seconds,omitempty"`
-	SentinelPushIntervalSeconds          *int    `json:"sentinel_push_interval_seconds,omitempty"`
-	DockerCleanupFrequency               *string `json:"docker_cleanup_frequency,omitempty"`
-	DockerCleanupThreshold               *int    `json:"docker_cleanup_threshold,omitempty"`
-	ForceDockerCleanup                   *bool   `json:"force_docker_cleanup,omitempty"`
-	DeleteUnusedVolumes                  *bool   `json:"delete_unused_volumes,omitempty"`
-	DeleteUnusedNetworks                 *bool   `json:"delete_unused_networks,omitempty"`
-	GenerateExactLabels                  *bool   `json:"generate_exact_labels,omitempty"`
 }
 
 func (c *Client) ListServers(ctx context.Context) ([]Server, error) {

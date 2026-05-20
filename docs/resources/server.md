@@ -33,26 +33,9 @@ resource "coolify_server" "example" {
   # server_disk_usage_notification_threshold = 80    # Disk usage alert threshold % (default: 80)
   # server_disk_usage_check_frequency      = "*/5 * * * *"  # Cron schedule for disk checks
 
-  # Extended settings:
-  # wildcard_domain      = "example.com"    # Wildcard domain for apps
-  # server_timezone      = "America/New_York"
-  # is_cloudflare_tunnel = false
-  # is_metrics_enabled   = true
-  # is_terminal_enabled  = true
-
-  # Sentinel monitoring:
-  # is_sentinel_enabled                 = true
-  # sentinel_metrics_history_days       = 7
-  # sentinel_metrics_refresh_rate_seconds = 10
-  # sentinel_push_interval_seconds      = 60
-
-  # Docker cleanup:
-  # docker_cleanup_frequency  = "0 0 * * *"  # Daily at midnight
-  # docker_cleanup_threshold  = 80            # % disk usage trigger
-  # force_docker_cleanup      = false
-  # delete_unused_volumes     = false
-  # delete_unused_networks    = false
-  # generate_exact_labels     = false
+  # Additional server settings such as wildcard domains, Sentinel flags,
+  # and Docker cleanup options are exposed as read-only attributes because
+  # the public server PATCH endpoint does not currently accept them.
 }
 ```
 
@@ -69,36 +52,36 @@ resource "coolify_server" "example" {
 
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
-- `delete_unused_networks` (Boolean) Whether to delete unused Docker networks during cleanup.
-- `delete_unused_volumes` (Boolean) Whether to delete unused Docker volumes during cleanup.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
 - `description` (String) A description of the server.
-- `docker_cleanup_frequency` (String) Cron expression for Docker cleanup schedule.
-- `docker_cleanup_threshold` (Number) Disk usage percentage threshold for Docker cleanup.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
-- `force_docker_cleanup` (Boolean) Whether to force Docker cleanup regardless of disk usage.
-- `generate_exact_labels` (Boolean) Whether to generate exact Docker labels (removes extra labels from containers).
 - `is_build_server` (Boolean) Whether this server is used for building applications.
-- `is_cloudflare_tunnel` (Boolean) Whether this server uses a Cloudflare Tunnel.
-- `is_metrics_enabled` (Boolean) Whether metrics collection is enabled on this server.
-- `is_sentinel_enabled` (Boolean) Whether the Sentinel monitoring agent is enabled.
-- `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server.
 - `port` (Number) The SSH port of the server.
-- `sentinel_metrics_history_days` (Number) Number of days to retain Sentinel metrics.
-- `sentinel_metrics_refresh_rate_seconds` (Number) Sentinel metrics refresh rate in seconds.
-- `sentinel_push_interval_seconds` (Number) Interval in seconds between Sentinel metric pushes.
 - `server_disk_usage_check_frequency` (String) Cron expression for how often disk usage is checked (e.g., `*/5 * * * *` or `@daily`).
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
-- `server_timezone` (String) Server timezone (e.g., `UTC`, `America/New_York`).
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `user` (String) The SSH user for connecting to the server.
-- `wildcard_domain` (String) Wildcard domain for applications on this server (e.g., `example.com`).
 
 ### Read-Only
 
+- `delete_unused_networks` (Boolean) Whether to delete unused Docker networks during cleanup.
+- `delete_unused_volumes` (Boolean) Whether to delete unused Docker volumes during cleanup.
+- `docker_cleanup_frequency` (String) Cron expression for Docker cleanup schedule.
+- `docker_cleanup_threshold` (Number) Disk usage percentage threshold for Docker cleanup.
+- `force_docker_cleanup` (Boolean) Whether to force Docker cleanup regardless of disk usage.
+- `generate_exact_labels` (Boolean) Whether to generate exact Docker labels (removes extra labels from containers).
+- `is_cloudflare_tunnel` (Boolean) Whether this server uses a Cloudflare Tunnel.
+- `is_metrics_enabled` (Boolean) Whether metrics collection is enabled on this server.
 - `is_reachable` (Boolean) Whether the server is currently reachable.
+- `is_sentinel_enabled` (Boolean) Whether the Sentinel monitoring agent is enabled.
+- `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server.
 - `is_usable` (Boolean) Whether the server is currently usable for deployments.
+- `sentinel_metrics_history_days` (Number) Number of days to retain Sentinel metrics.
+- `sentinel_metrics_refresh_rate_seconds` (Number) Sentinel metrics refresh rate in seconds.
+- `sentinel_push_interval_seconds` (Number) Interval in seconds between Sentinel metric pushes.
+- `server_timezone` (String) Server timezone (e.g., `UTC`, `America/New_York`).
 - `uuid` (String) The unique identifier of the server.
+- `wildcard_domain` (String) Wildcard domain for applications on this server (e.g., `example.com`).
 
 <a id="nestedatt--timeouts"></a>
 ### Nested Schema for `timeouts`

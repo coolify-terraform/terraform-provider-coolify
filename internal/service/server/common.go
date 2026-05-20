@@ -12,9 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -31,7 +29,7 @@ type ServerCommonPtrs struct {
 	ServerDiskUsageNotificationThreshold              *types.Int64
 	ServerDiskUsageCheckFrequency                     *types.String
 	IsBuildServer, IsReachable, IsUsable              *types.Bool
-	// Extended settings
+	// Read-only extended settings returned by GET responses.
 	WildcardDomain                    *types.String
 	IsCloudFlareTunnel                *types.Bool
 	ServerTimezone                    *types.String
@@ -157,81 +155,67 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 	return attrs
 }
 
-// addExtendedSettingsAttrs adds the extended server settings schema attributes.
+// addExtendedSettingsAttrs adds read-only extended server settings returned by the API.
 func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 	attrs["wildcard_domain"] = schema.StringAttribute{
 		MarkdownDescription: "Wildcard domain for applications on this server (e.g., `example.com`).",
-		Optional:            true,
+		Computed:            true,
 	}
 	attrs["is_cloudflare_tunnel"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether this server uses a Cloudflare Tunnel.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["server_timezone"] = schema.StringAttribute{
 		MarkdownDescription: "Server timezone (e.g., `UTC`, `America/New_York`).",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["is_metrics_enabled"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether metrics collection is enabled on this server.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["is_terminal_enabled"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether the web terminal is enabled for this server.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["is_sentinel_enabled"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether the Sentinel monitoring agent is enabled.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["sentinel_metrics_history_days"] = schema.Int64Attribute{
 		MarkdownDescription: "Number of days to retain Sentinel metrics.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["sentinel_metrics_refresh_rate_seconds"] = schema.Int64Attribute{
 		MarkdownDescription: "Sentinel metrics refresh rate in seconds.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["sentinel_push_interval_seconds"] = schema.Int64Attribute{
 		MarkdownDescription: "Interval in seconds between Sentinel metric pushes.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["docker_cleanup_frequency"] = schema.StringAttribute{
 		MarkdownDescription: "Cron expression for Docker cleanup schedule.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["docker_cleanup_threshold"] = schema.Int64Attribute{
 		MarkdownDescription: "Disk usage percentage threshold for Docker cleanup.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["force_docker_cleanup"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether to force Docker cleanup regardless of disk usage.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["delete_unused_volumes"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether to delete unused Docker volumes during cleanup.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["delete_unused_networks"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether to delete unused Docker networks during cleanup.",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 	attrs["generate_exact_labels"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether to generate exact Docker labels (removes extra labels from containers).",
-		Optional:            true, Computed: true,
-		PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		Computed:            true,
 	}
 }
 
@@ -306,25 +290,5 @@ func BuildServerUpdateInput(plan, state ServerCommonPtrs) client.UpdateServerInp
 		ServerDiskUsageNotificationThreshold: flex.IntIfChanged(*plan.ServerDiskUsageNotificationThreshold, *state.ServerDiskUsageNotificationThreshold),
 		ServerDiskUsageCheckFrequency:        flex.StringIfChanged(*plan.ServerDiskUsageCheckFrequency, *state.ServerDiskUsageCheckFrequency),
 	}
-	addExtendedSettingsUpdate(plan, state, &input)
 	return input
-}
-
-// addExtendedSettingsUpdate adds diffs for the extended settings fields.
-func addExtendedSettingsUpdate(plan, state ServerCommonPtrs, input *client.UpdateServerInput) {
-	input.WildcardDomain = flex.StringIfChanged(*plan.WildcardDomain, *state.WildcardDomain)
-	input.IsCloudFlareTunnel = flex.BoolIfChanged(*plan.IsCloudFlareTunnel, *state.IsCloudFlareTunnel)
-	input.ServerTimezone = flex.StringIfChanged(*plan.ServerTimezone, *state.ServerTimezone)
-	input.IsMetricsEnabled = flex.BoolIfChanged(*plan.IsMetricsEnabled, *state.IsMetricsEnabled)
-	input.IsTerminalEnabled = flex.BoolIfChanged(*plan.IsTerminalEnabled, *state.IsTerminalEnabled)
-	input.IsSentinelEnabled = flex.BoolIfChanged(*plan.IsSentinelEnabled, *state.IsSentinelEnabled)
-	input.SentinelMetricsHistoryDays = flex.IntIfChanged(*plan.SentinelMetricsHistoryDays, *state.SentinelMetricsHistoryDays)
-	input.SentinelMetricsRefreshRateSeconds = flex.IntIfChanged(*plan.SentinelMetricsRefreshRateSeconds, *state.SentinelMetricsRefreshRateSeconds)
-	input.SentinelPushIntervalSeconds = flex.IntIfChanged(*plan.SentinelPushIntervalSeconds, *state.SentinelPushIntervalSeconds)
-	input.DockerCleanupFrequency = flex.StringIfChanged(*plan.DockerCleanupFrequency, *state.DockerCleanupFrequency)
-	input.DockerCleanupThreshold = flex.IntIfChanged(*plan.DockerCleanupThreshold, *state.DockerCleanupThreshold)
-	input.ForceDockerCleanup = flex.BoolIfChanged(*plan.ForceDockerCleanup, *state.ForceDockerCleanup)
-	input.DeleteUnusedVolumes = flex.BoolIfChanged(*plan.DeleteUnusedVolumes, *state.DeleteUnusedVolumes)
-	input.DeleteUnusedNetworks = flex.BoolIfChanged(*plan.DeleteUnusedNetworks, *state.DeleteUnusedNetworks)
-	input.GenerateExactLabels = flex.BoolIfChanged(*plan.GenerateExactLabels, *state.GenerateExactLabels)
 }

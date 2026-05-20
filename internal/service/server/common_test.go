@@ -1,9 +1,12 @@
 package server
 
 import (
+	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -52,6 +55,24 @@ type testModel struct {
 	DeleteUnusedVolumes               types.Bool
 	DeleteUnusedNetworks              types.Bool
 	GenerateExactLabels               types.Bool
+}
+
+var readOnlyExtendedSettingNames = []string{
+	"wildcard_domain",
+	"is_cloudflare_tunnel",
+	"server_timezone",
+	"is_metrics_enabled",
+	"is_terminal_enabled",
+	"is_sentinel_enabled",
+	"sentinel_metrics_history_days",
+	"sentinel_metrics_refresh_rate_seconds",
+	"sentinel_push_interval_seconds",
+	"docker_cleanup_frequency",
+	"docker_cleanup_threshold",
+	"force_docker_cleanup",
+	"delete_unused_volumes",
+	"delete_unused_networks",
+	"generate_exact_labels",
 }
 
 func TestFlattenServerCommon_FullServer(t *testing.T) {
@@ -302,6 +323,34 @@ func TestBuildServerUpdateInput_PartialChange(t *testing.T) {
 	}
 }
 
+func TestCommonServerAttrs_ExtendedSettingsAreReadOnly(t *testing.T) {
+	t.Parallel()
+
+	attrs := CommonServerAttrs(context.Background(), map[string]schema.Attribute{})
+	for _, name := range readOnlyExtendedSettingNames {
+		attr, ok := attrs[name]
+		if !ok {
+			t.Fatalf("missing attribute %q", name)
+		}
+		switch a := attr.(type) {
+		case schema.StringAttribute:
+			if !a.Computed || a.Optional || a.Required {
+				t.Errorf("%s should be computed-only, got Optional=%v Required=%v Computed=%v", name, a.Optional, a.Required, a.Computed)
+			}
+		case schema.BoolAttribute:
+			if !a.Computed || a.Optional || a.Required {
+				t.Errorf("%s should be computed-only, got Optional=%v Required=%v Computed=%v", name, a.Optional, a.Required, a.Computed)
+			}
+		case schema.Int64Attribute:
+			if !a.Computed || a.Optional || a.Required {
+				t.Errorf("%s should be computed-only, got Optional=%v Required=%v Computed=%v", name, a.Optional, a.Required, a.Computed)
+			}
+		default:
+			t.Fatalf("unexpected attribute type %T for %s", attr, name)
+		}
+	}
+}
+
 func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	t.Parallel()
 	plan, _ := newTestPtrs()
@@ -339,7 +388,8 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	*plan.IsBuildServer = types.BoolValue(true)
 	*state.IsBuildServer = types.BoolValue(false)
 
-	// Extended settings: plan != state.
+	// Unsupported extended settings still appear on reads, but the update
+	// contract must never write them back.
 	*plan.WildcardDomain = types.StringValue("new.example.com")
 	*state.WildcardDomain = types.StringValue("old.example.com")
 	*plan.IsCloudFlareTunnel = types.BoolValue(true)
@@ -348,12 +398,28 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	*state.ServerTimezone = types.StringValue("UTC")
 	*plan.IsMetricsEnabled = types.BoolValue(true)
 	*state.IsMetricsEnabled = types.BoolValue(false)
+	*plan.IsTerminalEnabled = types.BoolValue(true)
+	*state.IsTerminalEnabled = types.BoolValue(false)
+	*plan.IsSentinelEnabled = types.BoolValue(true)
+	*state.IsSentinelEnabled = types.BoolValue(false)
+	*plan.SentinelMetricsHistoryDays = types.Int64Value(7)
+	*state.SentinelMetricsHistoryDays = types.Int64Value(0)
+	*plan.SentinelMetricsRefreshRateSeconds = types.Int64Value(10)
+	*state.SentinelMetricsRefreshRateSeconds = types.Int64Value(0)
+	*plan.SentinelPushIntervalSeconds = types.Int64Value(60)
+	*state.SentinelPushIntervalSeconds = types.Int64Value(0)
 	*plan.DockerCleanupFrequency = types.StringValue("0 3 * * *")
 	*state.DockerCleanupFrequency = types.StringValue("0 0 * * *")
 	*plan.DockerCleanupThreshold = types.Int64Value(90)
 	*state.DockerCleanupThreshold = types.Int64Value(80)
 	*plan.ForceDockerCleanup = types.BoolValue(true)
 	*state.ForceDockerCleanup = types.BoolValue(false)
+	*plan.DeleteUnusedVolumes = types.BoolValue(true)
+	*state.DeleteUnusedVolumes = types.BoolValue(false)
+	*plan.DeleteUnusedNetworks = types.BoolValue(true)
+	*state.DeleteUnusedNetworks = types.BoolValue(false)
+	*plan.GenerateExactLabels = types.BoolValue(true)
+	*state.GenerateExactLabels = types.BoolValue(false)
 
 	input := BuildServerUpdateInput(plan, state)
 
@@ -405,40 +471,17 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 		t.Errorf("IsBuildServer = %v, want true", *input.IsBuildServer)
 	}
 
-	// Verify extended settings.
-	extStringChecks := []struct {
-		name, want string
-		got        *string
-	}{
-		{"WildcardDomain", "new.example.com", input.WildcardDomain},
-		{"ServerTimezone", "America/New_York", input.ServerTimezone},
-		{"DockerCleanupFrequency", "0 3 * * *", input.DockerCleanupFrequency},
+	payload, err := json.Marshal(input)
+	if err != nil {
+		t.Fatalf("marshal update input: %v", err)
 	}
-	for _, c := range extStringChecks {
-		if c.got == nil {
-			t.Errorf("%s should be non-nil", c.name)
-		} else if *c.got != c.want {
-			t.Errorf("%s = %q, want %q", c.name, *c.got, c.want)
+	var body map[string]any
+	if err := json.Unmarshal(payload, &body); err != nil {
+		t.Fatalf("unmarshal update input: %v", err)
+	}
+	for _, key := range readOnlyExtendedSettingNames {
+		if _, ok := body[key]; ok {
+			t.Errorf("unexpected unsupported PATCH field %q in body %s", key, payload)
 		}
-	}
-	extBoolChecks := []struct {
-		name string
-		got  *bool
-	}{
-		{"IsCloudFlareTunnel", input.IsCloudFlareTunnel},
-		{"IsMetricsEnabled", input.IsMetricsEnabled},
-		{"ForceDockerCleanup", input.ForceDockerCleanup},
-	}
-	for _, c := range extBoolChecks {
-		if c.got == nil {
-			t.Errorf("%s should be non-nil", c.name)
-		} else if !*c.got {
-			t.Errorf("%s = false, want true", c.name)
-		}
-	}
-	if input.DockerCleanupThreshold == nil {
-		t.Error("DockerCleanupThreshold should be non-nil")
-	} else if *input.DockerCleanupThreshold != 90 {
-		t.Errorf("DockerCleanupThreshold = %d, want 90", *input.DockerCleanupThreshold)
 	}
 }
