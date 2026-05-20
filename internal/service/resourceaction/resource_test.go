@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -143,11 +144,11 @@ resource "coolify_resource_action" "restart_app" {
 func TestResourceActionResource_TriggersForceReplace(t *testing.T) {
 	t.Parallel()
 	dbUUID := "dddd0002-0002-4000-8000-000000000002"
-	callCount := 0
+	var callCount atomic.Int32
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/databases/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		callCount++
+		callCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"message":"Database restarting."}`)
 	})

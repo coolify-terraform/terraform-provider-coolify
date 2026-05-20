@@ -163,25 +163,12 @@ func (r *envsBulkResource) Update(ctx context.Context, req resource.UpdateReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *envsBulkResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state envsBulkModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_envs_bulk"})
-
-	// Send empty array to clear all managed env vars.
-	input := client.BulkEnvVarInput{Variables: []client.EnvVarEntry{}}
-	resType := state.ResourceType.ValueString()
-	uuid := state.ResourceUUID.ValueString()
-
-	if err := r.doBulk(ctx, resType, uuid, input); err != nil {
-		if !client.IsNotFound(err) {
-			resp.Diagnostics.AddError("Error deleting bulk env vars", err.Error())
-		}
-	}
+func (r *envsBulkResource) Delete(ctx context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
+	// No-op: removing this resource from state stops managing the variables
+	// but leaves them in place on the Coolify resource. Sending an empty
+	// bulk update would wipe ALL environment variables (including ones not
+	// managed by this resource), which is destructive and undesirable.
+	tflog.Debug(ctx, "deleting resource (no-op, variables left in place)", map[string]interface{}{"resource_type": "coolify_envs_bulk"})
 }
 
 func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

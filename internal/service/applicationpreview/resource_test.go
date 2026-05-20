@@ -3,6 +3,7 @@ package applicationpreview_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -37,10 +38,10 @@ func TestApplicationPreviewResource_Create(t *testing.T) {
 
 func TestApplicationPreviewResource_DeleteCalled(t *testing.T) {
 	t.Parallel()
-	deleted := false
+	var deleted atomic.Bool
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/v1/applications/550e8400-e29b-41d4-a716-446655440041/previews/99", func(w http.ResponseWriter, _ *http.Request) {
-		deleted = true
+		deleted.Store(true)
 		w.WriteHeader(http.StatusOK)
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -57,7 +58,7 @@ func TestApplicationPreviewResource_DeleteCalled(t *testing.T) {
 			},
 		},
 	})
-	if !deleted {
+	if !deleted.Load() {
 		t.Error("expected DELETE to be called on destroy")
 	}
 }
