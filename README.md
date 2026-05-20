@@ -196,7 +196,7 @@ full local setup. Run `make help` to list the supported local targets from
 
 ```bash
 make build       # Compile the provider
-make test        # Run unit tests (740+ tests, race detector enabled)
+make test        # Run unit tests (750+ tests, race detector enabled)
 make testacc     # Run acceptance tests (needs running Coolify instance)
 make lint        # Run golangci-lint
 make fmt         # Format code (gofmt + go mod tidy)
