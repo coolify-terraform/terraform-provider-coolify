@@ -1054,6 +1054,45 @@ func TestClient_ListEnvVars_Application(t *testing.T) {
 	assert.True(t, vars[1].IsBuild)
 }
 
+func TestClient_PreferNonPreviewEnvVarsByKey(t *testing.T) {
+	t.Parallel()
+	vars := PreferNonPreviewEnvVarsByKey([]EnvironmentVariable{
+		{UUID: "preview-1", Key: "APP_KEY", Value: "preview", IsPreview: true},
+		{UUID: "runtime-1", Key: "APP_KEY", Value: "runtime", IsPreview: false},
+		{UUID: "preview-2", Key: "APP_KEY", Value: "preview-late", IsPreview: true},
+		{UUID: "preview-3", Key: "LOG_LEVEL", Value: "debug", IsPreview: true},
+	})
+
+	require.Len(t, vars, 2)
+	assert.Equal(t, "runtime", vars["APP_KEY"].Value)
+	assert.False(t, vars["APP_KEY"].IsPreview)
+	assert.Equal(t, "debug", vars["LOG_LEVEL"].Value)
+	assert.True(t, vars["LOG_LEVEL"].IsPreview)
+}
+
+func TestClient_PreserveEnvVarValue(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, "prior-secret", PreserveEnvVarValue("", "prior-secret"))
+	assert.Equal(t, "fresh-value", PreserveEnvVarValue("fresh-value", "prior-secret"))
+	assert.Equal(t, "", PreserveEnvVarValue("", ""))
+}
+
+func TestClient_FindEnvVarByUUID(t *testing.T) {
+	t.Parallel()
+	vars := []EnvironmentVariable{
+		{UUID: "first", Key: "A", Value: "1"},
+		{UUID: "second", Key: "B", Value: "2"},
+	}
+
+	found, ok := FindEnvVarByUUID(vars, "second")
+	require.True(t, ok)
+	assert.Equal(t, "B", found.Key)
+	assert.Equal(t, "2", found.Value)
+
+	_, ok = FindEnvVarByUUID(vars, "missing")
+	assert.False(t, ok)
+}
+
 func TestClient_DeleteEnvVar_Application(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

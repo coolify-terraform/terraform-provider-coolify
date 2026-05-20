@@ -39,6 +39,14 @@ full Terraform lifecycle: `plan` -> `apply` -> `read` -> `update` ->
 
 ### Prerequisites
 
+You need:
+
+- a local Coolify instance running on `http://localhost:8000`
+- Docker plus the official multi-service Coolify installation below
+- a validated visible server with SSH access for application-style tests
+- passwordless sudo for the current user if you want to use `make acc-bootstrap`
+- Python 3.9+ with `venv` support the first time `make acc-bootstrap` installs Playwright
+
 Use the official multi-service installation to set up a local Coolify instance:
 
 ```bash
@@ -86,30 +94,33 @@ docker exec coolify-db psql -U coolify -d coolify \
   -c "UPDATE instance_settings SET is_api_enabled = true;"
 ```
 
-Then create an API token from **Settings > API Tokens** in the UI, or via
-the database (see the `coolify-test-instance` skill for the database method).
+#### Repo-supported bootstrap and preflight
+
+After the local Coolify containers are up, use the repo helper to finish the
+acceptance fixture setup:
 
 ```bash
-# Set environment variables
-export COOLIFY_ENDPOINT="http://localhost:8000"
-export COOLIFY_TOKEN="<your-api-token>"
-
-# Optional: set a specific server UUID (otherwise auto-discovered)
-export COOLIFY_SERVER_UUID="<server-uuid>"
-
-# Required for cloud token and Hetzner-related acceptance tests
-export COOLIFY_HETZNER_TOKEN="<real-hetzner-api-token>"
-
-# Optional: enable GitHub App application acceptance with a live fixture.
-export COOLIFY_GITHUB_APP_APP_ID="123456"
-export COOLIFY_GITHUB_APP_INSTALLATION_ID="7890123"
-export COOLIFY_GITHUB_APP_CLIENT_ID="Iv1.abc123def456"
-export COOLIFY_GITHUB_APP_CLIENT_SECRET="<github-app-client-secret>"
-export COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE="$HOME/.config/coolify/github-app.pem"
-export COOLIFY_GITHUB_APP_REPOSITORY="owner/repo"
-# Optional, defaults to main.
-export COOLIFY_GITHUB_APP_BRANCH="main"
+make acc-bootstrap
+# Copy the printed COOLIFY_* exports into your shell, then:
+make acc-preflight
 ```
+
+`make acc-bootstrap` wraps [`scripts/setup-coolify-test.sh`](scripts/setup-coolify-test.sh).
+It registers the first admin user if needed, enables the API, creates a local
+API token, validates the default localhost server, and creates the local MinIO
+S3 fixture used by backup acceptance coverage. `make acc-preflight` requires
+`COOLIFY_ENDPOINT` and `COOLIFY_TOKEN`, checks API reachability, warns when no
+visible server is available, and reports which optional fixtures are still
+missing.
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `COOLIFY_ENDPOINT` | Yes | Coolify API base URL |
+| `COOLIFY_TOKEN` | Yes | API bearer token |
+| `COOLIFY_SERVER_UUID` | No | Override server auto-discovery for acceptance helpers |
+| `COOLIFY_HETZNER_TOKEN` | No | Required only for `cloudtoken` and Hetzner-related acceptance packages |
+| `COOLIFY_S3_STORAGE_UUID` | No | Required for S3 backup coverage if you are not using `make acc-bootstrap` |
+| `COOLIFY_GITHUB_APP_*` | No | Required for the GitHub App application acceptance test |
 
 #### Server validation for application tests
 
@@ -120,6 +131,15 @@ refresh failed` when the provider cannot read the app back. See the
 for the full SSH and server setup procedure.
 
 ### Running acceptance tests
+
+Start with the repo-supported preflight and Make targets:
+
+```bash
+make acc-preflight
+make testacc
+make testacc-pkg PKG=./internal/service/application/
+make testacc-pkg PKG=./internal/service/project/ RUN=TestAccProjectResource_CRUD
+```
 
 Cloud token and Hetzner-related acceptance tests require a real
 `COOLIFY_HETZNER_TOKEN`. Those tests call Coolify endpoints that validate the
@@ -133,18 +153,19 @@ fixture variables because Coolify verifies repository access during
 `internal/service/application.TestAccGitHubAppApplicationResource_CRUD`.
 
 **Important**: Running all tests in parallel can overwhelm the Coolify API
-and cause false timeout failures. Use `-p 1` to run packages sequentially:
+and cause false timeout failures. Use `-p 1` to run packages sequentially.
+These are the lower-level `go test` equivalents of the Make targets above:
 
 ```bash
 # Run all acceptance tests (sequential packages, avoids API overload)
 TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -p 1 -run 'TestAcc' ./...
 
 # Run a specific test
-TF_ACC=1 go test -v -count=1 -timeout=30m \
+TF_ACC=1 go test -race -v -cover -count=1 -timeout=30m \
   -run TestAccProjectResource_CRUD ./internal/service/project/
 
 # Run all acceptance tests for a package
-TF_ACC=1 go test -v -count=1 -timeout=30m \
+TF_ACC=1 go test -race -v -cover -count=1 -timeout=30m \
   -run TestAcc ./internal/service/application/
 ```
 

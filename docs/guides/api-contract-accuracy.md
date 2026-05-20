@@ -307,6 +307,8 @@ Fields: 26 | Type matches: 26/26 | Nullable matches: 26/26 | Client JSON mapping
 
 ## ServerSetting
 
+> For server resources, the Terraform write surface is intentionally smaller than the read surface. The provider only sends the shared `UpdateServerInput` fields on PATCH: `name`, `description`, `ip`, `port`, `user`, `private_key_uuid`, `is_build_server`, `concurrent_builds`, `dynamic_timeout`, `deployment_queue_limit`, `server_disk_usage_notification_threshold`, `server_disk_usage_check_frequency`, and `connection_timeout`. Other `ServerSetting` fields can still appear on GET responses without being valid Terraform inputs or public PATCH fields.
+
 Fields: 54 | Type matches: 54/54 | Nullable matches: 53/54 | Client JSON mappings: 11/54
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |

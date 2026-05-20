@@ -313,6 +313,89 @@ func TestEnvironmentVariableResource_ReadPreservesValueWhenAPIHidesIt(t *testing
 	})
 }
 
+func TestEnvironmentVariableResource_ReadMatchesExactUUIDEvenWithDuplicateKeys(t *testing.T) {
+	t.Parallel()
+	currentEnvVar := client.EnvironmentVariable{
+		UUID:      "env-runtime-uuid",
+		Key:       "SHARED_KEY",
+		Value:     "runtime-secret",
+		IsPreview: false,
+		IsBuild:   true,
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentEnvVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if deleted {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{})
+			return
+		}
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{
+			{UUID: "env-preview-uuid", Key: "SHARED_KEY", Value: "preview-secret", IsPreview: true, IsBuild: true},
+			currentEnvVar,
+		})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("envUUID") != currentEnvVar.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		deleted = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkEnvVarDestroy(srv.URL, "applications", "cccc0001-0001-4000-8000-000000000001"),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "SHARED_KEY"
+					value            = "runtime-secret"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "uuid", "env-runtime-uuid"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "runtime-secret"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_preview", "false"),
+				),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "SHARED_KEY"
+					value            = "runtime-secret"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestEnvironmentVariableResource_Import(t *testing.T) {
 	t.Parallel()
 	envVar := client.EnvironmentVariable{

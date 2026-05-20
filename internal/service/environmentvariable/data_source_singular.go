@@ -120,17 +120,16 @@ func (d *envVarDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	uuid := config.UUID.ValueString()
-	for _, ev := range envVars {
-		if ev.UUID == uuid {
-			config.Key = types.StringValue(ev.Key)
-			config.Value = types.StringValue(ev.Value)
-			config.IsPreview = types.BoolValue(ev.IsPreview)
-			config.IsBuild = types.BoolValue(ev.IsBuild)
-			resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
-			return
-		}
+	ev, found := client.FindEnvVarByUUID(envVars, uuid)
+	if !found {
+		resp.Diagnostics.AddError("Error reading environment variable",
+			fmt.Sprintf("Environment variable with UUID %q not found", uuid))
+		return
 	}
 
-	resp.Diagnostics.AddError("Error reading environment variable",
-		fmt.Sprintf("Environment variable with UUID %q not found", uuid))
+	config.Key = types.StringValue(ev.Key)
+	config.Value = types.StringValue(ev.Value)
+	config.IsPreview = types.BoolValue(ev.IsPreview)
+	config.IsBuild = types.BoolValue(ev.IsBuild)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

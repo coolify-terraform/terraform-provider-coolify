@@ -189,43 +189,50 @@ running the commands below:
 - Python 3.9+
 
 ```bash
-make tools       # Install CI-pinned local tools into ./bin
+make tools         # Install CI-pinned local tools into ./bin
+make acc-bootstrap # After local Coolify containers are running, prepare token/server/S3 fixtures
+make acc-preflight # Verify required env, API reachability, and optional acceptance fixtures
 ```
 
 `make tools` installs the pinned local versions of `golangci-lint`,
-`goreleaser`, and `tfplugindocs` used by the repo workflows. See
-[CONTRIBUTING.md](CONTRIBUTING.md) for full local setup details, and run
-`make help` to list the supported local targets from
-[GNUmakefile](GNUmakefile).
+`goreleaser`, and `tfplugindocs` used by the repo workflows. `make acc-bootstrap`
+wraps the supported [`scripts/setup-coolify-test.sh`](scripts/setup-coolify-test.sh)
+helper and prints the `COOLIFY_*` exports to copy into your shell once the
+local Coolify instance is up. `make acc-preflight` checks the required
+acceptance environment, confirms the API is reachable, and warns when optional
+fixtures are still missing. See [CONTRIBUTING.md](CONTRIBUTING.md) for full
+local setup details, and run `make help` to list the supported local targets
+from [GNUmakefile](GNUmakefile).
 
 ```bash
-make build       # Compile the provider
-make test        # Run unit tests (750+ tests, race detector enabled)
-make testacc     # Run acceptance tests (needs running Coolify instance)
-make lint        # Run golangci-lint
-make fmt         # Format code (gofmt + go mod tidy)
-make docs        # Regenerate documentation via tfplugindocs
-make validate    # Check HCL formatting in examples/
-make python-test # Run Python unit tests for scripts/
-make install     # Install provider to local Go bin
-make ci          # Run the aggregate local checks (includes python-test; acceptance tests run separately)
+make build                                      # Compile the provider
+make test                                       # Run unit tests (750+ tests, race detector enabled)
+make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
+make testacc-pkg PKG=./internal/service/project/ # Run one package with repo-standard acceptance-test flags
+make testacc                                    # Run acceptance tests (needs running Coolify instance)
+make lint                                       # Run golangci-lint
+make fmt                                        # Format code (gofmt + go mod tidy)
+make docs                                       # Regenerate documentation via tfplugindocs
+make validate                                   # Check HCL formatting in examples/
+make python-test                                # Run Python unit tests for scripts/
+make install                                    # Install provider to local Go bin
+make ci                                         # Run the aggregate local checks (includes python-test; acceptance tests run separately)
 ```
 
 `make ci` does not run acceptance tests. If your change touches real Coolify
-API behavior, also run `make testacc` or targeted `TF_ACC=1 go test ...`
-commands.
+API behavior, run `make acc-preflight` first, then `make testacc` or
+`make testacc-pkg PKG=...`.
 
-Cloud token and Hetzner-related acceptance tests need a real
-`COOLIFY_HETZNER_TOKEN` in addition to the normal `COOLIFY_ENDPOINT` and
-`COOLIFY_TOKEN` setup, because Coolify validates the token against Hetzner on
-create.
+Required acceptance env vars are `COOLIFY_ENDPOINT` and `COOLIFY_TOKEN`.
+`COOLIFY_SERVER_UUID` is an optional override. Otherwise the acceptance helpers
+use the first visible server returned by the API. Optional fixture gates are:
+`COOLIFY_HETZNER_TOKEN` for cloud token and Hetzner packages,
+`COOLIFY_S3_STORAGE_UUID` for S3 backup coverage, and `COOLIFY_GITHUB_APP_*`
+for the GitHub App application acceptance test.
 
-GitHub App application acceptance additionally needs the optional
-`COOLIFY_GITHUB_APP_*` fixture variables documented in [TESTING.md](TESTING.md),
-because Coolify verifies repository access during application creation.
-
-For local provider testing with `dev_overrides`, acceptance test setup, and
-project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
+Application acceptance tests also need a validated visible server with SSH
+access. For local provider testing with `dev_overrides`, acceptance test setup,
+and project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 [TESTING.md](TESTING.md).
 
 ### CI Pipeline

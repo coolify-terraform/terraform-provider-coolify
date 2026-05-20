@@ -3,6 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"reflect"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
@@ -73,6 +76,22 @@ var readOnlyExtendedSettingNames = []string{
 	"delete_unused_volumes",
 	"delete_unused_networks",
 	"generate_exact_labels",
+}
+
+var expectedWritableServerUpdateKeys = []string{
+	"concurrent_builds",
+	"connection_timeout",
+	"deployment_queue_limit",
+	"description",
+	"dynamic_timeout",
+	"ip",
+	"is_build_server",
+	"name",
+	"port",
+	"private_key_uuid",
+	"server_disk_usage_check_frequency",
+	"server_disk_usage_notification_threshold",
+	"user",
 }
 
 func TestFlattenServerCommon_FullServer(t *testing.T) {
@@ -351,6 +370,24 @@ func TestCommonServerAttrs_ExtendedSettingsAreReadOnly(t *testing.T) {
 	}
 }
 
+func TestUpdateServerInput_PublicPatchSurfaceMatchesExpectedKeys(t *testing.T) {
+	t.Parallel()
+
+	updateType := reflect.TypeOf(client.UpdateServerInput{})
+	actualKeys := make([]string, 0, updateType.NumField())
+	for i := 0; i < updateType.NumField(); i++ {
+		key, _, _ := strings.Cut(updateType.Field(i).Tag.Get("json"), ",")
+		if key == "" || key == "-" {
+			continue
+		}
+		actualKeys = append(actualKeys, key)
+	}
+	actualKeys = sortedStrings(actualKeys)
+	if !reflect.DeepEqual(actualKeys, expectedWritableServerUpdateKeys) {
+		t.Fatalf("UpdateServerInput PATCH keys = %v, want %v", actualKeys, expectedWritableServerUpdateKeys)
+	}
+}
+
 func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	t.Parallel()
 	plan, _ := newTestPtrs()
@@ -484,4 +521,19 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 			t.Errorf("unexpected unsupported PATCH field %q in body %s", key, payload)
 		}
 	}
+
+	actualKeys := make([]string, 0, len(body))
+	for key := range body {
+		actualKeys = append(actualKeys, key)
+	}
+	actualKeys = sortedStrings(actualKeys)
+	if !reflect.DeepEqual(actualKeys, expectedWritableServerUpdateKeys) {
+		t.Fatalf("BuildServerUpdateInput PATCH keys = %v, want %v", actualKeys, expectedWritableServerUpdateKeys)
+	}
+}
+
+func sortedStrings(values []string) []string {
+	copyValues := append([]string(nil), values...)
+	sort.Strings(copyValues)
+	return copyValues
 }

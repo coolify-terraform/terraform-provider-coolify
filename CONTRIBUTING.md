@@ -33,17 +33,27 @@ Unit tests (no Coolify instance required):
 make test
 ```
 
-Acceptance tests (requires a running Coolify instance):
+Acceptance tests (requires a running local Coolify instance):
 
 ```bash
-export COOLIFY_ENDPOINT="http://localhost:8000"
-export COOLIFY_TOKEN="your-api-token"
-# Also required for cloud token and Hetzner-related acceptance tests.
-export COOLIFY_HETZNER_TOKEN="your-real-hetzner-api-token"
-# Optional extra COOLIFY_GITHUB_APP_* fixture variables for the
-# GitHub App application acceptance test are documented in TESTING.md.
+make acc-bootstrap
+# Copy the printed COOLIFY_* exports into your shell, then:
+make acc-preflight
 make testacc
+make testacc-pkg PKG=./internal/service/application/
 ```
+
+`make acc-bootstrap` builds on the local instance setup documented in
+[TESTING.md](TESTING.md). It does not install Coolify itself. It finishes the
+repo-supported local fixture setup by enabling the API, generating a token,
+validating the default server, and creating the local S3 backup fixture.
+
+`make acc-preflight` requires `COOLIFY_ENDPOINT` and `COOLIFY_TOKEN`,
+auto-discovers a visible server unless `COOLIFY_SERVER_UUID` is set, and warns
+when optional fixtures are missing. `COOLIFY_HETZNER_TOKEN` gates the cloud
+token and Hetzner acceptance packages. `COOLIFY_S3_STORAGE_UUID` gates S3
+backup coverage. `COOLIFY_GITHUB_APP_*` gates the GitHub App application
+acceptance test.
 
 **Note**: See [TESTING.md](TESTING.md) for the full local Coolify installation
 procedure, API token creation, and server validation steps.

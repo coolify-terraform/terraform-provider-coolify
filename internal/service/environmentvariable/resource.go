@@ -253,25 +253,22 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	found := false
-	for _, ev := range envVars {
-		if ev.UUID == state.UUID.ValueString() {
-			state.Key = types.StringValue(ev.Key)
-			if ev.Value != "" || state.Value.IsNull() || state.Value.IsUnknown() {
-				state.Value = types.StringValue(ev.Value)
-			}
-			state.IsPreview = types.BoolValue(ev.IsPreview)
-			state.IsBuild = types.BoolValue(ev.IsBuild)
-			found = true
-			break
-		}
-	}
-
+	ev, found := client.FindEnvVarByUUID(envVars, state.UUID.ValueString())
 	if !found {
 		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
 	}
+
+	priorValue := ""
+	if !state.Value.IsNull() && !state.Value.IsUnknown() {
+		priorValue = state.Value.ValueString()
+	}
+
+	state.Key = types.StringValue(ev.Key)
+	state.Value = types.StringValue(client.PreserveEnvVarValue(ev.Value, priorValue))
+	state.IsPreview = types.BoolValue(ev.IsPreview)
+	state.IsBuild = types.BoolValue(ev.IsBuild)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

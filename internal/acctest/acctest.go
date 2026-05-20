@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -38,14 +39,37 @@ func WithVersionEndpoint(next http.Handler) http.Handler {
 	})
 }
 
+var (
+	accConnectivityCheckOnce sync.Once
+	accConnectivityCheckErr  error
+	accServerDiscoveryOnce   sync.Once
+	accServerDiscoveryUUID   string
+	accServerDiscoveryErr    error
+)
+
 // TestAccPreCheck validates that required environment variables are set.
 func TestAccPreCheck(t *testing.T) {
 	t.Helper()
-	if v := os.Getenv("COOLIFY_ENDPOINT"); v == "" {
-		t.Fatal("COOLIFY_ENDPOINT must be set for acceptance tests")
+	endpoint := os.Getenv("COOLIFY_ENDPOINT")
+	if endpoint == "" {
+		t.Fatal("COOLIFY_ENDPOINT must be set for acceptance tests. Run 'make acc-preflight' after exporting your local Coolify credentials, or bootstrap with 'make acc-bootstrap'.")
 	}
-	if v := os.Getenv("COOLIFY_TOKEN"); v == "" {
-		t.Fatal("COOLIFY_TOKEN must be set for acceptance tests")
+	token := os.Getenv("COOLIFY_TOKEN")
+	if token == "" {
+		t.Fatal("COOLIFY_TOKEN must be set for acceptance tests. Run 'make acc-preflight' after exporting your local Coolify credentials, or bootstrap with 'make acc-bootstrap'.")
+	}
+
+	accConnectivityCheckOnce.Do(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		c := client.New(endpoint, token)
+		if _, err := c.GetVersion(ctx); err != nil {
+			accConnectivityCheckErr = fmt.Errorf("checking Coolify API connectivity: %w. Run 'make acc-preflight' or 'make acc-bootstrap' to verify the local instance", err)
+		}
+	})
+	if accConnectivityCheckErr != nil {
+		t.Fatal(accConnectivityCheckErr)
 	}
 }
 
@@ -291,18 +315,30 @@ func AccTestServerUUID(t *testing.T) string {
 	if v := os.Getenv("COOLIFY_SERVER_UUID"); v != "" {
 		return v
 	}
-	c := AccTestClient(t)
-	servers, err := c.ListServers(context.Background())
-	if err != nil {
-		t.Skipf("Could not list servers: %v", err)
-	}
-	for _, s := range servers {
-		if s.UUID != "" {
-			return s.UUID
+
+	TestAccPreCheck(t)
+	accServerDiscoveryOnce.Do(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		c := client.New(os.Getenv("COOLIFY_ENDPOINT"), os.Getenv("COOLIFY_TOKEN"))
+		servers, err := c.ListServers(ctx)
+		if err != nil {
+			accServerDiscoveryErr = fmt.Errorf("listing servers: %w", err)
+			return
 		}
+		for _, s := range servers {
+			if s.UUID != "" {
+				accServerDiscoveryUUID = s.UUID
+				return
+			}
+		}
+		accServerDiscoveryErr = fmt.Errorf("no visible servers returned by the API")
+	})
+	if accServerDiscoveryErr != nil {
+		t.Skipf("No server fixture available for acceptance tests: %v. Set COOLIFY_SERVER_UUID explicitly, or run 'make acc-preflight' / 'make acc-bootstrap' to validate a local server.", accServerDiscoveryErr)
 	}
-	t.Skip("No servers available for acceptance tests")
-	return ""
+	return accServerDiscoveryUUID
 }
 
 // AccTestDatabaseConfig returns a Terraform config for an acceptance test of a

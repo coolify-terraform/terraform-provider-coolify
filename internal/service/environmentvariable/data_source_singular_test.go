@@ -137,6 +137,43 @@ func TestEnvironmentVariableDataSource_InvalidUUID(t *testing.T) {
 	})
 }
 
+func TestEnvironmentVariableDataSource_MatchesExactUUIDEvenWithDuplicateKeys(t *testing.T) {
+	t.Parallel()
+
+	envVars := []client.EnvironmentVariable{
+		{UUID: "11111111-1111-4111-8111-111111111111", Key: "DB_HOST", Value: "preview-host", IsPreview: true, IsBuild: false},
+		{UUID: "22222222-2222-4222-8222-222222222222", Key: "DB_HOST", Value: "runtime-host", IsPreview: false, IsBuild: false},
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(envVars)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_environment_variable" "test" {
+  uuid             = "22222222-2222-4222-8222-222222222222"
+  application_uuid = "cccc0001-0001-4000-8000-000000000001"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_environment_variable.test", "uuid", "22222222-2222-4222-8222-222222222222"),
+					resource.TestCheckResourceAttr("data.coolify_environment_variable.test", "key", "DB_HOST"),
+					resource.TestCheckResourceAttr("data.coolify_environment_variable.test", "value", "runtime-host"),
+					resource.TestCheckResourceAttr("data.coolify_environment_variable.test", "is_preview", "false"),
+				),
+			},
+		},
+	})
+}
+
 func TestEnvironmentVariableDataSource_NotFound(t *testing.T) {
 	t.Parallel()
 

@@ -15,6 +15,33 @@ test: ## Run unit tests (race detector, coverage)
 testacc: ## Run acceptance tests (needs COOLIFY_ENDPOINT + COOLIFY_TOKEN)
 	TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -p 1 -run 'TestAcc' ./...
 
+acc-bootstrap: ## Run the supported local Coolify acceptance-test bootstrap script
+	./scripts/setup-coolify-test.sh
+
+acc-preflight: ## Check required env, API reachability, and common acceptance fixtures
+	@missing=0; \
+	if [ -z "$$COOLIFY_ENDPOINT" ]; then echo "ERROR: COOLIFY_ENDPOINT is not set. Set it or run 'make acc-bootstrap'."; missing=1; fi; \
+	if [ -z "$$COOLIFY_TOKEN" ]; then echo "ERROR: COOLIFY_TOKEN is not set. Set it or run 'make acc-bootstrap'."; missing=1; fi; \
+	if [ "$$missing" -ne 0 ]; then exit 1; fi; \
+	version=$$(curl -fsS -H "Authorization: Bearer $$COOLIFY_TOKEN" "$$COOLIFY_ENDPOINT/api/v1/version" 2>/dev/null || true); \
+	if [ -z "$$version" ]; then echo "ERROR: Could not reach $$COOLIFY_ENDPOINT/api/v1/version with COOLIFY_TOKEN. Run 'make acc-bootstrap' or fix the local instance."; exit 1; fi; \
+	echo "API OK: $$version"; \
+	servers=$$(curl -fsS -H "Authorization: Bearer $$COOLIFY_TOKEN" "$$COOLIFY_ENDPOINT/api/v1/servers" 2>/dev/null || true); \
+	if printf '%s\n' "$$servers" | grep -q '"uuid"'; then echo "Server discovery OK: at least one server is visible."; else echo "WARNING: No visible servers returned. Set COOLIFY_SERVER_UUID or run 'make acc-bootstrap' and validate a server."; fi; \
+	if [ -n "$$COOLIFY_SERVER_UUID" ]; then echo "Server fixture override OK: COOLIFY_SERVER_UUID is set."; else echo "INFO: COOLIFY_SERVER_UUID not set. Acceptance helpers will auto-discover the first visible server."; fi; \
+	if [ -z "$$COOLIFY_HETZNER_TOKEN" ]; then echo "WARNING: COOLIFY_HETZNER_TOKEN not set. Hetzner and cloud token acceptance packages will skip."; else echo "Hetzner fixture OK: COOLIFY_HETZNER_TOKEN is set."; fi; \
+	if [ -z "$$COOLIFY_S3_STORAGE_UUID" ]; then echo "WARNING: COOLIFY_S3_STORAGE_UUID not set. S3 backup acceptance tests will skip."; else echo "S3 fixture OK: COOLIFY_S3_STORAGE_UUID is set."; fi; \
+	if [ -n "$$COOLIFY_GITHUB_APP_APP_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_INSTALLATION_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_CLIENT_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_CLIENT_SECRET" ] && [ -n "$$COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE" ] && [ -n "$$COOLIFY_GITHUB_APP_REPOSITORY" ]; then echo "GitHub App fixtures OK: COOLIFY_GITHUB_APP_* is configured."; else echo "WARNING: COOLIFY_GITHUB_APP_* fixtures are incomplete. GitHub App application acceptance will skip."; fi
+
+check-pkg: ## Verify PKG is set for package-scoped test targets
+	@test -n "$(PKG)" || (echo "ERROR: PKG is required, example: make test-pkg PKG=./internal/service/project/"; exit 1)
+
+test-pkg: check-pkg ## Run unit tests for one package (usage: make test-pkg PKG=./internal/service/project/)
+	go test -race -cover -count=1 -timeout=$(or $(TIMEOUT),15m) $(PKG)
+
+testacc-pkg: check-pkg ## Run acceptance tests for one package (usage: make testacc-pkg PKG=./internal/service/project/ [RUN=TestAcc])
+	TF_ACC=1 go test -race -v -cover -count=1 -timeout=$(or $(TIMEOUT),30m) -run '$(or $(RUN),TestAcc)' $(PKG)
+
 lint: check-golangci-lint-version ## Run golangci-lint + go mod tidy check (CI-pinned golangci-lint)
 	golangci-lint run ./...
 	@go mod tidy && git diff --exit-code go.mod go.sum || (echo "go mod tidy produced changes"; exit 1)
@@ -150,4 +177,4 @@ tools: ## Install all required development tools
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-python3 check-tfplugindocs goreleaser-check modverify ci scaffold tools help
+.PHONY: build test testacc acc-bootstrap acc-preflight check-pkg test-pkg testacc-pkg lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-python3 check-tfplugindocs goreleaser-check modverify ci scaffold tools help

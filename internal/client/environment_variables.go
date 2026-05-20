@@ -16,6 +16,40 @@ type EnvironmentVariable struct {
 	IsBuild   bool   `json:"is_buildtime"`
 }
 
+// PreferNonPreviewEnvVarsByKey collapses duplicate preview and non-preview rows
+// by key, preferring the non-preview value when both exist.
+func PreferNonPreviewEnvVarsByKey(envs []EnvironmentVariable) map[string]EnvironmentVariable {
+	vars := make(map[string]EnvironmentVariable, len(envs))
+	for _, ev := range envs {
+		current, ok := vars[ev.Key]
+		if ok && !current.IsPreview && ev.IsPreview {
+			continue
+		}
+		vars[ev.Key] = ev
+	}
+	return vars
+}
+
+// PreserveEnvVarValue keeps the previous Terraform value when the API hides a
+// sensitive value by returning an empty string.
+func PreserveEnvVarValue(current, prior string) string {
+	if current != "" || prior == "" {
+		return current
+	}
+	return prior
+}
+
+// FindEnvVarByUUID returns the matching env var from a list along with whether
+// it was found.
+func FindEnvVarByUUID(envs []EnvironmentVariable, uuid string) (EnvironmentVariable, bool) {
+	for _, ev := range envs {
+		if ev.UUID == uuid {
+			return ev, true
+		}
+	}
+	return EnvironmentVariable{}, false
+}
+
 // applicationEnvVarInput includes is_buildtime (only valid for applications).
 type applicationEnvVarInput struct {
 	Key       string `json:"key"`

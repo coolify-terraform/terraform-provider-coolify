@@ -128,11 +128,7 @@ func (r *envsBulkResource) Read(ctx context.Context, req resource.ReadRequest, r
 	managed := make(map[string]string, len(stateVars))
 	for k, prior := range stateVars {
 		if v, ok := vars[k]; ok {
-			if v != "" || prior == "" {
-				managed[k] = v
-			} else {
-				managed[k] = prior
-			}
+			managed[k] = client.PreserveEnvVarValue(v, prior)
 		}
 	}
 
@@ -205,18 +201,10 @@ func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportS
 }
 
 func flattenEnvVars(envs []client.EnvironmentVariable) map[string]string {
-	vars := make(map[string]string, len(envs))
-	nonPreviewSeen := make(map[string]bool, len(envs))
-	for _, ev := range envs {
-		if ev.IsPreview {
-			if nonPreviewSeen[ev.Key] {
-				continue
-			}
-			vars[ev.Key] = ev.Value
-			continue
-		}
-		vars[ev.Key] = ev.Value
-		nonPreviewSeen[ev.Key] = true
+	collapsed := client.PreferNonPreviewEnvVarsByKey(envs)
+	vars := make(map[string]string, len(collapsed))
+	for key, ev := range collapsed {
+		vars[key] = ev.Value
 	}
 	return vars
 }
