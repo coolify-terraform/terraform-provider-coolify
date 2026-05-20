@@ -27,8 +27,12 @@ acc-preflight: ## Check required env, API reachability, and common acceptance fi
 	if [ -z "$$version" ]; then echo "ERROR: Could not reach $$COOLIFY_ENDPOINT/api/v1/version with COOLIFY_TOKEN. Run 'make acc-bootstrap' or fix the local instance."; exit 1; fi; \
 	echo "API OK: $$version"; \
 	servers=$$(curl -fsS -H "Authorization: Bearer $$COOLIFY_TOKEN" "$$COOLIFY_ENDPOINT/api/v1/servers" 2>/dev/null || true); \
-	if printf '%s\n' "$$servers" | grep -q '"uuid"'; then echo "Server discovery OK: at least one server is visible."; else echo "WARNING: No visible servers returned. Set COOLIFY_SERVER_UUID or run 'make acc-bootstrap' and validate a server."; fi; \
-	if [ -n "$$COOLIFY_SERVER_UUID" ]; then echo "Server fixture override OK: COOLIFY_SERVER_UUID is set."; else echo "INFO: COOLIFY_SERVER_UUID not set. Acceptance helpers will auto-discover the first visible server."; fi; \
+	has_visible_server=0; \
+	if printf '%s\n' "$$servers" | grep -q '"uuid"'; then echo "Server discovery OK: at least one server is visible."; has_visible_server=1; else echo "WARNING: No visible servers returned. Set COOLIFY_SERVER_UUID or run 'make acc-bootstrap' and validate a server."; fi; \
+	if [ -n "$$COOLIFY_SERVER_UUID" ]; then \
+		if [ "$$has_visible_server" -ne 1 ]; then echo "ERROR: COOLIFY_SERVER_UUID is set, but /api/v1/servers returned no visible servers."; exit 1; fi; \
+		if printf '%s\n' "$$servers" | grep -Eq '"uuid"[[:space:]]*:[[:space:]]*"'"$$COOLIFY_SERVER_UUID"'"'; then echo "Server fixture override OK: COOLIFY_SERVER_UUID is visible."; else echo "ERROR: COOLIFY_SERVER_UUID=$$COOLIFY_SERVER_UUID was not returned by /api/v1/servers. Fix the UUID or run 'make acc-bootstrap' to validate a local server."; exit 1; fi; \
+	else echo "INFO: COOLIFY_SERVER_UUID not set. Acceptance helpers will auto-discover the first visible server."; fi; \
 	if [ -z "$$COOLIFY_HETZNER_TOKEN" ]; then echo "WARNING: COOLIFY_HETZNER_TOKEN not set. Hetzner and cloud token acceptance packages will skip."; else echo "Hetzner fixture OK: COOLIFY_HETZNER_TOKEN is set."; fi; \
 	if [ -z "$$COOLIFY_S3_STORAGE_UUID" ]; then echo "WARNING: COOLIFY_S3_STORAGE_UUID not set. S3 backup acceptance tests will skip."; else echo "S3 fixture OK: COOLIFY_S3_STORAGE_UUID is set."; fi; \
 	if [ -n "$$COOLIFY_GITHUB_APP_APP_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_INSTALLATION_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_CLIENT_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_CLIENT_SECRET" ] && [ -n "$$COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE" ] && [ -n "$$COOLIFY_GITHUB_APP_REPOSITORY" ]; then echo "GitHub App fixtures OK: COOLIFY_GITHUB_APP_* is configured."; else echo "WARNING: COOLIFY_GITHUB_APP_* fixtures are incomplete. GitHub App application acceptance will skip."; fi
