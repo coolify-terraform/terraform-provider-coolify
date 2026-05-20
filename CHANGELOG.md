@@ -92,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `redeploy_on_update` now triggers a restart for all configuration fields including `name`, `description`, webhook secrets, auto-deploy settings, and container label options. Previously only runtime-affecting fields (ports, limits, health checks, build settings) were covered. Only immutable, computed-only, and the `redeploy_on_update` flag itself are excluded.
 - `dockerfile` and `docker_compose_raw` attributes are now marked `Sensitive` (they can contain embedded secrets such as build arguments or service credentials)
 - Redundant `UseStateForUnknown` plan modifier removed from `deployment_queue_limit` on server resources (the `Default` value already handles this; no user-visible behavior change)
 - Consolidated `is_include_timestamps`, `enable_ssl`, and `ssl_mode` handling into shared database helpers, reducing duplication across all 8 database resources

@@ -970,7 +970,7 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(true),
 		},
 		"redeploy_on_update": schema.BoolAttribute{
-			MarkdownDescription: "When `true`, the application is automatically restarted after a Terraform update that changes runtime-affecting fields. This includes network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands (`pre_deployment_command`, `post_deployment_command`), static site settings (`is_static`, `is_spa`, `redirect`), and type-specific fields (e.g., `docker_image` for docker image apps, `github_app_uuid` for GitHub App apps). Defaults to `false`.",
+			MarkdownDescription: "When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`, `github_app_uuid`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
@@ -1481,7 +1481,6 @@ func runtimeFieldsChanged(plan, state commonAppFields) bool {
 		stringFieldChanged(plan.Name, state.Name) ||
 		stringFieldChanged(plan.Description, state.Description) ||
 		boolFieldChanged(plan.IsAutoDeployEnabled, state.IsAutoDeployEnabled) ||
-		stringFieldChanged(plan.PreviewURLTemplate, state.PreviewURLTemplate) ||
 		stringFieldChanged(plan.ManualWebhookSecretBitbucket, state.ManualWebhookSecretBitbucket) ||
 		stringFieldChanged(plan.ManualWebhookSecretGitea, state.ManualWebhookSecretGitea) ||
 		stringFieldChanged(plan.ManualWebhookSecretGitHub, state.ManualWebhookSecretGitHub) ||

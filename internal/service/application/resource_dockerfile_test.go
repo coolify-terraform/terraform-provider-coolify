@@ -561,6 +561,100 @@ func TestDockerfileApplicationResource_RedeployOnUpdate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestDockerfileApplicationResource_RedeployOnNameChange
+// ---------------------------------------------------------------------------
+
+func TestDockerfileApplicationResource_RedeployOnNameChange(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	currentApp := client.Application{
+		UUID:               "dockerfile-redeploy-name-uuid",
+		Name:               "original-name",
+		DockerfileLocation: "/Dockerfile",
+		PortsExposes:       "80",
+		ProjectUUID:        "aaaa0003-0003-4000-8000-000000000003",
+		ServerUUID:         "bbbb0003-0003-4000-8000-000000000003",
+		EnvironmentName:    "production",
+	}
+	var restartCalled atomic.Bool
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerfile", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, ok := requestBody["name"].(string); ok {
+			currentApp.Name = v
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, _ *http.Request) {
+		restartCalled.Store(true)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"message": "Restarting."})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerfileResourceConfig(srv.URL, `
+					name                = "original-name"
+					project_uuid        = "aaaa0003-0003-4000-8000-000000000003"
+					server_uuid         = "bbbb0003-0003-4000-8000-000000000003"
+					dockerfile_location = "/Dockerfile"
+					ports_exposes       = "80"
+					redeploy_on_update  = true
+				`),
+			},
+			{
+				Config: testDockerfileResourceConfig(srv.URL, `
+					name                = "renamed-app"
+					project_uuid        = "aaaa0003-0003-4000-8000-000000000003"
+					server_uuid         = "bbbb0003-0003-4000-8000-000000000003"
+					dockerfile_location = "/Dockerfile"
+					ports_exposes       = "80"
+					redeploy_on_update  = true
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "name", "renamed-app"),
+			},
+		},
+	})
+	if !restartCalled.Load() {
+		t.Error("expected restart to be called when name changed with redeploy_on_update=true")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
