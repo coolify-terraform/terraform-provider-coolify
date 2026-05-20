@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -56,19 +57,19 @@ type Database struct {
 	Status                 string `json:"status,omitempty"`
 	InternalDBUrl          string `json:"internal_db_url,omitempty"`
 	// Type-specific configs
-	PostgresConf           string `json:"postgres_conf,omitempty"`
-	PostgresInitdbArgs     string `json:"postgres_initdb_args,omitempty"`
-	PostgresHostAuthMethod string `json:"postgres_host_auth_method,omitempty"`
-	InitScripts            string `json:"init_scripts,omitempty"`
-	MysqlConf              string `json:"mysql_conf,omitempty"`
-	MariadbConf            string `json:"mariadb_conf,omitempty"`
-	MongoConf              string `json:"mongo_conf,omitempty"`
-	RedisConf              string `json:"redis_conf,omitempty"`
-	RedisPassword          string `json:"redis_password,omitempty"`
-	ClickhouseDB           string `json:"clickhouse_db,omitempty"`
-	KeydbConf              string `json:"keydb_conf,omitempty"`
-	KeydbPassword          string `json:"keydb_password,omitempty"`
-	DragonflyPassword      string `json:"dragonfly_password,omitempty"`
+	PostgresConf           string          `json:"postgres_conf,omitempty"`
+	PostgresInitdbArgs     string          `json:"postgres_initdb_args,omitempty"`
+	PostgresHostAuthMethod string          `json:"postgres_host_auth_method,omitempty"`
+	InitScripts            json.RawMessage `json:"init_scripts,omitempty"`
+	MysqlConf              string          `json:"mysql_conf,omitempty"`
+	MariadbConf            string          `json:"mariadb_conf,omitempty"`
+	MongoConf              string          `json:"mongo_conf,omitempty"`
+	RedisConf              string          `json:"redis_conf,omitempty"`
+	RedisPassword          string          `json:"redis_password,omitempty"`
+	ClickhouseDB           string          `json:"clickhouse_db,omitempty"`
+	KeydbConf              string          `json:"keydb_conf,omitempty"`
+	KeydbPassword          string          `json:"keydb_password,omitempty"`
+	DragonflyPassword      string          `json:"dragonfly_password,omitempty"`
 }
 type CreatePostgresqlInput struct {
 	ServerUUID       string `json:"server_uuid"`

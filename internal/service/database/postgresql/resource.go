@@ -259,5 +259,7 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	flex.SetStringOrClear(&m.PostgresConf, db.PostgresConf)
 	flex.SetStringOrClear(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
 	flex.SetStringOrClear(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
-	flex.SetStringOrClear(&m.InitScripts, db.InitScripts)
+	if len(db.InitScripts) > 0 {
+		flex.SetStringOrClear(&m.InitScripts, string(db.InitScripts))
+	}
 }

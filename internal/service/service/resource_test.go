@@ -5,16 +5,45 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
+	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
+
+// expectedWritableServiceUpdateKeys lists the JSON keys that UpdateServiceInput
+// must expose. Add to this list when the provider gains support for additional
+// writable service fields. See #335 for the remaining API-accepted fields.
+var expectedWritableServiceUpdateKeys = []string{
+	"connect_to_docker_network",
+	"description",
+	"name",
+}
+
+func TestUpdateServiceInput_PublicPatchSurfaceMatchesExpectedKeys(t *testing.T) {
+	t.Parallel()
+	updateType := reflect.TypeOf(client.UpdateServiceInput{})
+	actualKeys := make([]string, 0, updateType.NumField())
+	for i := 0; i < updateType.NumField(); i++ {
+		key, _, _ := strings.Cut(updateType.Field(i).Tag.Get("json"), ",")
+		if key == "" || key == "-" {
+			continue
+		}
+		actualKeys = append(actualKeys, key)
+	}
+	sort.Strings(actualKeys)
+	if !reflect.DeepEqual(actualKeys, expectedWritableServiceUpdateKeys) {
+		t.Fatalf("UpdateServiceInput PATCH keys = %v, want %v", actualKeys, expectedWritableServiceUpdateKeys)
+	}
+}
 
 const serviceTestConfig = `
 resource "coolify_service" "test" {
