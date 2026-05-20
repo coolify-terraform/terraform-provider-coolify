@@ -32,9 +32,9 @@ TF_LOG_PROVIDER=DEBUG terraform plan 2>debug.log
 |-------|-------------|-------------|
 | `WARN` | Read-back failures, unexpected API formats | First pass: check for obvious problems |
 | `DEBUG` | CRUD entry/exit with resource UUID, state removals | Debugging state drift or missing resources |
-| `TRACE` | Full HTTP requests/responses with redacted payloads, retry attempts | Investigating API-level issues |
+| `TRACE` | Full HTTP requests/responses with redacted JSON payloads, retry attempts | Investigating API-level issues |
 
--> **Tip:** Start with `DEBUG`. Only switch to `TRACE` if you need to see
+> **Tip:** Start with `DEBUG`. Only switch to `TRACE` if you need to see
 the raw API communication.
 
 ## What the Logs Show
@@ -55,9 +55,10 @@ the raw API communication.
 [TRACE] [retry] retrying request: method=GET url=/api/v1/servers/abc-123 attempt=2
 ```
 
-Sensitive fields (passwords, tokens, private keys) are automatically
-replaced with `[REDACTED]` in request body logs. Response bodies are
-truncated to 500 characters.
+Sensitive fields in structured JSON payloads, including passwords,
+tokens, private keys, and environment variable values, are automatically
+replaced with `[REDACTED]`. Non-JSON bodies are omitted. Logged response
+body excerpts are truncated to 500 characters.
 
 ## Common Issues
 
@@ -117,9 +118,10 @@ TF_LOG_PROVIDER=DEBUG terraform plan 2>debug.log
 ```
 
 5. **Review the log for sensitive values** before sharing. The provider
-   redacts most sensitive fields automatically, but custom environment
-   variable values may appear in the logs.
+   redacts most sensitive fields in structured JSON payloads automatically
+   and omits non-JSON bodies, but you should still review the log before
+   posting it publicly.
 
--> File bug reports at
+> File bug reports at
 [github.com/SebTardifLabs/terraform-provider-coolify/issues](https://github.com/SebTardifLabs/terraform-provider-coolify/issues)
 using the **Bug Report** template.

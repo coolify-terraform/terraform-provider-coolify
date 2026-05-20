@@ -19,6 +19,7 @@ func TestAccHetznerServerResource_CRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_server_hetzner", "/api/v1/servers/"),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccHetznerServerConfig(name, privKey, ""),
@@ -27,6 +28,12 @@ func TestAccHetznerServerResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "name", name),
 					resource.TestCheckResourceAttrSet("coolify_server_hetzner.test", "ip"),
 				),
+			},
+			// Idempotency check.
+			{
+				Config:             testAccHetznerServerConfig(name, privKey, ""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 			// Update name.
 			{

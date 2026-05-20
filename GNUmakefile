@@ -1,5 +1,8 @@
 GOLANGCI_LINT_VERSION := 2.12.2
 GORELEASER_MAJOR := 2
+BIN_DIR := $(CURDIR)/bin
+
+export PATH := $(BIN_DIR):$(PATH)
 
 default: help
 
@@ -67,7 +70,15 @@ modverify: ## Verify module cache integrity against go.sum
 	go mod verify
 
 docs-check: check-tfplugindocs ## Check generated docs are up to date
-	@go generate ./... && git diff --exit-code -- docs/ || (echo "docs/ out of date: run 'make docs' and commit"; exit 1)
+	@before=$$(mktemp); after=$$(mktemp); \
+	trap 'rm -f "$$before" "$$after"' EXIT; \
+	git diff -- docs/ > "$$before"; \
+	go generate ./...; \
+	git diff -- docs/ > "$$after"; \
+	if ! cmp -s "$$before" "$$after"; then \
+		echo "docs/ out of date: run 'make docs' and commit"; \
+		exit 1; \
+	fi
 
 counts-check: ## Verify AGENTS.md and README.md resource/data source/test counts
 	@r_actual=$$(sed -n '/func.*Resources.*\[\]func.*resource\.Resource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
@@ -87,7 +98,15 @@ counts-check: ## Verify AGENTS.md and README.md resource/data source/test counts
 	echo "Counts OK: $$r_actual resources, $$d_actual data sources, $$t_actual tests ($$t_floor+ documented)"
 
 api-coverage-check: ## Check API_COVERAGE.md is up to date
-	@$(MAKE) api-coverage && git diff --exit-code API_COVERAGE.md || (echo "API_COVERAGE.md out of date: run 'make api-coverage' and commit"; exit 1)
+	@before=$$(mktemp); after=$$(mktemp); \
+	trap 'rm -f "$$before" "$$after"' EXIT; \
+	git diff -- API_COVERAGE.md > "$$before"; \
+	$(MAKE) api-coverage; \
+	git diff -- API_COVERAGE.md > "$$after"; \
+	if ! cmp -s "$$before" "$$after"; then \
+		echo "API_COVERAGE.md out of date: run 'make api-coverage' and commit"; \
+		exit 1; \
+	fi
 
 check-golangci-lint-version: ## Verify golangci-lint version matches CI
 	@version="$$(golangci-lint version 2>/dev/null || true)"; \
@@ -110,7 +129,7 @@ check-python3: ## Verify Python 3 is installed for Python-backed tooling
 	@command -v python3 >/dev/null 2>&1 || (echo "ERROR: python3 is required for Python-backed Make targets in this repo. Install Python 3.9+ and re-run."; exit 1)
 
 check-tfplugindocs: ## Verify tfplugindocs is installed for docs generation
-	@command -v tfplugindocs >/dev/null 2>&1 || (echo "ERROR: tfplugindocs is required for docs generation. Install with: (cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs)"; exit 1)
+	@command -v tfplugindocs >/dev/null 2>&1 || (echo "ERROR: tfplugindocs is required for docs generation. Install with: make tools"; exit 1)
 
 goreleaser-check: check-goreleaser-version ## Validate .goreleaser.yml with CI-compatible goreleaser
 	goreleaser check
@@ -119,13 +138,14 @@ vulncheck: ## Run govulncheck for known vulnerabilities
 	go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
 
 tools: ## Install all required development tools
-	@echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION)..."
-	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v$(GOLANGCI_LINT_VERSION)
-	@echo "Installing goreleaser..."
-	@go install github.com/goreleaser/goreleaser/v$(GORELEASER_MAJOR)@latest
-	@echo "Installing tfplugindocs..."
-	@cd tools && GOBIN=$$(cd .. && pwd)/bin go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-	@echo "All tools installed."
+	@mkdir -p "$(BIN_DIR)"
+	@echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION) to $(BIN_DIR)..."
+	@GOBIN="$(BIN_DIR)" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v$(GOLANGCI_LINT_VERSION)
+	@echo "Installing goreleaser to $(BIN_DIR)..."
+	@GOBIN="$(BIN_DIR)" go install github.com/goreleaser/goreleaser/v$(GORELEASER_MAJOR)@latest
+	@echo "Installing tfplugindocs to $(BIN_DIR)..."
+	@cd tools && GOBIN="$(BIN_DIR)" go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	@echo "All tools installed to $(BIN_DIR)."
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'

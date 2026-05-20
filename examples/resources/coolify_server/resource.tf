@@ -10,7 +10,8 @@ resource "coolify_server" "example" {
   # is_build_server                      = true    # Use this server for application builds
   # concurrent_builds                      = 2       # Max parallel deployments (default: 2)
   # dynamic_timeout                        = 3600    # Deployment timeout in seconds (default: 3600)
-  # deployment_queue_limit                 = 25      # Max queued deployments, 0 = unlimited (default: 25)
+  # deployment_queue_limit                 = 25      # Max queued deployments (must be at least 1, default: 25)
+  # connection_timeout                     = 10      # SSH connection timeout in seconds (1-300, default: 10)
   # server_disk_usage_notification_threshold = 80    # Disk usage alert threshold % (default: 80)
   # server_disk_usage_check_frequency      = "*/5 * * * *"  # Cron schedule for disk checks
 

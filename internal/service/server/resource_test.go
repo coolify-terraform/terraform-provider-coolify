@@ -48,6 +48,7 @@ func newServerMockServer() *httptest.Server {
 					ConcurrentBuilds:                     2,
 					DynamicTimeout:                       3600,
 					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
 					ServerDiskUsageNotificationThreshold: 80,
 					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
 				},
@@ -125,6 +126,9 @@ func newServerMockServer() *httptest.Server {
 			}
 			if update.DeploymentQueueLimit != nil {
 				srv.Settings.DeploymentQueueLimit = *update.DeploymentQueueLimit
+			}
+			if update.ConnectionTimeout != nil {
+				srv.Settings.ConnectionTimeout = *update.ConnectionTimeout
 			}
 			if update.ServerDiskUsageNotificationThreshold != nil {
 				srv.Settings.ServerDiskUsageNotificationThreshold = *update.ServerDiskUsageNotificationThreshold
@@ -291,6 +295,7 @@ resource "coolify_server" "test" {
   concurrent_builds                         = 4
   dynamic_timeout                           = 7200
   deployment_queue_limit                    = 10
+  connection_timeout                        = 30
   server_disk_usage_notification_threshold  = 90
   server_disk_usage_check_frequency         = "0 * * * *"
 }`, 2222),
@@ -306,6 +311,7 @@ resource "coolify_server" "test" {
 					resource.TestCheckResourceAttr("coolify_server.test", "concurrent_builds", "4"),
 					resource.TestCheckResourceAttr("coolify_server.test", "dynamic_timeout", "7200"),
 					resource.TestCheckResourceAttr("coolify_server.test", "deployment_queue_limit", "10"),
+					resource.TestCheckResourceAttr("coolify_server.test", "connection_timeout", "30"),
 					resource.TestCheckResourceAttr("coolify_server.test", "server_disk_usage_notification_threshold", "90"),
 					resource.TestCheckResourceAttr("coolify_server.test", "server_disk_usage_check_frequency", "0 * * * *"),
 				),
@@ -428,6 +434,7 @@ func TestServerResource_DeleteUsesForce(t *testing.T) {
 					ConcurrentBuilds:                     2,
 					DynamicTimeout:                       3600,
 					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
 					ServerDiskUsageNotificationThreshold: 80,
 					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
 				},
@@ -524,6 +531,50 @@ resource "coolify_server" "test" {
   private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 }`,
 				ExpectError: regexp.MustCompile(`must be between 1 and 65535`),
+			},
+		},
+	})
+}
+
+func TestServerResource_InvalidDeploymentQueueLimit(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name                   = "bad-queue-server"
+  ip                     = "10.0.0.1"
+  deployment_queue_limit = 0
+  private_key_uuid       = "dddd0002-0002-4000-8000-000000000002"
+}`,
+				ExpectError: regexp.MustCompile(`must be at least 1`),
+			},
+		},
+	})
+}
+
+func TestServerResource_InvalidConnectionTimeout(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name               = "bad-timeout-server"
+  ip                 = "10.0.0.1"
+  connection_timeout = 301
+  private_key_uuid   = "dddd0002-0002-4000-8000-000000000002"
+}`,
+				ExpectError: regexp.MustCompile(`must be between 1 and 300`),
 			},
 		},
 	})

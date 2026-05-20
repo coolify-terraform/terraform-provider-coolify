@@ -4,14 +4,14 @@ page_title: "coolify_scheduled_task Resource - coolify"
 subcategory: ""
 description: |-
   Manages a scheduled task on a Coolify application or service.
-  ~> Note: Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for scheduled tasks. Large numbers of these resources on a single application may cause slower plan/apply times due to this API limitation.
+  ~> Note: Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for scheduled tasks. Large numbers of these resources on a single parent resource may cause slower plan/apply times due to this API limitation.
 ---
 
 # coolify_scheduled_task (Resource)
 
 Manages a scheduled task on a Coolify application or service.
 
-~> **Note:** Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for scheduled tasks. Large numbers of these resources on a single application may cause slower plan/apply times due to this API limitation.
+~> **Note:** Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for scheduled tasks. Large numbers of these resources on a single parent resource may cause slower plan/apply times due to this API limitation.
 
 ## Example Usage
 

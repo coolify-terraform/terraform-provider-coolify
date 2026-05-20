@@ -34,15 +34,10 @@ resource "coolify_server_hetzner" "example" {
   # instant_validate  = true
 
   # Optional server settings (same as coolify_server):
-  # is_build_server   = false
-  # concurrent_builds = 2
-  # dynamic_timeout   = 3600
-
-  # Extended settings (same as coolify_server):
-  # wildcard_domain    = "example.com"
-  # is_metrics_enabled = true
-  # is_sentinel_enabled = true
-  # docker_cleanup_frequency = "0 0 * * *"
+  # is_build_server    = false
+  # concurrent_builds  = 2
+  # dynamic_timeout    = 3600
+  # connection_timeout = 10      # SSH connection timeout in seconds (1-300, default: 10)
 }
 ```
 
@@ -62,6 +57,7 @@ resource "coolify_server_hetzner" "example" {
 
 - `cloud_init_script` (String, Sensitive) Cloud-init script to run on server creation. Changing this forces a new resource.
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
+- `connection_timeout` (Number) SSH connection timeout in seconds.
 - `delete_unused_networks` (Boolean) Whether to delete unused Docker networks during cleanup.
 - `delete_unused_volumes` (Boolean) Whether to delete unused Docker volumes during cleanup.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).

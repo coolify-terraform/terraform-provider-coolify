@@ -27,7 +27,7 @@ import (
 type ServerCommonPtrs struct {
 	UUID, Name, Description, IP, User, PrivateKeyUUID *types.String
 	Port, ConcurrentBuilds, DynamicTimeout            *types.Int64
-	DeploymentQueueLimit                              *types.Int64
+	DeploymentQueueLimit, ConnectionTimeout           *types.Int64
 	ServerDiskUsageNotificationThreshold              *types.Int64
 	ServerDiskUsageCheckFrequency                     *types.String
 	IsBuildServer, IsReachable, IsUsable              *types.Bool
@@ -121,6 +121,14 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 			Optional:            true,
 			Computed:            true,
 			Default:             int64default.StaticInt64(25),
+			Validators:          []validator.Int64{int64validator.AtLeast(1)},
+		},
+		"connection_timeout": schema.Int64Attribute{
+			MarkdownDescription: "SSH connection timeout in seconds.",
+			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(10),
+			Validators:          []validator.Int64{int64validator.Between(1, 300)},
 		},
 		"server_disk_usage_notification_threshold": schema.Int64Attribute{
 			MarkdownDescription: "Disk usage percentage at which a notification is sent.",
@@ -247,9 +255,14 @@ func FlattenServerCommon(srv *client.Server, f ServerCommonPtrs) {
 	*f.IsUsable = types.BoolValue(srv.IsUsable)
 
 	if srv.Settings != nil {
+		connectionTimeout := srv.Settings.ConnectionTimeout
+		if connectionTimeout == 0 {
+			connectionTimeout = 10
+		}
 		*f.ConcurrentBuilds = types.Int64Value(int64(srv.Settings.ConcurrentBuilds))
 		*f.DynamicTimeout = types.Int64Value(int64(srv.Settings.DynamicTimeout))
 		*f.DeploymentQueueLimit = types.Int64Value(int64(srv.Settings.DeploymentQueueLimit))
+		*f.ConnectionTimeout = types.Int64Value(int64(connectionTimeout))
 		*f.ServerDiskUsageNotificationThreshold = types.Int64Value(int64(srv.Settings.ServerDiskUsageNotificationThreshold))
 		*f.ServerDiskUsageCheckFrequency = flex.StringToFramework(srv.Settings.ServerDiskUsageCheckFrequency)
 		flattenExtendedSettings(srv.Settings, f)
@@ -289,6 +302,7 @@ func BuildServerUpdateInput(plan, state ServerCommonPtrs) client.UpdateServerInp
 		ConcurrentBuilds:                     flex.IntIfChanged(*plan.ConcurrentBuilds, *state.ConcurrentBuilds),
 		DynamicTimeout:                       flex.IntIfChanged(*plan.DynamicTimeout, *state.DynamicTimeout),
 		DeploymentQueueLimit:                 flex.IntIfChanged(*plan.DeploymentQueueLimit, *state.DeploymentQueueLimit),
+		ConnectionTimeout:                    flex.IntIfChanged(*plan.ConnectionTimeout, *state.ConnectionTimeout),
 		ServerDiskUsageNotificationThreshold: flex.IntIfChanged(*plan.ServerDiskUsageNotificationThreshold, *state.ServerDiskUsageNotificationThreshold),
 		ServerDiskUsageCheckFrequency:        flex.StringIfChanged(*plan.ServerDiskUsageCheckFrequency, *state.ServerDiskUsageCheckFrequency),
 	}

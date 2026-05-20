@@ -60,6 +60,7 @@ type hetznerServerResourceModel struct {
 	ConcurrentBuilds                     types.Int64  `tfsdk:"concurrent_builds"`
 	DynamicTimeout                       types.Int64  `tfsdk:"dynamic_timeout"`
 	DeploymentQueueLimit                 types.Int64  `tfsdk:"deployment_queue_limit"`
+	ConnectionTimeout                    types.Int64  `tfsdk:"connection_timeout"`
 	ServerDiskUsageNotificationThreshold types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
 	ServerDiskUsageCheckFrequency        types.String `tfsdk:"server_disk_usage_check_frequency"`
 	// Extended settings
@@ -234,6 +235,7 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 			ConcurrentBuilds:                     flex.IntIfNonDefault(plan.ConcurrentBuilds, 2),
 			DynamicTimeout:                       flex.IntIfNonDefault(plan.DynamicTimeout, 3600),
 			DeploymentQueueLimit:                 flex.IntIfNonDefault(plan.DeploymentQueueLimit, 25),
+			ConnectionTimeout:                    flex.IntIfNonDefault(plan.ConnectionTimeout, 10),
 			ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(plan.ServerDiskUsageNotificationThreshold, 80),
 			ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(plan.ServerDiskUsageCheckFrequency),
 			WildcardDomain:                       flex.StringValueOrNull(plan.WildcardDomain),
@@ -377,6 +379,7 @@ func hasNonDefaultHetznerSettings(plan hetznerServerResourceModel) bool {
 		intNonDefault(plan.ConcurrentBuilds, 2) ||
 		intNonDefault(plan.DynamicTimeout, 3600) ||
 		intNonDefault(plan.DeploymentQueueLimit, 25) ||
+		intNonDefault(plan.ConnectionTimeout, 10) ||
 		intNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
 		strSet(plan.ServerDiskUsageCheckFrequency) ||
 		strSet(plan.WildcardDomain) ||
@@ -402,6 +405,7 @@ func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 		IP: &m.IP, User: &m.User, PrivateKeyUUID: &m.PrivateKeyUUID,
 		Port: &m.Port, ConcurrentBuilds: &m.ConcurrentBuilds, DynamicTimeout: &m.DynamicTimeout,
 		DeploymentQueueLimit:                 &m.DeploymentQueueLimit,
+		ConnectionTimeout:                    &m.ConnectionTimeout,
 		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
 		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
 		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,

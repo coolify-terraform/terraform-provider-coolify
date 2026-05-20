@@ -36,6 +36,7 @@ type serverDataSourceModel struct {
 	ConcurrentBuilds                     types.Int64  `tfsdk:"concurrent_builds"`
 	DynamicTimeout                       types.Int64  `tfsdk:"dynamic_timeout"`
 	DeploymentQueueLimit                 types.Int64  `tfsdk:"deployment_queue_limit"`
+	ConnectionTimeout                    types.Int64  `tfsdk:"connection_timeout"`
 	ServerDiskUsageNotificationThreshold types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
 	ServerDiskUsageCheckFrequency        types.String `tfsdk:"server_disk_usage_check_frequency"`
 }
@@ -83,11 +84,15 @@ func serverDataSourceAttributes() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"dynamic_timeout": schema.Int64Attribute{
-			MarkdownDescription: "Deployment timeout in seconds.",
+			MarkdownDescription: "Timeout in seconds for Docker operations (pull, build, health check) during deployment.",
 			Computed:            true,
 		},
 		"deployment_queue_limit": schema.Int64Attribute{
-			MarkdownDescription: "Maximum number of queued deployments. 0 means unlimited.",
+			MarkdownDescription: "Maximum number of queued deployments.",
+			Computed:            true,
+		},
+		"connection_timeout": schema.Int64Attribute{
+			MarkdownDescription: "SSH connection timeout in seconds.",
 			Computed:            true,
 		},
 		"server_disk_usage_notification_threshold": schema.Int64Attribute{
@@ -118,9 +123,14 @@ func flattenServerDataSourceModel(srv client.Server) serverDataSourceModel {
 		return model
 	}
 
+	connectionTimeout := srv.Settings.ConnectionTimeout
+	if connectionTimeout == 0 {
+		connectionTimeout = 10
+	}
 	model.ConcurrentBuilds = types.Int64Value(int64(srv.Settings.ConcurrentBuilds))
 	model.DynamicTimeout = types.Int64Value(int64(srv.Settings.DynamicTimeout))
 	model.DeploymentQueueLimit = types.Int64Value(int64(srv.Settings.DeploymentQueueLimit))
+	model.ConnectionTimeout = types.Int64Value(int64(connectionTimeout))
 	model.ServerDiskUsageNotificationThreshold = types.Int64Value(int64(srv.Settings.ServerDiskUsageNotificationThreshold))
 	model.ServerDiskUsageCheckFrequency = flex.StringToFramework(srv.Settings.ServerDiskUsageCheckFrequency)
 

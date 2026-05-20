@@ -320,6 +320,30 @@ data "coolify_team" "test" {
 	})
 }
 
+func TestProvider_UnreachableEndpointRedactsCredentials(t *testing.T) {
+	t.Setenv("COOLIFY_TOKEN", "")
+	t.Setenv("COOLIFY_ENDPOINT", "")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+provider "coolify" {
+  endpoint = "http://user:pass@127.0.0.1:1"
+  token    = "bad-token"
+}
+
+data "coolify_team" "test" {
+  id = 0
+}
+`,
+				ExpectError: regexp.MustCompile(`(?s)Unable to connect to Coolify.*http://REDACTED:REDACTED@127\.0\.0\.1:1`),
+			},
+		},
+	})
+}
+
 func TestProvider_EnvVarFallback(t *testing.T) {
 	// Configure everything via env vars only (no provider block attributes).
 	mux := http.NewServeMux()

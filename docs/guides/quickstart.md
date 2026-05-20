@@ -71,7 +71,7 @@ Find your server UUID via the UI or with:
 
 ```bash
 curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" \
-  "$COOLIFY_ENDPOINT/api/v1/servers" | jq '.[] | {uuid, name, is_usable: .settings.is_usable}'
+  "$COOLIFY_ENDPOINT/api/v1/servers" | jq '.[] | {uuid, name, is_usable}'
 ```
 
 ## 3. Initialize and apply

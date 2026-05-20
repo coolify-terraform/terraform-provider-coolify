@@ -405,7 +405,7 @@ var sensitiveKeys = map[string]bool{
 func redactJSON(data []byte) string {
 	var raw interface{}
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return truncateString(string(data), 500)
+		return "[non-JSON body omitted]"
 	}
 	redactValue(raw)
 	out, err := json.Marshal(raw)

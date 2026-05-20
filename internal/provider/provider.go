@@ -169,7 +169,7 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 
 	tflog.Debug(ctx, "provider configured", map[string]interface{}{
-		"endpoint": endpoint,
+		"endpoint": redactEndpointForDiagnostics(endpoint),
 		"version":  p.version,
 	})
 

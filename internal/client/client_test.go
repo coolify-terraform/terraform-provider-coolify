@@ -4522,7 +4522,7 @@ func TestRedactJSON_Nested(t *testing.T) {
 func TestRedactJSON_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	got := redactJSON([]byte("not json"))
-	assert.Equal(t, "not json", got)
+	assert.Equal(t, "[non-JSON body omitted]", got)
 }
 
 func TestClient_CreateDatabase_EmptyUUID(t *testing.T) {

@@ -45,6 +45,7 @@ func newHetznerServerMockServer() *httptest.Server {
 					ConcurrentBuilds:                     2,
 					DynamicTimeout:                       3600,
 					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
 					ServerDiskUsageNotificationThreshold: 80,
 					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
 				},
@@ -114,6 +115,9 @@ func newHetznerServerMockServer() *httptest.Server {
 			if update.DeploymentQueueLimit != nil {
 				srv.Settings.DeploymentQueueLimit = *update.DeploymentQueueLimit
 			}
+			if update.ConnectionTimeout != nil {
+				srv.Settings.ConnectionTimeout = *update.ConnectionTimeout
+			}
 			if update.ServerDiskUsageNotificationThreshold != nil {
 				srv.Settings.ServerDiskUsageNotificationThreshold = *update.ServerDiskUsageNotificationThreshold
 			}
@@ -164,6 +168,7 @@ resource "coolify_server_hetzner" "test" {
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "is_usable", "true"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "concurrent_builds", "2"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "dynamic_timeout", "3600"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "connection_timeout", "10"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "server_disk_usage_notification_threshold", "80"),
 				),
 			},
@@ -220,6 +225,7 @@ resource "coolify_server_hetzner" "test" {
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "concurrent_builds", "8"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "dynamic_timeout", "1800"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "deployment_queue_limit", "10"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "connection_timeout", "10"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "server_disk_usage_notification_threshold", "90"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "server_disk_usage_check_frequency", "0 * * * *"),
 				),
@@ -384,6 +390,56 @@ resource "coolify_server_hetzner" "test" {
 	})
 }
 
+func TestHetznerServerResource_InvalidDeploymentQueueLimit(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_hetzner" "test" {
+  name                       = "bad-queue-hetzner"
+  cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
+  server_type                = "cx22"
+  location                   = "fsn1"
+  image                      = "ubuntu-24.04"
+  private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
+  deployment_queue_limit     = 0
+}`,
+				ExpectError: regexp.MustCompile(`must be at least 1`),
+			},
+		},
+	})
+}
+
+func TestHetznerServerResource_InvalidConnectionTimeout(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_hetzner" "test" {
+  name                       = "bad-timeout-hetzner"
+  cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
+  server_type                = "cx22"
+  location                   = "fsn1"
+  image                      = "ubuntu-24.04"
+  private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
+  connection_timeout         = 301
+}`,
+				ExpectError: regexp.MustCompile(`must be between 1 and 300`),
+			},
+		},
+	})
+}
+
 func TestHetznerServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	t.Parallel()
 	servers := make(map[string]*client.Server)
@@ -531,6 +587,7 @@ func TestHetznerServerResource_DeleteUsesForce(t *testing.T) {
 					ConcurrentBuilds:                     2,
 					DynamicTimeout:                       3600,
 					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
 					ServerDiskUsageNotificationThreshold: 80,
 					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
 				},

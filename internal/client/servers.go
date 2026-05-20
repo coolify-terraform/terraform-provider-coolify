@@ -15,6 +15,7 @@ type ServerSettings struct {
 	DeploymentQueueLimit                 int    `json:"deployment_queue_limit"`
 	ServerDiskUsageNotificationThreshold int    `json:"server_disk_usage_notification_threshold"`
 	ServerDiskUsageCheckFrequency        string `json:"server_disk_usage_check_frequency"`
+	ConnectionTimeout                    int    `json:"connection_timeout"`
 	WildcardDomain                       string `json:"wildcard_domain,omitempty"`
 	IsCloudFlareTunnel                   bool   `json:"is_cloudflare_tunnel"`
 	ServerTimezone                       string `json:"server_timezone,omitempty"`
@@ -69,6 +70,7 @@ type UpdateServerInput struct {
 	DeploymentQueueLimit                 *int    `json:"deployment_queue_limit,omitempty"`
 	ServerDiskUsageNotificationThreshold *int    `json:"server_disk_usage_notification_threshold,omitempty"`
 	ServerDiskUsageCheckFrequency        *string `json:"server_disk_usage_check_frequency,omitempty"`
+	ConnectionTimeout                    *int    `json:"connection_timeout,omitempty"`
 	WildcardDomain                       *string `json:"wildcard_domain,omitempty"`
 	IsCloudFlareTunnel                   *bool   `json:"is_cloudflare_tunnel,omitempty"`
 	ServerTimezone                       *string `json:"server_timezone,omitempty"`

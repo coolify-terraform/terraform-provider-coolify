@@ -28,9 +28,10 @@ data "coolify_server" "example" {
 ### Read-Only
 
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
-- `deployment_queue_limit` (Number) Maximum number of queued deployments. 0 means unlimited.
+- `connection_timeout` (Number) SSH connection timeout in seconds.
+- `deployment_queue_limit` (Number) Maximum number of queued deployments.
 - `description` (String) A description of the server.
-- `dynamic_timeout` (Number) Deployment timeout in seconds.
+- `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `ip` (String) The IP address of the server.
 - `is_build_server` (Boolean) Whether this server is used for building applications.
 - `is_reachable` (Boolean) Whether the server is currently reachable.

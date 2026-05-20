@@ -24,17 +24,13 @@ func TestResourceActionResource_StartDatabase(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"message":"Database starting request queued."}`)
+		fmt.Fprint(w, `{"message":"Database starting request queued."}`)
 	})
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
-	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{
-			{
-				Config: fmt.Sprintf(`
+	config := fmt.Sprintf(`
 provider "coolify" {
   endpoint = %q
   token    = "test-token"
@@ -45,12 +41,23 @@ resource "coolify_resource_action" "start_db" {
   resource_type = "database"
   action        = "start"
 }
-`, srv.URL, dbUUID),
+`, srv.URL, dbUUID)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_resource_action.start_db", "resource_uuid", dbUUID),
 					resource.TestCheckResourceAttr("coolify_resource_action.start_db", "resource_type", "database"),
 					resource.TestCheckResourceAttr("coolify_resource_action.start_db", "action", "start"),
 				),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
@@ -68,7 +75,7 @@ func TestResourceActionResource_StopService(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"message":"Service stopping request queued."}`)
+		fmt.Fprint(w, `{"message":"Service stopping request queued."}`)
 	})
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -110,7 +117,7 @@ func TestResourceActionResource_RestartApplication(t *testing.T) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"deployment_uuid":"deploy-001","message":"Restart queued."}`)
+		fmt.Fprint(w, `{"deployment_uuid":"deploy-001","message":"Restart queued."}`)
 	})
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -148,9 +155,13 @@ func TestResourceActionResource_TriggersForceReplace(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/databases/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != dbUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		callCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"message":"Database restarting."}`)
+		fmt.Fprint(w, `{"message":"Database restarting."}`)
 	})
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -195,6 +206,10 @@ resource "coolify_resource_action" "restart_db" {
 			},
 		},
 	})
+
+	if got := callCount.Load(); got != 2 {
+		t.Fatalf("expected restart action to execute twice, got %d", got)
+	}
 }
 
 func TestResourceActionResource_InvalidAction(t *testing.T) {
@@ -261,7 +276,11 @@ func TestResourceActionResource_AlreadyStopped(t *testing.T) {
 	dbUUID := "aaaa0003-0003-4000-8000-000000000003"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/databases/{uuid}/stop", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /api/v1/databases/{uuid}/stop", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != dbUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, `{"message":"Database is already stopped."}`)
@@ -297,7 +316,11 @@ func TestResourceActionResource_AlreadyRunning(t *testing.T) {
 	svcUUID := "aaaa0004-0004-4000-8000-000000000004"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/services/{uuid}/start", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /api/v1/services/{uuid}/start", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != svcUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, `{"message":"Service is already running."}`)

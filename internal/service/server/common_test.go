@@ -14,6 +14,7 @@ func newTestPtrs() (ServerCommonPtrs, *testModel) {
 		IP: &m.IP, User: &m.User, PrivateKeyUUID: &m.PrivateKeyUUID,
 		Port: &m.Port, ConcurrentBuilds: &m.ConcurrentBuilds, DynamicTimeout: &m.DynamicTimeout,
 		DeploymentQueueLimit:                 &m.DeploymentQueueLimit,
+		ConnectionTimeout:                    &m.ConnectionTimeout,
 		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
 		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
 		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
@@ -31,7 +32,7 @@ func newTestPtrs() (ServerCommonPtrs, *testModel) {
 type testModel struct {
 	UUID, Name, Description, IP, User, PrivateKeyUUID types.String
 	Port, ConcurrentBuilds, DynamicTimeout            types.Int64
-	DeploymentQueueLimit                              types.Int64
+	DeploymentQueueLimit, ConnectionTimeout           types.Int64
 	ServerDiskUsageNotificationThreshold              types.Int64
 	ServerDiskUsageCheckFrequency                     types.String
 	IsBuildServer, IsReachable, IsUsable              types.Bool
@@ -65,6 +66,7 @@ func TestFlattenServerCommon_FullServer(t *testing.T) {
 			ConcurrentBuilds:                     4,
 			DynamicTimeout:                       7200,
 			DeploymentQueueLimit:                 10,
+			ConnectionTimeout:                    30,
 			ServerDiskUsageNotificationThreshold: 90,
 			ServerDiskUsageCheckFrequency:        "0 * * * *",
 			WildcardDomain:                       "example.com",
@@ -117,6 +119,9 @@ func TestFlattenServerCommon_FullServer(t *testing.T) {
 	}
 	if m.DeploymentQueueLimit.ValueInt64() != 10 {
 		t.Errorf("DeploymentQueueLimit = %d, want 10", m.DeploymentQueueLimit.ValueInt64())
+	}
+	if m.ConnectionTimeout.ValueInt64() != 30 {
+		t.Errorf("ConnectionTimeout = %d, want 30", m.ConnectionTimeout.ValueInt64())
 	}
 	if m.ServerDiskUsageNotificationThreshold.ValueInt64() != 90 {
 		t.Errorf("DiskUsageThreshold = %d, want 90", m.ServerDiskUsageNotificationThreshold.ValueInt64())
@@ -185,6 +190,28 @@ func TestFlattenServerCommon_NilSettings(t *testing.T) {
 	}
 }
 
+func TestFlattenServerCommon_ZeroConnectionTimeoutDefaultsTo10(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+
+	srv := &client.Server{
+		UUID: "uuid", Name: "n", IP: "1.2.3.4", Port: 22, User: "root",
+		Settings: &client.ServerSettings{
+			ConcurrentBuilds:                     2,
+			DynamicTimeout:                       3600,
+			DeploymentQueueLimit:                 25,
+			ConnectionTimeout:                    0,
+			ServerDiskUsageNotificationThreshold: 80,
+		},
+	}
+
+	FlattenServerCommon(srv, ptrs)
+
+	if m.ConnectionTimeout.ValueInt64() != 10 {
+		t.Errorf("ConnectionTimeout = %d, want 10", m.ConnectionTimeout.ValueInt64())
+	}
+}
+
 func TestFlattenServerCommon_EmptyPrivateKeyUUID(t *testing.T) {
 	t.Parallel()
 	ptrs, m := newTestPtrs()
@@ -231,6 +258,8 @@ func TestBuildServerUpdateInput_NoChanges(t *testing.T) {
 	*state.DynamicTimeout = p
 	*plan.DeploymentQueueLimit = p
 	*state.DeploymentQueueLimit = p
+	*plan.ConnectionTimeout = p
+	*state.ConnectionTimeout = p
 	*plan.ServerDiskUsageNotificationThreshold = p
 	*state.ServerDiskUsageNotificationThreshold = p
 
@@ -301,6 +330,8 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	*state.DynamicTimeout = types.Int64Value(3600)
 	*plan.DeploymentQueueLimit = types.Int64Value(50)
 	*state.DeploymentQueueLimit = types.Int64Value(25)
+	*plan.ConnectionTimeout = types.Int64Value(30)
+	*state.ConnectionTimeout = types.Int64Value(10)
 	*plan.ServerDiskUsageNotificationThreshold = types.Int64Value(95)
 	*state.ServerDiskUsageNotificationThreshold = types.Int64Value(80)
 
@@ -356,6 +387,7 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 		{"ConcurrentBuilds", 8, input.ConcurrentBuilds},
 		{"DynamicTimeout", 7200, input.DynamicTimeout},
 		{"DeploymentQueueLimit", 50, input.DeploymentQueueLimit},
+		{"ConnectionTimeout", 30, input.ConnectionTimeout},
 		{"ServerDiskUsageNotificationThreshold", 95, input.ServerDiskUsageNotificationThreshold},
 	}
 	for _, c := range intChecks {

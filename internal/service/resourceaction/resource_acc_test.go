@@ -15,17 +15,24 @@ func TestAccResourceActionResource_StartDatabase(t *testing.T) {
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-ra-start")
 
+	config := testAccResourceActionDatabaseConfig(name, serverUUID, "start", nil)
+
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceActionDatabaseConfig(name, serverUUID, "start", nil),
+				Config: config,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_resource_action.test", "resource_uuid"),
 					resource.TestCheckResourceAttr("coolify_resource_action.test", "resource_type", "database"),
 					resource.TestCheckResourceAttr("coolify_resource_action.test", "action", "start"),
 				),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})

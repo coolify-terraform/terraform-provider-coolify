@@ -13,13 +13,8 @@ resource "coolify_server_hetzner" "example" {
   # instant_validate  = true
 
   # Optional server settings (same as coolify_server):
-  # is_build_server   = false
-  # concurrent_builds = 2
-  # dynamic_timeout   = 3600
-
-  # Extended settings (same as coolify_server):
-  # wildcard_domain    = "example.com"
-  # is_metrics_enabled = true
-  # is_sentinel_enabled = true
-  # docker_cleanup_frequency = "0 0 * * *"
+  # is_build_server    = false
+  # concurrent_builds  = 2
+  # dynamic_timeout    = 3600
+  # connection_timeout = 10      # SSH connection timeout in seconds (1-300, default: 10)
 }
