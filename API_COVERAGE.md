@@ -96,14 +96,14 @@
 | `GET /version` | `data.coolify_version` | v0.1.0 |
 | `PATCH /applications/{uuid}` | `coolify_application + variants` | v0.1.0 |
 | `PATCH /applications/{uuid}/envs` | `coolify_environment_variable` | v0.1.0 |
-| `PATCH /applications/{uuid}/envs/bulk` | `client.BulkUpdateAppEnvVars` | v0.2.0 |
+| `PATCH /applications/{uuid}/envs/bulk` | `client.BulkUpdateEnvVars` | v0.2.0 |
 | `PATCH /applications/{uuid}/scheduled-tasks/{task_uuid}` | `coolify_scheduled_task` | v0.2.0 |
 | `PATCH /applications/{uuid}/storages` | `coolify_storage` | v0.2.0 |
 | `PATCH /cloud-tokens/{uuid}` | `coolify_cloud_token` | v0.2.0 |
 | `PATCH /databases/{uuid}` | `coolify_*_database` | v0.1.0 |
 | `PATCH /databases/{uuid}/backups/{scheduled_backup_uuid}` | `coolify_database_backup` | v0.1.0 |
 | `PATCH /databases/{uuid}/envs` | `coolify_environment_variable` | v0.2.0 |
-| `PATCH /databases/{uuid}/envs/bulk` | `client.BulkUpdateDatabaseEnvVars` | v0.2.0 |
+| `PATCH /databases/{uuid}/envs/bulk` | `client.BulkUpdateEnvVars` | v0.2.0 |
 | `PATCH /databases/{uuid}/storages` | `coolify_storage` | v0.2.0 |
 | `PATCH /github-apps/{github_app_id}` | `coolify_github_app` | v0.2.0 |
 | `PATCH /projects/{uuid}` | `coolify_project` | v0.1.0 |
@@ -111,7 +111,7 @@
 | `PATCH /servers/{uuid}` | `coolify_server` | v0.1.0 |
 | `PATCH /services/{uuid}` | `coolify_service` | v0.1.0 |
 | `PATCH /services/{uuid}/envs` | `coolify_environment_variable` | v0.1.0 |
-| `PATCH /services/{uuid}/envs/bulk` | `client.BulkUpdateServiceEnvVars` | v0.2.0 |
+| `PATCH /services/{uuid}/envs/bulk` | `client.BulkUpdateEnvVars` | v0.2.0 |
 | `PATCH /services/{uuid}/scheduled-tasks/{task_uuid}` | `coolify_scheduled_task` | v0.2.0 |
 | `PATCH /services/{uuid}/storages` | `coolify_storage` | v0.2.0 |
 | `POST /applications/dockerfile` | `coolify_application_dockerfile` | v0.2.0 |

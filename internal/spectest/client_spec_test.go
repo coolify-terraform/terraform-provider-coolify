@@ -126,12 +126,12 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			nil, 200, map[string]string{"message": "deleted"}},
 
 		// Environment Variables (application)
-		{"CreateAppEnvVar", "POST", "/api/v1/applications/app-1/envs",
+		{"CreateEnvVar_Application", "POST", "/api/v1/applications/app-1/envs",
 			client.EnvironmentVariable{Key: "DB_HOST", Value: "localhost", IsPreview: false},
 			201, map[string]string{"uuid": "env-1"}},
-		{"ListAppEnvVars", "GET", "/api/v1/applications/app-1/envs",
+		{"ListEnvVars_Application", "GET", "/api/v1/applications/app-1/envs",
 			nil, 200, []map[string]interface{}{{"uuid": "env-1", "key": "DB_HOST", "value": "localhost"}}},
-		{"DeleteAppEnvVar", "DELETE", "/api/v1/applications/app-1/envs/env-1",
+		{"DeleteEnvVar_Application", "DELETE", "/api/v1/applications/app-1/envs/env-1",
 			nil, 200, map[string]string{"message": "deleted"}},
 
 		// Database Backups
@@ -222,22 +222,22 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			nil, 200, map[string]string{"message": "deleted"}},
 
 		// App env bulk
-		{"BulkUpdateAppEnvs", "PATCH", "/api/v1/applications/app-1/envs/bulk",
+		{"BulkUpdateEnvVars_Application", "PATCH", "/api/v1/applications/app-1/envs/bulk",
 			client.BulkEnvVarInput{Variables: []client.EnvVarEntry{{Key: "K1", Value: "V1"}}},
 			200, map[string]string{"message": "updated"}},
 
 		// Database environment variables
-		{"ListDatabaseEnvVars", "GET", "/api/v1/databases/db-1/envs",
+		{"ListEnvVars_Database", "GET", "/api/v1/databases/db-1/envs",
 			nil, 200, []map[string]interface{}{{"uuid": "env-1", "key": "PG_HOST", "value": "localhost"}}},
-		{"CreateDatabaseEnvVar", "POST", "/api/v1/databases/db-1/envs",
+		{"CreateEnvVar_Database", "POST", "/api/v1/databases/db-1/envs",
 			client.EnvironmentVariable{Key: "PG_HOST", Value: "localhost", IsPreview: false},
 			201, map[string]string{"uuid": "env-1"}},
-		{"UpdateDatabaseEnvVar", "PATCH", "/api/v1/databases/db-1/envs",
+		{"UpdateEnvVar_Database", "PATCH", "/api/v1/databases/db-1/envs",
 			client.EnvironmentVariable{Key: "PG_HOST", Value: "db.local"},
 			200, map[string]string{"message": "updated"}},
-		{"DeleteDatabaseEnvVar", "DELETE", "/api/v1/databases/db-1/envs/env-1",
+		{"DeleteEnvVar_Database", "DELETE", "/api/v1/databases/db-1/envs/env-1",
 			nil, 200, map[string]string{"message": "deleted"}},
-		{"BulkUpdateDbEnvs", "PATCH", "/api/v1/databases/db-1/envs/bulk",
+		{"BulkUpdateEnvVars_Database", "PATCH", "/api/v1/databases/db-1/envs/bulk",
 			client.BulkEnvVarInput{Variables: []client.EnvVarEntry{{Key: "K1", Value: "V1"}}},
 			200, map[string]string{"message": "updated"}},
 
@@ -268,9 +268,9 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			nil, 200, map[string]string{"message": "deleted"}},
 
 		// Services extras
-		{"ListServiceEnvVars", "GET", "/api/v1/services/svc-1/envs",
+		{"ListEnvVars_Service", "GET", "/api/v1/services/svc-1/envs",
 			nil, 200, []map[string]interface{}{{"uuid": "env-1", "key": "SECRET", "value": "val"}}},
-		{"BulkUpdateSvcEnvs", "PATCH", "/api/v1/services/svc-1/envs/bulk",
+		{"BulkUpdateEnvVars_Service", "PATCH", "/api/v1/services/svc-1/envs/bulk",
 			client.BulkEnvVarInput{Variables: []client.EnvVarEntry{{Key: "K1", Value: "V1"}}},
 			200, map[string]string{"message": "updated"}},
 		{"RestartService", "GET", "/api/v1/services/svc-1/restart",

@@ -963,7 +963,7 @@ func TestClient_StopDatabase(t *testing.T) {
 
 // --- Environment Variables ---
 
-func TestClient_CreateApplicationEnvVar(t *testing.T) {
+func TestClient_CreateEnvVar_Application(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -990,7 +990,7 @@ func TestClient_CreateApplicationEnvVar(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	createIsBuild := true
-	resp, err := c.CreateApplicationEnvVar(context.Background(), "app-1", EnvironmentVariable{
+	resp, err := c.CreateEnvVar(context.Background(), "applications", "app-1", EnvironmentVariable{
 		Key:     "DATABASE_URL",
 		Value:   "postgres://localhost/db",
 		IsBuild: true,
@@ -999,7 +999,7 @@ func TestClient_CreateApplicationEnvVar(t *testing.T) {
 	assert.Equal(t, "env-new", resp.UUID)
 }
 
-func TestClient_CreateApplicationEnvVar_OmitsBuildtimeWhenUnset(t *testing.T) {
+func TestClient_CreateEnvVar_Application_OmitsBuildtimeWhenUnset(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -1020,7 +1020,7 @@ func TestClient_CreateApplicationEnvVar_OmitsBuildtimeWhenUnset(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	resp, err := c.CreateApplicationEnvVar(context.Background(), "app-1", EnvironmentVariable{
+	resp, err := c.CreateEnvVar(context.Background(), "applications", "app-1", EnvironmentVariable{
 		Key:     "DATABASE_URL",
 		Value:   "postgres://localhost/db",
 		IsBuild: true,
@@ -1029,7 +1029,7 @@ func TestClient_CreateApplicationEnvVar_OmitsBuildtimeWhenUnset(t *testing.T) {
 	assert.Equal(t, "env-new", resp.UUID)
 }
 
-func TestClient_ListApplicationEnvVars(t *testing.T) {
+func TestClient_ListEnvVars_Application(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
@@ -1043,7 +1043,7 @@ func TestClient_ListApplicationEnvVars(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	vars, err := c.ListApplicationEnvVars(context.Background(), "app-1")
+	vars, err := c.ListEnvVars(context.Background(), "applications", "app-1")
 	require.NoError(t, err)
 	require.Len(t, vars, 2)
 	assert.Equal(t, "PORT", vars[0].Key)
@@ -1054,7 +1054,7 @@ func TestClient_ListApplicationEnvVars(t *testing.T) {
 	assert.True(t, vars[1].IsBuild)
 }
 
-func TestClient_DeleteApplicationEnvVar(t *testing.T) {
+func TestClient_DeleteEnvVar_Application(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
@@ -1064,7 +1064,7 @@ func TestClient_DeleteApplicationEnvVar(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.DeleteApplicationEnvVar(context.Background(), "app-1", "env-del")
+	err := c.DeleteEnvVar(context.Background(), "applications", "app-1", "env-del")
 	require.NoError(t, err)
 }
 
@@ -1594,7 +1594,7 @@ func TestClient_GetDeployment(t *testing.T) {
 	assert.Equal(t, "srv-1", dep.ServerUUID)
 }
 
-func TestClient_UpdateApplicationEnvVar(t *testing.T) {
+func TestClient_UpdateEnvVar_Application(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
@@ -1613,7 +1613,7 @@ func TestClient_UpdateApplicationEnvVar(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.UpdateApplicationEnvVar(context.Background(), "app-env-1", EnvironmentVariable{
+	err := c.UpdateEnvVar(context.Background(), "applications", "app-env-1", EnvironmentVariable{
 		Key:     "DATABASE_URL",
 		Value:   "postgres://new-host/db",
 		IsBuild: false,
@@ -1660,7 +1660,7 @@ func TestClient_CreateDockerImageApplication(t *testing.T) {
 
 // --- Service Environment Variables ---
 
-func TestClient_CreateServiceEnvVar(t *testing.T) {
+func TestClient_CreateEnvVar_Service(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -1681,16 +1681,16 @@ func TestClient_CreateServiceEnvVar(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	resp, err := c.CreateServiceEnvVar(context.Background(), "svc-1", EnvironmentVariable{
+	resp, err := c.CreateEnvVar(context.Background(), "services", "svc-1", EnvironmentVariable{
 		Key:     "REDIS_URL",
 		Value:   "redis://localhost:6379",
 		IsBuild: true,
-	})
+	}, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "svc-env-new", resp.UUID)
 }
 
-func TestClient_ListServiceEnvVars(t *testing.T) {
+func TestClient_ListEnvVars_Service(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
@@ -1704,7 +1704,7 @@ func TestClient_ListServiceEnvVars(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	vars, err := c.ListServiceEnvVars(context.Background(), "svc-1")
+	vars, err := c.ListEnvVars(context.Background(), "services", "svc-1")
 	require.NoError(t, err)
 	require.Len(t, vars, 2)
 	assert.Equal(t, "PORT", vars[0].Key)
@@ -1715,7 +1715,7 @@ func TestClient_ListServiceEnvVars(t *testing.T) {
 	assert.True(t, vars[1].IsBuild)
 }
 
-func TestClient_UpdateServiceEnvVar(t *testing.T) {
+func TestClient_UpdateEnvVar_Service(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
@@ -1734,14 +1734,14 @@ func TestClient_UpdateServiceEnvVar(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.UpdateServiceEnvVar(context.Background(), "svc-env-1", EnvironmentVariable{
+	err := c.UpdateEnvVar(context.Background(), "services", "svc-env-1", EnvironmentVariable{
 		Key:   "REDIS_URL",
 		Value: "redis://new-host:6379",
 	})
 	require.NoError(t, err)
 }
 
-func TestClient_DeleteServiceEnvVar(t *testing.T) {
+func TestClient_DeleteEnvVar_Service(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
@@ -1751,7 +1751,7 @@ func TestClient_DeleteServiceEnvVar(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.DeleteServiceEnvVar(context.Background(), "svc-1", "sev-del")
+	err := c.DeleteEnvVar(context.Background(), "services", "svc-1", "sev-del")
 	require.NoError(t, err)
 }
 
@@ -2513,7 +2513,7 @@ func TestValidateParentType_Invalid(t *testing.T) {
 
 // --- Bulk Environment Variables ---
 
-func TestClient_BulkUpdateAppEnvVars(t *testing.T) {
+func TestClient_BulkUpdateEnvVars_Application(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
@@ -2532,7 +2532,7 @@ func TestClient_BulkUpdateAppEnvVars(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.BulkUpdateAppEnvVars(context.Background(), "app-1", BulkEnvVarInput{
+	err := c.BulkUpdateEnvVars(context.Background(), "applications", "app-1", BulkEnvVarInput{
 		Variables: []EnvVarEntry{
 			{Key: "KEY1", Value: "val1"},
 			{Key: "KEY2", Value: "val2"},
@@ -2541,7 +2541,7 @@ func TestClient_BulkUpdateAppEnvVars(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestClient_BulkUpdateDatabaseEnvVars(t *testing.T) {
+func TestClient_BulkUpdateEnvVars_Database(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
@@ -2559,13 +2559,13 @@ func TestClient_BulkUpdateDatabaseEnvVars(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.BulkUpdateDatabaseEnvVars(context.Background(), "db-1", BulkEnvVarInput{
+	err := c.BulkUpdateEnvVars(context.Background(), "databases", "db-1", BulkEnvVarInput{
 		Variables: []EnvVarEntry{{Key: "DB_KEY", Value: "db_val"}},
 	})
 	require.NoError(t, err)
 }
 
-func TestClient_BulkUpdateServiceEnvVars(t *testing.T) {
+func TestClient_BulkUpdateEnvVars_Service(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
@@ -2583,7 +2583,7 @@ func TestClient_BulkUpdateServiceEnvVars(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.BulkUpdateServiceEnvVars(context.Background(), "svc-1", BulkEnvVarInput{
+	err := c.BulkUpdateEnvVars(context.Background(), "services", "svc-1", BulkEnvVarInput{
 		Variables: []EnvVarEntry{{Key: "SVC_KEY", Value: "svc_val"}},
 	})
 	require.NoError(t, err)
@@ -3827,7 +3827,7 @@ func TestClient_ListGitHubAppRepositories_NotFound(t *testing.T) {
 
 // --- Database Environment Variables ---
 
-func TestClient_CreateDatabaseEnvVar(t *testing.T) {
+func TestClient_CreateEnvVar_Database(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -3848,16 +3848,16 @@ func TestClient_CreateDatabaseEnvVar(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	resp, err := c.CreateDatabaseEnvVar(context.Background(), "db-1", EnvironmentVariable{
+	resp, err := c.CreateEnvVar(context.Background(), "databases", "db-1", EnvironmentVariable{
 		Key:     "DB_HOST",
 		Value:   "localhost",
 		IsBuild: true,
-	})
+	}, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "db-env-new", resp.UUID)
 }
 
-func TestClient_ListDatabaseEnvVars(t *testing.T) {
+func TestClient_ListEnvVars_Database(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
@@ -3871,7 +3871,7 @@ func TestClient_ListDatabaseEnvVars(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	vars, err := c.ListDatabaseEnvVars(context.Background(), "db-1")
+	vars, err := c.ListEnvVars(context.Background(), "databases", "db-1")
 	require.NoError(t, err)
 	require.Len(t, vars, 2)
 	assert.Equal(t, "DB_PORT", vars[0].Key)
@@ -3882,7 +3882,7 @@ func TestClient_ListDatabaseEnvVars(t *testing.T) {
 	assert.True(t, vars[1].IsBuild)
 }
 
-func TestClient_UpdateDatabaseEnvVar(t *testing.T) {
+func TestClient_UpdateEnvVar_Database(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPatch, r.Method)
@@ -3901,14 +3901,14 @@ func TestClient_UpdateDatabaseEnvVar(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.UpdateDatabaseEnvVar(context.Background(), "db-env-1", EnvironmentVariable{
+	err := c.UpdateEnvVar(context.Background(), "databases", "db-env-1", EnvironmentVariable{
 		Key:   "DB_HOST",
 		Value: "new-host",
 	})
 	require.NoError(t, err)
 }
 
-func TestClient_DeleteDatabaseEnvVar(t *testing.T) {
+func TestClient_DeleteEnvVar_Database(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
@@ -3918,7 +3918,7 @@ func TestClient_DeleteDatabaseEnvVar(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
-	err := c.DeleteDatabaseEnvVar(context.Background(), "db-1", "dev-del")
+	err := c.DeleteEnvVar(context.Background(), "databases", "db-1", "dev-del")
 	require.NoError(t, err)
 }
 
