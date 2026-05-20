@@ -256,10 +256,18 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// Write plan values directly to state without a read-back GET.
-	// Storage uses a list endpoint (no singular GET), so read-back would
-	// require listing all storages and filtering. The plan values are
-	// authoritative since the PATCH was accepted.
+	// Read-back via list+filter to catch any server-side normalization
+	// (e.g. Coolify prefixes storage names with an internal resource UUID).
+	storages, listErr := r.client.ListStorages(ctx, parentType, parentUUID)
+	if listErr != nil {
+		// If list fails, fall back to plan values since the PATCH was accepted.
+		tflog.Warn(ctx, "read-back after update failed, using plan values", map[string]interface{}{"resource_type": "coolify_storage", "uuid": plan.UUID.ValueString(), "error": listErr.Error()})
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
+	if !flattenStorageFromList(storages, &plan) {
+		tflog.Warn(ctx, "storage not found in read-back after update, using plan values", map[string]interface{}{"resource_type": "coolify_storage", "uuid": plan.UUID.ValueString()})
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 

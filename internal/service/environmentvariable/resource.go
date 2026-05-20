@@ -249,7 +249,7 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading environment variables", fmt.Sprintf("env var %s: %s", state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error reading environment variables", fmt.Sprintf("%s %s env var %s: %s", parentType, parentUUID, state.UUID.ValueString(), err))
 		return
 	}
 
@@ -296,7 +296,7 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 	}
 
 	if err := r.client.UpdateEnvVar(ctx, parentType, parentUUID, ev); err != nil {
-		resp.Diagnostics.AddError("Error updating environment variable", fmt.Sprintf("env var %s: %s", plan.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error updating environment variable", fmt.Sprintf("%s %s env var %s: %s", parentType, parentUUID, plan.UUID.ValueString(), err))
 		return
 	}
 
@@ -324,7 +324,7 @@ func (r *environmentVariableResource) Delete(ctx context.Context, req resource.D
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting environment variable", fmt.Sprintf("env var %s: %s", state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error deleting environment variable", fmt.Sprintf("%s %s env var %s: %s", parentType, parentUUID, state.UUID.ValueString(), err))
 		return
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": state.UUID.ValueString()})
