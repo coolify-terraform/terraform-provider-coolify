@@ -2456,6 +2456,43 @@ func TestClient_GetGitHubApp_EmptyList(t *testing.T) {
 	assert.True(t, IsNotFound(err))
 }
 
+// --- PollUntilDeleted ---
+
+func TestPollUntilDeleted_ImmediateNotFound(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	result := PollUntilDeleted(ctx, func() error {
+		return &NotFoundError{Message: "gone"}
+	})
+	assert.True(t, result, "expected true when resource is immediately gone")
+}
+
+func TestPollUntilDeleted_CancelledContext(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately
+	result := PollUntilDeleted(ctx, func() error {
+		return nil // resource still exists
+	})
+	assert.False(t, result, "expected false when context is cancelled")
+}
+
+func TestPollUntilDeleted_DeadlineRespected(t *testing.T) {
+	t.Parallel()
+	// Short deadline (200ms) is shorter than the initial 500ms poll delay,
+	// so the function should return false before ever calling getFn.
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	result := PollUntilDeleted(ctx, func() error {
+		return nil // resource still exists
+	})
+	elapsed := time.Since(start)
+	assert.False(t, result, "expected false when deadline expires before poll")
+	assert.Less(t, elapsed, 1*time.Second, "should respect short deadline, not wait 2 minutes")
+}
+
 // --- validateParentType ---
 
 func TestValidateParentType_Valid(t *testing.T) {
