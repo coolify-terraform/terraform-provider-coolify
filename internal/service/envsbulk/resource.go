@@ -175,7 +175,7 @@ func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportS
 		parts = strings.SplitN(req.ID, "/", 2)
 	}
 	if len(parts) != 2 {
-		resp.Diagnostics.AddError("Invalid import ID", "Expected format: resource_type:resource_uuid")
+		resp.Diagnostics.AddError("Invalid Import ID", "Expected format: resource_type:resource_uuid")
 		return
 	}
 
@@ -185,7 +185,7 @@ func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportS
 	switch resType {
 	case "application", "database", "service":
 	default:
-		resp.Diagnostics.AddError("Invalid import ID", fmt.Sprintf("resource_type %q must be one of: application, database, service", resType))
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("resource_type %q must be one of: application, database, service", resType))
 		return
 	}
 	if err := validate.ImportUUID(uuid); err != nil {

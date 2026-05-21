@@ -26,8 +26,8 @@ resource "coolify_database_dragonfly" "example" {
 
 ### Required
 
-- `project_uuid` (String) The UUID of the project this database belongs to.
-- `server_uuid` (String) The UUID of the server to deploy the database on.
+- `project_uuid` (String) The UUID of the project this database belongs to. Changing this forces a new resource.
+- `server_uuid` (String) The UUID of the server to deploy the database on. Changing this forces a new resource.
 
 ### Optional
 

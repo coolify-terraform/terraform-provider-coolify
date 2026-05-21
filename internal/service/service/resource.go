@@ -87,7 +87,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"project_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the project this service belongs to.",
+				MarkdownDescription: "The UUID of the project this service belongs to. Changing this forces a new resource.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -97,7 +97,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"server_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the server to deploy the service on.",
+				MarkdownDescription: "The UUID of the server to deploy the service on. Changing this forces a new resource.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -116,7 +116,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service).",
+				MarkdownDescription: "The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),

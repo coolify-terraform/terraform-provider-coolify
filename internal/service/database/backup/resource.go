@@ -420,7 +420,7 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 	parts := strings.SplitN(req.ID, ":", 2)
 	if len(parts) != 2 {
 		resp.Diagnostics.AddError(
-			"Invalid import ID format",
+			"Invalid Import ID",
 			"Expected \"database_uuid:backup_id\".",
 		)
 		return
@@ -434,14 +434,14 @@ func (r *databaseBackupResource) ImportState(ctx context.Context, req resource.I
 	backupID, err := strconv.Atoi(parts[1])
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Invalid import ID format",
+			"Invalid Import ID",
 			fmt.Sprintf("backup_id must be an integer, got %q.", parts[1]),
 		)
 		return
 	}
 	if backupID <= 0 {
 		resp.Diagnostics.AddError(
-			"Invalid import ID format",
+			"Invalid Import ID",
 			fmt.Sprintf("backup_id must be a positive integer, got %d.", backupID),
 		)
 		return

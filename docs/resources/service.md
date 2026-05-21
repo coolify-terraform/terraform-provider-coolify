@@ -36,9 +36,9 @@ resource "coolify_service" "example" {
 
 ### Required
 
-- `project_uuid` (String) The UUID of the project this service belongs to.
-- `server_uuid` (String) The UUID of the server to deploy the service on.
-- `type` (String) The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service).
+- `project_uuid` (String) The UUID of the project this service belongs to. Changing this forces a new resource.
+- `server_uuid` (String) The UUID of the server to deploy the service on. Changing this forces a new resource.
+- `type` (String) The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.
 
 ### Optional
 

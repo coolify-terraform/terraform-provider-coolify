@@ -383,7 +383,7 @@ func TestEnvsBulkResource_ImportBadFormat(t *testing.T) {
 				ResourceName:  "coolify_envs_bulk.test",
 				ImportState:   true,
 				ImportStateId: "bad-format",
-				ExpectError:   regexp.MustCompile(`Invalid import ID`),
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
 			},
 		},
 	})
@@ -402,7 +402,7 @@ func TestEnvsBulkResource_ImportBadType(t *testing.T) {
 				ResourceName:  "coolify_envs_bulk.test",
 				ImportState:   true,
 				ImportStateId: "invalid/550e8400-e29b-41d4-a716-446655440012",
-				ExpectError:   regexp.MustCompile(`(?s)Invalid import ID.*must be one of`),
+				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*must be one of`),
 			},
 		},
 	})

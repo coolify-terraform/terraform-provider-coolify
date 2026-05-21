@@ -511,7 +511,7 @@ func TestDatabaseBackupResource_ImportBadFormat(t *testing.T) {
 				ResourceName:  "coolify_database_backup.test",
 				ImportState:   true,
 				ImportStateId: "missing-colon",
-				ExpectError:   regexp.MustCompile(`Invalid import ID format`),
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
 			},
 		},
 	})
