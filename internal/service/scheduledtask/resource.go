@@ -170,10 +170,8 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 	tasks, listErr := r.client.ListScheduledTasks(ctx, parentType, parentUUID)
 	if listErr != nil {
 		tflog.Warn(ctx, "read-back after create failed, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID, "error": listErr.Error()})
-	} else {
-		if !flattenScheduledTaskFromList(tasks, &plan) {
-			tflog.Warn(ctx, "task not found in read-back after create, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID})
-		}
+	} else if !flattenScheduledTaskFromList(tasks, &plan) {
+		tflog.Warn(ctx, "task not found in read-back after create, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID})
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -243,10 +241,8 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 	tasks, listErr := r.client.ListScheduledTasks(ctx, parentType, parentUUID)
 	if listErr != nil {
 		tflog.Warn(ctx, "read-back after update failed, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString(), "error": listErr.Error()})
-	} else {
-		if !flattenScheduledTaskFromList(tasks, &plan) {
-			tflog.Warn(ctx, "task not found in read-back after update, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString()})
-		}
+	} else if !flattenScheduledTaskFromList(tasks, &plan) {
+		tflog.Warn(ctx, "task not found in read-back after update, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString()})
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
