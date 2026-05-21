@@ -263,18 +263,12 @@ func (r *serverResource) ImportState(ctx context.Context, req resource.ImportSta
 // hasNonDefaultSettings returns true if the user configured any settings
 // field to a value different from Coolify's create-time default.
 func hasNonDefaultSettings(plan serverResourceModel) bool {
-	intNonDefault := func(v types.Int64, dflt int64) bool {
-		return !v.IsNull() && !v.IsUnknown() && v.ValueInt64() != dflt
-	}
-	strSet := func(v types.String) bool {
-		return !v.IsNull() && !v.IsUnknown()
-	}
-	return intNonDefault(plan.ConcurrentBuilds, 2) ||
-		intNonDefault(plan.DynamicTimeout, 3600) ||
-		intNonDefault(plan.DeploymentQueueLimit, 25) ||
-		intNonDefault(plan.ConnectionTimeout, 10) ||
-		intNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
-		strSet(plan.ServerDiskUsageCheckFrequency)
+	return flex.Int64ValueNonDefault(plan.ConcurrentBuilds, 2) ||
+		flex.Int64ValueNonDefault(plan.DynamicTimeout, 3600) ||
+		flex.Int64ValueNonDefault(plan.DeploymentQueueLimit, 25) ||
+		flex.Int64ValueNonDefault(plan.ConnectionTimeout, 10) ||
+		flex.Int64ValueNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
+		flex.StringValueConfigured(plan.ServerDiskUsageCheckFrequency)
 }
 
 func (m *serverResourceModel) commonPtrs() ServerCommonPtrs {

@@ -141,8 +141,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 
 	// Apply extended fields that cannot be set during creation.
 	ext := plan.ExtFields().WithSSL(&plan.EnableSSL, &plan.SSLMode)
-	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	needsUpdate := dbcommon.HasExtendedFields(ext) || strSet(plan.PostgresConf) || strSet(plan.PostgresInitdbArgs) || strSet(plan.PostgresHostAuthMethod) || strSet(plan.InitScripts)
+	needsUpdate := dbcommon.HasExtendedFields(ext) || flex.StringValueConfigured(plan.PostgresConf) || flex.StringValueConfigured(plan.PostgresInitdbArgs) || flex.StringValueConfigured(plan.PostgresHostAuthMethod) || flex.StringValueConfigured(plan.InitScripts)
 	if needsUpdate {
 		update := client.UpdateDatabaseInput{}
 		dbcommon.SetUpdateExtended(&update, ext)
@@ -172,20 +171,10 @@ func (r *postgresqlDatabaseResource) Read(ctx context.Context, req resource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_postgresql", "uuid": state.UUID.ValueString()})
-
-	db, err := dbcommon.ReadDatabase(ctx, r.client, state.UUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", state.UUID.ValueString(), err))
-		return
-	}
-	if db == nil {
-		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_postgresql", "uuid": state.UUID.ValueString()})
-		resp.State.RemoveResource(ctx)
-		return
-	}
-	flattenDatabase(db, &state)
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	dbcommon.ReadDatabaseState(ctx, r.client, "coolify_database_postgresql", state.UUID.ValueString(), resp, func(db *client.Database) {
+		flattenDatabase(db, &state)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	})
 }
 
 func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -233,12 +222,7 @@ func (r *postgresqlDatabaseResource) Delete(ctx context.Context, req resource.De
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_postgresql", "uuid": state.UUID.ValueString()})
-
-	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_database_postgresql", state.UUID.ValueString()); err != nil {
-		resp.Diagnostics.AddError("Error deleting PostgreSQL database", fmt.Sprintf("PostgreSQL database %s: %s", state.UUID.ValueString(), err))
-		return
-	}
+	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_postgresql", state.UUID.ValueString(), resp)
 }
 
 func (r *postgresqlDatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

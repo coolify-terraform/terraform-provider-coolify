@@ -85,8 +85,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	ext := p.ExtFields().WithSSL(&p.EnableSSL, nil)
-	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if dbcommon.HasExtendedFields(ext) || strSet(p.KeydbConf) {
+	if dbcommon.HasExtendedFields(ext) || flex.StringValueConfigured(p.KeydbConf) {
 		update := client.UpdateDatabaseInput{}
 		dbcommon.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.KeydbPassword, p.KeydbPassword)
@@ -112,20 +111,10 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_keydb", "uuid": s.UUID.ValueString()})
-
-	db, err := dbcommon.ReadDatabase(ctx, r.client, s.UUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading KeyDB database", fmt.Sprintf("KeyDB database %s: %s", s.UUID.ValueString(), err))
-		return
-	}
-	if db == nil {
-		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_keydb", "uuid": s.UUID.ValueString()})
-		resp.State.RemoveResource(ctx)
-		return
-	}
-	flattenDatabase(db, &s)
-	resp.Diagnostics.Append(resp.State.Set(ctx, &s)...)
+	dbcommon.ReadDatabaseState(ctx, r.client, "coolify_database_keydb", s.UUID.ValueString(), resp, func(db *client.Database) {
+		flattenDatabase(db, &s)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &s)...)
+	})
 }
 func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var p model
@@ -164,12 +153,7 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_keydb", "uuid": s.UUID.ValueString()})
-
-	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_database_keydb", s.UUID.ValueString()); err != nil {
-		resp.Diagnostics.AddError("Error deleting KeyDB database", fmt.Sprintf("KeyDB database %s: %s", s.UUID.ValueString(), err))
-		return
-	}
+	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_keydb", s.UUID.ValueString(), resp)
 }
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	dbcommon.ImportDatabaseState(ctx, req, resp)

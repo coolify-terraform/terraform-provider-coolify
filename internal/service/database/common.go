@@ -243,6 +243,44 @@ func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid st
 	return nil
 }
 
+// ReadDatabaseState reads a database by UUID and calls the flatten callback.
+// If the database is not found, it removes the resource from state.
+func ReadDatabaseState(
+	ctx context.Context,
+	c *client.Client,
+	resourceType string,
+	uuid string,
+	resp *resource.ReadResponse,
+	flatten func(*client.Database),
+) {
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
+	db, err := ReadDatabase(ctx, c, uuid)
+	if err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Error reading %s", resourceType), fmt.Sprintf("%s %s: %s", resourceType, uuid, err))
+		return
+	}
+	if db == nil {
+		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
+		resp.State.RemoveResource(ctx)
+		return
+	}
+	flatten(db)
+}
+
+// DeleteDatabaseState deletes a database by UUID and reports any error.
+func DeleteDatabaseState(
+	ctx context.Context,
+	c *client.Client,
+	resourceType string,
+	uuid string,
+	resp *resource.DeleteResponse,
+) {
+	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
+	if err := DeleteDatabase(ctx, c, resourceType, uuid); err != nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("Error deleting %s", resourceType), fmt.Sprintf("%s %s: %s", resourceType, uuid, err))
+	}
+}
+
 func NormalizeCommonCreateState(m *CommonModel) {
 	flex.NormalizeUnknownString(&m.Name)
 	flex.NormalizeUnknownString(&m.Description)
@@ -399,31 +437,16 @@ func SetUpdateExtendedDiff(input *client.UpdateDatabaseInput, plan, state Databa
 // HasExtendedFields returns true if any extended field is configured (not
 // null/unknown), indicating an Update is needed after Create.
 func HasExtendedFields(f DatabaseExtendedPtrs) bool {
-	// strNonDefault returns true when the user configured a value that
-	// differs from the Coolify default. Fields whose schema Default matches
-	// the API create-response default return false here, avoiding an
-	// unnecessary PATCH after create.
-	strNonDefault := func(v *types.String, dflt string) bool {
-		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueString() != dflt
-	}
-	intNonDefault := func(v *types.Int64, dflt int64) bool {
-		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueInt64() != dflt
-	}
-	strSet := func(v *types.String) bool { return v != nil && !v.IsNull() && !v.IsUnknown() }
-	intSet := func(v *types.Int64) bool { return v != nil && !v.IsNull() && !v.IsUnknown() }
-	boolNonDefault := func(v *types.Bool, dflt bool) bool {
-		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueBool() != dflt
-	}
-	return strNonDefault(f.LimitsMemory, "0") || strNonDefault(f.LimitsMemorySwap, "0") ||
-		strNonDefault(f.LimitsMemoryReservation, "0") || strNonDefault(f.LimitsCPUs, "0") ||
-		strSet(f.LimitsCPUSet) ||
-		intNonDefault(f.LimitsMemorySwappiness, 60) || intNonDefault(f.LimitsCPUShares, 1024) ||
-		strSet(f.PortsMappings) || strSet(f.CustomDockerRunOptions) ||
-		intSet(f.PublicPortTimeout) ||
-		boolNonDefault(f.IsLogDrainEnabled, false) ||
-		boolNonDefault(f.IsIncludeTimestamps, false) ||
-		(f.EnableSSL != nil && boolNonDefault(f.EnableSSL, false)) ||
-		(f.SSLMode != nil && strSet(f.SSLMode))
+	return flex.StringPtrNonDefault(f.LimitsMemory, "0") || flex.StringPtrNonDefault(f.LimitsMemorySwap, "0") ||
+		flex.StringPtrNonDefault(f.LimitsMemoryReservation, "0") || flex.StringPtrNonDefault(f.LimitsCPUs, "0") ||
+		flex.StringPtrConfigured(f.LimitsCPUSet) ||
+		flex.Int64PtrNonDefault(f.LimitsMemorySwappiness, 60) || flex.Int64PtrNonDefault(f.LimitsCPUShares, 1024) ||
+		flex.StringPtrConfigured(f.PortsMappings) || flex.StringPtrConfigured(f.CustomDockerRunOptions) ||
+		flex.Int64PtrConfigured(f.PublicPortTimeout) ||
+		flex.BoolPtrNonDefault(f.IsLogDrainEnabled, false) ||
+		flex.BoolPtrNonDefault(f.IsIncludeTimestamps, false) ||
+		(f.EnableSSL != nil && flex.BoolPtrNonDefault(f.EnableSSL, false)) ||
+		(f.SSLMode != nil && flex.StringPtrConfigured(f.SSLMode))
 }
 
 // FlattenDatabaseCommon sets the fields shared by all database resource types.

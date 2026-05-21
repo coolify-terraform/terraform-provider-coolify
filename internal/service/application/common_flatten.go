@@ -344,77 +344,65 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 // does not accept is configured with a non-default value, requiring a post-create
 // PATCH to converge in a single apply.
 func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
-	strNonDefault := func(v *types.String, dflt string) bool {
-		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueString() != dflt
-	}
-	strSet := func(v *types.String) bool {
-		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueString() != ""
-	}
-	intNonDefault := func(v *types.Int64, dflt int64) bool {
-		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueInt64() != dflt
-	}
-	boolNonDefault := func(v *types.Bool, dflt bool) bool {
-		return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueBool() != dflt
-	}
 	// Resource limits
-	return strNonDefault(f.LimitsMemory, "0") ||
-		strNonDefault(f.LimitsMemorySwap, "0") ||
-		strNonDefault(f.LimitsMemoryReservation, "0") ||
-		strNonDefault(f.LimitsCPUs, "0") ||
-		strSet(f.LimitsCPUSet) ||
-		intNonDefault(f.LimitsMemorySwappiness, 60) ||
-		intNonDefault(f.LimitsCPUShares, 1024) ||
+	return flex.StringPtrNonDefault(f.LimitsMemory, "0") ||
+		flex.StringPtrNonDefault(f.LimitsMemorySwap, "0") ||
+		flex.StringPtrNonDefault(f.LimitsMemoryReservation, "0") ||
+		flex.StringPtrNonDefault(f.LimitsCPUs, "0") ||
+		flex.StringPtrNonDefault(f.LimitsCPUSet, "") ||
+		flex.Int64PtrNonDefault(f.LimitsMemorySwappiness, 60) ||
+		flex.Int64PtrNonDefault(f.LimitsCPUShares, 1024) ||
 		// Health checks
-		boolNonDefault(f.HealthCheckEnabled, false) ||
-		strNonDefault(f.HealthCheckPath, "/") ||
-		strSet(f.HealthCheckPort) ||
-		intNonDefault(f.HealthCheckInterval, 5) ||
-		intNonDefault(f.HealthCheckTimeout, 5) ||
-		intNonDefault(f.HealthCheckRetries, 10) ||
-		intNonDefault(f.HealthCheckStartPeriod, 5) ||
-		strSet(f.HealthCheckCommand) ||
-		strNonDefault(f.HealthCheckHost, defaultHealthCheckHost) ||
-		strNonDefault(f.HealthCheckMethod, defaultHealthCheckMeth) ||
-		strSet(f.HealthCheckResponseText) ||
-		intNonDefault(f.HealthCheckReturnCode, defaultHealthCheckCode) ||
-		strNonDefault(f.HealthCheckScheme, defaultHealthCheckSchm) ||
-		strNonDefault(f.HealthCheckType, defaultHealthCheckType) ||
+		flex.BoolPtrNonDefault(f.HealthCheckEnabled, false) ||
+		flex.StringPtrNonDefault(f.HealthCheckPath, "/") ||
+		flex.StringPtrNonDefault(f.HealthCheckPort, "") ||
+		flex.Int64PtrNonDefault(f.HealthCheckInterval, 5) ||
+		flex.Int64PtrNonDefault(f.HealthCheckTimeout, 5) ||
+		flex.Int64PtrNonDefault(f.HealthCheckRetries, 10) ||
+		flex.Int64PtrNonDefault(f.HealthCheckStartPeriod, 5) ||
+		flex.StringPtrNonDefault(f.HealthCheckCommand, "") ||
+		flex.StringPtrNonDefault(f.HealthCheckHost, defaultHealthCheckHost) ||
+		flex.StringPtrNonDefault(f.HealthCheckMethod, defaultHealthCheckMeth) ||
+		flex.StringPtrNonDefault(f.HealthCheckResponseText, "") ||
+		flex.Int64PtrNonDefault(f.HealthCheckReturnCode, defaultHealthCheckCode) ||
+		flex.StringPtrNonDefault(f.HealthCheckScheme, defaultHealthCheckSchm) ||
+		flex.StringPtrNonDefault(f.HealthCheckType, defaultHealthCheckType) ||
 		// Auto-deploy
-		boolNonDefault(f.IsAutoDeployEnabled, true) ||
+		flex.BoolPtrNonDefault(f.IsAutoDeployEnabled, true) ||
 		// Build/deploy
-		strSet(f.BaseDirectory) ||
-		strSet(f.PublishDirectory) ||
-		strSet(f.DockerRegistryImageTag) ||
-		strSet(f.DockerComposeDomains) ||
-		strSet(f.GitCommitSha) ||
-		strSet(f.WatchPaths) ||
+		flex.StringPtrNonDefault(f.BaseDirectory, "") ||
+		flex.StringPtrNonDefault(f.PublishDirectory, "") ||
+		flex.StringPtrNonDefault(f.DockerRegistryImageTag, "") ||
+		flex.StringPtrNonDefault(f.DockerComposeDomains, "") ||
+		flex.StringPtrNonDefault(f.GitCommitSha, "") ||
+		flex.StringPtrNonDefault(f.WatchPaths, "") ||
 		// Container/Network
-		strSet(f.CustomDockerRunOptions) ||
-		strSet(f.CustomLabels) ||
-		strSet(f.CustomNetworkAliases) ||
-		strSet(f.CustomNginxConfiguration) ||
-		strSet(f.PortsMappings) ||
+		flex.StringPtrNonDefault(f.CustomDockerRunOptions, "") ||
+		flex.StringPtrNonDefault(f.CustomLabels, "") ||
+		flex.StringPtrNonDefault(f.CustomNetworkAliases, "") ||
+		flex.StringPtrNonDefault(f.CustomNginxConfiguration, "") ||
+		flex.StringPtrNonDefault(f.PortsMappings, "") ||
 		// Auth
-		boolNonDefault(f.IsHTTPBasicAuthEnabled, false) ||
-		strSet(f.HTTPBasicAuthUsername) ||
-		strSet(f.HTTPBasicAuthPassword) ||
+		flex.BoolPtrNonDefault(f.IsHTTPBasicAuthEnabled, false) ||
+		flex.StringPtrNonDefault(f.HTTPBasicAuthUsername, "") ||
+		flex.StringPtrNonDefault(f.HTTPBasicAuthPassword, "") ||
 		// Deployment commands
-		strSet(f.PreDeploymentCommand) ||
-		strSet(f.PreDeploymentCommandContainer) ||
-		strSet(f.PostDeploymentCommand) ||
-		strSet(f.PostDeploymentCommandContainer) ||
+		flex.StringPtrNonDefault(f.PreDeploymentCommand, "") ||
+		flex.StringPtrNonDefault(f.PreDeploymentCommandContainer, "") ||
+		flex.StringPtrNonDefault(f.PostDeploymentCommand, "") ||
+		flex.StringPtrNonDefault(f.PostDeploymentCommandContainer, "") ||
 		// Bool overrides
-		boolNonDefault(f.ConnectToDockerNetwork, false) ||
-		boolNonDefault(f.IsForceHTTPSEnabled, true) ||
-		boolNonDefault(f.IsStatic, false) ||
-		boolNonDefault(f.IsSPA, false) ||
-		boolNonDefault(f.IsContainerLabelEscapeEnabled, true) ||
-		boolNonDefault(f.IsPreserveRepositoryEnabled, false) ||
-		boolNonDefault(f.UseBuildServer, false) ||
-		boolNonDefault(f.ForceDomainOverride, false) ||
+		flex.BoolPtrNonDefault(f.ConnectToDockerNetwork, false) ||
+		flex.BoolPtrNonDefault(f.IsForceHTTPSEnabled, true) ||
+		flex.BoolPtrNonDefault(f.IsStatic, false) ||
+		flex.BoolPtrNonDefault(f.IsSPA, false) ||
+		flex.BoolPtrNonDefault(f.IsContainerLabelEscapeEnabled, true) ||
+		flex.BoolPtrNonDefault(f.IsPreserveRepositoryEnabled, false) ||
+		flex.BoolPtrNonDefault(f.UseBuildServer, false) ||
+		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
-		strNonDefault(f.Redirect, defaultRedirect) ||
-		strNonDefault(f.StaticImage, defaultStaticImage)
+		flex.StringPtrNonDefault(f.Redirect, defaultRedirect) ||
+		flex.StringPtrNonDefault(f.StaticImage, defaultStaticImage)
 }
 
 // buildPostCreatePatch builds an UpdateApplicationInput from the plan's extended

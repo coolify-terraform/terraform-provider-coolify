@@ -345,28 +345,16 @@ func (r *hetznerServerResource) ImportState(ctx context.Context, req resource.Im
 }
 
 func hasNonDefaultHetznerSettings(plan hetznerServerResourceModel) bool {
-	intNonDefault := func(v types.Int64, dflt int64) bool {
-		return !v.IsNull() && !v.IsUnknown() && v.ValueInt64() != dflt
-	}
-	strSet := func(v types.String) bool {
-		return !v.IsNull() && !v.IsUnknown() && v.ValueString() != ""
-	}
-	strNonDefault := func(v types.String, dflt string) bool {
-		return !v.IsNull() && !v.IsUnknown() && v.ValueString() != dflt
-	}
-	boolTrue := func(v types.Bool) bool {
-		return !v.IsNull() && !v.IsUnknown() && v.ValueBool()
-	}
-	return strSet(plan.Description) ||
-		intNonDefault(plan.Port, 22) ||
-		strNonDefault(plan.User, "root") ||
-		boolTrue(plan.IsBuildServer) ||
-		intNonDefault(plan.ConcurrentBuilds, 2) ||
-		intNonDefault(plan.DynamicTimeout, 3600) ||
-		intNonDefault(plan.DeploymentQueueLimit, 25) ||
-		intNonDefault(plan.ConnectionTimeout, 10) ||
-		intNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
-		strSet(plan.ServerDiskUsageCheckFrequency)
+	return flex.StringValueNonDefault(plan.Description, "") ||
+		flex.Int64ValueNonDefault(plan.Port, 22) ||
+		flex.StringValueNonDefault(plan.User, "root") ||
+		flex.BoolValueNonDefault(plan.IsBuildServer, false) ||
+		flex.Int64ValueNonDefault(plan.ConcurrentBuilds, 2) ||
+		flex.Int64ValueNonDefault(plan.DynamicTimeout, 3600) ||
+		flex.Int64ValueNonDefault(plan.DeploymentQueueLimit, 25) ||
+		flex.Int64ValueNonDefault(plan.ConnectionTimeout, 10) ||
+		flex.Int64ValueNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
+		flex.StringValueNonDefault(plan.ServerDiskUsageCheckFrequency, "")
 }
 
 func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {

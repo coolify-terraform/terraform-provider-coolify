@@ -245,7 +245,7 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Optional:            true,
 		},
 		"dockerfile": schema.StringAttribute{
-			MarkdownDescription: "Inline Dockerfile content (base64 encoded).",
+			MarkdownDescription: "Inline Dockerfile content (base64 encoded). For `coolify_application_dockerfile` resources, use `dockerfile_location` instead; this field is only used by Git-backed application types that embed a Dockerfile inline.",
 			Optional:            true,
 			Sensitive:           true,
 		},

@@ -108,8 +108,7 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	ext := plan.ExtFields().WithSSL(&plan.EnableSSL, &plan.SSLMode)
-	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if dbcommon.HasExtendedFields(ext) || strSet(plan.MysqlConf) {
+	if dbcommon.HasExtendedFields(ext) || flex.StringValueConfigured(plan.MysqlConf) {
 		update := client.UpdateDatabaseInput{}
 		dbcommon.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.MysqlConf, plan.MysqlConf)
@@ -135,20 +134,10 @@ func (r *mysqlDatabaseResource) Read(ctx context.Context, req resource.ReadReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_database_mysql", "uuid": state.UUID.ValueString()})
-
-	db, err := dbcommon.ReadDatabase(ctx, r.client, state.UUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
-		return
-	}
-	if db == nil {
-		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_database_mysql", "uuid": state.UUID.ValueString()})
-		resp.State.RemoveResource(ctx)
-		return
-	}
-	flattenDatabase(db, &state)
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	dbcommon.ReadDatabaseState(ctx, r.client, "coolify_database_mysql", state.UUID.ValueString(), resp, func(db *client.Database) {
+		flattenDatabase(db, &state)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	})
 }
 
 func (r *mysqlDatabaseResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -194,12 +183,7 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": "coolify_database_mysql", "uuid": state.UUID.ValueString()})
-
-	if err := dbcommon.DeleteDatabase(ctx, r.client, "coolify_database_mysql", state.UUID.ValueString()); err != nil {
-		resp.Diagnostics.AddError("Error deleting MySQL database", fmt.Sprintf("MySQL database %s: %s", state.UUID.ValueString(), err))
-		return
-	}
+	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_mysql", state.UUID.ValueString(), resp)
 }
 
 func (r *mysqlDatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
