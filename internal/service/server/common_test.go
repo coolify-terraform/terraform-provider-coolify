@@ -537,3 +537,63 @@ func sortedStrings(values []string) []string {
 	sort.Strings(copyValues)
 	return copyValues
 }
+
+func TestHasNonDefaultSettings_AllDefaults(t *testing.T) {
+	t.Parallel()
+	plan := serverResourceModel{
+		ConcurrentBuilds:                     types.Int64Value(2),
+		DynamicTimeout:                       types.Int64Value(3600),
+		DeploymentQueueLimit:                 types.Int64Value(25),
+		ConnectionTimeout:                    types.Int64Value(10),
+		ServerDiskUsageNotificationThreshold: types.Int64Value(80),
+	}
+	if hasNonDefaultSettings(plan) {
+		t.Error("expected false when all fields are at their defaults")
+	}
+}
+
+func TestHasNonDefaultSettings_EachField(t *testing.T) {
+	t.Parallel()
+	base := func() serverResourceModel {
+		return serverResourceModel{
+			ConcurrentBuilds:                     types.Int64Value(2),
+			DynamicTimeout:                       types.Int64Value(3600),
+			DeploymentQueueLimit:                 types.Int64Value(25),
+			ConnectionTimeout:                    types.Int64Value(10),
+			ServerDiskUsageNotificationThreshold: types.Int64Value(80),
+		}
+	}
+	cases := []struct {
+		name   string
+		mutate func(*serverResourceModel)
+	}{
+		{"ConcurrentBuilds", func(m *serverResourceModel) { m.ConcurrentBuilds = types.Int64Value(8) }},
+		{"DynamicTimeout", func(m *serverResourceModel) { m.DynamicTimeout = types.Int64Value(7200) }},
+		{"DeploymentQueueLimit", func(m *serverResourceModel) { m.DeploymentQueueLimit = types.Int64Value(50) }},
+		{"ConnectionTimeout", func(m *serverResourceModel) { m.ConnectionTimeout = types.Int64Value(30) }},
+		{"ServerDiskUsageNotificationThreshold", func(m *serverResourceModel) {
+			m.ServerDiskUsageNotificationThreshold = types.Int64Value(95)
+		}},
+		{"ServerDiskUsageCheckFrequency", func(m *serverResourceModel) {
+			m.ServerDiskUsageCheckFrequency = types.StringValue("*/10 * * * *")
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			m := base()
+			tc.mutate(&m)
+			if !hasNonDefaultSettings(m) {
+				t.Errorf("expected true when %s is non-default", tc.name)
+			}
+		})
+	}
+}
+
+func TestHasNonDefaultSettings_NullFields(t *testing.T) {
+	t.Parallel()
+	plan := serverResourceModel{}
+	if hasNonDefaultSettings(plan) {
+		t.Error("expected false when all fields are null/zero-value")
+	}
+}
