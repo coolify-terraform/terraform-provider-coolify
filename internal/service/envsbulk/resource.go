@@ -168,10 +168,14 @@ func (r *envsBulkResource) Delete(ctx context.Context, _ resource.DeleteRequest,
 }
 
 func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Import format: resource_type/resource_uuid
-	parts := strings.SplitN(req.ID, "/", 2)
+	// Import format: resource_type:resource_uuid (colon separator, consistent with all other resources).
+	// Also accepts resource_type/resource_uuid for backward compatibility.
+	parts := strings.SplitN(req.ID, ":", 2)
 	if len(parts) != 2 {
-		resp.Diagnostics.AddError("Invalid import ID", "Expected format: resource_type/resource_uuid")
+		parts = strings.SplitN(req.ID, "/", 2)
+	}
+	if len(parts) != 2 {
+		resp.Diagnostics.AddError("Invalid import ID", "Expected format: resource_type:resource_uuid")
 		return
 	}
 

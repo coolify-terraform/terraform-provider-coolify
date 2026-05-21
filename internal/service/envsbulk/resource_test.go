@@ -352,7 +352,7 @@ func TestEnvsBulkResource_Import(t *testing.T) {
 			{
 				ResourceName:                         "coolify_envs_bulk.test",
 				ImportState:                          true,
-				ImportStateId:                        "service/550e8400-e29b-41d4-a716-446655440012",
+				ImportStateId:                        "service:550e8400-e29b-41d4-a716-446655440012",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "resource_uuid",
 			},
@@ -420,7 +420,7 @@ func TestEnvsBulkResource_ImportBadUUID(t *testing.T) {
 			{
 				ResourceName:  "coolify_envs_bulk.test",
 				ImportState:   true,
-				ImportStateId: "service/not-a-uuid",
+				ImportStateId: "service:not-a-uuid",
 				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*resource UUID segment`),
 			},
 		},
