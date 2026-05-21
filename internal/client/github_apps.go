@@ -84,7 +84,7 @@ func (c *Client) ListGitHubApps(ctx context.Context) ([]GitHubApp, error) {
 
 func (c *Client) GetGitHubApp(ctx context.Context, id int64) (*GitHubApp, error) {
 	var apps []GitHubApp
-	if err := c.do(ctx, http.MethodGet, "/api/v1/github-apps", nil, &apps); err != nil {
+	if err := c.doCachedList(ctx, "/api/v1/github-apps", &apps); err != nil {
 		return nil, fmt.Errorf("getting github app %d: %w", id, err)
 	}
 	for i := range apps {
