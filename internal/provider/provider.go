@@ -208,26 +208,26 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		postgresql.NewResource,
 		redis.NewResource,
 		// Other resources (sorted alphabetically by type name).
-		apisettings.NewResource,          // coolify_api_settings
-		applicationpreview.NewResource,   // coolify_application_preview
-		backupexecution.NewResource,      // coolify_backup_execution
-		cloudtoken.NewResource,           // coolify_cloud_token
-		cloudtokenvalidate.NewResource,   // coolify_cloud_token_validate
-		backup.NewResource,               // coolify_database_backup
-		deployment.NewResource,           // coolify_deployment
-		environment.NewResource,          // coolify_environment
-		environmentvariable.NewResource,  // coolify_environment_variable
-		envsbulk.NewResource,             // coolify_envs_bulk
-		githubapp.NewResource,            // coolify_github_app
-		privatekey.NewResource,           // coolify_private_key
-		project.NewResource,              // coolify_project
-		resourceaction.NewResource,       // coolify_resource_action
-		scheduledtask.NewResource,        // coolify_scheduled_task
-		server.NewResource,               // coolify_server
-		hetzner.NewResource,              // coolify_server_hetzner
-		servervalidate.NewResource,       // coolify_server_validate
-		service.NewResource,              // coolify_service
-		storage.NewResource,              // coolify_storage
+		apisettings.NewResource,         // coolify_api_settings
+		applicationpreview.NewResource,  // coolify_application_preview
+		backupexecution.NewResource,     // coolify_backup_execution
+		cloudtoken.NewResource,          // coolify_cloud_token
+		cloudtokenvalidate.NewResource,  // coolify_cloud_token_validate
+		backup.NewResource,              // coolify_database_backup
+		deployment.NewResource,          // coolify_deployment
+		environment.NewResource,         // coolify_environment
+		environmentvariable.NewResource, // coolify_environment_variable
+		envsbulk.NewResource,            // coolify_envs_bulk
+		githubapp.NewResource,           // coolify_github_app
+		privatekey.NewResource,          // coolify_private_key
+		project.NewResource,             // coolify_project
+		resourceaction.NewResource,      // coolify_resource_action
+		scheduledtask.NewResource,       // coolify_scheduled_task
+		server.NewResource,              // coolify_server
+		hetzner.NewResource,             // coolify_server_hetzner
+		servervalidate.NewResource,      // coolify_server_validate
+		service.NewResource,             // coolify_service
+		storage.NewResource,             // coolify_storage
 	}
 }
 
