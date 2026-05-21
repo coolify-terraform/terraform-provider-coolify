@@ -32,6 +32,7 @@ type model struct {
 	MariadbRootPassword types.String `tfsdk:"mariadb_root_password"`
 	MariadbConf         types.String `tfsdk:"mariadb_conf"`
 	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
+	SSLMode             types.String `tfsdk:"ssl_mode"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -46,6 +47,7 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 		"mariadb_root_password": schema.StringAttribute{MarkdownDescription: "The MariaDB root password (maps to `MARIADB_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"mariadb_conf":          schema.StringAttribute{MarkdownDescription: "Custom MariaDB configuration (base64-encoded `my.cnf` content).", Optional: true},
 		"enable_ssl":            dbcommon.EnableSSLAttr(),
+		"ssl_mode":              dbcommon.SSLModeMysqlAttr(),
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -91,12 +93,13 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	flex.NormalizeUnknownString(&p.MariadbDatabase)
 	flex.NormalizeUnknownString(&p.MariadbRootPassword)
 	flex.NormalizeUnknownString(&p.MariadbConf)
+	flex.NormalizeUnknownString(&p.SSLMode)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	ext := p.ExtFields().WithSSL(&p.EnableSSL, nil)
+	ext := p.ExtFields().WithSSL(&p.EnableSSL, &p.SSLMode)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
 	if dbcommon.HasExtendedFields(ext) || strSet(p.MariadbConf) {
 		update := client.UpdateDatabaseInput{}
@@ -163,7 +166,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		MariadbRootPassword: flex.StringIfChanged(p.MariadbRootPassword, s.MariadbRootPassword),
 		MariadbConf:         flex.StringIfChanged(p.MariadbConf, s.MariadbConf),
 	}
-	dbcommon.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, nil), s.ExtFields().WithSSL(&s.EnableSSL, nil))
+	dbcommon.SetUpdateExtendedDiff(&u, p.ExtFields().WithSSL(&p.EnableSSL, &p.SSLMode), s.ExtFields().WithSSL(&s.EnableSSL, &s.SSLMode))
 	db, err := dbcommon.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating MariaDB database", fmt.Sprintf("MariaDB database %s: %s", s.UUID.ValueString(), err))
@@ -190,7 +193,7 @@ func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, 
 }
 func flattenDatabase(db *client.Database, m *model) {
 	dbcommon.FlattenDatabaseCommon(db, m.CommonPtrs())
-	dbcommon.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, nil))
+	dbcommon.FlattenDatabaseExtended(db, m.ExtFields().WithSSL(&m.EnableSSL, &m.SSLMode))
 	m.MariadbUser = flex.StringToFramework(db.MariadbUser)
 	// Preserve passwords from plan/state when the API hides sensitive fields.
 	if db.MariadbPassword != "" {
