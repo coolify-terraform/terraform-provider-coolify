@@ -41,7 +41,7 @@ resource "coolify_application" "example" {
 
 ### Required
 
-- `build_pack` (String) The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`.
+- `build_pack` (String) The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`, `railpack`.
 - `git_repository` (String) The public Git repository URL for the application source code.
 - `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g., `3000` or `3000,8080`).
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.

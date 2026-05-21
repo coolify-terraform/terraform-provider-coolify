@@ -31,7 +31,7 @@ resource "coolify_application_private_git" "api" {
 
 ### Required
 
-- `build_pack` (String) The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`.
+- `build_pack` (String) The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`, `railpack`.
 - `git_repository` (String) The Git SSH URL for the private repository (e.g., `git@github.com:org/repo.git`).
 - `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g., `3000` or `3000,8080`).
 - `private_key_uuid` (String) The UUID of the SSH private key used for Git clone authentication. Changing this forces a new resource.

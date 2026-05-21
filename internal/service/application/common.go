@@ -797,10 +797,10 @@ func gitAppSourceAttrs(gitRepositoryDescription string) map[string]schema.Attrib
 			Default:             stringdefault.StaticString("main"),
 		},
 		"build_pack": schema.StringAttribute{
-			MarkdownDescription: "The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`.",
+			MarkdownDescription: "The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`, `railpack`.",
 			Required:            true,
 			Validators: []validator.String{
-				stringvalidator.OneOf("nixpacks", "dockerfile", "dockercompose", "static"),
+				stringvalidator.OneOf("nixpacks", "dockerfile", "dockercompose", "static", "railpack"),
 			},
 		},
 		"ports_exposes": schema.StringAttribute{
