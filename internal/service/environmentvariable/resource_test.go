@@ -224,7 +224,7 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// TestEnvironmentVariableResource_Import
+// TestEnvironmentVariableResource_ReadPreservesValueWhenAPIHidesIt
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_ReadPreservesValueWhenAPIHidesIt(t *testing.T) {
@@ -617,7 +617,7 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// TestEnvironmentVariableResource_ServiceImport
+// TestEnvironmentVariableResource_ServiceBuildVarRejected
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_ServiceBuildVarRejected(t *testing.T) {
@@ -1010,7 +1010,7 @@ func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// TestEnvironmentVariableResource_InvalidKey
 // ---------------------------------------------------------------------------
 
 func TestEnvironmentVariableResource_InvalidKey(t *testing.T) {
