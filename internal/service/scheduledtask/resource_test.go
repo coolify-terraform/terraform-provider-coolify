@@ -835,6 +835,112 @@ func TestScheduledTaskResource_ServiceDisappears(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestScheduledTaskResource_ReadBackFallback
+// ---------------------------------------------------------------------------
+
+func TestScheduledTaskResource_ReadBackFallback(t *testing.T) {
+	t.Parallel()
+
+	task := client.ScheduledTask{
+		UUID:      "task-fallback-uuid",
+		Name:      "fallback-task",
+		Command:   "echo fallback",
+		Frequency: "*/5 * * * *",
+		Enabled:   true,
+	}
+
+	mu := sync.Mutex{}
+	created := false
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		created = true
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != task.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(task)
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode([]client.ScheduledTask{})
+			return
+		}
+		// If just created, return 500 to trigger the fallback path.
+		// On subsequent reads (after state is set), return the task normally.
+		if created {
+			created = false // only fail once
+			http.Error(w, `{"error":"internal"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.ScheduledTask{task})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" || r.PathValue("taskUUID") != task.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_scheduled_task", "/api/v1/applications/cccc0001-0001-4000-8000-000000000001/scheduled-tasks/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "fallback-task"
+					command          = "echo fallback"
+					frequency        = "*/5 * * * *"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// Plan values should be used since list returned 500
+					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "uuid", "task-fallback-uuid"),
+					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "name", "fallback-task"),
+					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "command", "echo fallback"),
+					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "frequency", "*/5 * * * *"),
+					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "enabled", "true"),
+				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
