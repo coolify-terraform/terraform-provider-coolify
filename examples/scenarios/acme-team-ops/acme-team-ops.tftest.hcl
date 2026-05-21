@@ -76,9 +76,13 @@ run "update_project_description" {
   }
 }
 
-# Idempotency: re-plan should produce no changes.
+# Idempotency: re-plan with same variables should produce no changes.
 run "idempotency" {
   command = plan
+
+  variables {
+    project_description = "Updated by scenario test"
+  }
 
   assert {
     condition     = coolify_project.ops.name == "acme-team-ops"
