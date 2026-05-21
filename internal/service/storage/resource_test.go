@@ -38,6 +38,16 @@ func TestStorageResource_Create(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["name"] != "app-data" || body["mount_path"] != "/data" || body["host_path"] != "/host/data" {
+			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
@@ -544,6 +554,16 @@ func TestStorageResource_CreateWithServiceUUID(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/storages", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("svcUUID") != svcUUID {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["name"] != "svc-data" || body["mount_path"] != "/data" {
+			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
