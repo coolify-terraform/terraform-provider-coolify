@@ -628,6 +628,33 @@ func TestGitHubAppApplicationResource_RedeployOnUpdate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestGitHubAppApplicationResource_InvalidBuildPack
+// ---------------------------------------------------------------------------
+
+func TestGitHubAppApplicationResource_InvalidBuildPack(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testGitHubAppResourceConfig(srv.URL, `
+					project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+					github_app_uuid  = "dddd0001-0001-4000-8000-000000000001"
+					git_repository   = "https://github.com/example/repo"
+					build_pack       = "invalid_pack"
+					ports_exposes    = "3000"
+				`),
+				ExpectError: regexp.MustCompile(`must be one of`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
