@@ -256,7 +256,7 @@ jobs:
   spec-freshness:
     name: Spec Freshness
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 15
     if: github.event_name == 'schedule'
     permissions:
       contents: read
@@ -290,6 +290,49 @@ jobs:
               --title "Upstream Coolify OpenAPI spec has changed" \
               --label "spec-drift" \
               --body "The weekly spec-freshness check detected changes in the upstream Coolify OpenAPI spec. Run \`make spec-update\` to download the latest spec and review the diff."
+          fi
+      - name: Check for contract drift
+        id: contract-check
+        run: |
+          git clone --depth 1 https://github.com/coollabsio/coolify.git /tmp/coolify-src 2>/dev/null
+          python3 scripts/extract-contract.py /tmp/coolify-src \
+            --version v4-latest \
+            --output /tmp/coolify-latest-contract.json
+          python3 -c "
+          import json, sys
+          with open('testdata/contracts/coolify-v4.json') as f:
+              pinned = json.load(f)
+          with open('/tmp/coolify-latest-contract.json') as f:
+              latest = json.load(f)
+          changes = []
+          for model in sorted(set(list(pinned.get('models', {})) + list(latest.get('models', {})))):
+              pf = set(pinned.get('models', {}).get(model, {}).get('fields', {}).keys())
+              lf = set(latest.get('models', {}).get(model, {}).get('fields', {}).keys())
+              for f in sorted(lf - pf):
+                  changes.append(f'+ {model}.{f}')
+              for f in sorted(pf - lf):
+                  changes.append(f'- {model}.{f}')
+          if changes:
+              print(f'Contract drift: {len(changes)} field changes')
+              for c in changes[:50]:
+                  print(f'  {c}')
+              if len(changes) > 50:
+                  print(f'  ... and {len(changes) - 50} more')
+              sys.exit(1)
+          print('Contract is up to date')
+          " || echo "contract_drift=true" >> "$GITHUB_OUTPUT"
+      - name: Create issue for contract drift
+        if: steps.contract-check.outputs.contract_drift == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create contract-drift --description "Upstream Coolify source contract has changed" --color "d93f0b" --force 2>/dev/null || true
+          EXISTING=$(gh issue list --label "contract-drift" --state open --json number --jq length)
+          if [ "$EXISTING" = "0" ]; then
+            gh issue create \
+              --title "Upstream Coolify contract has changed" \
+              --label "contract-drift" \
+              --body "The weekly contract-freshness check detected field changes in the upstream Coolify source code. Run \`make contract-extract\` to update the pinned contract and review the changes with \`make contract-check\`."
           fi
 
   scenario-tests:
@@ -362,8 +405,8 @@ jobs:
             "$COOLIFY_ENDPOINT/api/v1/version" > /dev/null 2>&1; then
             echo "healthy=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Coolify server not reachable, skipping scenario tests"
-            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Coolify server not reachable but secrets are configured. Fix the test infrastructure."
+            exit 1
           fi
       - name: Generate deploy key for scenarios
         if: steps.secrets.outputs.configured == 'true' && steps.health.outputs.healthy == 'true'
@@ -444,8 +487,8 @@ jobs:
             "$COOLIFY_ENDPOINT/api/v1/version" > /dev/null 2>&1; then
             echo "healthy=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Coolify server not reachable, skipping acceptance tests"
-            echo "healthy=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Coolify server not reachable but secrets are configured. Fix the test infrastructure."
+            exit 1
           fi
       - name: Run acceptance tests
         if: steps.secrets.outputs.configured == 'true' && steps.health.outputs.healthy == 'true'
