@@ -75,7 +75,7 @@ for model in sorted(old_models & new_models):
         of = old["models"][model]["fields"][field]
         nf = new["models"][model]["fields"][field]
         diffs = []
-        for prop in ("type", "nullable", "default", "sensitive", "cast"):
+        for prop in ("type", "nullable", "default", "sensitive", "cast", "enum_values"):
             ov = of.get(prop)
             nv = nf.get(prop)
             if ov != nv:

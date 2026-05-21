@@ -13,7 +13,7 @@ Coolify contract extracted from the real application code.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
-Contract version: `v4-latest` | Extracted from: `coollabsio/coolify@v4-latest`
+Contract version: `v4.0.1` | Extracted from: `coollabsio/coolify@v4.0.1`
 
 ## Summary
 
@@ -747,7 +747,7 @@ Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Client JSON mapping
 | destination_type | string | - | - | - | - | n/a |
 | enable_ssl | string | - | - | - | - | n/a |
 | environment_id | integer | - | - | - | - | n/a |
-| image | string | - | - | - | postgres:15-alpine | mapped |
+| image | string | - | - | - | postgres:16-alpine | mapped |
 | init_scripts | object | - | - | - | - | mapped |
 | is_include_timestamps | string | - | - | - | - | n/a |
 | is_log_drain_enabled | string | - | - | - | - | n/a |
