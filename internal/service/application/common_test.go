@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 func TestNormalizeGitRepository(t *testing.T) {
@@ -87,4 +88,123 @@ func FuzzNormalizeGitRepository(f *testing.F) {
 			t.Errorf("SSH input mutated: %q -> %q", input, result)
 		}
 	})
+}
+
+// --- hasNonDefaultAppExtendedFields tests ---
+
+func strPtr(v string) *types.String { s := types.StringValue(v); return &s }
+
+func int64Ptr(v int64) *types.Int64 { i := types.Int64Value(v); return &i }
+
+func boolPtr(v bool) *types.Bool { b := types.BoolValue(v); return &b }
+
+func TestHasNonDefaultAppExtendedFields_AllDefaults(t *testing.T) {
+	t.Parallel()
+	// All fields nil -> returns false (no PATCH needed).
+	f := commonAppFields{}
+	if hasNonDefaultAppExtendedFields(f) {
+		t.Error("expected false for zero-value struct (all nils)")
+	}
+}
+
+func TestHasNonDefaultAppExtendedFields_EachField(t *testing.T) {
+	t.Parallel()
+	// Each entry sets exactly one field to a non-default value.
+	// The function must return true for every entry.
+	tests := []struct {
+		name  string
+		setup func(*commonAppFields)
+	}{
+		{"LimitsMemory", func(f *commonAppFields) { f.LimitsMemory = strPtr("512M") }},
+		{"LimitsMemorySwap", func(f *commonAppFields) { f.LimitsMemorySwap = strPtr("1G") }},
+		{"LimitsMemoryReservation", func(f *commonAppFields) { f.LimitsMemoryReservation = strPtr("256M") }},
+		{"LimitsCPUs", func(f *commonAppFields) { f.LimitsCPUs = strPtr("2") }},
+		{"LimitsCPUSet", func(f *commonAppFields) { f.LimitsCPUSet = strPtr("0-3") }},
+		{"LimitsMemorySwappiness", func(f *commonAppFields) { f.LimitsMemorySwappiness = int64Ptr(10) }},
+		{"LimitsCPUShares", func(f *commonAppFields) { f.LimitsCPUShares = int64Ptr(512) }},
+		{"HealthCheckEnabled", func(f *commonAppFields) { f.HealthCheckEnabled = boolPtr(true) }},
+		{"HealthCheckPath", func(f *commonAppFields) { f.HealthCheckPath = strPtr("/health") }},
+		{"HealthCheckPort", func(f *commonAppFields) { f.HealthCheckPort = strPtr("8080") }},
+		{"HealthCheckInterval", func(f *commonAppFields) { f.HealthCheckInterval = int64Ptr(30) }},
+		{"HealthCheckTimeout", func(f *commonAppFields) { f.HealthCheckTimeout = int64Ptr(10) }},
+		{"HealthCheckRetries", func(f *commonAppFields) { f.HealthCheckRetries = int64Ptr(3) }},
+		{"HealthCheckStartPeriod", func(f *commonAppFields) { f.HealthCheckStartPeriod = int64Ptr(15) }},
+		{"HealthCheckCommand", func(f *commonAppFields) { f.HealthCheckCommand = strPtr("curl localhost") }},
+		{"HealthCheckHost", func(f *commonAppFields) { f.HealthCheckHost = strPtr("0.0.0.0") }},
+		{"HealthCheckMethod", func(f *commonAppFields) { f.HealthCheckMethod = strPtr("POST") }},
+		{"HealthCheckResponseText", func(f *commonAppFields) { f.HealthCheckResponseText = strPtr("OK") }},
+		{"HealthCheckReturnCode", func(f *commonAppFields) { f.HealthCheckReturnCode = int64Ptr(204) }},
+		{"HealthCheckScheme", func(f *commonAppFields) { f.HealthCheckScheme = strPtr("https") }},
+		{"HealthCheckType", func(f *commonAppFields) { f.HealthCheckType = strPtr("tcp") }},
+		{"IsAutoDeployEnabled", func(f *commonAppFields) { f.IsAutoDeployEnabled = boolPtr(false) }},
+		{"BaseDirectory", func(f *commonAppFields) { f.BaseDirectory = strPtr("/app") }},
+		{"PublishDirectory", func(f *commonAppFields) { f.PublishDirectory = strPtr("/dist") }},
+		{"DockerRegistryImageTag", func(f *commonAppFields) { f.DockerRegistryImageTag = strPtr("v1") }},
+		{"DockerComposeDomains", func(f *commonAppFields) { f.DockerComposeDomains = strPtr("foo.com") }},
+		{"GitCommitSha", func(f *commonAppFields) { f.GitCommitSha = strPtr("abc123") }},
+		{"WatchPaths", func(f *commonAppFields) { f.WatchPaths = strPtr("/src") }},
+		{"CustomDockerRunOptions", func(f *commonAppFields) { f.CustomDockerRunOptions = strPtr("--cap-add=SYS_PTRACE") }},
+		{"CustomLabels", func(f *commonAppFields) { f.CustomLabels = strPtr("env=prod") }},
+		{"CustomNetworkAliases", func(f *commonAppFields) { f.CustomNetworkAliases = strPtr("myapp") }},
+		{"CustomNginxConfiguration", func(f *commonAppFields) { f.CustomNginxConfiguration = strPtr("server {}") }},
+		{"PortsMappings", func(f *commonAppFields) { f.PortsMappings = strPtr("8080:80") }},
+		{"IsHTTPBasicAuthEnabled", func(f *commonAppFields) { f.IsHTTPBasicAuthEnabled = boolPtr(true) }},
+		{"HTTPBasicAuthUsername", func(f *commonAppFields) { f.HTTPBasicAuthUsername = strPtr("admin") }},
+		{"HTTPBasicAuthPassword", func(f *commonAppFields) { f.HTTPBasicAuthPassword = strPtr("secret") }},
+		{"PreDeploymentCommand", func(f *commonAppFields) { f.PreDeploymentCommand = strPtr("npm run pre") }},
+		{"PreDeploymentCommandContainer", func(f *commonAppFields) { f.PreDeploymentCommandContainer = strPtr("web") }},
+		{"PostDeploymentCommand", func(f *commonAppFields) { f.PostDeploymentCommand = strPtr("npm run post") }},
+		{"PostDeploymentCommandContainer", func(f *commonAppFields) { f.PostDeploymentCommandContainer = strPtr("web") }},
+		{"ConnectToDockerNetwork", func(f *commonAppFields) { f.ConnectToDockerNetwork = boolPtr(true) }},
+		{"IsForceHTTPSEnabled", func(f *commonAppFields) { f.IsForceHTTPSEnabled = boolPtr(false) }},
+		{"IsStatic", func(f *commonAppFields) { f.IsStatic = boolPtr(true) }},
+		{"IsSPA", func(f *commonAppFields) { f.IsSPA = boolPtr(true) }},
+		{"IsContainerLabelEscapeEnabled", func(f *commonAppFields) { f.IsContainerLabelEscapeEnabled = boolPtr(false) }},
+		{"IsPreserveRepositoryEnabled", func(f *commonAppFields) { f.IsPreserveRepositoryEnabled = boolPtr(true) }},
+		{"UseBuildServer", func(f *commonAppFields) { f.UseBuildServer = boolPtr(true) }},
+		{"ForceDomainOverride", func(f *commonAppFields) { f.ForceDomainOverride = boolPtr(true) }},
+		{"Redirect", func(f *commonAppFields) { f.Redirect = strPtr("www") }},
+		{"StaticImage", func(f *commonAppFields) { f.StaticImage = strPtr("caddy:latest") }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			f := commonAppFields{}
+			tt.setup(&f)
+			if !hasNonDefaultAppExtendedFields(f) {
+				t.Errorf("expected true when %s is non-default", tt.name)
+			}
+		})
+	}
+}
+
+func TestHasNonDefaultAppExtendedFields_DefaultValues(t *testing.T) {
+	t.Parallel()
+	// Setting a field to its default value should NOT trigger a PATCH.
+	tests := []struct {
+		name  string
+		setup func(*commonAppFields)
+	}{
+		{"LimitsMemory=0", func(f *commonAppFields) { f.LimitsMemory = strPtr("0") }},
+		{"LimitsCPUs=0", func(f *commonAppFields) { f.LimitsCPUs = strPtr("0") }},
+		{"LimitsMemorySwappiness=60", func(f *commonAppFields) { f.LimitsMemorySwappiness = int64Ptr(60) }},
+		{"LimitsCPUShares=1024", func(f *commonAppFields) { f.LimitsCPUShares = int64Ptr(1024) }},
+		{"HealthCheckEnabled=false", func(f *commonAppFields) { f.HealthCheckEnabled = boolPtr(false) }},
+		{"HealthCheckPath=/", func(f *commonAppFields) { f.HealthCheckPath = strPtr("/") }},
+		{"HealthCheckInterval=5", func(f *commonAppFields) { f.HealthCheckInterval = int64Ptr(5) }},
+		{"IsAutoDeployEnabled=true", func(f *commonAppFields) { f.IsAutoDeployEnabled = boolPtr(true) }},
+		{"IsForceHTTPSEnabled=true", func(f *commonAppFields) { f.IsForceHTTPSEnabled = boolPtr(true) }},
+		{"Redirect=both", func(f *commonAppFields) { f.Redirect = strPtr(defaultRedirect) }},
+		{"StaticImage=nginx:alpine", func(f *commonAppFields) { f.StaticImage = strPtr(defaultStaticImage) }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			f := commonAppFields{}
+			tt.setup(&f)
+			if hasNonDefaultAppExtendedFields(f) {
+				t.Errorf("expected false when %s is set to its default", tt.name)
+			}
+		})
+	}
 }
