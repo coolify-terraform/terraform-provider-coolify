@@ -1,0 +1,6597 @@
+{
+  "version": "v4.0.0",
+  "extracted_from": "coollabsio/coolify@v4.0.0",
+  "extracted_at": "2026-05-21T22:53:25.243997+00:00",
+  "models": {
+    "Application": {
+      "table": "applications",
+      "fillable": [
+        "name",
+        "description",
+        "fqdn",
+        "git_repository",
+        "git_branch",
+        "git_commit_sha",
+        "git_full_url",
+        "docker_registry_image_name",
+        "docker_registry_image_tag",
+        "build_pack",
+        "static_image",
+        "install_command",
+        "build_command",
+        "start_command",
+        "ports_exposes",
+        "ports_mappings",
+        "base_directory",
+        "publish_directory",
+        "health_check_enabled",
+        "health_check_path",
+        "health_check_port",
+        "health_check_host",
+        "health_check_method",
+        "health_check_return_code",
+        "health_check_scheme",
+        "health_check_response_text",
+        "health_check_interval",
+        "health_check_timeout",
+        "health_check_retries",
+        "health_check_start_period",
+        "health_check_type",
+        "health_check_command",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "status",
+        "preview_url_template",
+        "dockerfile",
+        "dockerfile_location",
+        "dockerfile_target_build",
+        "custom_labels",
+        "custom_docker_run_options",
+        "post_deployment_command",
+        "post_deployment_command_container",
+        "pre_deployment_command",
+        "pre_deployment_command_container",
+        "manual_webhook_secret_github",
+        "manual_webhook_secret_gitlab",
+        "manual_webhook_secret_bitbucket",
+        "manual_webhook_secret_gitea",
+        "docker_compose_location",
+        "docker_compose_pr_location",
+        "docker_compose",
+        "docker_compose_pr",
+        "docker_compose_raw",
+        "docker_compose_pr_raw",
+        "docker_compose_domains",
+        "docker_compose_custom_start_command",
+        "docker_compose_custom_build_command",
+        "swarm_replicas",
+        "swarm_placement_constraints",
+        "watch_paths",
+        "redirect",
+        "compose_parsing_version",
+        "custom_nginx_configuration",
+        "custom_network_aliases",
+        "custom_healthcheck_found",
+        "nixpkgsarchive",
+        "is_http_basic_auth_enabled",
+        "http_basic_auth_username",
+        "http_basic_auth_password",
+        "connect_to_docker_network",
+        "force_domain_override",
+        "is_container_label_escape_enabled",
+        "use_build_server",
+        "config_hash",
+        "last_online_at",
+        "restart_count",
+        "last_restart_at",
+        "last_restart_type",
+        "uuid",
+        "environment_id",
+        "destination_id",
+        "destination_type",
+        "source_id",
+        "source_type",
+        "repository_project_id",
+        "private_key_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "server_status"
+      ],
+      "fields": {
+        "base_directory": {
+          "type": "string",
+          "nullable": false,
+          "default": "/",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "build_command": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "build_pack": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "compose_parsing_version": {
+          "type": "string",
+          "nullable": false,
+          "default": "1",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "connect_to_docker_network": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_healthcheck_found": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "custom_labels": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "custom_network_aliases": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "custom_nginx_configuration": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "docker_compose": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "docker_compose_custom_build_command": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "docker_compose_custom_start_command": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "docker_compose_domains": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "docker_compose_location": {
+          "type": "string",
+          "nullable": true,
+          "default": "/docker-compose.yaml",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "docker_compose_pr": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "docker_compose_pr_location": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "docker_compose_pr_raw": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "docker_compose_raw": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "docker_registry_image_name": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "docker_registry_image_tag": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "dockerfile": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "dockerfile_location": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "dockerfile_target_build": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "force_domain_override": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "fqdn": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "git_branch": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "git_commit_sha": {
+          "type": "string",
+          "nullable": false,
+          "default": "HEAD",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "git_full_url": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "git_repository": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "health_check_command": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "health_check_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "health_check_host": {
+          "type": "string",
+          "nullable": false,
+          "default": "localhost",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "health_check_interval": {
+          "type": "integer",
+          "nullable": false,
+          "default": 5,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "health_check_method": {
+          "type": "string",
+          "nullable": false,
+          "default": "GET",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "health_check_path": {
+          "type": "string",
+          "nullable": false,
+          "default": "/",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "health_check_port": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "health_check_response_text": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "health_check_retries": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "health_check_return_code": {
+          "type": "integer",
+          "nullable": false,
+          "default": 200,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "health_check_scheme": {
+          "type": "string",
+          "nullable": false,
+          "default": "http",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "health_check_start_period": {
+          "type": "integer",
+          "nullable": false,
+          "default": 5,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "health_check_timeout": {
+          "type": "integer",
+          "nullable": false,
+          "default": 5,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "health_check_type": {
+          "type": "text",
+          "nullable": false,
+          "default": "http",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "http_basic_auth_password": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured",
+          "max_length": 255
+        },
+        "http_basic_auth_username": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "install_command": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "is_container_label_escape_enabled": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_http_basic_auth_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_online_at": {
+          "type": "timestamp",
+          "nullable": false,
+          "default": "now(",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "last_restart_type": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 10
+        },
+        "limits_cpu_shares": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1024,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpus": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_cpuset": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "limits_memory": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_reservation": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swap": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swappiness": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "manual_webhook_secret_bitbucket": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured",
+          "max_length": 255
+        },
+        "manual_webhook_secret_gitea": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured",
+          "max_length": 255
+        },
+        "manual_webhook_secret_github": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured",
+          "max_length": 255
+        },
+        "manual_webhook_secret_gitlab": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured",
+          "max_length": 255
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "nixpkgsarchive": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "ports_exposes": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ports_mappings": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "post_deployment_command": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "post_deployment_command_container": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "pre_deployment_command": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "pre_deployment_command_container": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "preview_url_template": {
+          "type": "string",
+          "nullable": false,
+          "default": "{{pr_id}}.{{domain}}",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "private_key_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "publish_directory": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "redirect": {
+          "type": "enum",
+          "nullable": false,
+          "default": "both",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "enum_values": [
+            "www",
+            "non-www",
+            "both"
+          ]
+        },
+        "repository_project_id": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "restart_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "source_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "source_type": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "start_command": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "static_image": {
+          "type": "string",
+          "nullable": false,
+          "default": "nginx:alpine",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "status": {
+          "type": "string",
+          "nullable": false,
+          "default": "exited",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "swarm_placement_constraints": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "swarm_replicas": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "use_build_server": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "watch_paths": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        }
+      },
+      "settings_fields": {
+        "application_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "connect_to_docker_network": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "custom_internal_name": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "disable_build_cache": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "docker_images_to_keep": {
+          "type": "integer",
+          "nullable": false,
+          "default": 2,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "gpu_count": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "gpu_device_ids": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "gpu_driver": {
+          "type": "string",
+          "nullable": false,
+          "default": "nvidia",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "gpu_options": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "include_source_commit_in_build": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "inject_build_args_to_dockerfile": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_auto_deploy_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_build_server_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_consistent_container_name_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_container_label_escape_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_container_label_readonly_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_custom_ssl": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "is_debug_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_dual_cert": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "is_env_sorting_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_force_https_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_git_lfs_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_git_shallow_clone_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_git_submodules_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_gpu_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_gzip_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_http2": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "is_include_timestamps": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_log_drain_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_pr_deployments_public_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_preserve_repository_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_preview_deployments_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_raw_compose_deployment_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_spa": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_static": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_stripprefix_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_swarm_only_worker_nodes": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "use_build_secrets": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        }
+      }
+    },
+    "Server": {
+      "table": "servers",
+      "fillable": [
+        "name",
+        "ip",
+        "port",
+        "user",
+        "description",
+        "private_key_id",
+        "cloud_provider_token_id",
+        "team_id",
+        "hetzner_server_id",
+        "hetzner_server_status",
+        "is_validating",
+        "detected_traefik_version",
+        "traefik_outdated_info",
+        "server_metadata",
+        "ip_previous"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "is_coolify_host"
+      ],
+      "fields": {
+        "cloud_provider_token_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "detected_traefik_version": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "hetzner_server_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "hetzner_server_status": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "high_disk_usage_notification_sent": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "ip": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ip_previous": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "is_validating": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "log_drain_notification_sent": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "port": {
+          "type": "integer",
+          "nullable": false,
+          "default": 22,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "private_key_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "server_metadata": {
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "cast": "array",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "swarm_cluster": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear"
+        },
+        "traefik_outdated_info": {
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "cast": "array",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "unreachable_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "unreachable_email_sent": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "user": {
+          "type": "string",
+          "nullable": false,
+          "default": "root",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "validation_logs": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear"
+        }
+      }
+    },
+    "ServerSetting": {
+      "table": "server_settings",
+      "fillable": [
+        "server_id",
+        "is_swarm_manager",
+        "is_jump_server",
+        "is_build_server",
+        "is_reachable",
+        "is_usable",
+        "wildcard_domain",
+        "is_cloudflare_tunnel",
+        "is_logdrain_newrelic_enabled",
+        "logdrain_newrelic_license_key",
+        "logdrain_newrelic_base_uri",
+        "is_logdrain_highlight_enabled",
+        "logdrain_highlight_project_id",
+        "is_logdrain_axiom_enabled",
+        "logdrain_axiom_dataset_name",
+        "logdrain_axiom_api_key",
+        "is_swarm_worker",
+        "is_logdrain_custom_enabled",
+        "logdrain_custom_config",
+        "logdrain_custom_config_parser",
+        "concurrent_builds",
+        "dynamic_timeout",
+        "force_disabled",
+        "is_metrics_enabled",
+        "generate_exact_labels",
+        "force_docker_cleanup",
+        "docker_cleanup_frequency",
+        "docker_cleanup_threshold",
+        "server_timezone",
+        "delete_unused_volumes",
+        "delete_unused_networks",
+        "is_sentinel_enabled",
+        "sentinel_token",
+        "sentinel_metrics_refresh_rate_seconds",
+        "sentinel_metrics_history_days",
+        "sentinel_push_interval_seconds",
+        "sentinel_custom_url",
+        "server_disk_usage_notification_threshold",
+        "is_sentinel_debug_enabled",
+        "server_disk_usage_check_frequency",
+        "is_terminal_enabled",
+        "deployment_queue_limit",
+        "disable_application_image_retention"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [],
+      "fields": {
+        "concurrent_builds": {
+          "type": "integer",
+          "nullable": false,
+          "default": 2,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "delete_unused_networks": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "delete_unused_volumes": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "deployment_queue_limit": {
+          "type": "integer",
+          "nullable": false,
+          "default": 25,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "disable_application_image_retention": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "docker_cleanup_frequency": {
+          "type": "string",
+          "nullable": false,
+          "default": "0 0 * * *",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "docker_cleanup_threshold": {
+          "type": "integer",
+          "nullable": false,
+          "default": 80,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "dynamic_timeout": {
+          "type": "integer",
+          "nullable": false,
+          "default": 3600,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "force_disabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "force_docker_cleanup": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "generate_exact_labels": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_build_server": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_cloudflare_tunnel": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_jump_server": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_logdrain_axiom_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_logdrain_custom_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_logdrain_highlight_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_logdrain_newrelic_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_metrics_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_part_of_swarm": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "is_reachable": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_sentinel_debug_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_sentinel_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_swarm_manager": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_swarm_worker": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_terminal_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_usable": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "logdrain_axiom_api_key": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "logdrain_axiom_dataset_name": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "logdrain_custom_config": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "logdrain_custom_config_parser": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "logdrain_highlight_project_id": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "logdrain_newrelic_base_uri": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "logdrain_newrelic_license_key": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "sentinel_custom_url": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "sentinel_metrics_history_days": {
+          "type": "integer",
+          "nullable": false,
+          "default": 7,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "sentinel_metrics_refresh_rate_seconds": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "sentinel_push_interval_seconds": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "sentinel_token": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "server_disk_usage_check_frequency": {
+          "type": "string",
+          "nullable": false,
+          "default": "0 23 * * *",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "server_disk_usage_notification_threshold": {
+          "type": "integer",
+          "nullable": false,
+          "default": 80,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "server_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "server_timezone": {
+          "type": "string",
+          "nullable": false,
+          "default": "UTC",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "wildcard_domain": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        }
+      }
+    },
+    "Project": {
+      "table": "projects",
+      "fillable": [
+        "name",
+        "description",
+        "team_id",
+        "uuid"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [],
+      "fields": {
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "Environment": {
+      "table": "environments",
+      "fillable": [
+        "name",
+        "description",
+        "project_id",
+        "uuid"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [],
+      "fields": {
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "project_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        }
+      }
+    },
+    "Service": {
+      "table": "services",
+      "fillable": [
+        "uuid",
+        "name",
+        "description",
+        "docker_compose_raw",
+        "docker_compose",
+        "connect_to_docker_network",
+        "service_type",
+        "config_hash",
+        "compose_parsing_version",
+        "is_container_label_escape_enabled",
+        "environment_id",
+        "server_id",
+        "destination_id",
+        "destination_type"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "server_status",
+        "status"
+      ],
+      "fields": {
+        "compose_parsing_version": {
+          "type": "string",
+          "nullable": false,
+          "default": "2",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "connect_to_docker_network": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "description": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "docker_compose": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "docker_compose_raw": {
+          "type": "longText",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_container_label_escape_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "server_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "service_type": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "StandalonePostgresql": {
+      "table": "standalone_postgresqls",
+      "fillable": [
+        "uuid",
+        "name",
+        "description",
+        "postgres_user",
+        "postgres_password",
+        "postgres_db",
+        "postgres_initdb_args",
+        "postgres_host_auth_method",
+        "postgres_conf",
+        "init_scripts",
+        "status",
+        "image",
+        "is_public",
+        "public_port",
+        "ports_mappings",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "started_at",
+        "restart_count",
+        "last_restart_at",
+        "last_restart_type",
+        "last_online_at",
+        "public_port_timeout",
+        "enable_ssl",
+        "ssl_mode",
+        "is_log_drain_enabled",
+        "is_include_timestamps",
+        "custom_docker_run_options",
+        "destination_type",
+        "destination_id",
+        "environment_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "internal_db_url",
+        "external_db_url",
+        "database_type",
+        "server_status"
+      ],
+      "fields": {
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "enable_ssl": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "image": {
+          "type": "string",
+          "nullable": false,
+          "default": "postgres:16-alpine",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "init_scripts": {
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "cast": "array",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "is_include_timestamps": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_log_drain_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_public": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_online_at": {
+          "type": "timestamp",
+          "nullable": false,
+          "default": "now(",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_at": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpu_shares": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1024,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpus": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_cpuset": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "limits_memory": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_reservation": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swap": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swappiness": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ports_mappings": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "postgres_conf": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "postgres_db": {
+          "type": "string",
+          "nullable": false,
+          "default": "postgres",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "postgres_host_auth_method": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "postgres_initdb_args": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "postgres_password": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "postgres_user": {
+          "type": "string",
+          "nullable": false,
+          "default": "postgres",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "public_port": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port_timeout": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "restart_count": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "ssl_mode": {
+          "type": "enum",
+          "nullable": false,
+          "default": "require",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "enum_values": [
+            "allow",
+            "prefer",
+            "require",
+            "verify-ca",
+            "verify-full"
+          ]
+        },
+        "started_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "status": {
+          "type": "string",
+          "nullable": false,
+          "default": "exited",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "StandaloneMysql": {
+      "table": "standalone_mysqls",
+      "fillable": [
+        "uuid",
+        "name",
+        "description",
+        "mysql_root_password",
+        "mysql_user",
+        "mysql_password",
+        "mysql_database",
+        "mysql_conf",
+        "status",
+        "image",
+        "is_public",
+        "public_port",
+        "ports_mappings",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "started_at",
+        "restart_count",
+        "last_restart_at",
+        "last_restart_type",
+        "last_online_at",
+        "public_port_timeout",
+        "enable_ssl",
+        "ssl_mode",
+        "is_log_drain_enabled",
+        "is_include_timestamps",
+        "custom_docker_run_options",
+        "destination_type",
+        "destination_id",
+        "environment_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "internal_db_url",
+        "external_db_url",
+        "database_type",
+        "server_status"
+      ],
+      "fields": {
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "enable_ssl": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "image": {
+          "type": "string",
+          "nullable": false,
+          "default": "mysql:8",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "is_include_timestamps": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_log_drain_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_public": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_online_at": {
+          "type": "timestamp",
+          "nullable": false,
+          "default": "now(",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_at": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpu_shares": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1024,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpus": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_cpuset": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "limits_memory": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_reservation": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swap": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swappiness": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "mysql_conf": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "mysql_database": {
+          "type": "string",
+          "nullable": false,
+          "default": "default",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "mysql_password": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "mysql_root_password": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "mysql_user": {
+          "type": "string",
+          "nullable": false,
+          "default": "mysql",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ports_mappings": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port_timeout": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "restart_count": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "ssl_mode": {
+          "type": "enum",
+          "nullable": false,
+          "default": "REQUIRED",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "enum_values": [
+            "PREFERRED",
+            "REQUIRED",
+            "VERIFY_CA",
+            "VERIFY_IDENTITY"
+          ]
+        },
+        "started_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "status": {
+          "type": "string",
+          "nullable": false,
+          "default": "exited",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "StandaloneMariadb": {
+      "table": "standalone_mariadbs",
+      "fillable": [
+        "uuid",
+        "name",
+        "description",
+        "mariadb_root_password",
+        "mariadb_user",
+        "mariadb_password",
+        "mariadb_database",
+        "mariadb_conf",
+        "status",
+        "image",
+        "is_public",
+        "public_port",
+        "ports_mappings",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "started_at",
+        "restart_count",
+        "last_restart_at",
+        "last_restart_type",
+        "last_online_at",
+        "public_port_timeout",
+        "enable_ssl",
+        "is_log_drain_enabled",
+        "custom_docker_run_options",
+        "destination_type",
+        "destination_id",
+        "environment_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "internal_db_url",
+        "external_db_url",
+        "database_type",
+        "server_status"
+      ],
+      "fields": {
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "enable_ssl": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "image": {
+          "type": "string",
+          "nullable": false,
+          "default": "mariadb:11",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "is_log_drain_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_public": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_online_at": {
+          "type": "timestamp",
+          "nullable": false,
+          "default": "now(",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_at": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpu_shares": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1024,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpus": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_cpuset": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "limits_memory": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_reservation": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swap": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swappiness": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "mariadb_conf": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "mariadb_database": {
+          "type": "string",
+          "nullable": false,
+          "default": "default",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "mariadb_password": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "mariadb_root_password": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "mariadb_user": {
+          "type": "string",
+          "nullable": false,
+          "default": "mariadb",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ports_mappings": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port_timeout": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "restart_count": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "started_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "status": {
+          "type": "string",
+          "nullable": false,
+          "default": "exited",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "StandaloneMongodb": {
+      "table": "standalone_mongodbs",
+      "fillable": [
+        "uuid",
+        "name",
+        "description",
+        "mongo_conf",
+        "mongo_initdb_root_username",
+        "mongo_initdb_root_password",
+        "mongo_initdb_database",
+        "status",
+        "image",
+        "is_public",
+        "public_port",
+        "ports_mappings",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "started_at",
+        "restart_count",
+        "last_restart_at",
+        "last_restart_type",
+        "last_online_at",
+        "public_port_timeout",
+        "enable_ssl",
+        "ssl_mode",
+        "is_log_drain_enabled",
+        "is_include_timestamps",
+        "custom_docker_run_options",
+        "destination_type",
+        "destination_id",
+        "environment_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "internal_db_url",
+        "external_db_url",
+        "database_type",
+        "server_status"
+      ],
+      "fields": {
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "enable_ssl": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "image": {
+          "type": "string",
+          "nullable": false,
+          "default": "mongo:7",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "is_include_timestamps": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_log_drain_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_public": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_online_at": {
+          "type": "timestamp",
+          "nullable": false,
+          "default": "now(",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_at": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpu_shares": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1024,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpus": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_cpuset": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "limits_memory": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_reservation": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swap": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swappiness": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "mongo_conf": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "mongo_initdb_database": {
+          "type": "text",
+          "nullable": false,
+          "default": "default",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "mongo_initdb_root_password": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "mongo_initdb_root_username": {
+          "type": "text",
+          "nullable": false,
+          "default": "root",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ports_mappings": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port_timeout": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "restart_count": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "ssl_mode": {
+          "type": "enum",
+          "nullable": false,
+          "default": "require",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "enum_values": [
+            "allow",
+            "prefer",
+            "require",
+            "verify-full"
+          ]
+        },
+        "started_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "status": {
+          "type": "string",
+          "nullable": false,
+          "default": "exited",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "StandaloneRedis": {
+      "table": "standalone_redis",
+      "fillable": [
+        "uuid",
+        "name",
+        "description",
+        "redis_conf",
+        "status",
+        "image",
+        "is_public",
+        "public_port",
+        "ports_mappings",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "started_at",
+        "restart_count",
+        "last_restart_at",
+        "last_restart_type",
+        "last_online_at",
+        "public_port_timeout",
+        "enable_ssl",
+        "is_log_drain_enabled",
+        "is_include_timestamps",
+        "custom_docker_run_options",
+        "destination_type",
+        "destination_id",
+        "environment_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "internal_db_url",
+        "external_db_url",
+        "database_type",
+        "server_status"
+      ],
+      "fields": {
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "enable_ssl": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "image": {
+          "type": "string",
+          "nullable": false,
+          "default": "redis:7.2",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "is_include_timestamps": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_log_drain_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_public": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_online_at": {
+          "type": "timestamp",
+          "nullable": false,
+          "default": "now(",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_at": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpu_shares": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1024,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpus": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_cpuset": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "limits_memory": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_reservation": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swap": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swappiness": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ports_mappings": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port_timeout": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "redis_conf": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "restart_count": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "started_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "status": {
+          "type": "string",
+          "nullable": false,
+          "default": "exited",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "StandaloneClickhouse": {
+      "table": "standalone_clickhouses",
+      "fillable": [
+        "uuid",
+        "name",
+        "description",
+        "clickhouse_admin_user",
+        "clickhouse_admin_password",
+        "is_log_drain_enabled",
+        "is_include_timestamps",
+        "status",
+        "image",
+        "is_public",
+        "public_port",
+        "ports_mappings",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "started_at",
+        "restart_count",
+        "last_restart_at",
+        "last_restart_type",
+        "last_online_at",
+        "public_port_timeout",
+        "custom_docker_run_options",
+        "clickhouse_db",
+        "destination_type",
+        "destination_id",
+        "environment_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "internal_db_url",
+        "external_db_url",
+        "database_type",
+        "server_status"
+      ],
+      "fields": {
+        "clickhouse_admin_password": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "clickhouse_admin_user": {
+          "type": "string",
+          "nullable": false,
+          "default": "default",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "clickhouse_db": {
+          "type": "string",
+          "nullable": false,
+          "default": "default",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "image": {
+          "type": "string",
+          "nullable": false,
+          "default": "clickhouse/clickhouse-server:25.11",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "is_include_timestamps": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_log_drain_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_public": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_online_at": {
+          "type": "timestamp",
+          "nullable": false,
+          "default": "now(",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_at": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpu_shares": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1024,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpus": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_cpuset": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "limits_memory": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_reservation": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swap": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swappiness": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ports_mappings": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port_timeout": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "restart_count": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "started_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "status": {
+          "type": "string",
+          "nullable": false,
+          "default": "exited",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "StandaloneKeydb": {
+      "table": "standalone_keydbs",
+      "fillable": [
+        "uuid",
+        "name",
+        "description",
+        "keydb_password",
+        "keydb_conf",
+        "is_log_drain_enabled",
+        "is_include_timestamps",
+        "status",
+        "image",
+        "is_public",
+        "public_port",
+        "ports_mappings",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "started_at",
+        "restart_count",
+        "last_restart_at",
+        "last_restart_type",
+        "last_online_at",
+        "public_port_timeout",
+        "enable_ssl",
+        "custom_docker_run_options",
+        "destination_type",
+        "destination_id",
+        "environment_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "internal_db_url",
+        "external_db_url",
+        "server_status"
+      ],
+      "fields": {
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "enable_ssl": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "image": {
+          "type": "string",
+          "nullable": false,
+          "default": "eqalpha/keydb:latest",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "is_include_timestamps": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_log_drain_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_public": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "keydb_conf": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "keydb_password": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "last_online_at": {
+          "type": "timestamp",
+          "nullable": false,
+          "default": "now(",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_at": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpu_shares": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1024,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpus": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_cpuset": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "limits_memory": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_reservation": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swap": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swappiness": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ports_mappings": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port_timeout": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "restart_count": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "started_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "status": {
+          "type": "string",
+          "nullable": false,
+          "default": "exited",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "StandaloneDragonfly": {
+      "table": "standalone_dragonflies",
+      "fillable": [
+        "uuid",
+        "name",
+        "description",
+        "dragonfly_password",
+        "is_log_drain_enabled",
+        "is_include_timestamps",
+        "status",
+        "image",
+        "is_public",
+        "public_port",
+        "ports_mappings",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "started_at",
+        "restart_count",
+        "last_restart_at",
+        "last_restart_type",
+        "last_online_at",
+        "public_port_timeout",
+        "enable_ssl",
+        "custom_docker_run_options",
+        "destination_type",
+        "destination_id",
+        "environment_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "internal_db_url",
+        "external_db_url",
+        "database_type",
+        "server_status"
+      ],
+      "fields": {
+        "config_hash": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_docker_run_options": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "destination_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "destination_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "dragonfly_password": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "enable_ssl": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "environment_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "image": {
+          "type": "string",
+          "nullable": false,
+          "default": "docker.dragonflydb.io/dragonflydb/dragonfly",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "is_include_timestamps": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_log_drain_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_public": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_online_at": {
+          "type": "timestamp",
+          "nullable": false,
+          "default": "now(",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_at": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "datetime",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "last_restart_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpu_shares": {
+          "type": "integer",
+          "nullable": false,
+          "default": 1024,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "limits_cpus": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_cpuset": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "limits_memory": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_reservation": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swap": {
+          "type": "string",
+          "nullable": false,
+          "default": "0",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "limits_memory_swappiness": {
+          "type": "integer",
+          "nullable": false,
+          "default": 60,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "ports_mappings": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "public_port_timeout": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "restart_count": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "started_at": {
+          "type": "timestamp",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "status": {
+          "type": "string",
+          "nullable": false,
+          "default": "exited",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "EnvironmentVariable": {
+      "table": "environment_variables",
+      "fillable": [
+        "key",
+        "value",
+        "comment",
+        "resourceable_type",
+        "resourceable_id",
+        "is_preview",
+        "is_multiline",
+        "is_literal",
+        "is_runtime",
+        "is_buildtime",
+        "is_shown_once",
+        "is_shared",
+        "is_required",
+        "version",
+        "order"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "real_value",
+        "is_shared",
+        "is_really_required",
+        "is_nixpacks",
+        "is_coolify"
+      ],
+      "fields": {
+        "comment": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 256
+        },
+        "is_buildtime": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_literal": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_multiline": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_preview": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_required": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_runtime": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_shared": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_shown_once": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "key": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "order": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "resourceable_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "resourceable_type": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "value": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured",
+          "max_length": 255
+        },
+        "version": {
+          "type": "string",
+          "nullable": false,
+          "default": "4.0.0-beta.239",
+          "cast": "string",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "PrivateKey": {
+      "table": "private_keys",
+      "fillable": [
+        "name",
+        "description",
+        "private_key",
+        "is_git_related",
+        "team_id",
+        "fingerprint"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [
+        "public_key"
+      ],
+      "fields": {
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "fingerprint": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "is_git_related": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "private_key": {
+          "type": "longText",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "LocalPersistentVolume": {
+      "table": "local_persistent_volumes",
+      "fillable": [
+        "name",
+        "mount_path",
+        "host_path",
+        "container_id",
+        "resource_type",
+        "resource_id",
+        "is_preview_suffix_enabled"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [],
+      "fields": {
+        "container_id": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "host_path": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "is_preview_suffix_enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "mount_path": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "resource_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "resource_type": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        }
+      }
+    },
+    "ScheduledTask": {
+      "table": "scheduled_tasks",
+      "fillable": [
+        "uuid",
+        "enabled",
+        "name",
+        "command",
+        "frequency",
+        "container",
+        "timeout",
+        "team_id",
+        "application_id",
+        "service_id"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [],
+      "fields": {
+        "application_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "command": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "container": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "frequency": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "service_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "timeout": {
+          "type": "integer",
+          "nullable": false,
+          "default": 300,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "GithubApp": {
+      "table": "github_apps",
+      "fillable": [
+        "team_id",
+        "private_key_id",
+        "name",
+        "organization",
+        "api_url",
+        "html_url",
+        "custom_user",
+        "custom_port",
+        "app_id",
+        "installation_id",
+        "client_id",
+        "client_secret",
+        "webhook_secret",
+        "is_system_wide",
+        "is_public",
+        "contents",
+        "metadata",
+        "pull_requests",
+        "administration"
+      ],
+      "guarded": [],
+      "hidden": [
+        "client_secret",
+        "webhook_secret"
+      ],
+      "appends": [
+        "type"
+      ],
+      "fields": {
+        "administration": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "api_url": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "app_id": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "client_id": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "client_secret": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "contents": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "custom_port": {
+          "type": "integer",
+          "nullable": false,
+          "default": 22,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "custom_user": {
+          "type": "string",
+          "nullable": false,
+          "default": "git",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "html_url": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "installation_id": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "is_public": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "is_system_wide": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "metadata": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "organization": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "private_key_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "pull_requests": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "webhook_secret": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        }
+      }
+    },
+    "S3Storage": {
+      "table": "s3_storages",
+      "fillable": [
+        "name",
+        "description",
+        "region",
+        "key",
+        "secret",
+        "bucket",
+        "endpoint",
+        "is_usable",
+        "unusable_email_sent"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [],
+      "fields": {
+        "bucket": {
+          "type": "longText",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "description": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "endpoint": {
+          "type": "longText",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "is_usable": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "key": {
+          "type": "longText",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "name": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "region": {
+          "type": "string",
+          "nullable": false,
+          "default": "us-east-1",
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "secret": {
+          "type": "longText",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "unusable_email_sent": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "CloudProviderToken": {
+      "table": "cloud_provider_tokens",
+      "fillable": [
+        "team_id",
+        "provider",
+        "token",
+        "name"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [],
+      "fields": {
+        "name": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        },
+        "provider": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "token": {
+          "type": "text",
+          "nullable": false,
+          "default": null,
+          "cast": "encrypted",
+          "sensitive": true,
+          "fillable": true,
+          "flatten_hint": "if_configured"
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "or_clear",
+          "max_length": 255
+        }
+      }
+    },
+    "ScheduledDatabaseBackup": {
+      "table": "scheduled_database_backups",
+      "fillable": [
+        "uuid",
+        "team_id",
+        "description",
+        "enabled",
+        "save_s3",
+        "frequency",
+        "database_backup_retention_amount_locally",
+        "database_type",
+        "database_id",
+        "s3_storage_id",
+        "databases_to_backup",
+        "dump_all",
+        "database_backup_retention_days_locally",
+        "database_backup_retention_max_storage_locally",
+        "database_backup_retention_amount_s3",
+        "database_backup_retention_days_s3",
+        "database_backup_retention_max_storage_s3",
+        "timeout",
+        "disable_local_backup"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [],
+      "fields": {
+        "database_backup_retention_amount_locally": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "database_backup_retention_amount_s3": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "database_backup_retention_days_locally": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "database_backup_retention_days_s3": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "database_backup_retention_max_storage_locally": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "float",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "database_backup_retention_max_storage_s3": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "float",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "database_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "database_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "databases_to_backup": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "description": {
+          "type": "text",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "disable_local_backup": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "dump_all": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "frequency": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "number_of_backups_locally": {
+          "type": "integer",
+          "nullable": false,
+          "default": 7,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "s3_storage_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "save_s3": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "timeout": {
+          "type": "integer",
+          "nullable": false,
+          "default": 3600,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    }
+  },
+  "endpoints": {
+    "ApplicationsController::create_application": {
+      "allowed_fields": [
+        "project_uuid",
+        "environment_name",
+        "environment_uuid",
+        "server_uuid",
+        "destination_uuid",
+        "type",
+        "name",
+        "description",
+        "instant_deploy",
+        "docker_compose_raw",
+        "force_domain_override",
+        "is_container_label_escape_enabled"
+      ]
+    },
+    "ApplicationsController::update_by_uuid": {
+      "allowed_fields": [
+        "name",
+        "description",
+        "is_static",
+        "is_spa",
+        "is_auto_deploy_enabled",
+        "is_force_https_enabled",
+        "domains",
+        "git_repository",
+        "git_branch",
+        "git_commit_sha",
+        "docker_registry_image_name",
+        "docker_registry_image_tag",
+        "build_pack",
+        "static_image",
+        "install_command",
+        "build_command",
+        "start_command",
+        "ports_exposes",
+        "ports_mappings",
+        "custom_network_aliases",
+        "base_directory",
+        "publish_directory",
+        "health_check_enabled",
+        "health_check_type",
+        "health_check_command",
+        "health_check_path",
+        "health_check_port",
+        "health_check_host",
+        "health_check_method",
+        "health_check_return_code",
+        "health_check_scheme",
+        "health_check_response_text",
+        "health_check_interval",
+        "health_check_timeout",
+        "health_check_retries",
+        "health_check_start_period",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "custom_labels",
+        "custom_docker_run_options",
+        "post_deployment_command",
+        "post_deployment_command_container",
+        "pre_deployment_command",
+        "pre_deployment_command_container",
+        "watch_paths",
+        "manual_webhook_secret_github",
+        "manual_webhook_secret_gitlab",
+        "manual_webhook_secret_bitbucket",
+        "manual_webhook_secret_gitea",
+        "dockerfile_location",
+        "dockerfile_target_build",
+        "docker_compose_location",
+        "docker_compose_custom_start_command",
+        "docker_compose_custom_build_command",
+        "docker_compose_domains",
+        "redirect",
+        "instant_deploy",
+        "use_build_server",
+        "custom_nginx_configuration",
+        "is_http_basic_auth_enabled",
+        "http_basic_auth_username",
+        "http_basic_auth_password",
+        "connect_to_docker_network",
+        "force_domain_override",
+        "is_container_label_escape_enabled",
+        "is_preserve_repository_enabled"
+      ]
+    },
+    "ApplicationsController::update_env_by_uuid": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_preview",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "is_runtime",
+        "is_buildtime",
+        "comment"
+      ]
+    },
+    "ApplicationsController::create_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_preview",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "is_runtime",
+        "is_buildtime",
+        "comment"
+      ]
+    },
+    "CloudProviderTokensController::store": {
+      "allowed_fields": [
+        "provider",
+        "token",
+        "name"
+      ]
+    },
+    "CloudProviderTokensController::update": {
+      "allowed_fields": [
+        "name"
+      ]
+    },
+    "DatabasesController::update_by_uuid": {
+      "allowed_fields": [
+        "name",
+        "description",
+        "image",
+        "public_port",
+        "public_port_timeout",
+        "is_public",
+        "instant_deploy",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "mysql_root_password",
+        "mysql_password",
+        "mysql_user",
+        "mysql_database",
+        "mysql_conf"
+      ]
+    },
+    "DatabasesController::create_database": {
+      "allowed_fields": [
+        "name",
+        "description",
+        "image",
+        "public_port",
+        "public_port_timeout",
+        "is_public",
+        "project_uuid",
+        "environment_name",
+        "environment_uuid",
+        "server_uuid",
+        "destination_uuid",
+        "instant_deploy",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "mongo_conf",
+        "mongo_initdb_root_username",
+        "mongo_initdb_root_password",
+        "mongo_initdb_database"
+      ]
+    },
+    "GithubController::create_github_app": {
+      "allowed_fields": [
+        "name",
+        "organization",
+        "api_url",
+        "html_url",
+        "custom_user",
+        "custom_port",
+        "app_id",
+        "installation_id",
+        "client_id",
+        "client_secret",
+        "webhook_secret",
+        "private_key_uuid",
+        "is_system_wide"
+      ]
+    },
+    "GithubController::update_github_app": {
+      "allowed_fields": [
+        "name",
+        "organization",
+        "api_url",
+        "html_url",
+        "custom_user",
+        "custom_port",
+        "app_id",
+        "installation_id",
+        "client_id",
+        "client_secret",
+        "webhook_secret",
+        "private_key_uuid"
+      ]
+    },
+    "HetznerController::createServer": {
+      "allowed_fields": [
+        "cloud_provider_token_uuid",
+        "cloud_provider_token_id",
+        "location",
+        "server_type",
+        "image",
+        "name",
+        "private_key_uuid",
+        "enable_ipv4",
+        "enable_ipv6",
+        "hetzner_ssh_key_ids",
+        "cloud_init_script",
+        "instant_validate"
+      ]
+    },
+    "ProjectController::create_project": {
+      "allowed_fields": [
+        "name",
+        "description"
+      ]
+    },
+    "ProjectController::update_project": {
+      "allowed_fields": [
+        "name",
+        "description"
+      ]
+    },
+    "ProjectController::create_environment": {
+      "allowed_fields": [
+        "name"
+      ]
+    },
+    "ScheduledTasksController::createTask": {
+      "allowed_fields": [
+        "name",
+        "command",
+        "frequency",
+        "container",
+        "timeout",
+        "enabled"
+      ]
+    },
+    "ScheduledTasksController::updateTask": {
+      "allowed_fields": [
+        "name",
+        "command",
+        "frequency",
+        "container",
+        "timeout",
+        "enabled"
+      ]
+    },
+    "SecurityController::update_key": {
+      "allowed_fields": [
+        "name",
+        "description",
+        "private_key"
+      ]
+    },
+    "ServersController::create_server": {
+      "allowed_fields": [
+        "name",
+        "description",
+        "ip",
+        "port",
+        "user",
+        "private_key_uuid",
+        "is_build_server",
+        "instant_validate",
+        "proxy_type"
+      ]
+    },
+    "ServersController::update_server": {
+      "allowed_fields": [
+        "name",
+        "description",
+        "ip",
+        "port",
+        "user",
+        "private_key_uuid",
+        "is_build_server",
+        "instant_validate",
+        "proxy_type",
+        "concurrent_builds",
+        "dynamic_timeout",
+        "deployment_queue_limit",
+        "server_disk_usage_notification_threshold",
+        "server_disk_usage_check_frequency"
+      ]
+    },
+    "ServicesController::create_service": {
+      "allowed_fields": [
+        "name",
+        "description",
+        "project_uuid",
+        "environment_name",
+        "environment_uuid",
+        "server_uuid",
+        "destination_uuid",
+        "instant_deploy",
+        "docker_compose_raw",
+        "connect_to_docker_network",
+        "urls",
+        "force_domain_override",
+        "is_container_label_escape_enabled"
+      ]
+    },
+    "ServicesController::update_by_uuid": {
+      "allowed_fields": [
+        "name",
+        "description",
+        "instant_deploy",
+        "docker_compose_raw",
+        "connect_to_docker_network",
+        "urls",
+        "force_domain_override",
+        "is_container_label_escape_enabled"
+      ]
+    }
+  },
+  "enums": {
+    "ProcessStatus": [
+      "queued",
+      "in_progress",
+      "finished",
+      "error",
+      "killed",
+      "cancelled",
+      "closed"
+    ],
+    "RedirectTypes": [
+      "both",
+      "www",
+      "non-www"
+    ],
+    "ProxyTypes": [
+      "NONE",
+      "TRAEFIK",
+      "NGINX",
+      "CADDY",
+      "exited",
+      "running"
+    ],
+    "NewDatabaseTypes": [
+      "postgresql",
+      "mysql",
+      "mongodb",
+      "redis",
+      "mariadb",
+      "keydb",
+      "dragonfly",
+      "clickhouse"
+    ],
+    "StaticImageTypes": [
+      "nginx:alpine"
+    ],
+    "NewResourceTypes": [
+      "public",
+      "private-gh-app",
+      "private-deploy-key",
+      "dockerfile",
+      "dockercompose",
+      "docker-image",
+      "service",
+      "postgresql",
+      "mysql",
+      "mongodb",
+      "redis",
+      "mariadb",
+      "keydb",
+      "dragonfly",
+      "clickhouse"
+    ],
+    "ActivityTypes": [
+      "inline",
+      "command"
+    ],
+    "ApplicationDeploymentStatus": [
+      "queued",
+      "in_progress",
+      "finished",
+      "failed",
+      "cancelled-by-user"
+    ],
+    "Role": [
+      "member",
+      "admin",
+      "owner"
+    ],
+    "BuildPackTypes": [
+      "nixpacks",
+      "static",
+      "dockerfile",
+      "dockercompose"
+    ],
+    "ContainerStatusTypes": [
+      "paused",
+      "restarting",
+      "removing",
+      "running",
+      "dead",
+      "created",
+      "exited"
+    ]
+  },
+  "validation_patterns": {
+    "NAME_PATTERN": "/^[\\p{L}\\p{M}\\p{N}\\s\\-_.@\\/&()#,:+]+$/u",
+    "DESCRIPTION_PATTERN": "/^[\\p{L}\\p{M}\\p{N}\\s\\-_.,!?()\\",
+    "FILE_PATH_PATTERN": "/^\\/[a-zA-Z0-9._\\-\\/~@+]+$/",
+    "DIRECTORY_PATH_PATTERN": "/^\\/([a-zA-Z0-9._\\-\\/~@+]*)?$/",
+    "DOCKER_TARGET_PATTERN": "/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/",
+    "SHELL_SAFE_COMMAND_PATTERN": "/^(?:[ \\t]+|&&|\\|\\||",
+    "VOLUME_NAME_PATTERN": "/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/",
+    "CONTAINER_NAME_PATTERN": "/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/",
+    "DOCKER_NETWORK_PATTERN": "/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/",
+    "DB_IDENTIFIER_PATTERN": "/^[A-Za-z_][A-Za-z0-9_]{0,62}$/",
+    "DB_PASSWORD_PATTERN": "/^[A-Za-z0-9!@#%^*()_+\\-=\\[\\]{}:,.?\\/~]+$/"
+  },
+  "shared_validation_rules": {
+    "git_commit_sha": "string",
+    "health_check_command": "nullable|string|max:1000",
+    "health_check_path": "string",
+    "health_check_host": "string"
+  }
+}

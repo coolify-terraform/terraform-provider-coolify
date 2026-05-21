@@ -86,6 +86,7 @@ work for core resources, but newer features require a recent version.
 | 0.2.x | 4.0.0 | Databases (8 types), services, environment variables, private keys |
 | 0.3.x | 4.0.0 | Cloud tokens (Hetzner), GitHub Apps, scheduled tasks, storage |
 | 0.4.x | 4.0.0 | Database SSL/TLS (`enable_ssl`, `ssl_mode`), log drain settings, custom TLS CA |
+| 0.5.x | 4.0.0 | Server `connection_timeout`, `railpack` build pack (requires Coolify 4.1.0+), versioned API contracts |
 
 -> **Tip:** Run `data "coolify_version" "current" {}` to check your
 instance version programmatically.
