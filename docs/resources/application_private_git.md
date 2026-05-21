@@ -50,7 +50,7 @@ resource "coolify_application_private_git" "api" {
 - `description` (String) A description of the application.
 - `docker_compose_domains` (String) Domain mappings for Docker Compose services.
 - `docker_registry_image_tag` (String) The Docker registry image tag.
-- `dockerfile` (String, Sensitive) Inline Dockerfile content (base64 encoded).
+- `dockerfile` (String, Sensitive) Inline Dockerfile content (base64 encoded). For `coolify_application_dockerfile` resources, use `dockerfile_location` instead; this field is only used by Git-backed application types that embed a Dockerfile inline.
 - `dockerfile_location` (String) The path to the Dockerfile, relative to the repository root.
 - `domains` (String) The fully qualified domain name for the application (must start with http:// or https://).
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
