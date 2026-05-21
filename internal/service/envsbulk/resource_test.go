@@ -11,6 +11,7 @@ import (
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestEnvsBulkResource_Create(t *testing.T) {
@@ -69,6 +70,62 @@ func TestEnvsBulkResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.APP_ENV", "production"),
 					resource.TestCheckResourceAttr("coolify_envs_bulk.test", "variables.LOG_LEVEL", "info"),
 				),
+			},
+		},
+	})
+}
+
+func TestEnvsBulkResource_Disappears(t *testing.T) {
+	t.Parallel()
+	var lastPayload []byte
+	disappeared := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440010/envs/bulk", func(w http.ResponseWriter, r *http.Request) {
+		lastPayload, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("GET /api/v1/applications/550e8400-e29b-41d4-a716-446655440010/envs", func(w http.ResponseWriter, _ *http.Request) {
+		if disappeared {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var payload struct {
+			Data []struct {
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			} `json:"data"`
+		}
+		if len(lastPayload) > 0 {
+			_ = json.Unmarshal(lastPayload, &payload)
+		}
+		var envs []map[string]interface{}
+		for _, e := range payload.Data {
+			envs = append(envs, map[string]interface{}{"uuid": "u-" + e.Key, "key": e.Key, "value": e.Value, "is_preview": false, "is_buildtime": false})
+		}
+		out, _ := json.Marshal(envs)
+		_, _ = w.Write(out)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "550e8400-e29b-41d4-a716-446655440010"
+					variables = {
+						GONE_VAR = "value"
+					}
+				`),
+				Check: func(s *terraform.State) error {
+					// Simulate parent resource deletion after Create.
+					disappeared = true
+					return nil
+				},
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
