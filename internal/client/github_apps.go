@@ -71,7 +71,7 @@ type gitHubBranchesEnvelope struct {
 
 func (c *Client) ListGitHubApps(ctx context.Context) ([]GitHubApp, error) {
 	var apps []GitHubApp
-	if err := c.do(ctx, http.MethodGet, "/api/v1/github-apps", nil, &apps); err != nil {
+	if err := c.doCachedList(ctx, "/api/v1/github-apps", &apps); err != nil {
 		return nil, fmt.Errorf("listing github apps: %w", err)
 	}
 	for i := range apps {
@@ -104,6 +104,7 @@ func (c *Client) CreateGitHubApp(ctx context.Context, input CreateGitHubAppInteg
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/github-apps", input, &app, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating github app: %w", err)
 	}
+	c.listCache.invalidate("/api/v1/github-apps")
 	if err := validateGitHubAppResponse(&app); err != nil {
 		return nil, fmt.Errorf("creating github app: %w", err)
 	}
@@ -115,6 +116,7 @@ func (c *Client) UpdateGitHubApp(ctx context.Context, id int64, input UpdateGitH
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/github-apps/%d", id), input, &raw); err != nil {
 		return nil, fmt.Errorf("updating github app %d: %w", id, err)
 	}
+	c.listCache.invalidate("/api/v1/github-apps")
 	app, err := decodeGitHubApp(raw)
 	if err != nil {
 		return nil, fmt.Errorf("decoding github app %d update response: %w", id, err)
@@ -126,6 +128,7 @@ func (c *Client) DeleteGitHubApp(ctx context.Context, id int64) error {
 	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/github-apps/%d", id), nil, nil); err != nil {
 		return fmt.Errorf("deleting github app %d: %w", id, err)
 	}
+	c.listCache.invalidate("/api/v1/github-apps")
 	return nil
 }
 
