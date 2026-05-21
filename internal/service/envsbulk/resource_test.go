@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
@@ -256,6 +257,17 @@ func TestEnvsBulkResource_PreservesSensitiveValuesOnBlankReadBack(t *testing.T) 
 	})
 }
 
+func newEnvsBulkImportMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/services/550e8400-e29b-41d4-a716-446655440012/envs/bulk", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("GET /api/v1/services/550e8400-e29b-41d4-a716-446655440012/envs", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`[{"uuid":"e1","key":"REDIS_URL","value":"redis://localhost","is_preview":false,"is_buildtime":false}]`))
+	})
+	return mux
+}
+
 func TestEnvsBulkResource_Import(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
@@ -286,6 +298,73 @@ func TestEnvsBulkResource_Import(t *testing.T) {
 				ImportStateId:                        "service/550e8400-e29b-41d4-a716-446655440012",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "resource_uuid",
+			},
+		},
+	})
+}
+
+func envsBulkImportBaseConfig(srvURL string) string {
+	return acctest.TestResourceConfig(srvURL, "coolify_envs_bulk", "test", `
+		resource_type = "service"
+		resource_uuid = "550e8400-e29b-41d4-a716-446655440012"
+		variables = {
+			REDIS_URL = "redis://localhost"
+		}
+	`)
+}
+
+func TestEnvsBulkResource_ImportBadFormat(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(newEnvsBulkImportMux()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{Config: envsBulkImportBaseConfig(srv.URL)},
+			{
+				ResourceName:  "coolify_envs_bulk.test",
+				ImportState:   true,
+				ImportStateId: "bad-format",
+				ExpectError:   regexp.MustCompile(`Invalid import ID`),
+			},
+		},
+	})
+}
+
+func TestEnvsBulkResource_ImportBadType(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(newEnvsBulkImportMux()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{Config: envsBulkImportBaseConfig(srv.URL)},
+			{
+				ResourceName:  "coolify_envs_bulk.test",
+				ImportState:   true,
+				ImportStateId: "invalid/550e8400-e29b-41d4-a716-446655440012",
+				ExpectError:   regexp.MustCompile(`(?s)Invalid import ID.*must be one of`),
+			},
+		},
+	})
+}
+
+func TestEnvsBulkResource_ImportBadUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(newEnvsBulkImportMux()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{Config: envsBulkImportBaseConfig(srv.URL)},
+			{
+				ResourceName:  "coolify_envs_bulk.test",
+				ImportState:   true,
+				ImportStateId: "service/not-a-uuid",
+				ExpectError:   regexp.MustCompile(`(?s)Invalid Import ID.*resource UUID segment`),
 			},
 		},
 	})
