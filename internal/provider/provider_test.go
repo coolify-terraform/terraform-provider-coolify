@@ -256,7 +256,7 @@ data "coolify_team" "test" {
   id = 0
 }
 `, srv.URL),
-				ExpectError: regexp.MustCompile(`(?i)not found|error`),
+				ExpectError: regexp.MustCompile(`Error reading team`),
 			},
 		},
 	})
