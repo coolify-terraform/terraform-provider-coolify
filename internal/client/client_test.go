@@ -2312,6 +2312,11 @@ func TestExtractAPIMessage(t *testing.T) {
 			input: []byte(strings.Repeat("x", 300)),
 			want:  "[raw API response] " + strings.Repeat("x", 200) + "... (truncated)",
 		},
+		{
+			name:  "json with message and errors",
+			input: []byte(`{"message":"Validation failed","errors":{"name":["required"]}}`),
+			want:  `Validation failed name: ["required"]`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2644,6 +2649,85 @@ func TestClient_PostNotRetriedOn5xx(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, int32(1), atomic.LoadInt32(&attempts),
 		"POST should not be retried on 5xx; expected exactly 1 attempt")
+}
+
+func strPtr(s string) *string { return &s }
+
+func TestClient_PatchRetriedOn5xx(t *testing.T) {
+	t.Parallel()
+	var attempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token", RetryConfig{
+		Attempts: 2,
+		MinWait:  time.Millisecond,
+		MaxWait:  time.Millisecond,
+	})
+	_, err := c.UpdateProject(context.Background(), "test-uuid", UpdateProjectInput{
+		Name: strPtr("should-retry"),
+	})
+	require.Error(t, err)
+	got := atomic.LoadInt32(&attempts)
+	assert.True(t, got > 1,
+		"PATCH should be retried on 5xx; expected >1 attempt, got %d", got)
+}
+
+func TestClient_DeleteNotRetriedOn5xx(t *testing.T) {
+	t.Parallel()
+	var attempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteProject(context.Background(), "test-uuid")
+	require.Error(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&attempts),
+		"DELETE should not be retried on 5xx; expected exactly 1 attempt")
+}
+
+func TestClient_400NotRetried(t *testing.T) {
+	t.Parallel()
+	var attempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"message":"bad request"}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetProject(context.Background(), "test-uuid")
+	require.Error(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&attempts),
+		"GET with 400 should not be retried; expected exactly 1 attempt")
+}
+
+func TestClient_422NotRetried(t *testing.T) {
+	t.Parallel()
+	var attempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		w.Write([]byte(`{"message":"validation failed"}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.UpdateProject(context.Background(), "test-uuid", UpdateProjectInput{
+		Name: strPtr("bad-update"),
+	})
+	require.Error(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&attempts),
+		"PATCH with 422 should not be retried; expected exactly 1 attempt")
 }
 
 func TestDeployment_DeploymentUUID_JSONTag(t *testing.T) {
@@ -4494,6 +4578,40 @@ func TestCachedList_EvictsOnUnmarshalError(t *testing.T) {
 	var projects2 []Project
 	require.NoError(t, c.doCachedList(context.Background(), "/api/v1/projects", &projects2))
 	assert.Equal(t, "fresh", projects2[0].Name)
+}
+
+func TestCachedList_ConcurrentAccess(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Project{{UUID: "p1", Name: "concurrent"}})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+
+	// Warm the cache first so concurrent reads hit it.
+	var warmup []Project
+	require.NoError(t, c.doCachedList(context.Background(), "/api/v1/projects", &warmup))
+	assert.Equal(t, int32(1), calls.Load())
+
+	// Now launch concurrent reads; all should hit the cache.
+	const goroutines = 10
+	errs := make(chan error, goroutines)
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			var projects []Project
+			errs <- c.doCachedList(context.Background(), "/api/v1/projects", &projects)
+		}()
+	}
+	for i := 0; i < goroutines; i++ {
+		require.NoError(t, <-errs)
+	}
+	// Only the warmup call should have hit the server.
+	assert.Equal(t, int32(1), calls.Load(),
+		"all concurrent reads should use cache; expected 1 server call total")
 }
 
 // --- TLS / CA Cert ---
