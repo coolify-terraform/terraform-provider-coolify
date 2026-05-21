@@ -89,7 +89,7 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Computed:            true,
 			},
 			"dockerfile_location": schema.StringAttribute{
-				MarkdownDescription: "The path to the Dockerfile.",
+				MarkdownDescription: "For Git-backed applications, the path to the Dockerfile relative to the repository root. For `coolify_application_dockerfile` resources, this contains the Dockerfile content (base64-encoded).",
 				Computed:            true,
 			},
 			"install_command": schema.StringAttribute{

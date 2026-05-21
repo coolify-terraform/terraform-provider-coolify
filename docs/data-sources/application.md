@@ -32,7 +32,7 @@ data "coolify_application" "example" {
 - `description` (String) The description of the application.
 - `docker_compose_raw` (String, Sensitive) The raw Docker Compose content.
 - `docker_registry_image_name` (String) The Docker registry image name.
-- `dockerfile_location` (String) The path to the Dockerfile.
+- `dockerfile_location` (String) For Git-backed applications, the path to the Dockerfile relative to the repository root. For `coolify_application_dockerfile` resources, this contains the Dockerfile content (base64-encoded).
 - `domains` (String) The fully qualified domain name of the application.
 - `environment_name` (String) The environment name of the application.
 - `git_branch` (String) The Git branch used by the application.
