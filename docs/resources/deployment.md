@@ -30,7 +30,7 @@ resource "coolify_deployment" "web_wait" {
     deploy_version = "v1.2.3"
   }
 
-  timeouts {
+  timeouts = {
     create = "30m"
   }
 }

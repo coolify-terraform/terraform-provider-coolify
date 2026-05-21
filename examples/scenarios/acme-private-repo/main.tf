@@ -82,7 +82,7 @@ resource "coolify_deployment" "backend" {
     env_app_secret   = coolify_environment_variable.app_secret.value
   }
 
-  timeouts {
+  timeouts = {
     create = "15m"
   }
 }
