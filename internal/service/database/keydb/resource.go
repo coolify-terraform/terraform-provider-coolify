@@ -86,7 +86,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 
 	ext := p.ExtFields().WithSSL(&p.EnableSSL, nil)
 	strSet := func(v types.String) bool { return !v.IsNull() && !v.IsUnknown() }
-	if dbcommon.HasExtendedFields(ext) || strSet(p.KeydbPassword) || strSet(p.KeydbConf) {
+	if dbcommon.HasExtendedFields(ext) || strSet(p.KeydbConf) {
 		update := client.UpdateDatabaseInput{}
 		dbcommon.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.KeydbPassword, p.KeydbPassword)
