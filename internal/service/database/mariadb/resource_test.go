@@ -290,6 +290,28 @@ resource "coolify_database_mariadb" "test" {
 	})
 }
 
+func TestMariadbDatabaseResource_InvalidSSLMode(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_mariadb" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  ssl_mode     = "bogus"
+}
+`,
+				ExpectError: regexp.MustCompile(`must be one of`),
+			},
+		},
+	})
+}
+
 func TestMariadbDatabaseResource_InvalidPort(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))

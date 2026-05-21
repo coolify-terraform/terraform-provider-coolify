@@ -175,7 +175,7 @@ func SSLModePostgresqlAttr() schema.StringAttribute {
 // SSLModeMysqlAttr returns the ssl_mode schema attribute for MySQL/MariaDB.
 func SSLModeMysqlAttr() schema.StringAttribute {
 	return schema.StringAttribute{
-		MarkdownDescription: "The SSL connection mode for MySQL. Only applies when `enable_ssl` is `true`. Valid values: `REQUIRED`, `DISABLED`, `PREFERRED`, `VERIFY_CA`, `VERIFY_IDENTITY`.",
+		MarkdownDescription: "The SSL connection mode. Only applies when `enable_ssl` is `true`. Valid values: `REQUIRED`, `DISABLED`, `PREFERRED`, `VERIFY_CA`, `VERIFY_IDENTITY`.",
 		Optional:            true,
 		Computed:            true,
 		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
