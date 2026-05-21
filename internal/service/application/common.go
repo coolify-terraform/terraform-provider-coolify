@@ -279,15 +279,9 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	if f.DockerfileLocation != nil && app.DockerfileLocation != "" {
 		*f.DockerfileLocation = flex.StringToFramework(app.DockerfileLocation)
 	}
-	if f.InstallCommand != nil {
-		*f.InstallCommand = flex.StringToFramework(app.InstallCommand)
-	}
-	if f.BuildCommand != nil {
-		*f.BuildCommand = flex.StringToFramework(app.BuildCommand)
-	}
-	if f.StartCommand != nil {
-		*f.StartCommand = flex.StringToFramework(app.StartCommand)
-	}
+	flex.SetStringOrClear(f.InstallCommand, app.InstallCommand)
+	flex.SetStringOrClear(f.BuildCommand, app.BuildCommand)
+	flex.SetStringOrClear(f.StartCommand, app.StartCommand)
 	*f.Status = flex.StringToFramework(app.Status)
 	// Immutable fields: only update if the API returns them (Coolify may
 	// omit these from the GET response).
