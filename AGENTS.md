@@ -125,6 +125,26 @@ mismatches, and zero validation rules when we compared it against the source.
 - Mark passwords and keys as `Sensitive: true`
 - Wrap all client errors: `fmt.Errorf("getting project %s: %w", uuid, err)`
 
+#### Fields the API never returns
+
+Coolify has several patterns where a field exists in the Terraform schema but
+the API does not return it (or returns a different value). Each pattern requires
+specific schema configuration, flatten handling, and import behavior.
+
+| Pattern | Schema | Flatten | Import | Examples |
+|---------|--------|---------|--------|----------|
+| **Sensitive, API hides** | `Sensitive: true`, `Optional+Computed` | Preserve from state when API returns `""` | Value lost; user must re-supply | `private_key`, passwords, tokens |
+| **Create-only, never returned** | `Optional+Computed`, `Default: false/""` | Preserve state when set; default to `false`/`""` when null/unknown | Gets the default value | `instant_deploy`, Hetzner POST fields |
+| **Write-only** | `Optional`, `Sensitive: true` | Preserve from state; never overwrite from API | Value lost; user must re-supply | `github_app.client_secret`, `private_key_uuid` |
+| **Terraform-only** | `Optional+Computed` | Preserve state; resolve unknown to `""` | Empty string; add to `ImportStateVerifyIgnore` | `environment.description`, `redeploy_on_update` |
+| **Normalized by API** | `Optional+Computed` | Compare normalized forms; preserve user's original if equivalent | Gets the normalized form | `dockerfile_location`, `git_repository` URL |
+
+**When adding a new field**, determine which pattern applies by checking the
+Coolify controller source. If `GET` does not include the field in its response
+builder, it falls into one of these patterns. Use the matching schema
+configuration and flatten handling to avoid "inconsistent result after apply"
+errors and import failures.
+
 ### Client
 
 - Use `retryablehttp` with 3 retries, 30s timeout
