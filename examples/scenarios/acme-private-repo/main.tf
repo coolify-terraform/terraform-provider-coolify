@@ -59,7 +59,7 @@ resource "coolify_environment_variable" "database_url" {
   application_uuid = coolify_application_private_git.backend.uuid
   key              = "DATABASE_URL"
   value            = var.database_url
-  is_build_time    = false
+  is_build         = false
   is_preview       = false
 }
 
@@ -67,7 +67,7 @@ resource "coolify_environment_variable" "app_secret" {
   application_uuid = coolify_application_private_git.backend.uuid
   key              = "APP_SECRET"
   value            = var.app_secret
-  is_build_time    = false
+  is_build         = false
   is_preview       = false
 }
 

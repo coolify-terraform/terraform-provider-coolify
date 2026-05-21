@@ -31,7 +31,7 @@ data "coolify_team" "root" {
 }
 
 data "coolify_team_members" "root" {
-  # id is optional; omitting it returns the current (authenticated) team's members
+  id = 0 # root team
 }
 
 data "coolify_servers" "all" {}
