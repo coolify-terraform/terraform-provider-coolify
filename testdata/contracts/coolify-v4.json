@@ -1,7 +1,7 @@
 {
-  "version": "v4.0.1",
-  "extracted_from": "coollabsio/coolify@v4.0.1",
-  "extracted_at": "2026-05-17T20:02:36.198563+00:00",
+  "version": "v4.1.0",
+  "extracted_from": "coollabsio/coolify@v4.1.0",
+  "extracted_at": "2026-05-21T13:52:23.080118+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -1328,6 +1328,15 @@
           "fillable": true,
           "flatten_hint": "unconditional"
         },
+        "stop_grace_period": {
+          "type": "integer",
+          "nullable": true,
+          "default": null,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
         "use_build_secrets": {
           "type": "boolean",
           "nullable": false,
@@ -1608,7 +1617,8 @@
         "server_disk_usage_check_frequency",
         "is_terminal_enabled",
         "deployment_queue_limit",
-        "disable_application_image_retention"
+        "disable_application_image_retention",
+        "connection_timeout"
       ],
       "guarded": [],
       "hidden": [],
@@ -1619,6 +1629,15 @@
           "nullable": false,
           "default": 2,
           "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "connection_timeout": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": "integer",
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
@@ -5140,7 +5159,7 @@
         "real_value",
         "is_shared",
         "is_really_required",
-        "is_nixpacks",
+        "is_buildpack_control",
         "is_coolify"
       ],
       "fields": {
@@ -6167,10 +6186,79 @@
         "type",
         "name",
         "description",
+        "is_static",
+        "is_spa",
+        "is_auto_deploy_enabled",
+        "is_force_https_enabled",
+        "domains",
+        "git_repository",
+        "git_branch",
+        "git_commit_sha",
+        "private_key_uuid",
+        "docker_registry_image_name",
+        "docker_registry_image_tag",
+        "build_pack",
+        "install_command",
+        "build_command",
+        "start_command",
+        "ports_exposes",
+        "ports_mappings",
+        "custom_network_aliases",
+        "base_directory",
+        "publish_directory",
+        "health_check_enabled",
+        "health_check_type",
+        "health_check_command",
+        "health_check_path",
+        "health_check_port",
+        "health_check_host",
+        "health_check_method",
+        "health_check_return_code",
+        "health_check_scheme",
+        "health_check_response_text",
+        "health_check_interval",
+        "health_check_timeout",
+        "health_check_retries",
+        "health_check_start_period",
+        "limits_memory",
+        "limits_memory_swap",
+        "limits_memory_swappiness",
+        "limits_memory_reservation",
+        "limits_cpus",
+        "limits_cpuset",
+        "limits_cpu_shares",
+        "custom_labels",
+        "custom_docker_run_options",
+        "post_deployment_command",
+        "post_deployment_command_container",
+        "pre_deployment_command",
+        "pre_deployment_command_container",
+        "manual_webhook_secret_github",
+        "manual_webhook_secret_gitlab",
+        "manual_webhook_secret_bitbucket",
+        "manual_webhook_secret_gitea",
+        "redirect",
+        "github_app_uuid",
         "instant_deploy",
+        "dockerfile",
+        "dockerfile_location",
+        "docker_compose_location",
         "docker_compose_raw",
+        "docker_compose_custom_start_command",
+        "docker_compose_custom_build_command",
+        "docker_compose_domains",
+        "watch_paths",
+        "use_build_server",
+        "static_image",
+        "custom_nginx_configuration",
+        "is_http_basic_auth_enabled",
+        "http_basic_auth_username",
+        "http_basic_auth_password",
+        "connect_to_docker_network",
         "force_domain_override",
-        "is_container_label_escape_enabled"
+        "autogenerate_domain",
+        "is_container_label_escape_enabled",
+        "is_preserve_repository_enabled"
       ]
     },
     "ApplicationsController::update_by_uuid": {
@@ -6457,7 +6545,8 @@
         "dynamic_timeout",
         "deployment_queue_limit",
         "server_disk_usage_notification_threshold",
-        "server_disk_usage_check_frequency"
+        "server_disk_usage_check_frequency",
+        "connection_timeout"
       ]
     },
     "ServicesController::create_service": {
@@ -6498,7 +6587,8 @@
       "nixpacks",
       "static",
       "dockerfile",
-      "dockercompose"
+      "dockercompose",
+      "railpack"
     ],
     "ActivityTypes": [
       "inline",
@@ -6585,6 +6675,7 @@
     "VOLUME_NAME_PATTERN": "/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/",
     "CONTAINER_NAME_PATTERN": "/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/",
     "DOCKER_NETWORK_PATTERN": "/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/",
+    "ENVIRONMENT_VARIABLE_KEY_PATTERN": "/\\A[^=\\x00]+\\z/u",
     "DB_IDENTIFIER_PATTERN": "/^[A-Za-z_][A-Za-z0-9_]{0,62}$/",
     "DB_PASSWORD_PATTERN": "/^[A-Za-z0-9!@#%^*()_+\\-=\\[\\]{}:,.?\\/~]+$/"
   },

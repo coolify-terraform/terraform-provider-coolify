@@ -151,6 +151,7 @@ var fieldsToIgnore = map[string]map[string]bool{
 		"use_build_secrets":                    true,
 		// is_build_server_enabled is the setting name; the API field is use_build_server (already in struct)
 		"is_build_server_enabled": true,
+		"stop_grace_period":       true, // not exposed yet
 	},
 	"Server": {
 		"proxy":                         true,

@@ -13043,6 +13043,10 @@
                         "description": "Application status.",
                         "default": "exited"
                     },
+                    "stop_grace_period": {
+                        "type": "integer",
+                        "description": "Stop grace period."
+                    },
                     "swarm_placement_constraints": {
                         "type": "string",
                         "nullable": true,
@@ -13571,6 +13575,11 @@
                     "concurrent_builds": {
                         "type": "integer",
                         "default": 2
+                    },
+                    "connection_timeout": {
+                        "type": "integer",
+                        "description": "Connection timeout.",
+                        "default": 10
                     },
                     "created_at": {
                         "type": "string"
