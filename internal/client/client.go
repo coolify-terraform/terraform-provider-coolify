@@ -272,7 +272,11 @@ func (c *Client) do(ctx context.Context, method, path string, body interface{}, 
 func (c *Client) doCachedList(ctx context.Context, path string, result interface{}) error {
 	if cached := c.listCache.get(path); cached != nil {
 		tflog.Trace(ctx, "API cache hit", map[string]interface{}{"path": path})
-		return json.Unmarshal(cached, result)
+		if err := json.Unmarshal(cached, result); err == nil {
+			return nil
+		}
+		// Evict corrupted or type-mismatched entry and fall through to fresh fetch.
+		c.listCache.invalidate(path)
 	}
 	// Make the real API call and capture raw bytes.
 	tflog.Trace(ctx, "API request", map[string]interface{}{"method": "GET", "path": path})

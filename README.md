@@ -92,7 +92,7 @@ Coolify gives you a self-hosted PaaS with a great UI. This provider adds the thi
 
 Deploy a full stack (app, database, backups, env vars) in a single `terraform apply`, or adopt the provider incrementally by importing your existing Coolify resources.
 
-**Real-world scenarios included** -- 9 tested ACME Corp examples cover common patterns:
+**Real-world scenarios included** -- 10 tested ACME Corp examples cover common patterns:
 
 | Scenario | What it deploys |
 |---|---|
@@ -105,6 +105,7 @@ Deploy a full stack (app, database, backups, env vars) in a single `terraform ap
 | [acme-docker](examples/scenarios/acme-docker) | Docker image tag handling, scheduled tasks, storage |
 | [acme-integrations](examples/scenarios/acme-integrations) | Managed services from the Coolify catalog |
 | [acme-private-repo](examples/scenarios/acme-private-repo) | SSH deploy key + private Git repo + deployment with wait |
+| [acme-team-ops](examples/scenarios/acme-team-ops) | Team management, server discovery, project inventory |
 
 Every scenario has `terraform test` integration tests that run against a real Coolify instance.
 
