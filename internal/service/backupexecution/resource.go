@@ -129,6 +129,18 @@ func (r *backupExecutionResource) ImportState(ctx context.Context, req resource.
 		resp.Diagnostics.AddError("Invalid import ID", "Expected format: database_uuid:backup_uuid:execution_uuid")
 		return
 	}
+	if err := validate.ImportUUID(parts[0]); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("database UUID segment: %s", err))
+		return
+	}
+	if err := validate.ImportUUID(parts[1]); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("backup UUID segment: %s", err))
+		return
+	}
+	if err := validate.ImportUUID(parts[2]); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("execution UUID segment: %s", err))
+		return
+	}
 
 	state := backupExecutionModel{
 		DatabaseUUID:  types.StringValue(parts[0]),

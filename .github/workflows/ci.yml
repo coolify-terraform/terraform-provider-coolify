@@ -375,17 +375,21 @@ jobs:
           EOF
       - name: Check secrets configured
         id: secrets
+        env:
+          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_SERVER_UUID: ${{ secrets.COOLIFY_SERVER_UUID }}
         run: |
           missing=0
-          if [ -z "${{ secrets.COOLIFY_ENDPOINT }}" ]; then
+          if [ -z "$COOLIFY_ENDPOINT" ]; then
             echo "::warning::Scenario tests skipped: COOLIFY_ENDPOINT secret not configured"
             missing=1
           fi
-          if [ -z "${{ secrets.COOLIFY_TOKEN }}" ]; then
+          if [ -z "$COOLIFY_TOKEN" ]; then
             echo "::warning::Scenario tests skipped: COOLIFY_TOKEN secret not configured"
             missing=1
           fi
-          if [ -z "${{ secrets.COOLIFY_SERVER_UUID }}" ]; then
+          if [ -z "$COOLIFY_SERVER_UUID" ]; then
             echo "::warning::Scenario tests skipped: COOLIFY_SERVER_UUID secret not configured"
             missing=1
           fi
@@ -461,13 +465,16 @@ jobs:
           cache: false
       - name: Check secrets configured
         id: secrets
+        env:
+          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
           missing=0
-          if [ -z "${{ secrets.COOLIFY_ENDPOINT }}" ]; then
+          if [ -z "$COOLIFY_ENDPOINT" ]; then
             echo "::warning::Acceptance tests skipped: COOLIFY_ENDPOINT secret not configured"
             missing=1
           fi
-          if [ -z "${{ secrets.COOLIFY_TOKEN }}" ]; then
+          if [ -z "$COOLIFY_TOKEN" ]; then
             echo "::warning::Acceptance tests skipped: COOLIFY_TOKEN secret not configured"
             missing=1
           fi

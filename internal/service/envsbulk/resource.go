@@ -178,6 +178,17 @@ func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportS
 	resType := parts[0]
 	uuid := parts[1]
 
+	switch resType {
+	case "application", "database", "service":
+	default:
+		resp.Diagnostics.AddError("Invalid import ID", fmt.Sprintf("resource_type %q must be one of: application, database, service", resType))
+		return
+	}
+	if err := validate.ImportUUID(uuid); err != nil {
+		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("resource UUID segment: %s", err))
+		return
+	}
+
 	envs, err := r.listEnvVars(ctx, resType, uuid)
 	if err != nil {
 		resp.Diagnostics.AddError("Error importing bulk env vars", err.Error())

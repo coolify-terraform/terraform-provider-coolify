@@ -81,8 +81,8 @@ provider splits applications by deployment type for schema precision:
 |----------------|----------------------|
 | Dockerfile (git repo with Dockerfile) | `coolify_application_dockerfile` |
 | Docker image (pre-built image) | `coolify_application_docker_image` |
-| Docker Compose | `coolify_application_docker_compose` |
-| Public git repository | `coolify_application_public_git` |
+| Docker Compose | `coolify_application` (base resource) |
+| Public git repository | `coolify_application` (base resource) |
 | Private git repository (SSH key) | `coolify_application_private_git` |
 | GitHub App source | `coolify_application_github_app` |
 
