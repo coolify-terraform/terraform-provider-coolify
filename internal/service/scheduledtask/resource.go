@@ -123,6 +123,19 @@ func (m *scheduledTaskResourceModel) parentInfo() (string, string) {
 	return "services", m.ServiceUUID.ValueString()
 }
 
+// parentLabel returns a user-friendly singular label for an API URL slug.
+// NOTE: update this when adding new parent types to parentInfo().
+func parentLabel(slug string) string {
+	switch slug {
+	case "applications":
+		return "application"
+	case "services":
+		return "service"
+	default:
+		return slug
+	}
+}
+
 func (r *scheduledTaskResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
@@ -147,7 +160,7 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 
 	taskUUID, err := r.client.CreateScheduledTask(ctx, parentType, parentUUID, input)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating scheduled task", fmt.Sprintf("scheduled task on %s: %s", parentUUID, err))
+		resp.Diagnostics.AddError("Error creating scheduled task", fmt.Sprintf("%s %s scheduled task: %s", parentLabel(parentType), parentUUID, err))
 		return
 	}
 

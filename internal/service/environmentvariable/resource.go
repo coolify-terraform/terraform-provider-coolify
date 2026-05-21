@@ -170,6 +170,7 @@ func (r *environmentVariableResource) ValidateConfig(ctx context.Context, req re
 // parentTypeAndUUID resolves which parent resource UUID is set and returns the
 // API parent type ("applications", "services", or "databases") and the UUID.
 // parentLabel returns a user-friendly singular label for the API slug.
+// NOTE: update this when adding new parent types to parentTypeAndUUID().
 func parentLabel(slug string) string {
 	switch slug {
 	case "applications":
