@@ -555,9 +555,9 @@ func TestContractCoverage_ServerSetting(t *testing.T) {
 		"logdrain_newrelic_license_key":            true, // sensitive, not exposed yet
 		"disable_application_image_retention":      true, // not exposed yet
 
-		"force_disabled":                           true, // not exposed yet
-		"is_jump_server":                           true, // not exposed yet
-		"is_sentinel_debug_enabled":                true, // not exposed yet
+		"force_disabled":            true, // not exposed yet
+		"is_jump_server":            true, // not exposed yet
+		"is_sentinel_debug_enabled": true, // not exposed yet
 	})
 }
 
