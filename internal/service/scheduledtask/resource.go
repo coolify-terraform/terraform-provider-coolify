@@ -165,6 +165,17 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	plan.UUID = types.StringValue(taskUUID)
+
+	// Read-back via list+filter to catch any server-side normalization.
+	tasks, listErr := r.client.ListScheduledTasks(ctx, parentType, parentUUID)
+	if listErr != nil {
+		tflog.Warn(ctx, "read-back after create failed, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID, "error": listErr.Error()})
+	} else {
+		if !flattenScheduledTaskFromList(tasks, &plan) {
+			tflog.Warn(ctx, "task not found in read-back after create, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID})
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": taskUUID})
 }
@@ -191,19 +202,7 @@ func (r *scheduledTaskResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	found := false
-	for _, t := range tasks {
-		if t.UUID == state.UUID.ValueString() {
-			state.Name = types.StringValue(t.Name)
-			state.Command = types.StringValue(t.Command)
-			state.Frequency = types.StringValue(t.Frequency)
-			state.Enabled = types.BoolValue(t.Enabled)
-			found = true
-			break
-		}
-	}
-
-	if !found {
+	if !flattenScheduledTaskFromList(tasks, &state) {
 		tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": state.UUID.ValueString()})
 		resp.State.RemoveResource(ctx)
 		return
@@ -240,10 +239,15 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	// Write plan values directly to state without a read-back GET.
-	// Scheduled tasks use a list endpoint (no singular GET), so read-back
-	// would require listing all tasks and filtering. The plan values are
-	// authoritative since the PATCH was accepted.
+	// Read-back via list+filter to catch any server-side normalization.
+	tasks, listErr := r.client.ListScheduledTasks(ctx, parentType, parentUUID)
+	if listErr != nil {
+		tflog.Warn(ctx, "read-back after update failed, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString(), "error": listErr.Error()})
+	} else {
+		if !flattenScheduledTaskFromList(tasks, &plan) {
+			tflog.Warn(ctx, "task not found in read-back after update, using plan values", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": plan.UUID.ValueString()})
+		}
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -266,6 +270,21 @@ func (r *scheduledTaskResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_scheduled_task", "uuid": state.UUID.ValueString()})
+}
+
+// flattenScheduledTaskFromList finds the task matching state.UUID in the list
+// and updates the state model. Returns false if not found.
+func flattenScheduledTaskFromList(tasks []client.ScheduledTask, state *scheduledTaskResourceModel) bool {
+	for _, t := range tasks {
+		if t.UUID == state.UUID.ValueString() {
+			state.Name = types.StringValue(t.Name)
+			state.Command = types.StringValue(t.Command)
+			state.Frequency = types.StringValue(t.Frequency)
+			state.Enabled = types.BoolValue(t.Enabled)
+			return true
+		}
+	}
+	return false
 }
 
 func (r *scheduledTaskResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
