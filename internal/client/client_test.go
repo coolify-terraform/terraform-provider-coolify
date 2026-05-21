@@ -4460,6 +4460,42 @@ func TestCachedList_DifferentPathsIndependent(t *testing.T) {
 	assert.Equal(t, int32(2), calls.Load())
 }
 
+func TestCachedList_EvictsOnUnmarshalError(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Project{{UUID: "p1", Name: "fresh"}})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+
+	// Populate cache with a valid response for []Project.
+	var projects []Project
+	require.NoError(t, c.doCachedList(context.Background(), "/api/v1/projects", &projects))
+	assert.Equal(t, int32(1), calls.Load())
+
+	// Now unmarshal into an incompatible type. The cached JSON is a
+	// []Project array, which cannot decode into a single string.
+	// doCachedList should evict the stale entry and retry from the server.
+	var single string
+	err := c.doCachedList(context.Background(), "/api/v1/projects", &single)
+	// The fresh fetch also returns []Project which won't decode into string,
+	// so we expect an error, but the cache entry should be evicted.
+	assert.Error(t, err)
+	// Two server calls: original populate + one retry after eviction.
+	assert.Equal(t, int32(2), calls.Load())
+
+	// A subsequent call with the correct type should also hit the server
+	// (the retry above stored new data that also failed unmarshal into
+	// string, but a fresh call with []Project should work).
+	var projects2 []Project
+	require.NoError(t, c.doCachedList(context.Background(), "/api/v1/projects", &projects2))
+	assert.Equal(t, "fresh", projects2[0].Name)
+}
+
 // --- TLS / CA Cert ---
 
 func TestClient_CustomCACert(t *testing.T) {
