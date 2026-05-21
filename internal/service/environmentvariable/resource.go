@@ -169,6 +169,20 @@ func (r *environmentVariableResource) ValidateConfig(ctx context.Context, req re
 
 // parentTypeAndUUID resolves which parent resource UUID is set and returns the
 // API parent type ("applications", "services", or "databases") and the UUID.
+// parentLabel returns a user-friendly singular label for the API slug.
+func parentLabel(slug string) string {
+	switch slug {
+	case "applications":
+		return "application"
+	case "services":
+		return "service"
+	case "databases":
+		return "database"
+	default:
+		return slug
+	}
+}
+
 func parentTypeAndUUID(m *environmentVariableResourceModel) (string, string, bool) {
 	if !m.ApplicationUUID.IsNull() && !m.ApplicationUUID.IsUnknown() {
 		return "applications", m.ApplicationUUID.ValueString(), true
@@ -249,7 +263,7 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading environment variables", fmt.Sprintf("%s %s env var %s: %s", parentType, parentUUID, state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error reading environment variables", fmt.Sprintf("%s %s env var %s: %s", parentLabel(parentType), parentUUID, state.UUID.ValueString(), err))
 		return
 	}
 
@@ -296,7 +310,7 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 	}
 
 	if err := r.client.UpdateEnvVar(ctx, parentType, parentUUID, ev); err != nil {
-		resp.Diagnostics.AddError("Error updating environment variable", fmt.Sprintf("%s %s env var %s: %s", parentType, parentUUID, plan.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error updating environment variable", fmt.Sprintf("%s %s env var %s: %s", parentLabel(parentType), parentUUID, plan.UUID.ValueString(), err))
 		return
 	}
 
@@ -324,7 +338,7 @@ func (r *environmentVariableResource) Delete(ctx context.Context, req resource.D
 		if client.IsNotFound(err) {
 			return
 		}
-		resp.Diagnostics.AddError("Error deleting environment variable", fmt.Sprintf("%s %s env var %s: %s", parentType, parentUUID, state.UUID.ValueString(), err))
+		resp.Diagnostics.AddError("Error deleting environment variable", fmt.Sprintf("%s %s env var %s: %s", parentLabel(parentType), parentUUID, state.UUID.ValueString(), err))
 		return
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": state.UUID.ValueString()})
