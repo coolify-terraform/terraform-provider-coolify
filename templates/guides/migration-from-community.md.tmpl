@@ -99,21 +99,35 @@ The community provider uses bulk resources (`coolify_application_envs`,
 
 ## Step 3: Migrate State
 
-After updating your `.tf` files, use `terraform state mv` to rename
-resources in state without destroying and recreating them:
+After updating your `.tf` files, migrate state for resources whose type
+name changed. Since the resource types differ between providers,
+`terraform state mv` cannot change the type; use remove + import instead:
 
 ```bash
-# Database name order swap
-terraform state mv coolify_postgresql_database.mydb coolify_database_postgresql.mydb
+# 1. Note the resource's UUID (from Coolify UI or terraform state show)
+terraform state show coolify_postgresql_database.mydb
+# -> uuid = "abc-123-..."
 
-# Application type split (example: Dockerfile-based app)
-terraform state mv coolify_application.api coolify_application_dockerfile.api
+# 2. Remove old type from state (does NOT destroy the real resource)
+terraform state rm coolify_postgresql_database.mydb
 
-# Bulk env vars to individual variables (requires manual split)
-# No direct state migration; re-import individual variables instead:
+# 3. Import under the new type
+terraform import coolify_database_postgresql.mydb "abc-123-..."
+
+# Same pattern for applications:
+terraform state show coolify_application.api   # note uuid
+terraform state rm coolify_application.api
+terraform import coolify_application_dockerfile.api "<uuid>"
+
+# Environment variables: re-import individually
 terraform import coolify_environment_variable.db_url \
   "application:<app-uuid>:<env-var-uuid>"
 ```
+
+> **Tip:** For resources with the same type name in both providers
+(`coolify_project`, `coolify_private_key`, `coolify_server`,
+`coolify_service`), no state migration is needed. The state carries over
+as-is after changing the provider source.
 
 ## Step 4: Re-initialize
 

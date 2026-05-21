@@ -294,7 +294,7 @@ jobs:
       - name: Check for contract drift
         id: contract-check
         run: |
-          git clone --depth 1 https://github.com/coollabsio/coolify.git /tmp/coolify-src 2>/dev/null
+          git clone --depth 1 https://github.com/coollabsio/coolify.git /tmp/coolify-src
           python3 scripts/extract-contract.py /tmp/coolify-src \
             --version v4-latest \
             --output /tmp/coolify-latest-contract.json

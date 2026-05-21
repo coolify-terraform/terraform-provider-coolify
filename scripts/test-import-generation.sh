@@ -12,7 +12,7 @@
 #                  Default: test all supported resource types
 #
 # Requires:
-#   COOLIFY_ENDPOINT, COOLIFY_TOKEN, COOLIFY_SERVER_UUID
+#   COOLIFY_ENDPOINT, COOLIFY_TOKEN
 #   Terraform >= 1.5 (for -generate-config-out)
 #
 # The script creates real resources, imports them, generates config, and
@@ -42,7 +42,7 @@ cleanup() {
 
 check_prereqs() {
     local missing=0
-    for var in COOLIFY_ENDPOINT COOLIFY_TOKEN COOLIFY_SERVER_UUID; do
+    for var in COOLIFY_ENDPOINT COOLIFY_TOKEN; do
         if [ -z "${!var:-}" ]; then
             echo "ERROR: $var is not set" >&2
             missing=1
