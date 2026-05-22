@@ -70,14 +70,19 @@ type gitHubBranchesEnvelope struct {
 }
 
 func (c *Client) ListGitHubApps(ctx context.Context) ([]GitHubApp, error) {
-	var apps []GitHubApp
-	if err := c.doCachedList(ctx, "/api/v1/github-apps", &apps); err != nil {
+	var raw []GitHubApp
+	if err := c.doCachedList(ctx, "/api/v1/github-apps", &raw); err != nil {
 		return nil, fmt.Errorf("listing github apps: %w", err)
 	}
-	for i := range apps {
-		if err := validateGitHubAppResponse(&apps[i]); err != nil {
+	apps := make([]GitHubApp, 0, len(raw))
+	for i := range raw {
+		if raw[i].ID == 0 {
+			continue // skip Coolify's built-in "Public GitHub" system record
+		}
+		if err := validateGitHubAppResponse(&raw[i]); err != nil {
 			return nil, fmt.Errorf("listing github apps: invalid app at index %d: %w", i, err)
 		}
+		apps = append(apps, raw[i])
 	}
 	return apps, nil
 }
@@ -88,6 +93,9 @@ func (c *Client) GetGitHubApp(ctx context.Context, id int64) (*GitHubApp, error)
 		return nil, fmt.Errorf("getting github app %d: %w", id, err)
 	}
 	for i := range apps {
+		if apps[i].ID == 0 {
+			continue // skip Coolify's built-in "Public GitHub" system record
+		}
 		if apps[i].ID != id {
 			continue
 		}

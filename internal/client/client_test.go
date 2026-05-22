@@ -3670,7 +3670,7 @@ func TestClient_ListGitHubApps_MalformedSuccessResponse(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]GitHubApp{{UUID: "gh-1", Name: "missing-id"}})
+		json.NewEncoder(w).Encode([]GitHubApp{{ID: 5, UUID: "gh-1"}})
 	}))
 	defer srv.Close()
 
@@ -3678,7 +3678,26 @@ func TestClient_ListGitHubApps_MalformedSuccessResponse(t *testing.T) {
 	_, err := c.ListGitHubApps(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid app at index 0")
-	assert.Contains(t, err.Error(), "missing id")
+	assert.Contains(t, err.Error(), "missing name")
+}
+
+func TestClient_ListGitHubApps_SkipsSystemRecord(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{
+			{ID: 0, Name: "Public GitHub"},
+			{ID: 1, UUID: "gh-1", Name: "Real App", AppID: 100, InstallationID: 200, ClientID: "cid-1"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	apps, err := c.ListGitHubApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, apps, 1)
+	assert.Equal(t, int64(1), apps[0].ID)
+	assert.Equal(t, "Real App", apps[0].Name)
 }
 
 func TestClient_CreateGitHubApp(t *testing.T) {
