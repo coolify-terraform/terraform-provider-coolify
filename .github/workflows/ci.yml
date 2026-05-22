@@ -66,7 +66,7 @@ jobs:
   test:
     name: Test
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 20
     needs: changes
     if: >-
       always() &&
@@ -99,7 +99,7 @@ jobs:
             --rerun-fails \
             --rerun-fails-max-failures=5 \
             --packages ./... \
-            -- -race -cover -coverprofile=coverage.out -count=1 -p 2 -timeout=15m
+            -- -race -cover -coverprofile=coverage.out -count=1 -p 4 -parallel=1 -timeout=15m
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
       - name: Upload test results
