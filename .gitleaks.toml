@@ -7,4 +7,6 @@ paths = [
   '''examples/.*\.tf$''',
   '''examples/.*\.tfvars\.example$''',
   '''examples/scenarios/.*/test-deploy-key$''',
+  '''docs/guides/.*\.md$''',
+  '''templates/guides/.*\.md\.tmpl$''',
 ]
