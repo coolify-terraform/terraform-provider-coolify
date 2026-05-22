@@ -116,6 +116,57 @@ func TestBoolPtrNonDefault(t *testing.T) {
 	}
 }
 
+func TestInt64PtrConfigured(t *testing.T) {
+	t.Parallel()
+	v := types.Int64Value(10)
+	zero := types.Int64Value(0)
+	null := types.Int64Null()
+	unk := types.Int64Unknown()
+	tests := []struct {
+		name string
+		v    *types.Int64
+		want bool
+	}{
+		{"nil", nil, false},
+		{"null", &null, false},
+		{"unknown", &unk, false},
+		{"zero", &zero, true},
+		{"non-zero", &v, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := Int64PtrConfigured(tt.v); got != tt.want {
+				t.Errorf("Int64PtrConfigured() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStringValueNonDefault(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		v    types.String
+		dflt string
+		want bool
+	}{
+		{"null", types.StringNull(), "", false},
+		{"unknown", types.StringUnknown(), "", false},
+		{"matches default", types.StringValue("default"), "default", false},
+		{"differs from default", types.StringValue("custom"), "default", true},
+		{"empty vs non-empty default", types.StringValue(""), "default", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := StringValueNonDefault(tt.v, tt.dflt); got != tt.want {
+				t.Errorf("StringValueNonDefault() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestStringValueConfigured(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
