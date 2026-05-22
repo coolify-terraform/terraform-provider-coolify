@@ -244,7 +244,10 @@ jobs:
           export PATH="$BIN_DIR:$PATH"
           mkdir -p "$BIN_DIR"
           if ! command -v gitleaks >/dev/null 2>&1 || ! gitleaks version 2>/dev/null | grep -q "$VER"; then
-            curl -sfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" \
+            OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+            ARCH=$(uname -m)
+            case "$ARCH" in x86_64) ARCH="x64" ;; aarch64|arm64) ARCH="arm64" ;; esac
+            curl -sfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_${OS}_${ARCH}.tar.gz" \
               | tar xz -C "$BIN_DIR" gitleaks
           fi
           if [ "$EVENT_NAME" = "pull_request" ]; then
@@ -364,7 +367,7 @@ jobs:
       - name: Build and install provider locally
         run: |
           go build -o terraform-provider-coolify .
-          PLUGIN_DIR="$HOME/.terraform.d/plugins/SebTardifLabs/coolify/0.0.0-dev/linux_amd64"
+          PLUGIN_DIR="$HOME/.terraform.d/plugins/SebTardifLabs/coolify/0.0.0-dev/$(go env GOOS)_$(go env GOARCH)"
           mkdir -p "$PLUGIN_DIR"
           cp terraform-provider-coolify "$PLUGIN_DIR/"
           cat > "$HOME/.terraformrc" <<EOF

@@ -66,17 +66,30 @@ func (vh *validatingHandler) report(format string, args ...interface{}) {
 	}
 }
 
-func (vh *validatingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	apiPath := r.URL.Path
-	if idx := strings.Index(apiPath, "/api/v1/"); idx >= 0 {
-		apiPath = apiPath[idx:]
+// apiPathFor extracts the /api/v1/ path from the request URL. Returns the
+// path and true if validation should proceed, or ("", false) for non-API
+// requests (e.g., HTTP keep-alive probes) and explicitly skipped paths.
+func (vh *validatingHandler) apiPathFor(r *http.Request) (string, bool) {
+	p := r.URL.Path
+	if idx := strings.Index(p, "/api/v1/"); idx >= 0 {
+		p = p[idx:]
 	}
-
+	if !strings.HasPrefix(p, "/api/v1/") {
+		return "", false
+	}
 	for _, prefix := range vh.skipPaths {
-		if strings.HasPrefix(apiPath, prefix) {
-			vh.inner.ServeHTTP(w, r)
-			return
+		if strings.HasPrefix(p, prefix) {
+			return "", false
 		}
+	}
+	return p, true
+}
+
+func (vh *validatingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	apiPath, shouldValidate := vh.apiPathFor(r)
+	if !shouldValidate {
+		vh.inner.ServeHTTP(w, r)
+		return
 	}
 
 	// Build a request with the spec's base URL so the validator can match paths.
