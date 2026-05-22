@@ -98,8 +98,8 @@ see persistent 429s in `TRACE` logs, increase the Coolify API rate limit:
 
 ```bash
 # On your Coolify server
-echo "API_RATE_LIMIT=1000" >> /data/coolify/source/.env
-cd /data/coolify/source
+echo "API_RATE_LIMIT=1000" >> ~/coolify-data/source/.env
+cd ~/coolify-data/source
 docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml \
   up -d coolify --force-recreate
 ```

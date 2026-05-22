@@ -7,9 +7,9 @@
 #
 # Prerequisites:
 #   - Coolify containers running (coolify, coolify-db, coolify-redis)
-#   - openssh-server installed on host
-#   - /data/coolify/ssh owned by UID 9999
-#   - Passwordless sudo for current user
+#   - openssh-server installed on host (macOS: enable Remote Login)
+#   - ~/coolify-data/ssh owned by UID 9999
+#   - Passwordless sudo for current user (only needed for chown 9999)
 #   - Python 3 with venv support (used only when bootstrapping the first user; Playwright is auto-installed if missing)
 #
 # Usage:
@@ -18,6 +18,7 @@
 set -euo pipefail
 
 COOLIFY_ENDPOINT="http://localhost:8000"
+COOLIFY_DATA_DIR="${COOLIFY_DATA_DIR:-$HOME/coolify-data}"
 REPO="SebTardifLabs/terraform-provider-coolify"
 UPDATE_SECRETS=false
 
@@ -46,7 +47,7 @@ done
 # Wait for Coolify web to be ready
 log "Waiting for Coolify web interface"
 for i in $(seq 1 24); do
-  if curl -s -o /dev/null -w "%{http_code}" "$COOLIFY_ENDPOINT/register" 2>/dev/null | grep -q "200"; then
+  if curl -s -o /dev/null -w "%{http_code}" "$COOLIFY_ENDPOINT/register" 2>/dev/null | grep -qE "200|302"; then
     break
   fi
   if [[ $i -eq 24 ]]; then
@@ -198,8 +199,8 @@ fi
 
 # Increase API rate limit for test suite
 log "Setting API rate limit to 1000"
-if ! grep -q "API_RATE_LIMIT" /data/coolify/source/.env 2>/dev/null; then
-  echo "API_RATE_LIMIT=1000" >> /data/coolify/source/.env
+if ! grep -q "API_RATE_LIMIT" "$COOLIFY_DATA_DIR/source/.env" 2>/dev/null; then
+  echo "API_RATE_LIMIT=1000" >> "$COOLIFY_DATA_DIR/source/.env"
 fi
 
 # --- Step 7: MinIO S3 storage for backup tests ---

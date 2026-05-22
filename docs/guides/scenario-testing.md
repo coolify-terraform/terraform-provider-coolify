@@ -66,16 +66,19 @@ multi-service installation (NOT the single-container docker-compose.yml
 in this repo, which doesn't work):
 
 ```bash
-# Create directories
-sudo mkdir -p /data/coolify/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
-sudo mkdir -p /data/coolify/proxy/dynamic
-sudo chown -R $USER:$USER /data/coolify
+# Create directories (no sudo needed under $HOME)
+COOLIFY_DATA_DIR="$HOME/coolify-data"
+mkdir -p "$COOLIFY_DATA_DIR"/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
+mkdir -p "$COOLIFY_DATA_DIR/proxy/dynamic"
 
 # Download official compose files
-cd /data/coolify/source
+cd "$COOLIFY_DATA_DIR/source"
 curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.yml -o docker-compose.yml
 curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.prod.yml -o docker-compose.prod.yml
 curl -fsSL https://cdn.coollabs.io/coolify/.env.production -o .env
+
+# Rewrite volume mounts from /data/coolify to $HOME/coolify-data
+sed -i "s|/data/coolify|$COOLIFY_DATA_DIR|g" docker-compose.yml docker-compose.prod.yml .env
 
 # Generate secrets
 sed -i "s|APP_ID=.*|APP_ID=$(openssl rand -hex 16)|g" .env
@@ -87,14 +90,14 @@ sed -i "s|PUSHER_APP_KEY=.*|PUSHER_APP_KEY=$(openssl rand -hex 32)|g" .env
 sed -i "s|PUSHER_APP_SECRET=.*|PUSHER_APP_SECRET=$(openssl rand -hex 32)|g" .env
 
 # Generate SSH keys for localhost server management
-ssh-keygen -t ed25519 -f /data/coolify/ssh/keys/id.root@host.docker.internal -N "" -q
+ssh-keygen -t ed25519 -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" -N "" -q
 mkdir -p ~/.ssh
-cat /data/coolify/ssh/keys/id.root@host.docker.internal.pub >> ~/.ssh/authorized_keys
+cat "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub" >> ~/.ssh/authorized_keys
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
 
 # Set SSH directory ownership for the Coolify container user (UID 9999)
-sudo chown -R 9999 /data/coolify/ssh
-sudo chmod -R 700 /data/coolify/ssh
+sudo chown -R 9999 "$COOLIFY_DATA_DIR/ssh"
+sudo chmod -R 700 "$COOLIFY_DATA_DIR/ssh"
 
 # Create Docker network and start
 docker network create --attachable coolify
@@ -102,7 +105,7 @@ docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml 
   up -d --pull always --remove-orphans --force-recreate
 ```
 
-If port 8000 is already in use, edit `/data/coolify/source/.env` and set
+If port 8000 is already in use, edit `~/coolify-data/source/.env` and set
 `APP_PORT=9000` (or any free port) before starting. Use that port in all
 subsequent commands and `TF_VAR_coolify_endpoint`.
 
@@ -186,7 +189,7 @@ KEY_UUID=$(curl -s -X POST http://localhost:8000/api/v1/security/keys \
   -H "Content-Type: application/json" \
   -d "$(python3 -c "import json; print(json.dumps({
     'name': 'localhost-key',
-    'private_key': open('/data/coolify/ssh/keys/id.root@host.docker.internal').read()
+    'private_key': open(os.path.expanduser('~/coolify-data/ssh/keys/id.root@host.docker.internal')).read()
   }))")" | python3 -c "import sys,json;print(json.load(sys.stdin)['uuid'])")
 
 # Fix SSH key encryption (API-created keys may not encrypt properly)
@@ -229,7 +232,7 @@ done
 ```
 
 -> **If validation fails**, check: (1) `sshd` is running on the host,
-(2) `/data/coolify/ssh` is owned by UID 9999, (3) passwordless sudo
+(2) `~/coolify-data/ssh` is owned by UID 9999, (3) passwordless sudo
 is configured. Run `docker logs coolify 2>&1 | grep -i validate` for
 the actual error.
 
@@ -290,7 +293,7 @@ the token. Just start Coolify and re-export your variables:
 
 ```bash
 # Start Coolify
-cd /data/coolify/source
+cd ~/coolify-data/source
 docker network create --attachable coolify 2>/dev/null
 docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml up -d
 
@@ -316,13 +319,13 @@ rm -f terraform-provider-coolify ~/.terraformrc
 rm -rf ~/.terraform.d/plugins/SebTardifLabs
 
 # Stop Coolify (data persists)
-cd /data/coolify/source
+cd ~/coolify-data/source
 docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml down
 
 # Full teardown (removes ALL data)
 docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml down -v
 docker network rm coolify 2>/dev/null
-sudo rm -rf /data/coolify
+rm -rf ~/coolify-data
 ```
 
 ## Troubleshooting

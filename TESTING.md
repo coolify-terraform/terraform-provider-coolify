@@ -50,18 +50,21 @@ You need:
 Use the official multi-service installation to set up a local Coolify instance:
 
 ```bash
-# 1. Create directories (needs sudo)
-sudo mkdir -p /data/coolify/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
-sudo mkdir -p /data/coolify/proxy/dynamic
-sudo chown -R $USER:$USER /data/coolify
+# 1. Create directories (no sudo needed under $HOME)
+COOLIFY_DATA_DIR="$HOME/coolify-data"
+mkdir -p "$COOLIFY_DATA_DIR"/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
+mkdir -p "$COOLIFY_DATA_DIR/proxy/dynamic"
 
 # 2. Download official compose files
-cd /data/coolify/source
+cd "$COOLIFY_DATA_DIR/source"
 curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.yml -o docker-compose.yml
 curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.prod.yml -o docker-compose.prod.yml
 curl -fsSL https://cdn.coollabs.io/coolify/.env.production -o .env
 
-# 3. Generate secrets
+# 3. Rewrite volume mounts to use $HOME instead of /data/coolify
+sed -i "s|/data/coolify|$COOLIFY_DATA_DIR|g" docker-compose.yml docker-compose.prod.yml .env
+
+# 4. Generate secrets
 sed -i "s|APP_ID=.*|APP_ID=$(openssl rand -hex 16)|g" .env
 sed -i "s|APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|g" .env
 sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
@@ -70,15 +73,15 @@ sed -i "s|PUSHER_APP_ID=.*|PUSHER_APP_ID=$(openssl rand -hex 32)|g" .env
 sed -i "s|PUSHER_APP_KEY=.*|PUSHER_APP_KEY=$(openssl rand -hex 32)|g" .env
 sed -i "s|PUSHER_APP_SECRET=.*|PUSHER_APP_SECRET=$(openssl rand -hex 32)|g" .env
 
-# 4. Generate SSH keys for localhost server
-ssh-keygen -t ed25519 -f /data/coolify/ssh/keys/id.root@host.docker.internal -N "" -q
+# 5. Generate SSH keys for localhost server
+ssh-keygen -t ed25519 -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" -N "" -q
 mkdir -p ~/.ssh
-cat /data/coolify/ssh/keys/id.root@host.docker.internal.pub >> ~/.ssh/authorized_keys
+cat "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub" >> ~/.ssh/authorized_keys
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
 
-# 5. Create Docker network and start
+# 6. Create Docker network and start
 docker network create --attachable coolify
-cd /data/coolify/source
+cd "$COOLIFY_DATA_DIR/source"
 docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml \
   up -d --pull always --remove-orphans --force-recreate
 ```
