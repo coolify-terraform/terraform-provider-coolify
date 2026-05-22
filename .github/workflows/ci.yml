@@ -339,7 +339,7 @@ jobs:
 
   scenario-tests:
     name: Scenario Tests
-    runs-on: self-hosted
+    runs-on: [self-hosted, macOS]
     timeout-minutes: 50
     needs: [changes, test]
     if: >-
@@ -446,7 +446,7 @@ jobs:
 
   acceptance-tests:
     name: Acceptance Tests
-    runs-on: self-hosted
+    runs-on: [self-hosted, macOS]
     timeout-minutes: 130
     needs: [changes, test]
     if: >-
