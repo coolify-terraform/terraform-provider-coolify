@@ -1,0 +1,256 @@
+---
+page_title: "CI/CD Integration"
+subcategory: "Guides"
+description: |-
+  Automate Coolify deployments with GitHub Actions, GitLab CI, and other CI/CD pipelines.
+---
+
+# CI/CD Integration
+
+This guide shows how to use the Coolify Terraform provider in CI/CD
+pipelines for automated infrastructure management and deployments.
+
+## Overview
+
+A typical CI/CD workflow with Coolify and Terraform:
+
+```
+Push to main ──► CI pipeline starts
+                   │
+                   ├─ terraform init    (download provider)
+                   ├─ terraform plan    (preview changes)
+                   ├─ terraform apply   (create/update resources)
+                   └─ deployment waits  (optional: wait for build)
+```
+
+## GitHub Actions Example
+
+### Workflow file
+
+Create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy to Coolify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write  # for plan comments on PRs
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.12.x"
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -out=tfplan
+        env:
+          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          TF_VAR_server_uuid: ${{ secrets.SERVER_UUID }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+
+      # On PRs: show the plan but do not apply
+      - name: Comment Plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `${{ steps.plan.outputs.stdout }}`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '### Terraform Plan\n```\n' + output.substring(0, 60000) + '\n```'
+            });
+
+      # On push to main: apply
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve tfplan
+        env:
+          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          TF_VAR_server_uuid: ${{ secrets.SERVER_UUID }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+```
+
+### Required secrets
+
+In your GitHub repository settings under **Settings > Secrets and variables > Actions**:
+
+| Secret | Value |
+|--------|-------|
+| `COOLIFY_ENDPOINT` | Your Coolify URL (e.g., `https://coolify.example.com`) |
+| `COOLIFY_TOKEN` | API token with `root` permission |
+| `SERVER_UUID` | Target server UUID |
+| `DB_PASSWORD` | Database password (if applicable) |
+
+## GitLab CI Example
+
+Create `.gitlab-ci.yml`:
+
+```yaml
+stages:
+  - plan
+  - deploy
+
+variables:
+  TF_ROOT: ${CI_PROJECT_DIR}
+
+.terraform-base:
+  image: hashicorp/terraform:1.12
+  before_script:
+    - cd ${TF_ROOT}
+    - terraform init
+
+plan:
+  extends: .terraform-base
+  stage: plan
+  script:
+    - terraform plan -out=tfplan
+  artifacts:
+    paths:
+      - tfplan
+  environment:
+    name: production
+    action: prepare
+
+deploy:
+  extends: .terraform-base
+  stage: deploy
+  script:
+    - terraform apply -auto-approve tfplan
+  dependencies:
+    - plan
+  environment:
+    name: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual  # require manual approval
+```
+
+Set CI/CD variables in **Settings > CI/CD > Variables**:
+`COOLIFY_ENDPOINT`, `COOLIFY_TOKEN`, `TF_VAR_server_uuid`,
+`TF_VAR_db_password` (all masked and protected).
+
+## Deployment Strategies
+
+### Auto-deploy on push to main
+
+Trigger a Coolify deployment on every push:
+
+```hcl
+resource "coolify_deployment" "web" {
+  application_uuid    = coolify_application.web.uuid
+  wait_for_completion = true
+
+  triggers = {
+    # Use the git SHA to trigger a new deploy on every commit
+    commit_sha = var.commit_sha
+  }
+
+  timeouts {
+    create = "15m"
+  }
+}
+```
+
+In the CI pipeline:
+
+```yaml
+- name: Terraform Apply
+  run: terraform apply -auto-approve -var="commit_sha=${{ github.sha }}"
+```
+
+### Plan on PR, apply on merge
+
+The GitHub Actions example above implements this pattern: PRs get a plan
+comment, merges to main trigger apply.
+
+### Version-tagged releases
+
+Deploy only when a new tag is pushed:
+
+```yaml
+on:
+  push:
+    tags: ['v*']
+
+# ...
+- name: Terraform Apply
+  run: |
+    terraform apply -auto-approve \
+      -var="deploy_version=${{ github.ref_name }}"
+```
+
+```hcl
+resource "coolify_deployment" "web" {
+  application_uuid    = coolify_application.web.uuid
+  wait_for_completion = true
+
+  triggers = {
+    deploy_version = var.deploy_version
+  }
+}
+```
+
+## State Management in CI
+
+Local state does not work in CI: each pipeline run starts fresh and
+cannot read previous state. Use a remote backend:
+
+### S3 backend
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "my-terraform-state"
+    key            = "coolify/production/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "terraform-locks"  # prevents concurrent applies
+  }
+}
+```
+
+### Terraform Cloud
+
+```hcl
+terraform {
+  cloud {
+    organization = "my-org"
+    workspaces {
+      name = "coolify-production"
+    }
+  }
+}
+```
+
+## Security Considerations
+
+- **Least-privilege tokens:** create a dedicated Coolify API token for CI
+  with only the permissions your pipeline needs. `root` is convenient but
+  a scoped token is safer.
+- **Secret rotation:** rotate the Coolify API token periodically. Update
+  the CI secret when you do.
+- **State encryption:** always use an encrypted remote backend. CI runners
+  are shared infrastructure; local state files could leak secrets.
+- **Plan review:** require plan review (PR comments or manual approval)
+  before apply on production environments.
+- **Network access:** ensure the CI runner can reach your Coolify endpoint.
+  If Coolify is on a private network, use a VPN or SSH tunnel in the pipeline.

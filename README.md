@@ -23,6 +23,20 @@ Coolify gives you a self-hosted PaaS with a great UI. This provider adds the thi
 - [Installation](docs/guides/installation.md) -- install and configure the provider
 - [Core Concepts](docs/guides/concepts.md) -- understand the resource model
 
+## Guides
+
+- [Choosing an Application Type](docs/guides/choosing-application-type.md) -- pick the right resource for your deployment method
+- [Connecting Resources](docs/guides/connecting-resources.md) -- wire apps to databases using Coolify's Docker networking
+- [Domains and HTTPS](docs/guides/domains-and-https.md) -- custom domains, automatic TLS, and URL redirects
+- [Build Lifecycle](docs/guides/build-lifecycle.md) -- what happens after apply: build queuing, status, and deployment waiting
+- [Secrets Management](docs/guides/secrets-management.md) -- handle passwords, tokens, and keys safely
+- [Service Catalog](docs/guides/service-catalog.md) -- deploy one-click services (Plausible, Grafana, MinIO, etc.)
+- [CI/CD Integration](docs/guides/cicd-integration.md) -- automate deployments with GitHub Actions or GitLab CI
+- [Day-2 Operations](docs/guides/day-two-operations.md) -- upgrades, rollbacks, and disaster recovery
+- [Common Errors](docs/guides/common-errors.md) -- error message reference with causes and fixes
+- [Import Guide](docs/guides/import.md) -- bring existing resources under Terraform management
+- [Troubleshooting](docs/guides/troubleshooting.md) -- debugging tips and diagnostic logs
+
 ## Resources
 
 | Resource | Description |

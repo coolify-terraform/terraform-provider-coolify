@@ -59,9 +59,19 @@ provider "coolify" {
 - **[Quick Start](guides/quickstart)** - Deploy your first application in under 5 minutes
 - **[Installation](guides/installation)** - Detailed setup and configuration options
 - **[Concepts](guides/concepts)** - How Coolify resources map to Terraform
+- **[Choosing an Application Type](guides/choosing-application-type)** - Pick the right resource for your deployment method
+- **[Connecting Resources](guides/connecting-resources)** - Wire apps to databases using Coolify's Docker networking
+- **[Domains and HTTPS](guides/domains-and-https)** - Custom domains, automatic TLS, and URL redirects
+- **[Build Lifecycle](guides/build-lifecycle)** - What happens after apply: build queuing, status, and deployment waiting
+- **[Secrets Management](guides/secrets-management)** - Handle passwords, tokens, and keys safely
+- **[Service Catalog](guides/service-catalog)** - Deploy one-click services (Plausible, Grafana, MinIO, etc.)
+- **[CI/CD Integration](guides/cicd-integration)** - Automate deployments with GitHub Actions or GitLab CI
+- **[Day-2 Operations](guides/day-two-operations)** - Upgrades, rollbacks, and disaster recovery
 - **[Import Guide](guides/import)** - Bring existing Coolify resources under Terraform management
-- **[Scenario Examples](guides/scenario-testing)** - Real-world ACME Corp deployment scenarios
+- **[Common Errors](guides/common-errors)** - Error message reference with causes and fixes
 - **[Troubleshooting](guides/troubleshooting)** - Debugging tips and diagnostic logs
+- **[Scenario Examples](guides/scenario-testing)** - Real-world ACME Corp deployment scenarios
+- **[Migration from Community Provider](guides/migration-from-community)** - Migrate from SierraJC/coolify
 - **[API Contract Accuracy](guides/api-contract-accuracy)** - OpenAPI spec vs real Coolify source code
 
 ## Resource Overview
