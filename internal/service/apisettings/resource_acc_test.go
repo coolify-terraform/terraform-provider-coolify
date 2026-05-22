@@ -23,7 +23,7 @@ resource "coolify_api_settings" "test" {
 `,
 				// Enabling the API requires root team (team 0) permissions.
 				// The test verifies either success or a 403 permission error.
-				ExpectNonEmptyPlan: true,
+				// Note: plan may be empty if API is already enabled on the instance.
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_api_settings.test", "enabled", "true"),
 				),
