@@ -144,7 +144,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		// ── Security Keys ──
 		"GET /security/keys":           covered("data.coolify_private_keys", "v0.1.0"),
 		"POST /security/keys":          covered("coolify_private_key", "v0.1.0"),
-		"PATCH /security/keys":         covered("coolify_private_key", "v0.1.0"),
+		"PATCH /security/keys/{uuid}":  covered("coolify_private_key", "v0.1.0"),
 		"GET /security/keys/{uuid}":    covered("data.coolify_private_key", "v0.1.0"),
 		"DELETE /security/keys/{uuid}": covered("coolify_private_key", "v0.1.0"),
 

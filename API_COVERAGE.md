@@ -107,7 +107,7 @@
 | `PATCH /databases/{uuid}/storages` | `coolify_storage` | v0.2.0 |
 | `PATCH /github-apps/{github_app_id}` | `coolify_github_app` | v0.2.0 |
 | `PATCH /projects/{uuid}` | `coolify_project` | v0.1.0 |
-| `PATCH /security/keys` | `coolify_private_key` | v0.1.0 |
+| `PATCH /security/keys/{uuid}` | `coolify_private_key` | v0.1.0 |
 | `PATCH /servers/{uuid}` | `coolify_server` | v0.1.0 |
 | `PATCH /services/{uuid}` | `coolify_service` | v0.1.0 |
 | `PATCH /services/{uuid}/envs` | `coolify_environment_variable` | v0.1.0 |
