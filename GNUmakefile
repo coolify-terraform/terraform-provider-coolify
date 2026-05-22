@@ -10,7 +10,7 @@ build: ## Compile the provider
 	go build -v ./...
 
 test: ## Run unit tests (race detector, coverage)
-	go test -race -cover -count=1 -p 4 -timeout=15m ./...
+	go test -race -cover -count=1 -p 4 -parallel=1 -timeout=15m ./...
 
 testacc: ## Run acceptance tests (needs COOLIFY_ENDPOINT + COOLIFY_TOKEN)
 	TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -p 1 -run 'TestAcc' ./...
@@ -42,7 +42,7 @@ check-pkg: ## Verify PKG is set for package-scoped test targets
 	@test -n "$(PKG)" || (echo "ERROR: PKG is required, example: make test-pkg PKG=./internal/service/project/"; exit 1)
 
 test-pkg: check-pkg ## Run unit tests for one package (usage: make test-pkg PKG=./internal/service/project/)
-	go test -race -cover -count=1 -timeout=$(or $(TIMEOUT),15m) $(PKG)
+	go test -race -cover -count=1 -parallel=1 -timeout=$(or $(TIMEOUT),15m) $(PKG)
 
 testacc-pkg: check-pkg ## Run acceptance tests for one package with serialized execution (usage: make testacc-pkg PKG=./internal/service/project/ [RUN=TestAcc])
 	TF_ACC=1 go test -race -v -cover -count=1 -parallel=1 -timeout=$(or $(TIMEOUT),30m) -run '$(or $(RUN),TestAcc)' $(PKG)
