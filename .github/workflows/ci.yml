@@ -87,7 +87,7 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
-          terraform_version: "1.12.x"
+          terraform_version: "1.15.x"
       - name: Install gotestsum
         run: go install gotest.tools/gotestsum@v1.13.0
       - name: Run tests
@@ -188,7 +188,7 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
-          terraform_version: "1.12.x"
+          terraform_version: "1.15.x"
       - name: Check HCL formatting
         if: ${{ !cancelled() }}
         run: terraform fmt -check -recursive examples/
@@ -359,7 +359,7 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
-          terraform_version: "1.12.x"
+          terraform_version: "1.15.x"
       - name: Build and install provider locally
         run: |
           go build -o terraform-provider-coolify .
