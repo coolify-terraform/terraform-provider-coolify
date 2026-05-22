@@ -22,7 +22,8 @@ type apiSettingsResource struct {
 }
 
 type apiSettingsModel struct {
-	Enabled types.Bool `tfsdk:"enabled"`
+	Enabled    types.Bool `tfsdk:"enabled"`
+	MCPEnabled types.Bool `tfsdk:"mcp_enabled"`
 }
 
 func NewResource() resource.Resource {
@@ -35,13 +36,19 @@ func (r *apiSettingsResource) Metadata(_ context.Context, req resource.MetadataR
 
 func (r *apiSettingsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages the Coolify REST API enabled/disabled state. Requires a root team (team 0) API token. On destroy, the API is always re-enabled to prevent lockout.",
+		MarkdownDescription: "Manages Coolify instance-level settings: the REST API and the MCP server. Requires a root team (team 0) API token. On destroy, the API is re-enabled (to prevent lockout) and the MCP server is disabled.",
 		Attributes: map[string]schema.Attribute{
 			"enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether the Coolify REST API is enabled.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(true),
+			},
+			"mcp_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Whether the Coolify MCP server is enabled.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 		},
 	}
@@ -60,8 +67,12 @@ func (r *apiSettingsResource) Create(ctx context.Context, req resource.CreateReq
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_api_settings"})
 
-	if err := r.applyState(ctx, plan.Enabled.ValueBool()); err != nil {
+	if err := r.applyAPIState(ctx, plan.Enabled.ValueBool()); err != nil {
 		resp.Diagnostics.AddError("Error configuring API settings", err.Error())
+		return
+	}
+	if err := r.applyMCPState(ctx, plan.MCPEnabled.ValueBool()); err != nil {
+		resp.Diagnostics.AddError("Error configuring MCP settings", err.Error())
 		return
 	}
 
@@ -81,8 +92,12 @@ func (r *apiSettingsResource) Update(ctx context.Context, req resource.UpdateReq
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_api_settings"})
 
-	if err := r.applyState(ctx, plan.Enabled.ValueBool()); err != nil {
+	if err := r.applyAPIState(ctx, plan.Enabled.ValueBool()); err != nil {
 		resp.Diagnostics.AddError("Error configuring API settings", err.Error())
+		return
+	}
+	if err := r.applyMCPState(ctx, plan.MCPEnabled.ValueBool()); err != nil {
+		resp.Diagnostics.AddError("Error configuring MCP settings", err.Error())
 		return
 	}
 
@@ -90,16 +105,26 @@ func (r *apiSettingsResource) Update(ctx context.Context, req resource.UpdateReq
 }
 
 func (r *apiSettingsResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// Always re-enable the API on destroy to prevent lockout.
-	tflog.Debug(ctx, "deleting resource (re-enabling API)", map[string]interface{}{"resource_type": "coolify_api_settings"})
+	// Re-enable the API and disable MCP on destroy (safe defaults).
+	tflog.Debug(ctx, "deleting resource (restoring safe defaults)", map[string]interface{}{"resource_type": "coolify_api_settings"})
 	if err := r.client.EnableAPI(ctx); err != nil {
 		resp.Diagnostics.AddWarning("Could not re-enable API on destroy", err.Error())
 	}
+	if err := r.client.DisableMCP(ctx); err != nil {
+		resp.Diagnostics.AddWarning("Could not disable MCP server on destroy", err.Error())
+	}
 }
 
-func (r *apiSettingsResource) applyState(ctx context.Context, enabled bool) error {
+func (r *apiSettingsResource) applyAPIState(ctx context.Context, enabled bool) error {
 	if enabled {
 		return r.client.EnableAPI(ctx)
 	}
 	return r.client.DisableAPI(ctx)
+}
+
+func (r *apiSettingsResource) applyMCPState(ctx context.Context, enabled bool) error {
+	if enabled {
+		return r.client.EnableMCP(ctx)
+	}
+	return r.client.DisableMCP(ctx)
 }

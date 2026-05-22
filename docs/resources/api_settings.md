@@ -3,19 +3,20 @@
 page_title: "coolify_api_settings Resource - coolify"
 subcategory: ""
 description: |-
-  Manages the Coolify REST API enabled/disabled state. Requires a root team (team 0) API token. On destroy, the API is always re-enabled to prevent lockout.
+  Manages Coolify instance-level settings: the REST API and the MCP server. Requires a root team (team 0) API token. On destroy, the API is re-enabled (to prevent lockout) and the MCP server is disabled.
 ---
 
 # coolify_api_settings (Resource)
 
-Manages the Coolify REST API enabled/disabled state. Requires a root team (team 0) API token. On destroy, the API is always re-enabled to prevent lockout.
+Manages Coolify instance-level settings: the REST API and the MCP server. Requires a root team (team 0) API token. On destroy, the API is re-enabled (to prevent lockout) and the MCP server is disabled.
 
 ## Example Usage
 
 ```terraform
-# Enable the Coolify REST API.
+# Enable the Coolify REST API and MCP server.
 resource "coolify_api_settings" "main" {
-  enabled = true
+  enabled     = true
+  mcp_enabled = true
 }
 ```
 
@@ -25,3 +26,4 @@ resource "coolify_api_settings" "main" {
 ### Optional
 
 - `enabled` (Boolean) Whether the Coolify REST API is enabled.
+- `mcp_enabled` (Boolean) Whether the Coolify MCP server is enabled.

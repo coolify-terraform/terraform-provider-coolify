@@ -247,6 +247,22 @@ func (c *Client) DisableAPI(ctx context.Context) error {
 	return nil
 }
 
+// EnableMCP enables the Coolify MCP server. Requires a root team (team 0) token.
+func (c *Client) EnableMCP(ctx context.Context) error {
+	if err := c.do(ctx, http.MethodPost, "/api/v1/mcp/enable", nil, nil); err != nil {
+		return fmt.Errorf("enabling MCP server: %w", err)
+	}
+	return nil
+}
+
+// DisableMCP disables the Coolify MCP server. Requires a root team (team 0) token.
+func (c *Client) DisableMCP(ctx context.Context) error {
+	if err := c.do(ctx, http.MethodPost, "/api/v1/mcp/disable", nil, nil); err != nil {
+		return fmt.Errorf("disabling MCP server: %w", err)
+	}
+	return nil
+}
+
 // NotFoundError is returned when the API responds with 404.
 type NotFoundError struct {
 	Message string

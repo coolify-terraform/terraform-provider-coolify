@@ -5,7 +5,7 @@
 
 **Route inventory**: pinned OpenAPI spec in `testdata/specs/coolify-v4.json`  
 **Field source of truth**: source-derived contract in `testdata/contracts/coolify-v4.json`  
-**Coverage**: 134 / 135 endpoints (99.3%)  
+**Coverage**: 136 / 137 endpoints (99.3%)  
 **Planned**: 0 | **Skipped**: 1
 
 ## Covered
@@ -137,6 +137,8 @@
 | `POST /databases/{uuid}/storages` | `coolify_storage` | v0.2.0 |
 | `POST /deployments/{uuid}/cancel` | `client.CancelDeployment` | v0.2.0 |
 | `POST /github-apps` | `coolify_github_app` | v0.2.0 |
+| `POST /mcp/disable` | `coolify_api_settings (mcp_enabled)` | v0.4.0 |
+| `POST /mcp/enable` | `coolify_api_settings (mcp_enabled)` | v0.4.0 |
 | `POST /projects` | `coolify_project` | v0.1.0 |
 | `POST /projects/{uuid}/environments` | `coolify_environment` | v0.2.0 |
 | `POST /security/keys` | `coolify_private_key` | v0.1.0 |

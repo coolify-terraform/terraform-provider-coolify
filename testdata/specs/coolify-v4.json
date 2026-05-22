@@ -12425,6 +12425,84 @@
                     }
                 ]
             }
+        },
+        "/mcp/enable": {
+            "post": {
+                "tags": [
+                    "Operations"
+                ],
+                "summary": "Enable MCP Server",
+                "description": "Enable the MCP server endpoint (only with root permissions).",
+                "operationId": "enable-mcp",
+                "responses": {
+                    "200": {
+                        "description": "MCP server enabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "MCP server enabled."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "description": "Forbidden. Only root team can enable/disable MCP."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/mcp/disable": {
+            "post": {
+                "tags": [
+                    "Operations"
+                ],
+                "summary": "Disable MCP Server",
+                "description": "Disable the MCP server endpoint (only with root permissions).",
+                "operationId": "disable-mcp",
+                "responses": {
+                    "200": {
+                        "description": "MCP server disabled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "MCP server disabled."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/401"
+                    },
+                    "403": {
+                        "description": "Forbidden. Only root team can enable/disable MCP."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

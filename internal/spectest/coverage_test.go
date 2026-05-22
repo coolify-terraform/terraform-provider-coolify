@@ -185,11 +185,13 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /hetzner/ssh-keys":     covered("data.coolify_hetzner_ssh_keys", "v0.2.0"),
 
 		// ── Operational / Meta ──
-		"GET /version":   covered("data.coolify_version", "v0.1.0"),
-		"GET /resources": covered("data.coolify_resources", "v0.2.0"),
-		"GET /health":    covered("data.coolify_health", "v0.2.0"),
-		"GET /enable":    covered("client.EnableAPI", "v0.2.0"),
-		"GET /disable":   covered("client.DisableAPI", "v0.2.0"),
+		"GET /version":      covered("data.coolify_version", "v0.1.0"),
+		"GET /resources":    covered("data.coolify_resources", "v0.2.0"),
+		"GET /health":       covered("data.coolify_health", "v0.2.0"),
+		"GET /enable":       covered("client.EnableAPI", "v0.2.0"),
+		"GET /disable":      covered("client.DisableAPI", "v0.2.0"),
+		"POST /mcp/enable":  covered("coolify_api_settings (mcp_enabled)", "v0.4.0"),
+		"POST /mcp/disable": covered("coolify_api_settings (mcp_enabled)", "v0.4.0"),
 	}
 }
 
