@@ -115,6 +115,7 @@ jobs:
         with:
           files: coverage.out
           fail_ci_if_error: false
+          skip_validation: true  # gpg not available on self-hosted macOS runner
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
