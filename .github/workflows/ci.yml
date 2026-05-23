@@ -166,7 +166,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     env:
-      DOCKER_CONFIG: ${{ runner.temp }}/docker-ci-config
+      DOCKER_CONFIG: /tmp/docker-ci-config
     needs: changes
     if: >-
       always() &&
