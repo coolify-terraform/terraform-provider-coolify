@@ -4,9 +4,9 @@
 ![Go Version](https://img.shields.io/github/go-mod/go-version/coolify-terraform/terraform-provider-coolify)
 ![License](https://img.shields.io/github/license/coolify-terraform/terraform-provider-coolify)
 
-Manage Coolify with Terraform. Provision applications, databases, servers, backups, and environment variables from versioned HCL instead of clicking through the UI.
+Provision Coolify with Terraform. Manage applications, databases, servers, backups, and environment variables from versioned HCL instead of clicking through the UI.
 
-**Start here**
+## Start Here
 
 - [Quick Start](docs/guides/quickstart.md) -- deploy your first app in under 5 minutes
 - [Installation](docs/guides/installation.md) -- install and configure the provider
@@ -34,12 +34,12 @@ terraform plan / apply
 terraform-provider-coolify
         |
         +--> Projects / Environments
-        +--> Applications / Services / Preview deployments
+        +--> Apps / Services / Previews
         +--> Databases / Backups / Storage
         +--> Servers / SSH keys / Cloud tokens
 ```
 
-Use the Coolify UI for visibility and day-to-day operations. Use Terraform for repeatable provisioning, reviewable changes, and disaster recovery.
+Use the Coolify UI for visibility. Use Terraform for repeatable provisioning, reviewable changes, and disaster recovery.
 
 ## Quick Example
 
