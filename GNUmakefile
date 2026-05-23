@@ -1,6 +1,7 @@
 GOLANGCI_LINT_VERSION := 2.12.2
 GORELEASER_MAJOR := 2
 ACTIONLINT_VERSION := 1.7.12
+PYTHON ?= python3
 BIN_DIR := $(CURDIR)/bin
 
 export PATH := $(BIN_DIR):$(PATH)
@@ -63,7 +64,7 @@ validate: ## Check HCL formatting in examples/
 	terraform fmt -check -recursive examples/
 
 python-test: check-python3 ## Run Python unit tests for scripts/
-	python3 -m unittest discover -s scripts -p '*test*.py' -v
+	$(PYTHON) -m unittest discover -s scripts -p '*test*.py' -v
 
 install: ## Install provider to local Go bin
 	go install .
@@ -162,10 +163,10 @@ check-goreleaser-version: ## Verify goreleaser major version matches CI
 	fi
 
 check-python3: ## Verify Python 3 is installed for Python-backed tooling
-	@command -v python3 >/dev/null 2>&1 || (echo "ERROR: python3 is required for Python-backed Make targets in this repo. Install Python 3.9+ and re-run."; exit 1)
+	@command -v $(PYTHON) >/dev/null 2>&1 || (echo "ERROR: $(PYTHON) is required for Python-backed Make targets in this repo. Install Python 3.9+ and re-run."; exit 1)
 
 check-actionlint-version: ## Verify actionlint version matches CI
-	@version="$$(actionlint --version 2>/dev/null | awk 'NR == 1 {print $$1}')"; \
+	@version="$$(actionlint --version 2>/dev/null | awk 'NR == 1 {print $$1}' | sed 's/^v//')"; \
 	if [ "$$version" != "$(ACTIONLINT_VERSION)" ]; then \
 		echo "ERROR: actionlint $(ACTIONLINT_VERSION) required to match CI. Install with: make tools"; \
 		if [ -n "$$version" ]; then echo "Installed: $$version"; else echo "Installed: not found"; fi; \
