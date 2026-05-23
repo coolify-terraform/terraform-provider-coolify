@@ -1,5 +1,6 @@
 GOLANGCI_LINT_VERSION := 2.12.2
 GORELEASER_MAJOR := 2
+ACTIONLINT_VERSION := 1.7.12
 BIN_DIR := $(CURDIR)/bin
 
 export PATH := $(BIN_DIR):$(PATH)
@@ -99,7 +100,7 @@ test-import-gen: ## Test terraform plan -generate-config-out compatibility (need
 scaffold: ## Scaffold a new resource (usage: make scaffold NAME=webhook)
 	@./scripts/new-resource.sh $(NAME)
 
-ci: build lint test validate python-test docs-check api-coverage-check counts-check vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
+ci: build lint test validate actionlint-check python-test docs-check api-coverage-check counts-check vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
 
 modverify: ## Verify module cache integrity against go.sum
 	go mod verify
@@ -163,6 +164,17 @@ check-goreleaser-version: ## Verify goreleaser major version matches CI
 check-python3: ## Verify Python 3 is installed for Python-backed tooling
 	@command -v python3 >/dev/null 2>&1 || (echo "ERROR: python3 is required for Python-backed Make targets in this repo. Install Python 3.9+ and re-run."; exit 1)
 
+check-actionlint-version: ## Verify actionlint version matches CI
+	@version="$$(actionlint --version 2>/dev/null | awk 'NR == 1 {print $$1}')"; \
+	if [ "$$version" != "$(ACTIONLINT_VERSION)" ]; then \
+		echo "ERROR: actionlint $(ACTIONLINT_VERSION) required to match CI. Install with: make tools"; \
+		if [ -n "$$version" ]; then echo "Installed: $$version"; else echo "Installed: not found"; fi; \
+		exit 1; \
+	fi
+
+actionlint-check: check-actionlint-version ## Lint GitHub Actions workflows
+	actionlint
+
 check-tfplugindocs: ## Verify tfplugindocs is installed for docs generation
 	@command -v tfplugindocs >/dev/null 2>&1 || (echo "ERROR: tfplugindocs is required for docs generation. Install with: make tools"; exit 1)
 
@@ -178,6 +190,8 @@ tools: ## Install all required development tools
 	@GOBIN="$(BIN_DIR)" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v$(GOLANGCI_LINT_VERSION)
 	@echo "Installing goreleaser to $(BIN_DIR)..."
 	@GOBIN="$(BIN_DIR)" go install github.com/goreleaser/goreleaser/v$(GORELEASER_MAJOR)@latest
+	@echo "Installing actionlint $(ACTIONLINT_VERSION) to $(BIN_DIR)..."
+	@GOBIN="$(BIN_DIR)" go install github.com/rhysd/actionlint/cmd/actionlint@v$(ACTIONLINT_VERSION)
 	@echo "Installing tfplugindocs to $(BIN_DIR)..."
 	@cd tools && GOBIN="$(BIN_DIR)" go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 	@echo "All tools installed to $(BIN_DIR)."
@@ -185,4 +199,4 @@ tools: ## Install all required development tools
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc acc-bootstrap acc-preflight check-pkg test-pkg testacc-pkg lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-python3 check-tfplugindocs goreleaser-check modverify ci scaffold test-import-gen tools help
+.PHONY: build test testacc acc-bootstrap acc-preflight check-pkg test-pkg testacc-pkg lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-python3 check-actionlint-version check-tfplugindocs actionlint-check goreleaser-check modverify ci scaffold test-import-gen tools help
