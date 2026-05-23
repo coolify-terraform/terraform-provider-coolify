@@ -69,7 +69,7 @@ Coolify gives you a self-hosted PaaS with a great UI. This provider adds the thi
 | `coolify_github_app` | Manage GitHub App integrations |
 | `coolify_envs_bulk` | Manage environment variables as a single atomic set |
 | `coolify_application_preview` | Manage application preview deployments |
-| `coolify_api_settings` | Apply Coolify API settings |
+| `coolify_api_settings` | Manage Coolify API and MCP server settings |
 | `coolify_backup_execution` | Trigger database backup executions |
 | `coolify_cloud_token_validate` | Validate cloud provider tokens |
 | `coolify_resource_action` | Trigger start/stop/restart actions on resources |

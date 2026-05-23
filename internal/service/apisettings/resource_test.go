@@ -3,6 +3,7 @@ package apisettings_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync/atomic"
 	"testing"
 
@@ -161,6 +162,34 @@ func TestAPISettingsResource_MCPUpdate(t *testing.T) {
 					mcp_enabled = false
 				`),
 				Check: resource.TestCheckResourceAttr("coolify_api_settings.test", "mcp_enabled", "false"),
+			},
+		},
+	})
+}
+
+func TestAPISettingsResource_MCPEnableError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"API enabled."}`))
+	})
+	// MCP enable returns 403 (non-root token).
+	mux.HandleFunc("POST /api/v1/mcp/enable", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"message":"You are not allowed to perform this action."}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+					mcp_enabled = true
+				`),
+				ExpectError: regexp.MustCompile(`(?i)error configuring MCP`),
 			},
 		},
 	})
