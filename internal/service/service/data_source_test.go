@@ -24,6 +24,7 @@ func TestServiceDataSource(t *testing.T) {
 		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
 		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
 		EnvironmentName: "production",
+		Status:          "running",
 	}
 
 	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +63,7 @@ data "coolify_service" "test" {
 					resource.TestCheckResourceAttr("data.coolify_service.test", "server_uuid", "bbbb0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_service.test", "project_uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("data.coolify_service.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("data.coolify_service.test", "status", "running"),
 				),
 			},
 		},

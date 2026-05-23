@@ -32,4 +32,5 @@ data "coolify_service" "example" {
 - `name` (String) The name of the service.
 - `project_uuid` (String) The UUID of the project this service belongs to.
 - `server_uuid` (String) The UUID of the server the service is deployed on.
+- `status` (String) The current status of the service (e.g., `running`, `stopped`, `exited`).
 - `type` (String) The type of the service.

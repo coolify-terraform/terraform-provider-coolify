@@ -47,5 +47,6 @@ Read-Only:
 
 - `description` (String) A description of the service.
 - `name` (String) The name of the service.
+- `status` (String) The current status of the service.
 - `type` (String) The type of the service.
 - `uuid` (String) The unique identifier of the service.

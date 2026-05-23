@@ -31,6 +31,7 @@ type serviceDataSourceModel struct {
 	ServerUUID      types.String `tfsdk:"server_uuid"`
 	ProjectUUID     types.String `tfsdk:"project_uuid"`
 	EnvironmentName types.String `tfsdk:"environment_name"`
+	Status          types.String `tfsdk:"status"`
 }
 
 func NewDataSource() datasource.DataSource {
@@ -74,6 +75,10 @@ func (d *serviceDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				MarkdownDescription: "The environment name.",
 				Computed:            true,
 			},
+			"status": schema.StringAttribute{
+				MarkdownDescription: "The current status of the service (e.g., `running`, `stopped`, `exited`).",
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -104,6 +109,7 @@ func (d *serviceDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	config.ServerUUID = flex.StringToFramework(svc.ServerUUID)
 	config.ProjectUUID = flex.StringToFramework(svc.ProjectUUID)
 	config.EnvironmentName = flex.StringToFramework(svc.EnvironmentName)
+	config.Status = flex.StringToFramework(svc.Status)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

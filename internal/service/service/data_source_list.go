@@ -35,6 +35,7 @@ type serviceItemModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Type        types.String `tfsdk:"type"`
+	Status      types.String `tfsdk:"status"`
 }
 
 // NewListDataSource returns a new services list data source instance.
@@ -69,6 +70,10 @@ func (d *serviceListDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 						},
 						"type": schema.StringAttribute{
 							MarkdownDescription: "The type of the service.",
+							Computed:            true,
+						},
+						"status": schema.StringAttribute{
+							MarkdownDescription: "The current status of the service.",
 							Computed:            true,
 						},
 					},
@@ -110,6 +115,8 @@ func (d *serviceListDataSource) Read(ctx context.Context, req datasource.ReadReq
 			return s.Description, true
 		case "type":
 			return s.Type, true
+		case "status":
+			return s.Status, true
 		default:
 			return "", false
 		}
@@ -124,6 +131,7 @@ func (d *serviceListDataSource) Read(ctx context.Context, req datasource.ReadReq
 			Type: types.StringValue(s.Type),
 		}
 		item.Description = flex.StringToFramework(s.Description)
+		item.Status = flex.StringToFramework(s.Status)
 		state.Services = append(state.Services, item)
 	}
 

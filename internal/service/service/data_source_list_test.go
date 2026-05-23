@@ -20,12 +20,14 @@ func TestServicesListDataSource(t *testing.T) {
 			Name:        "svc-alpha",
 			Description: "First service",
 			Type:        "plausible",
+			Status:      "running",
 		},
 		{
 			UUID:        "svc-list-uuid-2",
 			Name:        "svc-beta",
 			Description: "Second service",
 			Type:        "minio",
+			Status:      "stopped",
 		},
 	}
 
@@ -58,9 +60,11 @@ data "coolify_services" "test" {}
 					resource.TestCheckResourceAttr("data.coolify_services.test", "services.0.name", "svc-alpha"),
 					resource.TestCheckResourceAttr("data.coolify_services.test", "services.0.description", "First service"),
 					resource.TestCheckResourceAttr("data.coolify_services.test", "services.0.type", "plausible"),
+					resource.TestCheckResourceAttr("data.coolify_services.test", "services.0.status", "running"),
 					resource.TestCheckResourceAttr("data.coolify_services.test", "services.1.uuid", "svc-list-uuid-2"),
 					resource.TestCheckResourceAttr("data.coolify_services.test", "services.1.name", "svc-beta"),
 					resource.TestCheckResourceAttr("data.coolify_services.test", "services.1.type", "minio"),
+					resource.TestCheckResourceAttr("data.coolify_services.test", "services.1.status", "stopped"),
 				),
 			},
 			{
@@ -81,6 +85,27 @@ data "coolify_services" "filtered" {
 					resource.TestCheckResourceAttr("data.coolify_services.filtered", "services.#", "1"),
 					resource.TestCheckResourceAttr("data.coolify_services.filtered", "services.0.name", "svc-beta"),
 					resource.TestCheckResourceAttr("data.coolify_services.filtered", "services.0.type", "minio"),
+					resource.TestCheckResourceAttr("data.coolify_services.filtered", "services.0.status", "stopped"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+data "coolify_services" "running" {
+  filter {
+    name   = "status"
+    values = ["running"]
+  }
+}
+`, mockSrv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_services.running", "services.#", "1"),
+					resource.TestCheckResourceAttr("data.coolify_services.running", "services.0.name", "svc-alpha"),
+					resource.TestCheckResourceAttr("data.coolify_services.running", "services.0.status", "running"),
 				),
 			},
 		},
