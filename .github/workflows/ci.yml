@@ -209,18 +209,18 @@ jobs:
         run: make counts-check
       - name: Install actionlint
         if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-        run: GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+        run: |
+          GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          echo "$(pwd)/bin" >> "$GITHUB_PATH"
       - name: Lint GitHub Actions workflows
         if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: make actionlint-check
-      - name: Set up Python
-        if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: "3.9"
       - name: Run Python script tests
         if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-        run: make python-test
+        run: |
+          command -v python3.9 >/dev/null 2>&1 || { echo "::error::python3.9 is required on self-hosted runners"; exit 1; }
+          python3.9 --version
+          make python-test PYTHON=python3.9
       - name: Configure Docker for CI
         if: ${{ !cancelled() }}
         run: |
