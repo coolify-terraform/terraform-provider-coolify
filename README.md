@@ -4,27 +4,89 @@
 ![Go Version](https://img.shields.io/github/go-mod/go-version/coolify-terraform/terraform-provider-coolify)
 ![License](https://img.shields.io/github/license/coolify-terraform/terraform-provider-coolify)
 
-Define your entire [Coolify](https://coolify.io/) infrastructure as code: applications, databases, servers, backups, and environment variables, all version-controlled and reproducible with a single `terraform apply`.
+Manage Coolify with Terraform. Provision applications, databases, servers, backups, and environment variables from versioned HCL instead of clicking through the UI.
 
-## Why Terraform for Coolify?
-
-Coolify gives you a self-hosted PaaS with a great UI. This provider adds the things the UI cannot:
-
-- **Reproducibility** -- rebuild your entire stack from scratch after a server failure, in minutes instead of hours of clicking
-- **Version control** -- review infrastructure changes in pull requests before they hit production
-- **Multi-environment consistency** -- stamp out identical dev, staging, and production setups from the same configuration
-- **Team collaboration** -- stop sharing screenshots of Coolify settings; share `.tf` files instead
-- **Disaster recovery** -- your Terraform state is a complete inventory of what should be running and how it should be configured
-- **Automation** -- integrate Coolify deployments into your existing CI/CD pipeline
-
-## Getting Started
+**Start here**
 
 - [Quick Start](docs/guides/quickstart.md) -- deploy your first app in under 5 minutes
 - [Installation](docs/guides/installation.md) -- install and configure the provider
-- [Core Concepts](docs/guides/concepts.md) -- understand the resource model
+- [Examples](examples/) -- browse per-resource examples
+- [Scenarios](examples/scenarios/) -- see full-stack ACME Corp setups tested against a real Coolify instance
+- [Import Guide](docs/guides/import.md) -- adopt existing resources without rebuilding
+
+## At a Glance
+
+| Area | Coverage |
+|---|---|
+| Managed resources | 33 |
+| Data sources | 44 |
+| Tests | 850+ unit and acceptance tests |
+| Scenario examples | 10 ACME Corp setups |
+| Adoption path | New stacks and incremental import of existing Coolify resources |
+
+## Visual Overview
+
+```text
+Git repo with .tf files
+        |
+terraform plan / apply
+        v
+terraform-provider-coolify
+        |
+        +--> Projects / Environments
+        +--> Applications / Services / Preview deployments
+        +--> Databases / Backups / Storage
+        +--> Servers / SSH keys / Cloud tokens
+```
+
+Use the Coolify UI for visibility and day-to-day operations. Use Terraform for repeatable provisioning, reviewable changes, and disaster recovery.
+
+## Quick Example
+
+```hcl
+terraform {
+  required_providers {
+    coolify = {
+      source = "coolify-terraform/coolify"
+    }
+  }
+}
+
+provider "coolify" {
+  endpoint = var.coolify_endpoint
+  token    = var.coolify_token
+}
+
+resource "coolify_project" "example" {
+  name = "acme-production"
+}
+
+resource "coolify_application" "api" {
+  name           = "acme-api"
+  project_uuid   = coolify_project.example.uuid
+  server_uuid    = "your-server-uuid"
+  git_repository = "https://github.com/example/acme-api"
+  git_branch     = "main"
+  build_pack     = "nixpacks"
+  ports_exposes  = "3000"
+  domains        = "https://api.example.com"
+}
+```
+
+For a working end-to-end setup, start with the [Quick Start](docs/guides/quickstart.md), then explore [examples/](examples/) and [examples/scenarios/](examples/scenarios/).
+
+## Why Teams Use It
+
+- **Reproducibility** -- rebuild your stack after a failure, without hours of clicking in the UI
+- **Version control** -- review infrastructure changes in pull requests before they hit production
+- **Multi-environment consistency** -- stamp out matching dev, staging, and production environments from the same configuration
+- **Safer collaboration** -- share `.tf` files instead of screenshots of Coolify settings
+- **Gradual adoption** -- import existing resources and move toward Terraform without a full rebuild
+- **Automation** -- integrate Coolify provisioning and deployment actions into your CI/CD workflow
 
 ## Guides
 
+- [Core Concepts](docs/guides/concepts.md) -- understand the resource model
 - [Choosing an Application Type](docs/guides/choosing-application-type.md) -- pick the right resource for your deployment method
 - [Connecting Resources](docs/guides/connecting-resources.md) -- wire apps to databases using Coolify's Docker networking
 - [Domains and HTTPS](docs/guides/domains-and-https.md) -- custom domains, automatic TLS, and URL redirects
@@ -34,7 +96,6 @@ Coolify gives you a self-hosted PaaS with a great UI. This provider adds the thi
 - [CI/CD Integration](docs/guides/cicd-integration.md) -- automate deployments with GitHub Actions or GitLab CI
 - [Day-2 Operations](docs/guides/day-two-operations.md) -- upgrades, rollbacks, and disaster recovery
 - [Common Errors](docs/guides/common-errors.md) -- error message reference with causes and fixes
-- [Import Guide](docs/guides/import.md) -- bring existing resources under Terraform management
 - [Troubleshooting](docs/guides/troubleshooting.md) -- debugging tips and diagnostic logs
 
 ## Resources
@@ -137,7 +198,9 @@ Every scenario has `terraform test` integration tests that run against a real Co
 - [Go](https://golang.org/doc/install) >= 1.26 (for building from source)
 - A running [Coolify](https://coolify.io/) instance (v4.x)
 
-## Usage
+## Extended Example
+
+The quick example above shows the minimal provider shape. This example adds a database and shows how a fuller stack links resources together.
 
 ```hcl
 terraform {
