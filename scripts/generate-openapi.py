@@ -16,6 +16,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 # Map contract model names to OpenAPI schema names
@@ -98,7 +99,7 @@ def patch_schema(schema: dict, contract_model: dict) -> dict:
     return schema
 
 
-def _build_property(field_name: str, field_info: dict) -> dict | None:
+def _build_property(field_name: str, field_info: dict) -> Optional[dict]:
     """Build an OpenAPI property from a contract field."""
     contract_type = field_info.get("type", "string")
     openapi_type = TYPE_MAP.get(contract_type, "string")

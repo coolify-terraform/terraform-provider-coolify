@@ -165,6 +165,8 @@ jobs:
     name: Validate
     runs-on: self-hosted
     timeout-minutes: 15
+    env:
+      DOCKER_CONFIG: ${{ runner.temp }}/docker-ci-config
     needs: changes
     if: >-
       always() &&
@@ -208,6 +210,11 @@ jobs:
       - name: Run Python script tests
         if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: make python-test
+      - name: Configure Docker for CI
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p "$DOCKER_CONFIG"
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
       - name: Trivy filesystem scan
         if: ${{ !cancelled() }}
         id: trivy

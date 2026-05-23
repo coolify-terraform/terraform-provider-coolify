@@ -16,6 +16,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 
 def extract_fillable(content: str) -> list[str]:
@@ -418,8 +419,8 @@ def build_model_contract(
     model_path: Path,
     migration_dir: Path,
     table_name: str,
-    casts_override: dict | None = None,
-    controller_hidden: set[str] | None = None,
+    casts_override: Optional[dict] = None,
+    controller_hidden: Optional[set[str]] = None,
 ) -> dict:
     """Build a complete model contract from model file + migrations."""
     content = model_path.read_text(errors="replace")

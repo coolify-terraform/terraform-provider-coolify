@@ -14,6 +14,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACT_PATH = ROOT / "testdata" / "contracts" / "coolify-v4.json"
@@ -208,7 +209,7 @@ def _compare_field(
     }
 
 
-def _model_intro(model_name: str, spec_schema: dict | None) -> list[str]:
+def _model_intro(model_name: str, spec_schema: Optional[dict]) -> list[str]:
     if model_name == "ScheduledDatabaseBackup":
         return [
             "This section compares the internal source-derived backup model against the public backup request bodies in the pinned spec.",
@@ -228,7 +229,7 @@ def _model_intro(model_name: str, spec_schema: dict | None) -> list[str]:
 def _build_model_table(
     model_name: str,
     contract_model: dict,
-    spec_schema: dict | None,
+    spec_schema: Optional[dict],
     client_json_tags: set[str],
 ) -> list[str]:
     """Build Markdown table lines for one model."""
