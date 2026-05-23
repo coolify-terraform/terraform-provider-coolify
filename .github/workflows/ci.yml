@@ -218,9 +218,16 @@ jobs:
       - name: Run Python script tests
         if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: |
-          command -v python3.9 >/dev/null 2>&1 || { echo "::error::python3.9 is required on self-hosted runners"; exit 1; }
-          python3.9 --version
-          make python-test PYTHON=python3.9
+          PYTHON_BIN="$(command -v python3.9 || true)"
+          if [ -z "$PYTHON_BIN" ] && [ -x /opt/homebrew/bin/python3.9 ]; then
+            PYTHON_BIN=/opt/homebrew/bin/python3.9
+          fi
+          if [ -z "$PYTHON_BIN" ]; then
+            echo "::error::python3.9 is required on self-hosted runners"
+            exit 1
+          fi
+          "$PYTHON_BIN" --version
+          make python-test PYTHON="$PYTHON_BIN"
       - name: Configure Docker for CI
         if: ${{ !cancelled() }}
         run: |
