@@ -60,7 +60,7 @@ func (d *privateKeyDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Computed:            true,
 			},
 			"private_key": schema.StringAttribute{
-				MarkdownDescription: "The PEM-encoded private key content.",
+				MarkdownDescription: "The PEM-encoded private key content. Requires an API token with `root` or `read:sensitive` permission; otherwise Coolify hides this value.",
 				Computed:            true,
 				Sensitive:           true,
 			},
@@ -102,7 +102,7 @@ func (d *privateKeyDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	config.UUID = types.StringValue(key.UUID)
 	config.Name = types.StringValue(key.Name)
 	config.Description = flex.StringToFramework(key.Description)
-	config.PrivateKey = types.StringValue(key.PrivateKey)
+	config.PrivateKey = flex.StringToFramework(key.PrivateKey)
 	config.PublicKey = flex.StringToFramework(key.PublicKey)
 	config.Fingerprint = flex.StringToFramework(key.Fingerprint)
 	config.IsGitRelated = types.BoolValue(key.IsGitRelated)

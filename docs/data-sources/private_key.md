@@ -39,5 +39,5 @@ output "private_key_fingerprint" {
 - `fingerprint` (String) The fingerprint of the private key.
 - `is_git_related` (Boolean) Whether this key is used for Git operations.
 - `name` (String) The name of the private key.
-- `private_key` (String, Sensitive) The PEM-encoded private key content.
+- `private_key` (String, Sensitive) The PEM-encoded private key content. Requires an API token with `root` or `read:sensitive` permission; otherwise Coolify hides this value.
 - `public_key` (String) The public key derived from the private key.

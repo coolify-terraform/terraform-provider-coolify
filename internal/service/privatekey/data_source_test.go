@@ -59,3 +59,49 @@ data "coolify_private_key" "test" {
 		},
 	})
 }
+
+func TestPrivateKeyDataSource_HiddenPrivateKey(t *testing.T) {
+	t.Parallel()
+	key := &client.PrivateKey{
+		UUID:         "cccc0003-0003-4000-8000-000000000002",
+		Name:         "hidden-key",
+		Description:  "Hidden without sensitive permission",
+		PrivateKey:   "",
+		PublicKey:    "ssh-ed25519 AAAA-hidden-public",
+		Fingerprint:  "SHA256:hidden-fingerprint",
+		IsGitRelated: true,
+	}
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/") {
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/security/keys/")
+			if uuid == key.UUID {
+				json.NewEncoder(w).Encode(key)
+				return
+			}
+		}
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_private_key" "test" {
+  uuid = "cccc0003-0003-4000-8000-000000000002"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coolify_private_key.test", "uuid", "cccc0003-0003-4000-8000-000000000002"),
+					resource.TestCheckResourceAttr("data.coolify_private_key.test", "name", "hidden-key"),
+					resource.TestCheckNoResourceAttr("data.coolify_private_key.test", "private_key"),
+					resource.TestCheckResourceAttr("data.coolify_private_key.test", "public_key", "ssh-ed25519 AAAA-hidden-public"),
+					resource.TestCheckResourceAttr("data.coolify_private_key.test", "fingerprint", "SHA256:hidden-fingerprint"),
+				),
+			},
+		},
+	})
+}
