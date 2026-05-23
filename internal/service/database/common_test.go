@@ -1,8 +1,16 @@
 package database
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -78,5 +86,52 @@ func TestHasExtendedFields_DefaultValues(t *testing.T) {
 				t.Errorf("expected false when %s is set to its default", tt.name)
 			}
 		})
+	}
+}
+
+func TestDeleteDatabase_AddsWarningWhenPollingTimesOut(t *testing.T) {
+	t.Parallel()
+
+	const uuid = "db-delete-timeout-uuid"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", uuid):
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", uuid):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"uuid":"` + uuid + `"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/version":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"version":"test"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := client.New(srv.URL, "test-token")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	resp := &resource.DeleteResponse{}
+
+	err := DeleteDatabase(ctx, c, "coolify_database_postgresql", uuid, resp)
+	if err != nil {
+		t.Fatalf("unexpected delete error: %v", err)
+	}
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("unexpected errors: %v", resp.Diagnostics.Errors())
+	}
+	if resp.Diagnostics.WarningsCount() != 1 {
+		t.Fatalf("expected 1 warning, got %d", resp.Diagnostics.WarningsCount())
+	}
+	warning := resp.Diagnostics.Warnings()[0]
+	if warning.Summary() != deletePollingTimeoutWarningSummary {
+		t.Fatalf("warning summary = %q, want %q", warning.Summary(), deletePollingTimeoutWarningSummary)
+	}
+	if !strings.Contains(warning.Detail(), uuid) {
+		t.Fatalf("warning detail %q does not mention uuid %s", warning.Detail(), uuid)
+	}
+	if !strings.Contains(warning.Detail(), "may still exist temporarily") {
+		t.Fatalf("warning detail %q does not explain the temporary remote state", warning.Detail())
 	}
 }

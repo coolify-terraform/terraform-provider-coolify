@@ -229,7 +229,20 @@ func UpdateDatabase(ctx context.Context, c *client.Client, uuid string, input cl
 
 // DeleteDatabase removes a database by UUID, silently succeeding if already
 // gone.
-func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid string) error {
+const deletePollingTimeoutWarningSummary = "Delete is still finishing in Coolify"
+
+func addDeletePollingTimeoutWarning(resp *resource.DeleteResponse, resourceType, uuid string) {
+	resp.Diagnostics.AddWarning(
+		deletePollingTimeoutWarningSummary,
+		fmt.Sprintf(
+			"Coolify accepted deletion of %s %s, but the resource was still returned by the API when the provider stopped polling. Terraform removed it from state, but the remote resource may still exist temporarily. Wait a moment before retrying dependent operations if they still report it.",
+			resourceType,
+			uuid,
+		),
+	)
+}
+
+func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid string, resp *resource.DeleteResponse) error {
 	if err := c.DeleteDatabase(ctx, uuid); err != nil {
 		if client.IsNotFound(err) {
 			return nil
@@ -238,6 +251,7 @@ func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid st
 	}
 	if !client.PollUntilDeleted(ctx, func() error { _, err := c.GetDatabase(ctx, uuid); return err }) {
 		tflog.Warn(ctx, "resource may still exist after polling timeout", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
+		addDeletePollingTimeoutWarning(resp, resourceType, uuid)
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 	return nil
@@ -276,7 +290,7 @@ func DeleteDatabaseState(
 	resp *resource.DeleteResponse,
 ) {
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
-	if err := DeleteDatabase(ctx, c, resourceType, uuid); err != nil {
+	if err := DeleteDatabase(ctx, c, resourceType, uuid, resp); err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Error deleting %s", resourceType), fmt.Sprintf("%s %s: %s", resourceType, uuid, err))
 	}
 }

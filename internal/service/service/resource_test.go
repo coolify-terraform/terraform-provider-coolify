@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,9 +13,16 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	servicepkg "github.com/coolify-terraform/terraform-provider-coolify/internal/service/service"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -250,6 +258,106 @@ func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
+	t.Parallel()
+
+	const uuid = "svc-delete-timeout-uuid"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", uuid):
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", uuid):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"uuid":"` + uuid + `"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/version":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"version":"test"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := client.New(srv.URL, "test-token")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	res := servicepkg.NewResource()
+	cfgRes, ok := res.(fwresource.ResourceWithConfigure)
+	if !ok {
+		t.Fatal("service resource does not implement ResourceWithConfigure")
+	}
+	var cfgResp fwresource.ConfigureResponse
+	cfgRes.Configure(ctx, fwresource.ConfigureRequest{ProviderData: c}, &cfgResp)
+	if cfgResp.Diagnostics.HasError() {
+		t.Fatalf("unexpected configure errors: %v", cfgResp.Diagnostics.Errors())
+	}
+
+	var schemaResp fwresource.SchemaResponse
+	res.Schema(ctx, fwresource.SchemaRequest{}, &schemaResp)
+	if schemaResp.Diagnostics.HasError() {
+		t.Fatalf("unexpected schema errors: %v", schemaResp.Diagnostics.Errors())
+	}
+
+	state := tfsdk.State{Schema: schemaResp.Schema}
+	setDiags := state.Set(ctx, struct {
+		Timeouts                      timeouts.Value `tfsdk:"timeouts"`
+		UUID                          types.String   `tfsdk:"uuid"`
+		Name                          types.String   `tfsdk:"name"`
+		Description                   types.String   `tfsdk:"description"`
+		ProjectUUID                   types.String   `tfsdk:"project_uuid"`
+		ServerUUID                    types.String   `tfsdk:"server_uuid"`
+		EnvironmentName               types.String   `tfsdk:"environment_name"`
+		Type                          types.String   `tfsdk:"type"`
+		Status                        types.String   `tfsdk:"status"`
+		DockerCompose                 types.String   `tfsdk:"docker_compose"`
+		DockerComposeRaw              types.String   `tfsdk:"docker_compose_raw"`
+		ConnectToNetwork              types.Bool     `tfsdk:"connect_to_docker_network"`
+		IsContainerLabelEscapeEnabled types.Bool     `tfsdk:"is_container_label_escape_enabled"`
+		ConfigHash                    types.String   `tfsdk:"config_hash"`
+		InstantDeploy                 types.Bool     `tfsdk:"instant_deploy"`
+	}{
+		Timeouts:                      timeouts.Value{Object: types.ObjectNull(map[string]attr.Type{"create": types.StringType})},
+		UUID:                          types.StringValue(uuid),
+		Name:                          types.StringNull(),
+		Description:                   types.StringNull(),
+		ProjectUUID:                   types.StringNull(),
+		ServerUUID:                    types.StringNull(),
+		EnvironmentName:               types.StringNull(),
+		Type:                          types.StringNull(),
+		Status:                        types.StringNull(),
+		DockerCompose:                 types.StringNull(),
+		DockerComposeRaw:              types.StringNull(),
+		ConnectToNetwork:              types.BoolNull(),
+		IsContainerLabelEscapeEnabled: types.BoolNull(),
+		ConfigHash:                    types.StringNull(),
+		InstantDeploy:                 types.BoolNull(),
+	})
+	if setDiags.HasError() {
+		t.Fatalf("unexpected state set errors: %v", setDiags.Errors())
+	}
+
+	resp := &fwresource.DeleteResponse{State: state}
+	res.Delete(ctx, fwresource.DeleteRequest{State: state}, resp)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("unexpected errors: %v", resp.Diagnostics.Errors())
+	}
+	if resp.Diagnostics.WarningsCount() != 1 {
+		t.Fatalf("expected 1 warning, got %d", resp.Diagnostics.WarningsCount())
+	}
+	warning := resp.Diagnostics.Warnings()[0]
+	if warning.Summary() != "Delete is still finishing in Coolify" {
+		t.Fatalf("warning summary = %q, want %q", warning.Summary(), "Delete is still finishing in Coolify")
+	}
+	if !strings.Contains(warning.Detail(), uuid) {
+		t.Fatalf("warning detail %q does not mention uuid %s", warning.Detail(), uuid)
+	}
+	if !strings.Contains(warning.Detail(), "may still exist temporarily") {
+		t.Fatalf("warning detail %q does not explain the temporary remote state", warning.Detail())
+	}
 }
 
 func TestServiceResource_Disappears(t *testing.T) {
