@@ -84,9 +84,11 @@ From [GNUmakefile](GNUmakefile), `make ci` runs these local targets:
 (`trivy` and `gitleaks`) from the GitHub Actions pipeline. If your change
 touches real Coolify API behavior, also run `make acc-preflight`, then
 `make testacc` or `make testacc-pkg PKG=./internal/service/<package>/`.
-The package-level Make target serializes in-package acceptance execution to
-avoid overloading a local Coolify instance. The lower-level `TF_ACC=1 go test ...`
-equivalents are documented in [TESTING.md](TESTING.md).
+Both Make targets serialize acceptance execution to avoid API overload and
+macOS TSAN/fork crashes. `make testacc` serializes packages and in-package
+execution; `make testacc-pkg` serializes in-package execution for one package.
+The lower-level `TF_ACC=1 go test ...` equivalents are documented in
+[TESTING.md](TESTING.md).
 
 Or run individual checks:
 

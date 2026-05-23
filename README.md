@@ -225,7 +225,7 @@ make build                                      # Compile the provider
 make test                                       # Run unit tests (840+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
-make testacc                                    # Run acceptance tests (needs running Coolify instance)
+make testacc                                    # Run acceptance tests with serialized package and in-package execution
 make lint                                       # Run golangci-lint
 make fmt                                        # Format code (gofmt + go mod tidy)
 make docs                                       # Regenerate documentation via tfplugindocs

@@ -158,8 +158,8 @@ fixture variables because Coolify verifies repository access during
 
 **Important**: Running acceptance tests in parallel can overwhelm the
 Coolify API and cause false timeout failures. Serialize both packages and
-in-package tests. The Make targets above already do that for package-scoped
-runs. These are the lower-level `go test` equivalents:
+in-package tests. The Make targets above already do that for full-suite and
+package-scoped runs. These are the lower-level `go test` equivalents:
 
 ```bash
 # Run all acceptance tests (sequential packages and in-package tests, avoids API overload and TSAN/fork crashes)
