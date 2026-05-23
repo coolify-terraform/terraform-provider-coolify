@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"

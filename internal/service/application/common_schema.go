@@ -4,7 +4,7 @@ import (
 	"context"
 	"regexp"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"

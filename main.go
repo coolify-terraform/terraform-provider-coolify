@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/provider"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
@@ -17,7 +17,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/SebTardifLabs/coolify",
+		Address: "registry.terraform.io/coolify-terraform/coolify",
 		Debug:   debug,
 	}
 

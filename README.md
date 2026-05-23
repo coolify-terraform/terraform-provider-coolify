@@ -1,8 +1,8 @@
 # Terraform Provider for Coolify
 
-[![CI](https://github.com/SebTardifLabs/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/SebTardifLabs/terraform-provider-coolify/actions/workflows/ci.yml)
-![Go Version](https://img.shields.io/github/go-mod/go-version/SebTardifLabs/terraform-provider-coolify)
-![License](https://img.shields.io/github/license/SebTardifLabs/terraform-provider-coolify)
+[![CI](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml)
+![Go Version](https://img.shields.io/github/go-mod/go-version/coolify-terraform/terraform-provider-coolify)
+![License](https://img.shields.io/github/license/coolify-terraform/terraform-provider-coolify)
 
 Define your entire [Coolify](https://coolify.io/) infrastructure as code: applications, databases, servers, backups, and environment variables, all version-controlled and reproducible with a single `terraform apply`.
 
@@ -143,7 +143,7 @@ Every scenario has `terraform test` integration tests that run against a real Co
 terraform {
   required_providers {
     coolify = {
-      source = "SebTardifLabs/coolify"
+      source = "coolify-terraform/coolify"
     }
   }
 }
@@ -273,7 +273,7 @@ TF_LOG_PROVIDER=TRACE terraform plan
 Sensitive fields in structured JSON payloads, including passwords, tokens,
 private keys, and environment variable values, are automatically redacted in
 log output. Non-JSON bodies are omitted. See the
-[Troubleshooting Guide](https://registry.terraform.io/providers/SebTardifLabs/coolify/latest/docs/guides/troubleshooting)
+[Troubleshooting Guide](https://registry.terraform.io/providers/coolify-terraform/coolify/latest/docs/guides/troubleshooting)
 for details.
 
 ## License

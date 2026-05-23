@@ -19,7 +19,7 @@ set -euo pipefail
 
 COOLIFY_ENDPOINT="http://localhost:8000"
 COOLIFY_DATA_DIR="${COOLIFY_DATA_DIR:-$HOME/coolify-data}"
-REPO="SebTardifLabs/terraform-provider-coolify"
+REPO="coolify-terraform/terraform-provider-coolify"
 UPDATE_SECRETS=false
 
 if [[ "${1:-}" == "--secrets" ]]; then

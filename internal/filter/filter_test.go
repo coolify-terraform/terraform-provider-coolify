@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 )

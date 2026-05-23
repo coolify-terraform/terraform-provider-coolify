@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"

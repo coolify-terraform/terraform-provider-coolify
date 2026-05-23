@@ -3,7 +3,7 @@
 ## Reporting a Vulnerability
 
 Please report security vulnerabilities through
-[GitHub Security Advisories](https://github.com/SebTardifLabs/terraform-provider-coolify/security/advisories/new).
+[GitHub Security Advisories](https://github.com/coolify-terraform/terraform-provider-coolify/security/advisories/new).
 
 Do not open a public issue for security vulnerabilities.
 

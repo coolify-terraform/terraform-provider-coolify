@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/spectest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/spectest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"net/http"

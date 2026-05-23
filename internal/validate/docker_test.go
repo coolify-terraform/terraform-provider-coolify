@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )

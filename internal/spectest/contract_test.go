@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 )
 
 // contractFile is the contract JSON extracted from Coolify source code.

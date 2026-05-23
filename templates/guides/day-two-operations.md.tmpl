@@ -55,7 +55,7 @@ When a new provider version is released:
 terraform {
   required_providers {
     coolify = {
-      source  = "SebTardifLabs/coolify"
+      source  = "coolify-terraform/coolify"
       version = "~> 0.5"  # update to the new major/minor
     }
   }
@@ -68,7 +68,7 @@ terraform init -upgrade
 
 ### Checking for breaking changes
 
-Read the [CHANGELOG](https://github.com/SebTardifLabs/terraform-provider-coolify/blob/main/CHANGELOG.md)
+Read the [CHANGELOG](https://github.com/coolify-terraform/terraform-provider-coolify/blob/main/CHANGELOG.md)
 before upgrading. Breaking changes are listed under the **Breaking Changes**
 section. Common breaking changes include:
 

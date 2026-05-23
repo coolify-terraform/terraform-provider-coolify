@@ -242,14 +242,14 @@ the actual error.
 cd /path/to/terraform-provider-coolify
 go build -o terraform-provider-coolify .
 
-PLUGIN_DIR="$HOME/.terraform.d/plugins/SebTardifLabs/coolify/0.0.0-dev/linux_amd64"
+PLUGIN_DIR="$HOME/.terraform.d/plugins/coolify-terraform/coolify/0.0.0-dev/linux_amd64"
 mkdir -p "$PLUGIN_DIR"
 cp terraform-provider-coolify "$PLUGIN_DIR/"
 
 cat > "$HOME/.terraformrc" << EOF
 provider_installation {
   dev_overrides {
-    "SebTardifLabs/coolify" = "$PLUGIN_DIR"
+    "coolify-terraform/coolify" = "$PLUGIN_DIR"
   }
   direct {}
 }
@@ -316,7 +316,7 @@ and you must redo Steps 3-4.
 ```bash
 # Remove provider dev setup
 rm -f terraform-provider-coolify ~/.terraformrc
-rm -rf ~/.terraform.d/plugins/SebTardifLabs
+rm -rf ~/.terraform.d/plugins/coolify-terraform
 
 # Stop Coolify (data persists)
 cd ~/coolify-data/source

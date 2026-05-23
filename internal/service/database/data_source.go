@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/validate"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"

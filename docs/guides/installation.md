@@ -22,7 +22,7 @@ Add the provider to your `required_providers` block:
 terraform {
   required_providers {
     coolify = {
-      source = "SebTardifLabs/coolify"
+      source = "coolify-terraform/coolify"
     }
   }
 }
@@ -119,7 +119,7 @@ Create a file called `main.tf`:
 terraform {
   required_providers {
     coolify = {
-      source = "SebTardifLabs/coolify"
+      source = "coolify-terraform/coolify"
     }
   }
 }
@@ -143,7 +143,7 @@ If the connection is successful, the output shows your Coolify instance version.
 ## Install from source
 
 ```bash
-git clone https://github.com/SebTardifLabs/terraform-provider-coolify.git
+git clone https://github.com/coolify-terraform/terraform-provider-coolify.git
 cd terraform-provider-coolify
 make install
 ```

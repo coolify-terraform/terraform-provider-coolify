@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/flex"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"

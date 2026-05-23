@@ -9,7 +9,7 @@ description: |-
 
 This guide helps you migrate from the
 [SierraJC community provider](https://registry.terraform.io/providers/SierraJC/coolify)
-(`SierraJC/coolify`) to this provider (`SebTardifLabs/coolify`).
+(`SierraJC/coolify`) to this provider (`coolify-terraform/coolify`).
 
 ## Why Migrate
 
@@ -42,11 +42,11 @@ provider "coolify" {
   token = var.coolify_token
 }
 
-# After (SebTardifLabs)
+# After (coolify-terraform)
 terraform {
   required_providers {
     coolify = {
-      source  = "SebTardifLabs/coolify"
+      source  = "coolify-terraform/coolify"
     }
   }
 }

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 

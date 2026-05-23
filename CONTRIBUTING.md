@@ -12,7 +12,7 @@
 ### Clone and Build
 
 ```bash
-git clone https://github.com/SebTardifLabs/terraform-provider-coolify.git
+git clone https://github.com/coolify-terraform/terraform-provider-coolify.git
 cd terraform-provider-coolify
 make build
 ```
@@ -173,7 +173,7 @@ To test the provider against a real Coolify instance without publishing:
    ```hcl
    provider_installation {
      dev_overrides {
-       "SebTardifLabs/coolify" = "/home/YOUR_USER/go/bin"
+       "coolify-terraform/coolify" = "/home/YOUR_USER/go/bin"
      }
      direct {}
    }

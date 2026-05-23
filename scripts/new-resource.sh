@@ -36,7 +36,7 @@ LOWER="$NAME"
 PKG=$(echo "$NAME" | tr -d '_')
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MODULE="github.com/SebTardifLabs/terraform-provider-coolify"
+MODULE="github.com/coolify-terraform/terraform-provider-coolify"
 
 SVC_DIR="$REPO_ROOT/internal/service/$PKG"
 CLIENT_FILE="$REPO_ROOT/internal/client/${NAME}s.go"

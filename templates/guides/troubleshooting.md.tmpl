@@ -142,7 +142,7 @@ and waits for Terraform to connect:
 Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS
 environment variable:
 
-    TF_REATTACH_PROVIDERS='{"registry.terraform.io/SebTardifLabs/coolify":{...}}'
+    TF_REATTACH_PROVIDERS='{"registry.terraform.io/coolify-terraform/coolify":{...}}'
 ```
 
 3. **In another terminal, run Terraform with the reattach variable:**
@@ -199,5 +199,5 @@ TF_LOG_PROVIDER=DEBUG terraform plan 2>debug.log
    posting it publicly.
 
 > File bug reports at
-[github.com/SebTardifLabs/terraform-provider-coolify/issues](https://github.com/SebTardifLabs/terraform-provider-coolify/issues)
+[github.com/coolify-terraform/terraform-provider-coolify/issues](https://github.com/coolify-terraform/terraform-provider-coolify/issues)
 using the **Bug Report** template.

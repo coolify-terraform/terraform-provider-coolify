@@ -20,7 +20,7 @@
 terraform {
   required_providers {
     coolify = {
-      source = "SebTardifLabs/coolify"
+      source = "coolify-terraform/coolify"
     }
   }
 }

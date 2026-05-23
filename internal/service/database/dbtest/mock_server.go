@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/SebTardifLabs/terraform-provider-coolify/internal/acctest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 )
 
 // MockState holds the mutable state of a mock database server.
