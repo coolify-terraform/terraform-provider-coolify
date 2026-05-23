@@ -128,7 +128,7 @@ if the API token lacks permissions, these fields will be empty in state.
 | `coolify_database_clickhouse` | `clickhouse_admin_password` | Empty on import |
 | `coolify_private_key` | `private_key` | Requires `root` or `read:sensitive` token |
 | `coolify_cloud_token` | `token` | Write-only, never returned by API |
-| `coolify_github_app` | `client_secret`, `webhook_secret`, `private_key_uuid` | Write-only |
+| `coolify_github_app` | `client_secret`, `webhook_secret`, `private_key_uuid` | Write-only. If `webhook_secret` was auto-generated on create, keep that generated value in your secret store or Terraform variables before import because Coolify will not return it later. |
 | `coolify_environment_variable` | `value` | May be hidden without sensitive permissions |
 
 **After importing a resource with hidden fields:**

@@ -51,7 +51,7 @@ resource "coolify_github_app" "example" {
 ### Optional
 
 - `organization_name` (String) The GitHub organization name.
-- `webhook_secret` (String, Sensitive) The GitHub App webhook secret. If omitted on create, the provider generates a random secret, sends it to Coolify, and stores it in state.
+- `webhook_secret` (String, Sensitive) The GitHub App webhook secret. If omitted on create, the provider generates a random secret, sends it to Coolify, and stores it in state. Coolify does not reliably return it after create or import, so keep the value in your Terraform configuration before the first terraform plan after import.
 
 ### Read-Only
 
@@ -68,6 +68,7 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 # NOTE: Import only restores API-readable fields. Keep client_secret,
 # webhook_secret, and private_key_uuid in your Terraform config before
 # running terraform plan, because Coolify does not return them after
-# create/import.
+# create/import. If the provider generated webhook_secret for you on
+# create, record it in your variables or secret manager before import.
 terraform import coolify_github_app.example 42
 ```

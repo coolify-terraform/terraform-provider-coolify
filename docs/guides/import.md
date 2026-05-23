@@ -128,7 +128,7 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | `coolify_environment_variable` | `value` (sensitive value is not reliably returned on import; keep it in configuration before the first `terraform plan`) |
 | `coolify_deployment` | `triggers`, `wait_for_completion` (Terraform-only behavior controls, not persisted by the Coolify API) |
 | `coolify_environment` | `description` (stored in Terraform state only; not returned by the API) |
-| `coolify_github_app` | `client_secret`, `webhook_secret`, `private_key_uuid` (`client_secret` and `private_key_uuid` are write-only, and `webhook_secret` is not reliably returned after create/import) |
+| `coolify_github_app` | `client_secret`, `webhook_secret`, `private_key_uuid` (`client_secret` and `private_key_uuid` are write-only, and `webhook_secret` is not reliably returned after create/import, including provider-generated values when omitted on create) |
 | `coolify_cloud_token` | `token` (write-only, may not be returned by the API) |
 | `coolify_private_key` | `private_key` (requires API token with `root` or `read:sensitive` permission; hidden otherwise) |
 | Database backups | `database_uuid`, `s3_storage_uuid` when `save_s3 = true` |

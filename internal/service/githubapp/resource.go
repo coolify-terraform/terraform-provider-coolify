@@ -103,7 +103,7 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Sensitive:           true,
 			},
 			"webhook_secret": schema.StringAttribute{
-				MarkdownDescription: "The GitHub App webhook secret. If omitted on create, the provider generates a random secret, sends it to Coolify, and stores it in state.",
+				MarkdownDescription: "The GitHub App webhook secret. If omitted on create, the provider generates a random secret, sends it to Coolify, and stores it in state. Coolify does not reliably return it after create or import, so keep the value in your Terraform configuration before the first terraform plan after import.",
 				Optional:            true,
 				Computed:            true,
 				Sensitive:           true,
