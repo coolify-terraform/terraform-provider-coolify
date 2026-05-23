@@ -103,8 +103,11 @@ data "coolify_services" "all" {
 					// Verify singular data source
 					resource.TestCheckResourceAttrPair("data.coolify_service.by_uuid", "uuid", "coolify_service.test", "uuid"),
 					resource.TestCheckResourceAttrPair("data.coolify_service.by_uuid", "name", "coolify_service.test", "name"),
+					resource.TestCheckResourceAttrPair("data.coolify_service.by_uuid", "status", "coolify_service.test", "status"),
 					// Verify list data source
 					resource.TestMatchResourceAttr("data.coolify_services.all", "services.#", regexp.MustCompile(`[1-9]\d*`)),
+					resource.TestCheckTypeSetElemAttrPair("data.coolify_services.all", "services.*.uuid", "coolify_service.test", "uuid"),
+					resource.TestCheckTypeSetElemAttrPair("data.coolify_services.all", "services.*.status", "coolify_service.test", "status"),
 				),
 			},
 		},
