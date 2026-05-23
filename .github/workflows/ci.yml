@@ -207,27 +207,27 @@ jobs:
       - name: Verify AGENTS.md counts
         if: ${{ !cancelled() }}
         run: make counts-check
+      - name: Normalize PATH for self-hosted tools
+        if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+        run: |
+          for dir in /opt/homebrew/bin /usr/local/bin /opt/homebrew/opt/coreutils/libexec/gnubin /usr/local/opt/coreutils/libexec/gnubin; do
+            if [ -d "$dir" ]; then
+              echo "$dir" >> "$GITHUB_PATH"
+            fi
+          done
+          echo "$(pwd)/bin" >> "$GITHUB_PATH"
       - name: Install actionlint
         if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-        run: |
-          GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
-          echo "$(pwd)/bin" >> "$GITHUB_PATH"
+        run: GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
       - name: Lint GitHub Actions workflows
         if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: make actionlint-check
       - name: Run Python script tests
         if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: |
-          PYTHON_BIN="$(command -v python3.9 || true)"
-          if [ -z "$PYTHON_BIN" ] && [ -x /opt/homebrew/bin/python3.9 ]; then
-            PYTHON_BIN=/opt/homebrew/bin/python3.9
-          fi
-          if [ -z "$PYTHON_BIN" ]; then
-            echo "::error::python3.9 is required on self-hosted runners"
-            exit 1
-          fi
-          "$PYTHON_BIN" --version
-          make python-test PYTHON="$PYTHON_BIN"
+          command -v python3.9 >/dev/null 2>&1 || { echo "::error::python3.9 is required on self-hosted runners"; exit 1; }
+          python3.9 --version
+          make python-test PYTHON=python3.9
       - name: Configure Docker for CI
         if: ${{ !cancelled() }}
         run: |
