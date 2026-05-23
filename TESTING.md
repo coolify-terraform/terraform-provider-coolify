@@ -162,8 +162,8 @@ in-package tests. The Make targets above already do that for package-scoped
 runs. These are the lower-level `go test` equivalents:
 
 ```bash
-# Run all acceptance tests (sequential packages, avoids API overload)
-TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -p 1 -run 'TestAcc' ./...
+# Run all acceptance tests (sequential packages and in-package tests, avoids API overload and TSAN/fork crashes)
+TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -p 1 -parallel=1 -run 'TestAcc' ./...
 
 # Run a specific test
 TF_ACC=1 go test -race -v -cover -count=1 -parallel=1 -timeout=30m \
