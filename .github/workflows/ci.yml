@@ -656,9 +656,8 @@ jobs:
 
           # Run per-package for live progress visibility.
           # A single "go test ./..." produces no output until all tests finish.
-          pkgs=$(go test -run TestAcc -list 'TestAcc.*' ./... 2>/dev/null \
-            | grep -B1 '^TestAcc' | grep '^ok\|^#' | sed 's/^# //' | sort -u \
-            || true)
+          pkgs=$(go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./internal/service/... \
+            | sed '/^$/d' | sort -u)
           if [ -z "$pkgs" ]; then
             pkgs=$(go list ./internal/service/...)
           fi
