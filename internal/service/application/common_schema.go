@@ -396,7 +396,7 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 			},
 		},
 		"custom_labels": schema.StringAttribute{
-			MarkdownDescription: "Custom Docker labels for the container, **base64-encoded**. Use `base64encode()` in your configuration.",
+			MarkdownDescription: "Custom Docker labels for the container. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.",
 			Optional:            true,
 		},
 		"custom_network_aliases": schema.StringAttribute{
@@ -404,7 +404,7 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 			Optional:            true,
 		},
 		"custom_nginx_configuration": schema.StringAttribute{
-			MarkdownDescription: "Custom Nginx configuration for the application, **base64-encoded**. Use `base64encode()` in your configuration.",
+			MarkdownDescription: "Custom Nginx configuration for the application. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.",
 			Optional:            true,
 		},
 		"ports_mappings": schema.StringAttribute{

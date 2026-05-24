@@ -249,6 +249,38 @@ func Float64IfChangedFromInt64(plan, state types.Int64) *float64 {
 	return Float64PtrFromInt64Framework(plan)
 }
 
+// ResolveBase64Field preserves the user's original value when it represents
+// the same content as the API's base64 value. The Coolify API stores some
+// fields as base64 (e.g., custom_labels) and returns them as base64 on GET.
+// Since the provider auto-encodes via EnsureBase64, the user writes raw
+// content while the API returns base64. This function avoids perpetual diffs
+// by comparing the encoded forms and returning the user's original value when
+// they match. If the content differs (external change), the decoded API value
+// is returned for readability.
+func ResolveBase64Field(userValue types.String, apiBase64 string) types.String {
+	if userValue.IsNull() || userValue.IsUnknown() || apiBase64 == "" {
+		return userValue
+	}
+	if EnsureBase64(userValue.ValueString()) == apiBase64 {
+		return userValue
+	}
+	decoded, err := base64.StdEncoding.DecodeString(apiBase64)
+	if err == nil && utf8.Valid(decoded) {
+		return types.StringValue(string(decoded))
+	}
+	return types.StringValue(apiBase64)
+}
+
+// EncodeBase64Ptr encodes the pointed-to string using EnsureBase64.
+// No-op if the pointer is nil.
+func EncodeBase64Ptr(s **string) {
+	if s == nil || *s == nil {
+		return
+	}
+	encoded := EnsureBase64(**s)
+	**s = encoded
+}
+
 // NormalizeUnknownString converts an unknown String to null. Used before
 // saving state so plan values that the API doesn't return are stored as
 // null instead of unknown, which would cause "inconsistent result" errors.

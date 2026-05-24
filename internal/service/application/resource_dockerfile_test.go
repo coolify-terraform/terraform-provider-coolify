@@ -14,6 +14,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/spectest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // ---------------------------------------------------------------------------
@@ -111,6 +112,95 @@ func TestDockerfileApplicationResource_Create(t *testing.T) {
 				`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestDockerfileApplicationResource_CreateRawDockerfile
+// Verifies that raw (non-base64) Dockerfile content is auto-encoded before
+// sending to the API. The user should not need base64encode() in HCL.
+// ---------------------------------------------------------------------------
+
+func TestDockerfileApplicationResource_CreateRawDockerfile(t *testing.T) {
+	t.Parallel()
+	rawDockerfile := "FROM nginx:alpine\nEXPOSE 80\nCMD [\"nginx\", \"-g\", \"daemon off;\"]\n"
+	app := client.Application{
+		UUID:               "dockerfile-raw-uuid",
+		Name:               "raw-dockerfile-app",
+		DockerfileLocation: "/Dockerfile",
+		PortsExposes:       "80",
+		ProjectUUID:        "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:         "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName:    "production",
+	}
+
+	var receivedDockerfile string
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerfile", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if df, ok := body["dockerfile"].(string); ok {
+			receivedDockerfile = df
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(spectest.WithSpecAudit(t, "coolify-v4",
+		acctest.WithVersionEndpoint(mux)))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_dockerfile", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerfileResourceConfig(srv.URL, fmt.Sprintf(`
+					name                = "raw-dockerfile-app"
+					project_uuid        = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid         = "bbbb0001-0001-4000-8000-000000000001"
+					dockerfile_location = %q
+					ports_exposes       = "80"
+				`, rawDockerfile)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "uuid", "dockerfile-raw-uuid"),
+					// State preserves user's raw content, not base64.
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "dockerfile_location", rawDockerfile),
+					func(s *terraform.State) error {
+						// Verify the API received base64-encoded content.
+						if receivedDockerfile == "" {
+							return fmt.Errorf("mock API did not receive dockerfile field")
+						}
+						if receivedDockerfile == rawDockerfile {
+							return fmt.Errorf("expected base64-encoded content sent to API, got raw")
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})

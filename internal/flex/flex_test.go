@@ -850,6 +850,71 @@ func TestEnsureBase64(t *testing.T) {
 	})
 }
 
+func TestResolveBase64Field(t *testing.T) {
+	t.Parallel()
+	t.Run("user raw preserved when content matches API base64", func(t *testing.T) {
+		raw := "traefik.enable=true\ntraefik.port=80"
+		apiBase64 := base64Encode(raw)
+		got := flex.ResolveBase64Field(types.StringValue(raw), apiBase64)
+		if got.ValueString() != raw {
+			t.Fatalf("expected user's raw value %q, got %q", raw, got.ValueString())
+		}
+	})
+	t.Run("user pre-encoded preserved when matches API", func(t *testing.T) {
+		raw := "traefik.enable=true"
+		encoded := base64Encode(raw)
+		got := flex.ResolveBase64Field(types.StringValue(encoded), encoded)
+		if got.ValueString() != encoded {
+			t.Fatalf("expected user's encoded value %q, got %q", encoded, got.ValueString())
+		}
+	})
+	t.Run("external change returns decoded API value", func(t *testing.T) {
+		userRaw := "traefik.enable=true"
+		externalRaw := "traefik.enable=false"
+		apiBase64 := base64Encode(externalRaw)
+		got := flex.ResolveBase64Field(types.StringValue(userRaw), apiBase64)
+		if got.ValueString() != externalRaw {
+			t.Fatalf("expected decoded external value %q, got %q", externalRaw, got.ValueString())
+		}
+	})
+	t.Run("null user value preserved", func(t *testing.T) {
+		got := flex.ResolveBase64Field(types.StringNull(), base64Encode("anything"))
+		if !got.IsNull() {
+			t.Fatal("expected null to be preserved")
+		}
+	})
+	t.Run("empty API value preserves user value", func(t *testing.T) {
+		got := flex.ResolveBase64Field(types.StringValue("labels"), "")
+		if got.ValueString() != "labels" {
+			t.Fatalf("expected user value preserved, got %q", got.ValueString())
+		}
+	})
+}
+
+func TestEncodeBase64Ptr(t *testing.T) {
+	t.Parallel()
+	t.Run("encodes raw string", func(t *testing.T) {
+		original := "server { listen 80; }"
+		s := new(string)
+		*s = original
+		flex.EncodeBase64Ptr(&s)
+		decoded, err := base64Decode(*s)
+		if err != nil {
+			t.Fatalf("result is not valid base64: %v", err)
+		}
+		if decoded != original {
+			t.Fatalf("decoded = %q, want %q", decoded, original)
+		}
+	})
+	t.Run("nil pointer is no-op", func(t *testing.T) {
+		var s *string
+		flex.EncodeBase64Ptr(&s)
+		if s != nil {
+			t.Fatal("expected nil to remain nil")
+		}
+	})
+}
+
 func base64Encode(s string) string {
 	return encoding_base64.StdEncoding.EncodeToString([]byte(s))
 }

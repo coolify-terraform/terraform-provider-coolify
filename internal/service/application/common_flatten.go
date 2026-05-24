@@ -119,8 +119,14 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	// NOT NULL fields with DB defaults — API always returns a value.
 	flex.SetStringIfConfigured(f.BaseDirectory, app.BaseDirectory)
 	flex.SetStringIfConfigured(f.GitCommitSha, app.GitCommitSha)
-	// Sensitive field hidden by API without read:sensitive permission.
-	flex.SetStringIfConfigured(f.CustomLabels, app.CustomLabels)
+	// custom_labels: the API requires base64 input, stores base64, and returns
+	// base64 on GET (with read:sensitive permission). Since the provider auto-
+	// encodes via EnsureBase64, users write raw content. ResolveBase64Field
+	// preserves the user's raw value when it matches the API's base64, avoiding
+	// perpetual diffs. Also handles pre-encoded input for backward compatibility.
+	if f.CustomLabels != nil {
+		*f.CustomLabels = flex.ResolveBase64Field(*f.CustomLabels, app.CustomLabels)
+	}
 	// Nullable fields — use SetStringOrClear so drift is detected when
 	// someone clears the field in the Coolify UI.
 	flex.SetStringOrClear(f.PublishDirectory, app.PublishDirectory)
@@ -291,8 +297,10 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	// Container/Network
 	input.CustomDockerRunOptions = strDiff(*plan.CustomDockerRunOptions, *state.CustomDockerRunOptions)
 	input.CustomLabels = strDiff(*plan.CustomLabels, *state.CustomLabels)
+	flex.EncodeBase64Ptr(&input.CustomLabels)
 	input.CustomNetworkAliases = strDiff(*plan.CustomNetworkAliases, *state.CustomNetworkAliases)
 	input.CustomNginxConfiguration = strDiff(*plan.CustomNginxConfiguration, *state.CustomNginxConfiguration)
+	flex.EncodeBase64Ptr(&input.CustomNginxConfiguration)
 	input.PortsMappings = strDiff(*plan.PortsMappings, *state.PortsMappings)
 	// Redirect & static
 	input.Redirect = strDiff(*plan.Redirect, *state.Redirect)
@@ -462,8 +470,10 @@ func buildPostCreatePatch(f commonAppFields) client.UpdateApplicationInput {
 	// Container/Network
 	flex.SetStrPtr(&input.CustomDockerRunOptions, safeStr(f.CustomDockerRunOptions))
 	flex.SetStrPtr(&input.CustomLabels, safeStr(f.CustomLabels))
+	flex.EncodeBase64Ptr(&input.CustomLabels)
 	flex.SetStrPtr(&input.CustomNetworkAliases, safeStr(f.CustomNetworkAliases))
 	flex.SetStrPtr(&input.CustomNginxConfiguration, safeStr(f.CustomNginxConfiguration))
+	flex.EncodeBase64Ptr(&input.CustomNginxConfiguration)
 	flex.SetStrPtr(&input.PortsMappings, safeStr(f.PortsMappings))
 	// Redirect & static
 	flex.SetStrPtr(&input.Redirect, safeStr(f.Redirect))

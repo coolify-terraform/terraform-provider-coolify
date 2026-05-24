@@ -1,6 +1,7 @@
 package application
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -729,4 +730,205 @@ func TestFlattenExtendedDefaults_BoolWithAPIValue(t *testing.T) {
 	if f.IsStatic.ValueBool() != true {
 		t.Errorf("IsStatic = %v, want true from API", f.IsStatic.ValueBool())
 	}
+}
+
+// ---------------------------------------------------------------------------
+// custom_labels auto-encoding: flatten preserves user's raw value
+// ---------------------------------------------------------------------------
+
+func TestFlattenExtendedFields_CustomLabelsRawPreserved(t *testing.T) {
+	t.Parallel()
+	raw := "traefik.enable=true\ntraefik.port=80"
+	apiBase64 := base64.StdEncoding.EncodeToString([]byte(raw))
+
+	labels := types.StringValue(raw)
+	f, _ := newDefaultFields()
+	f.CustomLabels = &labels
+
+	app := &client.Application{CustomLabels: apiBase64}
+	flattenExtendedFields(app, f)
+
+	if f.CustomLabels.ValueString() != raw {
+		t.Errorf("CustomLabels = %q, want user's raw value %q", f.CustomLabels.ValueString(), raw)
+	}
+}
+
+func TestFlattenExtendedFields_CustomLabelsExternalChange(t *testing.T) {
+	t.Parallel()
+	userRaw := "traefik.enable=true"
+	externalRaw := "traefik.enable=false"
+	apiBase64 := base64.StdEncoding.EncodeToString([]byte(externalRaw))
+
+	labels := types.StringValue(userRaw)
+	f, _ := newDefaultFields()
+	f.CustomLabels = &labels
+
+	app := &client.Application{CustomLabels: apiBase64}
+	flattenExtendedFields(app, f)
+
+	if f.CustomLabels.ValueString() != externalRaw {
+		t.Errorf("CustomLabels = %q, want decoded external value %q", f.CustomLabels.ValueString(), externalRaw)
+	}
+}
+
+func TestFlattenExtendedFields_CustomLabelsEmptyAPIPreservesState(t *testing.T) {
+	t.Parallel()
+	labels := types.StringValue("my-labels")
+	f, _ := newDefaultFields()
+	f.CustomLabels = &labels
+
+	app := &client.Application{CustomLabels: ""}
+	flattenExtendedFields(app, f)
+
+	if f.CustomLabels.ValueString() != "my-labels" {
+		t.Errorf("CustomLabels = %q, want preserved state value %q", f.CustomLabels.ValueString(), "my-labels")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// custom_labels + custom_nginx_configuration: update input encoding
+// ---------------------------------------------------------------------------
+
+func TestBuildUpdateInput_EncodesCustomLabels(t *testing.T) {
+	t.Parallel()
+	raw := "traefik.enable=true"
+	planLabels := types.StringValue(raw)
+	stateLabels := types.StringValue("old-labels")
+	plan := commonAppFields{CustomLabels: &planLabels}
+	state := commonAppFields{CustomLabels: &stateLabels}
+	fillNilFields(&plan)
+	fillNilFields(&state)
+
+	input := buildUpdateInput(plan, state)
+
+	if input.CustomLabels == nil {
+		t.Fatal("expected CustomLabels to be set in update input")
+	}
+	// The value should be base64-encoded.
+	decoded, err := base64.StdEncoding.DecodeString(*input.CustomLabels)
+	if err != nil {
+		t.Fatalf("CustomLabels is not valid base64: %v", err)
+	}
+	if string(decoded) != raw {
+		t.Errorf("decoded CustomLabels = %q, want %q", string(decoded), raw)
+	}
+}
+
+func TestBuildUpdateInput_EncodesCustomNginxConfiguration(t *testing.T) {
+	t.Parallel()
+	raw := "server { listen 80; }"
+	planNginx := types.StringValue(raw)
+	stateNginx := types.StringValue("old-config")
+	plan := commonAppFields{CustomNginxConfiguration: &planNginx}
+	state := commonAppFields{CustomNginxConfiguration: &stateNginx}
+	fillNilFields(&plan)
+	fillNilFields(&state)
+
+	input := buildUpdateInput(plan, state)
+
+	if input.CustomNginxConfiguration == nil {
+		t.Fatal("expected CustomNginxConfiguration to be set in update input")
+	}
+	decoded, err := base64.StdEncoding.DecodeString(*input.CustomNginxConfiguration)
+	if err != nil {
+		t.Fatalf("CustomNginxConfiguration is not valid base64: %v", err)
+	}
+	if string(decoded) != raw {
+		t.Errorf("decoded CustomNginxConfiguration = %q, want %q", string(decoded), raw)
+	}
+}
+
+// fillNilFields initializes nil pointer fields in commonAppFields to prevent
+// panics in buildUpdateInput. Uses the same zero values for plan and state so
+// they compare equal (no diff generated for unrelated fields).
+func fillNilFields(f *commonAppFields) {
+	zero := types.StringNull()
+	zeroBool := types.BoolNull()
+	zeroInt := types.Int64Null()
+	setStr := func(p **types.String) {
+		if *p == nil {
+			*p = &zero
+		}
+	}
+	setBool := func(p **types.Bool) {
+		if *p == nil {
+			*p = &zeroBool
+		}
+	}
+	setInt := func(p **types.Int64) {
+		if *p == nil {
+			*p = &zeroInt
+		}
+	}
+	setStr(&f.UUID)
+	setStr(&f.Name)
+	setStr(&f.Description)
+	setStr(&f.PortsExposes)
+	setStr(&f.Domains)
+	setStr(&f.InstallCommand)
+	setStr(&f.BuildCommand)
+	setStr(&f.StartCommand)
+	setStr(&f.Status)
+	setStr(&f.ProjectUUID)
+	setStr(&f.ServerUUID)
+	setStr(&f.EnvironmentName)
+	setStr(&f.LimitsMemory)
+	setStr(&f.LimitsMemorySwap)
+	setInt(&f.LimitsMemorySwappiness)
+	setStr(&f.LimitsMemoryReservation)
+	setStr(&f.LimitsCPUs)
+	setStr(&f.LimitsCPUSet)
+	setInt(&f.LimitsCPUShares)
+	setBool(&f.HealthCheckEnabled)
+	setStr(&f.HealthCheckPath)
+	setStr(&f.HealthCheckPort)
+	setInt(&f.HealthCheckInterval)
+	setInt(&f.HealthCheckTimeout)
+	setInt(&f.HealthCheckRetries)
+	setInt(&f.HealthCheckStartPeriod)
+	setStr(&f.HealthCheckCommand)
+	setStr(&f.HealthCheckHost)
+	setStr(&f.HealthCheckMethod)
+	setStr(&f.HealthCheckResponseText)
+	setInt(&f.HealthCheckReturnCode)
+	setStr(&f.HealthCheckScheme)
+	setStr(&f.HealthCheckType)
+	setBool(&f.IsAutoDeployEnabled)
+	setStr(&f.BaseDirectory)
+	setStr(&f.Dockerfile)
+	setStr(&f.DockerRegistryImageTag)
+	setStr(&f.DockerComposeDomains)
+	setStr(&f.GitCommitSha)
+	setStr(&f.PublishDirectory)
+	setStr(&f.WatchPaths)
+	setStr(&f.PreviewURLTemplate)
+	setStr(&f.CustomDockerRunOptions)
+	setStr(&f.CustomLabels)
+	setStr(&f.CustomNetworkAliases)
+	setStr(&f.CustomNginxConfiguration)
+	setStr(&f.PortsMappings)
+	setBool(&f.ConnectToDockerNetwork)
+	setStr(&f.Redirect)
+	setStr(&f.StaticImage)
+	setBool(&f.IsStatic)
+	setBool(&f.IsSPA)
+	setBool(&f.IsForceHTTPSEnabled)
+	setBool(&f.IsHTTPBasicAuthEnabled)
+	setStr(&f.HTTPBasicAuthUsername)
+	setStr(&f.HTTPBasicAuthPassword)
+	setStr(&f.PreDeploymentCommand)
+	setStr(&f.PreDeploymentCommandContainer)
+	setStr(&f.PostDeploymentCommand)
+	setStr(&f.PostDeploymentCommandContainer)
+	setStr(&f.ManualWebhookSecretBitbucket)
+	setStr(&f.ManualWebhookSecretGitea)
+	setStr(&f.ManualWebhookSecretGitHub)
+	setStr(&f.ManualWebhookSecretGitLab)
+	setBool(&f.ForceDomainOverride)
+	setBool(&f.IsContainerLabelEscapeEnabled)
+	setBool(&f.IsPreserveRepositoryEnabled)
+	setBool(&f.UseBuildServer)
+	setBool(&f.InstantDeploy)
+	setBool(&f.RedeployOnUpdate)
+	setStr(&f.DockerfileLocation)
 }

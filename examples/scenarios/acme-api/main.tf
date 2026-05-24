@@ -52,11 +52,11 @@ resource "coolify_database_redis" "queue" {
 # --- Applications ---
 
 resource "coolify_application_dockerfile" "api" {
-  name             = "acme-orders-api"
-  project_uuid     = coolify_project.acme.uuid
-  server_uuid      = var.server_uuid
-  environment_name = "production"
-  dockerfile_location = base64encode(<<-DOCKERFILE
+  name                = "acme-orders-api"
+  project_uuid        = coolify_project.acme.uuid
+  server_uuid         = var.server_uuid
+  environment_name    = "production"
+  dockerfile_location = <<-DOCKERFILE
     FROM node:20-alpine
     WORKDIR /app
     COPY . .
@@ -64,8 +64,7 @@ resource "coolify_application_dockerfile" "api" {
     EXPOSE 3000
     CMD ["node", "server.js"]
   DOCKERFILE
-  )
-  ports_exposes = "3000"
+  ports_exposes       = "3000"
 }
 
 resource "coolify_application_docker_image" "worker" {

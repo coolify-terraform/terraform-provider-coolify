@@ -13,13 +13,14 @@ Manages a Coolify application deployed from a Dockerfile.
 ## Example Usage
 
 ```terraform
-# dockerfile_location expects base64-encoded Dockerfile content,
-# not a file path (despite the field name).
+# dockerfile_location expects Dockerfile content (not a file path, despite
+# the field name). The provider accepts plain text or pre-encoded base64;
+# encoding is handled automatically.
 resource "coolify_application_dockerfile" "app" {
-  name         = "my-dockerfile-app"
-  project_uuid = coolify_project.example.uuid
-  server_uuid  = coolify_server.example.uuid
-  dockerfile_location = base64encode(<<-DOCKERFILE
+  name                = "my-dockerfile-app"
+  project_uuid        = coolify_project.example.uuid
+  server_uuid         = coolify_server.example.uuid
+  dockerfile_location = <<-DOCKERFILE
     FROM node:20-alpine
     WORKDIR /app
     COPY . .
@@ -27,9 +28,8 @@ resource "coolify_application_dockerfile" "app" {
     EXPOSE 3000
     CMD ["node", "server.js"]
   DOCKERFILE
-  )
-  ports_exposes = "3000"
-  domains       = "https://app.example.com"
+  ports_exposes       = "3000"
+  domains             = "https://app.example.com"
 
   # Optional fields (uncomment as needed):
   # dockerfile_target_build = "production"  # Target stage for multi-stage Docker builds
@@ -41,7 +41,7 @@ resource "coolify_application_dockerfile" "app" {
 
 ### Required
 
-- `dockerfile_location` (String) The Dockerfile content, **base64-encoded**. Use `base64encode(<<-DOCKERFILE ... DOCKERFILE)` in your configuration. Despite the field name, this is not a file path. Changing this forces a new resource because the Coolify API only accepts Dockerfile content at creation time.
+- `dockerfile_location` (String) The Dockerfile content. The provider accepts plain text or pre-encoded base64; encoding is handled automatically. Despite the field name, this is not a file path. Changing this forces a new resource because the Coolify API only accepts Dockerfile content at creation time.
 - `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g., `80` or `80,443`).
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing this forces a new resource.
@@ -52,9 +52,9 @@ resource "coolify_application_dockerfile" "app" {
 - `build_command` (String) The command to run during the build phase.
 - `connect_to_docker_network` (Boolean) Whether to connect the application to the Docker network.
 - `custom_docker_run_options` (String) Custom Docker run options passed to the container.
-- `custom_labels` (String) Custom Docker labels for the container, **base64-encoded**. Use `base64encode()` in your configuration.
+- `custom_labels` (String) Custom Docker labels for the container. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.
 - `custom_network_aliases` (String) Custom network aliases for the container.
-- `custom_nginx_configuration` (String) Custom Nginx configuration for the application, **base64-encoded**. Use `base64encode()` in your configuration.
+- `custom_nginx_configuration` (String) Custom Nginx configuration for the application. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.
 - `description` (String) A description of the application.
 - `docker_compose_domains` (String) Domain mappings for Docker Compose services.
 - `docker_registry_image_tag` (String) The Docker registry image tag.

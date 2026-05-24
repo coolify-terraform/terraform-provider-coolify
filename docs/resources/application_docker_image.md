@@ -41,9 +41,9 @@ resource "coolify_application_docker_image" "nginx" {
 - `base_directory` (String) The base directory for the application source code.
 - `connect_to_docker_network` (Boolean) Whether to connect the application to the Docker network.
 - `custom_docker_run_options` (String) Custom Docker run options passed to the container.
-- `custom_labels` (String) Custom Docker labels for the container, **base64-encoded**. Use `base64encode()` in your configuration.
+- `custom_labels` (String) Custom Docker labels for the container. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.
 - `custom_network_aliases` (String) Custom network aliases for the container.
-- `custom_nginx_configuration` (String) Custom Nginx configuration for the application, **base64-encoded**. Use `base64encode()` in your configuration.
+- `custom_nginx_configuration` (String) Custom Nginx configuration for the application. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.
 - `description` (String) A description of the application.
 - `docker_compose_domains` (String) Domain mappings for Docker Compose services.
 - `docker_registry_image_tag` (String) The Docker registry image tag.
