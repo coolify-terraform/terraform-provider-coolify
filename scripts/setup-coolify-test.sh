@@ -120,6 +120,14 @@ fi
 
 USER_ID=$(psql_exec "SELECT id FROM users LIMIT 1;")
 TEAM_ID=$(psql_exec "SELECT id FROM teams LIMIT 1;")
+if [[ -z "$USER_ID" || -z "$TEAM_ID" ]]; then
+  echo "ERROR: Could not find user or team in database (user=$USER_ID, team=$TEAM_ID)" >&2
+  echo "DEBUG: users table:" >&2
+  docker exec coolify-db psql -U coolify -d coolify -c "SELECT id, name, email FROM users;" 2>/dev/null >&2
+  echo "DEBUG: teams table:" >&2
+  docker exec coolify-db psql -U coolify -d coolify -c "SELECT id, name FROM teams;" 2>/dev/null >&2
+  exit 1
+fi
 log "User ID=$USER_ID, Team ID=$TEAM_ID"
 
 # --- Step 2: Assign team to server and private key ---
@@ -165,6 +173,10 @@ echo 'Key fixed: ' . \\\$key->uuid;
 \"" 2>/dev/null | tail -1
 echo ""
 
+# Allow Coolify to settle after database changes
+log "Waiting 10s for Coolify to pick up settings changes"
+sleep 10
+
 # --- Step 6: Verify API and validate server ---
 
 SERVER_UUID=$(psql_exec "SELECT uuid FROM servers LIMIT 1;")
@@ -172,16 +184,34 @@ SERVER_UUID=$(psql_exec "SELECT uuid FROM servers LIMIT 1;")
 log "Server UUID: $SERVER_UUID"
 log "Private Key UUID: $PRIVATE_KEY_UUID"
 
-log "Verifying API health"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-  -H "Authorization: Bearer $API_TOKEN" \
-  "$COOLIFY_ENDPOINT/api/v1/version" 2>/dev/null || echo "000")
+log "Verifying API health (with retries)"
+API_OK=false
+for attempt in $(seq 1 12); do
+  RESP_FILE=$(mktemp)
+  HTTP_CODE=$(curl -s -o "$RESP_FILE" -w "%{http_code}" \
+    -H "Authorization: Bearer $API_TOKEN" \
+    "$COOLIFY_ENDPOINT/api/v1/version" 2>/dev/null || echo "000")
 
-if [[ "$HTTP_CODE" == "200" ]]; then
-  VERSION=$(curl -s -H "Authorization: Bearer $API_TOKEN" "$COOLIFY_ENDPOINT/api/v1/version" 2>/dev/null)
-  log "API healthy! Coolify version: $VERSION"
-else
-  echo "ERROR: API returned HTTP $HTTP_CODE" >&2
+  if [[ "$HTTP_CODE" == "200" ]]; then
+    VERSION=$(cat "$RESP_FILE")
+    log "API healthy! Coolify version: $VERSION (attempt $attempt)"
+    API_OK=true
+    rm -f "$RESP_FILE"
+    break
+  fi
+
+  log "API returned HTTP $HTTP_CODE (attempt $attempt/12), retrying in 5s..."
+  if [[ "$HTTP_CODE" == "500" ]]; then
+    echo "  Response body: $(cat "$RESP_FILE")" >&2
+  fi
+  rm -f "$RESP_FILE"
+  sleep 5
+done
+
+if [[ "$API_OK" != "true" ]]; then
+  echo "ERROR: API not healthy after 12 attempts" >&2
+  echo "DEBUG: Coolify container logs (last 30 lines):" >&2
+  docker logs coolify --tail 30 2>&1 >&2 || true
   exit 1
 fi
 
