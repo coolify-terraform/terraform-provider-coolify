@@ -1,5 +1,9 @@
 # Terraform Provider for Coolify
 
+<p align="center">
+  <img src="assets/hero.jpg" alt="Terraform Provider for Coolify" width="100%">
+</p>
+
 [![CI](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml)
 ![Go Version](https://img.shields.io/github/go-mod/go-version/coolify-terraform/terraform-provider-coolify)
 ![License](https://img.shields.io/github/license/coolify-terraform/terraform-provider-coolify)
@@ -24,22 +28,13 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 | Scenario examples | 10 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
-## Visual Overview
+## Demo
 
-```text
-Git repo with .tf files
-        |
-terraform plan / apply
-        v
-terraform-provider-coolify
-        |
-        +--> Projects / Environments
-        +--> Apps / Services / Previews
-        +--> Databases / Backups / Storage
-        +--> Servers / SSH keys / Cloud tokens
-```
+<p align="center">
+  <img src="assets/demo.gif" alt="terraform apply deploying an app via Coolify" width="100%">
+</p>
 
-Use the Coolify UI for visibility. Use Terraform for repeatable provisioning, reviewable changes, and disaster recovery.
+A real `terraform apply` creating a project and deploying an nginx container to a Coolify server. Use the Coolify UI for visibility. Use Terraform for repeatable provisioning, reviewable changes, and disaster recovery.
 
 ## Quick Example
 
