@@ -7,31 +7,47 @@ import (
 	"net/url"
 )
 
+// ServiceApplication represents a container within a service (from the
+// applications relation loaded by GET /services/{uuid}).
+type ServiceApplication struct {
+	Name string `json:"name"`
+	FQDN string `json:"fqdn,omitempty"`
+}
+
 type Service struct {
-	UUID                          string `json:"uuid"`
-	Name                          string `json:"name"`
-	Description                   string `json:"description,omitempty"`
-	Type                          string `json:"type"`
-	ServerUUID                    string `json:"server_uuid,omitempty"`
-	ProjectUUID                   string `json:"project_uuid,omitempty"`
-	EnvironmentName               string `json:"environment_name,omitempty"`
-	Status                        string `json:"status,omitempty"`
-	DockerCompose                 string `json:"docker_compose,omitempty"`
-	DockerComposeRaw              string `json:"docker_compose_raw,omitempty"`
-	ConnectToNetwork              *bool  `json:"connect_to_docker_network,omitempty"`
-	IsContainerLabelEscapeEnabled *bool  `json:"is_container_label_escape_enabled,omitempty"`
-	ConfigHash                    string `json:"config_hash,omitempty"`
+	UUID                          string               `json:"uuid"`
+	Name                          string               `json:"name"`
+	Description                   string               `json:"description,omitempty"`
+	Type                          string               `json:"type"`
+	ServerUUID                    string               `json:"server_uuid,omitempty"`
+	ProjectUUID                   string               `json:"project_uuid,omitempty"`
+	EnvironmentName               string               `json:"environment_name,omitempty"`
+	Status                        string               `json:"status,omitempty"`
+	DockerCompose                 string               `json:"docker_compose,omitempty"`
+	DockerComposeRaw              string               `json:"docker_compose_raw,omitempty"`
+	ConnectToNetwork              *bool                `json:"connect_to_docker_network,omitempty"`
+	IsContainerLabelEscapeEnabled *bool                `json:"is_container_label_escape_enabled,omitempty"`
+	ConfigHash                    string               `json:"config_hash,omitempty"`
+	Applications                  []ServiceApplication `json:"applications,omitempty"`
+}
+
+// ServiceURL maps a compose service name to one or more URLs.
+type ServiceURL struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
 }
 type CreateServiceInput struct {
-	Type             string  `json:"type,omitempty"`
-	Name             string  `json:"name,omitempty"`
-	Description      string  `json:"description,omitempty"`
-	ServerUUID       string  `json:"server_uuid"`
-	ProjectUUID      string  `json:"project_uuid"`
-	EnvironmentName  string  `json:"environment_name"`
-	EnvironmentUUID  string  `json:"environment_uuid,omitempty"`
-	InstantDeploy    *bool   `json:"instant_deploy,omitempty"`
-	DockerComposeRaw *string `json:"docker_compose_raw,omitempty"`
+	Type                string       `json:"type,omitempty"`
+	Name                string       `json:"name,omitempty"`
+	Description         string       `json:"description,omitempty"`
+	ServerUUID          string       `json:"server_uuid"`
+	ProjectUUID         string       `json:"project_uuid"`
+	EnvironmentName     string       `json:"environment_name"`
+	EnvironmentUUID     string       `json:"environment_uuid,omitempty"`
+	InstantDeploy       *bool        `json:"instant_deploy,omitempty"`
+	DockerComposeRaw    *string      `json:"docker_compose_raw,omitempty"`
+	URLs                []ServiceURL `json:"urls,omitempty"`
+	ForceDomainOverride *bool        `json:"force_domain_override,omitempty"`
 }
 
 func (c *Client) ListServices(ctx context.Context) ([]Service, error) {
@@ -60,14 +76,14 @@ func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*
 }
 
 type UpdateServiceInput struct {
-	Name                          *string `json:"name,omitempty"`
-	Description                   *string `json:"description,omitempty"`
-	DockerComposeRaw              *string `json:"docker_compose_raw,omitempty"`
-	ConnectToNetwork              *bool   `json:"connect_to_docker_network,omitempty"`
-	IsContainerLabelEscapeEnabled *bool   `json:"is_container_label_escape_enabled,omitempty"`
-	InstantDeploy                 *bool   `json:"instant_deploy,omitempty"`
-	URLs                          *string `json:"urls,omitempty"`
-	ForceDomainOverride           *bool   `json:"force_domain_override,omitempty"`
+	Name                          *string      `json:"name,omitempty"`
+	Description                   *string      `json:"description,omitempty"`
+	DockerComposeRaw              *string      `json:"docker_compose_raw,omitempty"`
+	ConnectToNetwork              *bool        `json:"connect_to_docker_network,omitempty"`
+	IsContainerLabelEscapeEnabled *bool        `json:"is_container_label_escape_enabled,omitempty"`
+	InstantDeploy                 *bool        `json:"instant_deploy,omitempty"`
+	URLs                          []ServiceURL `json:"urls,omitempty"`
+	ForceDomainOverride           *bool        `json:"force_domain_override,omitempty"`
 }
 
 func (c *Client) UpdateService(ctx context.Context, uuid string, input UpdateServiceInput) (*Service, error) {

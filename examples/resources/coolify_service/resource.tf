@@ -21,4 +21,10 @@ resource "coolify_service" "custom" {
   server_uuid  = coolify_server.example.uuid
 
   docker_compose_raw = file("docker-compose.yml")
+
+  # Assign domains to service containers
+  urls = [{
+    name = "web"
+    url  = "https://app.example.com"
+  }]
 }
