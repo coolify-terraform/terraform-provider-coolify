@@ -4366,6 +4366,34 @@ func TestClient_DisableAPI(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestClient_EnableMCP(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/mcp/enable", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.EnableMCP(context.Background())
+	require.NoError(t, err)
+}
+
+func TestClient_DisableMCP(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/mcp/disable", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DisableMCP(context.Background())
+	require.NoError(t, err)
+}
+
 // --- Resources ---
 
 func TestClient_ListResources(t *testing.T) {
