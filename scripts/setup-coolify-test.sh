@@ -147,27 +147,33 @@ docker exec coolify php artisan tinker --execute='
 ' 2>/dev/null | tail -1
 docker exec coolify php artisan config:clear 2>/dev/null || true
 
-# --- Step 4: Create API token via Sanctum ---
+# --- Step 4: Create API token ---
 
-log "Creating API token via Sanctum"
-API_TOKEN=$(docker exec coolify php artisan tinker --execute='
+log "Creating API token"
+
+# Use artisan tinker to create token through Sanctum (proper hashing).
+# Dump full output for debugging, then extract the last line as the token.
+TINKER_OUTPUT=$(docker exec coolify php artisan tinker --execute='
   $user = \App\Models\User::first();
+  if (!$user) { echo "ERROR: no user"; exit(1); }
   $user->tokens()->where("name", "acc-tests")->delete();
-  $token = $user->createToken("acc-tests", ["*"], $user->currentTeam());
+  $token = $user->createToken("acc-tests", ["*"]);
+  $pat = $token->accessToken;
+  $pat->team_id = $user->currentTeam()->id ?? 0;
+  $pat->save();
   echo $token->plainTextToken;
-' 2>/dev/null | tail -1)
+' 2>&1)
 
-if [[ -z "$API_TOKEN" || "$API_TOKEN" == *"Error"* || "$API_TOKEN" == *"error"* ]]; then
-  echo "ERROR: Failed to create API token via Sanctum" >&2
-  echo "DEBUG: artisan output:" >&2
-  docker exec coolify php artisan tinker --execute='
-    $user = \App\Models\User::first();
-    echo "User: " . ($user ? $user->id . " " . $user->email : "null");
-    echo "\nTeam: " . ($user && $user->currentTeam() ? $user->currentTeam()->id : "null");
-  ' 2>&1 >&2
+log "Artisan tinker raw output:"
+echo "$TINKER_OUTPUT" | while IFS= read -r line; do echo "  $line"; done
+
+API_TOKEN=$(echo "$TINKER_OUTPUT" | grep -v '^\s*$' | tail -1)
+
+if [[ -z "$API_TOKEN" || ${#API_TOKEN} -lt 5 || "$API_TOKEN" == *"rror"* ]]; then
+  echo "ERROR: Failed to create API token. Last line: '$API_TOKEN'" >&2
   exit 1
 fi
-log "API token created (${API_TOKEN:0:6}...)"
+log "API token: ${API_TOKEN:0:8}..."
 
 # --- Step 5: Fix private key encryption ---
 
