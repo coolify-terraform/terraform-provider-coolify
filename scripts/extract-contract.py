@@ -489,6 +489,12 @@ def extract_routes(routes_file: Path) -> list[dict]:
 
     Parses Laravel Route:: calls and returns a sorted list of
     {method, path, controller, action, middleware} dicts.
+
+    Note: This parser assumes all routes specify their full relative path
+    inline (e.g., '/applications/{uuid}/envs'). Coolify's api.php uses a
+    single Route::group with prefix 'v1' for middleware, but each route
+    inside defines its complete path. If Coolify adds nested Route::prefix()
+    groups, this parser would need to track prefix scope.
     """
     if not routes_file.exists():
         return []
