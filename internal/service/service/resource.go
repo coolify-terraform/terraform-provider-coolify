@@ -34,21 +34,28 @@ type serviceResource struct {
 }
 
 type serviceResourceModel struct {
-	Timeouts                      timeouts.Value `tfsdk:"timeouts"`
-	UUID                          types.String   `tfsdk:"uuid"`
-	Name                          types.String   `tfsdk:"name"`
-	Description                   types.String   `tfsdk:"description"`
-	ProjectUUID                   types.String   `tfsdk:"project_uuid"`
-	ServerUUID                    types.String   `tfsdk:"server_uuid"`
-	EnvironmentName               types.String   `tfsdk:"environment_name"`
-	Type                          types.String   `tfsdk:"type"`
-	Status                        types.String   `tfsdk:"status"`
-	DockerCompose                 types.String   `tfsdk:"docker_compose"`
-	DockerComposeRaw              types.String   `tfsdk:"docker_compose_raw"`
-	ConnectToNetwork              types.Bool     `tfsdk:"connect_to_docker_network"`
-	IsContainerLabelEscapeEnabled types.Bool     `tfsdk:"is_container_label_escape_enabled"`
-	ConfigHash                    types.String   `tfsdk:"config_hash"`
-	InstantDeploy                 types.Bool     `tfsdk:"instant_deploy"`
+	Timeouts                      timeouts.Value    `tfsdk:"timeouts"`
+	UUID                          types.String      `tfsdk:"uuid"`
+	Name                          types.String      `tfsdk:"name"`
+	Description                   types.String      `tfsdk:"description"`
+	ProjectUUID                   types.String      `tfsdk:"project_uuid"`
+	ServerUUID                    types.String      `tfsdk:"server_uuid"`
+	EnvironmentName               types.String      `tfsdk:"environment_name"`
+	Type                          types.String      `tfsdk:"type"`
+	Status                        types.String      `tfsdk:"status"`
+	DockerCompose                 types.String      `tfsdk:"docker_compose"`
+	DockerComposeRaw              types.String      `tfsdk:"docker_compose_raw"`
+	ConnectToNetwork              types.Bool        `tfsdk:"connect_to_docker_network"`
+	IsContainerLabelEscapeEnabled types.Bool        `tfsdk:"is_container_label_escape_enabled"`
+	ConfigHash                    types.String      `tfsdk:"config_hash"`
+	InstantDeploy                 types.Bool        `tfsdk:"instant_deploy"`
+	URLs                          []serviceURLModel `tfsdk:"urls"`
+	ForceDomainOverride           types.Bool        `tfsdk:"force_domain_override"`
+}
+
+type serviceURLModel struct {
+	Name types.String `tfsdk:"name"`
+	URL  types.String `tfsdk:"url"`
 }
 
 func NewResource() resource.Resource {
@@ -166,6 +173,27 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
+			"urls": schema.ListNestedAttribute{
+				MarkdownDescription: "Domain URL mappings for service containers. Each entry maps a compose service name to one or more comma-separated URLs (e.g., `https://app.example.com`). " +
+					"Read-back reconstructs mappings from the service's application FQDNs.",
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							MarkdownDescription: "The service container name as defined in docker-compose (e.g., `web`, `api`).",
+							Required:            true,
+						},
+						"url": schema.StringAttribute{
+							MarkdownDescription: "Comma-separated list of URLs to assign to this container (e.g., `https://app.example.com,https://www.example.com`).",
+							Optional:            true,
+						},
+					},
+				},
+			},
+			"force_domain_override": schema.BoolAttribute{
+				MarkdownDescription: "Force domain assignment even if conflicts with other resources are detected. Only relevant when `urls` is set.",
+				Optional:            true,
+			},
 		},
 	}
 }
@@ -237,6 +265,8 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
 	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
+	input.URLs = expandServiceURLs(plan.URLs)
+	input.ForceDomainOverride = flex.BoolValueOrNull(plan.ForceDomainOverride)
 	created, err := r.client.CreateService(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating service",
@@ -328,6 +358,8 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 		DockerComposeRaw:              encodedComposeRaw,
 		ConnectToNetwork:              flex.BoolIfChanged(plan.ConnectToNetwork, state.ConnectToNetwork),
 		IsContainerLabelEscapeEnabled: flex.BoolIfChanged(plan.IsContainerLabelEscapeEnabled, state.IsContainerLabelEscapeEnabled),
+		URLs:                          expandServiceURLs(plan.URLs),
+		ForceDomainOverride:           flex.BoolValueOrNull(plan.ForceDomainOverride),
 	}
 	if _, err := r.client.UpdateService(ctx, uuid, input); err != nil {
 		resp.Diagnostics.AddError("Error updating service", fmt.Sprintf("service %s: %s", uuid, err))
@@ -452,4 +484,49 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 	if svc.EnvironmentName != "" {
 		model.EnvironmentName = flex.StringToFramework(svc.EnvironmentName)
 	}
+
+	model.URLs = flattenServiceURLs(svc.Applications, model.URLs)
+	// force_domain_override is request-only, never returned by the API.
+	// Preserve the user's value in state; it is not read back.
+}
+
+// flattenServiceURLs reconstructs URL mappings from the service's applications.
+// The GET response includes applications with name + fqdn; we map those back
+// to the urls schema shape. Only includes entries that have an FQDN assigned.
+func flattenServiceURLs(apps []client.ServiceApplication, current []serviceURLModel) []serviceURLModel {
+	if len(apps) == 0 {
+		return current
+	}
+	var urls []serviceURLModel
+	for _, app := range apps {
+		if app.FQDN != "" {
+			urls = append(urls, serviceURLModel{
+				Name: types.StringValue(app.Name),
+				URL:  types.StringValue(app.FQDN),
+			})
+		}
+	}
+	if len(urls) > 0 {
+		return urls
+	}
+	if current != nil {
+		// User had URLs configured but API shows none now (cleared externally).
+		return nil
+	}
+	return current
+}
+
+// expandServiceURLs converts the Terraform model to the client input format.
+func expandServiceURLs(urls []serviceURLModel) []client.ServiceURL {
+	if len(urls) == 0 {
+		return nil
+	}
+	result := make([]client.ServiceURL, len(urls))
+	for i, u := range urls {
+		result[i] = client.ServiceURL{
+			Name: u.Name.ValueString(),
+			URL:  u.URL.ValueString(),
+		}
+	}
+	return result
 }

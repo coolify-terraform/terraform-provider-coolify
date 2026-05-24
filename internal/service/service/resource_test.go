@@ -70,6 +70,12 @@ func serviceConfig(serverURL string) string {
 	return acctest.ProviderBlockForURL(serverURL) + serviceTestConfig
 }
 
+// serviceURLEntry mirrors the service URL model shape for test state structs.
+type serviceURLEntry struct {
+	Name types.String `tfsdk:"name"`
+	URL  types.String `tfsdk:"url"`
+}
+
 type mockServiceState struct {
 	mu          sync.Mutex
 	uuid        string
@@ -319,21 +325,23 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 
 	state := tfsdk.State{Schema: schemaResp.Schema}
 	setDiags := state.Set(ctx, struct {
-		Timeouts                      timeouts.Value `tfsdk:"timeouts"`
-		UUID                          types.String   `tfsdk:"uuid"`
-		Name                          types.String   `tfsdk:"name"`
-		Description                   types.String   `tfsdk:"description"`
-		ProjectUUID                   types.String   `tfsdk:"project_uuid"`
-		ServerUUID                    types.String   `tfsdk:"server_uuid"`
-		EnvironmentName               types.String   `tfsdk:"environment_name"`
-		Type                          types.String   `tfsdk:"type"`
-		Status                        types.String   `tfsdk:"status"`
-		DockerCompose                 types.String   `tfsdk:"docker_compose"`
-		DockerComposeRaw              types.String   `tfsdk:"docker_compose_raw"`
-		ConnectToNetwork              types.Bool     `tfsdk:"connect_to_docker_network"`
-		IsContainerLabelEscapeEnabled types.Bool     `tfsdk:"is_container_label_escape_enabled"`
-		ConfigHash                    types.String   `tfsdk:"config_hash"`
-		InstantDeploy                 types.Bool     `tfsdk:"instant_deploy"`
+		Timeouts                      timeouts.Value    `tfsdk:"timeouts"`
+		UUID                          types.String      `tfsdk:"uuid"`
+		Name                          types.String      `tfsdk:"name"`
+		Description                   types.String      `tfsdk:"description"`
+		ProjectUUID                   types.String      `tfsdk:"project_uuid"`
+		ServerUUID                    types.String      `tfsdk:"server_uuid"`
+		EnvironmentName               types.String      `tfsdk:"environment_name"`
+		Type                          types.String      `tfsdk:"type"`
+		Status                        types.String      `tfsdk:"status"`
+		DockerCompose                 types.String      `tfsdk:"docker_compose"`
+		DockerComposeRaw              types.String      `tfsdk:"docker_compose_raw"`
+		ConnectToNetwork              types.Bool        `tfsdk:"connect_to_docker_network"`
+		IsContainerLabelEscapeEnabled types.Bool        `tfsdk:"is_container_label_escape_enabled"`
+		ConfigHash                    types.String      `tfsdk:"config_hash"`
+		InstantDeploy                 types.Bool        `tfsdk:"instant_deploy"`
+		URLs                          []serviceURLEntry `tfsdk:"urls"`
+		ForceDomainOverride           types.Bool        `tfsdk:"force_domain_override"`
 	}{
 		Timeouts:                      timeouts.Value{Object: types.ObjectNull(map[string]attr.Type{"create": types.StringType})},
 		UUID:                          types.StringValue(uuid),
@@ -350,6 +358,8 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 		IsContainerLabelEscapeEnabled: types.BoolNull(),
 		ConfigHash:                    types.StringNull(),
 		InstantDeploy:                 types.BoolNull(),
+		URLs:                          nil,
+		ForceDomainOverride:           types.BoolNull(),
 	})
 	if setDiags.HasError() {
 		t.Fatalf("unexpected state set errors: %v", setDiags.Errors())
@@ -858,6 +868,128 @@ resource "coolify_service" "test" {
   project_uuid       = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid        = "bbbb0001-0001-4000-8000-000000000001"
   docker_compose_raw = "version: '3'\nservices:\n  web:\n    image: nginx\n"
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestServiceResource_WithURLs
+// ---------------------------------------------------------------------------
+
+func TestServiceResource_WithURLs(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	svcUUID := "svc-urls-uuid-001"
+	var lastURLs []map[string]interface{}
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			var body map[string]interface{}
+			json.NewDecoder(r.Body).Decode(&body)
+			if urls, ok := body["urls"].([]interface{}); ok {
+				lastURLs = nil
+				for _, u := range urls {
+					if m, ok := u.(map[string]interface{}); ok {
+						lastURLs = append(lastURLs, m)
+					}
+				}
+			}
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": svcUUID})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", svcUUID):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			// Return applications with fqdn to simulate the read-back.
+			apps := []map[string]interface{}{}
+			for _, u := range lastURLs {
+				apps = append(apps, map[string]interface{}{
+					"name": u["name"],
+					"fqdn": u["url"],
+				})
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":             svcUUID,
+				"name":             "plausible-svc",
+				"type":             "plausible",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name": "production",
+				"applications":     apps,
+			})
+
+		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
+			var body map[string]interface{}
+			json.NewDecoder(r.Body).Decode(&body)
+			if urls, ok := body["urls"].([]interface{}); ok {
+				lastURLs = nil
+				for _, u := range urls {
+					if m, ok := u.(map[string]interface{}); ok {
+						lastURLs = append(lastURLs, m)
+					}
+				}
+			}
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]interface{}{"uuid": svcUUID})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", svcUUID):
+			deleted = true
+			w.WriteHeader(http.StatusOK)
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  type         = "plausible"
+
+  urls = [{
+    name = "web"
+    url  = "https://app.example.com"
+  }]
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", svcUUID),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.#", "1"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.name", "web"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.url", "https://app.example.com"),
+				),
+			},
+			// Idempotency
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  type         = "plausible"
+
+  urls = [{
+    name = "web"
+    url  = "https://app.example.com"
+  }]
 }
 `,
 				PlanOnly:           true,

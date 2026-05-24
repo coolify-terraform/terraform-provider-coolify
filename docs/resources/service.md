@@ -36,6 +36,12 @@ resource "coolify_service" "custom" {
   server_uuid  = coolify_server.example.uuid
 
   docker_compose_raw = file("docker-compose.yml")
+
+  # Assign domains to service containers
+  urls = [{
+    name = "web"
+    url  = "https://app.example.com"
+  }]
 }
 ```
 
@@ -53,11 +59,13 @@ resource "coolify_service" "custom" {
 - `description` (String) A description of the service.
 - `docker_compose_raw` (String, Sensitive) The raw Docker Compose YAML content. Can be used instead of `type` to create a service from a custom compose file, or to customize a catalog service after creation. The provider accepts plain YAML or pre-encoded base64; encoding is handled automatically. Requires API token with `read:sensitive` permission.
 - `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
+- `force_domain_override` (Boolean) Force domain assignment even if conflicts with other resources are detected. Only relevant when `urls` is set.
 - `instant_deploy` (Boolean) Whether to immediately deploy the service after creation. When `true`, Coolify starts the service containers right away. When `false` (default), the service is created but not started.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled for this service.
 - `name` (String) The name of the service.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `type` (String) The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). Mutually exclusive with `docker_compose_raw`. See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.
+- `urls` (Attributes List) Domain URL mappings for service containers. Each entry maps a compose service name to one or more comma-separated URLs (e.g., `https://app.example.com`). Read-back reconstructs mappings from the service's application FQDNs. (see [below for nested schema](#nestedatt--urls))
 
 ### Read-Only
 
@@ -72,6 +80,18 @@ resource "coolify_service" "custom" {
 Optional:
 
 - `create` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
+
+
+<a id="nestedatt--urls"></a>
+### Nested Schema for `urls`
+
+Required:
+
+- `name` (String) The service container name as defined in docker-compose (e.g., `web`, `api`).
+
+Optional:
+
+- `url` (String) Comma-separated list of URLs to assign to this container (e.g., `https://app.example.com,https://www.example.com`).
 
 ## Import
 
