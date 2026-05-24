@@ -543,6 +543,7 @@ jobs:
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
+        needs.changes.outputs.scripts == 'true' ||
         github.event_name == 'workflow_dispatch'
       )
     env:

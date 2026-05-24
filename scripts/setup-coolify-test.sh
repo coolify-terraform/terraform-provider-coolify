@@ -136,42 +136,54 @@ log "Assigning team to server and private key"
 psql_exec "UPDATE servers SET team_id = $TEAM_ID WHERE team_id IS NULL OR team_id = 0;" > /dev/null || true
 psql_exec "UPDATE private_keys SET team_id = $TEAM_ID WHERE team_id IS NULL OR team_id = 0;" > /dev/null || true
 
-# --- Step 3: Enable API ---
+# --- Step 3: Enable API and clear cache ---
 
-log "Enabling API"
-psql_exec "UPDATE instance_settings SET is_api_enabled = true;" > /dev/null
+log "Enabling API via artisan"
+docker exec coolify php artisan tinker --execute='
+  $s = \App\Models\InstanceSettings::first();
+  $s->is_api_enabled = true;
+  $s->save();
+  echo "API enabled: " . ($s->is_api_enabled ? "true" : "false");
+' 2>/dev/null | tail -1
+docker exec coolify php artisan config:clear 2>/dev/null || true
 
-# --- Step 4: Create API token ---
+# --- Step 4: Create API token via Sanctum ---
 
-log "Creating API token"
-psql_exec "DELETE FROM personal_access_tokens WHERE name = 'acc-tests';" > /dev/null || true
+log "Creating API token via Sanctum"
+API_TOKEN=$(docker exec coolify php artisan tinker --execute='
+  $user = \App\Models\User::first();
+  $user->tokens()->where("name", "acc-tests")->delete();
+  $token = $user->createToken("acc-tests", ["*"], $user->currentTeam());
+  echo $token->plainTextToken;
+' 2>/dev/null | tail -1)
 
-PLAIN_TOKEN=$(openssl rand -hex 20)
-HASH=$(echo -n "$PLAIN_TOKEN" | sha256sum | cut -d' ' -f1)
-
-psql_exec "
-  INSERT INTO personal_access_tokens
-    (tokenable_type, tokenable_id, name, token, team_id, abilities, created_at, updated_at)
-  VALUES
-    ('App\\\Models\\\User', $USER_ID, 'acc-tests', '$HASH', '$TEAM_ID', '[\"*\"]', NOW(), NOW());
-" > /dev/null
-
-TOKEN_ID=$(psql_exec "SELECT id FROM personal_access_tokens WHERE name = 'acc-tests' LIMIT 1;")
-API_TOKEN="${TOKEN_ID}|${PLAIN_TOKEN}"
-log "API token created"
+if [[ -z "$API_TOKEN" || "$API_TOKEN" == *"Error"* || "$API_TOKEN" == *"error"* ]]; then
+  echo "ERROR: Failed to create API token via Sanctum" >&2
+  echo "DEBUG: artisan output:" >&2
+  docker exec coolify php artisan tinker --execute='
+    $user = \App\Models\User::first();
+    echo "User: " . ($user ? $user->id . " " . $user->email : "null");
+    echo "\nTeam: " . ($user && $user->currentTeam() ? $user->currentTeam()->id : "null");
+  ' 2>&1 >&2
+  exit 1
+fi
+log "API token created (${API_TOKEN:0:6}...)"
 
 # --- Step 5: Fix private key encryption ---
 
 log "Fixing private key encryption via artisan"
 PRIVATE_KEY_UUID=$(psql_exec "SELECT uuid FROM private_keys LIMIT 1;")
-docker exec coolify sh -c "php artisan tinker --execute=\"
-\\\$key = \\\\App\\\\Models\\\\PrivateKey::first();
-\\\$raw = file_get_contents('/var/www/html/storage/app/ssh/keys/ssh_key@' . \\\$key->uuid);
-\\\$key->private_key = \\\$raw;
-\\\$key->save();
-echo 'Key fixed: ' . \\\$key->uuid;
-\"" 2>/dev/null | tail -1
-echo ""
+KEY_FIX_OUTPUT=$(docker exec coolify php artisan tinker --execute='
+  $key = \App\Models\PrivateKey::first();
+  if (!$key) { echo "ERROR: No private key found"; exit(1); }
+  $path = "/var/www/html/storage/app/ssh/keys/ssh_key@" . $key->uuid;
+  if (!file_exists($path)) { echo "ERROR: Key file not found: " . $path; exit(1); }
+  $raw = file_get_contents($path);
+  $key->private_key = $raw;
+  $key->save();
+  echo "Key fixed: " . $key->uuid;
+' 2>&1 | tail -1)
+log "$KEY_FIX_OUTPUT"
 
 # Allow Coolify to settle after database changes
 log "Waiting 10s for Coolify to pick up settings changes"
@@ -185,15 +197,23 @@ log "Server UUID: $SERVER_UUID"
 log "Private Key UUID: $PRIVATE_KEY_UUID"
 
 log "Verifying API health (with retries)"
+
+# Quick no-auth diagnostic to distinguish "API is down" from "auth is broken"
+NO_AUTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Accept: application/json" \
+  "$COOLIFY_ENDPOINT/api/v1/version" 2>/dev/null || echo "000")
+log "No-auth check: HTTP $NO_AUTH_CODE (401=API works but needs auth, 500=app error)"
+
 API_OK=false
 for attempt in $(seq 1 12); do
   RESP_FILE=$(mktemp)
   HTTP_CODE=$(curl -s -o "$RESP_FILE" -w "%{http_code}" \
     -H "Authorization: Bearer $API_TOKEN" \
+    -H "Accept: application/json" \
     "$COOLIFY_ENDPOINT/api/v1/version" 2>/dev/null || echo "000")
 
   if [[ "$HTTP_CODE" == "200" ]]; then
-    VERSION=$(cat "$RESP_FILE")
+    VERSION=$(cat "$RESP_FILE" | tr -d '"')
     log "API healthy! Coolify version: $VERSION (attempt $attempt)"
     API_OK=true
     rm -f "$RESP_FILE"
