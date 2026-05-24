@@ -77,11 +77,9 @@ For sensitive values, use `coolify_environment_variable` instead of hardcoding t
 
 ```hcl
 resource "coolify_environment_variable" "db_password" {
-  resource_uuid = coolify_service.mystack.uuid
-  resource_type = "service"
-  key           = "DB_PASSWORD"
-  value         = var.db_password
-  is_build      = false
+  service_uuid = coolify_service.mystack.uuid
+  key          = "DB_PASSWORD"
+  value        = var.db_password
 }
 ```
 
@@ -92,17 +90,27 @@ Then reference `${DB_PASSWORD}` in your compose file. Coolify injects these at d
 You can create a service from the catalog and then customize its compose on a subsequent apply:
 
 ```hcl
-# First apply: creates from catalog
+# First apply: creates from the catalog
 resource "coolify_service" "grafana" {
   type         = "grafana"
   project_uuid = coolify_project.myproject.uuid
   server_uuid  = var.server_uuid
 }
-
-# After the first apply, you can import the generated compose,
-# modify it, and set docker_compose_raw on subsequent applies
-# via the update path (PATCH).
 ```
+
+After the first apply, export the generated compose from state (`terraform state show coolify_service.grafana`), save it to a file, customize it, then switch your config:
+
+```hcl
+# Subsequent apply: replace "type" with your customized compose.
+# The provider preserves the original type value from state automatically.
+resource "coolify_service" "grafana" {
+  project_uuid       = coolify_project.myproject.uuid
+  server_uuid        = var.server_uuid
+  docker_compose_raw = file("grafana-custom.yml")
+}
+```
+
+Note: you must remove `type` from config when adding `docker_compose_raw`, since they are mutually exclusive.
 
 ## Token Permissions
 
