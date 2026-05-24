@@ -283,8 +283,8 @@ jobs:
             gitleaks detect --source . --config .gitleaks.toml --exit-code 1
           fi
 
-  spec-freshness:
-    name: Spec Freshness
+  contract-freshness:
+    name: Contract Freshness
     runs-on: self-hosted
     timeout-minutes: 15
     if: github.event_name == 'schedule'

@@ -193,7 +193,7 @@ errors and import failures.
 8 GitHub Actions jobs on push to main and PRs (self-hosted runner):
 Detect Changes, Test, Lint (includes Govulncheck + GoReleaser Check),
 Validate (includes HCL fmt + Docs + Trivy + Gitleaks),
-Acceptance Tests, Scenario Tests, Spec Freshness (weekly only), CI (gate).
+Acceptance Tests, Scenario Tests, Contract Freshness (weekly only), CI (gate).
 Acceptance Tests run against real Coolify on localhost:8000 (requires secrets).
 Scenario Tests run `terraform test` against real Coolify (requires secrets).
 A separate Dependabot Auto-Merge workflow auto-merges minor/patch PRs.

@@ -116,7 +116,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_environment` | Manage project environments |
 | `coolify_environment_variable` | Manage env vars for applications, services, and databases |
 | `coolify_deployment` | Trigger application deployments |
-| `coolify_service` | Deploy one-click services from the Coolify catalog |
+| `coolify_service` | Deploy catalog services or custom Docker Compose stacks |
 | `coolify_database_postgresql` | Provision PostgreSQL databases |
 | `coolify_database_mysql` | Provision MySQL databases |
 | `coolify_database_mariadb` | Provision MariaDB databases |
@@ -320,7 +320,7 @@ and project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 ### CI Pipeline
 
 8 jobs in the CI workflow: Detect Changes, Test, Lint, Validate (includes
-examples, docs, Trivy, Gitleaks), Scenario Tests, Acceptance Tests, Spec
+examples, docs, Trivy, Gitleaks), Scenario Tests, Acceptance Tests, Contract
 Freshness (weekly), and a CI gate job.
 
 ## Troubleshooting
