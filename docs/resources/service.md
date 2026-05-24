@@ -3,23 +3,21 @@
 page_title: "coolify_service Resource - coolify"
 subcategory: ""
 description: |-
-  Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g., plausible, uptime-kuma, minio).
+  Manages a service resource on Coolify. A service can be created from the Coolify catalog (using type) or from a custom Docker Compose file (using docker_compose_raw). These two fields are mutually exclusive.
 ---
 
 # coolify_service (Resource)
 
-Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g., plausible, uptime-kuma, minio).
+Manages a service resource on Coolify. A service can be created from the Coolify catalog (using `type`) or from a custom Docker Compose file (using `docker_compose_raw`). These two fields are mutually exclusive.
 
 ## Example Usage
 
 ```terraform
-# Common service types from the Coolify catalog:
-#   uptime-kuma, plausible, minio, grafana, n8n, ghost,
-#   gitea, code-server, nocodb, appwrite, supabase,
-#   meilisearch, umami, fider, appsmith, directus
-#
+# Option 1: Deploy from the Coolify service catalog.
+# Common types: uptime-kuma, plausible, minio, grafana, n8n, ghost,
+# gitea, code-server, nocodb, appwrite, supabase, meilisearch, umami.
 # See the full list in the Coolify UI under Services > New Service.
-resource "coolify_service" "example" {
+resource "coolify_service" "catalog" {
   name             = "uptime-kuma"
   type             = "uptime-kuma"
   project_uuid     = coolify_project.example.uuid
@@ -28,6 +26,16 @@ resource "coolify_service" "example" {
 
   # Optional: connect service containers to the Coolify Docker network
   # connect_to_docker_network = true
+}
+
+# Option 2: Deploy a custom Docker Compose stack.
+# The provider accepts plain YAML; base64 encoding is handled automatically.
+resource "coolify_service" "custom" {
+  name         = "my-custom-stack"
+  project_uuid = coolify_project.example.uuid
+  server_uuid  = coolify_server.example.uuid
+
+  docker_compose_raw = file("docker-compose.yml")
 }
 ```
 
@@ -38,18 +46,18 @@ resource "coolify_service" "example" {
 
 - `project_uuid` (String) The UUID of the project this service belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the service on. Changing this forces a new resource.
-- `type` (String) The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.
 
 ### Optional
 
 - `connect_to_docker_network` (Boolean) Whether the service containers connect to the Coolify Docker network.
 - `description` (String) A description of the service.
-- `docker_compose_raw` (String, Sensitive) The raw Docker Compose configuration. Set this to customize the service's compose after creation. Requires API token with `read:sensitive` permission.
+- `docker_compose_raw` (String, Sensitive) The raw Docker Compose YAML content. Can be used instead of `type` to create a service from a custom compose file, or to customize a catalog service after creation. The provider accepts plain YAML or pre-encoded base64; encoding is handled automatically. Requires API token with `read:sensitive` permission.
 - `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
 - `instant_deploy` (Boolean) Whether to immediately deploy the service after creation. When `true`, Coolify starts the service containers right away. When `false` (default), the service is created but not started.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled for this service.
 - `name` (String) The name of the service.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
+- `type` (String) The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). Mutually exclusive with `docker_compose_raw`. See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.
 
 ### Read-Only
 

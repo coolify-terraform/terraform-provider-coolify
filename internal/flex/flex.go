@@ -1,8 +1,26 @@
 package flex
 
 import (
+	"encoding/base64"
+	"unicode/utf8"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+// EnsureBase64 returns s base64-encoded. If s is already valid base64 that
+// decodes to valid UTF-8, it is returned unchanged. Otherwise, s is treated
+// as raw content and base64-encoded. This allows callers to provide either
+// form (raw YAML or pre-encoded) and always get a valid base64 string.
+func EnsureBase64(s string) string {
+	if s == "" {
+		return s
+	}
+	decoded, err := base64.StdEncoding.DecodeString(s)
+	if err == nil && utf8.Valid(decoded) {
+		return s // already valid base64
+	}
+	return base64.StdEncoding.EncodeToString([]byte(s))
+}
 
 // StringValueOrNull extracts the underlying Go string as a pointer.
 // Returns nil if the Terraform value is null or unknown.
