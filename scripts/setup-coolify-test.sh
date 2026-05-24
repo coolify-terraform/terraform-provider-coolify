@@ -259,6 +259,20 @@ if [[ "$UPDATE_SECRETS" == "true" ]]; then
   log "GitHub secrets updated"
 fi
 
+# --- Step 9: Write env file for CI (if requested) ---
+
+ENV_FILE="${COOLIFY_ENV_FILE:-}"
+if [[ -n "$ENV_FILE" ]]; then
+  log "Writing env file to $ENV_FILE"
+  cat > "$ENV_FILE" <<EOF
+COOLIFY_ENDPOINT=$COOLIFY_ENDPOINT
+COOLIFY_TOKEN=$API_TOKEN
+COOLIFY_SERVER_UUID=$SERVER_UUID
+COOLIFY_PRIVATE_KEY_UUID=$PRIVATE_KEY_UUID
+COOLIFY_S3_STORAGE_UUID=${S3_UUID:-}
+EOF
+fi
+
 # --- Summary ---
 
 echo ""

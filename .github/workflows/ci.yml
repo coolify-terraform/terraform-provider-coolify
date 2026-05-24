@@ -531,12 +531,135 @@ jobs:
         run: |
           go test -run TestAcc -race -count=1 -timeout=120m -p 1 -parallel=1 ./...
 
+  acceptance-cloud:
+    name: Acceptance Tests (Cloud)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [changes, test, lint]
+    if: >-
+      always() &&
+      needs.test.result == 'success' &&
+      needs.lint.result == 'success' &&
+      (
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
+    env:
+      COOLIFY_DATA_DIR: /home/runner/coolify-data
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+          terraform_version: "1.15.x"
+
+      - name: Start SSH server with root access
+        run: |
+          # Start sshd
+          sudo systemctl enable ssh
+          sudo systemctl start ssh
+
+          # Generate a key for Coolify -> host SSH
+          ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -q
+          cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+          chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+
+          # Enable root login (Coolify SSHs as root)
+          sudo sed -i 's/^#*PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+          sudo systemctl restart ssh
+          sudo mkdir -p /root/.ssh
+          sudo cp ~/.ssh/authorized_keys /root/.ssh/authorized_keys
+          sudo chmod 700 /root/.ssh
+          sudo chmod 600 /root/.ssh/authorized_keys
+
+          # Verify root SSH works
+          ssh -o StrictHostKeyChecking=no root@localhost echo "Root SSH OK"
+
+      - name: Start Coolify
+        run: |
+          # Create directory structure
+          mkdir -p "$COOLIFY_DATA_DIR"/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
+          mkdir -p "$COOLIFY_DATA_DIR/proxy/dynamic"
+
+          # Download official compose files
+          cd "$COOLIFY_DATA_DIR/source"
+          curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.yml -o docker-compose.yml
+          curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.prod.yml -o docker-compose.prod.yml
+          curl -fsSL https://cdn.coollabs.io/coolify/.env.production -o .env
+
+          # Rewrite /data/coolify to runner home
+          sed -i "s|/data/coolify|$COOLIFY_DATA_DIR|g" docker-compose.yml docker-compose.prod.yml .env
+
+          # Generate secrets
+          sed -i "s|APP_ID=.*|APP_ID=$(openssl rand -hex 16)|g" .env
+          sed -i "s|APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|g" .env
+          sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
+          sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
+          sed -i "s|PUSHER_APP_ID=.*|PUSHER_APP_ID=$(openssl rand -hex 32)|g" .env
+          sed -i "s|PUSHER_APP_KEY=.*|PUSHER_APP_KEY=$(openssl rand -hex 32)|g" .env
+          sed -i "s|PUSHER_APP_SECRET=.*|PUSHER_APP_SECRET=$(openssl rand -hex 32)|g" .env
+
+          # SSH key for Coolify -> localhost
+          ssh-keygen -t ed25519 -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" -N "" -q
+          cat "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub" >> ~/.ssh/authorized_keys
+          sudo sh -c "cat $COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub >> /root/.ssh/authorized_keys"
+
+          # Override: ensure host.docker.internal resolves on Linux
+          printf 'services:\n  coolify:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n' \
+            > docker-compose.override.yml
+
+          # Own SSH dir as UID 9999 (Coolify container user)
+          sudo chown -R 9999:9999 "$COOLIFY_DATA_DIR/ssh"
+
+          docker network create --attachable coolify
+          docker compose --env-file .env \
+            -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.override.yml \
+            up -d --pull always --remove-orphans --force-recreate
+
+      - name: Wait for Coolify to be ready
+        run: |
+          echo "Waiting for Coolify web interface..."
+          for i in $(seq 1 36); do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/register 2>/dev/null | grep -qE "200|302"; then
+              echo "Coolify is ready (attempt $i)"
+              break
+            fi
+            if [ "$i" -eq 36 ]; then
+              echo "::error::Coolify not ready after 3 minutes"
+              docker compose -f "$COOLIFY_DATA_DIR/source/docker-compose.yml" logs --tail=50
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Bootstrap Coolify test fixtures
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+          COOLIFY_ENV_FILE=/tmp/coolify-env ./scripts/setup-coolify-test.sh
+
+      - name: Run acceptance tests
+        run: |
+          # Load credentials from bootstrap
+          set -a
+          source /tmp/coolify-env
+          set +a
+          export TF_ACC=1
+          go test -run TestAcc -race -count=1 -timeout=35m -p 1 -parallel=1 ./...
+
   ci-pass:
     name: CI
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [test, lint, validate, scenario-tests, acceptance-tests]
+    needs: [test, lint, validate, scenario-tests, acceptance-tests, acceptance-cloud]
     steps:
       - name: Check results
         run: |
