@@ -292,7 +292,12 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL, "test-token")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	// Use a timeout long enough for the DELETE request to succeed but short
+	// enough that PollUntilDeleted gives up before the resource disappears
+	// (the mock always returns 200, so the resource never actually goes away).
+	// The previous 10ms timeout caused flakes under concurrent test load
+	// because the retryablehttp client couldn't complete even the DELETE.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	res := servicepkg.NewResource()
