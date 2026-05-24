@@ -62,7 +62,6 @@ jobs:
       - name: Bootstrap and test API
         run: |
           set -euo pipefail
-          ENDPOINT="http://localhost:8000"
 
           # Install Playwright for registration
           pip install playwright
