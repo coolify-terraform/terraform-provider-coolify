@@ -491,9 +491,15 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 }
 
 // flattenServiceURLs reconstructs URL mappings from the service's applications.
-// The GET response includes applications with name + fqdn; we map those back
-// to the urls schema shape. Only includes entries that have an FQDN assigned.
+// Only populates urls if the user configured them (current != nil). Coolify
+// auto-assigns FQDNs to catalog services, so the API may return application
+// FQDNs even when the user didn't set urls. Without this guard, the flatten
+// causes "inconsistent result after apply" (plan had null, state has values).
 func flattenServiceURLs(apps []client.ServiceApplication, current []serviceURLModel) []serviceURLModel {
+	if current == nil {
+		// User didn't configure urls; don't populate from API.
+		return nil
+	}
 	if len(apps) == 0 {
 		return current
 	}
@@ -509,11 +515,8 @@ func flattenServiceURLs(apps []client.ServiceApplication, current []serviceURLMo
 	if len(urls) > 0 {
 		return urls
 	}
-	if current != nil {
-		// User had URLs configured but API shows none now (cleared externally).
-		return nil
-	}
-	return current
+	// User had URLs configured but API shows none now (cleared externally).
+	return nil
 }
 
 // expandServiceURLs converts the Terraform model to the client input format.
