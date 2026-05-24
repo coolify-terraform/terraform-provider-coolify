@@ -152,25 +152,25 @@ docker exec coolify php artisan config:clear 2>/dev/null || true
 log "Creating API token"
 
 # Use artisan tinker to create token through Sanctum (proper hashing).
-# Dump full output for debugging, then extract the last line as the token.
+# team_id is set explicitly because currentTeam() returns null on fresh installs.
 TINKER_OUTPUT=$(docker exec coolify php artisan tinker --execute='
   $user = \App\Models\User::first();
   if (!$user) { echo "ERROR: no user"; exit(1); }
+  $team = \App\Models\Team::first();
+  if (!$team) { echo "ERROR: no team"; exit(1); }
   $user->tokens()->where("name", "acc-tests")->delete();
   $token = $user->createToken("acc-tests", ["*"]);
   $pat = $token->accessToken;
-  $pat->team_id = $user->currentTeam()->id ?? 0;
+  $pat->team_id = $team->id;
   $pat->save();
   echo $token->plainTextToken;
 ' 2>&1)
 
-log "Artisan tinker raw output:"
-echo "$TINKER_OUTPUT" | while IFS= read -r line; do echo "  $line"; done
+API_TOKEN=$(echo "$TINKER_OUTPUT" | grep -oE '^[0-9]+\|[A-Za-z0-9]+' | tail -1)
 
-API_TOKEN=$(echo "$TINKER_OUTPUT" | grep -v '^\s*$' | tail -1)
-
-if [[ -z "$API_TOKEN" || ${#API_TOKEN} -lt 5 || "$API_TOKEN" == *"rror"* ]]; then
-  echo "ERROR: Failed to create API token. Last line: '$API_TOKEN'" >&2
+if [[ -z "$API_TOKEN" ]]; then
+  echo "ERROR: Failed to create API token. Artisan output:" >&2
+  echo "$TINKER_OUTPUT" >&2
   exit 1
 fi
 log "API token: ${API_TOKEN:0:8}..."
