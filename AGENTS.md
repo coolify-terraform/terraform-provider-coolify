@@ -186,6 +186,7 @@ errors and import failures.
 - Acceptance tests are skipped unless `TF_ACC=1` is set
 - Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, python-test, docs-check, api-coverage-check, counts-check, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
 - Before adding a test function, grep for its name to avoid duplicates
+- **Test counts use floor rounding**: `counts-check` rounds down to the nearest 10 (e.g., 857 tests -> "850+"). When updating test counts in AGENTS.md or README.md, use the floor value, not the exact count. Setting "855+" when the actual count is 857 will fail `make ci` because 855 > floor(857/10)*10 = 850.
 
 ## CI
 
