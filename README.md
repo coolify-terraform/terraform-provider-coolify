@@ -93,10 +93,12 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 - [Build Lifecycle](docs/guides/build-lifecycle.md) -- what happens after apply: build queuing, status, and deployment waiting
 - [Secrets Management](docs/guides/secrets-management.md) -- handle passwords, tokens, and keys safely
 - [Service Catalog](docs/guides/service-catalog.md) -- deploy one-click services (Plausible, Grafana, MinIO, etc.)
+- [Docker Compose Stacks](docs/guides/docker-compose-services.md) -- deploy custom Docker Compose stacks with `coolify_service`
 - [CI/CD Integration](docs/guides/cicd-integration.md) -- automate deployments with GitHub Actions or GitLab CI
 - [Day-2 Operations](docs/guides/day-two-operations.md) -- upgrades, rollbacks, and disaster recovery
 - [Common Errors](docs/guides/common-errors.md) -- error message reference with causes and fixes
 - [Troubleshooting](docs/guides/troubleshooting.md) -- debugging tips and diagnostic logs
+- [Migration from Community Provider](docs/guides/migration-from-community.md) -- switch from the SierraJC community provider
 
 ## Resources
 
