@@ -1,0 +1,81 @@
+name: Test Cloud Bootstrap
+on:
+  workflow_dispatch:
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      COOLIFY_DATA_DIR: /home/runner/coolify-data
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start SSH server with root access
+        run: |
+          sudo systemctl enable ssh
+          sudo systemctl start ssh
+          ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -q
+          cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+          chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+          sudo sed -i 's/^#*PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+          sudo systemctl restart ssh
+          sudo mkdir -p /root/.ssh
+          sudo cp ~/.ssh/authorized_keys /root/.ssh/authorized_keys
+          sudo chmod 700 /root/.ssh
+          sudo chmod 600 /root/.ssh/authorized_keys
+          ssh -o StrictHostKeyChecking=no root@localhost echo "Root SSH OK"
+
+      - name: Start Coolify
+        run: |
+          mkdir -p "$COOLIFY_DATA_DIR"/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
+          mkdir -p "$COOLIFY_DATA_DIR/proxy/dynamic"
+          cd "$COOLIFY_DATA_DIR/source"
+          curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.yml -o docker-compose.yml
+          curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.prod.yml -o docker-compose.prod.yml
+          curl -fsSL https://cdn.coollabs.io/coolify/.env.production -o .env
+          sed -i "s|/data/coolify|$COOLIFY_DATA_DIR|g" docker-compose.yml docker-compose.prod.yml .env
+          sed -i "s|APP_ID=.*|APP_ID=$(openssl rand -hex 16)|g" .env
+          sed -i "s|APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|g" .env
+          sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
+          sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
+          sed -i "s|PUSHER_APP_ID=.*|PUSHER_APP_ID=$(openssl rand -hex 32)|g" .env
+          sed -i "s|PUSHER_APP_KEY=.*|PUSHER_APP_KEY=$(openssl rand -hex 32)|g" .env
+          sed -i "s|PUSHER_APP_SECRET=.*|PUSHER_APP_SECRET=$(openssl rand -hex 32)|g" .env
+          ssh-keygen -t ed25519 -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" -N "" -q
+          cat "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub" >> ~/.ssh/authorized_keys
+          sudo sh -c "cat $COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub >> /root/.ssh/authorized_keys"
+          printf 'services:\n  coolify:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n' > docker-compose.override.yml
+          sudo chown -R 9999:9999 "$COOLIFY_DATA_DIR/ssh"
+          docker network create --attachable coolify
+          docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.override.yml up -d --pull always --remove-orphans --force-recreate
+
+      - name: Wait for Coolify
+        run: |
+          for i in $(seq 1 36); do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/register 2>/dev/null | grep -qE "200|302"; then
+              echo "Ready (attempt $i)"; break
+            fi
+            [ "$i" -eq 36 ] && { docker compose -f "$COOLIFY_DATA_DIR/source/docker-compose.yml" logs --tail=50; exit 1; }
+            sleep 5
+          done
+
+      - name: Bootstrap and test API
+        run: |
+          set -euo pipefail
+          ENDPOINT="http://localhost:8000"
+
+          # Install Playwright for registration
+          pip install playwright
+          playwright install --with-deps chromium
+
+          # Run setup script
+          COOLIFY_ENV_FILE=/tmp/coolify-env ./scripts/setup-coolify-test.sh
+
+          echo "=== ENV FILE ==="
+          cat /tmp/coolify-env
+
+          echo "=== API TEST ==="
+          set -a; source /tmp/coolify-env; set +a
+          curl -v -H "Authorization: Bearer $COOLIFY_TOKEN" -H "Accept: application/json" "$COOLIFY_ENDPOINT/api/v1/version"
+          echo ""
+          curl -s -H "Authorization: Bearer $COOLIFY_TOKEN" -H "Accept: application/json" "$COOLIFY_ENDPOINT/api/v1/servers" | head -200
