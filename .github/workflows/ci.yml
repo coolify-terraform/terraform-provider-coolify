@@ -295,32 +295,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
-      - name: Check for upstream spec changes
-        id: spec-check
-        run: |
-          curl -sL https://raw.githubusercontent.com/coollabsio/coolify/v4.x/openapi.json \
-            -o /tmp/coolify-latest.json
-          if ! diff -q testdata/specs/coolify-v4.original.json /tmp/coolify-latest.json > /dev/null 2>&1; then
-            echo "drift=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::Coolify OpenAPI spec has changed upstream"
-            diff testdata/specs/coolify-v4.original.json /tmp/coolify-latest.json | head -50
-          else
-            echo "Spec is up to date"
-          fi
-      - name: Create issue for spec drift
-        if: steps.spec-check.outputs.drift == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Ensure label exists (idempotent).
-          gh label create spec-drift --description "Upstream Coolify OpenAPI spec has changed" --color "d93f0b" --force 2>/dev/null || true
-          EXISTING=$(gh issue list --label "spec-drift" --state open --json number --jq length)
-          if [ "$EXISTING" = "0" ]; then
-            gh issue create \
-              --title "Upstream Coolify OpenAPI spec has changed" \
-              --label "spec-drift" \
-              --body "The weekly spec-freshness check detected changes in the upstream Coolify OpenAPI spec. Run \`make spec-update\` to download the latest spec and review the diff."
-          fi
       - name: Check for contract drift
         id: contract-check
         run: |
@@ -335,6 +309,7 @@ jobs:
           with open('/tmp/coolify-latest-contract.json') as f:
               latest = json.load(f)
           changes = []
+          # Check model field drift
           for model in sorted(set(list(pinned.get('models', {})) + list(latest.get('models', {})))):
               pf = set(pinned.get('models', {}).get(model, {}).get('fields', {}).keys())
               lf = set(latest.get('models', {}).get(model, {}).get('fields', {}).keys())
@@ -342,8 +317,15 @@ jobs:
                   changes.append(f'+ {model}.{f}')
               for f in sorted(pf - lf):
                   changes.append(f'- {model}.{f}')
+          # Check route drift
+          pinned_routes = {(r['method'], r['path']) for r in pinned.get('routes', [])}
+          latest_routes = {(r['method'], r['path']) for r in latest.get('routes', [])}
+          for method, path in sorted(latest_routes - pinned_routes):
+              changes.append(f'+ route {method} {path}')
+          for method, path in sorted(pinned_routes - latest_routes):
+              changes.append(f'- route {method} {path}')
           if changes:
-              print(f'Contract drift: {len(changes)} field changes')
+              print(f'Contract drift: {len(changes)} changes')
               for c in changes[:50]:
                   print(f'  {c}')
               if len(changes) > 50:
@@ -362,7 +344,7 @@ jobs:
             gh issue create \
               --title "Upstream Coolify contract has changed" \
               --label "contract-drift" \
-              --body "The weekly contract-freshness check detected field changes in the upstream Coolify source code. Run \`make contract-extract\` to update the pinned contract and review the changes with \`make contract-check\`."
+              --body "The weekly contract-freshness check detected field or route changes in the upstream Coolify source code. Run \`make contract-extract\` to update the pinned contract and review the changes with \`make contract-check\`."
           fi
 
   scenario-tests:

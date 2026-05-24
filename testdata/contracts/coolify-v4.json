@@ -1,7 +1,7 @@
 {
   "version": "v4.1.0",
   "extracted_from": "coollabsio/coolify@v4.1.0",
-  "extracted_at": "2026-05-21T13:52:23.080118+00:00",
+  "extracted_at": "2026-05-24T00:42:49.553167+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -6580,34 +6580,6 @@
     }
   },
   "enums": {
-    "StaticImageTypes": [
-      "nginx:alpine"
-    ],
-    "BuildPackTypes": [
-      "nixpacks",
-      "static",
-      "dockerfile",
-      "dockercompose",
-      "railpack"
-    ],
-    "ActivityTypes": [
-      "inline",
-      "command"
-    ],
-    "Role": [
-      "member",
-      "admin",
-      "owner"
-    ],
-    "ContainerStatusTypes": [
-      "paused",
-      "restarting",
-      "removing",
-      "running",
-      "dead",
-      "created",
-      "exited"
-    ],
     "ProcessStatus": [
       "queued",
       "in_progress",
@@ -6616,6 +6588,32 @@
       "killed",
       "cancelled",
       "closed"
+    ],
+    "RedirectTypes": [
+      "both",
+      "www",
+      "non-www"
+    ],
+    "ProxyTypes": [
+      "NONE",
+      "TRAEFIK",
+      "NGINX",
+      "CADDY",
+      "exited",
+      "running"
+    ],
+    "NewDatabaseTypes": [
+      "postgresql",
+      "mysql",
+      "mongodb",
+      "redis",
+      "mariadb",
+      "keydb",
+      "dragonfly",
+      "clickhouse"
+    ],
+    "StaticImageTypes": [
+      "nginx:alpine"
     ],
     "NewResourceTypes": [
       "public",
@@ -6634,13 +6632,9 @@
       "dragonfly",
       "clickhouse"
     ],
-    "ProxyTypes": [
-      "NONE",
-      "TRAEFIK",
-      "NGINX",
-      "CADDY",
-      "exited",
-      "running"
+    "ActivityTypes": [
+      "inline",
+      "command"
     ],
     "ApplicationDeploymentStatus": [
       "queued",
@@ -6649,20 +6643,26 @@
       "failed",
       "cancelled-by-user"
     ],
-    "RedirectTypes": [
-      "both",
-      "www",
-      "non-www"
+    "Role": [
+      "member",
+      "admin",
+      "owner"
     ],
-    "NewDatabaseTypes": [
-      "postgresql",
-      "mysql",
-      "mongodb",
-      "redis",
-      "mariadb",
-      "keydb",
-      "dragonfly",
-      "clickhouse"
+    "BuildPackTypes": [
+      "nixpacks",
+      "static",
+      "dockerfile",
+      "dockercompose",
+      "railpack"
+    ],
+    "ContainerStatusTypes": [
+      "paused",
+      "restarting",
+      "removing",
+      "running",
+      "dead",
+      "created",
+      "exited"
     ]
   },
   "validation_patterns": {
@@ -6684,5 +6684,1325 @@
     "health_check_command": "nullable|string|max:1000",
     "health_check_path": "string",
     "health_check_host": "string"
-  }
+  },
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/applications",
+      "controller": "ApplicationsController",
+      "action": "applications",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/dockerfile",
+      "controller": "ApplicationsController",
+      "action": "create_dockerfile_application",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/dockerimage",
+      "controller": "ApplicationsController",
+      "action": "create_dockerimage_application",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/private-deploy-key",
+      "controller": "ApplicationsController",
+      "action": "create_private_deploy_key_application",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/private-github-app",
+      "controller": "ApplicationsController",
+      "action": "create_private_gh_app_application",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/public",
+      "controller": "ApplicationsController",
+      "action": "create_public_application",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/applications/{uuid}",
+      "controller": "ApplicationsController",
+      "action": "delete_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}",
+      "controller": "ApplicationsController",
+      "action": "application_by_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/applications/{uuid}",
+      "controller": "ApplicationsController",
+      "action": "update_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}/envs",
+      "controller": "ApplicationsController",
+      "action": "envs",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/applications/{uuid}/envs",
+      "controller": "ApplicationsController",
+      "action": "update_env_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/{uuid}/envs",
+      "controller": "ApplicationsController",
+      "action": "create_env",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/applications/{uuid}/envs/bulk",
+      "controller": "ApplicationsController",
+      "action": "create_bulk_envs",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/applications/{uuid}/envs/{env_uuid}",
+      "controller": "ApplicationsController",
+      "action": "delete_env_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}/logs",
+      "controller": "ApplicationsController",
+      "action": "logs_by_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/applications/{uuid}/previews/{pull_request_id}",
+      "controller": "ApplicationsController",
+      "action": "delete_preview_by_pull_request_id",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}/restart",
+      "controller": "ApplicationsController",
+      "action": "action_restart",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/{uuid}/restart",
+      "controller": "ApplicationsController",
+      "action": "action_restart",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}/scheduled-tasks",
+      "controller": "ScheduledTasksController",
+      "action": "scheduled_tasks_by_application_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/{uuid}/scheduled-tasks",
+      "controller": "ScheduledTasksController",
+      "action": "create_scheduled_task_by_application_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/applications/{uuid}/scheduled-tasks/{task_uuid}",
+      "controller": "ScheduledTasksController",
+      "action": "delete_scheduled_task_by_application_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/applications/{uuid}/scheduled-tasks/{task_uuid}",
+      "controller": "ScheduledTasksController",
+      "action": "update_scheduled_task_by_application_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}/scheduled-tasks/{task_uuid}/executions",
+      "controller": "ScheduledTasksController",
+      "action": "executions_by_application_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}/start",
+      "controller": "ApplicationsController",
+      "action": "action_deploy",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/{uuid}/start",
+      "controller": "ApplicationsController",
+      "action": "action_deploy",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}/stop",
+      "controller": "ApplicationsController",
+      "action": "action_stop",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/{uuid}/stop",
+      "controller": "ApplicationsController",
+      "action": "action_stop",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/applications/{uuid}/storages",
+      "controller": "ApplicationsController",
+      "action": "storages",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/applications/{uuid}/storages",
+      "controller": "ApplicationsController",
+      "action": "update_storage",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/applications/{uuid}/storages",
+      "controller": "ApplicationsController",
+      "action": "create_storage",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/applications/{uuid}/storages/{storage_uuid}",
+      "controller": "ApplicationsController",
+      "action": "delete_storage",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/cloud-tokens",
+      "controller": "CloudProviderTokensController",
+      "action": "index",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/cloud-tokens",
+      "controller": "CloudProviderTokensController",
+      "action": "store",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/cloud-tokens/{uuid}",
+      "controller": "CloudProviderTokensController",
+      "action": "destroy",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/cloud-tokens/{uuid}",
+      "controller": "CloudProviderTokensController",
+      "action": "show",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/cloud-tokens/{uuid}",
+      "controller": "CloudProviderTokensController",
+      "action": "update",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/cloud-tokens/{uuid}/validate",
+      "controller": "CloudProviderTokensController",
+      "action": "validateToken",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/databases",
+      "controller": "DatabasesController",
+      "action": "databases",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/clickhouse",
+      "controller": "DatabasesController",
+      "action": "create_database_clickhouse",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/dragonfly",
+      "controller": "DatabasesController",
+      "action": "create_database_dragonfly",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/keydb",
+      "controller": "DatabasesController",
+      "action": "create_database_keydb",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/mariadb",
+      "controller": "DatabasesController",
+      "action": "create_database_mariadb",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/mongodb",
+      "controller": "DatabasesController",
+      "action": "create_database_mongodb",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/mysql",
+      "controller": "DatabasesController",
+      "action": "create_database_mysql",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/postgresql",
+      "controller": "DatabasesController",
+      "action": "create_database_postgresql",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/redis",
+      "controller": "DatabasesController",
+      "action": "create_database_redis",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/databases/{uuid}",
+      "controller": "DatabasesController",
+      "action": "delete_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/databases/{uuid}",
+      "controller": "DatabasesController",
+      "action": "database_by_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/databases/{uuid}",
+      "controller": "DatabasesController",
+      "action": "update_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/databases/{uuid}/backups",
+      "controller": "DatabasesController",
+      "action": "database_backup_details_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/{uuid}/backups",
+      "controller": "DatabasesController",
+      "action": "create_backup",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/databases/{uuid}/backups/{scheduled_backup_uuid}",
+      "controller": "DatabasesController",
+      "action": "delete_backup_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/databases/{uuid}/backups/{scheduled_backup_uuid}",
+      "controller": "DatabasesController",
+      "action": "update_backup",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/databases/{uuid}/backups/{scheduled_backup_uuid}/executions",
+      "controller": "DatabasesController",
+      "action": "list_backup_executions",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/databases/{uuid}/backups/{scheduled_backup_uuid}/executions/{execution_uuid}",
+      "controller": "DatabasesController",
+      "action": "delete_execution_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/databases/{uuid}/envs",
+      "controller": "DatabasesController",
+      "action": "envs",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/databases/{uuid}/envs",
+      "controller": "DatabasesController",
+      "action": "update_env_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/{uuid}/envs",
+      "controller": "DatabasesController",
+      "action": "create_env",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/databases/{uuid}/envs/bulk",
+      "controller": "DatabasesController",
+      "action": "create_bulk_envs",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/databases/{uuid}/envs/{env_uuid}",
+      "controller": "DatabasesController",
+      "action": "delete_env_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/databases/{uuid}/restart",
+      "controller": "DatabasesController",
+      "action": "action_restart",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/{uuid}/restart",
+      "controller": "DatabasesController",
+      "action": "action_restart",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/databases/{uuid}/start",
+      "controller": "DatabasesController",
+      "action": "action_deploy",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/{uuid}/start",
+      "controller": "DatabasesController",
+      "action": "action_deploy",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/databases/{uuid}/stop",
+      "controller": "DatabasesController",
+      "action": "action_stop",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/{uuid}/stop",
+      "controller": "DatabasesController",
+      "action": "action_stop",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/databases/{uuid}/storages",
+      "controller": "DatabasesController",
+      "action": "storages",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/databases/{uuid}/storages",
+      "controller": "DatabasesController",
+      "action": "update_storage",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/databases/{uuid}/storages",
+      "controller": "DatabasesController",
+      "action": "create_storage",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/databases/{uuid}/storages/{storage_uuid}",
+      "controller": "DatabasesController",
+      "action": "delete_storage",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/deploy",
+      "controller": "DeployController",
+      "action": "deploy",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/deploy",
+      "controller": "DeployController",
+      "action": "deploy",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/deployments",
+      "controller": "DeployController",
+      "action": "deployments",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/deployments/applications/{uuid}",
+      "controller": "DeployController",
+      "action": "get_application_deployments",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/deployments/{uuid}",
+      "controller": "DeployController",
+      "action": "deployment_by_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/deployments/{uuid}/cancel",
+      "controller": "DeployController",
+      "action": "cancel_deployment",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/disable",
+      "controller": "OtherController",
+      "action": "disable_api",
+      "middleware": []
+    },
+    {
+      "method": "GET",
+      "path": "/enable",
+      "controller": "OtherController",
+      "action": "enable_api",
+      "middleware": []
+    },
+    {
+      "method": "POST",
+      "path": "/feedback",
+      "controller": "OtherController",
+      "action": "feedback",
+      "middleware": []
+    },
+    {
+      "method": "GET",
+      "path": "/github-apps",
+      "controller": "GithubController",
+      "action": "list_github_apps",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/github-apps",
+      "controller": "GithubController",
+      "action": "create_github_app",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/github-apps/{github_app_id}",
+      "controller": "GithubController",
+      "action": "delete_github_app",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/github-apps/{github_app_id}",
+      "controller": "GithubController",
+      "action": "update_github_app",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/github-apps/{github_app_id}/repositories",
+      "controller": "GithubController",
+      "action": "load_repositories",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/github-apps/{github_app_id}/repositories/{owner}/{repo}/branches",
+      "controller": "GithubController",
+      "action": "load_branches",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "controller": "OtherController",
+      "action": "healthcheck",
+      "middleware": []
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "controller": "OtherController",
+      "action": "healthcheck",
+      "middleware": []
+    },
+    {
+      "method": "GET",
+      "path": "/hetzner/images",
+      "controller": "HetznerController",
+      "action": "images",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/hetzner/locations",
+      "controller": "HetznerController",
+      "action": "locations",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/hetzner/server-types",
+      "controller": "HetznerController",
+      "action": "serverTypes",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/hetzner/ssh-keys",
+      "controller": "HetznerController",
+      "action": "sshKeys",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/mcp/disable",
+      "controller": "OtherController",
+      "action": "disable_mcp",
+      "middleware": []
+    },
+    {
+      "method": "POST",
+      "path": "/mcp/enable",
+      "controller": "OtherController",
+      "action": "enable_mcp",
+      "middleware": []
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "controller": "ProjectController",
+      "action": "projects",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/projects",
+      "controller": "ProjectController",
+      "action": "create_project",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/projects/{uuid}",
+      "controller": "ProjectController",
+      "action": "delete_project",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/projects/{uuid}",
+      "controller": "ProjectController",
+      "action": "project_by_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/projects/{uuid}",
+      "controller": "ProjectController",
+      "action": "update_project",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/projects/{uuid}/environments",
+      "controller": "ProjectController",
+      "action": "get_environments",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/projects/{uuid}/environments",
+      "controller": "ProjectController",
+      "action": "create_environment",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/projects/{uuid}/environments/{environment_name_or_uuid}",
+      "controller": "ProjectController",
+      "action": "delete_environment",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/projects/{uuid}/{environment_name_or_uuid}",
+      "controller": "ProjectController",
+      "action": "environment_details",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/resources",
+      "controller": "ResourcesController",
+      "action": "resources",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/security/keys",
+      "controller": "SecurityController",
+      "action": "keys",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/security/keys",
+      "controller": "SecurityController",
+      "action": "create_key",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/security/keys/{uuid}",
+      "controller": "SecurityController",
+      "action": "delete_key",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/security/keys/{uuid}",
+      "controller": "SecurityController",
+      "action": "key_by_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/security/keys/{uuid}",
+      "controller": "SecurityController",
+      "action": "update_key",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/servers",
+      "controller": "ServersController",
+      "action": "servers",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/servers",
+      "controller": "ServersController",
+      "action": "create_server",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/servers/hetzner",
+      "controller": "HetznerController",
+      "action": "createServer",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/servers/{uuid}",
+      "controller": "ServersController",
+      "action": "delete_server",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/servers/{uuid}",
+      "controller": "ServersController",
+      "action": "server_by_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/servers/{uuid}",
+      "controller": "ServersController",
+      "action": "update_server",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/servers/{uuid}/domains",
+      "controller": "ServersController",
+      "action": "domains_by_server",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/servers/{uuid}/resources",
+      "controller": "ServersController",
+      "action": "resources_by_server",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/servers/{uuid}/validate",
+      "controller": "ServersController",
+      "action": "validate_server",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/services",
+      "controller": "ServicesController",
+      "action": "services",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/services",
+      "controller": "ServicesController",
+      "action": "create_service",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/services/{uuid}",
+      "controller": "ServicesController",
+      "action": "delete_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/services/{uuid}",
+      "controller": "ServicesController",
+      "action": "service_by_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/services/{uuid}",
+      "controller": "ServicesController",
+      "action": "update_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/services/{uuid}/envs",
+      "controller": "ServicesController",
+      "action": "envs",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/services/{uuid}/envs",
+      "controller": "ServicesController",
+      "action": "update_env_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/services/{uuid}/envs",
+      "controller": "ServicesController",
+      "action": "create_env",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/services/{uuid}/envs/bulk",
+      "controller": "ServicesController",
+      "action": "create_bulk_envs",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/services/{uuid}/envs/{env_uuid}",
+      "controller": "ServicesController",
+      "action": "delete_env_by_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/services/{uuid}/restart",
+      "controller": "ServicesController",
+      "action": "action_restart",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/services/{uuid}/restart",
+      "controller": "ServicesController",
+      "action": "action_restart",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/services/{uuid}/scheduled-tasks",
+      "controller": "ScheduledTasksController",
+      "action": "scheduled_tasks_by_service_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/services/{uuid}/scheduled-tasks",
+      "controller": "ScheduledTasksController",
+      "action": "create_scheduled_task_by_service_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/services/{uuid}/scheduled-tasks/{task_uuid}",
+      "controller": "ScheduledTasksController",
+      "action": "delete_scheduled_task_by_service_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/services/{uuid}/scheduled-tasks/{task_uuid}",
+      "controller": "ScheduledTasksController",
+      "action": "update_scheduled_task_by_service_uuid",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/services/{uuid}/scheduled-tasks/{task_uuid}/executions",
+      "controller": "ScheduledTasksController",
+      "action": "executions_by_service_uuid",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/services/{uuid}/start",
+      "controller": "ServicesController",
+      "action": "action_deploy",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/services/{uuid}/start",
+      "controller": "ServicesController",
+      "action": "action_deploy",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/services/{uuid}/stop",
+      "controller": "ServicesController",
+      "action": "action_stop",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/services/{uuid}/stop",
+      "controller": "ServicesController",
+      "action": "action_stop",
+      "middleware": [
+        "api.ability:deploy"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/services/{uuid}/storages",
+      "controller": "ServicesController",
+      "action": "storages",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/services/{uuid}/storages",
+      "controller": "ServicesController",
+      "action": "update_storage",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/services/{uuid}/storages",
+      "controller": "ServicesController",
+      "action": "create_storage",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/services/{uuid}/storages/{storage_uuid}",
+      "controller": "ServicesController",
+      "action": "delete_storage",
+      "middleware": [
+        "api.ability:write"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/teams",
+      "controller": "TeamController",
+      "action": "teams",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/teams/current",
+      "controller": "TeamController",
+      "action": "current_team",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/teams/current/members",
+      "controller": "TeamController",
+      "action": "current_team_members",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/teams/{id}",
+      "controller": "TeamController",
+      "action": "team_by_id",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/teams/{id}/members",
+      "controller": "TeamController",
+      "action": "members_by_id",
+      "middleware": [
+        "api.ability:read"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/version",
+      "controller": "OtherController",
+      "action": "version",
+      "middleware": [
+        "api.ability:read"
+      ]
+    }
+  ]
 }
