@@ -653,7 +653,44 @@ jobs:
           source /tmp/coolify-env
           set +a
           export TF_ACC=1
-          go test -run TestAcc -race -count=1 -timeout=35m -p 1 -parallel=1 ./...
+
+          # Run per-package for live progress visibility.
+          # A single "go test ./..." produces no output until all tests finish.
+          pkgs=$(go test -run TestAcc -list 'TestAcc.*' ./... 2>/dev/null \
+            | grep -B1 '^TestAcc' | grep '^ok\|^#' | sed 's/^# //' | sort -u \
+            || true)
+          if [ -z "$pkgs" ]; then
+            pkgs=$(go list ./internal/service/...)
+          fi
+
+          total=$(echo "$pkgs" | wc -l | tr -d ' ')
+          current=0
+          failed=0
+          failed_pkgs=""
+
+          for pkg in $pkgs; do
+            current=$((current + 1))
+            short="${pkg#github.com/coolify-terraform/terraform-provider-coolify/}"
+            echo ""
+            echo "=== [$current/$total] $short ==="
+            if go test -run TestAcc -race -count=1 -timeout=10m -parallel=1 -v "$pkg" 2>&1; then
+              echo "--- PASS: $short"
+            else
+              echo "--- FAIL: $short"
+              failed=$((failed + 1))
+              failed_pkgs="$failed_pkgs $short"
+            fi
+          done
+
+          echo ""
+          echo "==========================================="
+          echo "  Acceptance Tests: $((total - failed))/$total passed"
+          if [ $failed -gt 0 ]; then
+            echo "  Failed:$failed_pkgs"
+            echo "==========================================="
+            exit 1
+          fi
+          echo "==========================================="
 
   ci-pass:
     name: CI
