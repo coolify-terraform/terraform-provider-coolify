@@ -166,7 +166,7 @@ TINKER_OUTPUT=$(docker exec coolify php artisan tinker --execute='
   echo $token->plainTextToken;
 ' 2>&1)
 
-API_TOKEN=$(echo "$TINKER_OUTPUT" | grep -oE '^[0-9]+\|[A-Za-z0-9]+' | tail -1)
+API_TOKEN=$(echo "$TINKER_OUTPUT" | grep -oE '^[0-9]+\|[A-Za-z0-9]+' | tail -1 || true)
 
 if [[ -z "$API_TOKEN" ]]; then
   echo "ERROR: Failed to create API token. Artisan output:" >&2
