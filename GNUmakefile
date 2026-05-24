@@ -69,10 +69,11 @@ python-test: check-python3 ## Run Python unit tests for scripts/
 install: ## Install provider to local Go bin
 	go install .
 
-spec-update: ## Download latest Coolify OpenAPI spec
+spec-update: ## Download latest Coolify OpenAPI spec and apply contract corrections
 	curl -sL https://raw.githubusercontent.com/coollabsio/coolify/v4.x/openapi.json \
 		-o testdata/specs/coolify-v4.json
 	@echo "Updated testdata/specs/coolify-v4.json"
+	@echo "Run 'make spec-generate' to apply contract corrections"
 
 spec-check: ## Run OpenAPI spec compliance tests
 	go test -race -count=1 -run 'TestClientEndpoints_SpecCompliance' ./internal/spectest/ -v
@@ -86,10 +87,10 @@ contract-check: ## Verify client structs cover all contract fields
 contract-matrix: check-python3 ## Generate API contract accuracy matrix page
 	python3 scripts/generate-contract-matrix.py
 
-spec-generate: check-python3 ## Regenerate OpenAPI spec from contract (idempotent: always patches from original)
+spec-generate: check-python3 ## Regenerate OpenAPI spec from contract (patches in place)
 	python3 scripts/generate-openapi.py \
 		--contract testdata/contracts/coolify-v4.json \
-		--spec testdata/specs/coolify-v4.original.json \
+		--spec testdata/specs/coolify-v4.json \
 		--output testdata/specs/coolify-v4.json
 
 api-coverage: ## Regenerate API_COVERAGE.md from coverage registry

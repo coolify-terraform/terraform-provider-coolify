@@ -484,6 +484,71 @@ def build_model_contract(
     }
 
 
+def extract_routes(routes_file: Path) -> list[dict]:
+    """Extract API route definitions from routes/api.php.
+
+    Parses Laravel Route:: calls and returns a sorted list of
+    {method, path, controller, action, middleware} dicts.
+    """
+    if not routes_file.exists():
+        return []
+
+    content = routes_file.read_text(errors="replace")
+    routes: list[dict] = []
+
+    # Match Route::get, Route::post, Route::patch, Route::delete, Route::put
+    single_pattern = re.compile(
+        r"Route::(get|post|patch|delete|put)\(\s*'([^']+)'\s*,\s*"
+        r"\[(\w+)::class\s*,\s*'([^']+)'\]"
+        r"\s*\)(?:->middleware\(\[([^\]]*)\]\))?",
+    )
+    for m in single_pattern.finditer(content):
+        http_method = m.group(1).upper()
+        path = m.group(2)
+        controller = m.group(3)
+        action = m.group(4)
+        middleware = _parse_middleware(m.group(5)) if m.group(5) else []
+        routes.append({
+            "method": http_method,
+            "path": path,
+            "controller": controller,
+            "action": action,
+            "middleware": middleware,
+        })
+
+    # Match Route::match(['get', 'post'], '/path', [...])
+    match_pattern = re.compile(
+        r"Route::match\(\s*\[([^\]]+)\]\s*,\s*'([^']+)'\s*,\s*"
+        r"\[(\w+)::class\s*,\s*'([^']+)'\]"
+        r"\s*\)(?:->middleware\(\[([^\]]*)\]\))?",
+    )
+    for m in match_pattern.finditer(content):
+        methods_raw = m.group(1)
+        path = m.group(2)
+        controller = m.group(3)
+        action = m.group(4)
+        middleware = _parse_middleware(m.group(5)) if m.group(5) else []
+        for method_str in re.findall(r"'([^']+)'", methods_raw):
+            routes.append({
+                "method": method_str.upper(),
+                "path": path,
+                "controller": controller,
+                "action": action,
+                "middleware": middleware,
+            })
+
+    # Sort by path then method for stable output
+    routes.sort(key=lambda r: (r["path"], r["method"]))
+    return routes
+
+
+def _parse_middleware(raw: Optional[str]) -> list[str]:
+    """Parse middleware string from a Route definition."""
+    if not raw:
+        return []
+    return [m.strip().strip("'\"") for m in raw.split(",") if m.strip()]
+
+
 def extract_contract(coolify_dir: str, version: str = "unknown") -> dict:
     """Extract the full API contract from a Coolify source directory."""
     root = Path(coolify_dir)
@@ -588,6 +653,10 @@ def extract_contract(coolify_dir: str, version: str = "unknown") -> dict:
 
     # Shared validation rules
     contract["shared_validation_rules"] = extract_shared_validation(helpers_dir)
+
+    # API routes from routes/api.php
+    routes_file = root / "routes" / "api.php"
+    contract["routes"] = extract_routes(routes_file)
 
     return contract
 
