@@ -151,19 +151,23 @@ docker exec coolify php artisan config:clear 2>/dev/null || true
 
 log "Creating API token"
 
-# Use artisan tinker to create token through Sanctum (proper hashing).
-# team_id is set explicitly because currentTeam() returns null on fresh installs.
+# Build the token record directly with all fields (including team_id)
+# to avoid NOT NULL constraint. createToken() inserts before we can set team_id.
 TINKER_OUTPUT=$(docker exec coolify php artisan tinker --execute='
   $user = \App\Models\User::first();
-  if (!$user) { echo "ERROR: no user"; exit(1); }
   $team = \App\Models\Team::first();
-  if (!$team) { echo "ERROR: no team"; exit(1); }
-  $user->tokens()->where("name", "acc-tests")->delete();
-  $token = $user->createToken("acc-tests", ["*"]);
-  $pat = $token->accessToken;
+  if (!$user || !$team) { echo "ERROR: no user or team"; exit(1); }
+  \Laravel\Sanctum\PersonalAccessToken::where("name", "acc-tests")->delete();
+  $plain = \Illuminate\Support\Str::random(40);
+  $pat = new \Laravel\Sanctum\PersonalAccessToken();
+  $pat->name = "acc-tests";
+  $pat->token = hash("sha256", $plain);
+  $pat->abilities = ["*"];
+  $pat->tokenable_type = get_class($user);
+  $pat->tokenable_id = $user->id;
   $pat->team_id = $team->id;
   $pat->save();
-  echo $token->plainTextToken;
+  echo $pat->id . "|" . $plain;
 ' 2>&1)
 
 API_TOKEN=$(echo "$TINKER_OUTPUT" | grep -oE '^[0-9]+\|[A-Za-z0-9]+' | tail -1 || true)
