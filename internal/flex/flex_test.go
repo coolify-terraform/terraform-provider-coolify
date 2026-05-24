@@ -1,6 +1,7 @@
 package flex_test
 
 import (
+	encoding_base64 "encoding/base64"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -816,4 +817,43 @@ func TestIntIfNonDefault(t *testing.T) {
 			t.Fatalf("expected 8, got %d", *got)
 		}
 	})
+}
+
+func TestEnsureBase64(t *testing.T) {
+	t.Parallel()
+	t.Run("raw YAML is encoded", func(t *testing.T) {
+		raw := "version: '3'\nservices:\n  web:\n    image: nginx\n"
+		got := flex.EnsureBase64(raw)
+		if got == raw {
+			t.Fatal("expected base64 encoding, got raw input back")
+		}
+		decoded, err := base64Decode(got)
+		if err != nil {
+			t.Fatalf("result is not valid base64: %v", err)
+		}
+		if decoded != raw {
+			t.Fatalf("decoded = %q, want %q", decoded, raw)
+		}
+	})
+	t.Run("already-encoded input is returned unchanged", func(t *testing.T) {
+		raw := "version: '3'\nservices:\n  web:\n    image: nginx\n"
+		encoded := base64Encode(raw)
+		got := flex.EnsureBase64(encoded)
+		if got != encoded {
+			t.Fatalf("expected already-encoded input to be returned unchanged, got %q", got)
+		}
+	})
+	t.Run("empty string returns empty", func(t *testing.T) {
+		if got := flex.EnsureBase64(""); got != "" {
+			t.Fatalf("expected empty, got %q", got)
+		}
+	})
+}
+
+func base64Encode(s string) string {
+	return encoding_base64.StdEncoding.EncodeToString([]byte(s))
+}
+func base64Decode(s string) (string, error) {
+	b, err := encoding_base64.StdEncoding.DecodeString(s)
+	return string(b), err
 }

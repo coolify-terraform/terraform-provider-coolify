@@ -23,14 +23,15 @@ type Service struct {
 	ConfigHash                    string `json:"config_hash,omitempty"`
 }
 type CreateServiceInput struct {
-	Type            string `json:"type"`
-	Name            string `json:"name,omitempty"`
-	Description     string `json:"description,omitempty"`
-	ServerUUID      string `json:"server_uuid"`
-	ProjectUUID     string `json:"project_uuid"`
-	EnvironmentName string `json:"environment_name"`
-	EnvironmentUUID string `json:"environment_uuid,omitempty"`
-	InstantDeploy   *bool  `json:"instant_deploy,omitempty"`
+	Type             string  `json:"type,omitempty"`
+	Name             string  `json:"name,omitempty"`
+	Description      string  `json:"description,omitempty"`
+	ServerUUID       string  `json:"server_uuid"`
+	ProjectUUID      string  `json:"project_uuid"`
+	EnvironmentName  string  `json:"environment_name"`
+	EnvironmentUUID  string  `json:"environment_uuid,omitempty"`
+	InstantDeploy    *bool   `json:"instant_deploy,omitempty"`
+	DockerComposeRaw *string `json:"docker_compose_raw,omitempty"`
 }
 
 func (c *Client) ListServices(ctx context.Context) ([]Service, error) {

@@ -96,11 +96,22 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 				http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
 				return
 			}
-			for _, field := range []string{"project_uuid", "server_uuid", "type"} {
+			for _, field := range []string{"project_uuid", "server_uuid"} {
 				if _, ok := body[field]; !ok {
 					http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
 					return
 				}
+			}
+			// Must have either type or docker_compose_raw
+			_, hasType := body["type"]
+			_, hasCompose := body["docker_compose_raw"]
+			if !hasType && !hasCompose {
+				http.Error(w, `{"error":"one of type or docker_compose_raw is required"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			if hasType && hasCompose {
+				http.Error(w, `{"message":"You cannot provide both service type and docker_compose_raw."}`, http.StatusUnprocessableEntity)
+				return
 			}
 			if v, ok := body["name"].(string); ok && v != "" {
 				state.name = v
@@ -697,6 +708,155 @@ func TestServiceResource_ImportCompoundEmptyEnv(t *testing.T) {
 				ImportState:   true,
 				ImportStateId: "aaaa0001-0001-4000-8000-000000000001:bbbb0001-0001-4000-8000-000000000001::dddd0001-0001-4000-8000-000000000001",
 				ExpectError:   regexp.MustCompile(`environment_name must not be empty`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestServiceResource_MutualExclusivity_TypeAndCompose
+// ---------------------------------------------------------------------------
+
+func TestServiceResource_MutualExclusivity_TypeAndCompose(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockServiceServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service" "test" {
+  project_uuid       = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid        = "bbbb0001-0001-4000-8000-000000000001"
+  type               = "plausible"
+  docker_compose_raw = "version: '3'\nservices:\n  web:\n    image: nginx\n"
+}
+`,
+				ExpectError: regexp.MustCompile(`(?i)mutually exclusive|conflicting`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestServiceResource_MissingTypeAndCompose
+// ---------------------------------------------------------------------------
+
+func TestServiceResource_MissingTypeAndCompose(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockServiceServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+				ExpectError: regexp.MustCompile(`(?i)must be set|missing required`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestServiceResource_ComposeCreate
+// ---------------------------------------------------------------------------
+
+func newComposeAwareMockServer() (*httptest.Server, *mockServiceState) {
+	state := &mockServiceState{
+		uuid: "dddd0002-0002-4000-8000-000000000002",
+		name: "custom-compose-svc",
+	}
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		state.mu.Lock()
+		defer state.mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			var body map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
+				return
+			}
+			// Verify docker_compose_raw was sent (not type)
+			if _, ok := body["docker_compose_raw"]; !ok {
+				http.Error(w, `{"error":"docker_compose_raw required"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			if v, ok := body["name"].(string); ok && v != "" {
+				state.name = v
+			}
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			if state.deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":               state.uuid,
+				"name":               state.name,
+				"project_uuid":       "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":        "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":   "production",
+				"type":               "custom",
+				"docker_compose_raw": "version: '3'\nservices:\n  web:\n    image: nginx\n",
+			})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			state.deleted = true
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	return srv, state
+}
+
+func TestServiceResource_ComposeCreate(t *testing.T) {
+	t.Parallel()
+	srv, _ := newComposeAwareMockServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service" "test" {
+  project_uuid       = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid        = "bbbb0001-0001-4000-8000-000000000001"
+  docker_compose_raw = "version: '3'\nservices:\n  web:\n    image: nginx\n"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "dddd0002-0002-4000-8000-000000000002"),
+					resource.TestCheckResourceAttr("coolify_service.test", "name", "custom-compose-svc"),
+				),
+			},
+			// Idempotency
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service" "test" {
+  project_uuid       = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid        = "bbbb0001-0001-4000-8000-000000000001"
+  docker_compose_raw = "version: '3'\nservices:\n  web:\n    image: nginx\n"
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})

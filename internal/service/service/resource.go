@@ -23,9 +23,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = &serviceResource{}
-	_ resource.ResourceWithConfigure   = &serviceResource{}
-	_ resource.ResourceWithImportState = &serviceResource{}
+	_ resource.Resource                   = &serviceResource{}
+	_ resource.ResourceWithConfigure      = &serviceResource{}
+	_ resource.ResourceWithImportState    = &serviceResource{}
+	_ resource.ResourceWithValidateConfig = &serviceResource{}
 )
 
 type serviceResource struct {
@@ -60,7 +61,7 @@ func (r *serviceResource) Metadata(_ context.Context, req resource.MetadataReque
 
 func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a service resource on Coolify. Services are pre-built application stacks from the Coolify service catalog (e.g., plausible, uptime-kuma, minio).",
+		MarkdownDescription: "Manages a service resource on Coolify. A service can be created from the Coolify catalog (using `type`) or from a custom Docker Compose file (using `docker_compose_raw`). These two fields are mutually exclusive.",
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"uuid": schema.StringAttribute{
@@ -116,10 +117,12 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.",
-				Required:            true,
+				MarkdownDescription: "The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). Mutually exclusive with `docker_compose_raw`. See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.",
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"status": schema.StringAttribute{
@@ -132,10 +135,11 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				Sensitive:           true,
 			},
 			"docker_compose_raw": schema.StringAttribute{
-				MarkdownDescription: "The raw Docker Compose configuration. Set this to customize the service's compose after creation. Requires API token with `read:sensitive` permission.",
-				Optional:            true,
-				Computed:            true,
-				Sensitive:           true,
+				MarkdownDescription: "The raw Docker Compose YAML content. Can be used instead of `type` to create a service from a custom compose file, or to customize a catalog service after creation. " +
+					"The provider accepts plain YAML or pre-encoded base64; encoding is handled automatically. Requires API token with `read:sensitive` permission.",
+				Optional:  true,
+				Computed:  true,
+				Sensitive: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -170,6 +174,32 @@ func (r *serviceResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
+// ValidateConfig checks that type and docker_compose_raw are not both set.
+func (r *serviceResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var model serviceResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &model)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	hasType := !model.Type.IsNull() && !model.Type.IsUnknown()
+	hasCompose := !model.DockerComposeRaw.IsNull() && !model.DockerComposeRaw.IsUnknown()
+
+	if hasType && hasCompose {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("type"),
+			"Conflicting attributes",
+			"\"type\" and \"docker_compose_raw\" are mutually exclusive. Use \"type\" to deploy from the Coolify catalog, or \"docker_compose_raw\" to deploy a custom Docker Compose stack.",
+		)
+	}
+	if !hasType && !hasCompose {
+		resp.Diagnostics.AddError(
+			"Missing required attribute",
+			"One of \"type\" or \"docker_compose_raw\" must be set.",
+		)
+	}
+}
+
 func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan serviceResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -191,7 +221,14 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 		ServerUUID:      plan.ServerUUID.ValueString(),
 		ProjectUUID:     plan.ProjectUUID.ValueString(),
 		EnvironmentName: plan.EnvironmentName.ValueString(),
-		Type:            plan.Type.ValueString(),
+	}
+	// Catalog type or custom compose (mutually exclusive, validated in ValidateConfig).
+	if !plan.Type.IsNull() && !plan.Type.IsUnknown() {
+		input.Type = plan.Type.ValueString()
+	}
+	if !plan.DockerComposeRaw.IsNull() && !plan.DockerComposeRaw.IsUnknown() {
+		encoded := flex.EnsureBase64(plan.DockerComposeRaw.ValueString())
+		input.DockerComposeRaw = &encoded
 	}
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
@@ -209,6 +246,12 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if plan.Description.IsUnknown() {
 		plan.Description = types.StringNull()
+	}
+	if plan.Type.IsUnknown() {
+		plan.Type = types.StringNull()
+	}
+	if plan.DockerComposeRaw.IsUnknown() {
+		plan.DockerComposeRaw = types.StringNull()
 	}
 
 	// Save partial state so the resource is tracked even if the read-back fails.
@@ -269,10 +312,16 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	uuid := state.UUID.ValueString()
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": uuid})
 
+	// Auto-encode docker_compose_raw before comparing/sending.
+	var encodedComposeRaw *string
+	if raw := flex.StringIfChanged(plan.DockerComposeRaw, state.DockerComposeRaw); raw != nil {
+		encoded := flex.EnsureBase64(*raw)
+		encodedComposeRaw = &encoded
+	}
 	input := client.UpdateServiceInput{
 		Name:                          flex.StringIfChanged(plan.Name, state.Name),
 		Description:                   flex.StringIfChanged(plan.Description, state.Description),
-		DockerComposeRaw:              flex.StringIfChanged(plan.DockerComposeRaw, state.DockerComposeRaw),
+		DockerComposeRaw:              encodedComposeRaw,
 		ConnectToNetwork:              flex.BoolIfChanged(plan.ConnectToNetwork, state.ConnectToNetwork),
 		IsContainerLabelEscapeEnabled: flex.BoolIfChanged(plan.IsContainerLabelEscapeEnabled, state.IsContainerLabelEscapeEnabled),
 	}
@@ -361,7 +410,18 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 		model.InstantDeploy = types.BoolValue(false)
 	}
 	model.DockerCompose = flex.StringToFramework(svc.DockerCompose)
-	model.DockerComposeRaw = flex.StringToFramework(svc.DockerComposeRaw)
+	// The API returns decoded YAML for docker_compose_raw, but the user may
+	// have provided raw YAML or base64. Preserve the user's original value
+	// when the decoded content matches, to avoid perpetual diffs.
+	if svc.DockerComposeRaw != "" {
+		if model.DockerComposeRaw.IsNull() || model.DockerComposeRaw.IsUnknown() {
+			model.DockerComposeRaw = types.StringValue(svc.DockerComposeRaw)
+		}
+		// else: keep the user's configured value in state
+	} else if model.DockerComposeRaw.IsUnknown() {
+		// API didn't return it (catalog service) and user didn't set it.
+		model.DockerComposeRaw = types.StringNull()
+	}
 	model.ConfigHash = flex.StringToFramework(svc.ConfigHash)
 	if svc.ConnectToNetwork != nil {
 		model.ConnectToNetwork = types.BoolValue(*svc.ConnectToNetwork)
