@@ -1,10 +1,13 @@
 # ACME Corp Preview Deployments
 #
 # Demonstrates PR-based preview environments:
-# 1. Register a GitHub App integration with Coolify
-# 2. Deploy an application from a GitHub repository
-# 3. Create preview environments for specific pull requests
-# 4. Clean up previews automatically on terraform destroy
+# 1. Deploy an application using a Dockerfile
+# 2. Create preview environments for specific pull requests
+# 3. Clean up previews automatically on terraform destroy
+#
+# Preview environments let you spin up isolated copies of your app
+# for each PR. Coolify tracks them by pull_request_id so destroy
+# removes only those previews.
 #
 # This scenario answers: "How do I set up preview deployments for PRs?"
 
@@ -25,51 +28,36 @@ provider "coolify" {
 
 resource "coolify_project" "acme" {
   name        = "acme-preview-deploy"
-  description = "ACME Corp PR preview deployments"
+  description = var.project_description
 }
 
-# --- SSH Key for GitHub App ---
+# --- Application (Dockerfile-based) ---
+#
+# Any application type supports previews. We use a simple Dockerfile
+# app here to keep the scenario self-contained (no external Git
+# credentials needed).
 
-resource "coolify_private_key" "github_app" {
-  name        = "acme-github-app-key"
-  description = "Private key for the ACME GitHub App integration"
-  private_key = var.github_app_private_key
-}
-
-# --- GitHub App Integration ---
-
-resource "coolify_github_app" "acme" {
-  name             = "acme-preview-app"
-  app_id           = var.github_app_id
-  installation_id  = var.github_app_installation_id
-  client_id        = var.github_app_client_id
-  client_secret    = var.github_app_client_secret
-  webhook_secret   = var.github_app_webhook_secret
-  private_key_uuid = coolify_private_key.github_app.uuid
-}
-
-# --- Application via GitHub App ---
-
-resource "coolify_application_github_app" "web" {
-  name            = "acme-web"
-  project_uuid    = coolify_project.acme.uuid
-  server_uuid     = var.server_uuid
-  github_app_uuid = coolify_github_app.acme.uuid
-  git_repository  = var.git_repository
-  git_branch      = "main"
-  build_pack      = "nixpacks"
-  ports_exposes   = "3000"
-  instant_deploy  = false
+resource "coolify_application_dockerfile" "web" {
+  name                = "acme-web"
+  project_uuid        = coolify_project.acme.uuid
+  server_uuid         = var.server_uuid
+  environment_name    = "production"
+  dockerfile_location = base64encode("FROM nginx:alpine\nEXPOSE 80\n")
+  ports_exposes       = "80"
+  instant_deploy      = false
 }
 
 # --- PR Preview Environments ---
+#
+# Each preview tracks a specific pull request. When the PR is merged
+# or closed, run terraform destroy to clean up the preview environment.
 
 resource "coolify_application_preview" "pr_1" {
-  application_uuid = coolify_application_github_app.web.uuid
+  application_uuid = coolify_application_dockerfile.web.uuid
   pull_request_id  = 1
 }
 
 resource "coolify_application_preview" "pr_2" {
-  application_uuid = coolify_application_github_app.web.uuid
+  application_uuid = coolify_application_dockerfile.web.uuid
   pull_request_id  = 2
 }

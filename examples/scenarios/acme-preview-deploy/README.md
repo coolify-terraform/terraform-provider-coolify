@@ -1,40 +1,26 @@
 # ACME Corp Preview Deployments
 
-This scenario sets up PR-based preview environments using a GitHub App
-integration, demonstrating the full workflow from app registration to
-per-PR preview deployments:
+This scenario sets up PR-based preview environments, demonstrating:
 
-1. **GitHub App private key** (`coolify_private_key`) for authenticating
-   the GitHub App with Coolify.
-2. **GitHub App integration** (`coolify_github_app`) registered with
-   Coolify using your app credentials.
-3. **Application via GitHub App** (`coolify_application_github_app`)
-   deployed from a GitHub repository through the registered app.
-4. **Preview environments** (`coolify_application_preview`) created for
-   specific pull requests -- cleaned up automatically on `terraform destroy`.
+1. **Application** (`coolify_application_dockerfile`) deployed from an
+   inline Dockerfile (any application type supports previews).
+2. **Preview environments** (`coolify_application_preview`) created for
+   specific pull requests, cleaned up automatically on `terraform destroy`.
 
-## Usage
-
-```bash
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your values
-terraform init
-terraform apply
-```
-
-## Resources Created
+## Resources Tested
 
 | Resource | Purpose |
 |----------|---------|
-| `coolify_project.acme` | Project container |
-| `coolify_private_key.github_app` | PEM key for GitHub App auth |
-| `coolify_github_app.acme` | GitHub App integration |
-| `coolify_application_github_app.web` | Application deployed via GitHub App |
-| `coolify_application_preview.pr_1` | Preview environment for PR #1 |
-| `coolify_application_preview.pr_2` | Preview environment for PR #2 |
+| `coolify_project` | Project container |
+| `coolify_application_dockerfile` | Application to attach previews to |
+| `coolify_application_preview` (x2) | PR preview environments for PRs #1 and #2 |
 
-## Plan-Only Testing
+## Running
 
-This scenario requires real GitHub App credentials to apply. The included
-test file validates HCL syntax, the resource graph, and schema correctness
-using `command = plan` with fake credentials.
+```bash
+export TF_VAR_coolify_endpoint="http://localhost:8000"
+export TF_VAR_coolify_token="your-token"
+export TF_VAR_server_uuid="your-server-uuid"
+
+terraform test -verbose
+```

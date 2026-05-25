@@ -440,10 +440,44 @@ jobs:
           TF_VAR_coolify_endpoint: ${{ secrets.COOLIFY_ENDPOINT }}
           TF_VAR_coolify_token: ${{ secrets.COOLIFY_TOKEN }}
           TF_VAR_server_uuid: ${{ secrets.COOLIFY_SERVER_UUID }}
+          # GitHub App scenarios (acme-github-cicd)
+          TF_VAR_github_app_private_key: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY }}
+          TF_VAR_github_app_id: ${{ secrets.COOLIFY_GITHUB_APP_APP_ID }}
+          TF_VAR_github_app_installation_id: ${{ secrets.COOLIFY_GITHUB_APP_INSTALLATION_ID }}
+          TF_VAR_github_app_client_id: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_ID }}
+          TF_VAR_github_app_client_secret: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_SECRET }}
+          TF_VAR_git_repository: ${{ secrets.COOLIFY_GITHUB_APP_REPOSITORY }}
+          # Hetzner scenarios (acme-hetzner-infra)
+          TF_VAR_hetzner_api_token: ${{ secrets.COOLIFY_HETZNER_TOKEN }}
         run: |
+          # Generate a temporary SSH key for Hetzner scenarios (no secret needed)
+          ssh-keygen -t rsa -b 4096 -f /tmp/scenario-deploy-key -N "" -q
+          TF_VAR_deploy_ssh_key="$(cat /tmp/scenario-deploy-key)"
+          export TF_VAR_deploy_ssh_key
+
           failed=0
           for dir in examples/scenarios/acme-*/; do
-            echo "=== Testing $(basename "$dir") ==="
+            scenario=$(basename "$dir")
+            echo "=== Testing $scenario ==="
+
+            # Skip scenarios with missing required secrets
+            case "$scenario" in
+              acme-github-cicd)
+                if [ -z "$TF_VAR_github_app_id" ]; then
+                  echo "SKIP: GitHub App secrets not configured"
+                  echo ""
+                  continue
+                fi
+                ;;
+              acme-hetzner-infra)
+                if [ -z "$TF_VAR_hetzner_api_token" ]; then
+                  echo "SKIP: Hetzner token not configured"
+                  echo ""
+                  continue
+                fi
+                ;;
+            esac
+
             (
               cd "$dir"
               if [ -d "modules" ]; then

@@ -10,15 +10,13 @@ variable "coolify_token" {
 }
 
 variable "hetzner_api_token" {
-  description = "Hetzner Cloud API token for server provisioning."
+  description = "Hetzner Cloud API token for server provisioning"
   type        = string
   sensitive   = true
-  default     = "test-hetzner-token-for-plan"
 }
 
 variable "deploy_ssh_key" {
-  description = "SSH private key for Hetzner Cloud server access."
+  description = "SSH private key for Hetzner Cloud server access"
   type        = string
   sensitive   = true
-  default     = "-----BEGIN OPENSSH PRIVATE KEY-----\ntest-key-for-plan-only\n-----END OPENSSH PRIVATE KEY-----"
 }
