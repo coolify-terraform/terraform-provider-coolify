@@ -430,7 +430,7 @@ jobs:
           rm -f /tmp/scenario-deploy-key /tmp/scenario-deploy-key.pub
           ssh-keygen -t rsa -b 2048 -f /tmp/scenario-deploy-key -N "" -q
           {
-            echo "TF_VAR_deploy_key<<EOFKEY"
+            echo "TF_VAR_deploy_ssh_key<<EOFKEY"
             cat /tmp/scenario-deploy-key
             echo "EOFKEY"
           } >> "$GITHUB_ENV"
@@ -450,11 +450,6 @@ jobs:
           # Hetzner scenarios (acme-hetzner-infra)
           TF_VAR_hetzner_api_token: ${{ secrets.COOLIFY_HETZNER_TOKEN }}
         run: |
-          # Generate a temporary SSH key for Hetzner scenarios (no secret needed)
-          ssh-keygen -t rsa -b 4096 -f /tmp/scenario-deploy-key -N "" -q
-          TF_VAR_deploy_ssh_key="$(cat /tmp/scenario-deploy-key)"
-          export TF_VAR_deploy_ssh_key
-
           failed=0
           for dir in examples/scenarios/acme-*/; do
             scenario=$(basename "$dir")
