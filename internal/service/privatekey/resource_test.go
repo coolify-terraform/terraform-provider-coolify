@@ -358,6 +358,93 @@ resource "coolify_private_key" "test" {
 	})
 }
 
+// TestPrivateKeyResource_PEMNormalization verifies that Read preserves the
+// user's private key even when Coolify normalises it (trim + trailing newline).
+func TestPrivateKeyResource_PEMNormalization(t *testing.T) {
+	t.Parallel()
+	keys := make(map[string]*client.PrivateKey)
+	var mu sync.Mutex
+
+	// Mock that mimics Coolify's formatPrivateKey(): trim + ensure trailing \n.
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/security/keys":
+			var input client.CreatePrivateKeyInput
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			normalized := strings.TrimSpace(input.PrivateKey)
+			if !strings.HasSuffix(normalized, "\n") {
+				normalized += "\n"
+			}
+			key := &client.PrivateKey{
+				UUID:        "cccc-norm-0001",
+				Name:        input.Name,
+				Description: input.Description,
+				PrivateKey:  normalized,
+				PublicKey:   "ssh-ed25519 AAAA-public",
+				Fingerprint: "SHA256:test",
+			}
+			keys[key.UUID] = key
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(key)
+
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/security/keys/")
+			key, ok := keys[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			json.NewEncoder(w).Encode(key)
+
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/security/keys/")
+			delete(keys, uuid)
+			w.WriteHeader(http.StatusOK)
+
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	// User value deliberately has NO trailing newline.
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_private_key" "test" {
+  name        = "norm-key"
+  private_key = "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_private_key.test", "uuid", "cccc-norm-0001"),
+					// State should still hold the user's original (no trailing newline).
+					resource.TestCheckResourceAttr("coolify_private_key.test", "private_key",
+						"-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----"),
+				),
+			},
+			// Idempotency: plan after Read must be empty.
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_private_key" "test" {
+  name        = "norm-key"
+  private_key = "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----"
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestPrivateKeyResource_Disappears(t *testing.T) {
 	t.Parallel()
 	srv := newPrivateKeyMockServer()

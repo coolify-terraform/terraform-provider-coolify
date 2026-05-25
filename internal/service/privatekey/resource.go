@@ -183,7 +183,15 @@ func (r *privateKeyResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
+	// Preserve the user's original private key value. Coolify normalises
+	// the PEM on save (trim + trailing newline) and the encrypted cast
+	// may change the representation, so the API value can differ from
+	// what the user provided. Create and Update already do this.
+	stateKey := state.PrivateKey
 	flattenPrivateKey(key, &state)
+	if !stateKey.IsNull() && !stateKey.IsUnknown() {
+		state.PrivateKey = stateKey
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
