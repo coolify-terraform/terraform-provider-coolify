@@ -354,7 +354,7 @@ jobs:
     needs: [changes, test]
     if: >-
       always() &&
-      needs.test.result == 'success' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (
         needs.changes.outputs.scenarios == 'true' ||
         github.event_name == 'workflow_dispatch'
