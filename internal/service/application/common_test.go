@@ -15,6 +15,33 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+func TestCanonicalGitRepo(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"strips https", "https://github.com/org/repo", "github.com/org/repo"},
+		{"strips http", "http://github.com/org/repo", "github.com/org/repo"},
+		{"no protocol unchanged", "github.com/org/repo", "github.com/org/repo"},
+		{"ssh unchanged", "git@github.com:org/repo.git", "git@github.com:org/repo.git"},
+		{"empty string", "", ""},
+		{"bare slug", "org/repo", "org/repo"},
+		{"trailing slash", "https://github.com/org/repo/", "github.com/org/repo/"},
+		{"double protocol", "https://https://github.com/org/repo", "https://github.com/org/repo"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := canonicalGitRepo(tt.in)
+			if got != tt.want {
+				t.Errorf("canonicalGitRepo(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNormalizeGitRepository(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
