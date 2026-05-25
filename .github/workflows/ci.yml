@@ -192,9 +192,15 @@ jobs:
         with:
           terraform_wrapper: false
           terraform_version: "1.15.x"
+      - uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+        with:
+          tofu_wrapper: false
       - name: Check HCL formatting
         if: ${{ !cancelled() }}
         run: terraform fmt -check -recursive examples/
+      - name: Check HCL formatting (OpenTofu)
+        if: ${{ !cancelled() }}
+        run: tofu fmt -check -recursive examples/
       - name: Check generated docs
         if: ${{ !cancelled() }}
         run: |

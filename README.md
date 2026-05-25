@@ -197,9 +197,11 @@ Every scenario has `terraform test` integration tests that run against a real Co
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.6
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.6 or [OpenTofu](https://opentofu.org/) >= 1.6
 - [Go](https://golang.org/doc/install) >= 1.26 (for building from source)
 - A running [Coolify](https://coolify.io/) instance (v4.x)
+
+The provider is built on the [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework), which implements the standard gRPC plugin protocol. All `terraform` commands in this documentation work identically with `tofu`.
 
 ## Extended Example
 
