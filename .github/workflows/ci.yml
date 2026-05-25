@@ -493,6 +493,10 @@ jobs:
     name: Acceptance Tests
     runs-on: [self-hosted, macOS]
     timeout-minutes: 130
+    # Depends on scenario-tests to serialize shared-Coolify-instance access.
+    # Both jobs use the same PEM key (GitHub App); Coolify enforces fingerprint
+    # uniqueness, so concurrent creation causes 422. Running sequentially
+    # ensures scenario cleanup completes before acceptance tests start.
     needs: [changes, test, scenario-tests]
     if: >-
       always() &&
