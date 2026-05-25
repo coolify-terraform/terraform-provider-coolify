@@ -493,10 +493,11 @@ jobs:
     name: Acceptance Tests
     runs-on: [self-hosted, macOS]
     timeout-minutes: 130
-    needs: [changes, test]
+    needs: [changes, test, scenario-tests]
     if: >-
       always() &&
       needs.test.result == 'success' &&
+      (needs.scenario-tests.result == 'success' || needs.scenario-tests.result == 'skipped') &&
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
