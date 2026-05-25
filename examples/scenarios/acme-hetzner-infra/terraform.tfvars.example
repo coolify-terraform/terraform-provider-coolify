@@ -1,0 +1,4 @@
+coolify_endpoint   = "http://localhost:8000"
+coolify_token      = "your-api-token"
+hetzner_api_token  = "your-hetzner-api-token"
+deploy_ssh_key     = "-----BEGIN OPENSSH PRIVATE KEY-----\nyour-ssh-private-key\n-----END OPENSSH PRIVATE KEY-----"

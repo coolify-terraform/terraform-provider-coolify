@@ -1,0 +1,12 @@
+coolify_endpoint           = "http://localhost:8000"
+coolify_token              = "your-api-token"
+server_uuid                = "your-server-uuid"
+github_app_private_key     = "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+github_app_id              = 12345
+github_app_installation_id = 67890
+github_app_client_id       = "Iv1.abc123def456"
+github_app_client_secret   = "your-client-secret"
+github_app_webhook_secret  = "your-webhook-secret"
+git_repository             = "https://github.com/coollabsio/coolify-examples"
+git_branch                 = "main"
+database_url               = "postgresql://user:pass@db:5432/acme"

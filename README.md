@@ -25,7 +25,7 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 | Managed resources | 33 |
 | Data sources | 44 |
 | Tests | 850+ unit and acceptance tests |
-| Scenario examples | 10 ACME Corp setups |
+| Scenario examples | 16 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
 ## Demo
@@ -164,7 +164,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 
 Deploy a full stack (app, database, backups, env vars) in a single `terraform apply`, or adopt the provider incrementally by importing your existing Coolify resources.
 
-**Real-world scenarios included** -- 10 tested ACME Corp examples cover common patterns:
+**Real-world scenarios included** -- 16 tested ACME Corp examples cover common patterns:
 
 | Scenario | What it deploys |
 |---|---|
@@ -178,6 +178,12 @@ Deploy a full stack (app, database, backups, env vars) in a single `terraform ap
 | [acme-integrations](examples/scenarios/acme-integrations) | Managed services from the Coolify catalog |
 | [acme-private-repo](examples/scenarios/acme-private-repo) | SSH deploy key + private Git repo + deployment with wait |
 | [acme-team-ops](examples/scenarios/acme-team-ops) | Team management, server discovery, project inventory |
+| [acme-day2-ops](examples/scenarios/acme-day2-ops) | Stop/start/restart resources with trigger-based re-execution |
+| [acme-preview-deploy](examples/scenarios/acme-preview-deploy) | GitHub App + PR preview environments |
+| [acme-github-cicd](examples/scenarios/acme-github-cicd) | GitHub App CI/CD pipeline with env vars + deployment |
+| [acme-compose-git](examples/scenarios/acme-compose-git) | Custom Docker Compose stack via docker_compose_raw |
+| [acme-env-scale](examples/scenarios/acme-env-scale) | Bulk env var management with shared + per-app patterns |
+| [acme-hetzner-infra](examples/scenarios/acme-hetzner-infra) | Hetzner Cloud server provisioning + build server |
 
 Every scenario has `terraform test` integration tests that run against a real Coolify instance.
 
