@@ -241,11 +241,19 @@ func resolveGitRepository(state types.String, apiValue string) types.String {
 	normalized := normalizeGitRepository(apiValue)
 	if !state.IsNull() && !state.IsUnknown() {
 		sv := state.ValueString()
-		if sv == apiValue || sv == normalized {
+		if sv == apiValue || sv == normalized || canonicalGitRepo(sv) == canonicalGitRepo(apiValue) {
 			return state
 		}
 	}
 	return types.StringValue(normalized)
+}
+
+// canonicalGitRepo strips the protocol prefix so that "github.com/org/repo"
+// and "https://github.com/org/repo" compare as equal.
+func canonicalGitRepo(s string) string {
+	s = strings.TrimPrefix(s, "https://")
+	s = strings.TrimPrefix(s, "http://")
+	return s
 }
 
 // normalizeGitRepository reconstructs a full GitHub URL if the API returned a

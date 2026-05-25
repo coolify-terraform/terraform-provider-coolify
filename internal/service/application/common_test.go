@@ -44,6 +44,45 @@ func TestNormalizeGitRepository(t *testing.T) {
 	}
 }
 
+func TestResolveGitRepository_ProtocolNormalization(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		state    string
+		apiValue string
+		want     string
+	}{
+		{
+			"user bare domain, API adds https",
+			"github.com/org/repo",
+			"https://github.com/org/repo",
+			"github.com/org/repo", // preserve user's value
+		},
+		{
+			"user full URL, API returns same",
+			"https://github.com/org/repo",
+			"https://github.com/org/repo",
+			"https://github.com/org/repo",
+		},
+		{
+			"user full URL, API strips protocol",
+			"https://github.com/org/repo",
+			"org/repo",
+			"https://github.com/org/repo", // preserve user's value (matches normalized)
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			state := types.StringValue(tt.state)
+			got := resolveGitRepository(state, tt.apiValue)
+			if got.ValueString() != tt.want {
+				t.Errorf("resolveGitRepository(%q, %q) = %q, want %q", tt.state, tt.apiValue, got.ValueString(), tt.want)
+			}
+		})
+	}
+}
+
 func TestExtendedBuildDeployAttrsPreviewURLTemplateIsReadOnly(t *testing.T) {
 	t.Parallel()
 
