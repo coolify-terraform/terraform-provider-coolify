@@ -429,10 +429,14 @@ jobs:
         run: |
           rm -f /tmp/scenario-deploy-key /tmp/scenario-deploy-key.pub
           ssh-keygen -t rsa -b 2048 -f /tmp/scenario-deploy-key -N "" -q
+          DEPLOY_KEY=$(cat /tmp/scenario-deploy-key)
           {
             echo "TF_VAR_deploy_ssh_key<<EOFKEY"
-            cat /tmp/scenario-deploy-key
+            echo "$DEPLOY_KEY"
             echo "EOFKEY"
+            echo "TF_VAR_deploy_key<<EOFKEY2"
+            echo "$DEPLOY_KEY"
+            echo "EOFKEY2"
           } >> "$GITHUB_ENV"
       - name: Run scenario tests
         if: steps.secrets.outputs.configured == 'true' && steps.health.outputs.healthy == 'true'
