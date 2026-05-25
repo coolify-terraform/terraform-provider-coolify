@@ -19,12 +19,16 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-ghapp-app")
 	privateKeyName := acctest.RandomWithPrefix("tf-acc-ghapp-app-key")
+	// Generate a unique RSA key to avoid fingerprint collisions with the
+	// scenario tests that register the real GitHub App PEM concurrently.
+	privKey := acctest.GenerateTestRSAKey(t)
 	updatedDescription := "Updated github app application"
-	createConfig := testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName, fixture, "")
+	createConfig := testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName, privKey, fixture, "")
 	updatedConfig := testAccGitHubAppApplicationConfig(
 		name,
 		serverUUID,
 		privateKeyName,
+		privKey,
 		fixture,
 		fmt.Sprintf(`description = %q`, updatedDescription),
 	)
@@ -77,7 +81,6 @@ type gitHubAppApplicationFixture struct {
 	InstallationID int64
 	ClientID       string
 	ClientSecret   string
-	PrivateKey     string
 	GitRepository  string
 	GitBranch      string
 }
@@ -92,7 +95,7 @@ func accTestGitHubAppApplicationFixture(t *testing.T) gitHubAppApplicationFixtur
 		"COOLIFY_GITHUB_APP_CLIENT_SECRET",
 		"COOLIFY_GITHUB_APP_REPOSITORY",
 	}
-	missing := make([]string, 0, len(required)+1)
+	missing := make([]string, 0, len(required))
 	values := make(map[string]string, len(required))
 	for _, key := range required {
 		value := strings.TrimSpace(os.Getenv(key))
@@ -101,20 +104,6 @@ func accTestGitHubAppApplicationFixture(t *testing.T) gitHubAppApplicationFixtur
 			continue
 		}
 		values[key] = value
-	}
-
-	privateKey := os.Getenv("COOLIFY_GITHUB_APP_PRIVATE_KEY")
-	if privateKey == "" {
-		privateKeyFile := strings.TrimSpace(os.Getenv("COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE"))
-		if privateKeyFile == "" {
-			missing = append(missing, "COOLIFY_GITHUB_APP_PRIVATE_KEY or COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE")
-		} else {
-			keyBytes, err := os.ReadFile(privateKeyFile)
-			if err != nil {
-				t.Fatalf("reading COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE %q: %s", privateKeyFile, err)
-			}
-			privateKey = string(keyBytes)
-		}
 	}
 
 	if len(missing) > 0 {
@@ -140,13 +129,12 @@ func accTestGitHubAppApplicationFixture(t *testing.T) gitHubAppApplicationFixtur
 		InstallationID: installationID,
 		ClientID:       values["COOLIFY_GITHUB_APP_CLIENT_ID"],
 		ClientSecret:   values["COOLIFY_GITHUB_APP_CLIENT_SECRET"],
-		PrivateKey:     privateKey,
 		GitRepository:  values["COOLIFY_GITHUB_APP_REPOSITORY"],
 		GitBranch:      branch,
 	}
 }
 
-func testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName string, fixture gitHubAppApplicationFixture, extra string) string {
+func testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName, privKey string, fixture gitHubAppApplicationFixture, extra string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {
   name = %[1]q
@@ -177,5 +165,5 @@ resource "coolify_application_github_app" "test" {
   ports_exposes   = "3000"
   %[11]s
 }
-`, name, serverUUID, privateKeyName, fixture.PrivateKey, fixture.AppID, fixture.InstallationID, fixture.ClientID, fixture.ClientSecret, fixture.GitRepository, fixture.GitBranch, extra)
+`, name, serverUUID, privateKeyName, privKey, fixture.AppID, fixture.InstallationID, fixture.ClientID, fixture.ClientSecret, fixture.GitRepository, fixture.GitBranch, extra)
 }
