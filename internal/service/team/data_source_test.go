@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -74,6 +75,33 @@ data "coolify_team" "test" {
 					resource.TestCheckResourceAttr("data.coolify_team.test", "members.1.name", "Bob"),
 					resource.TestCheckResourceAttr("data.coolify_team.test", "members.1.email", "bob@example.com"),
 				),
+			},
+		},
+	})
+}
+
+func TestTeamDataSource_NotFound(t *testing.T) {
+	t.Parallel()
+	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	})))
+	defer mockSrv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+data "coolify_team" "test" {
+  id = 999
+}
+`, mockSrv.URL),
+				ExpectError: regexp.MustCompile(`Error reading team`),
 			},
 		},
 	})
