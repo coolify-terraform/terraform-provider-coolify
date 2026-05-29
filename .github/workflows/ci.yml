@@ -499,15 +499,15 @@ jobs:
     name: Acceptance Tests
     runs-on: [self-hosted, macOS]
     timeout-minutes: 130
-    # Depends on scenario-tests to serialize shared-Coolify-instance access.
-    # Both jobs use the same PEM key (GitHub App); Coolify enforces fingerprint
-    # uniqueness, so concurrent creation causes 422. Running sequentially
-    # ensures scenario cleanup completes before acceptance tests start.
+    # Depends on scenario-tests to serialize shared-Coolify-instance access
+    # (both jobs use the same PEM key; Coolify enforces fingerprint uniqueness).
+    # The if condition uses != 'cancelled' (not == 'success') so acceptance
+    # tests still run even when a scenario fails; serialization is preserved.
     needs: [changes, test, scenario-tests]
     if: >-
       always() &&
       needs.test.result == 'success' &&
-      (needs.scenario-tests.result == 'success' || needs.scenario-tests.result == 'skipped') &&
+      needs.scenario-tests.result != 'cancelled' &&
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||

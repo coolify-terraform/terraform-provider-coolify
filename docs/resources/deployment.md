@@ -47,11 +47,11 @@ resource "coolify_deployment" "web_wait" {
 
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `triggers` (Map of String) An arbitrary map of values that, when changed, triggers a new deployment.
-- `wait_for_completion` (Boolean) When `true`, the resource waits until the deployment reaches `finished` or `error` status before completing. The default create timeout is 10 minutes; for long-running builds, increase it with `timeouts { create = "30m" }`. On `error`, the apply fails with a diagnostic. Default `false`.
+- `wait_for_completion` (Boolean) When `true`, the resource waits until the deployment reaches `finished` or `failed` status before completing. The default create timeout is 10 minutes; for long-running builds, increase it with `timeouts { create = "30m" }`. On `failed`, the apply fails with a diagnostic. Default `false`.
 
 ### Read-Only
 
-- `status` (String) The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `error`. The deployment may still be `in_progress` when `terraform apply` completes.
+- `status` (String) The current status of the deployment. Possible values: `queued`, `in_progress`, `finished`, `failed`. The deployment may still be `in_progress` when `terraform apply` completes.
 - `uuid` (String) The UUID of the deployment.
 
 <a id="nestedatt--timeouts"></a>

@@ -434,7 +434,7 @@ resource "coolify_deployment" "test" {
 	})
 }
 
-func TestDeploymentResource_WaitForCompletionError(t *testing.T) {
+func TestDeploymentResource_WaitForCompletionFailed(t *testing.T) {
 	t.Parallel()
 	deploymentUUID := "wait-err-0001-4000-8000-000000000001"
 	appUUID := "cccc0004-0004-4000-8000-000000000004"
@@ -459,9 +459,12 @@ func TestDeploymentResource_WaitForCompletionError(t *testing.T) {
 		n := getCount
 		mu.Unlock()
 		uuid := r.PathValue("uuid")
+		// Coolify uses ApplicationDeploymentStatus::FAILED ("failed")
+		// for deployment failures. The provider also handles "error"
+		// (ProcessStatus) for safety.
 		status := "in_progress"
 		if n >= 3 {
-			status = "error"
+			status = "failed"
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
