@@ -1,8 +1,8 @@
-# Terraform Provider for Coolify
-
 <p align="center">
-  <img src="assets/hero.jpg" alt="Terraform Provider for Coolify" width="100%">
+  <img src="assets/logo.svg" alt="Terraform Provider for Coolify" width="400">
 </p>
+
+# Terraform Provider for Coolify
 
 [![CI](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml)
 ![Go Version](https://img.shields.io/github/go-mod/go-version/coolify-terraform/terraform-provider-coolify)
