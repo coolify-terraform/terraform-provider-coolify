@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="Terraform Provider for Coolify" width="400">
+  <img src="assets/logo.png" alt="Terraform Provider for Coolify" width="400">
 </p>
 
 # Terraform Provider for Coolify
