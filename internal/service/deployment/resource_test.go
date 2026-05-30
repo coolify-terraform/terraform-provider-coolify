@@ -436,51 +436,55 @@ resource "coolify_deployment" "test" {
 
 func TestDeploymentResource_WaitForCompletionFailed(t *testing.T) {
 	t.Parallel()
-	deploymentUUID := "wait-err-0001-4000-8000-000000000001"
-	appUUID := "cccc0004-0004-4000-8000-000000000004"
 
-	mu := sync.Mutex{}
-	getCount := 0
+	for _, failureStatus := range []string{"failed", "error"} {
+		t.Run(failureStatus, func(t *testing.T) {
+			t.Parallel()
+			deploymentUUID := "wait-err-0001-4000-8000-000000000001"
+			appUUID := "cccc0004-0004-4000-8000-000000000004"
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
-	})
-	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		getCount++
-		n := getCount
-		mu.Unlock()
-		uuid := r.PathValue("uuid")
-		// Coolify uses ApplicationDeploymentStatus::FAILED ("failed")
-		// for deployment failures. The provider also handles "error"
-		// (ProcessStatus) for safety.
-		status := "in_progress"
-		if n >= 3 {
-			status = "failed"
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"deployment_uuid": uuid,
-			"status":          status,
-		})
-	})
+			mu := sync.Mutex{}
+			getCount := 0
 
-	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
-	defer srv.Close()
+			mux := http.NewServeMux()
+			mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+				if !requireRestartApplicationUUID(w, r, appUUID) {
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]string{
+					"deployment_uuid": deploymentUUID,
+					"message":         "Restart request queued.",
+				})
+			})
+			mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				getCount++
+				n := getCount
+				mu.Unlock()
+				uuid := r.PathValue("uuid")
+				// Coolify uses ApplicationDeploymentStatus::FAILED ("failed")
+				// for deployment failures. The provider also handles "error"
+				// (ProcessStatus) for safety. This test exercises both.
+				status := "in_progress"
+				if n >= 3 {
+					status = failureStatus
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"deployment_uuid": uuid,
+					"status":          status,
+				})
+			})
 
-	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{
-			{
-				Config: fmt.Sprintf(`
+			srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+			defer srv.Close()
+
+			resource.UnitTest(t, resource.TestCase{
+				ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{
+					{
+						Config: fmt.Sprintf(`
 provider "coolify" {
   endpoint = %q
   token    = "test-token"
@@ -494,10 +498,12 @@ resource "coolify_deployment" "test" {
   }
 }
 `, srv.URL, appUUID),
-				ExpectError: regexp.MustCompile(`Deployment failed`),
-			},
-		},
-	})
+						ExpectError: regexp.MustCompile(`Deployment failed`),
+					},
+				},
+			})
+		})
+	}
 }
 
 func TestDeploymentResource_WaitForCompletionTimeout(t *testing.T) {
