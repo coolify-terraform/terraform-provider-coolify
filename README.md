@@ -1,9 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/logo.png">
-    <img src="assets/logo.png" alt="Terraform Provider for Coolify" width="400">
-  </picture>
+  <img src="assets/logo.png" alt="Terraform Provider for Coolify" width="400">
 </p>
 
 # Terraform Provider for Coolify

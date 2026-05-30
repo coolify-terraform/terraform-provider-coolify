@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="48" fill="#14141F"/>
   <!-- C icon (60 Terraform-angle parallelogram blocks) -->
   <polygon points="187,72 215,72 229,48 201,48" fill="#7B42BC"/>
   <polygon points="219,72 247,72 261,48 233,48" fill="#7B42BC"/>
@@ -63,5 +65,5 @@
   <!-- Wordmark inside the C opening -->
   <text x="300" y="275" text-anchor="middle"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-        font-size="72" font-weight="900" letter-spacing="0" fill="#14141F">Terraform</text>
+        font-size="72" font-weight="900" letter-spacing="0" fill="#E6EDF3">Terraform</text>
 </svg>
