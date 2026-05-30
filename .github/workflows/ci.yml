@@ -22,7 +22,8 @@ jobs:
     name: Detect Changes
     runs-on: self-hosted
     timeout-minutes: 5
-    if: github.event_name != 'schedule'
+    # Fork safety: skip self-hosted runner for external fork PRs
+    if: github.event_name != 'schedule' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     outputs:
       go: ${{ steps.filter.outputs.go }}
       docs: ${{ steps.filter.outputs.docs }}
@@ -68,8 +69,10 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     needs: changes
+    # Fork safety: skip self-hosted runner for external fork PRs
     if: >-
       always() &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
@@ -124,8 +127,10 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     needs: changes
+    # Fork safety: skip self-hosted runner for external fork PRs
     if: >-
       always() &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
@@ -168,8 +173,10 @@ jobs:
     env:
       DOCKER_CONFIG: /tmp/docker-ci-config
     needs: changes
+    # Fork safety: skip self-hosted runner for external fork PRs
     if: >-
       always() &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.docs == 'true' ||
@@ -358,8 +365,10 @@ jobs:
     runs-on: [self-hosted, macOS]
     timeout-minutes: 50
     needs: [changes, test]
+    # Fork safety: skip self-hosted runner for external fork PRs
     if: >-
       always() &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (
         needs.changes.outputs.scenarios == 'true' ||
@@ -504,8 +513,10 @@ jobs:
     # The if condition uses != 'cancelled' (not == 'success') so acceptance
     # tests still run even when a scenario fails; serialization is preserved.
     needs: [changes, test, scenario-tests]
+    # Fork safety: skip self-hosted runner for external fork PRs
     if: >-
       always() &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       needs.test.result == 'success' &&
       needs.scenario-tests.result != 'cancelled' &&
       (
