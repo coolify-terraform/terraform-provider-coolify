@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- C icon (60 Terraform-angle parallelogram blocks) -->
+  <polygon points="187,72 215,72 229,48 201,48" fill="#7B42BC"/>
+  <polygon points="219,72 247,72 261,48 233,48" fill="#7B42BC"/>
+  <polygon points="251,72 279,72 293,48 265,48" fill="#7B42BC"/>
+  <polygon points="283,72 311,72 325,48 297,48" fill="#7B42BC"/>
+  <polygon points="315,72 343,72 357,48 329,48" fill="#7B42BC"/>
+  <polygon points="347,72 375,72 389,48 361,48" fill="#7B42BC"/>
+  <polygon points="379,72 407,72 421,48 393,48" fill="#7B42BC"/>
+  <polygon points="155,100 183,100 197,76 169,76" fill="#7B42BC"/>
+  <polygon points="187,100 215,100 229,76 201,76" fill="#7B42BC"/>
+  <polygon points="219,100 247,100 261,76 233,76" fill="#7B42BC"/>
+  <polygon points="251,100 279,100 293,76 265,76" fill="#7B42BC"/>
+  <polygon points="283,100 311,100 325,76 297,76" fill="#7B42BC"/>
+  <polygon points="315,100 343,100 357,76 329,76" fill="#7B42BC"/>
+  <polygon points="347,100 375,100 389,76 361,76" fill="#7B42BC"/>
+  <polygon points="379,100 407,100 421,76 393,76" fill="#7B42BC"/>
+  <polygon points="411,100 439,100 453,76 425,76" fill="#7B42BC"/>
+  <polygon points="123,128 151,128 165,104 137,104" fill="#7B42BC"/>
+  <polygon points="155,128 183,128 197,104 169,104" fill="#7B42BC"/>
+  <polygon points="187,128 215,128 229,104 201,104" fill="#7B42BC"/>
+  <polygon points="91,156 119,156 133,132 105,132" fill="#7B42BC"/>
+  <polygon points="123,156 151,156 165,132 137,132" fill="#7B42BC"/>
+  <polygon points="155,156 183,156 197,132 169,132" fill="#7B42BC"/>
+  <polygon points="91,184 119,184 133,160 105,160" fill="#7B42BC"/>
+  <polygon points="123,184 151,184 165,160 137,160" fill="#7B42BC"/>
+  <polygon points="59,212 87,212 101,188 73,188" fill="#7B42BC"/>
+  <polygon points="91,212 119,212 133,188 105,188" fill="#7B42BC"/>
+  <polygon points="123,212 151,212 165,188 137,188" fill="#7B42BC"/>
+  <polygon points="59,240 87,240 101,216 73,216" fill="#7B42BC"/>
+  <polygon points="91,240 119,240 133,216 105,216" fill="#7B42BC"/>
+  <polygon points="59,268 87,268 101,244 73,244" fill="#7B42BC"/>
+  <polygon points="91,268 119,268 133,244 105,244" fill="#7B42BC"/>
+  <polygon points="59,296 87,296 101,272 73,272" fill="#7B42BC"/>
+  <polygon points="91,296 119,296 133,272 105,272" fill="#7B42BC"/>
+  <polygon points="59,324 87,324 101,300 73,300" fill="#7B42BC"/>
+  <polygon points="91,324 119,324 133,300 105,300" fill="#7B42BC"/>
+  <polygon points="123,324 151,324 165,300 137,300" fill="#7B42BC"/>
+  <polygon points="91,352 119,352 133,328 105,328" fill="#7B42BC"/>
+  <polygon points="123,352 151,352 165,328 137,328" fill="#7B42BC"/>
+  <polygon points="91,380 119,380 133,356 105,356" fill="#7B42BC"/>
+  <polygon points="123,380 151,380 165,356 137,356" fill="#7B42BC"/>
+  <polygon points="155,380 183,380 197,356 169,356" fill="#7B42BC"/>
+  <polygon points="123,408 151,408 165,384 137,384" fill="#7B42BC"/>
+  <polygon points="155,408 183,408 197,384 169,384" fill="#7B42BC"/>
+  <polygon points="187,408 215,408 229,384 201,384" fill="#7B42BC"/>
+  <polygon points="155,436 183,436 197,412 169,412" fill="#7B42BC"/>
+  <polygon points="187,436 215,436 229,412 201,412" fill="#7B42BC"/>
+  <polygon points="219,436 247,436 261,412 233,412" fill="#7B42BC"/>
+  <polygon points="251,436 279,436 293,412 265,412" fill="#7B42BC"/>
+  <polygon points="283,436 311,436 325,412 297,412" fill="#7B42BC"/>
+  <polygon points="315,436 343,436 357,412 329,412" fill="#7B42BC"/>
+  <polygon points="347,436 375,436 389,412 361,412" fill="#7B42BC"/>
+  <polygon points="379,436 407,436 421,412 393,412" fill="#7B42BC"/>
+  <polygon points="411,436 439,436 453,412 425,412" fill="#7B42BC"/>
+  <polygon points="187,464 215,464 229,440 201,440" fill="#7B42BC"/>
+  <polygon points="219,464 247,464 261,440 233,440" fill="#7B42BC"/>
+  <polygon points="251,464 279,464 293,440 265,440" fill="#7B42BC"/>
+  <polygon points="283,464 311,464 325,440 297,440" fill="#7B42BC"/>
+  <polygon points="315,464 343,464 357,440 329,440" fill="#7B42BC"/>
+  <polygon points="347,464 375,464 389,440 361,440" fill="#7B42BC"/>
+  <polygon points="379,464 407,464 421,440 393,440" fill="#7B42BC"/>
+  <!-- Wordmark inside the C opening -->
+  <text x="300" y="275" text-anchor="middle"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="72" font-weight="900" letter-spacing="0" fill="#E6EDF3">Terraform</text>
+</svg>
