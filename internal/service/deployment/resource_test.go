@@ -5,15 +5,23 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/deployment"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
+
+func TestMain(m *testing.M) {
+	deployment.SetPollIntervalForTest(100 * time.Millisecond)
+	os.Exit(m.Run())
+}
 
 func requireRestartApplicationUUID(w http.ResponseWriter, r *http.Request, expectedAppUUID string) bool {
 	if r.PathValue("uuid") == expectedAppUUID {

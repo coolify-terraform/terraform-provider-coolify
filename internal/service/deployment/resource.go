@@ -26,6 +26,10 @@ var (
 	_ resource.Resource                = (*deploymentResource)(nil)
 	_ resource.ResourceWithConfigure   = (*deploymentResource)(nil)
 	_ resource.ResourceWithImportState = (*deploymentResource)(nil)
+
+	// pollInterval is the delay between deployment status polls.
+	// Override via SetPollIntervalForTest in export_test.go.
+	pollInterval = 5 * time.Second
 )
 
 // deploymentResource triggers a deployment for a Coolify application.
@@ -158,7 +162,7 @@ func (r *deploymentResource) pollDeployment(ctx context.Context, uuid string, pl
 		case <-ctx.Done():
 			resp.Diagnostics.AddError("Deployment timed out", fmt.Sprintf("Deployment %s did not complete within the configured timeout. Last status: %s", uuid, plan.Status.ValueString()))
 			return
-		case <-time.After(5 * time.Second):
+		case <-time.After(pollInterval):
 		}
 		dep, err := r.client.GetDeployment(ctx, uuid)
 		if err != nil {
