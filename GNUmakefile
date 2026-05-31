@@ -1,4 +1,5 @@
 GOLANGCI_LINT_VERSION := 2.12.2
+GORELEASER_VERSION := 2.15.4
 GORELEASER_MAJOR := 2
 ACTIONLINT_VERSION := 1.7.12
 PYTHON ?= python3
@@ -191,7 +192,7 @@ tools: ## Install all required development tools
 	@echo "Installing golangci-lint $(GOLANGCI_LINT_VERSION) to $(BIN_DIR)..."
 	@GOBIN="$(BIN_DIR)" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v$(GOLANGCI_LINT_VERSION)
 	@echo "Installing goreleaser to $(BIN_DIR)..."
-	@GOBIN="$(BIN_DIR)" go install github.com/goreleaser/goreleaser/v$(GORELEASER_MAJOR)@latest
+	@GOBIN="$(BIN_DIR)" go install github.com/goreleaser/goreleaser/v$(GORELEASER_MAJOR)@v$(GORELEASER_VERSION)
 	@echo "Installing actionlint $(ACTIONLINT_VERSION) to $(BIN_DIR)..."
 	@GOBIN="$(BIN_DIR)" go install github.com/rhysd/actionlint/cmd/actionlint@v$(ACTIONLINT_VERSION)
 	@echo "Installing tfplugindocs to $(BIN_DIR)..."

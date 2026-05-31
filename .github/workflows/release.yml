@@ -68,7 +68,7 @@ jobs:
         run: |
           SHA=$(git rev-parse HEAD)
           echo "Checking CI status for commit ${SHA:0:7}..."
-          for attempt in $(seq 1 12); do
+          for attempt in $(seq 1 30); do
             CONCLUSION=$(gh run list \
               --commit "$SHA" \
               --workflow ci.yml \
@@ -83,15 +83,17 @@ jobs:
               echo "::error::CI workflow conclusion is '${CONCLUSION}', refusing to release"
               exit 1
             fi
-            echo "No completed CI run found yet (attempt $attempt/12), waiting 30s..."
+            echo "No completed CI run found yet (attempt $attempt/30), waiting 30s..."
             sleep 30
           done
-          echo "::error::No completed CI run for $SHA after 6 minutes. CI may still be running or was never triggered."
+          echo "::error::No completed CI run for $SHA after 15 minutes. CI may still be running or was never triggered."
           exit 1
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
           cache: true
+      - name: Install Syft for SBOM generation
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
       - name: Smoke test
         run: GOFIPS140=latest go build ./...
       - name: Validate goreleaser config
