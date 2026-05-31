@@ -1,33 +1,28 @@
-# Auto-approves PRs authored by the maintainer using a GitHub App identity.
-# This satisfies the "required reviewers" branch protection rule for
-# OpenSSF Scorecard compliance without needing a second human reviewer.
-#
-# The approval comes from the coolify-terraform-auto-approve GitHub App,
-# which is a separate identity from the PR author.
 name: Auto Approve
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main]
 
 permissions:
-  contents: read
+  pull-requests: write
 
 jobs:
-  auto-approve:
-    if: github.event.pull_request.user.login == 'SebTardif'
+  approve:
+    name: Auto Approve
+    if: >-
+      github.actor == 'SebTardif' ||
+      github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
     steps:
-      - name: Generate App Token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
-          client-id: ${{ vars.AUTO_APPROVE_CLIENT_ID }}
-          private-key: ${{ secrets.AUTO_APPROVE_PRIVATE_KEY }}
-
-      - name: Auto Approve
-        uses: hmarr/auto-approve-action@f0939ea97e9205ef24d872e76833fa908a770363 # v4.0.0
-        with:
-          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'APPROVE',
+              body: 'Auto-approved (maintainer or trusted bot).'
+            });
