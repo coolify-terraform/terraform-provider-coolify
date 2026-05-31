@@ -63,7 +63,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Smoke test
-        run: go build ./...
+        run: GOFIPS140=latest go build ./...
       - name: Validate goreleaser config
         uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7
         with:

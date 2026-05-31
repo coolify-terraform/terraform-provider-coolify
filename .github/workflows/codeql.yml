@@ -54,7 +54,7 @@ jobs:
           dependency-caching: true
       - name: Build (Go)
         if: matrix.build-mode == 'manual'
-        run: go build ./...
+        run: GOFIPS140=latest go build ./...
       - uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
         with:
           category: "/language:${{ matrix.language }}"

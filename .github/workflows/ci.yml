@@ -403,7 +403,7 @@ jobs:
           terraform_version: "1.15.x"
       - name: Build and install provider locally
         run: |
-          go build -o terraform-provider-coolify .
+          GOFIPS140=latest go build -o terraform-provider-coolify .
           PLUGIN_DIR="$HOME/.terraform.d/plugins/coolify-terraform/coolify/0.0.0-dev/$(go env GOOS)_$(go env GOARCH)"
           mkdir -p "$PLUGIN_DIR"
           cp terraform-provider-coolify "$PLUGIN_DIR/"

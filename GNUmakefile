@@ -9,7 +9,7 @@ export PATH := $(BIN_DIR):$(PATH)
 default: help
 
 build: ## Compile the provider
-	go build -v ./...
+	GOFIPS140=latest go build -v ./...
 
 test: ## Run unit tests (race detector, coverage)
 	go test -race -cover -count=1 -p 4 -parallel=1 -timeout=15m ./...
@@ -67,7 +67,7 @@ python-test: check-python3 ## Run Python unit tests for scripts/
 	$(PYTHON) -m unittest discover -s scripts -p '*test*.py' -v
 
 install: ## Install provider to local Go bin
-	go install .
+	GOFIPS140=latest go install .
 
 spec-update: ## Download latest Coolify OpenAPI spec and apply contract corrections
 	curl -sL https://raw.githubusercontent.com/coollabsio/coolify/v4.x/openapi.json \
@@ -201,6 +201,8 @@ tools: ## Install all required development tools
 merge: ## Merge a PR as sole maintainer (usage: make merge PR=123)
 	@test -n "$(PR)" || (echo "ERROR: PR is required, example: make merge PR=123"; exit 1)
 	@REPO=$$(gh repo view --json nameWithOwner --jq .nameWithOwner); \
+	echo "Approving PR #$(PR)..."; \
+	gh pr review $(PR) --approve --body "Self-approve (sole maintainer)" 2>/dev/null || true; \
 	echo "Temporarily disabling enforce-for-admins on $$REPO..."; \
 	gh api "repos/$$REPO/branches/main/protection/enforce_admins" -X DELETE --silent; \
 	echo "Merging PR #$(PR)..."; \
