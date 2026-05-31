@@ -151,6 +151,46 @@ make install
 This compiles the provider and places it in your local Terraform plugin
 cache.
 
+## FIPS 140-3 cryptography
+
+Release binaries include the Go native FIPS 140-3 cryptographic module
+(CMVP Certificate #5247). All TLS connections the provider makes to the
+Coolify API use FIPS-approved algorithms by default.
+
+No configuration is needed. The default mode (`fips140=on`) prefers
+FIPS-approved algorithms but falls back to non-approved ones when
+necessary (e.g., if the Coolify server negotiates X25519 key exchange).
+
+### Strict mode
+
+To enforce FIPS-only algorithms (no fallbacks), set the `GODEBUG`
+environment variable before running Terraform:
+
+```bash
+export GODEBUG=fips140=only
+terraform plan
+```
+
+-> **Warning:** Strict mode (`fips140=only`) may break TLS connections if
+the Coolify server uses X25519 key exchange, which is not FIPS-approved.
+Only use strict mode when the server is configured to avoid X25519
+(e.g., TLS 1.2 with RSA or ECDHE-P256 key exchange).
+
+### Disabling FIPS
+
+To disable FIPS entirely:
+
+```bash
+export GODEBUG=fips140=off
+```
+
+### Verifying FIPS in a binary
+
+```bash
+go version -m terraform-provider-coolify | grep fips
+# Expected output includes: buildGOFIPS140=latest
+```
+
 ## Next steps
 
 Read [Core Concepts](concepts) to understand the resource model, then

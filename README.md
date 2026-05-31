@@ -197,6 +197,7 @@ Every scenario has `terraform test` integration tests that run against a real Co
 - **Input validation** -- catch mistakes at plan time (invalid UUIDs, bad cron expressions, out-of-range ports)
 - **Connection health check** -- the provider validates your API connection before making any changes
 - **Reliable API calls** -- automatic retry with exponential backoff on transient failures (429, 5xx, network errors)
+- **FIPS 140-3 cryptography** -- release binaries include the Go native FIPS module (CMVP #5247), enabled by default ([details](docs/guides/installation.md#fips-140-3-cryptography))
 
 ## Requirements
 
