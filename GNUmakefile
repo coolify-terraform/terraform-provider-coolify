@@ -175,7 +175,7 @@ check-actionlint-version: ## Verify actionlint version matches CI
 	fi
 
 actionlint-check: check-actionlint-version ## Lint GitHub Actions workflows
-	actionlint
+	actionlint -ignore 'unknown permission scope "code-quality"'
 
 check-tfplugindocs: ## Verify tfplugindocs is installed for docs generation
 	@command -v tfplugindocs >/dev/null 2>&1 || (echo "ERROR: tfplugindocs is required for docs generation. Install with: make tools"; exit 1)

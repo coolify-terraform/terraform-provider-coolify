@@ -98,6 +98,9 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      code-quality: write
     needs: changes
     if: >-
       always() &&
@@ -110,6 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
@@ -133,6 +137,10 @@ jobs:
             -- -race -cover -coverprofile=coverage.out -count=1 -p 4 -parallel=1 -timeout=15m
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
+      - name: Convert coverage to Cobertura XML
+        run: |
+          go install github.com/boumenot/gocover-cobertura@latest
+          gocover-cobertura < coverage.out > coverage.xml
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -141,13 +149,14 @@ jobs:
           path: test-results/
           retention-days: 14
       - name: Upload coverage
-        if: always()
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6
+        if: >-
+          always() &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/upload-code-coverage@abb5995db9e0199b0e2bb9dbd136fce4cb1ec4d3 # v1
         with:
-          files: coverage.out
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          file: coverage.xml
+          language: Go
+          label: code-coverage/go
 
   lint:
     name: Lint
