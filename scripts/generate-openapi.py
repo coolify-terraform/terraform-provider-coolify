@@ -70,7 +70,6 @@ def patch_schema(schema: dict, contract_model: dict) -> dict:
     all_fields = {**fields, **settings_fields}
 
     properties = schema.get("properties", {})
-    required = []
 
     for field_name, field_info in all_fields.items():
         if field_name not in properties:

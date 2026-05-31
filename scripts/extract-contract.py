@@ -11,7 +11,6 @@ Usage:
 
 import argparse
 import json
-import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -364,7 +363,6 @@ def extract_shared_validation(helpers_dir: Path) -> dict[str, str]:
         r"function\s+(\w+)\(\).*?return\s*\[(.*?)\];", re.DOTALL
     )
     for match in pattern.finditer(content):
-        func_name = match.group(1)
         block = match.group(2)
         for field, rule_parts in re.findall(
             r"'([^']+)'\s*=>\s*\[([^\]]*)\]", block
