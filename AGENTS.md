@@ -13,7 +13,7 @@ Read these skills when working in this repo:
 
 Terraform provider for [Coolify](https://coolify.io/), the open-source self-hosted PaaS.
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
-33 resources, 44 data sources, 870+ tests (unit + acceptance), 9 CI jobs.
+33 resources, 44 data sources, 870+ tests (unit + acceptance), 8 CI jobs.
 16 ACME Corp scenario examples (all with `terraform test` integration tests; acme-private-repo uses plan-only).
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
@@ -190,13 +190,12 @@ errors and import failures.
 
 ## CI
 
-9 GitHub Actions jobs on push to main and PRs (self-hosted runner):
+8 GitHub Actions jobs on push to main and PRs (GitHub-hosted ubuntu-latest):
 Detect Changes, Test, Lint (includes Govulncheck + GoReleaser Check),
 Validate (includes HCL fmt + Docs + Trivy + Gitleaks),
-Acceptance Tests, Acceptance Cloud, Scenario Tests, Contract Freshness (weekly only), CI (gate).
-Acceptance Tests run against real Coolify on localhost:8000 (requires secrets).
-Acceptance Cloud tests Hetzner and cloud token packages (requires COOLIFY_HETZNER_TOKEN).
-Scenario Tests run `terraform test` against real Coolify (requires secrets).
+Acceptance Tests, Scenario Tests, Contract Freshness (weekly only), CI (gate).
+Acceptance Tests bootstrap a fresh Coolify instance on ubuntu-latest and run the full suite.
+Scenario Tests bootstrap Coolify and run `terraform test` against it.
 A separate Dependabot Auto-Merge workflow auto-merges minor/patch PRs.
 Format check (gofmt) is included in the Lint job via golangci-lint.
 

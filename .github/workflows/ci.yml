@@ -1,3 +1,7 @@
+# Runs on GitHub-hosted runners (ubuntu-latest). To switch back to
+# self-hosted runners, see git history before this commit for the
+# full self-hosted config (fork safety guards, PATH normalization,
+# Docker credential workarounds, python3.9 pinning, cache: false).
 name: CI
 
 on:
@@ -20,10 +24,9 @@ permissions:
 jobs:
   changes:
     name: Detect Changes
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Fork safety: skip self-hosted runner for external fork PRs
-    if: github.event_name != 'schedule' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name != 'schedule'
     outputs:
       go: ${{ steps.filter.outputs.go }}
       docs: ${{ steps.filter.outputs.docs }}
@@ -66,13 +69,11 @@ jobs:
 
   test:
     name: Test
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: changes
-    # Fork safety: skip self-hosted runner for external fork PRs
     if: >-
       always() &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
@@ -86,7 +87,7 @@ jobs:
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
@@ -118,19 +119,16 @@ jobs:
         with:
           files: coverage.out
           fail_ci_if_error: false
-          skip_validation: true  # gpg not available on self-hosted macOS runner
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   lint:
     name: Lint
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: changes
-    # Fork safety: skip self-hosted runner for external fork PRs
     if: >-
       always() &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
@@ -144,7 +142,7 @@ jobs:
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
       - uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9
         with:
           version: v2.12.2
@@ -168,15 +166,11 @@ jobs:
 
   validate:
     name: Validate
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      DOCKER_CONFIG: /tmp/docker-ci-config
     needs: changes
-    # Fork safety: skip self-hosted runner for external fork PRs
     if: >-
       always() &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.docs == 'true' ||
@@ -194,7 +188,7 @@ jobs:
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
@@ -220,15 +214,6 @@ jobs:
       - name: Verify AGENTS.md counts
         if: ${{ !cancelled() }}
         run: make counts-check
-      - name: Normalize PATH for self-hosted tools
-        if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-        run: |
-          for dir in /opt/homebrew/bin /usr/local/bin /opt/homebrew/opt/coreutils/libexec/gnubin /usr/local/opt/coreutils/libexec/gnubin; do
-            if [ -d "$dir" ]; then
-              echo "$dir" >> "$GITHUB_PATH"
-            fi
-          done
-          echo "$(pwd)/bin" >> "$GITHUB_PATH"
       - name: Install actionlint
         if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
@@ -238,14 +223,8 @@ jobs:
       - name: Run Python script tests
         if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: |
-          command -v python3.9 >/dev/null 2>&1 || { echo "::error::python3.9 is required on self-hosted runners"; exit 1; }
-          python3.9 --version
-          make python-test PYTHON=python3.9
-      - name: Configure Docker for CI
-        if: ${{ !cancelled() }}
-        run: |
-          mkdir -p "$DOCKER_CONFIG"
-          printf '{}\n' > "$DOCKER_CONFIG/config.json"
+          python3 --version
+          make python-test
       - name: Trivy filesystem scan
         if: ${{ !cancelled() }}
         id: trivy
@@ -298,7 +277,7 @@ jobs:
 
   contract-freshness:
     name: Contract Freshness
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event_name == 'schedule'
     permissions:
@@ -362,18 +341,18 @@ jobs:
 
   scenario-tests:
     name: Scenario Tests
-    runs-on: [self-hosted, macOS]
+    runs-on: ubuntu-latest
     timeout-minutes: 50
     needs: [changes, test]
-    # Fork safety: skip self-hosted runner for external fork PRs
     if: >-
       always() &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (
         needs.changes.outputs.scenarios == 'true' ||
         github.event_name == 'workflow_dispatch'
       )
+    env:
+      COOLIFY_DATA_DIR: /home/runner/coolify-data
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -381,7 +360,7 @@ jobs:
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
@@ -400,47 +379,72 @@ jobs:
             direct {}
           }
           EOF
-      - name: Check secrets configured
-        id: secrets
-        env:
-          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          COOLIFY_SERVER_UUID: ${{ secrets.COOLIFY_SERVER_UUID }}
+
+      - name: Start SSH server with root access
         run: |
-          missing=0
-          if [ -z "$COOLIFY_ENDPOINT" ]; then
-            echo "::warning::Scenario tests skipped: COOLIFY_ENDPOINT secret not configured"
-            missing=1
-          fi
-          if [ -z "$COOLIFY_TOKEN" ]; then
-            echo "::warning::Scenario tests skipped: COOLIFY_TOKEN secret not configured"
-            missing=1
-          fi
-          if [ -z "$COOLIFY_SERVER_UUID" ]; then
-            echo "::warning::Scenario tests skipped: COOLIFY_SERVER_UUID secret not configured"
-            missing=1
-          fi
-          if [ "$missing" -eq 1 ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Health check
-        id: health
-        if: steps.secrets.outputs.configured == 'true'
-        env:
-          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          sudo systemctl enable ssh
+          sudo systemctl start ssh
+          ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -q
+          cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
+          chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+          sudo sed -i 's/^#*PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+          sudo systemctl restart ssh
+          sudo mkdir -p /root/.ssh
+          sudo cp ~/.ssh/authorized_keys /root/.ssh/authorized_keys
+          sudo chmod 700 /root/.ssh
+          sudo chmod 600 /root/.ssh/authorized_keys
+          ssh -o StrictHostKeyChecking=no root@localhost echo "Root SSH OK"
+
+      - name: Start Coolify
         run: |
-          if curl -sf --connect-timeout 10 --max-time 30 -H "Authorization: Bearer $COOLIFY_TOKEN" \
-            "$COOLIFY_ENDPOINT/api/v1/version" > /dev/null 2>&1; then
-            echo "healthy=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::Coolify server not reachable but secrets are configured. Fix the test infrastructure."
-            exit 1
-          fi
+          mkdir -p "$COOLIFY_DATA_DIR"/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
+          mkdir -p "$COOLIFY_DATA_DIR/proxy/dynamic"
+          cd "$COOLIFY_DATA_DIR/source"
+          curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.yml -o docker-compose.yml
+          curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.prod.yml -o docker-compose.prod.yml
+          curl -fsSL https://cdn.coollabs.io/coolify/.env.production -o .env
+          sed -i "s|/data/coolify|$COOLIFY_DATA_DIR|g" docker-compose.yml docker-compose.prod.yml .env
+          sed -i "s|APP_ID=.*|APP_ID=$(openssl rand -hex 16)|g" .env
+          sed -i "s|APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|g" .env
+          sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
+          sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
+          sed -i "s|PUSHER_APP_ID=.*|PUSHER_APP_ID=$(openssl rand -hex 32)|g" .env
+          sed -i "s|PUSHER_APP_KEY=.*|PUSHER_APP_KEY=$(openssl rand -hex 32)|g" .env
+          sed -i "s|PUSHER_APP_SECRET=.*|PUSHER_APP_SECRET=$(openssl rand -hex 32)|g" .env
+          ssh-keygen -t ed25519 -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" -N "" -q
+          cat "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub" >> ~/.ssh/authorized_keys
+          sudo sh -c "cat $COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub >> /root/.ssh/authorized_keys"
+          printf 'services:\n  coolify:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n' \
+            > docker-compose.override.yml
+          sudo chown -R 9999:9999 "$COOLIFY_DATA_DIR/ssh"
+          docker network create --attachable coolify
+          docker compose --env-file .env \
+            -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.override.yml \
+            up -d --pull always --remove-orphans --force-recreate
+
+      - name: Wait for Coolify to be ready
+        run: |
+          echo "Waiting for Coolify web interface..."
+          for i in $(seq 1 36); do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/register 2>/dev/null | grep -qE "200|302"; then
+              echo "Coolify is ready (attempt $i)"
+              break
+            fi
+            if [ "$i" -eq 36 ]; then
+              echo "::error::Coolify not ready after 3 minutes"
+              docker compose -f "$COOLIFY_DATA_DIR/source/docker-compose.yml" logs --tail=50
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: Bootstrap Coolify test fixtures
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+          COOLIFY_ENV_FILE=/tmp/coolify-env ./scripts/setup-coolify-test.sh
+
       - name: Generate deploy key for scenarios
-        if: steps.secrets.outputs.configured == 'true' && steps.health.outputs.healthy == 'true'
         run: |
           rm -f /tmp/scenario-deploy-key /tmp/scenario-deploy-key.pub
           ssh-keygen -t rsa -b 2048 -f /tmp/scenario-deploy-key -N "" -q
@@ -454,11 +458,7 @@ jobs:
             echo "EOFKEY2"
           } >> "$GITHUB_ENV"
       - name: Run scenario tests
-        if: steps.secrets.outputs.configured == 'true' && steps.health.outputs.healthy == 'true'
         env:
-          TF_VAR_coolify_endpoint: ${{ secrets.COOLIFY_ENDPOINT }}
-          TF_VAR_coolify_token: ${{ secrets.COOLIFY_TOKEN }}
-          TF_VAR_server_uuid: ${{ secrets.COOLIFY_SERVER_UUID }}
           # GitHub App scenarios (acme-github-cicd)
           TF_VAR_github_app_private_key: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY }}
           TF_VAR_github_app_id: ${{ secrets.COOLIFY_GITHUB_APP_APP_ID }}
@@ -469,6 +469,14 @@ jobs:
           # Hetzner scenarios (acme-hetzner-infra)
           TF_VAR_hetzner_api_token: ${{ secrets.COOLIFY_HETZNER_TOKEN }}
         run: |
+          # Load bootstrapped Coolify credentials
+          set -a
+          source /tmp/coolify-env
+          set +a
+          export TF_VAR_coolify_endpoint="$COOLIFY_ENDPOINT"
+          export TF_VAR_coolify_token="$COOLIFY_TOKEN"
+          export TF_VAR_server_uuid="$COOLIFY_SERVER_UUID"
+
           failed=0
           for dir in examples/scenarios/acme-*/; do
             scenario=$(basename "$dir")
@@ -506,90 +514,8 @@ jobs:
 
   acceptance-tests:
     name: Acceptance Tests
-    runs-on: [self-hosted, macOS]
-    timeout-minutes: 130
-    # Depends on scenario-tests to serialize shared-Coolify-instance access
-    # (both jobs use the same PEM key; Coolify enforces fingerprint uniqueness).
-    # The if condition uses != 'cancelled' (not == 'success') so acceptance
-    # tests still run even when a scenario fails; serialization is preserved.
-    needs: [changes, test, scenario-tests]
-    # Fork safety: skip self-hosted runner for external fork PRs
-    if: >-
-      always() &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      needs.test.result == 'success' &&
-      needs.scenario-tests.result != 'cancelled' &&
-      (
-        needs.changes.outputs.go == 'true' ||
-        needs.changes.outputs.ci == 'true' ||
-        github.event_name == 'workflow_dispatch'
-      )
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
-        with:
-          go-version-file: go.mod
-          cache: false
-      - name: Check secrets configured
-        id: secrets
-        env:
-          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-        run: |
-          missing=0
-          if [ -z "$COOLIFY_ENDPOINT" ]; then
-            echo "::warning::Acceptance tests skipped: COOLIFY_ENDPOINT secret not configured"
-            missing=1
-          fi
-          if [ -z "$COOLIFY_TOKEN" ]; then
-            echo "::warning::Acceptance tests skipped: COOLIFY_TOKEN secret not configured"
-            missing=1
-          fi
-          if [ "$missing" -eq 1 ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Health check
-        id: health
-        if: steps.secrets.outputs.configured == 'true'
-        env:
-          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-        run: |
-          if curl -sf --connect-timeout 10 --max-time 30 -H "Authorization: Bearer $COOLIFY_TOKEN" \
-            "$COOLIFY_ENDPOINT/api/v1/version" > /dev/null 2>&1; then
-            echo "healthy=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::Coolify server not reachable but secrets are configured. Fix the test infrastructure."
-            exit 1
-          fi
-      - name: Run acceptance tests
-        if: steps.secrets.outputs.configured == 'true' && steps.health.outputs.healthy == 'true'
-        env:
-          TF_ACC: "1"
-          COOLIFY_ENDPOINT: ${{ secrets.COOLIFY_ENDPOINT }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          COOLIFY_SERVER_UUID: ${{ secrets.COOLIFY_SERVER_UUID }}
-          COOLIFY_S3_STORAGE_UUID: ${{ secrets.COOLIFY_S3_STORAGE_UUID }}
-          COOLIFY_HETZNER_TOKEN: ${{ secrets.COOLIFY_HETZNER_TOKEN }}
-          COOLIFY_GITHUB_APP_APP_ID: ${{ secrets.COOLIFY_GITHUB_APP_APP_ID }}
-          COOLIFY_GITHUB_APP_INSTALLATION_ID: ${{ secrets.COOLIFY_GITHUB_APP_INSTALLATION_ID }}
-          COOLIFY_GITHUB_APP_CLIENT_ID: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_ID }}
-          COOLIFY_GITHUB_APP_CLIENT_SECRET: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_SECRET }}
-          COOLIFY_GITHUB_APP_PRIVATE_KEY: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY }}
-          COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE }}
-          COOLIFY_GITHUB_APP_REPOSITORY: ${{ secrets.COOLIFY_GITHUB_APP_REPOSITORY }}
-          COOLIFY_GITHUB_APP_BRANCH: ${{ secrets.COOLIFY_GITHUB_APP_BRANCH }}
-        run: |
-          go test -run TestAcc -race -count=1 -timeout=120m -p 1 -parallel=1 ./...
-
-  acceptance-cloud:
-    name: Acceptance Tests (Cloud)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     needs: [changes, test, lint]
     if: >-
       always() &&
@@ -610,7 +536,7 @@ jobs:
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
@@ -702,6 +628,17 @@ jobs:
           COOLIFY_ENV_FILE=/tmp/coolify-env ./scripts/setup-coolify-test.sh
 
       - name: Run acceptance tests
+        env:
+          # External secrets for tests that need real cloud APIs
+          COOLIFY_HETZNER_TOKEN: ${{ secrets.COOLIFY_HETZNER_TOKEN }}
+          COOLIFY_GITHUB_APP_APP_ID: ${{ secrets.COOLIFY_GITHUB_APP_APP_ID }}
+          COOLIFY_GITHUB_APP_INSTALLATION_ID: ${{ secrets.COOLIFY_GITHUB_APP_INSTALLATION_ID }}
+          COOLIFY_GITHUB_APP_CLIENT_ID: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_ID }}
+          COOLIFY_GITHUB_APP_CLIENT_SECRET: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_SECRET }}
+          COOLIFY_GITHUB_APP_PRIVATE_KEY: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY }}
+          COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE }}
+          COOLIFY_GITHUB_APP_REPOSITORY: ${{ secrets.COOLIFY_GITHUB_APP_REPOSITORY }}
+          COOLIFY_GITHUB_APP_BRANCH: ${{ secrets.COOLIFY_GITHUB_APP_BRANCH }}
         run: |
           # Load credentials from bootstrap
           set -a
@@ -751,7 +688,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [test, lint, validate, scenario-tests, acceptance-tests, acceptance-cloud]
+    needs: [test, lint, validate, scenario-tests, acceptance-tests]
     steps:
       - name: Check results
         run: |

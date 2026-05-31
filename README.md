@@ -322,9 +322,9 @@ and project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ### CI Pipeline
 
-9 jobs in the CI workflow: Detect Changes, Test, Lint, Validate (includes
-examples, docs, Trivy, Gitleaks), Scenario Tests, Acceptance Tests, Acceptance
-Cloud, Contract Freshness (weekly), and a CI gate job.
+8 jobs in the CI workflow: Detect Changes, Test, Lint, Validate (includes
+examples, docs, Trivy, Gitleaks), Scenario Tests, Acceptance Tests,
+Contract Freshness (weekly), and a CI gate job.
 
 ## Troubleshooting
 
