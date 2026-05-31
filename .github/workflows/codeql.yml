@@ -22,19 +22,36 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: write
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [go, python, actions]
+        include:
+          - language: go
+            build-mode: autobuild
+          - language: python
+            build-mode: none
+          - language: actions
+            build-mode: none
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        if: matrix.language == 'go'
         with:
           go-version-file: go.mod
           cache: false
       - uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
         with:
-          languages: go
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
       - uses: github/codeql-action/autobuild@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
+        if: matrix.build-mode == 'autobuild'
       - uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
+        with:
+          category: "/language:${{ matrix.language }}"

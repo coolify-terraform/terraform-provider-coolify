@@ -67,6 +67,33 @@ jobs:
               - 'examples/scenarios/**'
               - '.github/workflows/ci.yml'
 
+  dco:
+    name: DCO
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check DCO sign-off
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          for sha in $(git rev-list --no-merges "${BASE_SHA}"..HEAD); do
+            author=$(git log -1 --format='%an' "$sha")
+            if [[ "$author" == *"[bot]" ]]; then
+              echo "Skipping bot commit $sha by $author"
+              continue
+            fi
+            if ! git log -1 --format='%B' "$sha" | grep -qi '^Signed-off-by:'; then
+              echo "::error::Commit $sha by $author is missing Signed-off-by"
+              exit 1
+            fi
+          done
+          echo "All commits have DCO sign-off"
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -716,7 +743,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    needs: [test, lint, validate, scenario-tests, acceptance-tests]
+    needs: [dco, test, lint, validate, scenario-tests, acceptance-tests]
     steps:
       - name: Check results
         run: |
