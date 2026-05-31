@@ -1,0 +1,33 @@
+# Auto-approves PRs authored by the maintainer using a GitHub App identity.
+# This satisfies the "required reviewers" branch protection rule for
+# OpenSSF Scorecard compliance without needing a second human reviewer.
+#
+# The approval comes from the coolify-terraform-auto-approve GitHub App,
+# which is a separate identity from the PR author.
+name: Auto Approve
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  auto-approve:
+    if: github.actor == 'SebTardif'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.AUTO_APPROVE_APP_ID }}
+          private-key: ${{ secrets.AUTO_APPROVE_PRIVATE_KEY }}
+
+      - name: Auto Approve
+        uses: hmarr/auto-approve-action@f0939ea97e9205ef24d872e76833fa908a770363 # v4.0.0
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
