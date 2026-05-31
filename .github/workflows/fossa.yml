@@ -28,10 +28,38 @@ jobs:
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
 
-  # fossa test is not run because the default FOSSA policy denies MPL-2.0
-  # and CC-BY-SA licenses. Every Terraform provider depends on HashiCorp's
-  # MPL-2.0 SDK, and golang.org/x/text includes CC-BY-SA Unicode data.
-  # FOSSA ignore rules are per-commit (not persistent), so fossa test fails
-  # on every push. The analyze job above uploads scan data for the badge;
-  # re-enable fossa test when FOSSA supports persistent ignore rules or
-  # custom policy on the free tier.
+  fossa-test:
+    name: FOSSA License Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: fossa
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Install FOSSA CLI
+        run: |
+          curl -H 'Cache-Control: no-cache' \
+            https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh \
+            | bash
+      - name: Run FOSSA test with false-positive filtering
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+        run: |
+          # Run fossa test in JSON mode; capture output regardless of exit code.
+          set +e
+          fossa test --format json > fossa-results.json 2>fossa-stderr.txt
+          TEST_EXIT=$?
+          set -e
+
+          if [ "$TEST_EXIT" -eq 0 ]; then
+            echo "FOSSA test passed with no issues."
+            exit 0
+          fi
+
+          echo "FOSSA test found issues. Filtering known false positives..."
+          cat fossa-results.json | head -c 2000
+
+          # Filter out documented false positives using the Python script
+          # shipped in this repo. If any genuine issues remain, fail the step.
+          python3 scripts/fossa-filter.py fossa-results.json
