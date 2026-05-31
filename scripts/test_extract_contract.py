@@ -592,11 +592,12 @@ class Item extends Model {
 Schema::create('items', function (Blueprint $table) {
     $table->string('name');
     $table->timestamps();
+    $table->softDeletes();
 });
 """
         )
         contract = ec.build_model_contract(model_file, self.migration_dir, "items")
-        for internal in ("id", "created_at", "updated_at", "team_id"):
+        for internal in ("id", "created_at", "updated_at", "deleted_at", "team_id"):
             self.assertNotIn(internal, contract["fields"])
 
 
