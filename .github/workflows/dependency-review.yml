@@ -1,13 +1,9 @@
 # Dependency Review - checks PRs for vulnerable or license-incompatible dependencies.
-# Requires the repository to be public (GitHub Advanced Security).
-# Enable when the repository is made public: uncomment the pull_request
-# trigger and remove the workflow_dispatch-only trigger.
 name: Dependency Review
 
 on:
-  # TODO(public): uncomment this trigger when the repo is public
-  # pull_request:
-  #   branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:

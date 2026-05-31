@@ -1,15 +1,11 @@
 # OpenSSF Scorecard - measures supply chain security practices.
-# Requires the repository to be public.
-# Enable when the repository is made public: uncomment the push/schedule
-# triggers and remove the workflow_dispatch-only trigger.
 name: OpenSSF Scorecard
 
 on:
-  # TODO(public): uncomment these triggers when the repo is public
-  # push:
-  #   branches: [main]
-  # schedule:
-  #   - cron: "0 5 * * 1"  # Weekly Monday 5am UTC
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 5 * * 1"  # Weekly Monday 5am UTC
   workflow_dispatch:
 
 permissions:

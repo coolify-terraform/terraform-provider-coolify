@@ -1,16 +1,13 @@
 # CodeQL security analysis
-# Enable when the repository is made public: uncomment the push/pull_request
-# triggers and remove the workflow_dispatch-only trigger.
 name: CodeQL
 
 on:
-  # TODO(public): uncomment these triggers when the repo is public
-  # push:
-  #   branches: [main]
-  # pull_request:
-  #   branches: [main]
-  # schedule:
-  #   - cron: "0 4 * * 1"  # Weekly Monday 4am UTC
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 4 * * 1"  # Weekly Monday 4am UTC
   workflow_dispatch:
 
 permissions:
