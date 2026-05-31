@@ -28,21 +28,10 @@ jobs:
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
 
-  fossa-test:
-    name: FOSSA License Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: fossa
-    # Advisory only: Terraform provider dependencies (HashiCorp MPL-2.0,
-    # x/text CC-BY-SA data files) trigger false positives on the default
-    # FOSSA policy. The scan data and badge remain useful; the compliance
-    # gate is non-blocking until policy rules are customized.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-      - uses: fossas/fossa-action@ff70fe9fe17cbd2040648f1c45e8ec4e4884dcf3 # v1
-        with:
-          api-key: ${{ secrets.FOSSA_API_KEY }}
-          run-tests: true
+  # fossa test is not run because the default FOSSA policy denies MPL-2.0
+  # and CC-BY-SA licenses. Every Terraform provider depends on HashiCorp's
+  # MPL-2.0 SDK, and golang.org/x/text includes CC-BY-SA Unicode data.
+  # FOSSA ignore rules are per-commit (not persistent), so fossa test fails
+  # on every push. The analyze job above uploads scan data for the badge;
+  # re-enable fossa test when FOSSA supports persistent ignore rules or
+  # custom policy on the free tier.
