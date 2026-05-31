@@ -36,10 +36,10 @@ jobs:
         id: check
         run: |
           TITLE=$(gh pr view "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" --json title --jq '.title')
-          # Dependabot titles: "Bump X from N to M" — major if first digit changes
-          if echo "$TITLE" | grep -qP 'from \d+\.\S+ to (\d+)\.' && \
-             [ "$(echo "$TITLE" | grep -oP 'from (\d+)' | grep -oP '\d+')" != \
-               "$(echo "$TITLE" | grep -oP 'to (\d+)' | grep -oP '\d+')" ]; then
+          # Dependabot titles: "Bump X from N to M" or "Bump X from N.x to M.x"
+          FROM=$(echo "$TITLE" | grep -oP 'from \K\d+' | head -1)
+          TO=$(echo "$TITLE" | grep -oP 'to \K\d+' | head -1)
+          if [ -n "$FROM" ] && [ -n "$TO" ] && [ "$FROM" != "$TO" ]; then
             echo "major=true" >> "$GITHUB_OUTPUT"
           else
             echo "major=false" >> "$GITHUB_OUTPUT"
