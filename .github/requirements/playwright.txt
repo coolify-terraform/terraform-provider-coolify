@@ -1,0 +1,23 @@
+# Playwright and its transitive dependencies, hash-pinned for Scorecard
+# PinnedDependencies compliance. Regenerate with:
+#   pip-compile --generate-hashes --output-file=playwright.txt playwright.in
+# Or update manually from https://pypi.org/pypi/<package>/<version>/json
+
+playwright==1.60.0 \
+    --hash=sha256:1c2bfae7884fb3fb05b853290eab8f343d524e5016f2f1def702acbbdf14c93e
+    # manylinux1_x86_64
+
+pyee==13.0.0 \
+    --hash=sha256:48195a3cddb3b1515ce0695ed76036b5ccc2ef3a9f963ff9f77aec0139845498
+    # py3-none-any
+
+greenlet==3.5.1 \
+    --hash=sha256:add5217d68b31130f0beca584d7fef4878327d2e31642b66618a14eef312b63b \
+    --hash=sha256:dc71ff466927a201b08305acac451ebe1aedfcea002f62f1f2f2ac2ac1e6a135 \
+    --hash=sha256:2f82b3597e9d83b63408affed0b48fd0f54935edac4302237b9a837be0dae33c \
+    --hash=sha256:e630136e905fe5ff43e86945ae41220b6d1470956a39220e708110ac48d01ea5
+    # manylinux_2_24_x86_64 cp312/cp313/cp314/cp315
+
+typing_extensions==4.15.0 \
+    --hash=sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548
+    # py3-none-any
