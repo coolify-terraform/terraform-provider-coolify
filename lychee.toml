@@ -3,4 +3,5 @@ exclude = [
   "127\\.0\\.0\\.1",
   "file://",
   "\\.grok/skills/",
+  "app\\.fossa\\.com/api/projects/.*\\.svg",
 ]
