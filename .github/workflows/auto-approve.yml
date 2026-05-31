@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   auto-approve:
-    if: github.actor == 'SebTardif'
+    if: github.event.pull_request.user.login == 'SebTardif'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
