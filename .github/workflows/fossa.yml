@@ -58,7 +58,7 @@ jobs:
           fi
 
           echo "FOSSA test found issues. Filtering known false positives..."
-          cat fossa-results.json | head -c 2000
+          head -c 2000 fossa-results.json
 
           # Filter out documented false positives using the Python script
           # shipped in this repo. If any genuine issues remain, fail the step.
