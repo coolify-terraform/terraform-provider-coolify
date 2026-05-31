@@ -89,6 +89,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - Verify client structs cover contract: `make contract-check`
 - Regenerate OpenAPI spec from contract: `make spec-generate`
 - Scaffold a new resource: `make scaffold NAME=myresource`
+- Merge a PR (sole maintainer): `make merge PR=123`
 
 ## Structure
 

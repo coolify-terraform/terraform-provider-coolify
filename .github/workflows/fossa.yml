@@ -33,16 +33,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: fossa
-    # Advisory only: Terraform provider dependencies (HashiCorp MPL-2.0,
-    # x/text CC-BY-SA data files) trigger false positives on the default
-    # FOSSA policy. The scan data and badge remain useful; the compliance
-    # gate is non-blocking until policy rules are customized.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
-      - uses: fossas/fossa-action@ff70fe9fe17cbd2040648f1c45e8ec4e4884dcf3 # v1
-        with:
-          api-key: ${{ secrets.FOSSA_API_KEY }}
-          run-tests: true
+      - name: Install FOSSA CLI
+        run: |
+          curl -H 'Cache-Control: no-cache' \
+            https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh \
+            | bash
+      - name: Run FOSSA test with false-positive filtering
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+        run: |
+          # Run fossa test in JSON mode; capture output regardless of exit code.
+          set +e
+          fossa test --format json > fossa-results.json 2>fossa-stderr.txt
+          TEST_EXIT=$?
+          set -e
+
+          if [ "$TEST_EXIT" -eq 0 ]; then
+            echo "FOSSA test passed with no issues."
+            exit 0
+          fi
+
+          echo "FOSSA test found issues. Filtering known false positives..."
+          head -c 2000 fossa-results.json
+
+          # Filter out documented false positives using the Python script
+          # shipped in this repo. If any genuine issues remain, fail the step.
+          python3 scripts/fossa-filter.py fossa-results.json
