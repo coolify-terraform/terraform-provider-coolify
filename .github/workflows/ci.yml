@@ -440,7 +440,7 @@ jobs:
 
       - name: Bootstrap Coolify test fixtures
         run: |
-          pip install playwright
+          pip install playwright==1.60.0
           playwright install --with-deps chromium
           COOLIFY_ENV_FILE=/tmp/coolify-env ./scripts/setup-coolify-test.sh
 
@@ -623,7 +623,7 @@ jobs:
 
       - name: Bootstrap Coolify test fixtures
         run: |
-          pip install playwright
+          pip install playwright==1.60.0
           playwright install --with-deps chromium
           COOLIFY_ENV_FILE=/tmp/coolify-env ./scripts/setup-coolify-test.sh
 

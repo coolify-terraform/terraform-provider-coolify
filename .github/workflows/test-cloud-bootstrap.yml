@@ -68,7 +68,7 @@ jobs:
           set -euo pipefail
 
           # Install Playwright for registration
-          pip install playwright
+          pip install playwright==1.60.0
           playwright install --with-deps chromium
 
           # Run setup script
