@@ -19,6 +19,10 @@ Documented false positives
    these SDK packages. MPL-2.0 copyleft applies only to modifications
    of MPL-licensed files, so this is compatible usage. Every Terraform
    provider has these dependencies.
+
+4. golang.org/x/mod  unlicensed_dependency
+   FOSSA fails to detect the license. The module is BSD-3-Clause
+   (see go.dev/x/mod). Known Go ecosystem false positive.
 """
 
 import json
@@ -39,8 +43,8 @@ KNOWN_FALSE_POSITIVES = {
 }
 
 
-def is_false_positive(pkg: str, license_id: str) -> bool:
-    """Return True if the (package, license) pair is a documented false positive."""
+def is_false_positive(pkg: str, license_id: str, issue_type: str = "") -> bool:
+    """Return True if the (package, license, type) tuple is a documented false positive."""
     # Check exact-match false positives (x/text, x/crypto)
     for fp_prefix, fp_licenses in KNOWN_FALSE_POSITIVES.items():
         if pkg.startswith(fp_prefix) and license_id in fp_licenses:
@@ -48,6 +52,10 @@ def is_false_positive(pkg: str, license_id: str) -> bool:
 
     # HashiCorp MPL-2.0: correct license, compatible usage in providers
     if pkg.startswith("github.com/hashicorp/") and "MPL-2.0" in license_id:
+        return True
+
+    # golang.org/x/mod: FOSSA fails to detect its BSD-3-Clause license
+    if pkg.startswith("golang.org/x/mod") and issue_type == "unlicensed_dependency":
         return True
 
     return False
@@ -94,8 +102,9 @@ def main() -> int:
     for issue in issues:
         pkg = extract_package(issue)
         lic = issue.get("license", "") or issue.get("licenseId", "") or ""
+        itype = issue.get("type", "") or issue.get("issueType", "") or ""
 
-        if is_false_positive(pkg, lic):
+        if is_false_positive(pkg, lic, itype):
             filtered_count += 1
             continue
 

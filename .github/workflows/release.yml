@@ -2,9 +2,12 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
-  workflow_dispatch: {}
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.2.0) -- only for manual re-runs"
+        required: true
 
 concurrency:
   group: release
@@ -14,18 +17,45 @@ permissions:
   contents: read
 
 jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@8b8fd2cc23b2e18957157a9d923d75aa0c6f6ad5 # v4
+        id: rp
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
   release:
     name: Release
+    needs: release-please
+    # always() required: release-please is skipped on workflow_dispatch
+    if: >-
+      always() && !failure() && !cancelled() &&
+      (needs.release-please.outputs.release_created == 'true' ||
+       github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: write
     timeout-minutes: 30
+    env:
+      RELEASE_TAG: ${{ needs.release-please.outputs.tag_name || github.event.inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ env.RELEASE_TAG }}
       - name: Verify tag is on main
         run: |
           if ! git branch -r --contains HEAD | grep -q 'origin/main'; then
@@ -69,6 +99,16 @@ jobs:
         with:
           version: "~> 2"
           args: check
+      - name: Clean existing release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          for asset in $(gh release view "$TAG" --json assets \
+              --jq '.assets[].name' 2>/dev/null || true); do
+            echo "Deleting existing asset: $asset"
+            gh release delete-asset "$TAG" "$asset" -y || true
+          done
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         id: import_gpg

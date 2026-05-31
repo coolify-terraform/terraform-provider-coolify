@@ -139,7 +139,7 @@ jobs:
         run: go tool cover -func=coverage.out | tail -1
       - name: Convert coverage to Cobertura XML
         run: |
-          go install github.com/boumenot/gocover-cobertura@latest
+          go install github.com/boumenot/gocover-cobertura@v1.5.0
           gocover-cobertura < coverage.out > coverage.xml
       - name: Upload test results
         if: always()

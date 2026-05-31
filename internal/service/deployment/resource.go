@@ -166,6 +166,12 @@ func (r *deploymentResource) pollDeployment(ctx context.Context, uuid string, pl
 		}
 		dep, err := r.client.GetDeployment(ctx, uuid)
 		if err != nil {
+			// If the context expired mid-request, treat it as a timeout
+			// rather than a generic polling error (race between select cases).
+			if ctx.Err() != nil {
+				resp.Diagnostics.AddError("Deployment timed out", fmt.Sprintf("Deployment %s did not complete within the configured timeout. Last status: %s", uuid, plan.Status.ValueString()))
+				return
+			}
 			resp.Diagnostics.AddError("Error polling deployment", fmt.Sprintf("Could not read deployment %s: %s", uuid, err))
 			return
 		}
