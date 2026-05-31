@@ -81,7 +81,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          for sha in $(git rev-list "${BASE_SHA}"..HEAD); do
+          for sha in $(git rev-list --no-merges "${BASE_SHA}"..HEAD); do
             author=$(git log -1 --format='%an' "$sha")
             if [[ "$author" == *"[bot]" ]]; then
               echo "Skipping bot commit $sha by $author"
