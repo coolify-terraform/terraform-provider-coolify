@@ -4,6 +4,7 @@
 
 # Terraform Provider for Coolify
 
+[![Terraform Registry](https://img.shields.io/badge/Terraform%20Registry-coolify-844FBA?logo=terraform)](https://registry.terraform.io/providers/coolify-terraform/coolify/latest)
 [![CI](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13051/badge)](https://www.bestpractices.dev/projects/13051)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/coolify-terraform/terraform-provider-coolify/badge)](https://scorecard.dev/viewer/?uri=github.com/coolify-terraform/terraform-provider-coolify)
