@@ -38,10 +38,14 @@ jobs:
         with:
           persist-credentials: false
       - name: Install FOSSA CLI
+        env:
+          FOSSA_VERSION: "3.17.10"
         run: |
-          curl -H 'Cache-Control: no-cache' \
-            https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh \
-            | bash
+          curl -fsSL "https://github.com/fossas/fossa-cli/releases/download/v${FOSSA_VERSION}/fossa_${FOSSA_VERSION}_linux_amd64.tar.gz" -o fossa.tar.gz
+          curl -fsSL "https://github.com/fossas/fossa-cli/releases/download/v${FOSSA_VERSION}/fossa_${FOSSA_VERSION}_linux_amd64.tar.gz.sha256" -o fossa.tar.gz.sha256
+          sha256sum -c fossa.tar.gz.sha256
+          tar xzf fossa.tar.gz fossa
+          sudo install fossa /usr/local/bin/fossa
       - name: Run FOSSA test with false-positive filtering
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
