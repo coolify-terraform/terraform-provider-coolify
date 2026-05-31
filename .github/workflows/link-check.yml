@@ -11,6 +11,8 @@ on:
     paths:
       - "**/*.md"
       - ".github/workflows/link-check.yml"
+  schedule:
+    - cron: "0 12 * * 1"  # Weekly Monday noon UTC
   workflow_dispatch:
 
 concurrency:
