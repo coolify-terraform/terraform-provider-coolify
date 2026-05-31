@@ -7,13 +7,13 @@ Read these skills when working in this repo:
 - `~/.grok/skills/coolify-test-instance/SKILL.md` — Local Coolify setup, API quirks, SSH validation, acc test troubleshooting. **Read first** when setting up a test instance or debugging real-API failures.
 - `~/.grok/skills/terraform-provider-coolify-contrib/SKILL.md` — Contributing conventions for the Coolify upstream project, repo namespace notes, CI gotchas.
 - `~/.grok/skills/terraform-provider/SKILL.md` — General Terraform provider patterns (resource implementation, testing, CI, releases).
-- `~/.grok/skills/self-hosted-runner/SKILL.md` — CI runner setup, Trivy DB mirrors, tool installation gotchas.
+- `~/.grok/skills/ci-workflow-hygiene/SKILL.md` — CI workflow rules: concurrency groups, timeouts, action versions, security scanners.
 
 ## Project
 
 Terraform provider for [Coolify](https://coolify.io/), the open-source self-hosted PaaS.
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
-33 resources, 44 data sources, 870+ tests (unit + acceptance), 8 CI jobs.
+33 resources, 44 data sources, 870+ tests (unit + acceptance), 9 CI jobs.
 16 ACME Corp scenario examples (all with `terraform test` integration tests; acme-private-repo uses plan-only).
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
@@ -191,8 +191,8 @@ errors and import failures.
 
 ## CI
 
-8 GitHub Actions jobs on push to main and PRs (GitHub-hosted ubuntu-latest):
-Detect Changes, Test, Lint (includes Govulncheck + GoReleaser Check),
+9 GitHub Actions jobs on push to main and PRs (GitHub-hosted ubuntu-latest):
+Detect Changes, DCO (PR only), Test, Lint (includes Govulncheck + GoReleaser Check),
 Validate (includes HCL fmt + Docs + Trivy + Gitleaks),
 Acceptance Tests, Scenario Tests, Contract Freshness (weekly only), CI (gate).
 Acceptance Tests bootstrap a fresh Coolify instance on ubuntu-latest and run the full suite.
