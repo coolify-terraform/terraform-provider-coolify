@@ -7,7 +7,7 @@
 [![CI](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml/badge.svg)](https://github.com/coolify-terraform/terraform-provider-coolify/actions/workflows/ci.yml)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13051/badge)](https://www.bestpractices.dev/projects/13051)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/coolify-terraform/terraform-provider-coolify/badge)](https://scorecard.dev/viewer/?uri=github.com/coolify-terraform/terraform-provider-coolify)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcoolify-terraform%2Fterraform-provider-coolify.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcoolify-terraform%2Fterraform-provider-coolify?ref=badge_shield&issueType=license)
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B62586%2Fgithub.com%2Fcoolify-terraform%2Fterraform-provider-coolify.svg?type=shield&issueType=license)](https://app.fossa.com/projects/custom%2B62586%2Fgithub.com%2Fcoolify-terraform%2Fterraform-provider-coolify?ref=badge_shield&issueType=license)
 ![Go Version](https://img.shields.io/github/go-mod/go-version/coolify-terraform/terraform-provider-coolify)
 ![License](https://img.shields.io/github/license/coolify-terraform/terraform-provider-coolify)
 
