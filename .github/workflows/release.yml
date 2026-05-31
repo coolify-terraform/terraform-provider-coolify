@@ -37,20 +37,27 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SHA=$(git rev-parse HEAD)
-          CONCLUSION=$(gh run list \
-            --commit "$SHA" \
-            --workflow ci.yml \
-            --status completed \
-            --json conclusion \
-            --jq '.[0].conclusion // empty')
-          if [ -z "$CONCLUSION" ]; then
-            echo "::error::No completed CI run found for commit $SHA. Wait for CI to finish."
-            exit 1
-          fi
-          if [ "$CONCLUSION" != "success" ]; then
-            echo "::error::CI workflow conclusion is '${CONCLUSION}', refusing to release"
-            exit 1
-          fi
+          echo "Checking CI status for commit ${SHA:0:7}..."
+          for attempt in $(seq 1 12); do
+            CONCLUSION=$(gh run list \
+              --commit "$SHA" \
+              --workflow ci.yml \
+              --status completed \
+              --json conclusion \
+              --jq '.[0].conclusion // empty')
+            if [ "$CONCLUSION" = "success" ]; then
+              echo "CI passed (attempt $attempt)"
+              exit 0
+            fi
+            if [ -n "$CONCLUSION" ]; then
+              echo "::error::CI workflow conclusion is '${CONCLUSION}', refusing to release"
+              exit 1
+            fi
+            echo "No completed CI run found yet (attempt $attempt/12), waiting 30s..."
+            sleep 30
+          done
+          echo "::error::No completed CI run for $SHA after 6 minutes. CI may still be running or was never triggered."
+          exit 1
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version-file: go.mod

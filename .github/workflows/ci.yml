@@ -205,7 +205,7 @@ jobs:
       - name: Check generated docs
         if: ${{ !cancelled() }}
         run: |
-          cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs && cd ..
+          cd tools && go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.25.0 && cd ..
           go generate ./...
           git diff --exit-code
       - name: API Coverage doc
@@ -342,7 +342,7 @@ jobs:
   scenario-tests:
     name: Scenario Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 45
     needs: [changes, test]
     if: >-
       always() &&
@@ -440,9 +440,23 @@ jobs:
 
       - name: Bootstrap Coolify test fixtures
         run: |
-          pip install playwright==1.60.0
+          pip install --require-hashes -r .github/requirements/playwright.txt
           playwright install --with-deps chromium
           COOLIFY_ENV_FILE=/tmp/coolify-env ./scripts/setup-coolify-test.sh
+
+      - name: Verify Coolify API health
+        run: |
+          set -a; source /tmp/coolify-env; set +a
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            -H "Accept: application/json" \
+            "$COOLIFY_ENDPOINT/api/v1/version")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Coolify API health check failed (HTTP $HTTP_CODE)"
+            docker compose -f "$COOLIFY_DATA_DIR/source/docker-compose.yml" logs --tail=30
+            exit 1
+          fi
+          echo "Coolify API healthy (HTTP $HTTP_CODE)"
 
       - name: Generate deploy key for scenarios
         run: |
@@ -515,7 +529,7 @@ jobs:
   acceptance-tests:
     name: Acceptance Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     needs: [changes, test, lint]
     if: >-
       always() &&
@@ -623,9 +637,23 @@ jobs:
 
       - name: Bootstrap Coolify test fixtures
         run: |
-          pip install playwright==1.60.0
+          pip install --require-hashes -r .github/requirements/playwright.txt
           playwright install --with-deps chromium
           COOLIFY_ENV_FILE=/tmp/coolify-env ./scripts/setup-coolify-test.sh
+
+      - name: Verify Coolify API health
+        run: |
+          set -a; source /tmp/coolify-env; set +a
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            -H "Accept: application/json" \
+            "$COOLIFY_ENDPOINT/api/v1/version")
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Coolify API health check failed (HTTP $HTTP_CODE)"
+            docker compose -f "$COOLIFY_DATA_DIR/source/docker-compose.yml" logs --tail=30
+            exit 1
+          fi
+          echo "Coolify API healthy (HTTP $HTTP_CODE)"
 
       - name: Run acceptance tests
         env:

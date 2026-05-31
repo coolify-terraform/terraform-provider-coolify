@@ -74,7 +74,7 @@ jobs:
           set -euo pipefail
 
           # Install Playwright for registration
-          pip install playwright==1.60.0
+          pip install --require-hashes -r .github/requirements/playwright.txt
           playwright install --with-deps chromium
 
           # Run setup script
