@@ -32,19 +32,19 @@ class TestFossaFilter(unittest.TestCase):
     def test_all_false_positives_pass(self):
         """All known false positives should result in exit 0."""
         issues = [
-            {"package": "golang.org/x/text", "license": "CC-BY-SA-3.0", "type": "policy_conflict"},
-            {"package": "golang.org/x/text", "license": "CC-BY-SA-1.0", "type": "policy_conflict"},
-            {"package": "golang.org/x/crypto", "license": "openssl-ssleay", "type": "policy_flag"},
-            {"package": "github.com/hashicorp/terraform-plugin-framework", "license": "MPL-2.0", "type": "policy_flag"},
-            {"package": "github.com/hashicorp/go-cleanhttp", "license": "MPL-2.0", "type": "policy_flag"},
+            {"revisionId": "go+golang.org/x/text$v0.37.0", "license": "CC-BY-SA-3.0", "type": "policy_conflict"},
+            {"revisionId": "go+golang.org/x/text$v0.37.0", "license": "CC-BY-SA-1.0", "type": "policy_conflict"},
+            {"revisionId": "go+golang.org/x/crypto$v0.38.0", "license": "openssl-ssleay", "type": "policy_flag"},
+            {"revisionId": "go+github.com/hashicorp/terraform-plugin-framework$v1.19.0", "license": "MPL-2.0", "type": "policy_flag"},
+            {"revisionId": "go+github.com/hashicorp/go-cleanhttp$v0.5.2", "license": "MPL-2.0", "type": "policy_flag"},
         ]
         self.assertEqual(self._run_filter(issues), 0)
 
     def test_genuine_issue_fails(self):
         """A non-whitelisted issue should result in exit 1."""
         issues = [
-            {"package": "golang.org/x/text", "license": "CC-BY-SA-3.0", "type": "policy_conflict"},
-            {"package": "sketchy-package", "license": "AGPL-3.0", "type": "policy_conflict"},
+            {"revisionId": "go+golang.org/x/text$v0.37.0", "license": "CC-BY-SA-3.0", "type": "policy_conflict"},
+            {"revisionId": "go+sketchy-package$v1.0.0", "license": "AGPL-3.0", "type": "policy_conflict"},
         ]
         self.assertEqual(self._run_filter(issues), 1)
 
@@ -55,7 +55,7 @@ class TestFossaFilter(unittest.TestCase):
     def test_object_wrapper(self):
         """Issues wrapped in an object with 'issues' key should work."""
         data = {"issues": [
-            {"package": "github.com/hashicorp/cli", "license": "MPL-2.0", "type": "policy_flag"},
+            {"revisionId": "go+github.com/hashicorp/cli$v1.0.0", "license": "MPL-2.0", "type": "policy_flag"},
         ]}
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
@@ -77,6 +77,23 @@ class TestFossaFilter(unittest.TestCase):
         self.assertTrue(fossa_filter.is_false_positive("github.com/hashicorp/terraform-plugin-go", "MPL-2.0"))
         self.assertFalse(fossa_filter.is_false_positive("sketchy-package", "GPL-3.0"))
         self.assertFalse(fossa_filter.is_false_positive("golang.org/x/text", "MIT"))
+
+    def test_extract_package_revisionId(self):
+        """Test extract_package with revisionId format."""
+        self.assertEqual(
+            fossa_filter.extract_package({"revisionId": "go+golang.org/x/text$v0.37.0"}),
+            "golang.org/x/text",
+        )
+        self.assertEqual(
+            fossa_filter.extract_package({"revisionId": "go+github.com/hashicorp/hcl/v2$v2.23.0"}),
+            "github.com/hashicorp/hcl/v2",
+        )
+
+    def test_extract_package_fallback(self):
+        """Test extract_package falls back to 'package' or 'name'."""
+        self.assertEqual(fossa_filter.extract_package({"package": "foo/bar"}), "foo/bar")
+        self.assertEqual(fossa_filter.extract_package({"name": "baz"}), "baz")
+        self.assertEqual(fossa_filter.extract_package({}), "")
 
 
 if __name__ == "__main__":

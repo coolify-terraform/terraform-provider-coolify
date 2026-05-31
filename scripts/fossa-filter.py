@@ -53,6 +53,25 @@ def is_false_positive(pkg: str, license_id: str) -> bool:
     return False
 
 
+def extract_package(issue: dict) -> str:
+    """Extract the package path from a FOSSA issue.
+
+    FOSSA uses 'revisionId' with format 'go+golang.org/x/text$v0.37.0'.
+    Strip the ecosystem prefix and version suffix to get the Go module path.
+    Falls back to 'package' or 'name' fields if revisionId is missing.
+    """
+    rev = issue.get("revisionId", "")
+    if rev:
+        # Strip ecosystem prefix (e.g., "go+", "npm+", "pip+")
+        if "+" in rev:
+            rev = rev.split("+", 1)[1]
+        # Strip version suffix (e.g., "$v0.37.0")
+        if "$" in rev:
+            rev = rev.rsplit("$", 1)[0]
+        return rev
+    return issue.get("package", "") or issue.get("name", "") or ""
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print("Usage: fossa-filter.py <fossa-results.json>", file=sys.stderr)
@@ -73,8 +92,7 @@ def main() -> int:
     filtered_count = 0
 
     for issue in issues:
-        # Try multiple possible field names (FOSSA JSON schema varies by version)
-        pkg = issue.get("package", "") or issue.get("name", "") or ""
+        pkg = extract_package(issue)
         lic = issue.get("license", "") or issue.get("licenseId", "") or ""
 
         if is_false_positive(pkg, lic):
@@ -87,7 +105,7 @@ def main() -> int:
         print(f"FAIL: {len(real_issues)} genuine issue(s) after filtering "
               f"{filtered_count} known false positives:")
         for r in real_issues:
-            pkg = r.get("package", "") or r.get("name", "?")
+            pkg = extract_package(r)
             lic = r.get("license", "") or r.get("licenseId", "?")
             itype = r.get("type", "") or r.get("issueType", "?")
             print(f"  - {pkg}  {lic}  ({itype})")
