@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Coolify Documentation
+    url: https://coolify.io/docs
+    about: Check the Coolify docs for general Coolify questions (not provider-specific).
+  - name: Discussions
+    url: https://github.com/coolify-terraform/terraform-provider-coolify/discussions
+    about: Ask questions or share ideas in GitHub Discussions.
