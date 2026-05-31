@@ -5,6 +5,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: test-cloud-bootstrap
+  cancel-in-progress: true
+
 jobs:
   bootstrap:
     runs-on: ubuntu-latest
@@ -13,6 +17,8 @@ jobs:
       COOLIFY_DATA_DIR: /home/runner/coolify-data
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
 
       - name: Start SSH server with root access
         run: |
