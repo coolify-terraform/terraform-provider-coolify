@@ -1,0 +1,37 @@
+name: Stale
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # Daily 3am UTC
+  workflow_dispatch:
+
+concurrency:
+  group: stale
+  cancel-in-progress: true
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Close Stale Issues and PRs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9
+        with:
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has not
+            had recent activity. It will be closed in 14 days if no further
+            activity occurs.
+          stale-pr-message: >
+            This PR has been automatically marked as stale because it has not
+            had recent activity. It will be closed in 14 days if no further
+            activity occurs.
+          days-before-stale: 60
+          days-before-close: 14
+          stale-issue-label: stale
+          stale-pr-label: stale
+          exempt-issue-labels: "enhancement,blocked-upstream,tech-debt"
+          exempt-pr-labels: "dependencies"

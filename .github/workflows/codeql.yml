@@ -10,6 +10,10 @@ on:
     - cron: "0 4 * * 1"  # Weekly Monday 4am UTC
   workflow_dispatch:
 
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 permissions:
   contents: read
   security-events: write
@@ -27,8 +31,8 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@03e4368ac7daa2bd82b3e85262f3bf87ee112f57 # v3
         with:
           languages: go
-      - uses: github/codeql-action/autobuild@v3
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/autobuild@03e4368ac7daa2bd82b3e85262f3bf87ee112f57 # v3
+      - uses: github/codeql-action/analyze@03e4368ac7daa2bd82b3e85262f3bf87ee112f57 # v3

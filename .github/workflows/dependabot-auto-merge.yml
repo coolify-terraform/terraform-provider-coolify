@@ -1,13 +1,11 @@
 name: Dependabot Auto-Merge
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  pull_request_target:
 
 concurrency:
-  group: dependabot-auto-merge-${{ github.event.workflow_run.head_branch }}
-  cancel-in-progress: false
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -15,41 +13,24 @@ permissions:
 
 jobs:
   auto-merge:
+    name: Auto-merge Dependabot PRs
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
-      - name: Find PR
-        id: pr
-        run: |
-          PR=$(gh api repos/${{ github.repository }}/pulls \
-            --jq ".[] | select(.head.sha == \"${{ github.event.workflow_run.head_sha }}\") | .number")
-          [ -z "$PR" ] && exit 0
-          echo "number=$PR" >> "$GITHUB_OUTPUT"
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Approve and enable auto-merge (patch/minor only)
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Check for major bump
-        if: steps.pr.outputs.number
-        id: check
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
-          TITLE=$(gh pr view "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" --json title --jq '.title')
-          # Dependabot titles: "Bump X from N to M" or "Bump X from N.x to M.x"
-          FROM=$(echo "$TITLE" | grep -oP 'from \K\d+' | head -1)
-          TO=$(echo "$TITLE" | grep -oP 'to \K\d+' | head -1)
-          if [ -n "$FROM" ] && [ -n "$TO" ] && [ "$FROM" != "$TO" ]; then
-            echo "major=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "major=false" >> "$GITHUB_OUTPUT"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Approve and merge (skip major bumps)
-        if: steps.pr.outputs.number && steps.check.outputs.major != 'true'
-        run: |
-          gh pr review "${{ steps.pr.outputs.number }}" --approve --repo "${{ github.repository }}"
-          gh pr merge "${{ steps.pr.outputs.number }}" --squash --repo "${{ github.repository }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          gh pr review --approve "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL"
+      - name: Skip major updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: echo "Skipping major version update -- requires manual review"
