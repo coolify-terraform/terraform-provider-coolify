@@ -42,9 +42,13 @@ signs:
       - "--detach-sign"
       - "${artifact}"
 
+sboms:
+  - artifacts: archive
+    cmd: syft
+
 release:
   extra_files:
     - glob: "terraform-registry-manifest.json"
 
 changelog:
-  use: github
+  disable: true
