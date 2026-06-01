@@ -40,7 +40,10 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 			return
 		}
 		var body map[string]interface{}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		_, createBuildtimePresent = body["is_buildtime"]
 		mu.Unlock()
@@ -160,7 +163,10 @@ func TestEnvironmentVariableResource_Update(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]any
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
 		if v, ok := body["value"].(string); ok {
 			currentEnvVar.Value = v
 		}
@@ -266,7 +272,10 @@ func TestEnvironmentVariableResource_ReadPreservesValueWhenAPIHidesIt(t *testing
 			return
 		}
 		var body map[string]interface{}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
 		if v, ok := body["value"].(string); ok {
 			currentEnvVar.Value = v
 		}
