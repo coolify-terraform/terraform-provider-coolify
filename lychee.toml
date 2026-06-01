@@ -5,4 +5,7 @@ exclude = [
   "\\.grok/skills/",
   "app\\.fossa\\.com/api/projects/.*\\.svg",
   "scorecard\\.dev",
+  # release-please compare URLs reference tags that may not exist yet
+  # (link-check runs before the release job creates the tag)
+  "github\\.com/.*/compare/v.*\\.\\.\\.v",
 ]

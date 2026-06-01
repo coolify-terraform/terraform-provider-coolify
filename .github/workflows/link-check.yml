@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - "**/*.md"
+      - "lychee.toml"
       - ".github/workflows/link-check.yml"
   pull_request:
     branches: [main]
     paths:
       - "**/*.md"
+      - "lychee.toml"
       - ".github/workflows/link-check.yml"
   schedule:
     - cron: "0 12 * * 1"  # Weekly Monday noon UTC
