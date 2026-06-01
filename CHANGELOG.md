@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.1...v0.1.2) (2026-06-01)
+
+
+### Bug Fixes
+
+* **ci:** exclude release-please compare URLs from lychee link check ([715124c](https://github.com/coolify-terraform/terraform-provider-coolify/commit/715124cdfac4fd1048ef93cd7232906e26449dca))
+
 ## [0.1.1](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.0...v0.1.1) (2026-06-01)
 
 
