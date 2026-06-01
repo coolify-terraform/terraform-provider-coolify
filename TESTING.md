@@ -302,7 +302,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (25 total)
+### Resources (33 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -325,12 +325,20 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_application_github_app` | Yes | Yes | Yes | Yes | Requires live `COOLIFY_GITHUB_APP_*` fixture env vars with repository access |
 | `coolify_github_app` | Yes | Yes | N/A | Yes | Uses a Terraform-managed private key fixture; create/update work without repository access |
 | `coolify_server` | Yes | Yes | Yes | Yes | RFC 5737 IP (192.0.2.1), not reachable |
+| `coolify_server_hetzner` | Yes | Yes | Yes | Yes | Needs `COOLIFY_HETZNER_TOKEN` |
 | `coolify_database_clickhouse` | Yes | Yes | Yes | Yes | |
 | `coolify_database_mariadb` | Yes | Yes | Yes | Yes | |
 | `coolify_database_mongodb` | Yes | Yes | Yes | Yes | |
 | `coolify_database_redis` | Yes | Yes | Yes | Yes | |
 | `coolify_database_dragonfly` | Yes | Yes | Yes | Yes | |
 | `coolify_database_keydb` | Yes | Yes | Yes | Yes | |
+| `coolify_application_preview` | Yes | Yes | N/A | N/A | Preview deployment lifecycle |
+| `coolify_api_settings` | Yes | Yes | Yes | N/A | Enable/disable API and MCP settings |
+| `coolify_backup_execution` | Yes | Yes | N/A | N/A | Trigger resource |
+| `coolify_cloud_token_validate` | Yes | Yes | N/A | N/A | Trigger resource, needs `COOLIFY_HETZNER_TOKEN` |
+| `coolify_resource_action` | Yes | Yes | N/A | N/A | Start/stop/restart trigger with force-replace |
+| `coolify_server_validate` | Yes | Yes | N/A | N/A | Trigger resource |
+| `coolify_envs_bulk` | Yes | Yes | N/A | N/A | Atomic env var set management |
 
 ### Data Sources (44 total)
 
@@ -383,9 +391,9 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ### Coverage Summary
 
-- **Resources**: 25/25 direct acceptance coverage
+- **Resources**: 33/33 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 57
+- **Total acceptance test functions**: 91
 
 ### Testing strategies for edge cases
 
