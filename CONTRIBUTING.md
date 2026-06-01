@@ -196,8 +196,58 @@ To test the provider against a real Coolify instance without publishing:
 4. Start a local Coolify instance for testing (see [TESTING.md](TESTING.md)
    for the full setup procedure).
 
+## DCO Sign-Off
+
+All commits must carry a `Signed-off-by` trailer (the
+[Developer Certificate of Origin](https://developercertificate.org/)). This is
+enforced by CI on every pull request.
+
+Add the sign-off automatically with the `-s` flag:
+
+```bash
+git commit -s -m "Add widget resource"
+```
+
+If you forgot on an existing commit, amend it:
+
+```bash
+git commit --amend -s --no-edit
+```
+
+For multiple unsigned commits on a branch:
+
+```bash
+git rebase --signoff HEAD~N   # N = number of commits to fix
+```
+
 ## Pull Requests
 
 - Run `make ci` before submitting, and add `make testacc` or targeted `TF_ACC=1 go test ...` commands when your change touches real Coolify API behavior (`make ci` still skips trivy, gitleaks, and acceptance tests)
 - Include tests for new functionality
 - Keep PRs focused on a single change
+- All commits must have a DCO sign-off (see above)
+
+## Coding Standards
+
+This project follows idiomatic Go conventions enforced by automated tooling:
+
+- **Formatting**: `gofmt -s` (enforced by CI via golangci-lint)
+- **Linting**: golangci-lint v2 with 20 linters including errcheck, govet, staticcheck,
+  funlen (150 lines / 80 statements), gocognit (complexity 20), nestif (depth 5),
+  dupl (250 tokens), and forbidigo (no fmt.Print)
+- **Error handling**: Wrap all errors with context using `fmt.Errorf("verb resource %s: %w", id, err)`
+- **Framework**: Use `terraform-plugin-framework` (not SDK v2)
+- **File organization**: One file per resource/data source, co-locate tests
+- **Documentation**: Use `MarkdownDescription` on all schema attributes
+- **Security**: Mark passwords and keys as `Sensitive: true`, never commit real credentials
+
+## Test Policy
+
+All new features and bug fixes require tests:
+
+- **Unit tests** use `httptest` mock servers (no Coolify instance needed)
+- **Acceptance tests** run against a real Coolify instance (`TF_ACC=1`)
+- **Minimum test coverage**: Create, Update, Import, and Disappears tests for every resource
+- **Race detection**: All tests run with the `-race` flag
+- **CI enforcement**: Tests must pass in CI before merge; coverage is reported via
+  GitHub native code coverage
