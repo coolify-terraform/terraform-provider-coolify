@@ -1,7 +1,7 @@
 {
   "version": "v4.1.0",
   "extracted_from": "coollabsio/coolify@v4.1.0",
-  "extracted_at": "2026-05-24T00:42:49.553167+00:00",
+  "extracted_at": "2026-06-01T11:51:36.915928+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -7643,6 +7643,13 @@
       "middleware": [
         "api.ability:write"
       ]
+    },
+    {
+      "method": "POST",
+      "path": "/sentinel/push",
+      "controller": "SentinelController",
+      "action": "push",
+      "middleware": []
     },
     {
       "method": "GET",
