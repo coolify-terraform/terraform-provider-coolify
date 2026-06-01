@@ -1,6 +1,7 @@
 package backup_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,6 +13,12 @@ import (
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/backup"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -862,4 +869,96 @@ func TestBackupResource_PartialStateOnListFailure(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestDatabaseBackupResource_UpgradeStateV0(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	res := backup.NewResource()
+
+	// Get current (v1) schema.
+	var schemaResp fwresource.SchemaResponse
+	res.Schema(ctx, fwresource.SchemaRequest{}, &schemaResp)
+
+	// Get v0 upgrader.
+	upgraders := res.(fwresource.ResourceWithUpgradeState).UpgradeState(ctx)
+	v0Up, ok := upgraders[0]
+	if !ok {
+		t.Fatal("v0 state upgrader not found")
+	}
+
+	// Build v0 raw state with s3_storage_id set.
+	v0Raw := tftypes.NewValue(
+		v0Up.PriorSchema.Type().TerraformType(ctx),
+		map[string]tftypes.Value{
+			"id":                         tftypes.NewValue(tftypes.Number, 42),
+			"uuid":                       tftypes.NewValue(tftypes.String, "bkp-uuid-001"),
+			"database_uuid":              tftypes.NewValue(tftypes.String, "db-uuid-001"),
+			"frequency":                  tftypes.NewValue(tftypes.String, "0 2 * * *"),
+			"enabled":                    tftypes.NewValue(tftypes.Bool, true),
+			"save_s3":                    tftypes.NewValue(tftypes.Bool, true),
+			"s3_storage_id":              tftypes.NewValue(tftypes.String, "storage-uuid-001"),
+			"databases_to_backup":        tftypes.NewValue(tftypes.String, nil),
+			"dump_all":                   tftypes.NewValue(tftypes.Bool, false),
+			"backup_now":                 tftypes.NewValue(tftypes.Bool, nil),
+			"retain_amount_locally":      tftypes.NewValue(tftypes.Number, nil),
+			"retain_days_locally":        tftypes.NewValue(tftypes.Number, nil),
+			"retain_max_storage_locally": tftypes.NewValue(tftypes.Number, nil),
+			"retain_amount_s3":           tftypes.NewValue(tftypes.Number, nil),
+			"retain_days_s3":             tftypes.NewValue(tftypes.Number, nil),
+			"retain_max_storage_s3":      tftypes.NewValue(tftypes.Number, nil),
+			"timeout":                    tftypes.NewValue(tftypes.Number, nil),
+		},
+	)
+	priorState := tfsdk.State{
+		Schema: *v0Up.PriorSchema,
+		Raw:    v0Raw,
+	}
+
+	// Prepare empty v1 state for the upgrader to populate.
+	newState := tfsdk.State{
+		Schema: schemaResp.Schema,
+		Raw:    tftypes.NewValue(schemaResp.Schema.Type().TerraformType(ctx), nil),
+	}
+
+	req := fwresource.UpgradeStateRequest{State: &priorState}
+	resp := fwresource.UpgradeStateResponse{State: newState}
+	v0Up.StateUpgrader(ctx, req, &resp)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("unexpected errors: %v", resp.Diagnostics.Errors())
+	}
+
+	// Verify s3_storage_id was renamed to s3_storage_uuid.
+	var s3UUID types.String
+	resp.State.GetAttribute(ctx, path.Root("s3_storage_uuid"), &s3UUID)
+	if s3UUID.ValueString() != "storage-uuid-001" {
+		t.Errorf("s3_storage_uuid: got %q, want %q", s3UUID.ValueString(), "storage-uuid-001")
+	}
+
+	// Verify other key fields were preserved.
+	var id types.Int64
+	resp.State.GetAttribute(ctx, path.Root("id"), &id)
+	if id.ValueInt64() != 42 {
+		t.Errorf("id: got %d, want 42", id.ValueInt64())
+	}
+
+	var dbUUID types.String
+	resp.State.GetAttribute(ctx, path.Root("database_uuid"), &dbUUID)
+	if dbUUID.ValueString() != "db-uuid-001" {
+		t.Errorf("database_uuid: got %q, want %q", dbUUID.ValueString(), "db-uuid-001")
+	}
+
+	var freq types.String
+	resp.State.GetAttribute(ctx, path.Root("frequency"), &freq)
+	if freq.ValueString() != "0 2 * * *" {
+		t.Errorf("frequency: got %q, want %q", freq.ValueString(), "0 2 * * *")
+	}
+
+	var saveS3 types.Bool
+	resp.State.GetAttribute(ctx, path.Root("save_s3"), &saveS3)
+	if !saveS3.ValueBool() {
+		t.Error("save_s3: got false, want true")
+	}
 }
