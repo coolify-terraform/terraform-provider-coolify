@@ -889,6 +889,22 @@ func TestResolveBase64Field(t *testing.T) {
 			t.Fatalf("expected user value preserved, got %q", got.ValueString())
 		}
 	})
+	t.Run("non-UTF8 API value returned as raw base64", func(t *testing.T) {
+		// Simulate an API returning base64 of binary (non-UTF8) data.
+		binaryBase64 := encoding_base64.StdEncoding.EncodeToString([]byte{0xff, 0xfe, 0x00, 0x01})
+		got := flex.ResolveBase64Field(types.StringValue("something-else"), binaryBase64)
+		// Since content differs from user value AND decoded bytes are not valid UTF-8,
+		// the function returns the raw base64 string.
+		if got.ValueString() != binaryBase64 {
+			t.Fatalf("expected raw base64 %q, got %q", binaryBase64, got.ValueString())
+		}
+	})
+	t.Run("unknown user value preserved", func(t *testing.T) {
+		got := flex.ResolveBase64Field(types.StringUnknown(), base64Encode("anything"))
+		if !got.IsUnknown() {
+			t.Fatal("expected unknown to be preserved")
+		}
+	})
 }
 
 func TestEncodeBase64Ptr(t *testing.T) {
