@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.0...v0.1.1) (2026-06-01)
+
+
+### Features
+
+* add auto-approve workflow for solo maintainer PRs ([de9e28f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/de9e28ff1f3c3f734bba6b2415c9cd2dfe63a6cd)), closes [#457](https://github.com/coolify-terraform/terraform-provider-coolify/issues/457)
+* adopt release-please for automated releases ([#447](https://github.com/coolify-terraform/terraform-provider-coolify/issues/447)) ([56e1add](https://github.com/coolify-terraform/terraform-provider-coolify/commit/56e1add93def5d03e9653ba222ac2f5ec310b827))
+
+
+### Bug Fixes
+
+* add deleted_at to internal fields exclusion test ([#442](https://github.com/coolify-terraform/terraform-provider-coolify/issues/442)) ([8b89d2a](https://github.com/coolify-terraform/terraform-provider-coolify/commit/8b89d2ab4bf60a77f99e41ba239bc6a6b3d3f22e))
+* add make merge target and FOSSA false-positive filter ([#435](https://github.com/coolify-terraform/terraform-provider-coolify/issues/435)) ([5323f97](https://github.com/coolify-terraform/terraform-provider-coolify/commit/5323f97e6f6bba50d0ed75649856ff19ee1d925e))
+* **ci:** use original filename for FOSSA CLI sha256 verification ([#440](https://github.com/coolify-terraform/terraform-provider-coolify/issues/440)) ([f2fe25f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/f2fe25f096c145477a88490bcb9a8bb780304065))
+* remove unused Python imports and variables ([#441](https://github.com/coolify-terraform/terraform-provider-coolify/issues/441)) ([24c928d](https://github.com/coolify-terraform/terraform-provider-coolify/commit/24c928df2db127fcbedc9b8a6b2c546852f0db6e))
+* update CI job count to 9, add DCO, validate in counts-check ([#461](https://github.com/coolify-terraform/terraform-provider-coolify/issues/461)) ([d5d78c0](https://github.com/coolify-terraform/terraform-provider-coolify/commit/d5d78c015e7571d07f65aceaec240c5206bd57b2)), closes [#460](https://github.com/coolify-terraform/terraform-provider-coolify/issues/460)
+* update contract with new POST /sentinel/push route ([#472](https://github.com/coolify-terraform/terraform-provider-coolify/issues/472)) ([c446a7f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/c446a7fba19f593fb082b44208ff74e2ce1f4445)), closes [#471](https://github.com/coolify-terraform/terraform-provider-coolify/issues/471)
+* update dependencies and pin FOSSA CLI for Scorecard ([#438](https://github.com/coolify-terraform/terraform-provider-coolify/issues/438)) ([626f0bf](https://github.com/coolify-terraform/terraform-provider-coolify/commit/626f0bf2bb343af2d725e73a703af2d84374321a))
+* update stale CHANGELOG URL to current org ([e5e698a](https://github.com/coolify-terraform/terraform-provider-coolify/commit/e5e698a36e8f8f16f90234d565ec0f169adc9170))
+* upgrade golang.org/x/crypto in tools module to v0.52.0 ([#466](https://github.com/coolify-terraform/terraform-provider-coolify/issues/466)) ([87c90cf](https://github.com/coolify-terraform/terraform-provider-coolify/commit/87c90cf8cf413aace9a202484dab4806388430ab))
+* use stable PR author check in auto-approve workflow ([7f7599b](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7f7599b5949238051ba1979fe4b2fc365166bef0))
+* use workflow badge for FOSSA instead of API badge ([#437](https://github.com/coolify-terraform/terraform-provider-coolify/issues/437)) ([ca8c4c1](https://github.com/coolify-terraform/terraform-provider-coolify/commit/ca8c4c12da2863925db2fe6e3713f1394910ef76))
+
 ## [0.1.0](https://github.com/coolify-terraform/terraform-provider-coolify/releases/tag/v0.1.0) (2026-05-30)
 
 ### Breaking Changes
