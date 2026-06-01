@@ -627,7 +627,10 @@ func TestProjectResource_DeleteRetry(t *testing.T) {
 			Name        string `json:"name"`
 			Description string `json:"description"`
 		}
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
 		p := store.Create(body.Name, body.Description)
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": p.UUID})

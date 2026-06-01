@@ -300,7 +300,10 @@ func TestPrivateKeyResource_DeleteRetry(t *testing.T) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/security/keys":
 			var input client.CreatePrivateKeyInput
-			json.NewDecoder(r.Body).Decode(&input)
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
 			key := &client.PrivateKey{
 				UUID:        "retry-key-uuid-001",
 				Name:        input.Name,

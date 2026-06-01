@@ -576,7 +576,10 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
 		if v, ok := body["value"].(string); ok {
 			currentEnvVar.Value = v
 		}
@@ -1232,7 +1235,10 @@ func TestEnvironmentVariableResource_DatabaseUpdate(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
 		if v, ok := body["value"].(string); ok {
 			currentEnvVar.Value = v
 		}

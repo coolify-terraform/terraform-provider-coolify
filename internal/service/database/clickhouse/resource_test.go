@@ -147,7 +147,10 @@ func TestClickhouseDatabaseResource_CreateWithCredentials(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/clickhouse":
-			json.NewDecoder(r.Body).Decode(&capturedBody)
+			if err := json.NewDecoder(r.Body).Decode(&capturedBody); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]string{"uuid": chUUID})
 

@@ -466,7 +466,10 @@ func TestServiceResource_Update(t *testing.T) {
 
 		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
 			var body map[string]interface{}
-			json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
 			if v, ok := body["description"].(string); ok {
 				currentDesc = v
 			}
@@ -573,7 +576,10 @@ func TestServiceResource_UpdateBoolFields(t *testing.T) {
 
 		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
 			var body map[string]interface{}
-			json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
 			if v, ok := body["is_container_label_escape_enabled"].(bool); ok {
 				labelEscape = v
 			}
@@ -896,7 +902,10 @@ func TestServiceResource_WithURLs(t *testing.T) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
 			var body map[string]interface{}
-			json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
 			if urls, ok := body["urls"].([]interface{}); ok {
 				lastURLs = nil
 				for _, u := range urls {
@@ -933,7 +942,10 @@ func TestServiceResource_WithURLs(t *testing.T) {
 
 		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
 			var body map[string]interface{}
-			json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
 			if urls, ok := body["urls"].([]interface{}); ok {
 				lastURLs = nil
 				for _, u := range urls {
