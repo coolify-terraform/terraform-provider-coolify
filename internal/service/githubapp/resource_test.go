@@ -1,6 +1,7 @@
 package githubapp_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,7 +13,13 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/githubapp"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/spectest"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -789,74 +796,118 @@ func checkGitHubAppDestroy(serverURL string) resource.TestCheckFunc {
 
 func TestGitHubAppResource_UpgradeStateV0(t *testing.T) {
 	t.Parallel()
+	ctx := context.Background()
 
-	store := &mockGitHubAppStore{apps: make(map[int64]*mockGitHubApp)}
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/github-apps", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			store.mu.Lock()
-			apps := make([]*mockGitHubApp, 0, len(store.apps))
-			for _, a := range store.apps {
-				apps = append(apps, a)
-			}
-			store.mu.Unlock()
-			json.NewEncoder(w).Encode(apps)
-		case http.MethodPost:
-			var input struct {
-				Name           string `json:"name"`
-				AppID          int64  `json:"app_id"`
-				InstallationID int64  `json:"installation_id"`
-				ClientID       string `json:"client_id"`
-				WebhookSecret  string `json:"webhook_secret"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
-				return
-			}
-			app := store.Create(input.Name, "", input.AppID, input.InstallationID, input.ClientID, input.WebhookSecret)
-			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(app)
-		}
-	})
-	mux.HandleFunc("/api/v1/github-apps/", func(w http.ResponseWriter, r *http.Request) {
-		idStr := r.URL.Path[len("/api/v1/github-apps/"):]
-		id, _ := strconv.ParseInt(idStr, 10, 64)
-		switch r.Method {
-		case http.MethodPatch:
-			app, ok := store.Get(id)
-			if !ok {
-				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
-				return
-			}
-			json.NewEncoder(w).Encode(app)
-		case http.MethodDelete:
-			store.Delete(id)
-			w.WriteHeader(http.StatusNoContent)
-		}
-	})
-	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
-	defer srv.Close()
+	res := githubapp.NewResource()
 
-	config := testGitHubAppResourceConfig(srv.URL, `
-name              = "migrated-app"
-app_id            = 111
-installation_id   = 222
-client_id         = "Iv1.test"
-client_secret     = "secret"
-private_key_uuid  = "dddd0001-0001-4000-8000-000000000001"
-`)
+	// Get current (v1) schema.
+	var schemaResp fwresource.SchemaResponse
+	res.Schema(ctx, fwresource.SchemaRequest{}, &schemaResp)
 
-	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coolify_github_app.test", "uuid"),
-					resource.TestCheckResourceAttr("coolify_github_app.test", "name", "migrated-app"),
-				),
-			},
+	// Get v0 upgrader.
+	upgraders := res.(fwresource.ResourceWithUpgradeState).UpgradeState(ctx)
+	v0Up, ok := upgraders[0]
+	if !ok {
+		t.Fatal("v0 state upgrader not found")
+	}
+
+	// Build v0 raw state with the old "private_key" field (raw PEM content).
+	v0Raw := tftypes.NewValue(
+		v0Up.PriorSchema.Type().TerraformType(ctx),
+		map[string]tftypes.Value{
+			"id":                tftypes.NewValue(tftypes.Number, 42),
+			"uuid":              tftypes.NewValue(tftypes.String, "gh-app-uuid-001"),
+			"name":              tftypes.NewValue(tftypes.String, "my-github-app"),
+			"organization_name": tftypes.NewValue(tftypes.String, "my-org"),
+			"app_id":            tftypes.NewValue(tftypes.Number, 111),
+			"installation_id":   tftypes.NewValue(tftypes.Number, 222),
+			"client_id":         tftypes.NewValue(tftypes.String, "Iv1.test"),
+			"client_secret":     tftypes.NewValue(tftypes.String, "secret-value"),
+			"webhook_secret":    tftypes.NewValue(tftypes.String, "webhook-secret"),
+			"private_key":       tftypes.NewValue(tftypes.String, "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----"),
 		},
-	})
+	)
+	priorState := tfsdk.State{
+		Schema: *v0Up.PriorSchema,
+		Raw:    v0Raw,
+	}
+
+	// Prepare empty v1 state for the upgrader to populate.
+	newState := tfsdk.State{
+		Schema: schemaResp.Schema,
+		Raw:    tftypes.NewValue(schemaResp.Schema.Type().TerraformType(ctx), nil),
+	}
+
+	req := fwresource.UpgradeStateRequest{State: &priorState}
+	resp := fwresource.UpgradeStateResponse{State: newState}
+	v0Up.StateUpgrader(ctx, req, &resp)
+
+	// The upgrader should NOT produce errors (it emits a warning instead).
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("unexpected errors: %v", resp.Diagnostics.Errors())
+	}
+
+	// It should produce a warning about the private_key -> private_key_uuid rename.
+	warnings := resp.Diagnostics.Warnings()
+	if len(warnings) == 0 {
+		t.Fatal("expected a warning about private_key rename, got none")
+	}
+	found := false
+	for _, w := range warnings {
+		if w.Summary() == "State migrated: private_key renamed to private_key_uuid" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected warning about private_key rename, got: %v", warnings)
+	}
+
+	// Verify core fields were preserved.
+	var name, uuid, clientID, clientSecret, webhookSecret, orgName types.String
+	var id, appID, installationID types.Int64
+	resp.State.GetAttribute(ctx, path.Root("name"), &name)
+	resp.State.GetAttribute(ctx, path.Root("uuid"), &uuid)
+	resp.State.GetAttribute(ctx, path.Root("client_id"), &clientID)
+	resp.State.GetAttribute(ctx, path.Root("client_secret"), &clientSecret)
+	resp.State.GetAttribute(ctx, path.Root("webhook_secret"), &webhookSecret)
+	resp.State.GetAttribute(ctx, path.Root("organization_name"), &orgName)
+	resp.State.GetAttribute(ctx, path.Root("id"), &id)
+	resp.State.GetAttribute(ctx, path.Root("app_id"), &appID)
+	resp.State.GetAttribute(ctx, path.Root("installation_id"), &installationID)
+
+	if name.ValueString() != "my-github-app" {
+		t.Errorf("name = %q, want %q", name.ValueString(), "my-github-app")
+	}
+	if uuid.ValueString() != "gh-app-uuid-001" {
+		t.Errorf("uuid = %q, want %q", uuid.ValueString(), "gh-app-uuid-001")
+	}
+	if clientID.ValueString() != "Iv1.test" {
+		t.Errorf("client_id = %q, want %q", clientID.ValueString(), "Iv1.test")
+	}
+	if clientSecret.ValueString() != "secret-value" {
+		t.Errorf("client_secret = %q, want %q", clientSecret.ValueString(), "secret-value")
+	}
+	if webhookSecret.ValueString() != "webhook-secret" {
+		t.Errorf("webhook_secret = %q, want %q", webhookSecret.ValueString(), "webhook-secret")
+	}
+	if orgName.ValueString() != "my-org" {
+		t.Errorf("organization_name = %q, want %q", orgName.ValueString(), "my-org")
+	}
+	if id.ValueInt64() != 42 {
+		t.Errorf("id = %d, want 42", id.ValueInt64())
+	}
+	if appID.ValueInt64() != 111 {
+		t.Errorf("app_id = %d, want 111", appID.ValueInt64())
+	}
+	if installationID.ValueInt64() != 222 {
+		t.Errorf("installation_id = %d, want 222", installationID.ValueInt64())
+	}
+
+	// private_key_uuid should be Unknown (can't convert raw PEM to UUID).
+	var pkUUID types.String
+	resp.State.GetAttribute(ctx, path.Root("private_key_uuid"), &pkUUID)
+	if !pkUUID.IsUnknown() {
+		t.Errorf("private_key_uuid should be Unknown after migration, got %q", pkUUID.ValueString())
+	}
 }
