@@ -4972,3 +4972,107 @@ func TestClient_CFAccessHeaders_NotSet(t *testing.T) {
 	_, err := c.GetVersion(context.Background())
 	require.NoError(t, err)
 }
+
+// --- decodeGitHubApp tests ---
+
+func TestDecodeGitHubApp_Envelope(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`{"message":"ok","data":{"id":7,"uuid":"abc","name":"My App"}}`)
+	app, err := decodeGitHubApp(raw)
+	require.NoError(t, err)
+	assert.Equal(t, int64(7), app.ID)
+	assert.Equal(t, "abc", app.UUID)
+	assert.Equal(t, "My App", app.Name)
+}
+
+func TestDecodeGitHubApp_Direct(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`{"id":9,"uuid":"def","name":"Direct App","organization":"my-org"}`)
+	app, err := decodeGitHubApp(raw)
+	require.NoError(t, err)
+	assert.Equal(t, int64(9), app.ID)
+	assert.Equal(t, "def", app.UUID)
+	assert.Equal(t, "Direct App", app.Name)
+	assert.Equal(t, "my-org", app.OrganizationName)
+}
+
+func TestDecodeGitHubApp_EnvelopeNullData(t *testing.T) {
+	t.Parallel()
+	// Envelope with null data falls through to direct decode which also
+	// produces an invalid app (missing id/name), resulting in an error.
+	raw := json.RawMessage(`{"message":"ok","data":null}`)
+	_, err := decodeGitHubApp(raw)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing id")
+}
+
+func TestDecodeGitHubApp_InvalidJSON(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`not json`)
+	_, err := decodeGitHubApp(raw)
+	require.Error(t, err)
+}
+
+func TestDecodeGitHubApp_DirectMissingName(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`{"id":1}`)
+	_, err := decodeGitHubApp(raw)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing name")
+}
+
+// --- decodeGitHubRepositories tests ---
+
+func TestDecodeGitHubRepositories_DirectArray(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`[{"name":"repo1","full_name":"org/repo1","private":false},{"name":"repo2","full_name":"org/repo2","private":true}]`)
+	repos, err := decodeGitHubRepositories(raw)
+	require.NoError(t, err)
+	require.Len(t, repos, 2)
+	assert.Equal(t, "repo1", repos[0].Name)
+	assert.True(t, repos[1].Private)
+}
+
+func TestDecodeGitHubRepositories_Envelope(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`{"repositories":[{"name":"wrapped","full_name":"org/wrapped","private":false}]}`)
+	repos, err := decodeGitHubRepositories(raw)
+	require.NoError(t, err)
+	require.Len(t, repos, 1)
+	assert.Equal(t, "wrapped", repos[0].Name)
+}
+
+func TestDecodeGitHubRepositories_InvalidJSON(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`not json`)
+	_, err := decodeGitHubRepositories(raw)
+	require.Error(t, err)
+}
+
+// --- decodeGitHubBranches tests ---
+
+func TestDecodeGitHubBranches_DirectArray(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`[{"name":"main"},{"name":"develop"}]`)
+	branches, err := decodeGitHubBranches(raw)
+	require.NoError(t, err)
+	require.Len(t, branches, 2)
+	assert.Equal(t, "main", branches[0].Name)
+	assert.Equal(t, "develop", branches[1].Name)
+}
+
+func TestDecodeGitHubBranches_Envelope(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`{"branches":[{"name":"feature-1"}]}`)
+	branches, err := decodeGitHubBranches(raw)
+	require.NoError(t, err)
+	require.Len(t, branches, 1)
+	assert.Equal(t, "feature-1", branches[0].Name)
+}
+
+func TestDecodeGitHubBranches_InvalidJSON(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`not json`)
+	_, err := decodeGitHubBranches(raw)
+	require.Error(t, err)
+}
