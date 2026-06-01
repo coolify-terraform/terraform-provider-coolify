@@ -119,7 +119,7 @@ docs-check: check-tfplugindocs ## Check generated docs are up to date
 		exit 1; \
 	fi
 
-counts-check: ## Verify AGENTS.md and README.md resource/data source/test counts
+counts-check: ## Verify AGENTS.md, README.md, and TESTING.md resource/data source/test counts
 	@r_actual=$$(sed -n '/func.*Resources.*\[\]func.*resource\.Resource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
 	d_actual=$$(sed -n '/func.*DataSources.*\[\]func.*datasource\.DataSource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
 	r_doc=$$(grep -Eo '^[0-9]+ resources' AGENTS.md | grep -Eo '^[0-9]+'); \
@@ -135,9 +135,16 @@ counts-check: ## Verify AGENTS.md and README.md resource/data source/test counts
 	if [ -n "$$t_readme" ] && [ "$$t_readme" -gt "$$t_floor" ]; then echo "README.md says $$t_readme+ tests but actual is $$t_actual (floor $$t_floor)"; ok=false; fi; \
 	j_actual=$$(sed -n '/^jobs:/,$$p' .github/workflows/ci.yml | grep -cE '^  [a-z][a-z_-]*:' | tr -d ' '); \
 	j_doc=$$(grep -Eo '^[0-9]+ GitHub Actions jobs' AGENTS.md | grep -Eo '^[0-9]+'); \
+	tm_r=$$(grep -Eo '### Resources \([0-9]+ total\)' TESTING.md | grep -Eo '[0-9]+'); \
+	tm_d=$$(grep -Eo '### Data Sources \([0-9]+ total\)' TESTING.md | grep -Eo '[0-9]+'); \
+	acc_actual=$$(grep -r '^func TestAcc' --include='*_acc_test.go' . | wc -l | tr -d ' '); \
+	acc_doc=$$(grep -Eo 'Total acceptance test functions.*: [0-9]+' TESTING.md | grep -Eo '[0-9]+'); \
 	if [ -n "$$j_doc" ] && [ "$$j_actual" != "$$j_doc" ]; then echo "AGENTS.md says $$j_doc CI jobs but ci.yml has $$j_actual"; ok=false; fi; \
-	if ! $$ok; then echo "Run: update counts (tests actual: $$t_actual, floor: $$t_floor+; CI jobs: $$j_actual)"; exit 1; fi; \
-	echo "Counts OK: $$r_actual resources, $$d_actual data sources, $$t_actual tests ($$t_floor+ documented), $$j_actual CI jobs"
+	if [ -n "$$tm_r" ] && [ "$$r_actual" != "$$tm_r" ]; then echo "TESTING.md says $$tm_r resources but provider.go has $$r_actual"; ok=false; fi; \
+	if [ -n "$$tm_d" ] && [ "$$d_actual" != "$$tm_d" ]; then echo "TESTING.md says $$tm_d data sources but provider.go has $$d_actual"; ok=false; fi; \
+	if [ -n "$$acc_doc" ] && [ "$$acc_actual" != "$$acc_doc" ]; then echo "TESTING.md says $$acc_doc acceptance tests but actual is $$acc_actual"; ok=false; fi; \
+	if ! $$ok; then echo "Run: update counts (tests actual: $$t_actual, floor: $$t_floor+; CI jobs: $$j_actual; acc tests: $$acc_actual)"; exit 1; fi; \
+	echo "Counts OK: $$r_actual resources, $$d_actual data sources, $$t_actual tests ($$t_floor+ documented), $$j_actual CI jobs, $$acc_actual acc tests"
 
 api-coverage-check: ## Check API_COVERAGE.md is up to date
 	@before=$$(mktemp); after=$$(mktemp); \

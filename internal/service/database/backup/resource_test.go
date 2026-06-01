@@ -55,7 +55,10 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", state.dbUUID):
 			var body map[string]interface{}
-			json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
 			if v, ok := body["frequency"].(string); ok {
 				state.frequency = v
 			}
@@ -97,7 +100,10 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 		case r.Method == http.MethodPatch && (r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id) ||
 			r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%s", state.dbUUID, state.uuid)):
 			var body map[string]interface{}
-			json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
 			if v, ok := body["frequency"].(string); ok {
 				state.frequency = v
 			}

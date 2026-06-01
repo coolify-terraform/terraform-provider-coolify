@@ -810,7 +810,10 @@ func TestGitHubAppResource_UpgradeStateV0(t *testing.T) {
 				ClientID       string `json:"client_id"`
 				WebhookSecret  string `json:"webhook_secret"`
 			}
-			json.NewDecoder(r.Body).Decode(&input)
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
 			app := store.Create(input.Name, "", input.AppID, input.InstallationID, input.ClientID, input.WebhookSecret)
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(app)

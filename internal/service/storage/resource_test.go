@@ -152,7 +152,10 @@ func TestStorageResource_Update(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
 		if v, ok := body["name"].(string); ok {
 			currentStor.Name = v
 		}
@@ -265,7 +268,10 @@ func TestStorageResource_UpdateReadBackCatchesNormalization(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		var body map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
 		if v, ok := body["mount_path"].(string); ok {
 			currentStor.MountPath = v
 		}
