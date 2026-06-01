@@ -13,7 +13,7 @@ jobs:
     if: >-
       github.actor == 'SebTardif' ||
       github.actor == 'dependabot[bot]' ||
-      github.actor == 'github-actions[bot]'
+      github.actor == 'coolify-terraform-auto-approve[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
