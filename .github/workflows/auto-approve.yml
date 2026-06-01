@@ -12,7 +12,8 @@ jobs:
     name: Auto Approve
     if: >-
       github.actor == 'SebTardif' ||
-      github.actor == 'dependabot[bot]'
+      github.actor == 'dependabot[bot]' ||
+      github.actor == 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
