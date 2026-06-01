@@ -60,6 +60,7 @@ jobs:
       (needs.release-please.outputs.release_created == 'true' ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       actions: read
       contents: write
