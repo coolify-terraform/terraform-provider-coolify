@@ -329,42 +329,6 @@ func flattenStorageFromList(storages []client.Storage, state *storageResourceMod
 }
 
 func (r *storageResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.SplitN(req.ID, ":", 3)
-	if len(parts) != 3 {
-		resp.Diagnostics.AddError(
-			"Invalid import ID format",
-			`Expected "application:{app_uuid}:{storage_uuid}", "service:{svc_uuid}:{storage_uuid}", or "database:{db_uuid}:{storage_uuid}".`,
-		)
-		return
-	}
-
-	resourceType := parts[0]
-	parentUUID := parts[1]
-	storageUUID := parts[2]
-
-	if err := validate.ImportUUID(parentUUID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("parent UUID segment: %s", err))
-		return
-	}
-	if err := validate.ImportUUID(storageUUID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("storage UUID segment: %s", err))
-		return
-	}
-
-	switch resourceType {
-	case "application":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("application_uuid"), parentUUID)...)
-	case "service":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("service_uuid"), parentUUID)...)
-	case "database":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("database_uuid"), parentUUID)...)
-	default:
-		resp.Diagnostics.AddError(
-			"Invalid import ID type",
-			fmt.Sprintf("Expected \"application\", \"service\", or \"database\", got %q.", resourceType),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), storageUUID)...)
+	validate.ImportParentChild(ctx, req, resp,
+		[]string{"application", "service", "database"}, "storage")
 }

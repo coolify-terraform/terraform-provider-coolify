@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -284,40 +283,6 @@ func flattenScheduledTaskFromList(tasks []client.ScheduledTask, state *scheduled
 }
 
 func (r *scheduledTaskResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.SplitN(req.ID, ":", 3)
-	if len(parts) != 3 {
-		resp.Diagnostics.AddError(
-			"Invalid import ID format",
-			`Expected "application:{app_uuid}:{task_uuid}" or "service:{svc_uuid}:{task_uuid}".`,
-		)
-		return
-	}
-
-	resourceType := parts[0]
-	parentUUID := parts[1]
-	taskUUID := parts[2]
-
-	if err := validate.ImportUUID(parentUUID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("parent UUID segment: %s", err))
-		return
-	}
-	if err := validate.ImportUUID(taskUUID); err != nil {
-		resp.Diagnostics.AddError("Invalid Import ID", fmt.Sprintf("task UUID segment: %s", err))
-		return
-	}
-
-	switch resourceType {
-	case "application":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("application_uuid"), parentUUID)...)
-	case "service":
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("service_uuid"), parentUUID)...)
-	default:
-		resp.Diagnostics.AddError(
-			"Invalid import ID type",
-			fmt.Sprintf("Expected \"application\" or \"service\", got %q.", resourceType),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), taskUUID)...)
+	validate.ImportParentChild(ctx, req, resp,
+		[]string{"application", "service"}, "task")
 }
