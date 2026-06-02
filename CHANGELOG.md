@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.2...v0.1.3) (2026-06-02)
+
+
+### Bug Fixes
+
+* add coolify-v4-latest.json to .gitignore ([09bc849](https://github.com/coolify-terraform/terraform-provider-coolify/commit/09bc849d56c1c573453be4a1f223ae2b39813416))
+* improve test honesty, CI safety, and error handling ([#485](https://github.com/coolify-terraform/terraform-provider-coolify/issues/485)) ([ab40882](https://github.com/coolify-terraform/terraform-provider-coolify/commit/ab408820e39d6612e7df1073b4b8c51cd1f08745))
+
 ## [0.1.2](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.1...v0.1.2) (2026-06-01)
 
 
