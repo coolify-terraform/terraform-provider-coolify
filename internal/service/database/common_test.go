@@ -110,7 +110,7 @@ func TestDeleteDatabase_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL, "test-token")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	resp := &resource.DeleteResponse{}
 
