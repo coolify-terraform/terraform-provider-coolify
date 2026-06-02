@@ -504,11 +504,9 @@ jobs:
     name: Acceptance Tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: [changes, test, lint]
+    needs: changes
     if: >-
       always() &&
-      needs.test.result == 'success' &&
-      needs.lint.result == 'success' &&
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
