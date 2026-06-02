@@ -40,6 +40,16 @@ func TestScheduledTaskResource_Create(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["name"] != "backup-db" || body["command"] != "pg_dump mydb > /backups/mydb.sql" || body["frequency"] != "*/5 * * * *" {
+			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
@@ -142,6 +152,16 @@ func TestScheduledTaskResource_Update(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["name"] != "cleanup-logs" || body["command"] != "rm -rf /tmp/logs/*" || body["frequency"] != "0 * * * *" {
+			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
