@@ -12,3 +12,4 @@ cover.out
 .env
 __pycache__/
 *.pyc
+testdata/contracts/coolify-v4-latest.json
