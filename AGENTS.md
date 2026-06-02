@@ -162,6 +162,7 @@ errors and import failures.
 - Use `resource.UnitTest` for unit tests, `resource.Test` for acceptance tests
 - Every resource needs: Create, Update, Import, Disappears tests at minimum
 - Validator rejection tests for custom validators (FQDN format, cron syntax)
+- Create/Update mock handlers must decode the POST/PATCH request body and assert expected field values (name, command, frequency, etc.), not just return a canned response. Without body validation, the mock only tests that the provider sends *a* request, not the *right* request. See `internal/service/storage/resource_test.go` for the pattern.
 - Run with `-race` flag
 
 ### Documentation
