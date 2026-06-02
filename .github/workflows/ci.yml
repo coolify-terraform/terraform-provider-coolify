@@ -379,10 +379,9 @@ jobs:
     name: Scenario Tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: [changes, test]
+    needs: [changes]
     if: >-
       always() &&
-      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (
         needs.changes.outputs.scenarios == 'true' ||
         github.event_name == 'workflow_dispatch'
