@@ -254,10 +254,10 @@ func TestMongodbDatabaseResource_Disappears(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
-		case strings.HasSuffix(r.URL.Path, "/start"):
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/start"):
 			w.WriteHeader(http.StatusOK)
 
-		case strings.HasSuffix(r.URL.Path, "/stop"):
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/stop"):
 			w.WriteHeader(http.StatusOK)
 
 		default:

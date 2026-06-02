@@ -268,7 +268,8 @@ func TestKeydbDatabaseResource_Disappears(t *testing.T) {
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dbUUID):
 			deleted = true
 			w.WriteHeader(http.StatusOK)
-		case strings.HasSuffix(r.URL.Path, "/start"), strings.HasSuffix(r.URL.Path, "/stop"):
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/start"),
+			r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/stop"):
 			w.WriteHeader(http.StatusOK)
 		default:
 			w.WriteHeader(http.StatusNotFound)
