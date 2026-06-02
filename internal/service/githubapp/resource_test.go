@@ -512,7 +512,10 @@ resource "coolify_github_app" "test" {
 							return fmt.Errorf("resource not found in state")
 						}
 						idStr := rs.Primary.Attributes["id"]
-						id, _ := strconv.ParseInt(idStr, 10, 64)
+						id, err := strconv.ParseInt(idStr, 10, 64)
+						if err != nil {
+							return fmt.Errorf("invalid resource id %q: %w", idStr, err)
+						}
 						store.Delete(id)
 						return nil
 					},
@@ -866,15 +869,24 @@ func TestGitHubAppResource_UpgradeStateV0(t *testing.T) {
 	// Verify core fields were preserved.
 	var name, uuid, clientID, clientSecret, webhookSecret, orgName types.String
 	var id, appID, installationID types.Int64
-	resp.State.GetAttribute(ctx, path.Root("name"), &name)
-	resp.State.GetAttribute(ctx, path.Root("uuid"), &uuid)
-	resp.State.GetAttribute(ctx, path.Root("client_id"), &clientID)
-	resp.State.GetAttribute(ctx, path.Root("client_secret"), &clientSecret)
-	resp.State.GetAttribute(ctx, path.Root("webhook_secret"), &webhookSecret)
-	resp.State.GetAttribute(ctx, path.Root("organization_name"), &orgName)
-	resp.State.GetAttribute(ctx, path.Root("id"), &id)
-	resp.State.GetAttribute(ctx, path.Root("app_id"), &appID)
-	resp.State.GetAttribute(ctx, path.Root("installation_id"), &installationID)
+	for _, tc := range []struct {
+		name string
+		dest any
+	}{
+		{"name", &name},
+		{"uuid", &uuid},
+		{"client_id", &clientID},
+		{"client_secret", &clientSecret},
+		{"webhook_secret", &webhookSecret},
+		{"organization_name", &orgName},
+		{"id", &id},
+		{"app_id", &appID},
+		{"installation_id", &installationID},
+	} {
+		if diags := resp.State.GetAttribute(ctx, path.Root(tc.name), tc.dest); diags.HasError() {
+			t.Fatalf("failed to get state attribute %q: %v", tc.name, diags)
+		}
+	}
 
 	if name.ValueString() != "my-github-app" {
 		t.Errorf("name = %q, want %q", name.ValueString(), "my-github-app")
@@ -906,7 +918,9 @@ func TestGitHubAppResource_UpgradeStateV0(t *testing.T) {
 
 	// private_key_uuid should be Unknown (can't convert raw PEM to UUID).
 	var pkUUID types.String
-	resp.State.GetAttribute(ctx, path.Root("private_key_uuid"), &pkUUID)
+	if diags := resp.State.GetAttribute(ctx, path.Root("private_key_uuid"), &pkUUID); diags.HasError() {
+		t.Fatalf("failed to get state attribute %q: %v", "private_key_uuid", diags)
+	}
 	if !pkUUID.IsUnknown() {
 		t.Errorf("private_key_uuid should be Unknown after migration, got %q", pkUUID.ValueString())
 	}
