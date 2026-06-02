@@ -903,7 +903,10 @@ func checkStorageDestroy(serverURL, listPath string) resource.TestCheckFunc {
 				PersistentStorages []client.Storage `json:"persistent_storages"`
 				FileStorages       []client.Storage `json:"file_storages"`
 			}
-			json.NewDecoder(resp.Body).Decode(&result)
+			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+				resp.Body.Close()
+				return fmt.Errorf("error decoding destroy-check response for coolify_storage/%s: %w", uuid, err)
+			}
 			resp.Body.Close()
 			for _, stor := range result.PersistentStorages {
 				if stor.UUID == uuid {
