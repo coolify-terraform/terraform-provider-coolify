@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -38,6 +39,16 @@ func TestScheduledTaskResource_Create(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["name"] != "backup-db" || body["command"] != "pg_dump mydb > /backups/mydb.sql" || body["frequency"] != "*/5 * * * *" {
+			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -142,6 +153,16 @@ func TestScheduledTaskResource_Update(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["name"] != "cleanup-logs" || body["command"] != "rm -rf /tmp/logs/*" || body["frequency"] != "0 * * * *" {
+			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -1069,6 +1090,139 @@ func TestScheduledTaskResource_UpdateReadBackFallback(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "name", "updated-fallback"),
 					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "command", "echo updated"),
 				),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestScheduledTaskResource_ReadParentNotFound
+// ---------------------------------------------------------------------------
+
+func TestScheduledTaskResource_ReadParentNotFound(t *testing.T) {
+	t.Parallel()
+
+	task := client.ScheduledTask{
+		UUID:      "task-readnf-uuid",
+		Name:      "readnf-task",
+		Command:   "echo readnf",
+		Frequency: "* * * * *",
+		Enabled:   true,
+	}
+
+	var forceNotFound atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, _ *http.Request) {
+		if forceNotFound.Load() {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.ScheduledTask{task})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "readnf-task"
+					command          = "echo readnf"
+					frequency        = "* * * * *"
+				`),
+				Check: resource.TestCheckResourceAttrSet("coolify_scheduled_task.test", "uuid"),
+			},
+			{
+				PreConfig: func() {
+					forceNotFound.Store(true)
+				},
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "readnf-task"
+					command          = "echo readnf"
+					frequency        = "* * * * *"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestScheduledTaskResource_ReadClientError
+// ---------------------------------------------------------------------------
+
+func TestScheduledTaskResource_ReadClientError(t *testing.T) {
+	t.Parallel()
+
+	task := client.ScheduledTask{
+		UUID:      "task-readerr-uuid",
+		Name:      "readerr-task",
+		Command:   "echo readerr",
+		Frequency: "* * * * *",
+		Enabled:   true,
+	}
+
+	var forceReadError atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, _ *http.Request) {
+		if forceReadError.Load() {
+			http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.ScheduledTask{task})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "readerr-task"
+					command          = "echo readerr"
+					frequency        = "* * * * *"
+				`),
+				Check: resource.TestCheckResourceAttrSet("coolify_scheduled_task.test", "uuid"),
+			},
+			{
+				PreConfig: func() {
+					forceReadError.Store(true)
+				},
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "readerr-task"
+					command          = "echo readerr"
+					frequency        = "* * * * *"
+				`),
+				ExpectError: regexp.MustCompile(`Error reading scheduled tasks`),
 			},
 		},
 	})

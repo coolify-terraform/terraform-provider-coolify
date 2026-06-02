@@ -145,14 +145,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	// Settings like concurrent_builds and dynamic_timeout must be sent via
 	// a follow-up PATCH if the user configured non-default values.
 	if hasNonDefaultSettings(plan) {
-		settingsUpdate := client.UpdateServerInput{
-			ConcurrentBuilds:                     flex.IntIfNonDefault(plan.ConcurrentBuilds, 2),
-			DynamicTimeout:                       flex.IntIfNonDefault(plan.DynamicTimeout, 3600),
-			DeploymentQueueLimit:                 flex.IntIfNonDefault(plan.DeploymentQueueLimit, 25),
-			ConnectionTimeout:                    flex.IntIfNonDefault(plan.ConnectionTimeout, 10),
-			ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(plan.ServerDiskUsageNotificationThreshold, 80),
-			ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(plan.ServerDiskUsageCheckFrequency),
-		}
+		settingsUpdate := BuildPostCreateSettingsInput(plan.commonPtrs())
 		if _, err := r.client.UpdateServer(ctx, created.UUID, settingsUpdate); err != nil {
 			resp.Diagnostics.AddError("Error setting server settings",
 				fmt.Sprintf("server %s: %s", created.UUID, err))
@@ -260,15 +253,9 @@ func (r *serverResource) ImportState(ctx context.Context, req resource.ImportSta
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 
-// hasNonDefaultSettings returns true if the user configured any settings
-// field to a value different from Coolify's create-time default.
+// hasNonDefaultSettings delegates to the shared HasNonDefaultSettings helper.
 func hasNonDefaultSettings(plan serverResourceModel) bool {
-	return flex.Int64ValueNonDefault(plan.ConcurrentBuilds, 2) ||
-		flex.Int64ValueNonDefault(plan.DynamicTimeout, 3600) ||
-		flex.Int64ValueNonDefault(plan.DeploymentQueueLimit, 25) ||
-		flex.Int64ValueNonDefault(plan.ConnectionTimeout, 10) ||
-		flex.Int64ValueNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
-		flex.StringValueConfigured(plan.ServerDiskUsageCheckFrequency)
+	return HasNonDefaultSettings(plan.commonPtrs())
 }
 
 func (m *serverResourceModel) commonPtrs() ServerCommonPtrs {

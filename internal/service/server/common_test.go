@@ -538,6 +538,104 @@ func sortedStrings(values []string) []string {
 	return copyValues
 }
 
+func TestBuildPostCreateSettingsInput_AllDefaults(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	m.ConcurrentBuilds = types.Int64Value(2)
+	m.DynamicTimeout = types.Int64Value(3600)
+	m.DeploymentQueueLimit = types.Int64Value(25)
+	m.ConnectionTimeout = types.Int64Value(10)
+	m.ServerDiskUsageNotificationThreshold = types.Int64Value(80)
+
+	input := BuildPostCreateSettingsInput(ptrs)
+
+	if input.ConcurrentBuilds != nil {
+		t.Errorf("ConcurrentBuilds should be nil at default, got %v", *input.ConcurrentBuilds)
+	}
+	if input.DynamicTimeout != nil {
+		t.Errorf("DynamicTimeout should be nil at default, got %v", *input.DynamicTimeout)
+	}
+	if input.DeploymentQueueLimit != nil {
+		t.Errorf("DeploymentQueueLimit should be nil at default, got %v", *input.DeploymentQueueLimit)
+	}
+	if input.ConnectionTimeout != nil {
+		t.Errorf("ConnectionTimeout should be nil at default, got %v", *input.ConnectionTimeout)
+	}
+	if input.ServerDiskUsageNotificationThreshold != nil {
+		t.Errorf("DiskUsageThreshold should be nil at default, got %v", *input.ServerDiskUsageNotificationThreshold)
+	}
+	if input.ServerDiskUsageCheckFrequency != nil {
+		t.Errorf("DiskUsageFrequency should be nil at default, got %v", *input.ServerDiskUsageCheckFrequency)
+	}
+}
+
+func TestBuildPostCreateSettingsInput_NonDefaults(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	m.ConcurrentBuilds = types.Int64Value(8)
+	m.DynamicTimeout = types.Int64Value(7200)
+	m.DeploymentQueueLimit = types.Int64Value(50)
+	m.ConnectionTimeout = types.Int64Value(30)
+	m.ServerDiskUsageNotificationThreshold = types.Int64Value(95)
+	m.ServerDiskUsageCheckFrequency = types.StringValue("*/10 * * * *")
+
+	input := BuildPostCreateSettingsInput(ptrs)
+
+	intChecks := []struct {
+		name string
+		want int
+		got  *int
+	}{
+		{"ConcurrentBuilds", 8, input.ConcurrentBuilds},
+		{"DynamicTimeout", 7200, input.DynamicTimeout},
+		{"DeploymentQueueLimit", 50, input.DeploymentQueueLimit},
+		{"ConnectionTimeout", 30, input.ConnectionTimeout},
+		{"ServerDiskUsageNotificationThreshold", 95, input.ServerDiskUsageNotificationThreshold},
+	}
+	for _, c := range intChecks {
+		if c.got == nil {
+			t.Errorf("%s should be non-nil", c.name)
+		} else if *c.got != c.want {
+			t.Errorf("%s = %d, want %d", c.name, *c.got, c.want)
+		}
+	}
+	if input.ServerDiskUsageCheckFrequency == nil {
+		t.Error("ServerDiskUsageCheckFrequency should be non-nil")
+	} else if *input.ServerDiskUsageCheckFrequency != "*/10 * * * *" {
+		t.Errorf("ServerDiskUsageCheckFrequency = %q, want %q", *input.ServerDiskUsageCheckFrequency, "*/10 * * * *")
+	}
+
+	// Verify the input does NOT include fields that belong only in Update.
+	if input.Name != nil {
+		t.Errorf("Name should be nil in post-create settings input, got %v", *input.Name)
+	}
+	if input.IP != nil {
+		t.Errorf("IP should be nil in post-create settings input, got %v", *input.IP)
+	}
+}
+
+func TestHasNonDefaultSettings_ViaCommonPtrs(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+
+	// All defaults: should return false.
+	m.ConcurrentBuilds = types.Int64Value(2)
+	m.DynamicTimeout = types.Int64Value(3600)
+	m.DeploymentQueueLimit = types.Int64Value(25)
+	m.ConnectionTimeout = types.Int64Value(10)
+	m.ServerDiskUsageNotificationThreshold = types.Int64Value(80)
+
+	if HasNonDefaultSettings(ptrs) {
+		t.Error("expected false when all fields are at their defaults")
+	}
+
+	// One non-default: should return true.
+	m.ConcurrentBuilds = types.Int64Value(8)
+	if !HasNonDefaultSettings(ptrs) {
+		t.Error("expected true when ConcurrentBuilds is non-default")
+	}
+}
+
 func TestHasNonDefaultSettings_AllDefaults(t *testing.T) {
 	t.Parallel()
 	plan := serverResourceModel{

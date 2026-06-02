@@ -726,6 +726,72 @@ data "coolify_github_app" "test" {
 	})
 }
 
+func TestGitHubAppsDataSource_ClientError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_github_apps" "test" {}
+`,
+				ExpectError: regexp.MustCompile(`Error listing GitHub Apps`),
+			},
+		},
+	})
+}
+
+func TestGitHubAppRepositoriesDataSource_ClientError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_github_app_repositories" "test" {
+  github_app_id = 123
+}
+`,
+				ExpectError: regexp.MustCompile(`Error listing repositories`),
+			},
+		},
+	})
+}
+
+func TestGitHubAppBranchesDataSource_ClientError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_github_app_branches" "test" {
+  github_app_id = 123
+  owner         = "testowner"
+  repo          = "testrepo"
+}
+`,
+				ExpectError: regexp.MustCompile(`Error listing branches`),
+			},
+		},
+	})
+}
+
 func TestGitHubAppResource_ImportBadID(t *testing.T) {
 	t.Parallel()
 	server, _ := newMockCoolifyServer()

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -81,6 +82,26 @@ data "coolify_resources" "filtered" {
 					resource.TestCheckResourceAttr("data.coolify_resources.filtered", "resources.0.name", "my-app"),
 					resource.TestCheckResourceAttr("data.coolify_resources.filtered", "resources.0.type", "application"),
 				),
+			},
+		},
+	})
+}
+
+func TestResourcesDataSource_ClientError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_resources" "test" {}
+`,
+				ExpectError: regexp.MustCompile(`Error listing resources`),
 			},
 		},
 	})

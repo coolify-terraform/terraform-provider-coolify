@@ -272,6 +272,32 @@ func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
 	*f.GenerateExactLabels = types.BoolValue(s.GenerateExactLabels)
 }
 
+// HasNonDefaultSettings returns true if any settings field in the plan
+// differs from Coolify's create-time default. Used by Create methods to
+// decide whether a post-create PATCH is needed for settings.
+func HasNonDefaultSettings(p ServerCommonPtrs) bool {
+	return flex.Int64ValueNonDefault(*p.ConcurrentBuilds, 2) ||
+		flex.Int64ValueNonDefault(*p.DynamicTimeout, 3600) ||
+		flex.Int64ValueNonDefault(*p.DeploymentQueueLimit, 25) ||
+		flex.Int64ValueNonDefault(*p.ConnectionTimeout, 10) ||
+		flex.Int64ValueNonDefault(*p.ServerDiskUsageNotificationThreshold, 80) ||
+		flex.StringValueNonDefault(*p.ServerDiskUsageCheckFrequency, "")
+}
+
+// BuildPostCreateSettingsInput returns an UpdateServerInput populated with
+// only the settings fields that differ from Coolify's create-time defaults.
+// Callers can extend the returned input with additional fields before sending.
+func BuildPostCreateSettingsInput(p ServerCommonPtrs) client.UpdateServerInput {
+	return client.UpdateServerInput{
+		ConcurrentBuilds:                     flex.IntIfNonDefault(*p.ConcurrentBuilds, 2),
+		DynamicTimeout:                       flex.IntIfNonDefault(*p.DynamicTimeout, 3600),
+		DeploymentQueueLimit:                 flex.IntIfNonDefault(*p.DeploymentQueueLimit, 25),
+		ConnectionTimeout:                    flex.IntIfNonDefault(*p.ConnectionTimeout, 10),
+		ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(*p.ServerDiskUsageNotificationThreshold, 80),
+		ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(*p.ServerDiskUsageCheckFrequency),
+	}
+}
+
 // BuildServerUpdateInput constructs an UpdateServerInput from the diff
 // between plan and state for the shared server fields.
 func BuildServerUpdateInput(plan, state ServerCommonPtrs) client.UpdateServerInput {

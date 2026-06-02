@@ -227,18 +227,12 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 	// General server fields (description, port, user, is_build_server)
 	// and settings must be applied via a follow-up PATCH.
 	if hasNonDefaultHetznerSettings(plan) {
-		settingsUpdate := client.UpdateServerInput{
-			Description:                          flex.StringValueOrNull(plan.Description),
-			Port:                                 flex.IntIfNonDefault(plan.Port, 22),
-			User:                                 flex.StringValueOrNull(plan.User),
-			IsBuildServer:                        flex.BoolValueOrNull(plan.IsBuildServer),
-			ConcurrentBuilds:                     flex.IntIfNonDefault(plan.ConcurrentBuilds, 2),
-			DynamicTimeout:                       flex.IntIfNonDefault(plan.DynamicTimeout, 3600),
-			DeploymentQueueLimit:                 flex.IntIfNonDefault(plan.DeploymentQueueLimit, 25),
-			ConnectionTimeout:                    flex.IntIfNonDefault(plan.ConnectionTimeout, 10),
-			ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(plan.ServerDiskUsageNotificationThreshold, 80),
-			ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(plan.ServerDiskUsageCheckFrequency),
-		}
+		settingsUpdate := server.BuildPostCreateSettingsInput(plan.commonPtrs())
+		// Hetzner Create doesn't accept these core fields; add them to the PATCH.
+		settingsUpdate.Description = flex.StringValueOrNull(plan.Description)
+		settingsUpdate.Port = flex.IntIfNonDefault(plan.Port, 22)
+		settingsUpdate.User = flex.StringValueOrNull(plan.User)
+		settingsUpdate.IsBuildServer = flex.BoolValueOrNull(plan.IsBuildServer)
 		if _, err := r.client.UpdateServer(ctx, created.UUID, settingsUpdate); err != nil {
 			resp.Diagnostics.AddError("Error setting Hetzner server settings",
 				fmt.Sprintf("server %s: %s", created.UUID, err))
@@ -349,12 +343,7 @@ func hasNonDefaultHetznerSettings(plan hetznerServerResourceModel) bool {
 		flex.Int64ValueNonDefault(plan.Port, 22) ||
 		flex.StringValueNonDefault(plan.User, "root") ||
 		flex.BoolValueNonDefault(plan.IsBuildServer, false) ||
-		flex.Int64ValueNonDefault(plan.ConcurrentBuilds, 2) ||
-		flex.Int64ValueNonDefault(plan.DynamicTimeout, 3600) ||
-		flex.Int64ValueNonDefault(plan.DeploymentQueueLimit, 25) ||
-		flex.Int64ValueNonDefault(plan.ConnectionTimeout, 10) ||
-		flex.Int64ValueNonDefault(plan.ServerDiskUsageNotificationThreshold, 80) ||
-		flex.StringValueNonDefault(plan.ServerDiskUsageCheckFrequency, "")
+		server.HasNonDefaultSettings(plan.commonPtrs())
 }
 
 func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {

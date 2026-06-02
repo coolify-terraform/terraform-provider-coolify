@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -104,6 +105,28 @@ data "coolify_scheduled_tasks" "test" {
 					resource.TestCheckResourceAttr("data.coolify_scheduled_tasks.test", "tasks.0.frequency", "*/5 * * * *"),
 					resource.TestCheckResourceAttr("data.coolify_scheduled_tasks.test", "tasks.0.enabled", "true"),
 				),
+			},
+		},
+	})
+}
+
+func TestScheduledTasksDataSource_ClientError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_scheduled_tasks" "test" {
+  application_uuid = "cccc0001-0001-4000-8000-000000000001"
+}
+`,
+				ExpectError: regexp.MustCompile(`Error listing scheduled tasks`),
 			},
 		},
 	})
