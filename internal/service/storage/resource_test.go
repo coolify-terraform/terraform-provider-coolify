@@ -899,15 +899,14 @@ func checkStorageDestroy(serverURL, listPath string) resource.TestCheckFunc {
 			if err != nil {
 				return fmt.Errorf("error checking destroy for coolify_storage/%s: %w", uuid, err)
 			}
+			defer resp.Body.Close()
 			var result struct {
 				PersistentStorages []client.Storage `json:"persistent_storages"`
 				FileStorages       []client.Storage `json:"file_storages"`
 			}
 			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-				resp.Body.Close()
 				return fmt.Errorf("error decoding destroy-check response for coolify_storage/%s: %w", uuid, err)
 			}
-			resp.Body.Close()
 			for _, stor := range result.PersistentStorages {
 				if stor.UUID == uuid {
 					return fmt.Errorf("coolify_storage %s still exists in persistent_storages", uuid)
