@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -76,6 +77,26 @@ data "coolify_teams" "filtered" {
 					resource.TestCheckResourceAttr("data.coolify_teams.filtered", "teams.#", "1"),
 					resource.TestCheckResourceAttr("data.coolify_teams.filtered", "teams.0.name", "Design"),
 				),
+			},
+		},
+	})
+}
+
+func TestTeamsListDataSource_APIError(t *testing.T) {
+	t.Parallel()
+	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"internal"}`, http.StatusInternalServerError)
+	})))
+	defer mockSrv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(mockSrv.URL) + `
+data "coolify_teams" "test" {}
+`,
+				ExpectError: regexp.MustCompile(`Error listing teams`),
 			},
 		},
 	})
