@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -1362,6 +1363,133 @@ func TestEnvironmentVariableResource_DatabaseImport(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateVerifyIgnore:              []string{"value"},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_ReadParentNotFound
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_ReadParentNotFound(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID:      "env-readnf-uuid",
+		Key:       "READNF_VAR",
+		Value:     "readnf-value",
+		IsPreview: false,
+		IsBuild:   false,
+	}
+
+	var forceNotFound atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, _ *http.Request) {
+		if forceNotFound.Load() {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "READNF_VAR"
+					value            = "readnf-value"
+				`),
+				Check: resource.TestCheckResourceAttrSet("coolify_environment_variable.test", "uuid"),
+			},
+			{
+				PreConfig: func() {
+					forceNotFound.Store(true)
+				},
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "READNF_VAR"
+					value            = "readnf-value"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_ReadClientError
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_ReadClientError(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID:      "env-readerr-uuid",
+		Key:       "READERR_VAR",
+		Value:     "readerr-value",
+		IsPreview: false,
+		IsBuild:   false,
+	}
+
+	var forceReadError atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, _ *http.Request) {
+		if forceReadError.Load() {
+			http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "READERR_VAR"
+					value            = "readerr-value"
+				`),
+				Check: resource.TestCheckResourceAttrSet("coolify_environment_variable.test", "uuid"),
+			},
+			{
+				PreConfig: func() {
+					forceReadError.Store(true)
+				},
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "READERR_VAR"
+					value            = "readerr-value"
+				`),
+				ExpectError: regexp.MustCompile(`Error reading environment variables`),
 			},
 		},
 	})

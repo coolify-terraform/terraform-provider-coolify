@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"sync"
+	"sync/atomic"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -872,6 +873,129 @@ func TestStorageResource_Disappears(t *testing.T) {
 					acctest.CheckResourceDisappears(srv.URL, "coolify_storage.test", "/api/v1/applications/cccc0001-0001-4000-8000-000000000001/storages/"),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestStorageResource_ReadParentNotFound
+// ---------------------------------------------------------------------------
+
+func TestStorageResource_ReadParentNotFound(t *testing.T) {
+	t.Parallel()
+	stor := client.Storage{
+		UUID:      "stor-readnf-uuid",
+		Name:      "readnf-vol",
+		MountPath: "/data/readnf",
+	}
+
+	var forceNotFound atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, _ *http.Request) {
+		if forceNotFound.Load() {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testStorageResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "readnf-vol"
+					mount_path       = "/data/readnf"
+				`),
+				Check: resource.TestCheckResourceAttrSet("coolify_storage.test", "uuid"),
+			},
+			{
+				PreConfig: func() {
+					forceNotFound.Store(true)
+				},
+				Config: testStorageResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "readnf-vol"
+					mount_path       = "/data/readnf"
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestStorageResource_ReadClientError
+// ---------------------------------------------------------------------------
+
+func TestStorageResource_ReadClientError(t *testing.T) {
+	t.Parallel()
+	stor := client.Storage{
+		UUID:      "stor-readerr-uuid",
+		Name:      "readerr-vol",
+		MountPath: "/data/readerr",
+	}
+
+	var forceReadError atomic.Bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": stor.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/storages", func(w http.ResponseWriter, _ *http.Request) {
+		if forceReadError.Load() {
+			http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string][]client.Storage{"persistent_storages": {stor}, "file_storages": {}})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/storages/{storUUID}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testStorageResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "readerr-vol"
+					mount_path       = "/data/readerr"
+				`),
+				Check: resource.TestCheckResourceAttrSet("coolify_storage.test", "uuid"),
+			},
+			{
+				PreConfig: func() {
+					forceReadError.Store(true)
+				},
+				Config: testStorageResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "readerr-vol"
+					mount_path       = "/data/readerr"
+				`),
+				ExpectError: regexp.MustCompile(`Error reading persistent storages`),
 			},
 		},
 	})
