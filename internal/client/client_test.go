@@ -5076,3 +5076,65 @@ func TestDecodeGitHubBranches_InvalidJSON(t *testing.T) {
 	_, err := decodeGitHubBranches(raw)
 	require.Error(t, err)
 }
+
+// --- API/MCP toggle error paths ---
+
+func TestClient_EnableAPI_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/enable", r.URL.Path)
+		http.Error(w, `{"message":"forbidden"}`, http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.EnableAPI(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "enabling API")
+}
+
+func TestClient_DisableAPI_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/disable", r.URL.Path)
+		http.Error(w, `{"message":"forbidden"}`, http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DisableAPI(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "disabling API")
+}
+
+func TestClient_EnableMCP_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/mcp/enable", r.URL.Path)
+		http.Error(w, `{"message":"not root team"}`, http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.EnableMCP(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "enabling MCP server")
+}
+
+func TestClient_DisableMCP_APIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/mcp/disable", r.URL.Path)
+		http.Error(w, `{"message":"not root team"}`, http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DisableMCP(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "disabling MCP server")
+}
