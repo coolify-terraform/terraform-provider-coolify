@@ -727,6 +727,13 @@ func TestApplicationResource_GitRepoExternalChange(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, exists := body["git_repository"]; !exists {
+			t.Error("PATCH body missing git_repository field")
+		}
 		mu.Lock()
 		repo := currentRepo
 		mu.Unlock()

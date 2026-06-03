@@ -601,3 +601,30 @@ resource "coolify_server" "test" {
 		},
 	})
 }
+
+func TestServerResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/servers", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed: IP address already in use"}`, http.StatusUnprocessableEntity)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "will-fail"
+  ip               = "10.0.0.1"
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
+}`,
+				ExpectError: regexp.MustCompile(`Error creating server`),
+			},
+		},
+	})
+}
