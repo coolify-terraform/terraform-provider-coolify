@@ -6,8 +6,13 @@ import (
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func TestUUID_Valid(t *testing.T) {
@@ -184,6 +189,198 @@ func TestParseCompoundImportID_InvalidFormats(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), tc.want) {
 				t.Errorf("error %q should contain %q", err.Error(), tc.want)
+			}
+		})
+	}
+}
+
+// importParentChildSchema returns a minimal schema for testing ImportParentChild
+// with the given parent type attributes plus "uuid".
+func importParentChildSchema(parentTypes []string) schema.Schema {
+	attrs := map[string]schema.Attribute{
+		"uuid": schema.StringAttribute{Computed: true},
+	}
+	for _, t := range parentTypes {
+		attrs[t+"_uuid"] = schema.StringAttribute{Optional: true}
+	}
+	return schema.Schema{Attributes: attrs}
+}
+
+// newImportStateResponse creates a response with an empty state for the given schema.
+func newImportStateResponse(s schema.Schema) *resource.ImportStateResponse {
+	ctx := context.Background()
+	return &resource.ImportStateResponse{
+		State: tfsdk.State{
+			Schema: s,
+			Raw:    tftypes.NewValue(s.Type().TerraformType(ctx), nil),
+		},
+	}
+}
+
+func TestImportParentChild_Valid(t *testing.T) {
+	t.Parallel()
+	parentUUID := "550e8400-e29b-41d4-a716-446655440000"
+	childUUID := "aaaa0001-0001-4000-8000-000000000001"
+	allowedTypes := []string{"application", "service", "database"}
+
+	for _, typ := range allowedTypes {
+		t.Run(typ, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			s := importParentChildSchema(allowedTypes)
+			resp := newImportStateResponse(s)
+			req := resource.ImportStateRequest{ID: typ + ":" + parentUUID + ":" + childUUID}
+
+			validate.ImportParentChild(ctx, req, resp, allowedTypes, "storage")
+
+			if resp.Diagnostics.HasError() {
+				t.Fatalf("unexpected error: %s", resp.Diagnostics.Errors()[0].Detail())
+			}
+
+			var gotParent, gotChild types.String
+			resp.State.GetAttribute(ctx, path.Root(typ+"_uuid"), &gotParent)
+			resp.State.GetAttribute(ctx, path.Root("uuid"), &gotChild)
+
+			if gotParent.ValueString() != parentUUID {
+				t.Errorf("expected %s_uuid=%s, got %s", typ, parentUUID, gotParent.ValueString())
+			}
+			if gotChild.ValueString() != childUUID {
+				t.Errorf("expected uuid=%s, got %s", childUUID, gotChild.ValueString())
+			}
+		})
+	}
+}
+
+func TestImportParentChild_WrongFormat(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		id   string
+	}{
+		{"single value", "just-a-uuid"},
+		{"two parts", "application:uuid1"},
+		{"four parts", "application:uuid1:uuid2:uuid3"},
+		{"empty", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			s := importParentChildSchema([]string{"application"})
+			resp := newImportStateResponse(s)
+			req := resource.ImportStateRequest{ID: tc.id}
+
+			validate.ImportParentChild(ctx, req, resp, []string{"application"}, "storage")
+
+			if !resp.Diagnostics.HasError() {
+				t.Fatal("expected error for wrong format")
+			}
+		})
+	}
+}
+
+func TestImportParentChild_InvalidParentUUID(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := importParentChildSchema([]string{"application"})
+	resp := newImportStateResponse(s)
+	req := resource.ImportStateRequest{ID: "application:../../admin:550e8400-e29b-41d4-a716-446655440000"}
+
+	validate.ImportParentChild(ctx, req, resp, []string{"application"}, "storage")
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected error for invalid parent UUID")
+	}
+	detail := resp.Diagnostics.Errors()[0].Detail()
+	if !strings.Contains(detail, "parent UUID") {
+		t.Errorf("error should mention parent UUID, got: %s", detail)
+	}
+}
+
+func TestImportParentChild_InvalidChildUUID(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := importParentChildSchema([]string{"application"})
+	resp := newImportStateResponse(s)
+	req := resource.ImportStateRequest{ID: "application:550e8400-e29b-41d4-a716-446655440000:bad!"}
+
+	validate.ImportParentChild(ctx, req, resp, []string{"application"}, "storage")
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected error for invalid child UUID")
+	}
+	detail := resp.Diagnostics.Errors()[0].Detail()
+	if !strings.Contains(detail, "storage UUID") {
+		t.Errorf("error should mention storage UUID, got: %s", detail)
+	}
+}
+
+func TestImportParentChild_InvalidType(t *testing.T) {
+	t.Parallel()
+	parentUUID := "550e8400-e29b-41d4-a716-446655440000"
+	childUUID := "aaaa0001-0001-4000-8000-000000000001"
+	ctx := context.Background()
+	s := importParentChildSchema([]string{"application", "service"})
+	resp := newImportStateResponse(s)
+	req := resource.ImportStateRequest{ID: "badtype:" + parentUUID + ":" + childUUID}
+
+	validate.ImportParentChild(ctx, req, resp, []string{"application", "service"}, "storage")
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected error for invalid type")
+	}
+	detail := resp.Diagnostics.Errors()[0].Detail()
+	if !strings.Contains(detail, "badtype") {
+		t.Errorf("error should mention the bad type, got: %s", detail)
+	}
+	if !strings.Contains(detail, "application") || !strings.Contains(detail, "service") {
+		t.Errorf("error should list allowed types, got: %s", detail)
+	}
+}
+
+func TestJoinOr(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name  string
+		id    string
+		types []string
+		want  string
+	}{
+		{
+			name:  "single type hint",
+			id:    "badtype:550e8400-e29b-41d4-a716-446655440000:aaaa0001-0001-4000-8000-000000000001",
+			types: []string{"application"},
+			want:  `"application"`,
+		},
+		{
+			name:  "two types hint",
+			id:    "badtype:550e8400-e29b-41d4-a716-446655440000:aaaa0001-0001-4000-8000-000000000001",
+			types: []string{"application", "service"},
+			want:  " or ",
+		},
+		{
+			name:  "three types hint",
+			id:    "badtype:550e8400-e29b-41d4-a716-446655440000:aaaa0001-0001-4000-8000-000000000001",
+			types: []string{"application", "service", "database"},
+			want:  ", or ",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := context.Background()
+			s := importParentChildSchema(tc.types)
+			resp := newImportStateResponse(s)
+			req := resource.ImportStateRequest{ID: tc.id}
+
+			validate.ImportParentChild(ctx, req, resp, tc.types, "storage")
+
+			if !resp.Diagnostics.HasError() {
+				t.Fatal("expected error")
+			}
+			detail := resp.Diagnostics.Errors()[0].Detail()
+			if !strings.Contains(detail, tc.want) {
+				t.Errorf("error should contain %q, got: %s", tc.want, detail)
 			}
 		})
 	}
