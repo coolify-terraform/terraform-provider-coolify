@@ -149,6 +149,17 @@ func TestPrivateGitApplicationResource_Update(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		for _, field := range []string{"project_uuid", "server_uuid"} {
+			if _, exists := body[field]; !exists {
+				t.Errorf("POST /api/v1/applications/private-deploy-key missing required field %q", field)
+				http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
+				return
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
@@ -261,6 +272,17 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		for _, field := range []string{"project_uuid", "server_uuid"} {
+			if _, exists := body[field]; !exists {
+				t.Errorf("POST /api/v1/applications/private-deploy-key missing required field %q", field)
+				http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
+				return
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
@@ -331,6 +353,17 @@ func TestPrivateGitApplicationResource_Disappears(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		for _, field := range []string{"project_uuid", "server_uuid"} {
+			if _, exists := body[field]; !exists {
+				t.Errorf("POST /api/v1/applications/private-deploy-key missing required field %q", field)
+				http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
+				return
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
@@ -421,6 +454,17 @@ func TestPrivateGitApplicationResource_Timeouts(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		for _, field := range []string{"project_uuid", "server_uuid"} {
+			if _, exists := body[field]; !exists {
+				t.Errorf("POST /api/v1/applications/private-deploy-key missing required field %q", field)
+				http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
+				return
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
@@ -562,6 +606,17 @@ func TestPrivateGitApplicationResource_CreateReadBackFailurePreservesState(t *te
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		for _, field := range []string{"project_uuid", "server_uuid"} {
+			if _, exists := body[field]; !exists {
+				t.Errorf("POST /api/v1/applications/private-deploy-key missing required field %q", field)
+				http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
+				return
+			}
+		}
 		forceReadFailure.Store(true)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -650,7 +705,18 @@ func TestPrivateGitApplicationResource_RedeployOnUpdate(t *testing.T) {
 	deleted := false
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		for _, field := range []string{"project_uuid", "server_uuid"} {
+			if _, exists := body[field]; !exists {
+				t.Errorf("POST /api/v1/applications/private-deploy-key missing required field %q", field)
+				http.Error(w, fmt.Sprintf(`{"error":"missing required field: %s"}`, field), http.StatusUnprocessableEntity)
+				return
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
@@ -733,6 +799,36 @@ func TestPrivateGitApplicationResource_RedeployOnUpdate(t *testing.T) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// TestPrivateGitApplicationResource_CreateAPIError
+// ---------------------------------------------------------------------------
+
+func TestPrivateGitApplicationResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-deploy-key", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed"}`, http.StatusUnprocessableEntity)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testPrivateGitResourceConfig(srv.URL, `
+					project_uuid     = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid      = "bbbb0002-0002-4000-8000-000000000002"
+					private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
+					git_repository   = "git@github.com:myorg/api-server.git"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+				`),
+				ExpectError: regexp.MustCompile(`Error creating private git application`),
+			},
+		},
+	})
+}
 
 func testPrivateGitResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application_private_git", "test", attrs)

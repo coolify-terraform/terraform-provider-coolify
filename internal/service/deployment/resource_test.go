@@ -871,3 +871,30 @@ resource "coolify_deployment" "test" {
 		},
 	})
 }
+
+// ---------------------------------------------------------------------------
+// TestDeploymentResource_CreateAPIError
+// ---------------------------------------------------------------------------
+
+func TestDeploymentResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed"}`, http.StatusUnprocessableEntity)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_deployment" "test" {
+  application_uuid = "550e8400-e29b-41d4-a716-446655440001"
+}
+`,
+				ExpectError: regexp.MustCompile(`Error triggering deployment`),
+			},
+		},
+	})
+}

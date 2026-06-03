@@ -375,3 +375,32 @@ resource "coolify_resource_action" "bad" {
 		},
 	})
 }
+
+// ---------------------------------------------------------------------------
+// TestResourceActionResource_CreateAPIError
+// ---------------------------------------------------------------------------
+
+func TestResourceActionResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_resource_action" "test" {
+  resource_uuid = "550e8400-e29b-41d4-a716-446655440001"
+  resource_type = "database"
+  action        = "start"
+}
+`,
+				ExpectError: regexp.MustCompile(`Error performing`),
+			},
+		},
+	})
+}

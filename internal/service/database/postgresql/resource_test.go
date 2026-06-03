@@ -605,6 +605,32 @@ resource "coolify_database_postgresql" "test" {
 	})
 }
 
+func TestPostgresqlDatabaseResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/databases/postgresql", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed: server not reachable"}`, http.StatusUnprocessableEntity)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_postgresql" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}`,
+				ExpectError: regexp.MustCompile(`Error creating PostgreSQL database`),
+			},
+		},
+	})
+}
+
 func TestPostgresqlDatabaseResource_InvalidSSLMode(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))

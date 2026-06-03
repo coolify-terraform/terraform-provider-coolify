@@ -426,3 +426,32 @@ func TestEnvsBulkResource_ImportBadUUID(t *testing.T) {
 		},
 	})
 }
+
+// ---------------------------------------------------------------------------
+// TestEnvsBulkResource_CreateAPIError
+// ---------------------------------------------------------------------------
+
+func TestEnvsBulkResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440010/envs/bulk", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed"}`, http.StatusUnprocessableEntity)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "550e8400-e29b-41d4-a716-446655440010"
+					variables = {
+						APP_ENV = "test"
+					}
+				`),
+				ExpectError: regexp.MustCompile(`Error creating bulk env vars`),
+			},
+		},
+	})
+}

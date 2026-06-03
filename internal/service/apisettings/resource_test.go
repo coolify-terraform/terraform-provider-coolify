@@ -217,3 +217,29 @@ func TestAPISettingsResource_BothSettings(t *testing.T) {
 		},
 	})
 }
+
+// ---------------------------------------------------------------------------
+// TestAPISettingsResource_CreateAPIError
+// ---------------------------------------------------------------------------
+
+func TestAPISettingsResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+					enabled     = true
+					mcp_enabled = false
+				`),
+				ExpectError: regexp.MustCompile(`Error configuring API settings`),
+			},
+		},
+	})
+}

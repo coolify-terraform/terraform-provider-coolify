@@ -290,6 +290,32 @@ resource "coolify_database_clickhouse" "test" {
 	})
 }
 
+func TestClickhouseDatabaseResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/databases/clickhouse", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed: server not reachable"}`, http.StatusUnprocessableEntity)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_clickhouse" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}`,
+				ExpectError: regexp.MustCompile(`Error creating ClickHouse database`),
+			},
+		},
+	})
+}
+
 func TestClickhouseDatabaseResource_Disappears(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
