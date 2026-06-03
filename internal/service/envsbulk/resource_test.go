@@ -327,13 +327,7 @@ func newEnvsBulkImportMux() *http.ServeMux {
 
 func TestEnvsBulkResource_Import(t *testing.T) {
 	t.Parallel()
-	mux := http.NewServeMux()
-	mux.HandleFunc("PATCH /api/v1/services/550e8400-e29b-41d4-a716-446655440012/envs/bulk", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-	mux.HandleFunc("GET /api/v1/services/550e8400-e29b-41d4-a716-446655440012/envs", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(`[{"uuid":"e1","key":"REDIS_URL","value":"redis://localhost","is_preview":false,"is_buildtime":false}]`))
-	})
+	mux := newEnvsBulkImportMux()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 

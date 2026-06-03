@@ -139,7 +139,10 @@ func NewMockServer(dbType, name, image string, extraFields map[string]interface{
 
 		case r.Method == http.MethodPatch && r.URL.Path == dbPath:
 			var body map[string]interface{}
-			_ = json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+				return
+			}
 			state.applyPatch(body)
 			writeJSON(w, http.StatusOK, map[string]string{"message": "updated"})
 

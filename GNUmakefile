@@ -211,19 +211,13 @@ tools: ## Install all required development tools
 
 merge: ## Merge a PR as sole maintainer (usage: make merge PR=123)
 	@test -n "$(PR)" || (echo "ERROR: PR is required, example: make merge PR=123"; exit 1)
-	@REPO=$$(gh repo view --json nameWithOwner --jq .nameWithOwner); \
-	echo "Approving PR #$(PR)..."; \
-	gh pr review $(PR) --approve --body "Self-approve (sole maintainer)" 2>/dev/null || true; \
-	echo "Temporarily disabling enforce-for-admins on $$REPO..."; \
-	gh api "repos/$$REPO/branches/main/protection/enforce_admins" -X DELETE --silent; \
-	echo "Merging PR #$(PR)..."; \
-	if gh pr merge $(PR) --squash --admin --delete-branch; then \
+	@echo "Merging PR #$(PR)..."; \
+	if gh pr merge $(PR) --squash --delete-branch; then \
 		echo "PR #$(PR) merged successfully."; \
 	else \
-		echo "Merge failed. Re-enabling enforce-for-admins..."; \
-	fi; \
-	gh api "repos/$$REPO/branches/main/protection/enforce_admins" -X POST --silent; \
-	echo "Re-enabled enforce-for-admins on $$REPO."
+		echo "Merge failed."; \
+		exit 1; \
+	fi
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
