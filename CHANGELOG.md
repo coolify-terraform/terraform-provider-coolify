@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.3...v0.1.4) (2026-06-03)
+
+
+### Bug Fixes
+
+* handle PATCH decode error in mock, deduplicate test mux, simplify merge target ([#508](https://github.com/coolify-terraform/terraform-provider-coolify/issues/508)) ([93fef84](https://github.com/coolify-terraform/terraform-provider-coolify/commit/93fef84f04397d3bab628e5a72f3eae79a6cdc93))
+* increase polling timeout test context + bump Go 1.26.4 ([#503](https://github.com/coolify-terraform/terraform-provider-coolify/issues/503)) ([6223542](https://github.com/coolify-terraform/terraform-provider-coolify/commit/6223542987da2d73453cfb582a2c45eced18cf91))
+
 ## [0.1.3](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.2...v0.1.3) (2026-06-02)
 
 
