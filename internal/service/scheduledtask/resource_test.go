@@ -362,6 +362,16 @@ func TestScheduledTaskResource_ImportService(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["name"] != "svc-import-task" || body["command"] != "echo service" || body["frequency"] != "0 0 * * *" {
+			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
@@ -676,6 +686,16 @@ func TestScheduledTaskResource_CreateWithServiceUUID(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["name"] != "service-task" || body["command"] != "curl http://localhost/health" || body["frequency"] != "*/10 * * * *" {
+			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
@@ -791,6 +811,16 @@ func TestScheduledTaskResource_ServiceDisappears(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["name"] != "svc-gone" || body["command"] != "echo bye" || body["frequency"] != "* * * * *" {
+			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")

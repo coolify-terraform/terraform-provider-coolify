@@ -45,6 +45,11 @@ func TestEnvironmentVariableResource_Create(t *testing.T) {
 			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
 			return
 		}
+		if body["key"] != "DATABASE_URL" || body["value"] != "postgres://localhost/mydb" {
+			t.Errorf("POST body mismatch: got key=%v value=%v", body["key"], body["value"])
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		_, createBuildtimePresent = body["is_buildtime"]
 		mu.Unlock()
@@ -492,6 +497,16 @@ func TestEnvironmentVariableResource_CreateWithServiceUUID(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["key"] != "REDIS_URL" || body["value"] != "redis://localhost:6379" {
+			t.Errorf("POST body mismatch: got key=%v value=%v", body["key"], body["value"])
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
@@ -562,6 +577,16 @@ func TestEnvironmentVariableResource_ServiceUpdate(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["key"] != "LOG_LEVEL" || body["value"] != "info" {
+			t.Errorf("POST body mismatch: got key=%v value=%v", body["key"], body["value"])
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -662,6 +687,16 @@ func TestEnvironmentVariableResource_ServiceImport(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/services/{svcUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("svcUUID") != "ffff0001-0001-4000-8000-000000000001" {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["key"] != "SVC_VAR" || body["value"] != "svc-value" {
+			t.Errorf("POST body mismatch: got key=%v value=%v", body["key"], body["value"])
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -958,6 +993,16 @@ func TestEnvironmentVariableResource_ServiceDisappears(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["key"] != "SVC_GONE" || body["value"] != "val" {
+			t.Errorf("POST body mismatch: got key=%v value=%v", body["key"], body["value"])
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
@@ -1065,6 +1110,16 @@ func TestEnvironmentVariableResource_DatabaseDisappears(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["key"] != "DB_GONE" || body["value"] != "val" {
+			t.Errorf("POST body mismatch: got key=%v value=%v", body["key"], body["value"])
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
@@ -1152,6 +1207,16 @@ func TestEnvironmentVariableResource_CreateDatabase(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["key"] != "POSTGRES_PASSWORD" || body["value"] != "supersecret" {
+			t.Errorf("POST body mismatch: got key=%v value=%v", body["key"], body["value"])
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
@@ -1221,6 +1286,16 @@ func TestEnvironmentVariableResource_DatabaseUpdate(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["key"] != "DB_MAX_CONN" || body["value"] != "10" {
+			t.Errorf("POST body mismatch: got key=%v value=%v", body["key"], body["value"])
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -1321,6 +1396,16 @@ func TestEnvironmentVariableResource_DatabaseImport(t *testing.T) {
 	mux.HandleFunc("POST /api/v1/databases/{dbUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("dbUUID") != "dddd0001-0001-4000-8000-000000000001" {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+			return
+		}
+		if body["key"] != "DB_VAR" || body["value"] != "db-value" {
+			t.Errorf("POST body mismatch: got key=%v value=%v", body["key"], body["value"])
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
