@@ -204,6 +204,29 @@ Scenario Tests bootstrap Coolify and run `terraform test` against it.
 A separate Dependabot Auto-Merge workflow auto-merges minor/patch PRs.
 Format check (gofmt) is included in the Lint job via golangci-lint.
 
+## Releases
+
+Release-please manages versioning and CHANGELOG generation. Two release modes:
+
+- **Automated**: merge the release-please PR as-is. Auto-generated notes ship unchanged.
+- **AI-assisted (curated notes)**: commit a `RELEASE_NOTES.md` file to main via a prep PR,
+  merge it, then merge the release-please PR. The release workflow detects the file and
+  uses it as the GitHub Release body. A cleanup step deletes the file from main afterward.
+
+**Important**: `RELEASE_NOTES.md` must be committed to main, NOT to the release-please
+branch. Release-please force-pushes its branch on every new main commit, which wipes any
+extra files added directly to that branch.
+
+The correct sequence for curated releases:
+1. Write `RELEASE_NOTES.md` with user-facing release description
+2. Push it to main via a small PR (e.g., `docs: add release notes for vX.Y.Z`)
+3. Wait for release-please to update its PR (picks up the new commit)
+4. Merge the release-please PR
+5. Release workflow applies the curated notes and cleans up the file
+
+Published to both [Terraform Registry](https://registry.terraform.io/providers/coolify-terraform/coolify)
+and [OpenTofu Registry](https://registry.opentofu.org/providers/coolify-terraform/coolify).
+
 ## Safety
 
 - Never commit API tokens or real credentials (test files use `"test-token"`)
