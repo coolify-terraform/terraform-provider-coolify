@@ -64,6 +64,7 @@ jobs:
               - 'scripts/**'
               - '.github/workflows/ci.yml'
             scenarios:
+              - 'internal/**'
               - 'examples/scenarios/**'
               - '.github/workflows/ci.yml'
 
