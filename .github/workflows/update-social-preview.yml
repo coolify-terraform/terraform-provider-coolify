@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      issues: write
       pull-requests: write
     steps:
       - name: Harden runner
@@ -128,3 +129,62 @@ jobs:
             --title "chore: update social preview stats" \
             --body "$(echo -e "$BODY")")
           gh pr merge "$PR_URL" --auto --squash
+
+      - name: Create upload reminder issue
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RESOURCES: ${{ steps.stats.outputs.resources }}
+          DATASOURCES: ${{ steps.stats.outputs.datasources }}
+          TESTS: ${{ steps.stats.outputs.tests }}
+        run: |
+          # Close any previous reminder issue
+          gh issue list --label social-preview --state open --json number --jq '.[].number' \
+            | while read -r num; do
+                gh issue close "$num" --comment "Superseded by new release."
+              done
+
+          BODY=$(cat <<'ISSUE_BODY'
+          ## Upload social preview image
+
+          The social preview stats PR has been created and will auto-merge shortly.
+          Once merged, upload the updated image to GitHub (no API exists for this).
+
+          ### Quick path (Playwright, ~10 seconds)
+
+          ```bash
+          # 1. Make sure Chrome is running with remote debugging
+          /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
+            --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-cdp" &
+
+          # 2. Sign in to GitHub in that Chrome window (skip if already signed in)
+
+          # 3. Pull the latest image and run the upload script
+          cd ~/terraform-provider-coolify
+          git pull origin main
+          pip install playwright 2>/dev/null
+          python3 scripts/upload-social-preview.py
+          ```
+
+          ### Manual path (~30 seconds)
+
+          1. Go to [repo settings](https://github.com/coolify-terraform/terraform-provider-coolify/settings)
+          2. Scroll to **Social preview**
+          3. Click **Edit** > **Upload an image...**
+          4. Select `assets/social-preview.png` from your local checkout (after `git pull`)
+          5. Done
+
+          ### Verify
+
+          Share the repo URL in a Discord/Slack DM to yourself. The preview card should show the updated stats.
+
+          ISSUE_BODY
+          )
+          # Append current stats outside the heredoc to expand variables
+          BODY="${BODY}
+          **Current stats:** ${RESOURCES} resources, ${DATASOURCES} data sources, ${TESTS} tests"
+
+          gh issue create \
+            --title "Upload social preview image" \
+            --label social-preview \
+            --body "$BODY"
