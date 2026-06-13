@@ -125,6 +125,13 @@ jobs:
             echo "Deleting existing asset: $asset"
             gh release delete-asset "$TAG" "$asset" -y || true
           done
+      # Custom release notes override:
+      # To use curated release notes instead of auto-generated ones, commit a
+      # RELEASE_NOTES.md file to main (via a prep PR) BEFORE merging the
+      # release-please PR. The file must be on main, not on the release-please
+      # branch (release-please force-pushes its branch on every new main commit,
+      # which wipes any extra files). The cleanup step below deletes the file
+      # from main after the release completes.
       - name: Apply custom release notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
