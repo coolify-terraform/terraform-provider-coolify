@@ -104,6 +104,20 @@ func (m *CommonModel) CommonPtrs() DatabaseCommonPtrs {
 	}
 }
 
+// PopulateBaseCreateInput sets the shared fields on a CreateDatabaseBaseInput
+// from the CommonModel, reducing boilerplate in each database Create method.
+func PopulateBaseCreateInput(base *client.CreateDatabaseBaseInput, m *CommonModel) {
+	base.ServerUUID = m.ServerUUID.ValueString()
+	base.ProjectUUID = m.ProjectUUID.ValueString()
+	base.EnvironmentName = m.EnvironmentName.ValueString()
+	flex.SetIfKnown(&base.Name, m.Name)
+	flex.SetIfKnown(&base.Description, m.Description)
+	flex.SetIfKnown(&base.Image, m.Image)
+	base.IsPublic = flex.BoolValueOrNull(m.IsPublic)
+	base.PublicPort = flex.Int64PtrFromFramework(m.PublicPort)
+	base.InstantDeploy = flex.BoolValueOrNull(m.InstantDeploy)
+}
+
 // CommonDatabaseAttrs returns the shared schema attributes for all database types.
 func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute) map[string]schema.Attribute {
 	attrs := map[string]schema.Attribute{
