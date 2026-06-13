@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.4...v0.1.5) (2026-06-13)
+
+
+### Features
+
+* support RELEASE_NOTES.md override for curated release descriptions ([#525](https://github.com/coolify-terraform/terraform-provider-coolify/issues/525)) ([2597aa8](https://github.com/coolify-terraform/terraform-provider-coolify/commit/2597aa8eacaa46896a19b915670702aaf12acb8e)), closes [#524](https://github.com/coolify-terraform/terraform-provider-coolify/issues/524)
+* update contract to Coolify v4.1.2 ([#518](https://github.com/coolify-terraform/terraform-provider-coolify/issues/518)) ([092ab4e](https://github.com/coolify-terraform/terraform-provider-coolify/commit/092ab4e9f5a62d04f3f7d026cb15e694b331c304)), closes [#517](https://github.com/coolify-terraform/terraform-provider-coolify/issues/517)
+
+
+### Bug Fixes
+
+* multi-perspective improvement cycle 1 ([#515](https://github.com/coolify-terraform/terraform-provider-coolify/issues/515)) ([3aa4252](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3aa42527c95e0b20ead1006eb4645f33dfba8af3))
+* multi-perspective improvement cycle 2 ([#520](https://github.com/coolify-terraform/terraform-provider-coolify/issues/520)) ([4bfec53](https://github.com/coolify-terraform/terraform-provider-coolify/commit/4bfec53ad983101e74bf429c65103306bfc4ca22))
+
 ## [0.1.4](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.3...v0.1.4) (2026-06-03)
 
 
