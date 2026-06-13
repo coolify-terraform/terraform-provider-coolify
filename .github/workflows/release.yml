@@ -125,6 +125,17 @@ jobs:
             echo "Deleting existing asset: $asset"
             gh release delete-asset "$TAG" "$asset" -y || true
           done
+      - name: Apply custom release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          if [ -f RELEASE_NOTES.md ]; then
+            echo "Custom release notes found, updating release body..."
+            gh release edit "$TAG" --notes-file RELEASE_NOTES.md
+          else
+            echo "No custom release notes, using auto-generated notes"
+          fi
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         id: import_gpg
@@ -139,3 +150,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+      - name: Clean up release notes file
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git ls-tree HEAD --name-only | grep -q '^RELEASE_NOTES.md$'; then
+            echo "Removing RELEASE_NOTES.md from main..."
+            # Use the GitHub API to delete the file (persist-credentials: false
+            # means git push has no credentials).
+            SHA=$(gh api "repos/${{ github.repository }}/contents/RELEASE_NOTES.md" \
+              --jq '.sha')
+            gh api --method DELETE "repos/${{ github.repository }}/contents/RELEASE_NOTES.md" \
+              -f message="chore: remove release notes override [skip ci]" \
+              -f sha="$SHA" \
+              -f branch="main"
+          fi
