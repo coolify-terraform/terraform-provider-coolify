@@ -153,18 +153,20 @@ jobs:
           ### Quick path (Playwright, ~10 seconds)
 
           ```bash
-          # 1. Make sure Chrome is running with remote debugging
-          /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
-            --remote-debugging-port=9222 --user-data-dir="$HOME/.chrome-cdp" &
+          # 1. Launch Chrome with CDP (handles singleton locks and wait-for-ready)
+          CHROME_CDP_URL="https://github.com/login" \
+            source ~/.grok/skills/playwright-best-practices/scripts/start-chrome-cdp.sh
 
-          # 2. Sign in to GitHub in that Chrome window (skip if already signed in)
+          # 2. Sign in to GitHub in the Chrome window (skip if already signed in)
 
           # 3. Pull the latest image and run the upload script
           cd ~/terraform-provider-coolify
           git pull origin main
-          pip install playwright 2>/dev/null
           python3 scripts/upload-social-preview.py
           ```
+
+          > **Skill reference:** `~/.grok/skills/github-web-admin/SKILL.md`
+          > (section "Automating social preview updates in CI")
 
           ### Manual path (~30 seconds)
 
