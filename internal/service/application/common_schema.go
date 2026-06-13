@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -312,6 +313,11 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			MarkdownDescription: "The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.",
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"max_restart_count": schema.Int64Attribute{
+			MarkdownDescription: "The maximum number of container restarts before Coolify stops the application. Set via the Coolify UI (not yet exposed on the API for writes). Defaults to `10`.",
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 		},
 		"pre_deployment_command": schema.StringAttribute{
 			MarkdownDescription: "Command to run before deployment.",

@@ -38,6 +38,7 @@ data "coolify_application" "example" {
 - `git_branch` (String) The Git branch used by the application.
 - `git_repository` (String) The Git repository URL of the application.
 - `install_command` (String) The install command.
+- `max_restart_count` (Number) The maximum number of container restarts before Coolify stops the application.
 - `name` (String) The name of the application.
 - `ports_exposes` (String) The exposed ports.
 - `project_uuid` (String) The UUID of the project the application belongs to.

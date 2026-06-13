@@ -44,6 +44,7 @@ type ApplicationDataSourceModel struct {
 	Status                  types.String `tfsdk:"status"`
 	DockerComposeRaw        types.String `tfsdk:"docker_compose_raw"`
 	DockerRegistryImageName types.String `tfsdk:"docker_registry_image_name"`
+	MaxRestartCount         types.Int64  `tfsdk:"max_restart_count"`
 }
 
 // NewDataSource returns a new ApplicationDataSource instance.
@@ -133,6 +134,10 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				MarkdownDescription: "The Docker registry image name.",
 				Computed:            true,
 			},
+			"max_restart_count": schema.Int64Attribute{
+				MarkdownDescription: "The maximum number of container restarts before Coolify stops the application.",
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -174,6 +179,7 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	config.Status = flex.StringToFramework(app.Status)
 	config.DockerComposeRaw = flex.StringToFramework(app.DockerComposeRaw)
 	config.DockerRegistryImageName = flex.StringToFramework(app.DockerRegistryImageName)
+	config.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

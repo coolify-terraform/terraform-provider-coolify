@@ -203,6 +203,11 @@ func TestKeydbDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 				"limits_cpus":               "0",
 				"limits_cpuset":             "0",
 				"limits_cpu_shares":         1024,
+				"health_check_enabled":      true,
+				"health_check_interval":     15,
+				"health_check_timeout":      5,
+				"health_check_retries":      5,
+				"health_check_start_period": 5,
 			})
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", keydbUUID):
@@ -290,6 +295,11 @@ func TestKeydbDatabaseResource_Disappears(t *testing.T) {
 				"limits_cpus":               "0",
 				"limits_cpuset":             "0",
 				"limits_cpu_shares":         1024,
+				"health_check_enabled":      true,
+				"health_check_interval":     15,
+				"health_check_timeout":      5,
+				"health_check_retries":      5,
+				"health_check_start_period": 5,
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", dbUUID):
 			deleted = true

@@ -24,22 +24,27 @@ type databaseDataSource struct {
 }
 
 type databaseDataSourceModel struct {
-	UUID                types.String `tfsdk:"uuid"`
-	Name                types.String `tfsdk:"name"`
-	Description         types.String `tfsdk:"description"`
-	Type                types.String `tfsdk:"type"`
-	Image               types.String `tfsdk:"image"`
-	IsPublic            types.Bool   `tfsdk:"is_public"`
-	PublicPort          types.Int64  `tfsdk:"public_port"`
-	ServerUUID          types.String `tfsdk:"server_uuid"`
-	ProjectUUID         types.String `tfsdk:"project_uuid"`
-	EnvironmentName     types.String `tfsdk:"environment_name"`
-	IsLogDrainEnabled   types.Bool   `tfsdk:"is_log_drain_enabled"`
-	IsIncludeTimestamps types.Bool   `tfsdk:"is_include_timestamps"`
-	EnableSSL           types.Bool   `tfsdk:"enable_ssl"`
-	SSLMode             types.String `tfsdk:"ssl_mode"`
-	Status              types.String `tfsdk:"status"`
-	InternalDBUrl       types.String `tfsdk:"internal_db_url"`
+	UUID                   types.String `tfsdk:"uuid"`
+	Name                   types.String `tfsdk:"name"`
+	Description            types.String `tfsdk:"description"`
+	Type                   types.String `tfsdk:"type"`
+	Image                  types.String `tfsdk:"image"`
+	IsPublic               types.Bool   `tfsdk:"is_public"`
+	PublicPort             types.Int64  `tfsdk:"public_port"`
+	ServerUUID             types.String `tfsdk:"server_uuid"`
+	ProjectUUID            types.String `tfsdk:"project_uuid"`
+	EnvironmentName        types.String `tfsdk:"environment_name"`
+	IsLogDrainEnabled      types.Bool   `tfsdk:"is_log_drain_enabled"`
+	IsIncludeTimestamps    types.Bool   `tfsdk:"is_include_timestamps"`
+	HealthCheckEnabled     types.Bool   `tfsdk:"health_check_enabled"`
+	HealthCheckInterval    types.Int64  `tfsdk:"health_check_interval"`
+	HealthCheckTimeout     types.Int64  `tfsdk:"health_check_timeout"`
+	HealthCheckRetries     types.Int64  `tfsdk:"health_check_retries"`
+	HealthCheckStartPeriod types.Int64  `tfsdk:"health_check_start_period"`
+	EnableSSL              types.Bool   `tfsdk:"enable_ssl"`
+	SSLMode                types.String `tfsdk:"ssl_mode"`
+	Status                 types.String `tfsdk:"status"`
+	InternalDBUrl          types.String `tfsdk:"internal_db_url"`
 }
 
 func NewDataSource() datasource.DataSource {
@@ -103,6 +108,26 @@ func (d *databaseDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				MarkdownDescription: "Whether timestamps are included in log output.",
 				Computed:            true,
 			},
+			"health_check_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Whether the Docker health check probe is enabled.",
+				Computed:            true,
+			},
+			"health_check_interval": schema.Int64Attribute{
+				MarkdownDescription: "Health check interval in seconds.",
+				Computed:            true,
+			},
+			"health_check_timeout": schema.Int64Attribute{
+				MarkdownDescription: "Health check timeout in seconds.",
+				Computed:            true,
+			},
+			"health_check_retries": schema.Int64Attribute{
+				MarkdownDescription: "Number of consecutive failures before unhealthy.",
+				Computed:            true,
+			},
+			"health_check_start_period": schema.Int64Attribute{
+				MarkdownDescription: "Grace period in seconds before health checks count.",
+				Computed:            true,
+			},
 			"enable_ssl": schema.BoolAttribute{
 				MarkdownDescription: "Whether SSL/TLS is enabled for database connections.",
 				Computed:            true,
@@ -155,6 +180,13 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	config.EnvironmentName = flex.StringToFramework(db.EnvironmentName)
 	config.IsLogDrainEnabled = types.BoolValue(db.IsLogDrainEnabled)
 	config.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
+	if db.HealthCheckEnabled != nil {
+		config.HealthCheckEnabled = types.BoolValue(*db.HealthCheckEnabled)
+	}
+	config.HealthCheckInterval = flex.Int64PtrToFramework(db.HealthCheckInterval)
+	config.HealthCheckTimeout = flex.Int64PtrToFramework(db.HealthCheckTimeout)
+	config.HealthCheckRetries = flex.Int64PtrToFramework(db.HealthCheckRetries)
+	config.HealthCheckStartPeriod = flex.Int64PtrToFramework(db.HealthCheckStartPeriod)
 	config.EnableSSL = types.BoolValue(db.EnableSSL)
 	config.SSLMode = flex.StringToFramework(db.SSLMode)
 	config.Status = flex.StringToFramework(db.Status)
