@@ -52,6 +52,11 @@ resource "coolify_database_postgresql" "test" {
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "status", "running"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "limits_cpu_shares", "1024"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "instant_deploy", "false"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_interval", "15"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_timeout", "5"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_retries", "5"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_start_period", "5"),
 				),
 			},
 			// Plan idempotency: re-apply same config, expect empty plan
@@ -100,6 +105,33 @@ resource "coolify_database_postgresql" "test" {
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "ssl_mode", "require"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_log_drain_enabled", "true"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_include_timestamps", "true"),
+				),
+			},
+			// Update health check fields to non-default values
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_postgresql" "test" {
+  project_uuid            = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid             = "bbbb0001-0001-4000-8000-000000000001"
+  name                    = "updated-pg-db"
+  description             = "Updated description"
+  enable_ssl              = true
+  ssl_mode                = "require"
+  is_log_drain_enabled    = true
+  is_include_timestamps   = true
+  health_check_enabled    = false
+  health_check_interval   = 30
+  health_check_timeout    = 10
+  health_check_retries    = 3
+  health_check_start_period = 15
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_interval", "30"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_timeout", "10"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_retries", "3"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "health_check_start_period", "15"),
 				),
 			},
 			// Import
