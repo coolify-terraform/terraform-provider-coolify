@@ -1,10 +1,8 @@
 name: Update Social Preview
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
 
 concurrency:
@@ -17,9 +15,7 @@ permissions:
 jobs:
   update:
     name: Update Stats
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
