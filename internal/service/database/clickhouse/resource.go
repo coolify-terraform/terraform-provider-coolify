@@ -61,7 +61,11 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
-	in := client.CreateClickhouseInput{ServerUUID: p.ServerUUID.ValueString(), ProjectUUID: p.ProjectUUID.ValueString(), EnvironmentName: p.EnvironmentName.ValueString()}
+	in := client.CreateClickhouseInput{CreateDatabaseBaseInput: client.CreateDatabaseBaseInput{
+		ServerUUID:      p.ServerUUID.ValueString(),
+		ProjectUUID:     p.ProjectUUID.ValueString(),
+		EnvironmentName: p.EnvironmentName.ValueString(),
+	}}
 	flex.SetIfKnown(&in.Name, p.Name)
 	flex.SetIfKnown(&in.Description, p.Description)
 	flex.SetIfKnown(&in.Image, p.Image)

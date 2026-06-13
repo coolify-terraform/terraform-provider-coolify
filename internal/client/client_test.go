@@ -501,11 +501,13 @@ func TestClient_CreateDatabase_Postgresql(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	db, err := c.CreateDatabase(context.Background(), "postgresql", CreatePostgresqlInput{
-		ServerUUID:      "srv-1",
-		ProjectUUID:     "proj-1",
-		EnvironmentName: "production",
-		PostgresUser:    "pgadmin",
-		PostgresDB:      "testdb",
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ServerUUID:      "srv-1",
+			ProjectUUID:     "proj-1",
+			EnvironmentName: "production",
+		},
+		PostgresUser: "pgadmin",
+		PostgresDB:   "testdb",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -883,11 +885,13 @@ func TestClient_CreateDatabase_Mysql(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	db, err := c.CreateDatabase(context.Background(), "mysql", CreateMysqlInput{
-		ServerUUID:      "srv-1",
-		ProjectUUID:     "proj-1",
-		EnvironmentName: "production",
-		MysqlUser:       "myuser",
-		MysqlDatabase:   "mydb",
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ServerUUID:      "srv-1",
+			ProjectUUID:     "proj-1",
+			EnvironmentName: "production",
+		},
+		MysqlUser:     "myuser",
+		MysqlDatabase: "mydb",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "db-mysql-new", db.UUID)
@@ -1535,9 +1539,11 @@ func TestClient_CreateDatabase_Mariadb(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	db, err := c.CreateDatabase(context.Background(), "mariadb", CreateMariadbInput{
-		ServerUUID:      "srv-1",
-		ProjectUUID:     "proj-1",
-		EnvironmentName: "production",
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ServerUUID:      "srv-1",
+			ProjectUUID:     "proj-1",
+			EnvironmentName: "production",
+		},
 		MariadbUser:     "mdbuser",
 		MariadbDatabase: "mdbname",
 	})
@@ -1567,9 +1573,11 @@ func TestClient_CreateDatabase_Redis(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	db, err := c.CreateDatabase(context.Background(), "redis", CreateRedisInput{
-		ServerUUID:      "srv-1",
-		ProjectUUID:     "proj-1",
-		EnvironmentName: "production",
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ServerUUID:      "srv-1",
+			ProjectUUID:     "proj-1",
+			EnvironmentName: "production",
+		},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "db-redis-new", db.UUID)
@@ -1599,9 +1607,11 @@ func TestClient_CreateDatabase_Mongodb(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	db, err := c.CreateDatabase(context.Background(), "mongodb", CreateMongodbInput{
-		ServerUUID:              "srv-1",
-		ProjectUUID:             "proj-1",
-		EnvironmentName:         "production",
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ServerUUID:      "srv-1",
+			ProjectUUID:     "proj-1",
+			EnvironmentName: "production",
+		},
 		MongoInitdbRootUsername: "mongoroot",
 		MongoInitdbDatabase:     "appdb",
 	})
@@ -2165,7 +2175,11 @@ func TestClient_CreateDatabase_Keydb(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	got, err := c.CreateDatabase(context.Background(), "keydb", CreateKeydbInput{
-		ProjectUUID: "proj-1", ServerUUID: "srv-1", EnvironmentName: "production",
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ServerUUID:      "srv-1",
+			ProjectUUID:     "proj-1",
+			EnvironmentName: "production",
+		},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "keydb-1", got.UUID)
@@ -2192,7 +2206,11 @@ func TestClient_CreateDatabase_Dragonfly(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	got, err := c.CreateDatabase(context.Background(), "dragonfly", CreateDragonflyInput{
-		ProjectUUID: "proj-1", ServerUUID: "srv-1", EnvironmentName: "production",
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ServerUUID:      "srv-1",
+			ProjectUUID:     "proj-1",
+			EnvironmentName: "production",
+		},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "df-1", got.UUID)
@@ -2220,9 +2238,11 @@ func TestClient_CreateDatabase_Clickhouse(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	got, err := c.CreateDatabase(context.Background(), "clickhouse", CreateClickhouseInput{
-		ProjectUUID:     "proj-1",
-		ServerUUID:      "srv-1",
-		EnvironmentName: "production",
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ServerUUID:      "srv-1",
+			ProjectUUID:     "proj-1",
+			EnvironmentName: "production",
+		},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "ch-1", got.UUID)

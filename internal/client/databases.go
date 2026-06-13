@@ -77,54 +77,9 @@ type Database struct {
 	KeydbPassword          string          `json:"keydb_password,omitempty"`
 	DragonflyPassword      string          `json:"dragonfly_password,omitempty"`
 }
-type CreatePostgresqlInput struct {
-	ServerUUID       string `json:"server_uuid"`
-	ProjectUUID      string `json:"project_uuid"`
-	EnvironmentName  string `json:"environment_name"`
-	EnvironmentUUID  string `json:"environment_uuid,omitempty"`
-	Name             string `json:"name,omitempty"`
-	Description      string `json:"description,omitempty"`
-	Image            string `json:"image,omitempty"`
-	PostgresUser     string `json:"postgres_user,omitempty"`
-	PostgresPassword string `json:"postgres_password,omitempty"`
-	PostgresDB       string `json:"postgres_db,omitempty"`
-	IsPublic         *bool  `json:"is_public,omitempty"`
-	PublicPort       *int64 `json:"public_port,omitempty"`
-	InstantDeploy    *bool  `json:"instant_deploy,omitempty"`
-}
-type CreateMysqlInput struct {
-	ServerUUID        string `json:"server_uuid"`
-	ProjectUUID       string `json:"project_uuid"`
-	EnvironmentName   string `json:"environment_name"`
-	EnvironmentUUID   string `json:"environment_uuid,omitempty"`
-	Name              string `json:"name,omitempty"`
-	Description       string `json:"description,omitempty"`
-	Image             string `json:"image,omitempty"`
-	MysqlRootPassword string `json:"mysql_root_password,omitempty"`
-	MysqlUser         string `json:"mysql_user,omitempty"`
-	MysqlPassword     string `json:"mysql_password,omitempty"`
-	MysqlDatabase     string `json:"mysql_database,omitempty"`
-	IsPublic          *bool  `json:"is_public,omitempty"`
-	PublicPort        *int64 `json:"public_port,omitempty"`
-	InstantDeploy     *bool  `json:"instant_deploy,omitempty"`
-}
-type CreateMariadbInput struct {
-	ServerUUID          string `json:"server_uuid"`
-	ProjectUUID         string `json:"project_uuid"`
-	EnvironmentName     string `json:"environment_name"`
-	EnvironmentUUID     string `json:"environment_uuid,omitempty"`
-	Name                string `json:"name,omitempty"`
-	Description         string `json:"description,omitempty"`
-	Image               string `json:"image,omitempty"`
-	MariadbRootPassword string `json:"mariadb_root_password,omitempty"`
-	MariadbUser         string `json:"mariadb_user,omitempty"`
-	MariadbPassword     string `json:"mariadb_password,omitempty"`
-	MariadbDatabase     string `json:"mariadb_database,omitempty"`
-	IsPublic            *bool  `json:"is_public,omitempty"`
-	PublicPort          *int64 `json:"public_port,omitempty"`
-	InstantDeploy       *bool  `json:"instant_deploy,omitempty"`
-}
-type CreateRedisInput struct {
+
+// CreateDatabaseBaseInput contains fields shared by all database Create endpoints.
+type CreateDatabaseBaseInput struct {
 	ServerUUID      string `json:"server_uuid"`
 	ProjectUUID     string `json:"project_uuid"`
 	EnvironmentName string `json:"environment_name"`
@@ -132,65 +87,59 @@ type CreateRedisInput struct {
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`
 	Image           string `json:"image,omitempty"`
-	RedisPassword   string `json:"redis_password,omitempty"`
 	IsPublic        *bool  `json:"is_public,omitempty"`
 	PublicPort      *int64 `json:"public_port,omitempty"`
 	InstantDeploy   *bool  `json:"instant_deploy,omitempty"`
 }
+
+type CreatePostgresqlInput struct {
+	CreateDatabaseBaseInput
+	PostgresUser     string `json:"postgres_user,omitempty"`
+	PostgresPassword string `json:"postgres_password,omitempty"`
+	PostgresDB       string `json:"postgres_db,omitempty"`
+}
+
+type CreateMysqlInput struct {
+	CreateDatabaseBaseInput
+	MysqlRootPassword string `json:"mysql_root_password,omitempty"`
+	MysqlUser         string `json:"mysql_user,omitempty"`
+	MysqlPassword     string `json:"mysql_password,omitempty"`
+	MysqlDatabase     string `json:"mysql_database,omitempty"`
+}
+
+type CreateMariadbInput struct {
+	CreateDatabaseBaseInput
+	MariadbRootPassword string `json:"mariadb_root_password,omitempty"`
+	MariadbUser         string `json:"mariadb_user,omitempty"`
+	MariadbPassword     string `json:"mariadb_password,omitempty"`
+	MariadbDatabase     string `json:"mariadb_database,omitempty"`
+}
+
+type CreateRedisInput struct {
+	CreateDatabaseBaseInput
+	RedisPassword string `json:"redis_password,omitempty"`
+}
+
 type CreateMongodbInput struct {
-	ServerUUID              string `json:"server_uuid"`
-	ProjectUUID             string `json:"project_uuid"`
-	EnvironmentName         string `json:"environment_name"`
-	EnvironmentUUID         string `json:"environment_uuid,omitempty"`
-	Name                    string `json:"name,omitempty"`
-	Description             string `json:"description,omitempty"`
-	Image                   string `json:"image,omitempty"`
+	CreateDatabaseBaseInput
 	MongoInitdbRootUsername string `json:"mongo_initdb_root_username,omitempty"`
 	MongoInitdbRootPassword string `json:"mongo_initdb_root_password,omitempty"`
 	MongoInitdbDatabase     string `json:"mongo_initdb_database,omitempty"`
-	IsPublic                *bool  `json:"is_public,omitempty"`
-	PublicPort              *int64 `json:"public_port,omitempty"`
-	InstantDeploy           *bool  `json:"instant_deploy,omitempty"`
 }
+
 type CreateClickhouseInput struct {
-	ProjectUUID             string `json:"project_uuid"`
-	ServerUUID              string `json:"server_uuid"`
-	EnvironmentName         string `json:"environment_name"`
-	EnvironmentUUID         string `json:"environment_uuid,omitempty"`
-	Name                    string `json:"name,omitempty"`
-	Description             string `json:"description,omitempty"`
-	Image                   string `json:"image,omitempty"`
-	IsPublic                *bool  `json:"is_public,omitempty"`
-	PublicPort              *int64 `json:"public_port,omitempty"`
-	InstantDeploy           *bool  `json:"instant_deploy,omitempty"`
+	CreateDatabaseBaseInput
 	ClickhouseAdminUser     string `json:"clickhouse_admin_user,omitempty"`
 	ClickhouseAdminPassword string `json:"clickhouse_admin_password,omitempty"`
 }
 
 type CreateKeydbInput struct {
-	ProjectUUID     string `json:"project_uuid"`
-	ServerUUID      string `json:"server_uuid"`
-	EnvironmentName string `json:"environment_name"`
-	EnvironmentUUID string `json:"environment_uuid,omitempty"`
-	Name            string `json:"name,omitempty"`
-	Description     string `json:"description,omitempty"`
-	Image           string `json:"image,omitempty"`
-	IsPublic        *bool  `json:"is_public,omitempty"`
-	PublicPort      *int64 `json:"public_port,omitempty"`
-	InstantDeploy   *bool  `json:"instant_deploy,omitempty"`
-	KeydbPassword   string `json:"keydb_password,omitempty"`
+	CreateDatabaseBaseInput
+	KeydbPassword string `json:"keydb_password,omitempty"`
 }
+
 type CreateDragonflyInput struct {
-	ProjectUUID       string `json:"project_uuid"`
-	ServerUUID        string `json:"server_uuid"`
-	EnvironmentName   string `json:"environment_name"`
-	EnvironmentUUID   string `json:"environment_uuid,omitempty"`
-	Name              string `json:"name,omitempty"`
-	Description       string `json:"description,omitempty"`
-	Image             string `json:"image,omitempty"`
-	IsPublic          *bool  `json:"is_public,omitempty"`
-	PublicPort        *int64 `json:"public_port,omitempty"`
-	InstantDeploy     *bool  `json:"instant_deploy,omitempty"`
+	CreateDatabaseBaseInput
 	DragonflyPassword string `json:"dragonfly_password,omitempty"`
 }
 

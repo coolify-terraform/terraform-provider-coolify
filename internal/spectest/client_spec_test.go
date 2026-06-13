@@ -92,10 +92,12 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		// Databases
 		{"CreatePostgresql", "POST", "/api/v1/databases/postgresql",
 			client.CreatePostgresqlInput{
-				ServerUUID:      "srv-1",
-				ProjectUUID:     "proj-1",
-				EnvironmentName: "production",
-				EnvironmentUUID: "env-1",
+				CreateDatabaseBaseInput: client.CreateDatabaseBaseInput{
+					ServerUUID:      "srv-1",
+					ProjectUUID:     "proj-1",
+					EnvironmentName: "production",
+					EnvironmentUUID: "env-1",
+				},
 			}, 201, map[string]string{"uuid": "db-1"}},
 		{"GetDatabase", "GET", "/api/v1/databases/db-1",
 			nil, 200, map[string]interface{}{"uuid": "db-1", "name": "pg-db"}},
