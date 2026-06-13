@@ -30,6 +30,11 @@ data "coolify_database" "example" {
 - `description` (String) A description of the database.
 - `enable_ssl` (Boolean) Whether SSL/TLS is enabled for database connections.
 - `environment_name` (String) The environment name.
+- `health_check_enabled` (Boolean) Whether the Docker health check probe is enabled.
+- `health_check_interval` (Number) Health check interval in seconds.
+- `health_check_retries` (Number) Number of consecutive failures before unhealthy.
+- `health_check_start_period` (Number) Grace period in seconds before health checks count.
+- `health_check_timeout` (Number) Health check timeout in seconds.
 - `image` (String) The Docker image used by the database.
 - `internal_db_url` (String, Sensitive) Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.
 - `is_include_timestamps` (Boolean) Whether timestamps are included in log output.

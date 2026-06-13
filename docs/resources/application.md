@@ -119,6 +119,7 @@ resource "coolify_application" "example" {
 
 ### Read-Only
 
+- `max_restart_count` (Number) The maximum number of container restarts before Coolify stops the application. Set via the Coolify UI (not yet exposed on the API for writes). Defaults to `10`.
 - `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.
 - `status` (String) The current status of the application (e.g., running, stopped, exited). Read-only.
 - `uuid` (String) The unique identifier of the application.

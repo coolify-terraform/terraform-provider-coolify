@@ -120,6 +120,7 @@ resource "coolify_application_dockerfile" "app" {
 - `build_pack` (String) The build pack type. Read-only, set by the API.
 - `git_branch` (String) The Git branch. Read-only, set by the API.
 - `git_repository` (String) The Git repository URL. Read-only, set by the API.
+- `max_restart_count` (Number) The maximum number of container restarts before Coolify stops the application. Set via the Coolify UI (not yet exposed on the API for writes). Defaults to `10`.
 - `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.
 - `status` (String) The current status of the application (e.g., running, stopped, exited). Read-only.
 - `uuid` (String) The unique identifier of the application.

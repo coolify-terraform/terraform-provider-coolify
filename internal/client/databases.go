@@ -47,6 +47,12 @@ type Database struct {
 	// Logging settings
 	IsLogDrainEnabled   bool `json:"is_log_drain_enabled"`
 	IsIncludeTimestamps bool `json:"is_include_timestamps"`
+	// Health checks
+	HealthCheckEnabled     *bool  `json:"health_check_enabled,omitempty"`
+	HealthCheckInterval    *int64 `json:"health_check_interval,omitempty"`
+	HealthCheckTimeout     *int64 `json:"health_check_timeout,omitempty"`
+	HealthCheckRetries     *int64 `json:"health_check_retries,omitempty"`
+	HealthCheckStartPeriod *int64 `json:"health_check_start_period,omitempty"`
 	// SSL/TLS settings
 	EnableSSL bool   `json:"enable_ssl"`
 	SSLMode   string `json:"ssl_mode,omitempty"`
@@ -221,6 +227,12 @@ type UpdateDatabaseInput struct {
 	// Logging settings
 	IsLogDrainEnabled   *bool `json:"is_log_drain_enabled,omitempty"`
 	IsIncludeTimestamps *bool `json:"is_include_timestamps,omitempty"`
+	// Health checks
+	HealthCheckEnabled     *bool  `json:"health_check_enabled,omitempty"`
+	HealthCheckInterval    *int64 `json:"health_check_interval,omitempty"`
+	HealthCheckTimeout     *int64 `json:"health_check_timeout,omitempty"`
+	HealthCheckRetries     *int64 `json:"health_check_retries,omitempty"`
+	HealthCheckStartPeriod *int64 `json:"health_check_start_period,omitempty"`
 	// SSL/TLS settings
 	EnableSSL *bool   `json:"enable_ssl,omitempty"`
 	SSLMode   *string `json:"ssl_mode,omitempty"`

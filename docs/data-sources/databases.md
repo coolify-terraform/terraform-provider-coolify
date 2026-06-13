@@ -47,6 +47,11 @@ Read-Only:
 
 - `description` (String) A description of the database.
 - `enable_ssl` (Boolean) Whether SSL/TLS is enabled for database connections.
+- `health_check_enabled` (Boolean) Whether the Docker health check probe is enabled.
+- `health_check_interval` (Number) Health check interval in seconds.
+- `health_check_retries` (Number) Number of consecutive failures before unhealthy.
+- `health_check_start_period` (Number) Grace period in seconds before health checks count.
+- `health_check_timeout` (Number) Health check timeout in seconds.
 - `image` (String) The Docker image used by the database.
 - `internal_db_url` (String, Sensitive) Internal connection URL for the database.
 - `is_include_timestamps` (Boolean) Whether timestamps are included in log output.

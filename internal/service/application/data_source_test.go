@@ -27,6 +27,7 @@ func TestApplicationDataSource_Read(t *testing.T) {
 		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
 		DockerComposeRaw:        "version: '3'\nservices:\n  web:\n    image: nginx",
 		DockerRegistryImageName: "registry.example.com/app:latest",
+		MaxRestartCount:         func() *int64 { v := int64(10); return &v }(),
 	}
 
 	mux := http.NewServeMux()
@@ -64,6 +65,7 @@ data "coolify_application" "test" {
 					resource.TestCheckResourceAttr("data.coolify_application.test", "server_uuid", "bbbb0002-0002-4000-8000-000000000002"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "docker_compose_raw", "version: '3'\nservices:\n  web:\n    image: nginx"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "docker_registry_image_name", "registry.example.com/app:latest"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "max_restart_count", "10"),
 				),
 			},
 		},

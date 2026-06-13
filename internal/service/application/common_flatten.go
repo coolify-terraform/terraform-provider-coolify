@@ -196,6 +196,10 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	setBoolDefault(f.IsContainerLabelEscapeEnabled, app.IsContainerLabelEscapeEnabled, true)
 	setBoolDefault(f.IsPreserveRepositoryEnabled, app.IsPreserveRepositoryEnabled, false)
 	setBoolDefault(f.UseBuildServer, app.UseBuildServer, false)
+	// max_restart_count is Computed-only (not writable via API).
+	if f.MaxRestartCount != nil {
+		*f.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
+	}
 	// instant_deploy is create-only and never returned by the API.
 	// Preserve state value when set; default to false otherwise (import).
 	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {

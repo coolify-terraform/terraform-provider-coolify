@@ -44,6 +44,11 @@ func TestDatabaseDataSource(t *testing.T) {
 				"is_include_timestamps":     true,
 				"enable_ssl":                true,
 				"ssl_mode":                  "require",
+				"health_check_enabled":      true,
+				"health_check_interval":     15,
+				"health_check_timeout":      5,
+				"health_check_retries":      5,
+				"health_check_start_period": 5,
 			})
 			return
 		}
@@ -80,6 +85,11 @@ data "coolify_database" "test" {
 					resource.TestCheckResourceAttr("data.coolify_database.test", "is_include_timestamps", "true"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "enable_ssl", "true"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "ssl_mode", "require"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "health_check_enabled", "true"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "health_check_interval", "15"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "health_check_timeout", "5"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "health_check_retries", "5"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "health_check_start_period", "5"),
 				),
 			},
 		},

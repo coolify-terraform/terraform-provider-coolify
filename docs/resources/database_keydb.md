@@ -35,6 +35,11 @@ resource "coolify_database_keydb" "example" {
 - `description` (String) A description of the database.
 - `enable_ssl` (Boolean) When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`.
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
+- `health_check_enabled` (Boolean) When `true`, enables the Docker health check probe for this database container. Defaults to `true`.
+- `health_check_interval` (Number) Health check interval in seconds. Minimum `1`. Defaults to `15`.
+- `health_check_retries` (Number) Number of consecutive health check failures before the container is considered unhealthy. Minimum `1`. Defaults to `5`.
+- `health_check_start_period` (Number) Grace period in seconds before health checks start counting failures after container start. Minimum `0`. Defaults to `5`.
+- `health_check_timeout` (Number) Health check timeout in seconds. Minimum `1`. Defaults to `5`.
 - `image` (String) The Docker image to use.
 - `instant_deploy` (Boolean) Whether to immediately deploy the database after creation. When `true`, Coolify starts the database container right away. When `false` (default), the database is created but not started.
 - `is_include_timestamps` (Boolean) When `true`, includes timestamps in container log output. Defaults to `false`.

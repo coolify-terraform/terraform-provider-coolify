@@ -100,10 +100,15 @@ func validateCreateBody(w http.ResponseWriter, r *http.Request) (map[string]inte
 func NewMockServer(dbType, name, image string, extraFields map[string]interface{}) (*httptest.Server, *MockState) {
 	// Seed common fields as defaults so applyPatch can update them.
 	merged := map[string]interface{}{
-		"is_log_drain_enabled":  false,
-		"is_include_timestamps": false,
-		"enable_ssl":            false,
-		"ssl_mode":              "",
+		"is_log_drain_enabled":      false,
+		"is_include_timestamps":     false,
+		"health_check_enabled":      true,
+		"health_check_interval":     15,
+		"health_check_timeout":      5,
+		"health_check_retries":      5,
+		"health_check_start_period": 5,
+		"enable_ssl":                false,
+		"ssl_mode":                  "",
 	}
 	for k, v := range extraFields {
 		merged[k] = v

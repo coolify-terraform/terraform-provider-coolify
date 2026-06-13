@@ -47,6 +47,11 @@ type CommonModel struct {
 	PublicPortTimeout       types.Int64    `tfsdk:"public_port_timeout"`
 	IsLogDrainEnabled       types.Bool     `tfsdk:"is_log_drain_enabled"`
 	IsIncludeTimestamps     types.Bool     `tfsdk:"is_include_timestamps"`
+	HealthCheckEnabled      types.Bool     `tfsdk:"health_check_enabled"`
+	HealthCheckInterval     types.Int64    `tfsdk:"health_check_interval"`
+	HealthCheckTimeout      types.Int64    `tfsdk:"health_check_timeout"`
+	HealthCheckRetries      types.Int64    `tfsdk:"health_check_retries"`
+	HealthCheckStartPeriod  types.Int64    `tfsdk:"health_check_start_period"`
 	Status                  types.String   `tfsdk:"status"`
 	InternalDBUrl           types.String   `tfsdk:"internal_db_url"`
 	InstantDeploy           types.Bool     `tfsdk:"instant_deploy"`
@@ -77,6 +82,11 @@ func (m *CommonModel) ExtFields() DatabaseExtendedPtrs {
 		PublicPortTimeout:       &m.PublicPortTimeout,
 		IsLogDrainEnabled:       &m.IsLogDrainEnabled,
 		IsIncludeTimestamps:     &m.IsIncludeTimestamps,
+		HealthCheckEnabled:      &m.HealthCheckEnabled,
+		HealthCheckInterval:     &m.HealthCheckInterval,
+		HealthCheckTimeout:      &m.HealthCheckTimeout,
+		HealthCheckRetries:      &m.HealthCheckRetries,
+		HealthCheckStartPeriod:  &m.HealthCheckStartPeriod,
 		Status:                  &m.Status,
 		InternalDBUrl:           &m.InternalDBUrl,
 		InstantDeploy:           &m.InstantDeploy,
@@ -129,6 +139,11 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
 		"is_log_drain_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, sends container logs to the configured log drain. Defaults to `false`.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"is_include_timestamps":     IsIncludeTimestampsAttr(),
+		"health_check_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, enables the Docker health check probe for this database container. Defaults to `true`.", Optional: true, Computed: true, Default: booldefault.StaticBool(true)},
+		"health_check_interval":     schema.Int64Attribute{MarkdownDescription: "Health check interval in seconds. Minimum `1`. Defaults to `15`.", Optional: true, Computed: true, Default: int64default.StaticInt64(15), Validators: []validator.Int64{int64validator.AtLeast(1)}},
+		"health_check_timeout":      schema.Int64Attribute{MarkdownDescription: "Health check timeout in seconds. Minimum `1`. Defaults to `5`.", Optional: true, Computed: true, Default: int64default.StaticInt64(5), Validators: []validator.Int64{int64validator.AtLeast(1)}},
+		"health_check_retries":      schema.Int64Attribute{MarkdownDescription: "Number of consecutive health check failures before the container is considered unhealthy. Minimum `1`. Defaults to `5`.", Optional: true, Computed: true, Default: int64default.StaticInt64(5), Validators: []validator.Int64{int64validator.AtLeast(1)}},
+		"health_check_start_period": schema.Int64Attribute{MarkdownDescription: "Grace period in seconds before health checks start counting failures after container start. Minimum `0`. Defaults to `5`.", Optional: true, Computed: true, Default: int64default.StaticInt64(5), Validators: []validator.Int64{int64validator.AtLeast(0)}},
 		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g., `running`, `exited`).", Computed: true},
 		"internal_db_url":           schema.StringAttribute{MarkdownDescription: "Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.", Computed: true, Sensitive: true},
 		"instant_deploy":            schema.BoolAttribute{MarkdownDescription: "Whether to immediately deploy the database after creation. When `true`, Coolify starts the database container right away. When `false` (default), the database is created but not started.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
@@ -343,6 +358,11 @@ type DatabaseExtendedPtrs struct {
 	PublicPortTimeout       *types.Int64
 	IsLogDrainEnabled       *types.Bool
 	IsIncludeTimestamps     *types.Bool
+	HealthCheckEnabled      *types.Bool
+	HealthCheckInterval     *types.Int64
+	HealthCheckTimeout      *types.Int64
+	HealthCheckRetries      *types.Int64
+	HealthCheckStartPeriod  *types.Int64
 	EnableSSL               *types.Bool
 	SSLMode                 *types.String
 	Status                  *types.String
@@ -383,6 +403,14 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	// Logging settings (boolean with default false — always set from API).
 	*f.IsLogDrainEnabled = types.BoolValue(db.IsLogDrainEnabled)
 	*f.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
+	// Health check settings (boolean + integer with defaults — always set from API).
+	if db.HealthCheckEnabled != nil {
+		*f.HealthCheckEnabled = types.BoolValue(*db.HealthCheckEnabled)
+	}
+	*f.HealthCheckInterval = flex.Int64PtrToFramework(db.HealthCheckInterval)
+	*f.HealthCheckTimeout = flex.Int64PtrToFramework(db.HealthCheckTimeout)
+	*f.HealthCheckRetries = flex.Int64PtrToFramework(db.HealthCheckRetries)
+	*f.HealthCheckStartPeriod = flex.Int64PtrToFramework(db.HealthCheckStartPeriod)
 	// SSL settings — always set from API.
 	if f.EnableSSL != nil {
 		*f.EnableSSL = types.BoolValue(db.EnableSSL)
@@ -417,6 +445,11 @@ func SetUpdateExtended(input *client.UpdateDatabaseInput, f DatabaseExtendedPtrs
 	input.PublicPortTimeout = flex.Int64PtrFromFramework(*f.PublicPortTimeout)
 	flex.SetBoolPtr(&input.IsLogDrainEnabled, *f.IsLogDrainEnabled)
 	flex.SetBoolPtr(&input.IsIncludeTimestamps, *f.IsIncludeTimestamps)
+	flex.SetBoolPtr(&input.HealthCheckEnabled, *f.HealthCheckEnabled)
+	flex.SetInt64Ptr(&input.HealthCheckInterval, *f.HealthCheckInterval)
+	flex.SetInt64Ptr(&input.HealthCheckTimeout, *f.HealthCheckTimeout)
+	flex.SetInt64Ptr(&input.HealthCheckRetries, *f.HealthCheckRetries)
+	flex.SetInt64Ptr(&input.HealthCheckStartPeriod, *f.HealthCheckStartPeriod)
 	if f.EnableSSL != nil {
 		flex.SetBoolPtr(&input.EnableSSL, *f.EnableSSL)
 	}
@@ -440,6 +473,11 @@ func SetUpdateExtendedDiff(input *client.UpdateDatabaseInput, plan, state Databa
 	input.PublicPortTimeout = flex.Int64IfChanged(*plan.PublicPortTimeout, *state.PublicPortTimeout)
 	input.IsLogDrainEnabled = flex.BoolIfChanged(*plan.IsLogDrainEnabled, *state.IsLogDrainEnabled)
 	input.IsIncludeTimestamps = flex.BoolIfChanged(*plan.IsIncludeTimestamps, *state.IsIncludeTimestamps)
+	input.HealthCheckEnabled = flex.BoolIfChanged(*plan.HealthCheckEnabled, *state.HealthCheckEnabled)
+	input.HealthCheckInterval = flex.Int64IfChanged(*plan.HealthCheckInterval, *state.HealthCheckInterval)
+	input.HealthCheckTimeout = flex.Int64IfChanged(*plan.HealthCheckTimeout, *state.HealthCheckTimeout)
+	input.HealthCheckRetries = flex.Int64IfChanged(*plan.HealthCheckRetries, *state.HealthCheckRetries)
+	input.HealthCheckStartPeriod = flex.Int64IfChanged(*plan.HealthCheckStartPeriod, *state.HealthCheckStartPeriod)
 	if plan.EnableSSL != nil {
 		input.EnableSSL = flex.BoolIfChanged(*plan.EnableSSL, *state.EnableSSL)
 	}
@@ -459,6 +497,11 @@ func HasExtendedFields(f DatabaseExtendedPtrs) bool {
 		flex.Int64PtrConfigured(f.PublicPortTimeout) ||
 		flex.BoolPtrNonDefault(f.IsLogDrainEnabled, false) ||
 		flex.BoolPtrNonDefault(f.IsIncludeTimestamps, false) ||
+		flex.BoolPtrNonDefault(f.HealthCheckEnabled, true) ||
+		flex.Int64PtrNonDefault(f.HealthCheckInterval, 15) ||
+		flex.Int64PtrNonDefault(f.HealthCheckTimeout, 5) ||
+		flex.Int64PtrNonDefault(f.HealthCheckRetries, 5) ||
+		flex.Int64PtrNonDefault(f.HealthCheckStartPeriod, 5) ||
 		(f.EnableSSL != nil && flex.BoolPtrNonDefault(f.EnableSSL, false)) ||
 		(f.SSLMode != nil && flex.StringPtrConfigured(f.SSLMode))
 }

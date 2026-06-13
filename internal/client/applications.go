@@ -95,10 +95,11 @@ type Application struct {
 	ManualWebhookSecretGitHub    string `json:"manual_webhook_secret_github,omitempty"`
 	ManualWebhookSecretGitLab    string `json:"manual_webhook_secret_gitlab,omitempty"`
 	// Other settings
-	ForceDomainOverride           *bool `json:"force_domain_override,omitempty"`
-	IsContainerLabelEscapeEnabled *bool `json:"is_container_label_escape_enabled,omitempty"`
-	IsPreserveRepositoryEnabled   *bool `json:"is_preserve_repository_enabled,omitempty"`
-	UseBuildServer                *bool `json:"use_build_server,omitempty"`
+	ForceDomainOverride           *bool  `json:"force_domain_override,omitempty"`
+	IsContainerLabelEscapeEnabled *bool  `json:"is_container_label_escape_enabled,omitempty"`
+	IsPreserveRepositoryEnabled   *bool  `json:"is_preserve_repository_enabled,omitempty"`
+	UseBuildServer                *bool  `json:"use_build_server,omitempty"`
+	MaxRestartCount               *int64 `json:"max_restart_count,omitempty"`
 }
 type CreatePublicAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`

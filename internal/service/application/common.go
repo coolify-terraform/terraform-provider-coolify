@@ -112,6 +112,7 @@ type commonAppFields struct {
 	UseBuildServer                *types.Bool
 	InstantDeploy                 *types.Bool
 	RedeployOnUpdate              *types.Bool
+	MaxRestartCount               *types.Int64
 }
 
 // applicationCommonModel holds the fields shared by all application resource
@@ -186,6 +187,7 @@ type applicationCommonModel struct {
 	UseBuildServer                 types.Bool     `tfsdk:"use_build_server"`
 	InstantDeploy                  types.Bool     `tfsdk:"instant_deploy"`
 	RedeployOnUpdate               types.Bool     `tfsdk:"redeploy_on_update"`
+	MaxRestartCount                types.Int64    `tfsdk:"max_restart_count"`
 	Timeouts                       timeouts.Value `tfsdk:"timeouts"`
 }
 
@@ -229,6 +231,7 @@ func (m *applicationCommonModel) common() commonAppFields {
 		ForceDomainOverride: &m.ForceDomainOverride, IsContainerLabelEscapeEnabled: &m.IsContainerLabelEscapeEnabled,
 		IsPreserveRepositoryEnabled: &m.IsPreserveRepositoryEnabled, UseBuildServer: &m.UseBuildServer,
 		InstantDeploy: &m.InstantDeploy, RedeployOnUpdate: &m.RedeployOnUpdate,
+		MaxRestartCount: &m.MaxRestartCount,
 	}
 }
 
