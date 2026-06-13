@@ -64,6 +64,7 @@ jobs:
     permissions:
       actions: read
       contents: write
+      pull-requests: write
     timeout-minutes: 30
     env:
       RELEASE_TAG: ${{ needs.release-please.outputs.tag_name || github.event.inputs.tag || github.ref_name }}
@@ -157,18 +158,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+      # Generate a GitHub App token for the cleanup PR so that push events
+      # trigger CI and auto-approve (GITHUB_TOKEN suppresses both).
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: cleanup-token
+        with:
+          client-id: ${{ vars.AUTO_APPROVE_CLIENT_ID }}
+          private-key: ${{ secrets.AUTO_APPROVE_PRIVATE_KEY }}
       - name: Clean up release notes file
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.cleanup-token.outputs.token }}
         run: |
           if git ls-tree HEAD --name-only | grep -q '^RELEASE_NOTES.md$'; then
             echo "Removing RELEASE_NOTES.md from main..."
-            # Use the GitHub API to delete the file (persist-credentials: false
-            # means git push has no credentials).
-            SHA=$(gh api "repos/${{ github.repository }}/contents/RELEASE_NOTES.md" \
+            # Branch protection prevents direct pushes to main, so create a
+            # short-lived PR to delete the file. The auto-approve workflow
+            # handles approval, and auto-merge closes it once CI passes.
+            BRANCH="chore/cleanup-release-notes-${{ env.RELEASE_TAG }}"
+            gh api "repos/${{ github.repository }}/git/refs" \
+              -f ref="refs/heads/$BRANCH" \
+              -f sha="$(git rev-parse HEAD)"
+            FILE_SHA=$(gh api "repos/${{ github.repository }}/contents/RELEASE_NOTES.md?ref=$BRANCH" \
               --jq '.sha')
             gh api --method DELETE "repos/${{ github.repository }}/contents/RELEASE_NOTES.md" \
-              -f message="chore: remove release notes override [skip ci]" \
-              -f sha="$SHA" \
-              -f branch="main"
+              -f message="chore: remove release notes override" \
+              -f sha="$FILE_SHA" \
+              -f branch="$BRANCH"
+            PR_URL=$(gh pr create --base main --head "$BRANCH" \
+              --title "chore: remove release notes override" \
+              --body "Auto-cleanup of \`RELEASE_NOTES.md\` after ${{ env.RELEASE_TAG }} release.")
+            gh pr merge "$PR_URL" --auto --squash
           fi

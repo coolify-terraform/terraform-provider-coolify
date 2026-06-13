@@ -225,7 +225,7 @@ The correct sequence for curated releases:
 5. Release workflow applies the curated notes and cleans up the file
 
 Published to both [Terraform Registry](https://registry.terraform.io/providers/coolify-terraform/coolify)
-and [OpenTofu Registry](https://registry.opentofu.org/providers/coolify-terraform/coolify).
+and [OpenTofu Registry](https://search.opentofu.org/provider/coolify-terraform/coolify).
 
 ## Safety
 
