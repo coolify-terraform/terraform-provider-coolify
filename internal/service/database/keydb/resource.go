@@ -60,7 +60,11 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	defer cancel()
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_keydb"})
 
-	in := client.CreateKeydbInput{ServerUUID: p.ServerUUID.ValueString(), ProjectUUID: p.ProjectUUID.ValueString(), EnvironmentName: p.EnvironmentName.ValueString()}
+	in := client.CreateKeydbInput{CreateDatabaseBaseInput: client.CreateDatabaseBaseInput{
+		ServerUUID:      p.ServerUUID.ValueString(),
+		ProjectUUID:     p.ProjectUUID.ValueString(),
+		EnvironmentName: p.EnvironmentName.ValueString(),
+	}}
 	flex.SetIfKnown(&in.Name, p.Name)
 	flex.SetIfKnown(&in.Description, p.Description)
 	flex.SetIfKnown(&in.Image, p.Image)

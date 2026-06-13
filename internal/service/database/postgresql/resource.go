@@ -103,9 +103,11 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_postgresql"})
 
 	input := client.CreatePostgresqlInput{
-		ServerUUID:      plan.ServerUUID.ValueString(),
-		ProjectUUID:     plan.ProjectUUID.ValueString(),
-		EnvironmentName: plan.EnvironmentName.ValueString(),
+		CreateDatabaseBaseInput: client.CreateDatabaseBaseInput{
+			ServerUUID:      plan.ServerUUID.ValueString(),
+			ProjectUUID:     plan.ProjectUUID.ValueString(),
+			EnvironmentName: plan.EnvironmentName.ValueString(),
+		},
 	}
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)

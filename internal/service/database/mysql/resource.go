@@ -76,7 +76,11 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	defer cancel()
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_mysql"})
 
-	input := client.CreateMysqlInput{ServerUUID: plan.ServerUUID.ValueString(), ProjectUUID: plan.ProjectUUID.ValueString(), EnvironmentName: plan.EnvironmentName.ValueString()}
+	input := client.CreateMysqlInput{CreateDatabaseBaseInput: client.CreateDatabaseBaseInput{
+		ServerUUID:      plan.ServerUUID.ValueString(),
+		ProjectUUID:     plan.ProjectUUID.ValueString(),
+		EnvironmentName: plan.EnvironmentName.ValueString(),
+	}}
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
 	flex.SetIfKnown(&input.Image, plan.Image)
