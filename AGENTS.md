@@ -116,6 +116,7 @@ mismatches, and zero validation rules when we compared it against the source.
 ### Resource implementation
 
 - One package per resource type under `internal/service/`
+- **Database packages use `res` and `model` as type names by convention.** All 6 database packages (redis, mongodb, mariadb, clickhouse, keydb, dragonfly) use these short names because each is in its own package, making the names unambiguous. Do not rename them to `redisResource`/`redisModel` etc. AI code scanners flag this as "too generic" on every cycle; it is a deliberate design choice.
 - Every resource implements `resource.ResourceWithImportState`
 - Handle 404 in Read (call `resp.State.RemoveResource`) and Delete (silently return)
 - Use `stringplanmodifier.RequiresReplace()` on immutable fields (project_uuid, server_uuid, environment_name)

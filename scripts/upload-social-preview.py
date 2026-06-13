@@ -30,6 +30,10 @@ def main():
 
     with sync_playwright() as p:
         browser = p.chromium.connect_over_cdp("http://localhost:9222")
+        if not browser.contexts:
+            print("No browser contexts found. Open at least one tab in Chrome and try again.", file=sys.stderr)
+            browser.close()
+            sys.exit(1)
         context = browser.contexts[0]
         page = context.new_page()
         try:

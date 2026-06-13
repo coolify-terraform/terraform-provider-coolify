@@ -20,8 +20,6 @@ import (
 // bodies use real client input structs for cases where JSON tags do not
 // obviously match the Go field names.
 func TestClientEndpoints_SpecCompliance(t *testing.T) {
-	t.Parallel()
-
 	v, err := newValidator("coolify-v4")
 	if err != nil {
 		t.Fatalf("creating validator: %v", err)

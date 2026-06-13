@@ -123,7 +123,7 @@ func TestApplicationLogsDataSource(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/applications/{uuid}/logs", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/v1/applications/{uuid}/logs", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(logs)
 	})
