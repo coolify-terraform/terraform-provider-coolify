@@ -58,17 +58,8 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	defer cancel()
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_dragonfly"})
 
-	in := client.CreateDragonflyInput{CreateDatabaseBaseInput: client.CreateDatabaseBaseInput{
-		ServerUUID:      p.ServerUUID.ValueString(),
-		ProjectUUID:     p.ProjectUUID.ValueString(),
-		EnvironmentName: p.EnvironmentName.ValueString(),
-	}}
-	flex.SetIfKnown(&in.Name, p.Name)
-	flex.SetIfKnown(&in.Description, p.Description)
-	flex.SetIfKnown(&in.Image, p.Image)
-	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
-	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	in.InstantDeploy = flex.BoolValueOrNull(p.InstantDeploy)
+	var in client.CreateDragonflyInput
+	dbcommon.PopulateBaseCreateInput(&in.CreateDatabaseBaseInput, &p.CommonModel)
 	flex.SetIfKnown(&in.DragonflyPassword, p.DragonflyPassword)
 	c, err := r.client.CreateDatabase(ctx, "dragonfly", in)
 	if err != nil {

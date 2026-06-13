@@ -76,21 +76,12 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 	defer cancel()
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_mysql"})
 
-	input := client.CreateMysqlInput{CreateDatabaseBaseInput: client.CreateDatabaseBaseInput{
-		ServerUUID:      plan.ServerUUID.ValueString(),
-		ProjectUUID:     plan.ProjectUUID.ValueString(),
-		EnvironmentName: plan.EnvironmentName.ValueString(),
-	}}
-	flex.SetIfKnown(&input.Name, plan.Name)
-	flex.SetIfKnown(&input.Description, plan.Description)
-	flex.SetIfKnown(&input.Image, plan.Image)
+	var input client.CreateMysqlInput
+	dbcommon.PopulateBaseCreateInput(&input.CreateDatabaseBaseInput, &plan.CommonModel)
 	flex.SetIfKnown(&input.MysqlUser, plan.MysqlUser)
 	flex.SetIfKnown(&input.MysqlPassword, plan.MysqlPassword)
 	flex.SetIfKnown(&input.MysqlDatabase, plan.MysqlDatabase)
 	flex.SetIfKnown(&input.MysqlRootPassword, plan.MysqlRootPassword)
-	input.IsPublic = flex.BoolValueOrNull(plan.IsPublic)
-	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
-	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
 	created, err := r.client.CreateDatabase(ctx, "mysql", input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating MySQL database",

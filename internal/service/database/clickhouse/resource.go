@@ -61,19 +61,10 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 	ctx, cancel := context.WithTimeout(ctx, createTimeout)
 	defer cancel()
-	in := client.CreateClickhouseInput{CreateDatabaseBaseInput: client.CreateDatabaseBaseInput{
-		ServerUUID:      p.ServerUUID.ValueString(),
-		ProjectUUID:     p.ProjectUUID.ValueString(),
-		EnvironmentName: p.EnvironmentName.ValueString(),
-	}}
-	flex.SetIfKnown(&in.Name, p.Name)
-	flex.SetIfKnown(&in.Description, p.Description)
-	flex.SetIfKnown(&in.Image, p.Image)
+	var in client.CreateClickhouseInput
+	dbcommon.PopulateBaseCreateInput(&in.CreateDatabaseBaseInput, &p.CommonModel)
 	flex.SetIfKnown(&in.ClickhouseAdminUser, p.ClickhouseAdminUser)
 	flex.SetIfKnown(&in.ClickhouseAdminPassword, p.ClickhouseAdminPassword)
-	in.IsPublic = flex.BoolValueOrNull(p.IsPublic)
-	in.PublicPort = flex.Int64PtrFromFramework(p.PublicPort)
-	in.InstantDeploy = flex.BoolValueOrNull(p.InstantDeploy)
 	c, err := r.client.CreateDatabase(ctx, "clickhouse", in)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating ClickHouse database",

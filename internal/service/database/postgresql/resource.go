@@ -102,22 +102,11 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_database_postgresql"})
 
-	input := client.CreatePostgresqlInput{
-		CreateDatabaseBaseInput: client.CreateDatabaseBaseInput{
-			ServerUUID:      plan.ServerUUID.ValueString(),
-			ProjectUUID:     plan.ProjectUUID.ValueString(),
-			EnvironmentName: plan.EnvironmentName.ValueString(),
-		},
-	}
-	flex.SetIfKnown(&input.Name, plan.Name)
-	flex.SetIfKnown(&input.Description, plan.Description)
-	flex.SetIfKnown(&input.Image, plan.Image)
+	var input client.CreatePostgresqlInput
+	dbcommon.PopulateBaseCreateInput(&input.CreateDatabaseBaseInput, &plan.CommonModel)
 	flex.SetIfKnown(&input.PostgresUser, plan.PostgresUser)
 	flex.SetIfKnown(&input.PostgresPassword, plan.PostgresPassword)
 	flex.SetIfKnown(&input.PostgresDB, plan.PostgresDB)
-	input.IsPublic = flex.BoolValueOrNull(plan.IsPublic)
-	input.PublicPort = flex.Int64PtrFromFramework(plan.PublicPort)
-	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
 
 	created, err := r.client.CreateDatabase(ctx, "postgresql", input)
 	if err != nil {
