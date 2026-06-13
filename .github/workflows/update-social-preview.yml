@@ -52,10 +52,12 @@ jobs:
             | awk -F: '{s+=$2}END{print s}')
           TESTS=$(python3 -c "print((${RAW_TESTS}//50)*50)")
 
-          echo "resources=$RESOURCES" >> "$GITHUB_OUTPUT"
-          echo "datasources=$DATASOURCES" >> "$GITHUB_OUTPUT"
-          echo "tests=${TESTS}+" >> "$GITHUB_OUTPUT"
-          echo "raw_tests=$RAW_TESTS" >> "$GITHUB_OUTPUT"
+          {
+            echo "resources=$RESOURCES"
+            echo "datasources=$DATASOURCES"
+            echo "tests=${TESTS}+"
+            echo "raw_tests=$RAW_TESTS"
+          } >> "$GITHUB_OUTPUT"
 
           echo "Resources: $RESOURCES"
           echo "Data Sources: $DATASOURCES"
