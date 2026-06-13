@@ -1,12 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640">
-  <!-- Dark background -->
-  <rect width="1280" height="640" fill="#14141F"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1530"/>
+      <stop offset="50%" stop-color="#14141F"/>
+      <stop offset="100%" stop-color="#14141F"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Gradient background -->
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <!-- Subtle purple glow behind logo -->
+  <circle cx="270" cy="320" r="300" fill="#7B42BC" opacity="0.05"/>
 
   <!-- Purple accent line at bottom -->
   <rect x="0" y="634" width="1280" height="6" fill="#7B42BC"/>
 
-  <!-- Logo: white rounded square with C icon, scaled from 512 to ~260px -->
-  <g transform="translate(65, 190) scale(0.508)">
+  <!-- Logo: white rounded square with C icon, fills left side -->
+  <g transform="translate(35, 85) scale(0.92)">
     <rect width="512" height="512" rx="48" fill="#FFFFFF"/>
     <polygon points="187,72 215,72 229,48 201,48" fill="#7B42BC"/>
     <polygon points="219,72 247,72 261,48 233,48" fill="#7B42BC"/>
@@ -75,34 +86,44 @@
   </g>
 
   <!-- Title -->
-  <text x="410" y="245"
+  <text x="545" y="195"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="46" font-weight="500" fill="#FFFFFF">Terraform Provider</text>
-  <text x="410" y="310"
+        font-size="50" font-weight="500" fill="#FFFFFF">Terraform Provider</text>
+  <text x="545" y="290"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="66" font-weight="700" fill="#FFFFFF">for Coolify</text>
+        font-size="96" font-weight="700" fill="#FFFFFF">for Coolify</text>
 
   <!-- Purple divider -->
-  <rect x="410" y="328" width="80" height="3" rx="1.5" fill="#7B42BC"/>
+  <rect x="545" y="310" width="100" height="4" rx="2" fill="#7B42BC"/>
 
   <!-- Tagline -->
-  <text x="410" y="372"
+  <text x="545" y="360"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="24" fill="#9CA3AF">Manage your self-hosted PaaS infrastructure as code</text>
+        font-size="26" fill="#9CA3AF">Manage your self-hosted PaaS infrastructure as code</text>
 
-  <!-- Stat badges -->
-  <rect x="410" y="410" width="168" height="36" rx="18" fill="#2D1F4E"/>
-  <text x="494" y="434" text-anchor="middle"
+  <!-- Stat badges: 2x2 grid -->
+  <rect x="545" y="395" width="215" height="50" rx="25" fill="#2D1F4E"/>
+  <text x="652" y="428" text-anchor="middle"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="18" font-weight="600" fill="#C4A5E8">33 Resources</text>
+        font-size="24" font-weight="600" fill="#C4A5E8">33 Resources</text>
 
-  <rect x="590" y="410" width="186" height="36" rx="18" fill="#2D1F4E"/>
-  <text x="683" y="434" text-anchor="middle"
+  <rect x="775" y="395" width="245" height="50" rx="25" fill="#2D1F4E"/>
+  <text x="897" y="428" text-anchor="middle"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="18" font-weight="600" fill="#C4A5E8">44 Data Sources</text>
+        font-size="24" font-weight="600" fill="#C4A5E8">44 Data Sources</text>
 
-  <rect x="788" y="410" width="148" height="36" rx="18" fill="#2D1F4E"/>
-  <text x="862" y="434" text-anchor="middle"
+  <rect x="545" y="460" width="195" height="50" rx="25" fill="#2D1F4E"/>
+  <text x="642" y="493" text-anchor="middle"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="18" font-weight="600" fill="#C4A5E8">950+ Tests</text>
+        font-size="24" font-weight="600" fill="#C4A5E8">950+ Tests</text>
+
+  <rect x="755" y="460" width="275" height="50" rx="25" fill="#2D1F4E"/>
+  <text x="892" y="493" text-anchor="middle"
+        font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="24" font-weight="600" fill="#C4A5E8">100% API Coverage</text>
+
+  <!-- Org name -->
+  <text x="640" y="595" text-anchor="middle"
+        font-family="'SF Mono', 'Fira Code', 'Courier New', monospace"
+        font-size="18" fill="#4B5563" letter-spacing="1">coolify-terraform</text>
 </svg>
