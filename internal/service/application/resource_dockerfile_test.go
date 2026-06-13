@@ -31,6 +31,7 @@ func TestDockerfileApplicationResource_Create(t *testing.T) {
 		ProjectUUID:        "aaaa0001-0001-4000-8000-000000000001",
 		ServerUUID:         "bbbb0001-0001-4000-8000-000000000001",
 		EnvironmentName:    "production",
+		MaxRestartCount:    func() *int64 { v := int64(10); return &v }(),
 	}
 
 	mu := sync.Mutex{}
@@ -100,6 +101,7 @@ func TestDockerfileApplicationResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "dockerfile_location", "/Dockerfile"),
 					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "ports_exposes", "80"),
 					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "max_restart_count", "10"),
 				),
 			},
 			{

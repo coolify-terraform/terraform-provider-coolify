@@ -13,7 +13,7 @@ Coolify contract extracted from the real application code.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
-Contract version: `v4.1.0` | Extracted from: `coollabsio/coolify@v4.1.0`
+Contract version: `v4.1.2` | Extracted from: `coollabsio/coolify@v4.1.2`
 
 ## Summary
 

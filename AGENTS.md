@@ -87,7 +87,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - Install locally: `make install`
 - Spec compliance: `make spec-check`
 - API coverage doc: `make api-coverage`
-- Extract contract from Coolify source: `make contract-extract VERSION=v4.1.0`
+- Extract contract from Coolify source: `make contract-extract VERSION=v4.1.2`
 - Verify client structs cover contract: `make contract-check`
 - Regenerate OpenAPI spec from contract: `make spec-generate`
 - Scaffold a new resource: `make scaffold NAME=myresource`
