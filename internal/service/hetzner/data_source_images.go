@@ -1,4 +1,4 @@
-//nolint:dupl // shared hetzner list data source extraction tracked in #11
+//nolint:dupl // hetzner list data sources share token+filter+read pattern; extraction deferred
 package hetzner
 
 import (
