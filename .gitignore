@@ -1,3 +1,5 @@
+.DS_Store
+
 dist/
 bin/
 terraform-provider-coolify

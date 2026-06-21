@@ -876,6 +876,58 @@ resource "coolify_deployment" "test" {
 // TestDeploymentResource_CreateAPIError
 // ---------------------------------------------------------------------------
 
+func TestDeploymentResource_DestroyNoOp(t *testing.T) {
+	t.Parallel()
+	deploymentUUID := "destroy-nop-0001-4000-8000-000000000001"
+	appUUID := "cccc0008-0008-4000-8000-000000000008"
+	var restartCalls atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if !requireRestartApplicationUUID(w, r, appUUID) {
+			return
+		}
+		restartCalls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"deployment_uuid": deploymentUUID,
+			"message":         "Restart request queued.",
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"deployment_uuid": r.PathValue("uuid"),
+			"status":          "queued",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
+		},
+	})
+	if restartCalls.Load() != 1 {
+		t.Fatalf("expected restart only on create, got %d calls", restartCalls.Load())
+	}
+}
+
 func TestDeploymentResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
