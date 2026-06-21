@@ -5,13 +5,9 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -49,11 +45,7 @@ func (d *serverTypesDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Lists all available Hetzner server types for a given cloud provider token.",
 		Attributes: map[string]schema.Attribute{
-			"cloud_provider_token_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner server types.",
-				Required:            true,
-				Validators:          []validator.String{validate.UUID()},
-			},
+			"cloud_provider_token_uuid": cloudProviderTokenUUIDAttribute("server types"),
 			"server_types": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner server types.",
 				Computed:            true,
@@ -76,7 +68,7 @@ func (d *serverTypesDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 }
 
 func (d *serverTypesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	d.client = flex.ConfigureDataSourceClient(req, &resp.Diagnostics)
+	d.client = configureHetznerDataSourceClient(req, resp)
 }
 
 func (d *serverTypesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -86,32 +78,37 @@ func (d *serverTypesDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_hetzner_server_types"})
-
-	serverTypes, err := d.client.ListHetznerServerTypes(ctx, config.CloudProviderTokenUUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error listing Hetzner server types", err.Error())
+	serverTypes, ok := readFilteredTokenList(
+		ctx,
+		config.CloudProviderTokenUUID.ValueString(),
+		config.Filters,
+		"coolify_hetzner_server_types",
+		"Error listing Hetzner server types",
+		resp,
+		d.client,
+		d.client.ListHetznerServerTypes,
+		func(st client.HetznerServerType, field string) (string, bool) {
+			switch field {
+			case "id":
+				return filter.Int64ToString(st.ID), true
+			case "name":
+				return st.Name, true
+			case "description":
+				return st.Description, true
+			case "cores":
+				return filter.Int64ToString(st.Cores), true
+			case "memory":
+				return filter.Int64ToString(st.Memory), true
+			case "disk":
+				return filter.Int64ToString(st.Disk), true
+			default:
+				return "", false
+			}
+		},
+	)
+	if !ok {
 		return
 	}
-
-	serverTypes = filter.Apply(ctx, serverTypes, config.Filters, func(st client.HetznerServerType, field string) (string, bool) {
-		switch field {
-		case "id":
-			return filter.Int64ToString(st.ID), true
-		case "name":
-			return st.Name, true
-		case "description":
-			return st.Description, true
-		case "cores":
-			return filter.Int64ToString(st.Cores), true
-		case "memory":
-			return filter.Int64ToString(st.Memory), true
-		case "disk":
-			return filter.Int64ToString(st.Disk), true
-		default:
-			return "", false
-		}
-	})
 
 	state := serverTypesDataSourceModel{
 		CloudProviderTokenUUID: config.CloudProviderTokenUUID,

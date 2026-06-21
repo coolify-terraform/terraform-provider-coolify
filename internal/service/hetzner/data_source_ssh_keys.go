@@ -1,4 +1,4 @@
-//nolint:dupl // hetzner list data sources share token+filter+read pattern; extraction deferred
+//nolint:dupl // schema and state mapping differ; list/filter logic is in data_source_common.go
 package hetzner
 
 import (
@@ -6,13 +6,9 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -47,11 +43,7 @@ func (d *sshKeysDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Lists all available Hetzner SSH keys for a given cloud provider token.",
 		Attributes: map[string]schema.Attribute{
-			"cloud_provider_token_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner SSH keys.",
-				Required:            true,
-				Validators:          []validator.String{validate.UUID()},
-			},
+			"cloud_provider_token_uuid": cloudProviderTokenUUIDAttribute("SSH keys"),
 			"ssh_keys": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner SSH keys.",
 				Computed:            true,
@@ -71,7 +63,7 @@ func (d *sshKeysDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 }
 
 func (d *sshKeysDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	d.client = flex.ConfigureDataSourceClient(req, &resp.Diagnostics)
+	d.client = configureHetznerDataSourceClient(req, resp)
 }
 
 func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -81,26 +73,31 @@ func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_hetzner_ssh_keys"})
-
-	keys, err := d.client.ListHetznerSSHKeys(ctx, config.CloudProviderTokenUUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error listing Hetzner SSH keys", err.Error())
+	keys, ok := readFilteredTokenList(
+		ctx,
+		config.CloudProviderTokenUUID.ValueString(),
+		config.Filters,
+		"coolify_hetzner_ssh_keys",
+		"Error listing Hetzner SSH keys",
+		resp,
+		d.client,
+		d.client.ListHetznerSSHKeys,
+		func(k client.HetznerSSHKey, field string) (string, bool) {
+			switch field {
+			case "id":
+				return filter.Int64ToString(k.ID), true
+			case "name":
+				return k.Name, true
+			case "fingerprint":
+				return k.Fingerprint, true
+			default:
+				return "", false
+			}
+		},
+	)
+	if !ok {
 		return
 	}
-
-	keys = filter.Apply(ctx, keys, config.Filters, func(k client.HetznerSSHKey, field string) (string, bool) {
-		switch field {
-		case "id":
-			return filter.Int64ToString(k.ID), true
-		case "name":
-			return k.Name, true
-		case "fingerprint":
-			return k.Fingerprint, true
-		default:
-			return "", false
-		}
-	})
 
 	state := sshKeysDataSourceModel{
 		CloudProviderTokenUUID: config.CloudProviderTokenUUID,

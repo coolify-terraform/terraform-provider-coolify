@@ -5,13 +5,9 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -48,11 +44,7 @@ func (d *locationsDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Lists all available Hetzner datacenter locations for a given cloud provider token.",
 		Attributes: map[string]schema.Attribute{
-			"cloud_provider_token_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner locations.",
-				Required:            true,
-				Validators:          []validator.String{validate.UUID()},
-			},
+			"cloud_provider_token_uuid": cloudProviderTokenUUIDAttribute("locations"),
 			"locations": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner locations.",
 				Computed:            true,
@@ -74,7 +66,7 @@ func (d *locationsDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 }
 
 func (d *locationsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	d.client = flex.ConfigureDataSourceClient(req, &resp.Diagnostics)
+	d.client = configureHetznerDataSourceClient(req, resp)
 }
 
 func (d *locationsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -84,30 +76,35 @@ func (d *locationsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_hetzner_locations"})
-
-	locations, err := d.client.ListHetznerLocations(ctx, config.CloudProviderTokenUUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error listing Hetzner locations", err.Error())
+	locations, ok := readFilteredTokenList(
+		ctx,
+		config.CloudProviderTokenUUID.ValueString(),
+		config.Filters,
+		"coolify_hetzner_locations",
+		"Error listing Hetzner locations",
+		resp,
+		d.client,
+		d.client.ListHetznerLocations,
+		func(loc client.HetznerLocation, field string) (string, bool) {
+			switch field {
+			case "id":
+				return filter.Int64ToString(loc.ID), true
+			case "name":
+				return loc.Name, true
+			case "description":
+				return loc.Description, true
+			case "city":
+				return loc.City, true
+			case "country":
+				return loc.Country, true
+			default:
+				return "", false
+			}
+		},
+	)
+	if !ok {
 		return
 	}
-
-	locations = filter.Apply(ctx, locations, config.Filters, func(loc client.HetznerLocation, field string) (string, bool) {
-		switch field {
-		case "id":
-			return filter.Int64ToString(loc.ID), true
-		case "name":
-			return loc.Name, true
-		case "description":
-			return loc.Description, true
-		case "city":
-			return loc.City, true
-		case "country":
-			return loc.Country, true
-		default:
-			return "", false
-		}
-	})
 
 	state := locationsDataSourceModel{
 		CloudProviderTokenUUID: config.CloudProviderTokenUUID,
