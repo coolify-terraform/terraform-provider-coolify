@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"sync/atomic"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -419,6 +420,40 @@ func TestEnvsBulkResource_ImportBadUUID(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestEnvsBulkResource_DestroyNoOp(t *testing.T) {
+	t.Parallel()
+	var patchCalls atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440014/envs/bulk", func(w http.ResponseWriter, _ *http.Request) {
+		patchCalls.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("GET /api/v1/applications/550e8400-e29b-41d4-a716-446655440014/envs", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`[{"uuid":"u-APP_ENV","key":"APP_ENV","value":"production","is_preview":false,"is_buildtime":false}]`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_envs_bulk", "test", `
+					resource_type = "application"
+					resource_uuid = "550e8400-e29b-41d4-a716-446655440014"
+					variables = {
+						APP_ENV = "production"
+					}
+				`),
+			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
+		},
+	})
+	if patchCalls.Load() != 1 {
+		t.Fatalf("expected bulk update only on create, got %d calls", patchCalls.Load())
+	}
 }
 
 // ---------------------------------------------------------------------------

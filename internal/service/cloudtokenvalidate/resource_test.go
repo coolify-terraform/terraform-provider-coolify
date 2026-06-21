@@ -90,3 +90,31 @@ func TestCloudTokenValidateResource_Triggers(t *testing.T) {
 		t.Errorf("expected at least 2 validation calls, got %d", callCount.Load())
 	}
 }
+
+func TestCloudTokenValidateResource_DestroyNoOp(t *testing.T) {
+	t.Parallel()
+	var validateCalls atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/cloud-tokens/550e8400-e29b-41d4-a716-446655440033/validate", func(w http.ResponseWriter, _ *http.Request) {
+		validateCalls.Add(1)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"OK"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_cloud_token_validate", "test", `
+					cloud_token_uuid = "550e8400-e29b-41d4-a716-446655440033"
+				`),
+			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
+		},
+	})
+	if validateCalls.Load() != 1 {
+		t.Fatalf("expected validation only on create, got %d calls", validateCalls.Load())
+	}
+}
