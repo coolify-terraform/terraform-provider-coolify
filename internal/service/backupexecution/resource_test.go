@@ -58,26 +58,20 @@ func TestBackupExecutionResource_DeleteNotFound(t *testing.T) {
 					execution_uuid = "550e8400-e29b-41d4-a716-446655440012"
 				`),
 			},
-			{
-				Config:             acctest.ProviderBlockForURL(srv.URL),
-				ExpectNonEmptyPlan: false,
-			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
 		},
 	})
 }
 
 func TestBackupExecutionResource_DeleteError(t *testing.T) {
 	t.Parallel()
-	var failDelete atomic.Bool
-	var deleteCalls atomic.Int32
+	var gate acctest.DeleteOnceFailGate
 	mux := http.NewServeMux()
-	mux.HandleFunc("DELETE /api/v1/databases/550e8400-e29b-41d4-a716-446655440013/backups/550e8400-e29b-41d4-a716-446655440014/executions/550e8400-e29b-41d4-a716-446655440015", func(w http.ResponseWriter, _ *http.Request) {
-		if failDelete.Load() && deleteCalls.Add(1) == 1 {
-			http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	})
+	mux.HandleFunc("DELETE /api/v1/databases/550e8400-e29b-41d4-a716-446655440013/backups/550e8400-e29b-41d4-a716-446655440014/executions/550e8400-e29b-41d4-a716-446655440015", gate.Wrap(
+		http.StatusOK,
+		http.StatusInternalServerError,
+		`{"message":"internal server error"}`,
+	))
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
@@ -91,13 +85,7 @@ func TestBackupExecutionResource_DeleteError(t *testing.T) {
 					execution_uuid = "550e8400-e29b-41d4-a716-446655440015"
 				`),
 			},
-			{
-				PreConfig: func() {
-					failDelete.Store(true)
-				},
-				Config:      acctest.ProviderBlockForURL(srv.URL),
-				ExpectError: regexp.MustCompile(`Error deleting backup execution`),
-			},
+			acctest.DestroyExpectErrorStep(srv.URL, regexp.MustCompile(`Error deleting backup execution`), &gate),
 		},
 	})
 }

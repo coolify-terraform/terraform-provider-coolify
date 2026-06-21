@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -141,6 +142,44 @@ data "%s" "%s" {
   %s
 }
 `, ProviderBlockForURL(endpoint), dataSourceType, dataSourceName, attrs)
+}
+
+// DeleteOnceFailGate fails the first DELETE request when armed, then succeeds on
+// later calls so post-test destroy cleanup does not false-fail ExpectError steps.
+type DeleteOnceFailGate struct {
+	Armed atomic.Bool
+	Calls atomic.Int32
+}
+
+// Wrap returns a DELETE handler that responds with failStatus/failBody on the
+// first call while armed, and okStatus on subsequent calls.
+func (g *DeleteOnceFailGate) Wrap(okStatus, failStatus int, failBody string) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		if g.Armed.Load() && g.Calls.Add(1) == 1 {
+			http.Error(w, failBody, failStatus)
+			return
+		}
+		w.WriteHeader(okStatus)
+	}
+}
+
+// DestroyRemoveResourceStep removes all resources from config, triggering destroy.
+func DestroyRemoveResourceStep(serverURL string) resource.TestStep {
+	return resource.TestStep{
+		Config:             ProviderBlockForURL(serverURL),
+		ExpectNonEmptyPlan: false,
+	}
+}
+
+// DestroyExpectErrorStep expects destroy to fail after arming the delete gate.
+func DestroyExpectErrorStep(serverURL string, expectError *regexp.Regexp, gate *DeleteOnceFailGate) resource.TestStep {
+	return resource.TestStep{
+		PreConfig: func() {
+			gate.Armed.Store(true)
+		},
+		Config:      ProviderBlockForURL(serverURL),
+		ExpectError: expectError,
+	}
 }
 
 // CheckResourceDisappears returns a TestCheckFunc that deletes a resource

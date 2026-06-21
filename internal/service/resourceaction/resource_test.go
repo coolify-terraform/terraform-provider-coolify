@@ -12,6 +12,43 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
+func TestResourceActionResource_DestroyNoOp(t *testing.T) {
+	t.Parallel()
+	dbUUID := "aaaa0005-0005-4000-8000-000000000005"
+	var actionCalls atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != dbUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		actionCalls.Add(1)
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"message":"Database starting request queued."}`)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_resource_action", "test", fmt.Sprintf(`
+					resource_uuid = %q
+					resource_type = "database"
+					action        = "start"
+				`, dbUUID)),
+			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
+		},
+	})
+	if actionCalls.Load() != 1 {
+		t.Fatalf("expected action only on create, got %d calls", actionCalls.Load())
+	}
+}
+
 func TestResourceActionResource_StartDatabase(t *testing.T) {
 	t.Parallel()
 	dbUUID := "aaaa0001-0001-4000-8000-000000000001"

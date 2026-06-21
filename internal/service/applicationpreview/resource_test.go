@@ -82,26 +82,20 @@ func TestApplicationPreviewResource_DeleteNotFound(t *testing.T) {
 					pull_request_id  = 7
 				`),
 			},
-			{
-				Config:             acctest.ProviderBlockForURL(srv.URL),
-				ExpectNonEmptyPlan: false,
-			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
 		},
 	})
 }
 
 func TestApplicationPreviewResource_DeleteError(t *testing.T) {
 	t.Parallel()
-	var failDelete atomic.Bool
-	var deleteCalls atomic.Int32
+	var gate acctest.DeleteOnceFailGate
 	mux := http.NewServeMux()
-	mux.HandleFunc("DELETE /api/v1/applications/550e8400-e29b-41d4-a716-446655440043/previews/8", func(w http.ResponseWriter, _ *http.Request) {
-		if failDelete.Load() && deleteCalls.Add(1) == 1 {
-			http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	})
+	mux.HandleFunc("DELETE /api/v1/applications/550e8400-e29b-41d4-a716-446655440043/previews/8", gate.Wrap(
+		http.StatusOK,
+		http.StatusInternalServerError,
+		`{"message":"internal server error"}`,
+	))
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
@@ -114,13 +108,7 @@ func TestApplicationPreviewResource_DeleteError(t *testing.T) {
 					pull_request_id  = 8
 				`),
 			},
-			{
-				PreConfig: func() {
-					failDelete.Store(true)
-				},
-				Config:      acctest.ProviderBlockForURL(srv.URL),
-				ExpectError: regexp.MustCompile(`Error deleting preview deployment`),
-			},
+			acctest.DestroyExpectErrorStep(srv.URL, regexp.MustCompile(`Error deleting preview deployment`), &gate),
 		},
 	})
 }
