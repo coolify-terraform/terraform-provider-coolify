@@ -222,6 +222,45 @@ func TestAPISettingsResource_BothSettings(t *testing.T) {
 // TestAPISettingsResource_CreateAPIError
 // ---------------------------------------------------------------------------
 
+func TestAPISettingsResource_DestroyRestoreWarning(t *testing.T) {
+	t.Parallel()
+	var enableCalls atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
+		if enableCalls.Add(1) == 1 {
+			http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"API enabled."}`))
+	})
+	mux.HandleFunc("GET /api/v1/disable", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"API disabled."}`))
+	})
+	mux.HandleFunc("POST /api/v1/mcp/disable", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"message":"MCP server disabled."}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+					enabled = false
+				`),
+			},
+			acctest.DestroyRemoveResourceStep(srv.URL),
+		},
+	})
+	if enableCalls.Load() < 1 {
+		t.Fatalf("expected enable API call on destroy restore, got %d", enableCalls.Load())
+	}
+}
+
 func TestAPISettingsResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()

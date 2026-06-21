@@ -1,4 +1,4 @@
-//nolint:dupl // shared hetzner list data source extraction tracked in #11
+//nolint:dupl // schema and state mapping differ; list/filter logic is in data_source_common.go
 package hetzner
 
 import (
@@ -6,13 +6,9 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -47,11 +43,7 @@ func (d *imagesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Lists all available Hetzner cloud images for a given cloud provider token.",
 		Attributes: map[string]schema.Attribute{
-			"cloud_provider_token_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the cloud provider token to use for listing Hetzner images.",
-				Required:            true,
-				Validators:          []validator.String{validate.UUID()},
-			},
+			"cloud_provider_token_uuid": cloudProviderTokenUUIDAttribute("images"),
 			"images": schema.ListNestedAttribute{
 				MarkdownDescription: "The list of Hetzner images.",
 				Computed:            true,
@@ -71,7 +63,7 @@ func (d *imagesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 }
 
 func (d *imagesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	d.client = flex.ConfigureDataSourceClient(req, &resp.Diagnostics)
+	d.client = configureHetznerDataSourceClient(req, resp)
 }
 
 func (d *imagesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -81,26 +73,31 @@ func (d *imagesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_hetzner_images"})
-
-	images, err := d.client.ListHetznerImages(ctx, config.CloudProviderTokenUUID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error listing Hetzner images", err.Error())
+	images, ok := readFilteredTokenList(
+		ctx,
+		config.CloudProviderTokenUUID.ValueString(),
+		config.Filters,
+		"coolify_hetzner_images",
+		"Error listing Hetzner images",
+		resp,
+		d.client,
+		d.client.ListHetznerImages,
+		func(img client.HetznerImage, field string) (string, bool) {
+			switch field {
+			case "id":
+				return filter.Int64ToString(img.ID), true
+			case "name":
+				return img.Name, true
+			case "description":
+				return img.Description, true
+			default:
+				return "", false
+			}
+		},
+	)
+	if !ok {
 		return
 	}
-
-	images = filter.Apply(ctx, images, config.Filters, func(img client.HetznerImage, field string) (string, bool) {
-		switch field {
-		case "id":
-			return filter.Int64ToString(img.ID), true
-		case "name":
-			return img.Name, true
-		case "description":
-			return img.Description, true
-		default:
-			return "", false
-		}
-	})
 
 	state := imagesDataSourceModel{
 		CloudProviderTokenUUID: config.CloudProviderTokenUUID,
