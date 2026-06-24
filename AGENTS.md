@@ -89,6 +89,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - API coverage doc: `make api-coverage`
 - Extract contract from Coolify source: `make contract-extract VERSION=v4.1.2`
 - Verify client structs cover contract: `make contract-check`
+- Cross-version endpoint field compatibility: `make contract-compat`
 - Regenerate OpenAPI spec from contract: `make spec-generate`
 - Scaffold a new resource: `make scaffold NAME=myresource`
 - Merge a PR (sole maintainer): `make merge PR=123`
@@ -149,6 +150,30 @@ Coolify controller source. If `GET` does not include the field in its response
 builder, it falls into one of these patterns. Use the matching schema
 configuration and flatten handling to avoid "inconsistent result after apply"
 errors and import failures.
+
+#### Version-aware field additions
+
+Not all Coolify API versions accept the same fields. Before adding a new field
+to the provider schema, check the endpoint's `$allowedFields` across all
+supported contract versions (`testdata/contracts/coolify-v4.*.json`):
+
+```bash
+make contract-compat
+```
+
+If a field is not in `$allowedFields` for all supported versions:
+
+1. **Never use `Default`** for that field. `Default` creates a diff after import
+   on older Coolify versions (state is null, Default fills the plan, update sends
+   the field, API rejects with 422). Use `UseStateForUnknown()` instead.
+2. **Document the minimum Coolify version** in the attribute's
+   `MarkdownDescription` (e.g., `"Requires Coolify >= v4.1.2."`).
+3. **The `*IfChanged` helpers protect normal updates** (`flex.BoolIfChanged`,
+   `flex.Int64IfChanged`): if the user doesn't change the value, it won't be
+   sent. The risk is only on import (null state) and on create's post-create PATCH.
+
+This rule was added after issue #549, where health_check fields used `Default`
+values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 
 ### Client
 
