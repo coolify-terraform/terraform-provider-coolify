@@ -33,7 +33,7 @@ func WithVersionEndpoint(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/version" {
 			w.Header().Set("Content-Type", "text/html")
-			_, _ = w.Write([]byte(`v4.0.0-test`))
+			_, _ = w.Write([]byte(`v4.1.0-test`))
 			return
 		}
 		next.ServeHTTP(w, r)

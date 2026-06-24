@@ -54,7 +54,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-const minCoolifyVersion = "4.0.0"
+const minCoolifyVersion = "4.1.0"
 
 var _ provider.Provider = (*coolifyProvider)(nil)
 

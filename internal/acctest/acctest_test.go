@@ -15,7 +15,7 @@ func TestAccTestServerUUID_UsesVisibleOverride(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"version": "v4.0.0-test"})
+		json.NewEncoder(w).Encode(map[string]string{"version": "v4.1.0-test"})
 	})
 	mux.HandleFunc("GET /api/v1/servers", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -43,7 +43,7 @@ func TestAccTestServerUUID_FallsBackToFirstVisibleServer(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"version": "v4.0.0-test"})
+		json.NewEncoder(w).Encode(map[string]string{"version": "v4.1.0-test"})
 	})
 	mux.HandleFunc("GET /api/v1/servers", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -72,7 +72,7 @@ func TestAccTestServerUUID_SkipsWhenOverrideIsNotVisible(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"version": "v4.0.0-test"})
+		json.NewEncoder(w).Encode(map[string]string{"version": "v4.1.0-test"})
 	})
 	mux.HandleFunc("GET /api/v1/servers", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
