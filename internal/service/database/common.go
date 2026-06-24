@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -153,11 +154,11 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
 		"is_log_drain_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, sends container logs to the configured log drain. Defaults to `false`.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"is_include_timestamps":     IsIncludeTimestampsAttr(),
-		"health_check_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, enables the Docker health check probe for this database container. Defaults to `true`.", Optional: true, Computed: true, Default: booldefault.StaticBool(true)},
-		"health_check_interval":     schema.Int64Attribute{MarkdownDescription: "Health check interval in seconds. Minimum `1`. Defaults to `15`.", Optional: true, Computed: true, Default: int64default.StaticInt64(15), Validators: []validator.Int64{int64validator.AtLeast(1)}},
-		"health_check_timeout":      schema.Int64Attribute{MarkdownDescription: "Health check timeout in seconds. Minimum `1`. Defaults to `5`.", Optional: true, Computed: true, Default: int64default.StaticInt64(5), Validators: []validator.Int64{int64validator.AtLeast(1)}},
-		"health_check_retries":      schema.Int64Attribute{MarkdownDescription: "Number of consecutive health check failures before the container is considered unhealthy. Minimum `1`. Defaults to `5`.", Optional: true, Computed: true, Default: int64default.StaticInt64(5), Validators: []validator.Int64{int64validator.AtLeast(1)}},
-		"health_check_start_period": schema.Int64Attribute{MarkdownDescription: "Grace period in seconds before health checks start counting failures after container start. Minimum `0`. Defaults to `5`.", Optional: true, Computed: true, Default: int64default.StaticInt64(5), Validators: []validator.Int64{int64validator.AtLeast(0)}},
+		"health_check_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, enables the Docker health check probe for this database container. Defaults to `true`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()}},
+		"health_check_interval":     schema.Int64Attribute{MarkdownDescription: "Health check interval in seconds. Minimum `1`. Defaults to `15`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{int64validator.AtLeast(1)}},
+		"health_check_timeout":      schema.Int64Attribute{MarkdownDescription: "Health check timeout in seconds. Minimum `1`. Defaults to `5`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{int64validator.AtLeast(1)}},
+		"health_check_retries":      schema.Int64Attribute{MarkdownDescription: "Number of consecutive health check failures before the container is considered unhealthy. Minimum `1`. Defaults to `5`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{int64validator.AtLeast(1)}},
+		"health_check_start_period": schema.Int64Attribute{MarkdownDescription: "Grace period in seconds before health checks start counting failures after container start. Minimum `0`. Defaults to `5`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{int64validator.AtLeast(0)}},
 		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g., `running`, `exited`).", Computed: true},
 		"internal_db_url":           schema.StringAttribute{MarkdownDescription: "Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.", Computed: true, Sensitive: true},
 		"instant_deploy":            schema.BoolAttribute{MarkdownDescription: "Whether to immediately deploy the database after creation. When `true`, Coolify starts the database container right away. When `false` (default), the database is created but not started.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},

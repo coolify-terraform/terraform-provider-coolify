@@ -13037,6 +13037,10 @@
                         "nullable": true,
                         "description": "Manual webhook secret for GitLab."
                     },
+                    "max_restart_count": {
+                        "type": "string",
+                        "description": "Max restart count."
+                    },
                     "name": {
                         "type": "string",
                         "description": "The application name."
@@ -14167,6 +14171,26 @@
                         "description": "Environment id.",
                         "nullable": true
                     },
+                    "health_check_enabled": {
+                        "type": "string",
+                        "description": "Health check enabled."
+                    },
+                    "health_check_interval": {
+                        "type": "string",
+                        "description": "Health check interval."
+                    },
+                    "health_check_retries": {
+                        "type": "string",
+                        "description": "Health check retries."
+                    },
+                    "health_check_start_period": {
+                        "type": "string",
+                        "description": "Health check start period."
+                    },
+                    "health_check_timeout": {
+                        "type": "string",
+                        "description": "Health check timeout."
+                    },
                     "image": {
                         "type": "string",
                         "description": "Image.",
@@ -14372,6 +14396,26 @@
                         "description": "Environment id.",
                         "nullable": true
                     },
+                    "health_check_enabled": {
+                        "type": "string",
+                        "description": "Health check enabled."
+                    },
+                    "health_check_interval": {
+                        "type": "string",
+                        "description": "Health check interval."
+                    },
+                    "health_check_retries": {
+                        "type": "string",
+                        "description": "Health check retries."
+                    },
+                    "health_check_start_period": {
+                        "type": "string",
+                        "description": "Health check start period."
+                    },
+                    "health_check_timeout": {
+                        "type": "string",
+                        "description": "Health check timeout."
+                    },
                     "image": {
                         "type": "string",
                         "description": "Image.",
@@ -14563,6 +14607,26 @@
                         "description": "Environment id.",
                         "nullable": true
                     },
+                    "health_check_enabled": {
+                        "type": "string",
+                        "description": "Health check enabled."
+                    },
+                    "health_check_interval": {
+                        "type": "string",
+                        "description": "Health check interval."
+                    },
+                    "health_check_retries": {
+                        "type": "string",
+                        "description": "Health check retries."
+                    },
+                    "health_check_start_period": {
+                        "type": "string",
+                        "description": "Health check start period."
+                    },
+                    "health_check_timeout": {
+                        "type": "string",
+                        "description": "Health check timeout."
+                    },
                     "image": {
                         "type": "string",
                         "description": "Image.",
@@ -14737,6 +14801,26 @@
                         "type": "integer",
                         "description": "Environment id.",
                         "nullable": true
+                    },
+                    "health_check_enabled": {
+                        "type": "string",
+                        "description": "Health check enabled."
+                    },
+                    "health_check_interval": {
+                        "type": "string",
+                        "description": "Health check interval."
+                    },
+                    "health_check_retries": {
+                        "type": "string",
+                        "description": "Health check retries."
+                    },
+                    "health_check_start_period": {
+                        "type": "string",
+                        "description": "Health check start period."
+                    },
+                    "health_check_timeout": {
+                        "type": "string",
+                        "description": "Health check timeout."
                     },
                     "image": {
                         "type": "string",
@@ -14923,6 +15007,26 @@
                         "description": "Environment id.",
                         "nullable": true
                     },
+                    "health_check_enabled": {
+                        "type": "string",
+                        "description": "Health check enabled."
+                    },
+                    "health_check_interval": {
+                        "type": "string",
+                        "description": "Health check interval."
+                    },
+                    "health_check_retries": {
+                        "type": "string",
+                        "description": "Health check retries."
+                    },
+                    "health_check_start_period": {
+                        "type": "string",
+                        "description": "Health check start period."
+                    },
+                    "health_check_timeout": {
+                        "type": "string",
+                        "description": "Health check timeout."
+                    },
                     "image": {
                         "type": "string",
                         "description": "Image.",
@@ -15094,6 +15198,26 @@
                         "description": "Environment id.",
                         "nullable": true
                     },
+                    "health_check_enabled": {
+                        "type": "string",
+                        "description": "Health check enabled."
+                    },
+                    "health_check_interval": {
+                        "type": "string",
+                        "description": "Health check interval."
+                    },
+                    "health_check_retries": {
+                        "type": "string",
+                        "description": "Health check retries."
+                    },
+                    "health_check_start_period": {
+                        "type": "string",
+                        "description": "Health check start period."
+                    },
+                    "health_check_timeout": {
+                        "type": "string",
+                        "description": "Health check timeout."
+                    },
                     "image": {
                         "type": "string",
                         "description": "Image.",
@@ -15248,6 +15372,26 @@
                         "type": "integer",
                         "description": "Environment id.",
                         "nullable": true
+                    },
+                    "health_check_enabled": {
+                        "type": "string",
+                        "description": "Health check enabled."
+                    },
+                    "health_check_interval": {
+                        "type": "string",
+                        "description": "Health check interval."
+                    },
+                    "health_check_retries": {
+                        "type": "string",
+                        "description": "Health check retries."
+                    },
+                    "health_check_start_period": {
+                        "type": "string",
+                        "description": "Health check start period."
+                    },
+                    "health_check_timeout": {
+                        "type": "string",
+                        "description": "Health check timeout."
                     },
                     "image": {
                         "type": "string",
@@ -15416,6 +15560,26 @@
                         "type": "integer",
                         "description": "Environment id.",
                         "nullable": true
+                    },
+                    "health_check_enabled": {
+                        "type": "string",
+                        "description": "Health check enabled."
+                    },
+                    "health_check_interval": {
+                        "type": "string",
+                        "description": "Health check interval."
+                    },
+                    "health_check_retries": {
+                        "type": "string",
+                        "description": "Health check retries."
+                    },
+                    "health_check_start_period": {
+                        "type": "string",
+                        "description": "Health check start period."
+                    },
+                    "health_check_timeout": {
+                        "type": "string",
+                        "description": "Health check timeout."
                     },
                     "image": {
                         "type": "string",

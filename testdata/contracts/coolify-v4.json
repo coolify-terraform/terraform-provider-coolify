@@ -1,7 +1,7 @@
 {
   "version": "v4.1.2",
   "extracted_from": "coollabsio/coolify@v4.1.2",
-  "extracted_at": "2026-06-13T12:09:07.303515+00:00",
+  "extracted_at": "2026-06-24T19:56:41.169662+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -6805,7 +6805,12 @@
         "mysql_password",
         "mysql_user",
         "mysql_database",
-        "mysql_conf"
+        "mysql_conf",
+        "health_check_enabled",
+        "health_check_interval",
+        "health_check_timeout",
+        "health_check_retries",
+        "health_check_start_period"
       ]
     },
     "DatabasesController::create_database": {
