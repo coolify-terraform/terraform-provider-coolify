@@ -29,7 +29,7 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 |---|---|
 | Managed resources | 33 |
 | Data sources | 44 |
-| Tests | 950+ unit and acceptance tests |
+| Tests | 960+ unit and acceptance tests |
 | Scenario examples | 16 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
