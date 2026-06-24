@@ -92,6 +92,31 @@ resource "coolify_database_clickhouse" "test" {
 					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_include_timestamps", "true"),
 				),
 			},
+			// Update health check fields to non-default values
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_clickhouse" "test" {
+  project_uuid            = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid             = "bbbb0001-0001-4000-8000-000000000001"
+  name                    = "updated-ch"
+  description             = "Updated ClickHouse"
+  is_log_drain_enabled    = true
+  is_include_timestamps   = true
+  health_check_enabled    = false
+  health_check_interval   = 30
+  health_check_timeout    = 10
+  health_check_retries    = 3
+  health_check_start_period = 15
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "health_check_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "health_check_interval", "30"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "health_check_timeout", "10"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "health_check_retries", "3"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "health_check_start_period", "15"),
+				),
+			},
 			// Import
 			{
 				ResourceName:      "coolify_database_clickhouse.test",
