@@ -85,6 +85,9 @@ contract-extract: check-python3 ## Extract contract from Coolify source (usage: 
 contract-check: ## Verify client structs cover all contract fields
 	go test -race -count=1 -run 'TestContractCoverage' ./internal/spectest/ -v
 
+contract-compat: check-python3 ## Check endpoint field compatibility across Coolify versions
+	python3 scripts/check-contract-compat.py --ci
+
 contract-matrix: check-python3 ## Generate API contract accuracy matrix page
 	python3 scripts/generate-contract-matrix.py
 
@@ -103,7 +106,7 @@ test-import-gen: ## Test terraform plan -generate-config-out compatibility (need
 scaffold: ## Scaffold a new resource (usage: make scaffold NAME=webhook)
 	@./scripts/new-resource.sh $(NAME)
 
-ci: build lint test validate actionlint-check python-test docs-check api-coverage-check counts-check vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
+ci: build lint test validate actionlint-check python-test docs-check api-coverage-check counts-check contract-compat vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
 
 modverify: ## Verify module cache integrity against go.sum
 	go mod verify
@@ -222,4 +225,4 @@ merge: ## Merge a PR as sole maintainer (usage: make merge PR=123)
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc acc-bootstrap acc-preflight check-pkg test-pkg testacc-pkg lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-python3 check-actionlint-version check-tfplugindocs actionlint-check goreleaser-check modverify ci scaffold test-import-gen tools merge help
+.PHONY: build test testacc acc-bootstrap acc-preflight check-pkg test-pkg testacc-pkg lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-compat contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-python3 check-actionlint-version check-tfplugindocs actionlint-check goreleaser-check modverify ci scaffold test-import-gen tools merge help

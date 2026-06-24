@@ -409,7 +409,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			// Version endpoint.
 			mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "text/html")
-				w.Write([]byte("v4.0.0"))
+				w.Write([]byte("v4.1.0"))
 			})
 
 			srv := httptest.NewServer(withSpecValidation(t, "coolify-v4", mux, false, v))

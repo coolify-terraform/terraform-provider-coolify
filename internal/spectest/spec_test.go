@@ -28,7 +28,7 @@ func TestValidatingHandler_ProjectCreate(t *testing.T) {
 	})
 	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(`v4.0.0`))
+		w.Write([]byte(`v4.1.0`))
 	})
 
 	srv := httptest.NewServer(WithSpecValidation(t, "coolify-v4", mux))

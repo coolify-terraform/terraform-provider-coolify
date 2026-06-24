@@ -348,6 +348,22 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
         method_matches = re.findall(r"function\s+(\w+)\s*\(", preceding)
         method = method_matches[-1] if method_matches else "unknown"
         result[method] = fields
+
+    # Second pass: pick up array_merge($allowedFields, [...]) calls that
+    # append additional fields within the same method.
+    merge_pattern = re.compile(
+        r"\$allowedFields\s*=\s*array_merge\s*\(\s*\$allowedFields\s*,\s*\[(.*?)\]\s*\)\s*;",
+        re.DOTALL,
+    )
+    for match in merge_pattern.finditer(content):
+        extra = re.findall(r"'([^']+)'", match.group(1))
+        preceding = content[:match.start()]
+        method_matches = re.findall(r"function\s+(\w+)\s*\(", preceding)
+        method = method_matches[-1] if method_matches else "unknown"
+        if method in result:
+            result[method].extend(extra)
+        else:
+            result[method] = extra
     return result
 
 

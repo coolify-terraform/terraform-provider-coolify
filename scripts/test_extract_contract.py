@@ -497,6 +497,32 @@ class FooController {
         self.assertEqual(result["store"], ["a"])
         self.assertEqual(result["update"], ["b", "c"])
 
+    def test_array_merge(self):
+        php = """<?php
+class FooController {
+    public function update(Request $r) {
+        $allowedFields = ['name', 'description'];
+        $allowedFields = array_merge($allowedFields, ['health_check_enabled', 'health_check_interval']);
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(
+            result["update"],
+            ["name", "description", "health_check_enabled", "health_check_interval"],
+        )
+
+    def test_array_merge_without_base_assignment(self):
+        php = """<?php
+class FooController {
+    public function update(Request $r) {
+        $allowedFields = array_merge($allowedFields, ['extra_field']);
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(result["update"], ["extra_field"])
+
 
 # ── _clean_rule ─────────────────────────────────────────────────────
 

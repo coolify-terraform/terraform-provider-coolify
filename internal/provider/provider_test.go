@@ -142,7 +142,7 @@ func TestProvider_EnvVarPrecedence(t *testing.T) {
 	// The provider block endpoint (mock server) overrides the env var.
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("v4.0.0"))
+		_, _ = w.Write([]byte("v4.1.0"))
 	})
 	mux.HandleFunc("GET /api/v1/teams/0", func(w http.ResponseWriter, r *http.Request) {
 		// Verify the config-block token overrides the env var.
@@ -194,7 +194,7 @@ func TestProvider_CloudflareAccessHeaders(t *testing.T) {
 			http.Error(w, "missing CF headers", http.StatusForbidden)
 			return
 		}
-		_, _ = w.Write([]byte("v4.0.0"))
+		_, _ = w.Write([]byte("v4.1.0"))
 	})
 	mux.HandleFunc("GET /api/v1/teams/0", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -348,7 +348,7 @@ func TestProvider_EnvVarFallback(t *testing.T) {
 	// Configure everything via env vars only (no provider block attributes).
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("v4.0.0"))
+		_, _ = w.Write([]byte("v4.1.0"))
 	})
 	mux.HandleFunc("GET /api/v1/teams/0", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

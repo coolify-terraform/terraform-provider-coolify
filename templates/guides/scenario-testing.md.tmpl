@@ -177,7 +177,7 @@ Verify it works:
 
 ```bash
 curl -s http://localhost:8000/api/v1/version -H "Authorization: Bearer $COOLIFY_TOKEN"
-# Should print: 4.0.0
+# Should print a version >= 4.1.0
 ```
 
 ## Step 4: Register a Server
