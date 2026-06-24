@@ -16,6 +16,118 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
+func TestKeydbDatabaseResource_CreateUpdateImport(t *testing.T) {
+	t.Parallel()
+	srv, _ := dbtest.NewMockServer("keydb", "keydb-test-db", "eqalpha/keydb:latest", nil)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_keydb", "/api/v1/databases/"),
+		Steps: []resource.TestStep{
+			// Create
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_keydb" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "uuid", "aaaa0001-0001-4000-8000-000000000001"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "name", "keydb-test-db"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "image", "eqalpha/keydb:latest"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_public", "false"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_log_drain_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_include_timestamps", "false"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "enable_ssl", "false"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "status", "running"),
+				),
+			},
+			// Plan idempotency
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_keydb" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			// Update
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_keydb" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  name         = "updated-keydb"
+  description  = "Updated KeyDB"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "name", "updated-keydb"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "description", "Updated KeyDB"),
+				),
+			},
+			// Update SSL and log drain fields
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_keydb" "test" {
+  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
+  name                  = "updated-keydb"
+  description           = "Updated KeyDB"
+  enable_ssl            = true
+  is_log_drain_enabled  = true
+  is_include_timestamps = true
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "enable_ssl", "true"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_log_drain_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "is_include_timestamps", "true"),
+				),
+			},
+			// Update health check fields to non-default values
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_keydb" "test" {
+  project_uuid            = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid             = "bbbb0001-0001-4000-8000-000000000001"
+  name                    = "updated-keydb"
+  description             = "Updated KeyDB"
+  enable_ssl              = true
+  is_log_drain_enabled    = true
+  is_include_timestamps   = true
+  health_check_enabled    = false
+  health_check_interval   = 30
+  health_check_timeout    = 10
+  health_check_retries    = 3
+  health_check_start_period = 15
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "health_check_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "health_check_interval", "30"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "health_check_timeout", "10"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "health_check_retries", "3"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "health_check_start_period", "15"),
+				),
+			},
+			// Import
+			{
+				ResourceName:      "coolify_database_keydb.test",
+				ImportState:       true,
+				ImportStateId:     "aaaa0001-0001-4000-8000-000000000001",
+				ImportStateVerify: true, ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateVerifyIgnore: []string{"keydb_password"},
+			},
+		},
+	})
+}
+
 func TestKeydbDatabaseResource_Create(t *testing.T) {
 	t.Parallel()
 	srv, _ := dbtest.NewMockServer("keydb", "keydb-test-db", "eqalpha/keydb:latest", nil)
