@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.5...v0.1.6) (2026-06-24)
+
+
+### Features
+
+* auto-update social preview image and repo description with live stats ([#531](https://github.com/coolify-terraform/terraform-provider-coolify/issues/531)) ([4fc0484](https://github.com/coolify-terraform/terraform-provider-coolify/commit/4fc0484e1172294ccfb30fb7114d5158f58a893a)), closes [#530](https://github.com/coolify-terraform/terraform-provider-coolify/issues/530)
+
+
+### Bug Fixes
+
+* address AI code quality findings ([#537](https://github.com/coolify-terraform/terraform-provider-coolify/issues/537)) ([7d8d5c1](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7d8d5c1a83c8466153168e26a36fd98c3a2c9ba5))
+* database health_check 422 on Coolify &lt; v4.1.2, bump min version to 4.1.0 ([#550](https://github.com/coolify-terraform/terraform-provider-coolify/issues/550)) ([01c1e57](https://github.com/coolify-terraform/terraform-provider-coolify/commit/01c1e5726dad39fba1b5d7e96628bd5317c24046))
+* document RELEASE_NOTES.md must be on main, not release branch ([#527](https://github.com/coolify-terraform/terraform-provider-coolify/issues/527)) ([3e39513](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3e395131bdacaa650009f0fa356fe524d1dca759)), closes [#526](https://github.com/coolify-terraform/terraform-provider-coolify/issues/526)
+* release notes cleanup respects branch protection ([#529](https://github.com/coolify-terraform/terraform-provider-coolify/issues/529)) ([55b897d](https://github.com/coolify-terraform/terraform-provider-coolify/commit/55b897d97bbb564597065e67efa05334dbc33495)), closes [#526](https://github.com/coolify-terraform/terraform-provider-coolify/issues/526)
+* trigger social preview update on release, add upload script ([#533](https://github.com/coolify-terraform/terraform-provider-coolify/issues/533)) ([8c2ea20](https://github.com/coolify-terraform/terraform-provider-coolify/commit/8c2ea2015df35504ebd8d601725041059c104d84)), closes [#530](https://github.com/coolify-terraform/terraform-provider-coolify/issues/530)
+
 ## [0.1.5](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.4...v0.1.5) (2026-06-13)
 
 
