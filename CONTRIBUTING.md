@@ -72,10 +72,12 @@ From [GNUmakefile](GNUmakefile), `make ci` runs these local targets:
 - `lint`
 - `test`
 - `validate`
+- `actionlint-check`
 - `python-test`
 - `docs-check`
 - `api-coverage-check`
 - `counts-check`
+- `contract-compat`
 - `vulncheck`
 - `goreleaser-check`
 - `modverify`

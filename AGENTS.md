@@ -215,7 +215,7 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 - Framework: `hashicorp/terraform-plugin-testing` with `httptest` mock servers
 - 960+ tests (unit + acceptance)
 - Acceptance tests are skipped unless `TF_ACC=1` is set
-- Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, python-test, docs-check, api-coverage-check, counts-check, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
+- Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, actionlint-check, python-test, docs-check, api-coverage-check, counts-check, contract-compat, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
 - Before adding a test function, grep for its name to avoid duplicates
 - **Test counts use floor rounding**: `counts-check` rounds down to the nearest 10 (e.g., 857 tests -> "850+"). When updating test counts in AGENTS.md or README.md, use the floor value, not the exact count. Setting "855+" when the actual count is 857 will fail `make ci` because 855 > floor(857/10)*10 = 850.
 
