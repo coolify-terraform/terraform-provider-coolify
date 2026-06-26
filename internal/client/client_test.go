@@ -2520,6 +2520,77 @@ func TestClient_GetGitHubApp_EmptyList(t *testing.T) {
 	assert.True(t, IsNotFound(err))
 }
 
+// --- GetGitHubAppByAppID ---
+
+func TestClient_GetGitHubAppByAppID_Found(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{
+			{ID: 10, Name: "other-app", AppID: 111},
+			{ID: 20, Name: "target-app", AppID: 222},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.GetGitHubAppByAppID(context.Background(), 222)
+	require.NoError(t, err)
+	assert.Equal(t, int64(20), app.ID)
+	assert.Equal(t, int64(222), app.AppID)
+	assert.Equal(t, "target-app", app.Name)
+}
+
+func TestClient_GetGitHubAppByAppID_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{
+			{ID: 10, Name: "other-app", AppID: 111},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetGitHubAppByAppID(context.Background(), 999)
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+	assert.Contains(t, err.Error(), "999")
+}
+
+func TestClient_GetGitHubAppByAppID_SkipsBuiltInRecord(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// The built-in "Public GitHub" system record has ID=0 and AppID=0.
+		json.NewEncoder(w).Encode([]GitHubApp{
+			{ID: 0, Name: "Public GitHub", AppID: 0},
+			{ID: 5, Name: "real-app", AppID: 333},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	// Searching for AppID 0 should not match the built-in record (ID=0 is skipped).
+	_, err := c.GetGitHubAppByAppID(context.Background(), 0)
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_GetGitHubAppByAppID_EmptyList(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitHubApp{})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetGitHubAppByAppID(context.Background(), 42)
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
 // --- PollUntilDeleted ---
 
 func TestPollUntilDeleted_ImmediateNotFound(t *testing.T) {
