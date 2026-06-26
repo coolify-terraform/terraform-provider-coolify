@@ -10,7 +10,7 @@ The provider covers the core Coolify resource model:
 - 33 managed resources (projects, servers, applications, databases, services,
   backups, environment variables, deployments, and more)
 - 44 data sources for reading existing infrastructure
-- 16 ACME Corp scenario examples with integration tests
+- 17 ACME Corp scenario examples with integration tests
 - Full import support for adopting existing Coolify resources
 
 ## Near Term

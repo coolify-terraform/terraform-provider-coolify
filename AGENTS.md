@@ -16,7 +16,7 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 Builds use `GOFIPS140=latest` for FIPS 140-3 compliant cryptography (required for
 government/enterprise adoption; set in `.goreleaser.yml` and `release.yml` smoke test).
 33 resources, 44 data sources, 960+ tests (unit + acceptance), 9 CI jobs.
-16 ACME Corp scenario examples (all with `terraform test` integration tests; acme-private-repo uses plan-only).
+17 ACME Corp scenario examples (all with `terraform test` integration tests; acme-private-repo uses plan-only).
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
 

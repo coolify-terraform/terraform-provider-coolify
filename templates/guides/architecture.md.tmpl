@@ -111,7 +111,7 @@ preserves the value from Terraform state rather than overwriting it.
 │  - .tftest.hcl files in examples/scen.   │
 │  - Multi-resource integration tests      │
 │  - Real Coolify instance                 │
-│  - 16 ACME Corp scenarios                │
+│  - 17 ACME Corp scenarios                │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
