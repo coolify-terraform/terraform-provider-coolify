@@ -29,8 +29,8 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 |---|---|
 | Managed resources | 33 |
 | Data sources | 44 |
-| Tests | 960+ unit and acceptance tests |
-| Scenario examples | 16 ACME Corp setups |
+| Tests | 970+ unit and acceptance tests |
+| Scenario examples | 17 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
 ## Demo
@@ -169,7 +169,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 
 Deploy a full stack (app, database, backups, env vars) in a single `terraform apply`, or adopt the provider incrementally by importing your existing Coolify resources.
 
-**Real-world scenarios included** -- 16 tested ACME Corp examples cover common patterns:
+**Real-world scenarios included** -- 17 tested ACME Corp examples cover common patterns:
 
 | Scenario | What it deploys |
 |---|---|
@@ -189,6 +189,7 @@ Deploy a full stack (app, database, backups, env vars) in a single `terraform ap
 | [acme-compose-git](examples/scenarios/acme-compose-git) | Custom Docker Compose stack via docker_compose_raw |
 | [acme-env-scale](examples/scenarios/acme-env-scale) | Bulk env var management with shared + per-app patterns |
 | [acme-hetzner-infra](examples/scenarios/acme-hetzner-infra) | Hetzner Cloud server provisioning + build server |
+| [acme-import-existing](examples/scenarios/acme-import-existing) | Import pre-existing Coolify resources into Terraform state |
 
 Every scenario has `terraform test` integration tests that run against a real Coolify instance.
 
