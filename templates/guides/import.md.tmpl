@@ -59,10 +59,10 @@ your `.tf` configuration.
 existing storage UUID.
 
 
-The `coolify_github_app` resource uses a **numeric ID** (not a UUID):
+The `coolify_github_app` resource uses the **GitHub App ID** (shown as "App Id" in the Coolify UI under Sources), not a UUID or internal database ID:
 
 ```bash
-terraform import coolify_github_app.my_app 42
+terraform import coolify_github_app.my_app 12345
 ```
 
 Resources with composite IDs:
