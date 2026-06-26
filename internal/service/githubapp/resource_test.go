@@ -470,14 +470,14 @@ resource "coolify_github_app" "test" {
 				ResourceName:                         "coolify_github_app.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
-				ImportStateVerifyIdentifierAttribute: "id",
+				ImportStateVerifyIdentifierAttribute: "app_id",
 				ImportStateVerifyIgnore:              []string{"client_secret", "webhook_secret", "private_key_uuid"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rs, ok := s.RootModule().Resources["coolify_github_app.test"]
 					if !ok {
 						return "", fmt.Errorf("resource not found")
 					}
-					return rs.Primary.Attributes["id"], nil
+					return rs.Primary.Attributes["app_id"], nil
 				},
 			},
 		},

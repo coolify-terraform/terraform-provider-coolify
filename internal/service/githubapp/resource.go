@@ -179,17 +179,25 @@ func (r *gitHubAppResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_github_app", "id": state.ID.ValueInt64()})
+	var app *client.GitHubApp
+	var err error
 
-	app, err := r.client.GetGitHubApp(ctx, state.ID.ValueInt64())
+	if state.ID.IsNull() || state.ID.IsUnknown() {
+		// Import case: look up by app_id since the user provides the GitHub App ID.
+		tflog.Debug(ctx, "reading resource by app_id (import)", map[string]interface{}{"resource_type": "coolify_github_app", "app_id": state.AppID.ValueInt64()})
+		app, err = r.client.GetGitHubAppByAppID(ctx, state.AppID.ValueInt64())
+	} else {
+		tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_github_app", "id": state.ID.ValueInt64()})
+		app, err = r.client.GetGitHubApp(ctx, state.ID.ValueInt64())
+	}
+
 	if err != nil {
 		if client.IsNotFound(err) {
-			// The GitHub App was deleted outside of Terraform; remove from state.
-			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_github_app", "uuid": state.UUID.ValueString()})
+			tflog.Debug(ctx, "resource not found, removing from state", map[string]interface{}{"resource_type": "coolify_github_app"})
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading GitHub App", fmt.Sprintf("Could not read GitHub App %d: %s", state.ID.ValueInt64(), err))
+		resp.Diagnostics.AddError("Error reading GitHub App", fmt.Sprintf("Could not read GitHub App: %s", err))
 		return
 	}
 
@@ -263,7 +271,7 @@ func (r *gitHubAppResource) Delete(ctx context.Context, req resource.DeleteReque
 }
 
 func (r *gitHubAppResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	id, err := strconv.ParseInt(req.ID, 10, 64)
+	appID, err := strconv.ParseInt(req.ID, 10, 64)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid Import ID",
@@ -271,7 +279,7 @@ func (r *gitHubAppResource) ImportState(ctx context.Context, req resource.Import
 		)
 		return
 	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("app_id"), appID)...)
 }
 
 func (r *gitHubAppResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
