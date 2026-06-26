@@ -87,6 +87,26 @@ func (c *Client) ListGitHubApps(ctx context.Context) ([]GitHubApp, error) {
 	return apps, nil
 }
 
+func (c *Client) GetGitHubAppByAppID(ctx context.Context, appID int64) (*GitHubApp, error) {
+	var apps []GitHubApp
+	if err := c.doCachedList(ctx, "/api/v1/github-apps", &apps); err != nil {
+		return nil, fmt.Errorf("getting github app by app_id %d: %w", appID, err)
+	}
+	for i := range apps {
+		if apps[i].ID == 0 {
+			continue // skip Coolify's built-in "Public GitHub" system record
+		}
+		if apps[i].AppID != appID {
+			continue
+		}
+		if err := validateGitHubAppResponse(&apps[i]); err != nil {
+			return nil, fmt.Errorf("getting github app by app_id %d: invalid matched app: %w", appID, err)
+		}
+		return &apps[i], nil
+	}
+	return nil, &NotFoundError{Message: fmt.Sprintf("github app with app_id %d not found", appID)}
+}
+
 func (c *Client) GetGitHubApp(ctx context.Context, id int64) (*GitHubApp, error) {
 	var apps []GitHubApp
 	if err := c.doCachedList(ctx, "/api/v1/github-apps", &apps); err != nil {
