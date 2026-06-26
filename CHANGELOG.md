@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.6...v0.1.7) (2026-06-26)
+
+
+### Bug Fixes
+
+* **github_app:** import by app_id instead of internal id ([#559](https://github.com/coolify-terraform/terraform-provider-coolify/issues/559)) ([7250183](https://github.com/coolify-terraform/terraform-provider-coolify/commit/72501832b18ee87f8105108d9bf22702668f705a))
+* multi-perspective improvement rotation (client tests, doc fixes) ([#561](https://github.com/coolify-terraform/terraform-provider-coolify/issues/561)) ([3e531b1](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3e531b1bc6a069911d32bfcd3e1e3dcb96673421))
+
 ## [0.1.6](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.5...v0.1.6) (2026-06-24)
 
 
