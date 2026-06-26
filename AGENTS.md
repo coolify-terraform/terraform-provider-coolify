@@ -199,6 +199,11 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 - Every resource needs `examples/resources/coolify_<type>/resource.tf` + `import.sh`
 - Every data source needs `examples/data-sources/coolify_<type>/data-source.tf`
 - Run `terraform fmt -recursive examples/` before committing HCL changes
+- **Scenario and resource counts live in 5+ files.** When adding a scenario, resource, or data source, grep for the old count across all docs before committing:
+  ```bash
+  grep -rn '16 ACME\|16 tested\|16 scenario' AGENTS.md README.md ROADMAP.md templates/ docs/
+  ```
+  Known locations for scenario counts: `AGENTS.md` (Project section), `README.md` (feature table + body text), `ROADMAP.md`, `templates/guides/architecture.md.tmpl` (ASCII diagram). Also check if a table row is missing in `README.md` for the new scenario.
 
 ### Code style
 
