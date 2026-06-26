@@ -47,19 +47,19 @@ func TestAccGitHubAppResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_github_app.test", "app_id", "12345"),
 				),
 			},
-			// Step 3: Import by ID
+			// Step 3: Import by app_id (GitHub App ID visible in UI)
 			{
 				ResourceName:                         "coolify_github_app.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
-				ImportStateVerifyIdentifierAttribute: "id",
+				ImportStateVerifyIdentifierAttribute: "app_id",
 				ImportStateVerifyIgnore:              []string{"client_secret", "webhook_secret", "private_key_uuid"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					rs, ok := s.RootModule().Resources["coolify_github_app.test"]
 					if !ok {
 						return "", fmt.Errorf("resource coolify_github_app.test not found")
 					}
-					return rs.Primary.Attributes["id"], nil
+					return rs.Primary.Attributes["app_id"], nil
 				},
 			},
 		},
