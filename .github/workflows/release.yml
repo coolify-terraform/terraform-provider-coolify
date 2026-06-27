@@ -108,7 +108,7 @@ jobs:
           done
           echo "::error::No completed CI run for $SHA after 15 minutes. CI may still be running or was never triggered."
           exit 1
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version-file: go.mod
           cache: true
