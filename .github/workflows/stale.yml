@@ -33,5 +33,5 @@ jobs:
           days-before-close: 14
           stale-issue-label: stale
           stale-pr-label: stale
-          exempt-issue-labels: "enhancement,blocked-upstream,tech-debt"
+          exempt-issue-labels: "enhancement,blocked-upstream,tech-debt,ready,needs-info"
           exempt-pr-labels: "dependencies"

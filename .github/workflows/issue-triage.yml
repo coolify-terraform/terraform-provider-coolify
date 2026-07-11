@@ -1,0 +1,45 @@
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  triage:
+    name: Label New Issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Add triage label for external authors
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const author = issue.user.login;
+
+            // Check author association (OWNER, MEMBER, COLLABORATOR skip triage)
+            const assoc = issue.author_association;
+            const trusted = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            if (trusted.includes(assoc)) {
+              // Maintainer-authored: add ready label
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['ready']
+              });
+              core.info(`Trusted author (${assoc}): labeled ready`);
+              return;
+            }
+
+            // External author: add needs-triage
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: ['needs-triage']
+            });
+            core.info(`External author (${assoc}): labeled needs-triage`);

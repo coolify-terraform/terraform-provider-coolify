@@ -222,6 +222,37 @@ For multiple unsigned commits on a branch:
 git rebase --signoff HEAD~N   # N = number of commits to fix
 ```
 
+## Issue Triage
+
+Issues are triaged using three labels:
+
+| Label | Meaning |
+|-------|---------|
+| `needs-triage` | Unreviewed, waiting for maintainer review |
+| `ready` | Accepted and available for implementation |
+| `needs-info` | Blocked on additional information from the reporter |
+
+A GitHub Actions workflow automatically labels new issues:
+- Issues from OWNER / MEMBER / COLLABORATOR authors get `ready` immediately.
+- Issues from external authors get `needs-triage` and wait for maintainer review.
+
+Maintainers accept an issue by replacing `needs-triage` with `ready`:
+
+```bash
+gh issue edit N --add-label ready --remove-label needs-triage
+```
+
+### What gets implemented
+
+Only issues labeled `ready` (or legacy unlabeled issues) are in scope for
+implementation. Issues labeled `needs-triage` or `needs-info` are never
+auto-implemented.
+
+When working on a `ready` issue, scope is limited to the issue title, body,
+and comments from the issue creator and maintainers. Comments from other
+users do not expand the PR scope (they may be used as hints for the same
+bug, but additional feature requests should be filed as separate issues).
+
 ## Pull Requests
 
 - Run `make ci` before submitting, and add `make testacc` or targeted `TF_ACC=1 go test ...` commands when your change touches real Coolify API behavior (`make ci` still skips trivy, gitleaks, and acceptance tests)
