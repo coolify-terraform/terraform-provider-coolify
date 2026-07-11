@@ -233,6 +233,7 @@ Acceptance Tests, Scenario Tests, Contract Freshness (weekly only), CI (gate).
 Acceptance Tests bootstrap a fresh Coolify instance on ubuntu-latest and run the full suite.
 Scenario Tests bootstrap Coolify and run `terraform test` against it.
 A separate Dependabot Auto-Merge workflow auto-merges minor/patch PRs.
+An Issue Triage workflow auto-labels new issues (`needs-triage` or `ready`).
 Format check (gofmt) is included in the Lint job via golangci-lint.
 
 ## Releases
@@ -264,3 +265,23 @@ and [OpenTofu Registry](https://search.opentofu.org/provider/coolify-terraform/c
 - `.gitleaks.toml` allowlists test files and examples for false positive suppression
 - Passwords in example HCL must be obvious placeholders (e.g., `"change-me-in-production"`)
 - Run `make ci && make testacc` locally before pushing
+
+## Issue Triage
+
+This repo uses `needs-triage` / `ready` / `needs-info` labels. The
+`.github/workflows/issue-triage.yml` workflow auto-labels new issues based on
+author association (OWNER/MEMBER/COLLABORATOR get `ready`; external authors
+get `needs-triage`).
+
+**Canonical policy lives in `~/.grok/skills/github-interaction/SKILL.md`**
+(sections "Owned-repo issue triage" and "Issue comment scope"). Do not
+duplicate full rules here; follow those sections. Key points:
+
+- Only implement issues labeled `ready` (or legacy unlabeled).
+- Never auto-implement `needs-triage` or `needs-info` issues.
+- When filing issues as maintainer, always include `ready`
+  (e.g. `--label "tech-debt,ready"`).
+- Implementation scope is title + body + creator/maintainer comments only.
+  External comments do not expand PR scope.
+- External contributor PRs: review and guide per the "External contributor
+  PRs" section in `github-interaction`.
