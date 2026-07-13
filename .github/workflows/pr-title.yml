@@ -4,9 +4,13 @@ on:
   pull_request_target:
     types: [opened, edited, synchronize]
 
+# Do not cancel in-progress runs. This job is a few seconds long, and
+# cancel-in-progress races (opened + synchronize, or force-push from
+# release-please) leave a CANCELLED Conventional Commit check on the
+# PR head SHA, which marks the PR unstable even when the title is valid.
 concurrency:
-  group: pr-title-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: pr-title-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
 
 permissions:
   pull-requests: read
