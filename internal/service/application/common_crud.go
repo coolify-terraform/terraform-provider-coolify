@@ -200,23 +200,57 @@ func deleteApplication(
 }
 
 // importApplicationState validates the import ID and sets the initial state
-// attributes common to all application resource types.
-func importApplicationState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+// attributes common to all application resource types. When a compound ID is
+// used, server_uuid is verified against GET /servers/{uuid}/resources so a
+// wrong server segment cannot silently survive until replace (#576).
+func importApplicationState(ctx context.Context, c *client.Client, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	parsed, compound, err := validate.ParseCompoundImportID(req.ID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 	if compound {
+		if err := validateApplicationOnServer(ctx, c, parsed.ServerUUID, parsed.UUID); err != nil {
+			resp.Diagnostics.AddError("Invalid compound import ID", err.Error())
+			return
+		}
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parsed.ProjectUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parsed.ServerUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parsed.EnvironmentName)...)
 	} else {
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 	setImportDefaults(ctx, resp)
 	addApplicationImportSensitiveFieldsWarning(resp)
+}
+
+// validateApplicationOnServer confirms the application UUID is listed among
+// resources on the given server. Coolify GET application does not return
+// server_uuid, so compound import is the only chance to catch a wrong server.
+func validateApplicationOnServer(ctx context.Context, c *client.Client, serverUUID, appUUID string) error {
+	if c == nil {
+		return fmt.Errorf("provider client is not configured")
+	}
+	resources, err := c.ListServerResources(ctx, serverUUID)
+	if err != nil {
+		return fmt.Errorf(
+			"could not verify that application %s is deployed on server %s: %w. "+
+				"Fix the server_uuid segment of the compound import ID, or import by application UUID only",
+			appUUID, serverUUID, err,
+		)
+	}
+	for _, r := range resources {
+		if r.UUID == appUUID {
+			return nil
+		}
+	}
+	return fmt.Errorf(
+		"application %s is not deployed on server %s. "+
+			"The compound import ID format is project_uuid:server_uuid:environment_name:application_uuid; "+
+			"a wrong server_uuid is not corrected on Read and can recreate the app on the wrong server on replace",
+		appUUID, serverUUID,
+	)
 }
 
 // addApplicationImportSensitiveFieldsWarning explains why imported application

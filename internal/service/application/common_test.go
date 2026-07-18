@@ -238,6 +238,10 @@ func TestHasNonDefaultAppExtendedFields_EachField(t *testing.T) {
 		{"ForceDomainOverride", func(f *commonAppFields) { f.ForceDomainOverride = boolPtr(true) }},
 		{"Redirect", func(f *commonAppFields) { f.Redirect = strPtr("www") }},
 		{"StaticImage", func(f *commonAppFields) { f.StaticImage = strPtr("caddy:latest") }},
+		{"ManualWebhookSecretGitHub", func(f *commonAppFields) { f.ManualWebhookSecretGitHub = strPtr("gh-secret") }},
+		{"ManualWebhookSecretGitLab", func(f *commonAppFields) { f.ManualWebhookSecretGitLab = strPtr("gl-secret") }},
+		{"ManualWebhookSecretBitbucket", func(f *commonAppFields) { f.ManualWebhookSecretBitbucket = strPtr("bb-secret") }},
+		{"ManualWebhookSecretGitea", func(f *commonAppFields) { f.ManualWebhookSecretGitea = strPtr("gitea-secret") }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

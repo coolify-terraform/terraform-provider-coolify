@@ -184,7 +184,7 @@ func (r *privateGitApplicationResource) Delete(ctx context.Context, req resource
 }
 
 func (r *privateGitApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	importApplicationState(ctx, req, resp)
+	importApplicationState(ctx, r.client, req, resp)
 }
 
 func (m *privateGitApplicationResourceModel) common() commonAppFields {

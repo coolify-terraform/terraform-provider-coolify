@@ -620,6 +620,110 @@ func TestSetStringOrClear(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// SetStringSeedOrClear
+// ---------------------------------------------------------------------------
+
+func TestSetStringSeedOrClear(t *testing.T) {
+	t.Parallel()
+	t.Run("seeds null from non-empty API", func(t *testing.T) {
+		dst := types.StringNull()
+		flex.SetStringSeedOrClear(&dst, "from-api")
+		if dst.ValueString() != "from-api" {
+			t.Fatalf("expected seeded value, got %q", dst.ValueString())
+		}
+	})
+	t.Run("leaves null when API empty", func(t *testing.T) {
+		dst := types.StringNull()
+		flex.SetStringSeedOrClear(&dst, "")
+		if !dst.IsNull() {
+			t.Fatalf("expected null, got %q", dst.ValueString())
+		}
+	})
+	t.Run("clears configured when API empty", func(t *testing.T) {
+		dst := types.StringValue("old")
+		flex.SetStringSeedOrClear(&dst, "")
+		if !dst.IsNull() {
+			t.Fatalf("expected null, got %q", dst.ValueString())
+		}
+	})
+	t.Run("handles nil dst", func(t *testing.T) {
+		flex.SetStringSeedOrClear(nil, "x")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// SetStringSeedIfConfigured
+// ---------------------------------------------------------------------------
+
+func TestSetStringSeedIfConfigured(t *testing.T) {
+	t.Parallel()
+	t.Run("seeds null from non-default API value", func(t *testing.T) {
+		dst := types.StringNull()
+		flex.SetStringSeedIfConfigured(&dst, "/mockup", "/")
+		if dst.ValueString() != "/mockup" {
+			t.Fatalf("expected /mockup, got %q", dst.ValueString())
+		}
+	})
+	t.Run("does not seed API default into null", func(t *testing.T) {
+		dst := types.StringNull()
+		flex.SetStringSeedIfConfigured(&dst, "/", "/")
+		if !dst.IsNull() {
+			t.Fatalf("expected null for default API value, got %q", dst.ValueString())
+		}
+	})
+	t.Run("updates configured from non-empty API", func(t *testing.T) {
+		dst := types.StringValue("/old")
+		flex.SetStringSeedIfConfigured(&dst, "/new", "/")
+		if dst.ValueString() != "/new" {
+			t.Fatalf("expected /new, got %q", dst.ValueString())
+		}
+	})
+	t.Run("preserves configured when API empty", func(t *testing.T) {
+		dst := types.StringValue("/keep")
+		flex.SetStringSeedIfConfigured(&dst, "", "/")
+		if dst.ValueString() != "/keep" {
+			t.Fatalf("expected /keep, got %q", dst.ValueString())
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// SetStringPreserveEmpty
+// ---------------------------------------------------------------------------
+
+func TestSetStringPreserveEmpty(t *testing.T) {
+	t.Parallel()
+	t.Run("sets non-empty API value", func(t *testing.T) {
+		dst := types.StringValue("old")
+		flex.SetStringPreserveEmpty(&dst, "api-secret")
+		if dst.ValueString() != "api-secret" {
+			t.Fatalf("expected api-secret, got %q", dst.ValueString())
+		}
+	})
+	t.Run("preserves prior when API empty", func(t *testing.T) {
+		dst := types.StringValue("user-secret")
+		flex.SetStringPreserveEmpty(&dst, "")
+		if dst.ValueString() != "user-secret" {
+			t.Fatalf("expected user-secret preserved, got %q", dst.ValueString())
+		}
+	})
+	t.Run("null stays null when API empty", func(t *testing.T) {
+		dst := types.StringNull()
+		flex.SetStringPreserveEmpty(&dst, "")
+		if !dst.IsNull() {
+			t.Fatalf("expected null, got %q", dst.ValueString())
+		}
+	})
+	t.Run("seeds null when API non-empty", func(t *testing.T) {
+		dst := types.StringNull()
+		flex.SetStringPreserveEmpty(&dst, "generated")
+		if dst.ValueString() != "generated" {
+			t.Fatalf("expected generated, got %q", dst.ValueString())
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
 // SetInt64IfConfigured
 // ---------------------------------------------------------------------------
 

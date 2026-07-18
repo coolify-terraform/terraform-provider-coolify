@@ -219,7 +219,7 @@ func (r *dockerfileApplicationResource) Delete(ctx context.Context, req resource
 }
 
 func (r *dockerfileApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	importApplicationState(ctx, req, resp)
+	importApplicationState(ctx, r.client, req, resp)
 }
 
 func (m *dockerfileApplicationResourceModel) common() commonAppFields {

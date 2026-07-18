@@ -181,7 +181,7 @@ func (r *gitHubAppApplicationResource) Delete(ctx context.Context, req resource.
 }
 
 func (r *gitHubAppApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	importApplicationState(ctx, req, resp)
+	importApplicationState(ctx, r.client, req, resp)
 }
 
 func (m *gitHubAppApplicationResourceModel) common() commonAppFields {

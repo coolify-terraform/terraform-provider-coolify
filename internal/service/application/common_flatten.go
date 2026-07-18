@@ -41,9 +41,10 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	if f.DockerfileLocation != nil && app.DockerfileLocation != "" {
 		*f.DockerfileLocation = flex.StringToFramework(app.DockerfileLocation)
 	}
-	flex.SetStringOrClear(f.InstallCommand, app.InstallCommand)
-	flex.SetStringOrClear(f.BuildCommand, app.BuildCommand)
-	flex.SetStringOrClear(f.StartCommand, app.StartCommand)
+	flex.SetStringSeedOrClear(f.InstallCommand, app.InstallCommand)
+	// Seed null state from API so import populates build/start commands (#577).
+	flex.SetStringSeedOrClear(f.BuildCommand, app.BuildCommand)
+	flex.SetStringSeedOrClear(f.StartCommand, app.StartCommand)
 	*f.Status = flex.StringToFramework(app.Status)
 	// Immutable fields: only update if the API returns them (Coolify may
 	// omit these from the GET response).
@@ -116,8 +117,9 @@ func flattenLimitsAndHealth(app *client.Application, f commonAppFields) {
 // flattenExtendedFields sets extended application fields from the API response.
 // Extracted to keep flattenApplicationCommon under the gocognit complexity threshold.
 func flattenExtendedFields(app *client.Application, f commonAppFields) {
-	// NOT NULL fields with DB defaults — API always returns a value.
-	flex.SetStringIfConfigured(f.BaseDirectory, app.BaseDirectory)
+	// base_directory defaults to "/" in Coolify. Seed non-default values into
+	// null state (import) but do not force "/" onto omitted create plans (#577).
+	flex.SetStringSeedIfConfigured(f.BaseDirectory, app.BaseDirectory, "/")
 	flex.SetStringIfConfigured(f.GitCommitSha, app.GitCommitSha)
 	// custom_labels: the API requires base64 input, stores base64, and returns
 	// base64 on GET (with read:sensitive permission). Since the provider auto-
@@ -127,13 +129,13 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	if f.CustomLabels != nil {
 		*f.CustomLabels = flex.ResolveBase64Field(*f.CustomLabels, app.CustomLabels)
 	}
-	// Nullable fields — use SetStringOrClear so drift is detected when
-	// someone clears the field in the Coolify UI.
-	flex.SetStringOrClear(f.PublishDirectory, app.PublishDirectory)
+	// Nullable fields — seed null state from API (import) and clear when the
+	// API returns empty for configured values (UI drift).
+	flex.SetStringSeedOrClear(f.PublishDirectory, app.PublishDirectory)
 	flex.SetStringIfConfigured(f.Dockerfile, app.Dockerfile)
 	flex.SetStringOrClear(f.DockerRegistryImageTag, app.DockerRegistryImageTag)
 	flex.SetStringOrClear(f.DockerComposeDomains, app.DockerComposeDomains)
-	flex.SetStringOrClear(f.WatchPaths, app.WatchPaths)
+	flex.SetStringSeedOrClear(f.WatchPaths, app.WatchPaths)
 	flex.SetStringOrClear(f.CustomDockerRunOptions, app.CustomDockerRunOptions)
 	flex.SetStringOrClear(f.CustomNetworkAliases, app.CustomNetworkAliases)
 	flex.SetStringOrClear(f.CustomNginxConfiguration, app.CustomNginxConfiguration)
@@ -173,10 +175,12 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	setString(f.StaticImage, flex.StringValueOrDefault(app.StaticImage, defaultStaticImage))
 	// Computed+Default+Sensitive fields (server-generated, always set)
 	setString(f.PreviewURLTemplate, flex.StringToFramework(app.PreviewURLTemplate))
-	setString(f.ManualWebhookSecretBitbucket, flex.StringToFramework(app.ManualWebhookSecretBitbucket))
-	setString(f.ManualWebhookSecretGitea, flex.StringToFramework(app.ManualWebhookSecretGitea))
-	setString(f.ManualWebhookSecretGitHub, flex.StringToFramework(app.ManualWebhookSecretGitHub))
-	setString(f.ManualWebhookSecretGitLab, flex.StringToFramework(app.ManualWebhookSecretGitLab))
+	// Webhook secrets are encrypted and hidden without root/read:sensitive.
+	// Preserve planned/state values when GET returns empty (#575).
+	flex.SetStringPreserveEmpty(f.ManualWebhookSecretBitbucket, app.ManualWebhookSecretBitbucket)
+	flex.SetStringPreserveEmpty(f.ManualWebhookSecretGitea, app.ManualWebhookSecretGitea)
+	flex.SetStringPreserveEmpty(f.ManualWebhookSecretGitHub, app.ManualWebhookSecretGitHub)
+	flex.SetStringPreserveEmpty(f.ManualWebhookSecretGitLab, app.ManualWebhookSecretGitLab)
 	// Computed+Default bool fields (always set from API)
 	setBoolDefault := func(dst *types.Bool, v *bool, def bool) {
 		if dst == nil {
@@ -403,6 +407,11 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.StringPtrNonDefault(f.PreDeploymentCommandContainer, "") ||
 		flex.StringPtrNonDefault(f.PostDeploymentCommand, "") ||
 		flex.StringPtrNonDefault(f.PostDeploymentCommandContainer, "") ||
+		// Webhook secrets (create POST omits these; Coolify auto-gens if unset) (#575)
+		flex.StringPtrNonDefault(f.ManualWebhookSecretBitbucket, "") ||
+		flex.StringPtrNonDefault(f.ManualWebhookSecretGitea, "") ||
+		flex.StringPtrNonDefault(f.ManualWebhookSecretGitHub, "") ||
+		flex.StringPtrNonDefault(f.ManualWebhookSecretGitLab, "") ||
 		// Bool overrides
 		flex.BoolPtrNonDefault(f.ConnectToDockerNetwork, false) ||
 		flex.BoolPtrNonDefault(f.IsForceHTTPSEnabled, true) ||
@@ -494,6 +503,11 @@ func buildPostCreatePatch(f commonAppFields) client.UpdateApplicationInput {
 	flex.SetStrPtr(&input.PreDeploymentCommandContainer, safeStr(f.PreDeploymentCommandContainer))
 	flex.SetStrPtr(&input.PostDeploymentCommand, safeStr(f.PostDeploymentCommand))
 	flex.SetStrPtr(&input.PostDeploymentCommandContainer, safeStr(f.PostDeploymentCommandContainer))
+	// Webhook secrets (not on create POST; set via post-create PATCH) (#575)
+	flex.SetStrPtr(&input.ManualWebhookSecretBitbucket, safeStr(f.ManualWebhookSecretBitbucket))
+	flex.SetStrPtr(&input.ManualWebhookSecretGitea, safeStr(f.ManualWebhookSecretGitea))
+	flex.SetStrPtr(&input.ManualWebhookSecretGitHub, safeStr(f.ManualWebhookSecretGitHub))
+	flex.SetStrPtr(&input.ManualWebhookSecretGitLab, safeStr(f.ManualWebhookSecretGitLab))
 	// Other settings
 	flex.SetBoolPtr(&input.ConnectToDockerNetwork, safeBool(f.ConnectToDockerNetwork))
 	flex.SetBoolPtr(&input.IsContainerLabelEscapeEnabled, safeBool(f.IsContainerLabelEscapeEnabled))

@@ -468,6 +468,19 @@ func TestBuildPostCreatePatch_UnknownField(t *testing.T) {
 	}
 }
 
+func TestBuildPostCreatePatch_WebhookSecrets(t *testing.T) {
+	t.Parallel()
+	gh := types.StringValue("my-gh-secret")
+	f := commonAppFields{ManualWebhookSecretGitHub: &gh}
+	input := buildPostCreatePatch(f)
+	if input.ManualWebhookSecretGitHub == nil {
+		t.Fatal("expected ManualWebhookSecretGitHub non-nil")
+	}
+	if *input.ManualWebhookSecretGitHub != "my-gh-secret" {
+		t.Errorf("got %q", *input.ManualWebhookSecretGitHub)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // #357: flattenApplicationCommon
 // ---------------------------------------------------------------------------
@@ -567,6 +580,86 @@ func TestFlattenApplicationCommon_EmptyProjectUUIDPreservesState(t *testing.T) {
 
 	if f.ProjectUUID.ValueString() != "proj-original" {
 		t.Errorf("ProjectUUID = %q, want preserved %q", f.ProjectUUID.ValueString(), "proj-original")
+	}
+}
+
+// #575: preserve configured webhook secret when API hides it (empty GET).
+func TestFlattenApplicationCommon_WebhookSecretPreserveWhenEmpty(t *testing.T) {
+	t.Parallel()
+	f, _ := newDefaultFields()
+	*f.ManualWebhookSecretGitHub = types.StringValue("user-configured-secret")
+
+	app := &client.Application{
+		UUID: "uuid-1",
+		Name: "app",
+		// ManualWebhookSecretGitHub omitted / empty (no read:sensitive)
+	}
+
+	flattenApplicationCommon(app, f)
+
+	if f.ManualWebhookSecretGitHub.ValueString() != "user-configured-secret" {
+		t.Errorf("ManualWebhookSecretGitHub = %q, want preserved user value", f.ManualWebhookSecretGitHub.ValueString())
+	}
+}
+
+// #577: seed null state from API for import/read of build fields.
+func TestFlattenApplicationCommon_SeedsBuildFieldsFromAPI(t *testing.T) {
+	t.Parallel()
+	f, _ := newDefaultFields()
+	// Simulate post-import null state.
+	*f.BaseDirectory = types.StringNull()
+	*f.PublishDirectory = types.StringNull()
+	*f.WatchPaths = types.StringNull()
+	bc := types.StringNull()
+	sc := types.StringNull()
+	f.BuildCommand = &bc
+	f.StartCommand = &sc
+
+	app := &client.Application{
+		UUID:             "uuid-1",
+		Name:             "app",
+		BaseDirectory:    "/mockup",
+		PublishDirectory: "dist",
+		WatchPaths:       "/src",
+		BuildCommand:     "npm run build",
+		StartCommand:     "node server.js",
+	}
+
+	flattenApplicationCommon(app, f)
+
+	if f.BaseDirectory.ValueString() != "/mockup" {
+		t.Errorf("BaseDirectory = %q, want /mockup", f.BaseDirectory.ValueString())
+	}
+	if f.PublishDirectory.ValueString() != "dist" {
+		t.Errorf("PublishDirectory = %q, want dist", f.PublishDirectory.ValueString())
+	}
+	if f.WatchPaths.ValueString() != "/src" {
+		t.Errorf("WatchPaths = %q, want /src", f.WatchPaths.ValueString())
+	}
+	if f.BuildCommand.ValueString() != "npm run build" {
+		t.Errorf("BuildCommand = %q, want npm run build", f.BuildCommand.ValueString())
+	}
+	if f.StartCommand.ValueString() != "node server.js" {
+		t.Errorf("StartCommand = %q, want node server.js", f.StartCommand.ValueString())
+	}
+}
+
+// #577: do not force Coolify default "/" into null base_directory on create.
+func TestFlattenApplicationCommon_BaseDirectoryDefaultNotSeeded(t *testing.T) {
+	t.Parallel()
+	f, _ := newDefaultFields()
+	*f.BaseDirectory = types.StringNull()
+
+	app := &client.Application{
+		UUID:          "uuid-1",
+		Name:          "app",
+		BaseDirectory: "/",
+	}
+
+	flattenApplicationCommon(app, f)
+
+	if !f.BaseDirectory.IsNull() {
+		t.Errorf("BaseDirectory = %q, want null when API is default /", f.BaseDirectory.ValueString())
 	}
 }
 

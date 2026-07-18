@@ -4,11 +4,23 @@ page_title: "coolify_application Resource - coolify"
 subcategory: ""
 description: |-
   Manages a Coolify application deployed from a public Git repository.
+  This resource is for public HTTPS Git URLs only. A private repository will fail to clone (for example fatal: could not read Username for 'https://github.com').
+  For private sources, use:
+  coolify_application_private_git ../resources/application_private_git with an SSH deploy keycoolify_application_github_app ../resources/application_github_app with a GitHub App
+  See the Which application resource do I use? ../guides/choosing-application-type guide.
 ---
 
 # coolify_application (Resource)
 
-Manages a Coolify application deployed from a public Git repository.
+Manages a Coolify application deployed from a **public** Git repository.
+
+This resource is for public HTTPS Git URLs only. A private repository will fail to clone (for example `fatal: could not read Username for 'https://github.com'`).
+
+For private sources, use:
+- [`coolify_application_private_git`](../resources/application_private_git) with an SSH deploy key
+- [`coolify_application_github_app`](../resources/application_github_app) with a GitHub App
+
+See the [Which application resource do I use?](../guides/choosing-application-type) guide.
 
 ## Example Usage
 
