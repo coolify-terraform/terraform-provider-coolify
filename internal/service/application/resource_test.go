@@ -218,6 +218,19 @@ func TestApplicationResource_CreateWithWebhookSecret(t *testing.T) {
 					},
 				),
 			},
+			{
+				// GET still hides the secret; preserve path must keep plan empty.
+				Config: testApplicationResourceConfig(srv.URL, fmt.Sprintf(`
+					project_uuid                 = "aaaa0009-0009-4000-8000-000000000009"
+					server_uuid                  = "bbbb0009-0009-4000-8000-000000000009"
+					git_repository               = "https://github.com/example/repo"
+					build_pack                   = "nixpacks"
+					ports_exposes                = "3000"
+					manual_webhook_secret_github = %q
+				`, secret)),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
 		},
 	})
 }
@@ -2037,6 +2050,85 @@ func TestApplicationResource_ImportCompoundWrongServer(t *testing.T) {
 				ImportState:   true,
 				ImportStateId: projUUID + ":" + wrongSrvUUID + ":" + envName + ":" + appUUID,
 				ExpectError:   regexp.MustCompile(`is not deployed on server`),
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestApplicationResource_ImportCompoundServerResourcesError
+// ---------------------------------------------------------------------------
+
+func TestApplicationResource_ImportCompoundServerResourcesError(t *testing.T) {
+	t.Parallel()
+	const (
+		projUUID = "aaaa000a-000a-4000-8000-00000000000a"
+		srvUUID  = "bbbb000a-000a-4000-8000-00000000000a"
+		appUUID  = "cccc000a-000a-4000-8000-00000000000a"
+		envName  = "production"
+	)
+
+	app := client.Application{
+		UUID:            appUUID,
+		Name:            "resources-error-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     projUUID,
+		ServerUUID:      srvUUID,
+		EnvironmentName: envName,
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/resources", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"server error"}`, http.StatusInternalServerError)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, fmt.Sprintf(`
+					project_uuid   = %q
+					server_uuid    = %q
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`, projUUID, srvUUID)),
+			},
+			{
+				ResourceName:  "coolify_application.test",
+				ImportState:   true,
+				ImportStateId: projUUID + ":" + srvUUID + ":" + envName + ":" + appUUID,
+				ExpectError:   regexp.MustCompile(`could not verify that application`),
 			},
 		},
 	})

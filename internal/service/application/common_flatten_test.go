@@ -602,6 +602,25 @@ func TestFlattenApplicationCommon_WebhookSecretPreserveWhenEmpty(t *testing.T) {
 	}
 }
 
+// #575: seed null state when GET returns the secret (root/read:sensitive).
+func TestFlattenApplicationCommon_WebhookSecretSeedsFromAPI(t *testing.T) {
+	t.Parallel()
+	f, _ := newDefaultFields()
+	*f.ManualWebhookSecretGitHub = types.StringNull()
+
+	app := &client.Application{
+		UUID:                      "uuid-1",
+		Name:                      "app",
+		ManualWebhookSecretGitHub: "server-generated-secret",
+	}
+
+	flattenApplicationCommon(app, f)
+
+	if f.ManualWebhookSecretGitHub.ValueString() != "server-generated-secret" {
+		t.Errorf("ManualWebhookSecretGitHub = %q, want server-generated-secret", f.ManualWebhookSecretGitHub.ValueString())
+	}
+}
+
 // #577: seed null state from API for import/read of build fields.
 func TestFlattenApplicationCommon_SeedsBuildFieldsFromAPI(t *testing.T) {
 	t.Parallel()
