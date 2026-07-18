@@ -342,20 +342,25 @@ func AddCreateReadBackError(resp *resource.CreateResponse, label, identifier str
 	)
 }
 
-// ImportDatabaseState validates the import ID as a UUID and passes it through
-// as the "uuid" attribute.
-func ImportDatabaseState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+// ImportDatabaseState validates the import ID (simple UUID or compound) and
+// sets initial state. Compound import verifies the database is listed on the
+// given server so a wrong server_uuid cannot silently mis-target replace.
+func ImportDatabaseState(ctx context.Context, c *client.Client, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	parsed, compound, err := validate.ParseCompoundImportID(req.ID)
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 	if compound {
+		if err := c.ValidateResourceOnServer(ctx, parsed.ServerUUID, parsed.UUID, "database"); err != nil {
+			resp.Diagnostics.AddError("Invalid compound import ID", err.Error())
+			return
+		}
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parsed.ProjectUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parsed.ServerUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parsed.EnvironmentName)...)
 	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 }
 
 // DatabaseExtendedPtrs groups pointers to extended database model fields

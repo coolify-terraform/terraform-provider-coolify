@@ -157,7 +157,7 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_clickhouse", s.UUID.ValueString(), resp)
 }
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	dbcommon.ImportDatabaseState(ctx, req, resp)
+	dbcommon.ImportDatabaseState(ctx, r.client, req, resp)
 }
 func flattenDatabase(db *client.Database, m *model) {
 	dbcommon.FlattenDatabaseCommon(db, m.CommonPtrs())

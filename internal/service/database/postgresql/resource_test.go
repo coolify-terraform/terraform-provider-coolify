@@ -584,6 +584,42 @@ resource "coolify_database_postgresql" "test" {
 	})
 }
 
+func TestPostgresqlDatabaseResource_ImportCompoundWrongServer(t *testing.T) {
+	t.Parallel()
+	srv, state := dbtest.NewMockServer("postgresql", "pg-test-db", "postgres:16", map[string]interface{}{
+		"postgres_user":     "postgres",
+		"postgres_password": "secret123",
+		"postgres_db":       "defaultdb",
+	})
+	defer srv.Close()
+
+	const (
+		projUUID     = "aaaa0001-0001-4000-8000-000000000001"
+		wrongSrvUUID = "bbbb0002-0002-4000-8000-000000000002"
+		envName      = "production"
+	)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_postgresql" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+}
+`,
+			},
+			{
+				ResourceName:  "coolify_database_postgresql.test",
+				ImportState:   true,
+				ImportStateId: projUUID + ":" + wrongSrvUUID + ":" + envName + ":" + state.UUID,
+				ExpectError:   regexp.MustCompile(`is not deployed on server`),
+			},
+		},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // TestPostgresqlDatabaseResource_ImportCompoundBadParts
 // ---------------------------------------------------------------------------

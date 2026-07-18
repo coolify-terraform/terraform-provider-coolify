@@ -422,12 +422,16 @@ func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportSt
 		resp.Diagnostics.AddError("Invalid Import ID", err.Error())
 		return
 	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 	if compound {
+		if err := r.client.ValidateResourceOnServer(ctx, parsed.ServerUUID, parsed.UUID, "service"); err != nil {
+			resp.Diagnostics.AddError("Invalid compound import ID", err.Error())
+			return
+		}
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parsed.ProjectUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parsed.ServerUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parsed.EnvironmentName)...)
 	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 	resp.Diagnostics.AddWarning(
 		"Sensitive fields require token permissions",
 		"The Coolify API hides docker_compose and docker_compose_raw unless the API token has \"root\" or \"read:sensitive\" permission. "+
