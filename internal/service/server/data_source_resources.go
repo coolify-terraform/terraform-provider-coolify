@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
@@ -92,9 +93,11 @@ func (d *serverResourcesDataSource) Read(ctx context.Context, req datasource.Rea
 
 	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_server_resources"})
 
-	resources, err := d.client.ListServerResources(ctx, config.ServerUUID.ValueString())
+	serverUUID := config.ServerUUID.ValueString()
+	resources, err := d.client.ListServerResources(ctx, serverUUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error listing server resources", err.Error())
+		resp.Diagnostics.AddError("Error listing server resources",
+			fmt.Sprintf("server %s: %s", serverUUID, err))
 		return
 	}
 
