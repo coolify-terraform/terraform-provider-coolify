@@ -161,6 +161,66 @@ func SetStringOrClear(dst *types.String, v string) {
 	}
 }
 
+// SetStringSeedOrClear seeds null/unknown state from a non-empty API value
+// (import/read path) and otherwise behaves like SetStringOrClear for
+// configured values. Use for Optional-only nullable fields that the API
+// returns when set so import populates state without creating
+// create-time "inconsistent result" errors for omitted fields (API empty).
+func SetStringSeedOrClear(dst *types.String, v string) {
+	if dst == nil {
+		return
+	}
+	if dst.IsNull() || dst.IsUnknown() {
+		if v != "" {
+			*dst = types.StringValue(v)
+		}
+		return
+	}
+	if v != "" {
+		*dst = types.StringValue(v)
+	} else {
+		*dst = types.StringNull()
+	}
+}
+
+// SetStringSeedIfConfigured seeds null/unknown state from a non-empty API
+// value, but skips a known API default so create with the field omitted does
+// not pick up a server default (which would cause inconsistent result after
+// apply). When configured, non-empty API values overwrite; empty API leaves
+// the configured value (sensitive/omit-on-GET pattern).
+func SetStringSeedIfConfigured(dst *types.String, v, apiDefault string) {
+	if dst == nil {
+		return
+	}
+	if dst.IsNull() || dst.IsUnknown() {
+		if v != "" && v != apiDefault {
+			*dst = types.StringValue(v)
+		}
+		return
+	}
+	if v != "" {
+		*dst = types.StringValue(v)
+	}
+}
+
+// SetStringPreserveEmpty keeps the prior dst value when the API returns an
+// empty string (sensitive fields hidden without root/read:sensitive). When
+// the API returns a non-empty value, dst is overwritten. Null/unknown dst is
+// set only when the API returns a non-empty value.
+func SetStringPreserveEmpty(dst *types.String, v string) {
+	if dst == nil {
+		return
+	}
+	if v != "" {
+		*dst = types.StringValue(v)
+		return
+	}
+	if dst.IsNull() || dst.IsUnknown() {
+		*dst = types.StringNull()
+	}
+	// else preserve existing non-empty state/plan value
+}
+
 // SetInt64IfConfigured sets dst to the int64 value only if dst was
 // configured by the user (non-null, non-unknown) and v is non-nil.
 func SetInt64IfConfigured(dst *types.Int64, v *int64) {

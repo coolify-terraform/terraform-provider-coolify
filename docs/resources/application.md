@@ -4,11 +4,23 @@ page_title: "coolify_application Resource - coolify"
 subcategory: ""
 description: |-
   Manages a Coolify application deployed from a public Git repository.
+  This resource is for public HTTPS Git URLs only. A private repository will fail to clone (for example fatal: could not read Username for 'https://github.com').
+  For private sources, use:
+  coolify_application_private_git ../resources/application_private_git with an SSH deploy keycoolify_application_github_app ../resources/application_github_app with a GitHub App
+  See the Which application resource do I use? ../guides/choosing-application-type guide.
 ---
 
 # coolify_application (Resource)
 
-Manages a Coolify application deployed from a public Git repository.
+Manages a Coolify application deployed from a **public** Git repository.
+
+This resource is for public HTTPS Git URLs only. A private repository will fail to clone (for example `fatal: could not read Username for 'https://github.com'`).
+
+For private sources, use:
+- [`coolify_application_private_git`](../resources/application_private_git) with an SSH deploy key
+- [`coolify_application_github_app`](../resources/application_github_app) with a GitHub App
+
+See the [Which application resource do I use?](../guides/choosing-application-type) guide.
 
 ## Example Usage
 
@@ -98,10 +110,10 @@ resource "coolify_application" "example" {
 - `limits_memory_reservation` (String) Memory reservation (e.g., `256m`).
 - `limits_memory_swap` (String) Memory swap limit (e.g., `1g`).
 - `limits_memory_swappiness` (Number) Memory swappiness (0-100).
-- `manual_webhook_secret_bitbucket` (String, Sensitive) Manual webhook secret for Bitbucket.
-- `manual_webhook_secret_gitea` (String, Sensitive) Manual webhook secret for Gitea.
-- `manual_webhook_secret_github` (String, Sensitive) Manual webhook secret for GitHub.
-- `manual_webhook_secret_gitlab` (String, Sensitive) Manual webhook secret for GitLab.
+- `manual_webhook_secret_bitbucket` (String, Sensitive) Manual webhook secret for Bitbucket. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
+- `manual_webhook_secret_gitea` (String, Sensitive) Manual webhook secret for Gitea. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
+- `manual_webhook_secret_github` (String, Sensitive) Manual webhook secret for GitHub. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
+- `manual_webhook_secret_gitlab` (String, Sensitive) Manual webhook secret for GitLab. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
 - `name` (String) The name of the application.
 - `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:80` or `8080:80,8443:443`).
 - `post_deployment_command` (String) Command to run after deployment.

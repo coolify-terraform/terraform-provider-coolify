@@ -44,8 +44,14 @@ func (r *applicationResource) Metadata(_ context.Context, req resource.MetadataR
 
 func (r *applicationResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify application deployed from a public Git repository.",
-		Attributes:          gitAppAttrs(ctx, "The public Git repository URL for the application source code.", nil),
+		MarkdownDescription: "Manages a Coolify application deployed from a **public** Git repository.\n\n" +
+			"This resource is for public HTTPS Git URLs only. A private repository will fail to clone " +
+			"(for example `fatal: could not read Username for 'https://github.com'`).\n\n" +
+			"For private sources, use:\n" +
+			"- [`coolify_application_private_git`](../resources/application_private_git) with an SSH deploy key\n" +
+			"- [`coolify_application_github_app`](../resources/application_github_app) with a GitHub App\n\n" +
+			"See the [Which application resource do I use?](../guides/choosing-application-type) guide.",
+		Attributes: gitAppAttrs(ctx, "The public Git repository URL for the application source code.", nil),
 	}
 }
 
@@ -168,7 +174,7 @@ func (r *applicationResource) Delete(ctx context.Context, req resource.DeleteReq
 }
 
 func (r *applicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	importApplicationState(ctx, req, resp)
+	importApplicationState(ctx, r.client, req, resp)
 }
 
 func (m *applicationResourceModel) common() commonAppFields {
