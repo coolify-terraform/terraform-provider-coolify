@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.7...v0.1.8) (2026-07-18)
+
+
+### Bug Fixes
+
+* application webhook secrets, import safety, seed fields, docs ([#579](https://github.com/coolify-terraform/terraform-provider-coolify/issues/579)) ([6d03dc3](https://github.com/coolify-terraform/terraform-provider-coolify/commit/6d03dc32eddc708b8d0c8677eca71ae884aea3d0))
+* bump Go 1.26.4 to 1.26.5 (GO-2026-5856) ([#570](https://github.com/coolify-terraform/terraform-provider-coolify/issues/570)) ([3334377](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3334377f65bf98a43b87f6395441d9b944455ba1))
+* compound import server validation for databases and services ([#580](https://github.com/coolify-terraform/terraform-provider-coolify/issues/580)) ([6b20719](https://github.com/coolify-terraform/terraform-provider-coolify/commit/6b20719a653a54e144ad727578cd059ad4cd0446))
+
 ## [0.1.7](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.6...v0.1.7) (2026-06-26)
 
 
