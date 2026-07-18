@@ -144,6 +144,36 @@ func (c *Client) ListServerResources(ctx context.Context, uuid string) ([]Server
 	return r, nil
 }
 
+// ValidateResourceOnServer confirms resourceUUID is listed among resources on
+// serverUUID. Used for compound import so a wrong server_uuid cannot silently
+// survive until replace. kind is a human label for errors (e.g. "application").
+// Callers must not invoke this on a nil *Client (Go method receivers on nil
+// are allowed only when the method nil-checks first; we do that here).
+func (c *Client) ValidateResourceOnServer(ctx context.Context, serverUUID, resourceUUID, kind string) error {
+	if c == nil {
+		return fmt.Errorf("provider client is not configured")
+	}
+	resources, err := c.ListServerResources(ctx, serverUUID)
+	if err != nil {
+		return fmt.Errorf(
+			"could not verify that %s %s is deployed on server %s: %w. "+
+				"Fix the server_uuid segment of the compound import ID, or import by %s UUID only",
+			kind, resourceUUID, serverUUID, err, kind,
+		)
+	}
+	for _, r := range resources {
+		if r.UUID == resourceUUID {
+			return nil
+		}
+	}
+	return fmt.Errorf(
+		"%s %s is not deployed on server %s. "+
+			"The compound import ID format is project_uuid:server_uuid:environment_name:%s_uuid; "+
+			"a wrong server_uuid is not corrected on Read and can recreate the resource on the wrong server on replace",
+		kind, resourceUUID, serverUUID, kind,
+	)
+}
+
 type ServerDomain struct {
 	Domain string `json:"domain"`
 	IP     string `json:"ip"`

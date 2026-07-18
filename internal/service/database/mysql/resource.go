@@ -182,7 +182,7 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 }
 
 func (r *mysqlDatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	dbcommon.ImportDatabaseState(ctx, req, resp)
+	dbcommon.ImportDatabaseState(ctx, r.client, req, resp)
 }
 
 func flattenDatabase(db *client.Database, m *mysqlDatabaseResourceModel) {

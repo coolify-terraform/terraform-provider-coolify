@@ -55,11 +55,11 @@ UUID format still works but may require you to set these fields manually in
 your `.tf` configuration.
 
 -> **Warning:** The `server_uuid` segment must be the server that actually hosts
-the resource. Coolify application GET responses do not return `server_uuid`, so
-a wrong value is not corrected on refresh. On replace, Terraform would recreate
-the resource on the wrong server. Application compound import validates that
-the application appears in `GET /servers/{server_uuid}/resources` and fails if
-it does not.
+the resource. Coolify GET responses often omit `server_uuid`, so a wrong value
+is not corrected on refresh. On replace, Terraform would recreate the resource
+on the wrong server. Compound import for applications, databases, and services
+validates membership via `GET /servers/{server_uuid}/resources` and fails if
+the resource is not listed on that server.
 
 ~> **Note:** Top-level S3 storages are managed in the Coolify web UI. When
 `coolify_database_backup` uses `save_s3 = true`, set `s3_storage_uuid` to an

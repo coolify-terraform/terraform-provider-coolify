@@ -154,6 +154,21 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/stop"):
 			w.WriteHeader(http.StatusOK)
 
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/") && strings.HasSuffix(r.URL.Path, "/resources"):
+			const defaultServerUUID = "bbbb0001-0001-4000-8000-000000000001"
+			parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+			serverUUID := ""
+			if len(parts) >= 4 {
+				serverUUID = parts[3]
+			}
+			if serverUUID == defaultServerUUID {
+				json.NewEncoder(w).Encode([]map[string]string{
+					{"uuid": state.uuid, "name": state.name, "type": "service"},
+				})
+			} else {
+				json.NewEncoder(w).Encode([]map[string]string{})
+			}
+
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -679,6 +694,38 @@ func TestServiceResource_ImportCompound(t *testing.T) {
 					}
 					return nil
 				},
+			},
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// TestServiceResource_ImportCompoundWrongServer
+// ---------------------------------------------------------------------------
+
+func TestServiceResource_ImportCompoundWrongServer(t *testing.T) {
+	t.Parallel()
+	srv, _ := newMockServiceServer()
+	defer srv.Close()
+
+	const (
+		projUUID     = "aaaa0001-0001-4000-8000-000000000001"
+		wrongSrvUUID = "bbbb0002-0002-4000-8000-000000000002"
+		svcUUID      = "dddd0001-0001-4000-8000-000000000001"
+		envName      = "production"
+	)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: serviceConfig(srv.URL),
+			},
+			{
+				ResourceName:  "coolify_service.test",
+				ImportState:   true,
+				ImportStateId: projUUID + ":" + wrongSrvUUID + ":" + envName + ":" + svcUUID,
+				ExpectError:   regexp.MustCompile(`is not deployed on server`),
 			},
 		},
 	})

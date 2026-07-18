@@ -129,6 +129,7 @@ if the API token lacks permissions, these fields will be empty in state.
 | `coolify_private_key` | `private_key` | Requires `root` or `read:sensitive` token |
 | `coolify_cloud_token` | `token` | Write-only, never returned by API |
 | `coolify_github_app` | `client_secret`, `webhook_secret`, `private_key_uuid` | Write-only. If `webhook_secret` was auto-generated on create, keep that generated value in your secret store or Terraform variables before import because Coolify will not return it later. |
+| Application resources (`coolify_application*`) | `manual_webhook_secret_*`, `http_basic_auth_password`, `dockerfile` (content) | Encrypted secrets are hidden without root / `read:sensitive`. Coolify auto-generates webhook secrets when omitted on create; the provider preserves configured values when GET returns empty. |
 | `coolify_environment_variable` | `value` | May be hidden without sensitive permissions |
 
 **After importing a resource with hidden fields:**

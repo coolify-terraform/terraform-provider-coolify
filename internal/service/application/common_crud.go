@@ -229,28 +229,7 @@ func importApplicationState(ctx context.Context, c *client.Client, req resource.
 // resources on the given server. Coolify GET application does not return
 // server_uuid, so compound import is the only chance to catch a wrong server.
 func validateApplicationOnServer(ctx context.Context, c *client.Client, serverUUID, appUUID string) error {
-	if c == nil {
-		return fmt.Errorf("provider client is not configured")
-	}
-	resources, err := c.ListServerResources(ctx, serverUUID)
-	if err != nil {
-		return fmt.Errorf(
-			"could not verify that application %s is deployed on server %s: %w. "+
-				"Fix the server_uuid segment of the compound import ID, or import by application UUID only",
-			appUUID, serverUUID, err,
-		)
-	}
-	for _, r := range resources {
-		if r.UUID == appUUID {
-			return nil
-		}
-	}
-	return fmt.Errorf(
-		"application %s is not deployed on server %s. "+
-			"The compound import ID format is project_uuid:server_uuid:environment_name:application_uuid; "+
-			"a wrong server_uuid is not corrected on Read and can recreate the app on the wrong server on replace",
-		appUUID, serverUUID,
-	)
+	return c.ValidateResourceOnServer(ctx, serverUUID, appUUID, "application")
 }
 
 // addApplicationImportSensitiveFieldsWarning explains why imported application

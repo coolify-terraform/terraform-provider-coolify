@@ -2132,6 +2132,28 @@ func TestClient_ListServerResources(t *testing.T) {
 	assert.Equal(t, "database", got[1].Type)
 }
 
+func TestClient_ValidateResourceOnServer(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]ServerResource{
+			{UUID: "app-1", Name: "my-app", Type: "application"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	require.NoError(t, c.ValidateResourceOnServer(context.Background(), "srv-1", "app-1", "application"))
+
+	err := c.ValidateResourceOnServer(context.Background(), "srv-1", "missing", "application")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "is not deployed on server")
+
+	err = (*Client)(nil).ValidateResourceOnServer(context.Background(), "srv-1", "app-1", "application")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "provider client is not configured")
+}
+
 func TestClient_ListServerDomains(t *testing.T) {
 	t.Parallel()
 	expected := []ServerDomain{

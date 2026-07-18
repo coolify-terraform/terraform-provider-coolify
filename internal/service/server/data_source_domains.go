@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
@@ -87,9 +88,11 @@ func (d *serverDomainsDataSource) Read(ctx context.Context, req datasource.ReadR
 
 	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_server_domains"})
 
-	domains, err := d.client.ListServerDomains(ctx, config.ServerUUID.ValueString())
+	serverUUID := config.ServerUUID.ValueString()
+	domains, err := d.client.ListServerDomains(ctx, serverUUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error listing server domains", err.Error())
+		resp.Diagnostics.AddError("Error listing server domains",
+			fmt.Sprintf("server %s: %s", serverUUID, err))
 		return
 	}
 

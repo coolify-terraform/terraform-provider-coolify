@@ -161,9 +161,30 @@ func NewMockServer(dbType, name, image string, extraFields map[string]interface{
 		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/stop"):
 			w.WriteHeader(http.StatusOK)
 
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/") && strings.HasSuffix(r.URL.Path, "/resources"):
+			writeServerResources(w, r.URL.Path, state)
+
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	})))
 	return srv, state
+}
+
+// writeServerResources answers GET /servers/{uuid}/resources for compound import.
+// Only the default test server UUID hosts the mock database.
+func writeServerResources(w http.ResponseWriter, path string, state *MockState) {
+	const defaultServerUUID = "bbbb0001-0001-4000-8000-000000000001"
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	serverUUID := ""
+	if len(parts) >= 4 {
+		serverUUID = parts[3]
+	}
+	if serverUUID != defaultServerUUID {
+		writeJSON(w, http.StatusOK, []map[string]string{})
+		return
+	}
+	writeJSON(w, http.StatusOK, []map[string]string{
+		{"uuid": state.UUID, "name": state.Name, "type": "database"},
+	})
 }
