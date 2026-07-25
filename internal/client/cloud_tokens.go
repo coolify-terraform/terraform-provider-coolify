@@ -8,10 +8,11 @@ import (
 )
 
 type CloudToken struct {
-	UUID     string `json:"uuid"`
-	Name     string `json:"name"`
-	Provider string `json:"provider"`
-	Token    string `json:"token,omitempty"`
+	UUID        string `json:"uuid"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Provider    string `json:"provider"`
+	Token       string `json:"token,omitempty"`
 }
 
 type CreateCloudTokenInput struct {

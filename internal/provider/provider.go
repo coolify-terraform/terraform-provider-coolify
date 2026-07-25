@@ -29,6 +29,8 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/postgresql"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/redis"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/deployment"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/destination"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/digitalocean"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/environment"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/environmentvariable"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/envsbulk"
@@ -46,6 +48,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/storage"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/team"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/version"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/vultr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -215,6 +218,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		cloudtokenvalidate.NewResource,  // coolify_cloud_token_validate
 		backup.NewResource,              // coolify_database_backup
 		deployment.NewResource,          // coolify_deployment
+		destination.NewResource,         // coolify_destination
 		environment.NewResource,         // coolify_environment
 		environmentvariable.NewResource, // coolify_environment_variable
 		envsbulk.NewResource,            // coolify_envs_bulk
@@ -224,7 +228,9 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		resourceaction.NewResource,      // coolify_resource_action
 		scheduledtask.NewResource,       // coolify_scheduled_task
 		server.NewResource,              // coolify_server
+		digitalocean.NewResource,        // coolify_server_digitalocean
 		hetzner.NewResource,             // coolify_server_hetzner
+		vultr.NewResource,               // coolify_server_vultr
 		servervalidate.NewResource,      // coolify_server_validate
 		service.NewResource,             // coolify_service
 		storage.NewResource,             // coolify_storage
@@ -242,6 +248,12 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		database.NewDataSource,
 		database.NewListDataSource,
 		deployment.NewDataSource,
+		destination.NewDataSource,
+		destination.NewListDataSource,
+		digitalocean.NewImagesDataSource,
+		digitalocean.NewRegionsDataSource,
+		digitalocean.NewSizesDataSource,
+		digitalocean.NewSSHKeysDataSource,
 		deployment.NewListDataSource,
 		environment.NewDataSource,
 		environment.NewListDataSource,
@@ -276,6 +288,10 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		team.NewDataSource,
 		team.NewListDataSource,
 		team.NewMembersDataSource,
+		vultr.NewOSDataSource,
+		vultr.NewPlansDataSource,
+		vultr.NewRegionsDataSource,
+		vultr.NewSSHKeysDataSource,
 		version.NewDataSource,
 	}
 }

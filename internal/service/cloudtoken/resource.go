@@ -31,6 +31,7 @@ type cloudTokenResource struct {
 type cloudTokenResourceModel struct {
 	UUID          types.String `tfsdk:"uuid"`
 	Name          types.String `tfsdk:"name"`
+	Description   types.String `tfsdk:"description"`
 	CloudProvider types.String `tfsdk:"cloud_provider"`
 	Token         types.String `tfsdk:"token"`
 }
@@ -59,8 +60,12 @@ func (r *cloudTokenResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "The name of the cloud token.",
 				Required:            true,
 			},
+			"description": schema.StringAttribute{
+				MarkdownDescription: "Description of the cloud token when returned by Coolify. Not accepted on create/update by the Coolify API (model-only); treated as read-only.",
+				Computed:            true,
+			},
 			"cloud_provider": schema.StringAttribute{
-				MarkdownDescription: "The cloud provider type (e.g., `hetzner`, `aws`). Changing this forces a new resource.",
+				MarkdownDescription: "The cloud provider type (e.g., `hetzner`, `digitalocean`, `vultr`). Changing this forces a new resource.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -118,6 +123,7 @@ func (r *cloudTokenResource) Create(ctx context.Context, req resource.CreateRequ
 
 	plan.UUID = types.StringValue(ct.UUID)
 	plan.Name = types.StringValue(ct.Name)
+	plan.Description = flex.StringToFramework(ct.Description)
 	plan.CloudProvider = types.StringValue(ct.Provider)
 	if ct.Token != "" {
 		plan.Token = types.StringValue(ct.Token)
@@ -150,6 +156,10 @@ func (r *cloudTokenResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	state.UUID = types.StringValue(ct.UUID)
 	state.Name = types.StringValue(ct.Name)
+	// Preserve description when older Coolify omits the field entirely.
+	if ct.Description != "" || state.Description.IsNull() || state.Description.IsUnknown() {
+		state.Description = flex.StringToFramework(ct.Description)
+	}
 	state.CloudProvider = types.StringValue(ct.Provider)
 	// Preserve token from state if API does not return it (sensitive field).
 	if ct.Token != "" {
@@ -196,6 +206,9 @@ func (r *cloudTokenResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	plan.UUID = types.StringValue(ct.UUID)
 	plan.Name = types.StringValue(ct.Name)
+	if ct.Description != "" || plan.Description.IsNull() || plan.Description.IsUnknown() {
+		plan.Description = flex.StringToFramework(ct.Description)
+	}
 	plan.CloudProvider = types.StringValue(ct.Provider)
 	if ct.Token != "" {
 		plan.Token = types.StringValue(ct.Token)

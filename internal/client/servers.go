@@ -36,17 +36,22 @@ type ServerSettings struct {
 }
 
 type Server struct {
-	UUID           string          `json:"uuid,omitempty"`
-	Name           string          `json:"name"`
-	Description    string          `json:"description,omitempty"`
-	IP             string          `json:"ip"`
-	Port           int             `json:"port,omitempty"`
-	User           string          `json:"user,omitempty"`
-	PrivateKeyUUID string          `json:"private_key_uuid,omitempty"`
-	IsBuildServer  bool            `json:"is_build_server"`
-	IsReachable    bool            `json:"is_reachable"`
-	IsUsable       bool            `json:"is_usable"`
-	Settings       *ServerSettings `json:"settings,omitempty"`
+	UUID                      string          `json:"uuid,omitempty"`
+	Name                      string          `json:"name"`
+	Description               string          `json:"description,omitempty"`
+	IP                        string          `json:"ip"`
+	Port                      int             `json:"port,omitempty"`
+	User                      string          `json:"user,omitempty"`
+	PrivateKeyUUID            string          `json:"private_key_uuid,omitempty"`
+	IsBuildServer             bool            `json:"is_build_server"`
+	IsReachable               bool            `json:"is_reachable"`
+	IsUsable                  bool            `json:"is_usable"`
+	DigitalOceanDropletID     *int64          `json:"digitalocean_droplet_id,omitempty"`
+	DigitalOceanDropletStatus string          `json:"digitalocean_droplet_status,omitempty"`
+	VultrInstanceID           string          `json:"vultr_instance_id,omitempty"`
+	VultrInstanceStatus       string          `json:"vultr_instance_status,omitempty"`
+	ValidationLogs            string          `json:"validation_logs,omitempty"`
+	Settings                  *ServerSettings `json:"settings,omitempty"`
 }
 type CreateServerInput struct {
 	Name           string `json:"name"`
@@ -197,6 +202,56 @@ func (c *Client) CreateHetznerServer(ctx context.Context, input CreateHetznerSer
 	var s Server
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/hetzner", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating hetzner server: %w", err)
+	}
+	return &s, nil
+}
+
+// CreateDigitalOceanServerInput creates a DigitalOcean droplet registered as a Coolify server.
+// Requires Coolify >= v4.2.0.
+type CreateDigitalOceanServerInput struct {
+	Name                   string  `json:"name"`
+	CloudProviderTokenUUID string  `json:"cloud_provider_token_uuid"`
+	Region                 string  `json:"region"`
+	Size                   string  `json:"size"`
+	Image                  any     `json:"image"` // string slug or numeric ID
+	PrivateKeyUUID         string  `json:"private_key_uuid"`
+	EnableIPv6             *bool   `json:"enable_ipv6,omitempty"`
+	Monitoring             *bool   `json:"monitoring,omitempty"`
+	DigitalOceanSSHKeyIDs  []int64 `json:"digitalocean_ssh_key_ids,omitempty"`
+	CloudInitScript        string  `json:"cloud_init_script,omitempty"`
+	InstantValidate        *bool   `json:"instant_validate,omitempty"`
+}
+
+// CreateDigitalOceanServer provisions a DigitalOcean droplet and registers it with Coolify.
+func (c *Client) CreateDigitalOceanServer(ctx context.Context, input CreateDigitalOceanServerInput) (*Server, error) {
+	var s Server
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/digitalocean", input, &s, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating digitalocean server: %w", err)
+	}
+	return &s, nil
+}
+
+// CreateVultrServerInput creates a Vultr instance registered as a Coolify server.
+// Requires Coolify >= v4.2.0.
+type CreateVultrServerInput struct {
+	Name                   string   `json:"name"`
+	CloudProviderTokenUUID string   `json:"cloud_provider_token_uuid"`
+	Region                 string   `json:"region"`
+	Plan                   string   `json:"plan"`
+	OsID                   int64    `json:"os_id"`
+	PrivateKeyUUID         string   `json:"private_key_uuid"`
+	EnableIPv6             *bool    `json:"enable_ipv6,omitempty"`
+	DisablePublicIPv4      *bool    `json:"disable_public_ipv4,omitempty"`
+	VultrSSHKeyIDs         []string `json:"vultr_ssh_key_ids,omitempty"`
+	CloudInitScript        string   `json:"cloud_init_script,omitempty"`
+	InstantValidate        *bool    `json:"instant_validate,omitempty"`
+}
+
+// CreateVultrServer provisions a Vultr instance and registers it with Coolify.
+func (c *Client) CreateVultrServer(ctx context.Context, input CreateVultrServerInput) (*Server, error) {
+	var s Server
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/vultr", input, &s, http.StatusCreated); err != nil {
+		return nil, fmt.Errorf("creating vultr server: %w", err)
 	}
 	return &s, nil
 }

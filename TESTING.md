@@ -302,7 +302,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (33 total)
+### Resources (36 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -340,7 +340,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_validate` | Yes | Yes | N/A | N/A | Trigger resource |
 | `coolify_envs_bulk` | Yes | Yes | N/A | N/A | Atomic env var set management |
 
-### Data Sources (44 total)
+### Data Sources (54 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -393,7 +393,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 33/33 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 91
+- **Total acceptance test functions**: 104
 
 ### Testing strategies for edge cases
 

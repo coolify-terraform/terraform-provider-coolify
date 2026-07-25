@@ -46,5 +46,6 @@ Required:
 Read-Only:
 
 - `cloud_provider` (String) The cloud provider type.
+- `description` (String) Description of the cloud token (Coolify >= v4.2.0).
 - `name` (String) The name of the cloud token.
 - `uuid` (String) The unique identifier of the cloud token.

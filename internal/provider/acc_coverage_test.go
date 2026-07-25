@@ -71,6 +71,7 @@ func TestAccCoverage_ResourcesHaveCRUDSteps(t *testing.T) {
 		"coolify_cloud_token_validate": true,
 		"coolify_application_preview":  true,
 		"coolify_backup_execution":     true,
+		"coolify_destination":          true,
 	}
 	// Resources where Import is not applicable.
 	noImport := map[string]bool{
