@@ -598,7 +598,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("ERROR: provide --versions-json or --fetch", file=sys.stderr)
         return 2
 
-    if args.pinned_version:
+    # Use `is not None` so an explicit empty --pinned-version is not ignored
+    # (empty string is falsy and would otherwise fall through to the contract file).
+    if args.pinned_version is not None:
         pin = normalize_version(args.pinned_version)
     elif args.contract.exists():
         pin = load_pinned_version(args.contract)
