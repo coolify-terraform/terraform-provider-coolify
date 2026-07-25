@@ -259,14 +259,14 @@ func (c *Client) DeleteApplication(ctx context.Context, uuid string) error {
 }
 
 func (c *Client) StartApplication(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/start", url.PathEscape(uuid)), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/applications/%s/start", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("starting application %s: %w", uuid, err)
 	}
 	return nil
 }
 
 func (c *Client) StopApplication(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s/stop", url.PathEscape(uuid)), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/applications/%s/stop", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("stopping application %s: %w", uuid, err)
 	}
 	return nil

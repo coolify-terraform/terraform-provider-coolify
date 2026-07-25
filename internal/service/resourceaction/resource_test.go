@@ -18,7 +18,7 @@ func TestResourceActionResource_DestroyNoOp(t *testing.T) {
 	var actionCalls atomic.Int32
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != dbUUID {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
@@ -54,7 +54,7 @@ func TestResourceActionResource_StartDatabase(t *testing.T) {
 	dbUUID := "aaaa0001-0001-4000-8000-000000000001"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != dbUUID {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
@@ -105,7 +105,7 @@ func TestResourceActionResource_StopService(t *testing.T) {
 	svcUUID := "bbbb0001-0001-4000-8000-000000000001"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/services/{uuid}/stop", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/services/{uuid}/stop", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != svcUUID {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
@@ -191,7 +191,7 @@ func TestResourceActionResource_TriggersForceReplace(t *testing.T) {
 	var callCount atomic.Int32
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/databases/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != dbUUID {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
@@ -279,7 +279,7 @@ func TestResourceActionResource_APIError(t *testing.T) {
 	dbUUID := "aaaa0001-0001-4000-8000-000000000001"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, `{"error":"Server is not reachable."}`, http.StatusServiceUnavailable)
 	})
 
@@ -313,7 +313,7 @@ func TestResourceActionResource_AlreadyStopped(t *testing.T) {
 	dbUUID := "aaaa0003-0003-4000-8000-000000000003"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/databases/{uuid}/stop", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/stop", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != dbUUID {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
@@ -353,7 +353,7 @@ func TestResourceActionResource_AlreadyRunning(t *testing.T) {
 	svcUUID := "aaaa0004-0004-4000-8000-000000000004"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/services/{uuid}/start", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /api/v1/services/{uuid}/start", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != svcUUID {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
@@ -420,7 +420,7 @@ resource "coolify_resource_action" "bad" {
 func TestResourceActionResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))

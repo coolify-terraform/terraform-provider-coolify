@@ -148,10 +148,10 @@ func newMockServiceServer() (*httptest.Server, *mockServiceState) {
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
-		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/start"):
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/start"):
 			w.WriteHeader(http.StatusOK)
 
-		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/stop"):
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/stop"):
 			w.WriteHeader(http.StatusOK)
 
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/") && strings.HasSuffix(r.URL.Path, "/resources"):
@@ -436,10 +436,10 @@ func TestServiceResource_Disappears(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
-		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/start"):
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/start"):
 			w.WriteHeader(http.StatusOK)
 
-		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/stop"):
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/stop"):
 			w.WriteHeader(http.StatusOK)
 
 		default:
