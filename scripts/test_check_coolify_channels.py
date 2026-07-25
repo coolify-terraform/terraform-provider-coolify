@@ -135,6 +135,27 @@ class TestDecide(unittest.TestCase):
 
 
 class TestCLI(unittest.TestCase):
+    def test_empty_pin_exits_error(self):
+        data = {
+            "coolify": {
+                "v4": {"version": "4.1.2"},
+                "nightly": {"version": "4.2.0"},
+            }
+        }
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "versions.json"
+            path.write_text(json.dumps(data))
+            rc = cc.main(
+                [
+                    "--versions-json",
+                    str(path),
+                    "--pinned-version",
+                    "",
+                    "--json",
+                ]
+            )
+            self.assertEqual(rc, 2)
+
     def test_cli_json_exit_code(self):
         data = {
             "coolify": {

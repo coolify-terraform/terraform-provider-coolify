@@ -606,6 +606,14 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"ERROR: contract not found: {args.contract}", file=sys.stderr)
         return 2
 
+    if not pin:
+        print(
+            "ERROR: pinned contract version is empty "
+            f"(check --pinned-version or {args.contract} 'version' field)",
+            file=sys.stderr,
+        )
+        return 2
+
     if args.prerelease_tags is not None:
         prereleases = [normalize_version(t) for t in args.prerelease_tags]
     elif args.fetch_prereleases or args.fetch:
