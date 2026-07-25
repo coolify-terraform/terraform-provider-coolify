@@ -180,7 +180,7 @@ def build_body(snap: ChannelSnapshot, reasons: list[str]) -> str:
         + ".json` (or the extract output path)",
         "3. Run `make contract-check` and implement provider changes for new fields/routes",
         "4. Prefer living on a feature branch until GitHub unmarks the prerelease / stable CDN catches up",
-        "5. When stable CDN `v4` matches the pin (or pin is intentionally current), close this issue",
+        "5. When stable CDN `v4` matches the pin (or pin is intentionally current), the daily job closes this issue automatically",
     ]
     if pre:
         steps.insert(
@@ -427,16 +427,36 @@ def ensure_labels() -> None:
 
 
 def apply_decision(decision: Decision) -> int:
-    """Create or update GitHub issue. Returns 0 always unless gh fails hard."""
-    if decision.action == "none":
-        print("No channel action needed.")
-        return 0
-
+    """Create, update, or close GitHub issue. Returns 0 unless gh fails hard."""
     ensure_labels()
     existing = find_open_channel_issue()
     label_args: list[str] = []
     for lab in LABELS:
         label_args.extend(["--label", lab])
+
+    # Channels fully aligned: close our tracked issue if one is open.
+    if decision.action == "none":
+        if existing is not None and STATE_MARKER_PREFIX in (existing.get("body") or ""):
+            number = str(existing["number"])
+            print(f"Closing issue #{number}: channels aligned (stable/nightly/pin).")
+            subprocess.check_call(
+                [
+                    "gh",
+                    "issue",
+                    "close",
+                    number,
+                    "--comment",
+                    (
+                        "Closing automatically: stable, nightly, and the pinned "
+                        f"contract are aligned at `{decision.snapshot.pin}` "
+                        f"(stable=`{decision.snapshot.stable}`, "
+                        f"nightly=`{decision.snapshot.nightly}`)."
+                    ),
+                ]
+            )
+            return 0
+        print("No channel action needed.")
+        return 0
 
     if existing is None:
         if decision.action in ("open", "update", "comment"):
