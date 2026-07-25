@@ -21,7 +21,7 @@ func TestServerValidationDataSource(t *testing.T) {
 	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/servers/550e8400-e29b-41d4-a716-446655440000/validate" {
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers/550e8400-e29b-41d4-a716-446655440000/validate" {
 			json.NewEncoder(w).Encode(validation)
 			return
 		}

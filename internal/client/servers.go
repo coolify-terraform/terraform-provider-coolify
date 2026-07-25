@@ -120,10 +120,10 @@ type ServerValidation struct {
 }
 
 // ValidateServer triggers a connectivity check on the server.
-// Coolify uses GET for this endpoint.
+// Coolify requires POST for this endpoint (GET returns 405 post_required).
 func (c *Client) ValidateServer(ctx context.Context, uuid string) (*ServerValidation, error) {
 	var v ServerValidation
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/servers/%s/validate", url.PathEscape(uuid)), nil, &v); err != nil {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/servers/%s/validate", url.PathEscape(uuid)), nil, &v); err != nil {
 		return nil, fmt.Errorf("validating server %s: %w", uuid, err)
 	}
 	return &v, nil

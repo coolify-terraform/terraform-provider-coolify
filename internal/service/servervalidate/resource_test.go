@@ -13,7 +13,7 @@ import (
 func TestServerValidateResource_Valid(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/servers/550e8400-e29b-41d4-a716-446655440020/validate", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/servers/550e8400-e29b-41d4-a716-446655440020/validate", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"valid":true,"message":"Server is reachable."}`))
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -38,7 +38,7 @@ func TestServerValidateResource_Valid(t *testing.T) {
 func TestServerValidateResource_Invalid(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/servers/550e8400-e29b-41d4-a716-446655440021/validate", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/servers/550e8400-e29b-41d4-a716-446655440021/validate", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"valid":false,"message":"SSH connection refused."}`))
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -64,7 +64,7 @@ func TestServerValidateResource_Triggers(t *testing.T) {
 	t.Parallel()
 	var callCount atomic.Int32
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/servers/550e8400-e29b-41d4-a716-446655440022/validate", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/servers/550e8400-e29b-41d4-a716-446655440022/validate", func(w http.ResponseWriter, _ *http.Request) {
 		callCount.Add(1)
 		_, _ = w.Write([]byte(`{"valid":true,"message":"OK"}`))
 	})
@@ -99,7 +99,7 @@ func TestServerValidateResource_DestroyNoOp(t *testing.T) {
 	t.Parallel()
 	var validateCalls atomic.Int32
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/servers/550e8400-e29b-41d4-a716-446655440023/validate", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/servers/550e8400-e29b-41d4-a716-446655440023/validate", func(w http.ResponseWriter, _ *http.Request) {
 		validateCalls.Add(1)
 		_, _ = w.Write([]byte(`{"valid":true,"message":"OK"}`))
 	})

@@ -186,9 +186,9 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 				BuildPack:       "nixpacks",
 				PortsExposes:    "3000",
 			}, 201, map[string]string{"uuid": "app-1"}},
-		{"StartApplication", "GET", "/api/v1/applications/app-1/start",
+		{"StartApplication", "POST", "/api/v1/applications/app-1/start",
 			nil, 200, map[string]string{"message": "started"}},
-		{"StopApplication", "GET", "/api/v1/applications/app-1/stop",
+		{"StopApplication", "POST", "/api/v1/applications/app-1/stop",
 			nil, 200, map[string]string{"message": "stopped"}},
 		{"GetApplicationLogs", "GET", "/api/v1/applications/app-1/logs",
 			nil, 200, []map[string]interface{}{{"timestamp": "2024-01-01T00:00:00Z", "message": "started"}}},
@@ -242,11 +242,11 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			200, map[string]string{"message": "updated"}},
 
 		// Database lifecycle
-		{"RestartDatabase", "GET", "/api/v1/databases/db-1/restart",
+		{"RestartDatabase", "POST", "/api/v1/databases/db-1/restart",
 			nil, 200, map[string]string{"message": "restarted"}},
-		{"StartDatabase", "GET", "/api/v1/databases/db-1/start",
+		{"StartDatabase", "POST", "/api/v1/databases/db-1/start",
 			nil, 200, map[string]string{"message": "started"}},
-		{"StopDatabase", "GET", "/api/v1/databases/db-1/stop",
+		{"StopDatabase", "POST", "/api/v1/databases/db-1/stop",
 			nil, 200, map[string]string{"message": "stopped"}},
 
 		// Database storages
@@ -273,11 +273,11 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 		{"BulkUpdateEnvVars_Service", "PATCH", "/api/v1/services/svc-1/envs/bulk",
 			client.BulkEnvVarInput{Variables: []client.EnvVarEntry{{Key: "K1", Value: "V1"}}},
 			200, map[string]string{"message": "updated"}},
-		{"RestartService", "GET", "/api/v1/services/svc-1/restart",
+		{"RestartService", "POST", "/api/v1/services/svc-1/restart",
 			nil, 200, map[string]string{"message": "restarted"}},
-		{"StartService", "GET", "/api/v1/services/svc-1/start",
+		{"StartService", "POST", "/api/v1/services/svc-1/start",
 			nil, 200, map[string]string{"message": "started"}},
-		{"StopService", "GET", "/api/v1/services/svc-1/stop",
+		{"StopService", "POST", "/api/v1/services/svc-1/stop",
 			nil, 200, map[string]string{"message": "stopped"}},
 
 		// Scheduled Tasks (service)
@@ -367,7 +367,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 				Location:               "fsn1",
 				Image:                  "ubuntu-22.04",
 			}, 201, map[string]string{"uuid": "srv-1"}},
-		{"ValidateServer", "GET", "/api/v1/servers/srv-1/validate",
+		{"ValidateServer", "POST", "/api/v1/servers/srv-1/validate",
 			nil, 200, map[string]interface{}{"valid": true}},
 
 		// Teams (additional)

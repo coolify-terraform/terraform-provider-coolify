@@ -247,13 +247,13 @@ func (c *Client) DeleteDatabase(ctx context.Context, uuid string) error {
 	return nil
 }
 func (c *Client) StartDatabase(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/start", url.PathEscape(uuid)), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/start", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("starting database %s: %w", uuid, err)
 	}
 	return nil
 }
 func (c *Client) StopDatabase(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/stop", url.PathEscape(uuid)), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/stop", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("stopping database %s: %w", uuid, err)
 	}
 	return nil
@@ -261,7 +261,7 @@ func (c *Client) StopDatabase(ctx context.Context, uuid string) error {
 
 // RestartDatabase restarts a database.
 func (c *Client) RestartDatabase(ctx context.Context, uuid string) error {
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s/restart", url.PathEscape(uuid)), nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/restart", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("restarting database %s: %w", uuid, err)
 	}
 	return nil

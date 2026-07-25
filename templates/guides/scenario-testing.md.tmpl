@@ -215,8 +215,8 @@ export COOLIFY_SERVER_UUID=$(curl -s -X POST http://localhost:8000/api/v1/server
 
 echo "Server UUID: $COOLIFY_SERVER_UUID"
 
-# Validate the server (triggers SSH connectivity check)
-curl -s "http://localhost:8000/api/v1/servers/$COOLIFY_SERVER_UUID/validate" \
+# Validate the server (triggers SSH connectivity check; POST required)
+curl -s -X POST "http://localhost:8000/api/v1/servers/$COOLIFY_SERVER_UUID/validate" \
   -H "Authorization: Bearer $COOLIFY_TOKEN"
 
 # Wait for validation to complete (usually 10-20 seconds)

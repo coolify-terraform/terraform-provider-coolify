@@ -940,7 +940,7 @@ func TestClient_DeleteDatabase(t *testing.T) {
 func TestClient_StartDatabase(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-start/start", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -954,7 +954,7 @@ func TestClient_StartDatabase(t *testing.T) {
 func TestClient_StopDatabase(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-stop/stop", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -1891,7 +1891,7 @@ func TestClient_ListServices(t *testing.T) {
 func TestClient_StartService(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-start/start", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -1905,7 +1905,7 @@ func TestClient_StartService(t *testing.T) {
 func TestClient_StopService(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-stop/stop", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -1919,7 +1919,7 @@ func TestClient_StopService(t *testing.T) {
 func TestClient_RestartService(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/services/svc-restart/restart", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -2094,7 +2094,7 @@ func TestClient_ValidateServer(t *testing.T) {
 	t.Parallel()
 	expected := ServerValidation{Valid: true, Message: "Server is reachable"}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/servers/srv-1/validate", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(expected)
@@ -2290,7 +2290,7 @@ func TestClient_GetVersion(t *testing.T) {
 func TestClient_StartApplication(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-1/start", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -2304,7 +2304,7 @@ func TestClient_StartApplication(t *testing.T) {
 func TestClient_StopApplication(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/applications/app-1/stop", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -4311,7 +4311,7 @@ func TestClient_Deploy(t *testing.T) {
 func TestClient_RestartDatabase(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/databases/db-restart/restart", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
