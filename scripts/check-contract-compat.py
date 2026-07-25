@@ -38,6 +38,28 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "health_check_retries",
         "health_check_start_period",
     },
+    # Coolify v4.2.0 additions not yet modeled as Terraform attributes
+    # (tags are a separate resource surface; preview/build secrets need design).
+    "ApplicationsController::create_application": {
+        "is_preview_deployments_enabled",
+        "tags",
+        "use_build_secrets",
+    },
+    "ApplicationsController::update_by_uuid": {
+        "is_preview_deployments_enabled",
+        "use_build_secrets",
+    },
+    "DatabasesController::create_database": {
+        "tags",
+    },
+    "ServicesController::create_service": {
+        "tags",
+    },
+    "HetznerController::createServer": {
+        "enable_backups",
+        "hetzner_firewall_ids",
+        "hetzner_network_ids",
+    },
 }
 
 

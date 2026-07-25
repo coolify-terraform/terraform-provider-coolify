@@ -5251,3 +5251,175 @@ func TestClient_DisableMCP_APIError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "disabling MCP server")
 }
+
+func TestClient_CreateDigitalOceanServer(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/servers/digitalocean", r.URL.Path)
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		assert.Equal(t, "do-node", body["name"])
+		assert.Equal(t, "tok-1", body["cloud_provider_token_uuid"])
+		assert.Equal(t, "nyc1", body["region"])
+		assert.Equal(t, "s-1vcpu-1gb", body["size"])
+		assert.Equal(t, "ubuntu-24-04-x64", body["image"])
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Server{UUID: "do-uuid-1", Name: "do-node", IP: "203.0.113.10"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	server, err := c.CreateDigitalOceanServer(context.Background(), CreateDigitalOceanServerInput{
+		Name: "do-node", CloudProviderTokenUUID: "tok-1", Region: "nyc1", Size: "s-1vcpu-1gb",
+		Image: "ubuntu-24-04-x64", PrivateKeyUUID: "pk-1",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "do-uuid-1", server.UUID)
+}
+
+func TestClient_CreateVultrServer(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/servers/vultr", r.URL.Path)
+		var body map[string]interface{}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		assert.Equal(t, "vultr-node", body["name"])
+		assert.EqualValues(t, 1743, body["os_id"])
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Server{UUID: "vu-uuid-1", Name: "vultr-node"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	server, err := c.CreateVultrServer(context.Background(), CreateVultrServerInput{
+		Name: "vultr-node", CloudProviderTokenUUID: "tok-1", Region: "ewr", Plan: "vc2-1c-1gb",
+		OsID: 1743, PrivateKeyUUID: "pk-1",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "vu-uuid-1", server.UUID)
+}
+
+func TestClient_ListDigitalOceanRegions(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/digitalocean/regions", r.URL.Path)
+		assert.Equal(t, "tok-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		json.NewEncoder(w).Encode([]DigitalOceanRegion{{Slug: "nyc1", Name: "New York 1", Available: true}})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	regions, err := c.ListDigitalOceanRegions(context.Background(), "tok-1")
+	require.NoError(t, err)
+	require.Len(t, regions, 1)
+	assert.Equal(t, "nyc1", regions[0].Slug)
+}
+
+func TestClient_DestinationCRUD(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{{UUID: "d1", Name: "net1", Network: "coolify", Type: "standalone", ServerUUID: "s1"}})
+	})
+	mux.HandleFunc("GET /api/v1/destinations/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "d1", r.PathValue("uuid"))
+		json.NewEncoder(w).Encode(Destination{UUID: "d1", Name: "net1", Network: "coolify", Type: "standalone", ServerUUID: "s1"})
+	})
+	mux.HandleFunc("POST /api/v1/servers/{server_uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "s1", r.PathValue("server_uuid"))
+		var input CreateDestinationInput
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&input))
+		assert.Equal(t, "coolify", input.Network)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Destination{UUID: "d-new", Name: input.Name, Network: input.Network, Type: "standalone", ServerUUID: "s1"})
+	})
+	mux.HandleFunc("DELETE /api/v1/destinations/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "d1", r.PathValue("uuid"))
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+
+	list, err := c.ListDestinations(context.Background())
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+
+	got, err := c.GetDestination(context.Background(), "d1")
+	require.NoError(t, err)
+	assert.Equal(t, "coolify", got.Network)
+
+	created, err := c.CreateDestination(context.Background(), "s1", CreateDestinationInput{Name: "n", Network: "coolify", Type: "standalone"})
+	require.NoError(t, err)
+	assert.Equal(t, "d-new", created.UUID)
+
+	require.NoError(t, c.DeleteDestination(context.Background(), "d1"))
+}
+
+func TestClient_CloudTokenDescriptionIsReadOnlyJSON(t *testing.T) {
+	t.Parallel()
+	// description is returned on GET when present, but never sent on create/update.
+	ct := CloudToken{UUID: "ct-1", Name: "n", Description: "from-api", Provider: "hetzner"}
+	data, err := json.Marshal(CreateCloudTokenInput{Name: "n", Provider: "hetzner", Token: "t"})
+	require.NoError(t, err)
+	var raw map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &raw))
+	_, hasDesc := raw["description"]
+	assert.False(t, hasDesc, "CreateCloudTokenInput must not send description (API rejects it)")
+	assert.Equal(t, "from-api", ct.Description)
+}
+
+func TestClient_ResolveDestinationUUID(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{
+			{UUID: "d-other", Network: "other", Type: "standalone"},
+			{UUID: "d-coolify", Network: "coolify", Type: "standalone"},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+
+	// explicit wins
+	got, err := c.ResolveDestinationUUID(context.Background(), "s1", "explicit")
+	require.NoError(t, err)
+	assert.Equal(t, "explicit", got)
+
+	// prefers coolify network when multiple
+	got, err = c.ResolveDestinationUUID(context.Background(), "s1", "")
+	require.NoError(t, err)
+	assert.Equal(t, "d-coolify", got)
+}
+
+func TestClient_CreateDockerfileApplication_ResolvesDestination(t *testing.T) {
+	t.Parallel()
+	var attempts int
+	var gotBody map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{{UUID: "dest-1", Network: "coolify", Type: "standalone"}})
+	})
+	mux.HandleFunc("POST /api/v1/applications/dockerfile", func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+		if attempts == 1 {
+			http.Error(w, `{"message":"Server has multiple destinations and you do not set destination_uuid."}`, http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "app-1"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateDockerfileApplication(context.Background(), CreateDockerfileAppInput{
+		ProjectUUID: "p", ServerUUID: "s", EnvironmentName: "production", Name: "n",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 2, attempts)
+	assert.Equal(t, "dest-1", gotBody["destination_uuid"])
+}

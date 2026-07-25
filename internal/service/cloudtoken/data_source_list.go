@@ -33,6 +33,7 @@ type cloudTokenListDataSourceModel struct {
 type cloudTokenItemModel struct {
 	UUID          types.String `tfsdk:"uuid"`
 	Name          types.String `tfsdk:"name"`
+	Description   types.String `tfsdk:"description"`
 	CloudProvider types.String `tfsdk:"cloud_provider"`
 }
 
@@ -60,6 +61,10 @@ func (d *cloudTokenListDataSource) Schema(_ context.Context, _ datasource.Schema
 						},
 						"name": schema.StringAttribute{
 							MarkdownDescription: "The name of the cloud token.",
+							Computed:            true,
+						},
+						"description": schema.StringAttribute{
+							MarkdownDescription: "Description of the cloud token (Coolify >= v4.2.0).",
 							Computed:            true,
 						},
 						"cloud_provider": schema.StringAttribute{
@@ -114,6 +119,7 @@ func (d *cloudTokenListDataSource) Read(ctx context.Context, req datasource.Read
 		item := cloudTokenItemModel{
 			UUID:          types.StringValue(t.UUID),
 			Name:          types.StringValue(t.Name),
+			Description:   flex.StringToFramework(t.Description),
 			CloudProvider: types.StringValue(t.Provider),
 		}
 		state.CloudTokens = append(state.CloudTokens, item)

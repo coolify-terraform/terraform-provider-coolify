@@ -28,4 +28,5 @@ data "coolify_cloud_token" "example" {
 ### Read-Only
 
 - `cloud_provider` (String) The cloud provider type.
+- `description` (String) Description of the cloud token (Coolify >= v4.2.0).
 - `name` (String) The name of the cloud token.

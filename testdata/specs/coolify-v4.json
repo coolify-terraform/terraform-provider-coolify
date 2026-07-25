@@ -13554,6 +13554,15 @@
                         "description": "Detected traefik version.",
                         "maxLength": 255
                     },
+                    "digitalocean_droplet_id": {
+                        "type": "integer",
+                        "description": "Digitalocean droplet id."
+                    },
+                    "digitalocean_droplet_status": {
+                        "type": "string",
+                        "description": "Digitalocean droplet status.",
+                        "maxLength": 255
+                    },
                     "hetzner_server_id": {
                         "type": "integer",
                         "description": "Hetzner server id."
@@ -13658,6 +13667,16 @@
                     "validation_logs": {
                         "type": "string",
                         "description": "The validation logs."
+                    },
+                    "vultr_instance_id": {
+                        "type": "string",
+                        "description": "Vultr instance id.",
+                        "maxLength": 255
+                    },
+                    "vultr_instance_status": {
+                        "type": "string",
+                        "description": "Vultr instance status.",
+                        "maxLength": 255
                     }
                 },
                 "type": "object"
@@ -15909,6 +15928,10 @@
             "CloudProviderToken": {
                 "type": "object",
                 "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "Description."
+                    },
                     "name": {
                         "type": "string",
                         "description": "Name.",

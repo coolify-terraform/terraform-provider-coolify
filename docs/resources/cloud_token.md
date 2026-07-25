@@ -30,12 +30,13 @@ resource "coolify_cloud_token" "example" {
 
 ### Required
 
-- `cloud_provider` (String) The cloud provider type (e.g., `hetzner`, `aws`). Changing this forces a new resource.
+- `cloud_provider` (String) The cloud provider type (e.g., `hetzner`, `digitalocean`, `vultr`). Changing this forces a new resource.
 - `name` (String) The name of the cloud token.
 - `token` (String, Sensitive) The cloud provider token. Coolify validates this against the cloud provider's API on creation; placeholder values will be rejected.
 
 ### Read-Only
 
+- `description` (String) Description of the cloud token when returned by Coolify. Not accepted on create/update by the Coolify API (model-only); treated as read-only.
 - `uuid` (String) The unique identifier of the cloud token.
 
 ## Import
