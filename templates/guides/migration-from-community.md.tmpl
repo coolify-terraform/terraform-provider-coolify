@@ -16,7 +16,7 @@ This guide helps you migrate from the
 This provider is a complete rewrite using the Terraform Plugin Framework
 (not the older SDK v2). It offers:
 
-- **33 resources** vs. ~10 in the community provider
+- **36 resources** vs. ~10 in the community provider
 - **44 data sources** with filtering support
 - **890+ tests** (unit + acceptance + scenario)
 - Database backup management, scheduled tasks, storage volumes,
