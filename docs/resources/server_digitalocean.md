@@ -5,7 +5,7 @@ subcategory: ""
 description: |-
   Provisions a DigitalOcean droplet and registers it with Coolify. Requires Coolify >= v4.2.0.
   ~> Warning: Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying DigitalOcean server is not destroyed; manage its lifecycle separately.
-  ~> Import note: DigitalOcean-specific fields (cloud_provider_token_uuid, plan, region, os_id, digitalocean_ssh_key_ids, cloud_init_script) are only sent at creation time and are not returned by the Coolify API. After terraform import, these fields will be empty in state. Set them in your configuration before running terraform plan to avoid a forced replacement.
+  ~> Import note: DigitalOcean-specific fields (cloud_provider_token_uuid, size, region, image, digitalocean_ssh_key_ids, cloud_init_script) are only sent at creation time and are not returned by the Coolify API. After terraform import, these fields will be empty in state. Set them in your configuration before running terraform plan to avoid a forced replacement.
 ---
 
 # coolify_server_digitalocean (Resource)
@@ -14,7 +14,7 @@ Provisions a DigitalOcean droplet and registers it with Coolify. Requires Coolif
 
 ~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying DigitalOcean server is not destroyed; manage its lifecycle separately.
 
-~> **Import note:** DigitalOcean-specific fields (`cloud_provider_token_uuid`, `plan`, `region`, `os_id`, `digitalocean_ssh_key_ids`, `cloud_init_script`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state. Set them in your configuration before running `terraform plan` to avoid a forced replacement.
+~> **Import note:** DigitalOcean-specific fields (`cloud_provider_token_uuid`, `size`, `region`, `image`, `digitalocean_ssh_key_ids`, `cloud_init_script`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state. Set them in your configuration before running `terraform plan` to avoid a forced replacement.
 
 ## Example Usage
 

@@ -27,9 +27,9 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 
 | Area | Coverage |
 |---|---|
-| Managed resources | 33 |
+| Managed resources | 36 |
 | Data sources | 44 |
-| Tests | 980+ unit and acceptance tests |
+| Tests | 1020+ unit and acceptance tests |
 | Scenario examples | 17 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -107,6 +107,9 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_project` | Manage projects (logical grouping for resources) |
 | `coolify_server` | Register and configure servers |
 | `coolify_server_hetzner` | Provision Hetzner Cloud servers via Coolify |
+| `coolify_server_digitalocean` | Provision DigitalOcean droplets via Coolify (Coolify >= v4.2.0) |
+| `coolify_server_vultr` | Provision Vultr instances via Coolify (Coolify >= v4.2.0) |
+| `coolify_destination` | Manage Docker network destinations (Coolify >= v4.2.0) |
 | `coolify_private_key` | Manage SSH keys for server access |
 | `coolify_application` | Deploy apps from public Git repositories |
 | `coolify_application_dockerfile` | Deploy apps from Dockerfiles |
@@ -128,7 +131,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_database_backup` | Schedule automated database backups |
 | `coolify_scheduled_task` | Manage scheduled tasks on applications/services |
 | `coolify_storage` | Manage persistent storage volumes |
-| `coolify_cloud_token` | Manage cloud provider tokens (Hetzner) |
+| `coolify_cloud_token` | Manage cloud provider tokens (Hetzner, DigitalOcean, Vultr) |
 | `coolify_github_app` | Manage GitHub App integrations |
 | `coolify_envs_bulk` | Manage environment variables as a single atomic set |
 | `coolify_application_preview` | Manage application preview deployments |
@@ -164,6 +167,9 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_health` | Read Coolify instance health status |
 | `coolify_version` | Read the Coolify instance version |
 | `coolify_hetzner_images` / `coolify_hetzner_locations` / `coolify_hetzner_server_types` / `coolify_hetzner_ssh_keys` | Read Hetzner cloud resources |
+| `coolify_digitalocean_regions` / `coolify_digitalocean_sizes` / `coolify_digitalocean_images` / `coolify_digitalocean_ssh_keys` | Read DigitalOcean cloud resources (Coolify >= v4.2.0) |
+| `coolify_vultr_regions` / `coolify_vultr_plans` / `coolify_vultr_os` / `coolify_vultr_ssh_keys` | Read Vultr cloud resources (Coolify >= v4.2.0) |
+| `coolify_destination` / `coolify_destinations` | Read Docker network destination(s) (Coolify >= v4.2.0) |
 
 ## What You Can Do
 
@@ -297,7 +303,7 @@ targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
-make test                                       # Run unit tests (1010+ tests, race detector enabled)
+make test                                       # Run unit tests (1020+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
 make testacc                                    # Run acceptance tests with serialized package and in-package execution

@@ -84,6 +84,27 @@ class TestDecide(unittest.TestCase):
         self.assertFalse(d.pin_behind_nightly)
         self.assertFalse(d.nightly_ahead_of_stable)
 
+    def test_old_prerelease_ignored_when_aligned(self):
+        # Older leftover prerelease tags must not keep the pin "behind".
+        snap = cc.ChannelSnapshot(
+            stable="4.2.0", nightly="4.2.0", pin="4.2.0", prereleases=["4.1.0"]
+        )
+        d = cc.decide(snap)
+        self.assertEqual(d.action, "none")
+        self.assertFalse(d.pin_behind_prerelease)
+
+    def test_pin_behind_prerelease_beta(self):
+        snap = cc.ChannelSnapshot(
+            stable="4.2.0",
+            nightly="4.3.0",
+            pin="4.2.0",
+            prereleases=["4.3.0-beta.1"],
+        )
+        d = cc.decide(snap)
+        self.assertTrue(d.pin_behind_nightly)
+        self.assertTrue(d.pin_behind_prerelease)
+        self.assertEqual(d.action, "open")
+
     def test_pin_behind_stable(self):
         snap = cc.ChannelSnapshot(
             stable="4.2.0", nightly="4.2.0", pin="4.1.2", prereleases=[]
@@ -114,6 +135,27 @@ class TestDecide(unittest.TestCase):
 
 
 class TestCLI(unittest.TestCase):
+    def test_empty_pin_exits_error(self):
+        data = {
+            "coolify": {
+                "v4": {"version": "4.1.2"},
+                "nightly": {"version": "4.2.0"},
+            }
+        }
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "versions.json"
+            path.write_text(json.dumps(data))
+            rc = cc.main(
+                [
+                    "--versions-json",
+                    str(path),
+                    "--pinned-version",
+                    "",
+                    "--json",
+                ]
+            )
+            self.assertEqual(rc, 2)
+
     def test_cli_json_exit_code(self):
         data = {
             "coolify": {
