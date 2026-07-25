@@ -4295,7 +4295,7 @@ func TestClient_CancelDeployment(t *testing.T) {
 func TestClient_Deploy(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/deploy", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -4454,7 +4454,7 @@ func TestClient_DeletePreviewDeployment(t *testing.T) {
 func TestClient_EnableAPI(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/enable", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -4468,7 +4468,7 @@ func TestClient_EnableAPI(t *testing.T) {
 func TestClient_DisableAPI(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/disable", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -5195,7 +5195,7 @@ func TestDecodeGitHubBranches_InvalidJSON(t *testing.T) {
 func TestClient_EnableAPI_APIError(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/enable", r.URL.Path)
 		http.Error(w, `{"message":"forbidden"}`, http.StatusForbidden)
 	}))
@@ -5210,7 +5210,7 @@ func TestClient_EnableAPI_APIError(t *testing.T) {
 func TestClient_DisableAPI_APIError(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/api/v1/disable", r.URL.Path)
 		http.Error(w, `{"message":"forbidden"}`, http.StatusForbidden)
 	}))

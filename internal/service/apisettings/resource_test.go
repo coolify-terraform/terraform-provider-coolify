@@ -13,12 +13,12 @@ import (
 
 func apiSettingsMux(apiEnabled, mcpEnabled *atomic.Bool) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
 		apiEnabled.Store(true)
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"message":"API enabled."}`))
 	})
-	mux.HandleFunc("GET /api/v1/disable", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/disable", func(w http.ResponseWriter, _ *http.Request) {
 		apiEnabled.Store(false)
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"message":"API disabled."}`))
@@ -170,7 +170,7 @@ func TestAPISettingsResource_MCPUpdate(t *testing.T) {
 func TestAPISettingsResource_MCPEnableError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"message":"API enabled."}`))
 	})
@@ -226,7 +226,7 @@ func TestAPISettingsResource_DestroyRestoreWarning(t *testing.T) {
 	t.Parallel()
 	var enableCalls atomic.Int32
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
 		if enableCalls.Add(1) == 1 {
 			http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
 			return
@@ -234,7 +234,7 @@ func TestAPISettingsResource_DestroyRestoreWarning(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"message":"API enabled."}`))
 	})
-	mux.HandleFunc("GET /api/v1/disable", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/disable", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"message":"API disabled."}`))
 	})
@@ -264,7 +264,7 @@ func TestAPISettingsResource_DestroyRestoreWarning(t *testing.T) {
 func TestAPISettingsResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))

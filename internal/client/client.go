@@ -233,7 +233,7 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 
 // EnableAPI enables the Coolify API.
 func (c *Client) EnableAPI(ctx context.Context) error {
-	if err := c.do(ctx, http.MethodGet, "/api/v1/enable", nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, "/api/v1/enable", nil, nil); err != nil {
 		return fmt.Errorf("enabling API: %w", err)
 	}
 	return nil
@@ -241,7 +241,7 @@ func (c *Client) EnableAPI(ctx context.Context) error {
 
 // DisableAPI disables the Coolify API.
 func (c *Client) DisableAPI(ctx context.Context) error {
-	if err := c.do(ctx, http.MethodGet, "/api/v1/disable", nil, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, "/api/v1/disable", nil, nil); err != nil {
 		return fmt.Errorf("disabling API: %w", err)
 	}
 	return nil

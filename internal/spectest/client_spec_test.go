@@ -150,7 +150,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			nil, 200, []map[string]interface{}{{"uuid": "dep-1", "status": "queued"}}},
 		{"CancelDeployment", "POST", "/api/v1/deployments/dep-1/cancel",
 			nil, 200, map[string]string{"message": "cancelled"}},
-		{"Deploy", "GET", "/api/v1/deploy",
+		{"Deploy", "POST", "/api/v1/deploy",
 			nil, 200, map[string]string{"message": "deploy queued"}},
 
 		// Environments
@@ -385,9 +385,9 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			nil, 200, []map[string]interface{}{{"uuid": "res-1", "type": "application"}}},
 		{"Health", "GET", "/api/v1/health",
 			nil, 200, "OK"},
-		{"Enable", "GET", "/api/v1/enable",
+		{"Enable", "POST", "/api/v1/enable",
 			nil, 200, map[string]string{"message": "enabled"}},
-		{"Disable", "GET", "/api/v1/disable",
+		{"Disable", "POST", "/api/v1/disable",
 			nil, 200, map[string]string{"message": "disabled"}},
 	}
 
