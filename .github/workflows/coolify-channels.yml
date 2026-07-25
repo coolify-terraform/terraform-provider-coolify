@@ -1,0 +1,56 @@
+# Daily Coolify channel watch: stable CDN vs nightly CDN vs pinned contract,
+# plus GitHub prereleases. Opens/updates an issue when we should start
+# supporting the next Coolify line (historically nightly version bumps
+# lead GitHub prereleases by weeks, as with 4.2.0).
+name: Coolify Channels
+
+on:
+  schedule:
+    # Daily 07:00 UTC (after CDN churn; independent of weekly CI contract job)
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: coolify-channels
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    name: Watch stable / nightly / prerelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Check Coolify channels and open/update issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 scripts/check-coolify-channels.py \
+            --fetch \
+            --fetch-prereleases \
+            --contract testdata/contracts/coolify-v4.json \
+            --json \
+            --apply \
+            > /tmp/coolify-channels-decision.json
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f /tmp/coolify-channels-decision.json ]; then
+            {
+              echo "### Coolify channel decision"
+              echo ""
+              echo '```json'
+              cat /tmp/coolify-channels-decision.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
