@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // Destination is a Coolify Docker network destination (standalone or swarm).
@@ -70,4 +71,52 @@ func (c *Client) DeleteDestination(ctx context.Context, uuid string) error {
 		return fmt.Errorf("deleting destination %s: %w", uuid, err)
 	}
 	return nil
+}
+
+// ResolveDestinationUUID picks a destination for resource create.
+// If explicit is non-empty, it is returned as-is.
+// If the server has one destination, that UUID is used.
+// If multiple exist, prefers network "coolify", then first standalone, then first entry.
+// On Coolify versions without destinations (or empty list), returns "" so create
+// proceeds without destination_uuid (API chooses).
+func (c *Client) ResolveDestinationUUID(ctx context.Context, serverUUID, explicit string) (string, error) {
+	if explicit != "" {
+		return explicit, nil
+	}
+	dests := c.listServerDestinationsBestEffort(ctx, serverUUID)
+	if len(dests) == 0 {
+		return "", nil
+	}
+	if len(dests) == 1 {
+		return dests[0].UUID, nil
+	}
+	for _, d := range dests {
+		if d.Network == "coolify" {
+			return d.UUID, nil
+		}
+	}
+	for _, d := range dests {
+		if d.Type == "standalone" {
+			return d.UUID, nil
+		}
+	}
+	return dests[0].UUID, nil
+}
+
+// listServerDestinationsBestEffort returns destinations or nil when the API is unavailable
+// (older Coolify builds without the destinations endpoints).
+func (c *Client) listServerDestinationsBestEffort(ctx context.Context, serverUUID string) []Destination {
+	dests, err := c.ListServerDestinations(ctx, serverUUID)
+	if err != nil {
+		return nil
+	}
+	return dests
+}
+
+func isMissingDestinationUUID(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "destination_uuid") && strings.Contains(msg, "multiple destinations")
 }

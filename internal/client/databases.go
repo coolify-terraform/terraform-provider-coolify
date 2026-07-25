@@ -81,6 +81,7 @@ type Database struct {
 // CreateDatabaseBaseInput contains fields shared by all database Create endpoints.
 type CreateDatabaseBaseInput struct {
 	ServerUUID      string `json:"server_uuid"`
+	DestinationUUID string `json:"destination_uuid,omitempty"`
 	ProjectUUID     string `json:"project_uuid"`
 	EnvironmentName string `json:"environment_name"`
 	EnvironmentUUID string `json:"environment_uuid,omitempty"`
@@ -225,11 +226,21 @@ func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error
 // is type-specific but serialized as JSON.
 func (c *Client) CreateDatabase(ctx context.Context, dbType string, input any) (*Database, error) {
 	var d Database
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/databases/"+url.PathEscape(dbType), input, &d, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating %s database: %w", dbType, err)
+	path := "/api/v1/databases/" + url.PathEscape(dbType)
+	if err := c.doWithStatus(ctx, http.MethodPost, path, input, &d, http.StatusCreated); err != nil {
+		if !isMissingDestinationUUID(err) {
+			return nil, fmt.Errorf("creating database: %w", err)
+		}
+		retried, ok := c.inputWithResolvedDestination(ctx, input)
+		if !ok {
+			return nil, fmt.Errorf("creating database: %w", err)
+		}
+		if err := c.doWithStatus(ctx, http.MethodPost, path, retried, &d, http.StatusCreated); err != nil {
+			return nil, fmt.Errorf("creating database: %w", err)
+		}
 	}
 	if d.UUID == "" {
-		return nil, fmt.Errorf("creating %s database: API returned empty UUID", dbType)
+		return nil, fmt.Errorf("creating database: API returned empty UUID")
 	}
 	return &d, nil
 }
@@ -383,4 +394,26 @@ func (c *Client) DeleteBackupExecution(ctx context.Context, dbUUID, backupUUID, 
 		return fmt.Errorf("deleting backup execution %s for database %s backup %s: %w", execUUID, dbUUID, backupUUID, err)
 	}
 	return nil
+}
+
+func (c *Client) inputWithResolvedDestination(ctx context.Context, input any) (any, bool) {
+	b, err := json.Marshal(input)
+	if err != nil {
+		return nil, false
+	}
+	var m map[string]any
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, false
+	}
+	serverUUID, _ := m["server_uuid"].(string)
+	explicit, _ := m["destination_uuid"].(string)
+	if serverUUID == "" {
+		return nil, false
+	}
+	dest, err := c.ResolveDestinationUUID(ctx, serverUUID, explicit)
+	if err != nil || dest == "" {
+		return nil, false
+	}
+	m["destination_uuid"] = dest
+	return m, true
 }

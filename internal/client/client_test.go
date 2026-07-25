@@ -5370,3 +5370,56 @@ func TestClient_CloudTokenDescriptionIsReadOnlyJSON(t *testing.T) {
 	assert.False(t, hasDesc, "CreateCloudTokenInput must not send description (API rejects it)")
 	assert.Equal(t, "from-api", ct.Description)
 }
+
+func TestClient_ResolveDestinationUUID(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{
+			{UUID: "d-other", Network: "other", Type: "standalone"},
+			{UUID: "d-coolify", Network: "coolify", Type: "standalone"},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+
+	// explicit wins
+	got, err := c.ResolveDestinationUUID(context.Background(), "s1", "explicit")
+	require.NoError(t, err)
+	assert.Equal(t, "explicit", got)
+
+	// prefers coolify network when multiple
+	got, err = c.ResolveDestinationUUID(context.Background(), "s1", "")
+	require.NoError(t, err)
+	assert.Equal(t, "d-coolify", got)
+}
+
+func TestClient_CreateDockerfileApplication_ResolvesDestination(t *testing.T) {
+	t.Parallel()
+	var attempts int
+	var gotBody map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{{UUID: "dest-1", Network: "coolify", Type: "standalone"}})
+	})
+	mux.HandleFunc("POST /api/v1/applications/dockerfile", func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+		if attempts == 1 {
+			http.Error(w, `{"message":"Server has multiple destinations and you do not set destination_uuid."}`, http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "app-1"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateDockerfileApplication(context.Background(), CreateDockerfileAppInput{
+		ProjectUUID: "p", ServerUUID: "s", EnvironmentName: "production", Name: "n",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 2, attempts)
+	assert.Equal(t, "dest-1", gotBody["destination_uuid"])
+}
