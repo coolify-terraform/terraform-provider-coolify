@@ -126,7 +126,7 @@ func (r *destinationResource) Create(ctx context.Context, req resource.CreateReq
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Destination created but refresh failed",
-			fmt.Sprintf("Coolify created destination %s, but the provider could not read it back: %s. Partial state was saved; rerun apply or refresh.", created.UUID, err),
+			fmt.Sprintf("Coolify created destination %s, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, err),
 		)
 		return
 	}

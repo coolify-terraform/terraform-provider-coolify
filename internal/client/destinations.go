@@ -59,7 +59,6 @@ func (c *Client) CreateDestination(ctx context.Context, serverUUID string, input
 	var r Destination
 	path := fmt.Sprintf("/api/v1/servers/%s/destinations", url.PathEscape(serverUUID))
 	if err := c.doWithStatus(ctx, http.MethodPost, path, input, &r, http.StatusCreated); err != nil {
-		// Some Coolify versions return 200; accept either via retry of decode on unexpected status?
 		return nil, fmt.Errorf("creating destination on server %s: %w", serverUUID, err)
 	}
 	return &r, nil

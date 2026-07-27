@@ -61,7 +61,7 @@ func (d *destinationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_destination"})
 	got, err := d.client.GetDestination(ctx, config.UUID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading destination", fmt.Sprintf("Could not read destination: %s", err))
+		resp.Diagnostics.AddError("Error reading destination", fmt.Sprintf("Could not read destination %s: %s", config.UUID.ValueString(), err))
 		return
 	}
 	config.UUID = types.StringValue(got.UUID)
