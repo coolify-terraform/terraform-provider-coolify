@@ -897,6 +897,55 @@ func TestFlattenExtendedFields_CustomLabelsEmptyAPIPreservesState(t *testing.T) 
 	}
 }
 
+func TestFlattenExtendedFields_CustomNginxRawPreserved(t *testing.T) {
+	t.Parallel()
+	raw := "server { listen 80; location / { return 200; } }"
+	apiBase64 := base64.StdEncoding.EncodeToString([]byte(raw))
+
+	nginx := types.StringValue(raw)
+	f, _ := newDefaultFields()
+	f.CustomNginxConfiguration = &nginx
+
+	app := &client.Application{CustomNginxConfiguration: apiBase64}
+	flattenExtendedFields(app, f)
+
+	if f.CustomNginxConfiguration.ValueString() != raw {
+		t.Errorf("CustomNginxConfiguration = %q, want user's raw value %q", f.CustomNginxConfiguration.ValueString(), raw)
+	}
+}
+
+func TestFlattenExtendedFields_CustomNginxExternalChange(t *testing.T) {
+	t.Parallel()
+	userRaw := "server { listen 80; }"
+	externalRaw := "server { listen 443; }"
+	apiBase64 := base64.StdEncoding.EncodeToString([]byte(externalRaw))
+
+	nginx := types.StringValue(userRaw)
+	f, _ := newDefaultFields()
+	f.CustomNginxConfiguration = &nginx
+
+	app := &client.Application{CustomNginxConfiguration: apiBase64}
+	flattenExtendedFields(app, f)
+
+	if f.CustomNginxConfiguration.ValueString() != externalRaw {
+		t.Errorf("CustomNginxConfiguration = %q, want decoded external value %q", f.CustomNginxConfiguration.ValueString(), externalRaw)
+	}
+}
+
+func TestFlattenExtendedFields_CustomNginxEmptyAPIPreservesState(t *testing.T) {
+	t.Parallel()
+	nginx := types.StringValue("server {}")
+	f, _ := newDefaultFields()
+	f.CustomNginxConfiguration = &nginx
+
+	app := &client.Application{CustomNginxConfiguration: ""}
+	flattenExtendedFields(app, f)
+
+	if f.CustomNginxConfiguration.ValueString() != "server {}" {
+		t.Errorf("CustomNginxConfiguration = %q, want preserved state value %q", f.CustomNginxConfiguration.ValueString(), "server {}")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // custom_labels + custom_nginx_configuration: update input encoding
 // ---------------------------------------------------------------------------

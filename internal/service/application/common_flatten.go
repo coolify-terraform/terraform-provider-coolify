@@ -121,13 +121,16 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	// null state (import) but do not force "/" onto omitted create plans (#577).
 	flex.SetStringSeedIfConfigured(f.BaseDirectory, app.BaseDirectory, "/")
 	flex.SetStringIfConfigured(f.GitCommitSha, app.GitCommitSha)
-	// custom_labels: the API requires base64 input, stores base64, and returns
-	// base64 on GET (with read:sensitive permission). Since the provider auto-
-	// encodes via EnsureBase64, users write raw content. ResolveBase64Field
+	// custom_labels and custom_nginx_configuration: API requires base64 input,
+	// stores base64, and returns base64 on GET (with read:sensitive). Users write
+	// raw content; provider auto-encodes via EnsureBase64. ResolveBase64Field
 	// preserves the user's raw value when it matches the API's base64, avoiding
 	// perpetual diffs. Also handles pre-encoded input for backward compatibility.
 	if f.CustomLabels != nil {
 		*f.CustomLabels = flex.ResolveBase64Field(*f.CustomLabels, app.CustomLabels)
+	}
+	if f.CustomNginxConfiguration != nil {
+		*f.CustomNginxConfiguration = flex.ResolveBase64Field(*f.CustomNginxConfiguration, app.CustomNginxConfiguration)
 	}
 	// Nullable fields — seed null state from API (import) and clear when the
 	// API returns empty for configured values (UI drift).
@@ -138,7 +141,6 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	flex.SetStringSeedOrClear(f.WatchPaths, app.WatchPaths)
 	flex.SetStringOrClear(f.CustomDockerRunOptions, app.CustomDockerRunOptions)
 	flex.SetStringOrClear(f.CustomNetworkAliases, app.CustomNetworkAliases)
-	flex.SetStringOrClear(f.CustomNginxConfiguration, app.CustomNginxConfiguration)
 	flex.SetStringOrClear(f.PortsMappings, app.PortsMappings)
 	flex.SetStringIfConfigured(f.HTTPBasicAuthUsername, app.HTTPBasicAuthUsername)
 	flex.SetStringIfConfigured(f.HTTPBasicAuthPassword, app.HTTPBasicAuthPassword)
