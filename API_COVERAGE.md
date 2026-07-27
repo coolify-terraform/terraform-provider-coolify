@@ -5,7 +5,7 @@
 
 **Route inventory**: pinned OpenAPI spec in `testdata/specs/coolify-v4.json`  
 **Field source of truth**: source-derived contract in `testdata/contracts/coolify-v4.json`  
-**Coverage**: 136 / 137 endpoints (99.3%)  
+**Coverage**: 142 / 143 endpoints (99.3%)  
 **Planned**: 0 | **Skipped**: 1
 
 ## Covered
@@ -17,12 +17,14 @@
 | `DELETE /applications/{uuid}/previews/{pull_request_id}` | `client.DeletePreviewDeployment` | v0.2.0 |
 | `DELETE /applications/{uuid}/scheduled-tasks/{task_uuid}` | `coolify_scheduled_task` | v0.2.0 |
 | `DELETE /applications/{uuid}/storages/{storage_uuid}` | `coolify_storage` | v0.2.0 |
+| `DELETE /applications/{uuid}/storages/{storage_uuid}/backups` | `coolify_storage_backup` | v0.1.9 |
 | `DELETE /cloud-tokens/{uuid}` | `coolify_cloud_token` | v0.2.0 |
 | `DELETE /databases/{uuid}` | `coolify_*_database` | v0.1.0 |
 | `DELETE /databases/{uuid}/backups/{scheduled_backup_uuid}` | `coolify_database_backup` | v0.1.0 |
 | `DELETE /databases/{uuid}/backups/{scheduled_backup_uuid}/executions/{execution_uuid}` | `client.DeleteBackupExecution` | v0.2.0 |
 | `DELETE /databases/{uuid}/envs/{env_uuid}` | `coolify_environment_variable` | v0.2.0 |
 | `DELETE /databases/{uuid}/storages/{storage_uuid}` | `coolify_storage` | v0.2.0 |
+| `DELETE /databases/{uuid}/storages/{storage_uuid}/backups` | `coolify_storage_backup` | v0.1.9 |
 | `DELETE /github-apps/{github_app_id}` | `coolify_github_app` | v0.2.0 |
 | `DELETE /projects/{uuid}` | `coolify_project` | v0.1.0 |
 | `DELETE /projects/{uuid}/environments/{environment_name_or_uuid}` | `coolify_environment` | v0.2.0 |
@@ -32,6 +34,7 @@
 | `DELETE /services/{uuid}/envs/{env_uuid}` | `coolify_environment_variable` | v0.1.0 |
 | `DELETE /services/{uuid}/scheduled-tasks/{task_uuid}` | `coolify_scheduled_task` | v0.2.0 |
 | `DELETE /services/{uuid}/storages/{storage_uuid}` | `coolify_storage` | v0.2.0 |
+| `DELETE /services/{uuid}/storages/{storage_uuid}/backups` | `coolify_storage_backup` | v0.1.9 |
 | `GET /applications` | `data.coolify_applications` | v0.1.0 |
 | `GET /applications/{uuid}` | `data.coolify_application` | v0.1.0 |
 | `GET /applications/{uuid}/envs` | `data.coolify_environment_variables` | v0.1.0 |
@@ -148,6 +151,9 @@
 | `POST /services/{uuid}/envs` | `coolify_environment_variable` | v0.1.0 |
 | `POST /services/{uuid}/scheduled-tasks` | `coolify_scheduled_task` | v0.2.0 |
 | `POST /services/{uuid}/storages` | `coolify_storage` | v0.2.0 |
+| `PUT /applications/{uuid}/storages/{storage_uuid}/backups` | `coolify_storage_backup` | v0.1.9 |
+| `PUT /databases/{uuid}/storages/{storage_uuid}/backups` | `coolify_storage_backup` | v0.1.9 |
+| `PUT /services/{uuid}/storages/{storage_uuid}/backups` | `coolify_storage_backup` | v0.1.9 |
 
 ## Planned
 
