@@ -8,8 +8,11 @@ import (
 )
 
 // VolumeBackupSchedule is a Coolify scheduled backup for a persistent volume
-// or directory storage. API requires Coolify builds that include
-// VolumeBackupsController (tip / nightly after v4.2.0).
+// or directory storage.
+//
+// API requires VolumeBackupsController (PUT/DELETE .../storages/{uuid}/backups),
+// which landed on Coolify v4.x in coollabsio/coolify#10946 (2026-07-20). Not in
+// git tag v4.2.0 or stable 4.1.2; no later release tag is known to include it yet.
 type VolumeBackupSchedule struct {
 	UUID                     string  `json:"uuid"`
 	Message                  string  `json:"message,omitempty"`
