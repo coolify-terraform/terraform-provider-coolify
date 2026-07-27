@@ -1,6 +1,6 @@
 {
   "version": "v4.2.0",
-  "extracted_from": "coollabsio/coolify@v4.2.0",
+  "extracted_from": "coollabsio/coolify@v4.2.0 plus v4.x volume-backup routes (PR #10946+)",
   "extracted_at": "2026-07-25T11:12:30.470822+00:00",
   "models": {
     "Application": {
@@ -9148,5 +9148,6 @@
         "api.ability:read"
       ]
     }
-  ]
+  ],
+  "notes": "Pin is based on v4.2.0 extract. Volume backup PUT/DELETE .../storages/{storage_uuid}/backups routes are from Coolify v4.x after PR coollabsio/coolify#10946 (merged 2026-07-20). They are NOT present in git tag v4.2.0. Nightly CDN may report version 4.2.0 while including tip commits."
 }

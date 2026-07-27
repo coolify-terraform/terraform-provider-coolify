@@ -10,13 +10,13 @@ import (
 )
 
 // TestAccStorageBackupResource_CRUD exercises "coolify_storage_backup" against a real Coolify
-// instance that exposes PUT/DELETE .../storages/{uuid}/backups (tip/nightly after v4.2.0).
+// instance with VolumeBackupsController (Coolify v4.x after coollabsio/coolify#10946; not in tag v4.2.0).
 func TestAccStorageBackupResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
-	// Requires tip Coolify + an existing storage volume UUID. Wire full env when ready.
-	t.Skip("coolify_storage_backup acceptance needs Coolify tip volume-backup routes and a test storage UUID")
+	// Needs Coolify v4.x including #10946 + a disposable storage UUID. Unit tests cover the resource.
+	t.Skip("coolify_storage_backup acceptance needs Coolify v4.x with volume-backup routes (#10946+) and a test storage UUID")
 
 	appUUID := "00000000-0000-4000-8000-000000000001"
 	storUUID := "00000000-0000-4000-8000-000000000002"
