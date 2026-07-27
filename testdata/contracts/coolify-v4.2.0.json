@@ -7151,6 +7151,13 @@
         "cloud_init_script",
         "instant_validate"
       ]
+    },
+    "DestinationsController::create": {
+      "allowed_fields": [
+        "name",
+        "network",
+        "type"
+      ]
     }
   },
   "enums": {

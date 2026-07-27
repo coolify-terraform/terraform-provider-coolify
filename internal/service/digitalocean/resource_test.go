@@ -385,6 +385,30 @@ resource "coolify_server_digitalocean" "test" {
 	})
 }
 
+func TestDigitalOceanServerResource_InvalidSSHKeyIDs(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_digitalocean" "test" {
+  name                      = "bad-ssh-keys"
+  cloud_provider_token_uuid = "` + doTokenUUID + `"
+  region                    = "nyc1"
+  size                      = "s-1vcpu-1gb"
+  image                     = "ubuntu-24-04-x64"
+  private_key_uuid          = "` + doKeyUUID + `"
+  digitalocean_ssh_key_ids  = "10,not-an-id"
+}`,
+				ExpectError: regexp.MustCompile(`Invalid digitalocean_ssh_key_ids|comma-separated integer IDs`),
+			},
+		},
+	})
+}
+
 func TestDigitalOceanServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	t.Parallel()
 	servers := map[string]*client.Server{}

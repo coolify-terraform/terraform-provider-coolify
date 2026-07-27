@@ -269,3 +269,27 @@ resource "coolify_destination" "test" {
 		},
 	})
 }
+
+func TestDestinationResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/servers/bbbb0001-0001-4000-8000-000000000001/destinations", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed"}`, http.StatusUnprocessableEntity)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_destination" "test" {
+  server_uuid = "bbbb0001-0001-4000-8000-000000000001"
+  network     = "will-fail"
+}`,
+				ExpectError: regexp.MustCompile(`Error creating destination`),
+			},
+		},
+	})
+}

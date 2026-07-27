@@ -335,10 +335,14 @@ def _clean_rule(rule: str) -> str:
 
 
 def extract_allowed_fields(content: str) -> dict[str, list[str]]:
-    """Extract $allowedFields arrays from controller methods."""
+    """Extract $allowedFields / $allowed arrays from controller methods.
+
+    Coolify mostly uses ``$allowedFields = [...]``. DestinationsController
+    (v4.2) uses the shorter ``$allowed = [...]`` for the same purpose.
+    """
     result = {}
     pattern = re.compile(
-        r"\$allowedFields\s*=\s*\[(.*?)\];", re.DOTALL
+        r"\$(?:allowedFields|allowed)\s*=\s*\[(.*?)\];", re.DOTALL
     )
     # Find the enclosing method for context
     for match in pattern.finditer(content):

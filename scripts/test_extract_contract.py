@@ -482,6 +482,19 @@ class FooController {
         result = ec.extract_allowed_fields(php)
         self.assertEqual(result["update"], ["name", "description", "port"])
 
+    def test_allowed_alias_used_by_destinations_controller(self):
+        # DestinationsController uses $allowed instead of $allowedFields.
+        php = """<?php
+class DestinationsController {
+    public function create(Request $request, string $server_uuid) {
+        $allowed = ['name', 'network', 'type'];
+        $extra = array_diff(array_keys($request->all()), $allowed);
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(result["create"], ["name", "network", "type"])
+
     def test_multiple_methods(self):
         php = """<?php
 class FooController {
