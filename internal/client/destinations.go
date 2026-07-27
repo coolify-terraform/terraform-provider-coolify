@@ -61,6 +61,9 @@ func (c *Client) CreateDestination(ctx context.Context, serverUUID string, input
 	if err := c.doWithStatus(ctx, http.MethodPost, path, input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating destination on server %s: %w", serverUUID, err)
 	}
+	if r.UUID == "" {
+		return nil, fmt.Errorf("creating destination on server %s: API returned empty UUID", serverUUID)
+	}
 	return &r, nil
 }
 

@@ -203,6 +203,9 @@ func (c *Client) CreateHetznerServer(ctx context.Context, input CreateHetznerSer
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/hetzner", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating hetzner server: %w", err)
 	}
+	if s.UUID == "" {
+		return nil, fmt.Errorf("creating hetzner server: API returned empty UUID")
+	}
 	return &s, nil
 }
 
@@ -228,6 +231,9 @@ func (c *Client) CreateDigitalOceanServer(ctx context.Context, input CreateDigit
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/digitalocean", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating digitalocean server: %w", err)
 	}
+	if s.UUID == "" {
+		return nil, fmt.Errorf("creating digitalocean server: API returned empty UUID")
+	}
 	return &s, nil
 }
 
@@ -252,6 +258,9 @@ func (c *Client) CreateVultrServer(ctx context.Context, input CreateVultrServerI
 	var s Server
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/vultr", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating vultr server: %w", err)
+	}
+	if s.UUID == "" {
+		return nil, fmt.Errorf("creating vultr server: API returned empty UUID")
 	}
 	return &s, nil
 }
