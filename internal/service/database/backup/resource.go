@@ -3,7 +3,6 @@ package backup
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -90,14 +88,9 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Validators: []validator.String{validate.UUID()},
 			},
 			"frequency": schema.StringAttribute{
-				MarkdownDescription: "Cron expression for backup schedule (e.g., `0 2 * * *` for daily at 2 AM, or `@daily`, `@hourly`, `@weekly`).",
+				MarkdownDescription: "Cron or Coolify human schedule (e.g., `0 2 * * *`, `daily`, `@daily`, `hourly`). Bare names without `@` match Coolify VALID_CRON_STRINGS.",
 				Required:            true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^(\S+\s+){4}\S+$|^@(annually|yearly|monthly|weekly|daily|hourly)$`),
-						"must be a valid cron expression (e.g., \"0 2 * * *\" or \"@daily\")",
-					),
-				},
+				Validators:          []validator.String{validate.CoolifyFrequency()},
 			},
 			"enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether the backup schedule is active.",

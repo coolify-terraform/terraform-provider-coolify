@@ -65,7 +65,7 @@ variable "vultr_token" {
 - `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation. Defaults to false to match Coolify.
 - `is_build_server` (Boolean) Whether this server is used for building applications.
 - `port` (Number) The SSH port of the server.
-- `server_disk_usage_check_frequency` (String) Cron expression for how often disk usage is checked (e.g., `*/5 * * * *` or `@daily`).
+- `server_disk_usage_check_frequency` (String) Cron or Coolify human schedule for how often disk usage is checked (e.g., `*/5 * * * *`, `daily`, `@daily`).
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `user` (String) The SSH user for connecting to the server.

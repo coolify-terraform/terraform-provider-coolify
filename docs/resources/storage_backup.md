@@ -36,7 +36,7 @@ resource "coolify_storage_backup" "app_data" {
 
 ### Required
 
-- `frequency` (String) Cron or Coolify human expression for the schedule (e.g. `0 2 * * *`, `@daily`).
+- `frequency` (String) Cron or Coolify human expression for the schedule (e.g. `0 2 * * *`, `daily`, `@daily`, `hourly`). Coolify also accepts `every_minute`, `weekly`, `monthly`, and `yearly` without `@`.
 - `storage_uuid` (String) UUID of the persistent volume or directory storage to back up. Changing this forces a new resource.
 
 ### Optional
