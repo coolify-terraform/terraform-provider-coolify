@@ -3,7 +3,6 @@ package volumebackup
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -117,14 +116,9 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"frequency": schema.StringAttribute{
-				MarkdownDescription: "Cron or Coolify human expression for the schedule (e.g. `0 2 * * *`, `@daily`).",
+				MarkdownDescription: "Cron or Coolify human expression for the schedule (e.g. `0 2 * * *`, `daily`, `@daily`, `hourly`). Coolify also accepts `every_minute`, `weekly`, `monthly`, and `yearly` without `@`.",
 				Required:            true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^(\S+\s+){4}\S+$|^@(annually|yearly|monthly|weekly|daily|hourly)$`),
-						"must be a valid cron expression (e.g. \"0 2 * * *\") or @daily/@hourly/@weekly/etc.",
-					),
-				},
+				Validators:          []validator.String{validate.CoolifyFrequency()},
 			},
 			"enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether the schedule is enabled. Defaults to true.",

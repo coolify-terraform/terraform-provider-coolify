@@ -3,14 +3,12 @@ package server
 import (
 	"context"
 	"fmt"
-	"regexp"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
@@ -137,16 +135,11 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 			Validators:          []validator.Int64{int64validator.Between(1, 100)},
 		},
 		"server_disk_usage_check_frequency": schema.StringAttribute{
-			MarkdownDescription: "Cron expression for how often disk usage is checked (e.g., `*/5 * * * *` or `@daily`).",
+			MarkdownDescription: "Cron or Coolify human schedule for how often disk usage is checked (e.g., `*/5 * * * *`, `daily`, `@daily`).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			Validators: []validator.String{
-				stringvalidator.RegexMatches(
-					regexp.MustCompile(`^(\S+\s+){4}\S+$|^@(annually|yearly|monthly|weekly|daily|hourly)$`),
-					"must be a valid cron expression (e.g., \"*/5 * * * *\" or \"@daily\")",
-				),
-			},
+			Validators:          []validator.String{validate.CoolifyFrequency()},
 		},
 	}
 	addExtendedSettingsAttrs(attrs)

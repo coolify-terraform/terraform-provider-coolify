@@ -35,7 +35,7 @@ resource "coolify_database_backup" "daily" {
 ### Required
 
 - `database_uuid` (String) The UUID of the database to back up. Changing this forces a new resource.
-- `frequency` (String) Cron expression for backup schedule (e.g., `0 2 * * *` for daily at 2 AM, or `@daily`, `@hourly`, `@weekly`).
+- `frequency` (String) Cron or Coolify human schedule (e.g., `0 2 * * *`, `daily`, `@daily`, `hourly`). Bare names without `@` match Coolify VALID_CRON_STRINGS.
 
 ### Optional
 

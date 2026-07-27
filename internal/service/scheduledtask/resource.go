@@ -3,7 +3,6 @@ package scheduledtask
 import (
 	"context"
 	"fmt"
-	"regexp"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -95,14 +94,9 @@ func (r *scheduledTaskResource) Schema(_ context.Context, _ resource.SchemaReque
 				Required:            true,
 			},
 			"frequency": schema.StringAttribute{
-				MarkdownDescription: "The cron expression for the schedule (e.g., `*/5 * * * *`).",
+				MarkdownDescription: "Cron or Coolify human schedule (e.g., `*/5 * * * *`, `daily`, `@daily`). Six-field cron is allowed for tasks.",
 				Required:            true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(
-						regexp.MustCompile(`^(\S+\s+){4,5}\S+$|^@(annually|yearly|monthly|weekly|daily|hourly)$`),
-						"must be a valid cron expression (e.g., \"*/5 * * * *\" or \"@daily\")",
-					),
-				},
+				Validators:          []validator.String{validate.CoolifyFrequencyAllowSeconds()},
 			},
 			"enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether the scheduled task is enabled (defaults to `true`).",
