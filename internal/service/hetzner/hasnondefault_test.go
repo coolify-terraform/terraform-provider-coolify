@@ -3,6 +3,7 @@ package hetzner
 import (
 	"testing"
 
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/server"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -21,14 +22,15 @@ func defaultHetznerPlan() hetznerServerResourceModel {
 	}
 }
 
-func TestHasNonDefaultHetznerSettings_AllDefaults(t *testing.T) {
+func TestHasNonDefaultCloudProviderSettings_ViaHetznerModel(t *testing.T) {
 	t.Parallel()
-	if hasNonDefaultHetznerSettings(defaultHetznerPlan()) {
+	m := defaultHetznerPlan()
+	if server.HasNonDefaultCloudProviderSettings(m.commonPtrs()) {
 		t.Error("expected false when all fields are at their defaults")
 	}
 }
 
-func TestHasNonDefaultHetznerSettings_EachField(t *testing.T) {
+func TestHasNonDefaultCloudProviderSettings_EachHetznerField(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name   string
@@ -54,17 +56,17 @@ func TestHasNonDefaultHetznerSettings_EachField(t *testing.T) {
 			t.Parallel()
 			m := defaultHetznerPlan()
 			tc.mutate(&m)
-			if !hasNonDefaultHetznerSettings(m) {
+			if !server.HasNonDefaultCloudProviderSettings(m.commonPtrs()) {
 				t.Errorf("expected true when %s is non-default", tc.name)
 			}
 		})
 	}
 }
 
-func TestHasNonDefaultHetznerSettings_NullFields(t *testing.T) {
+func TestHasNonDefaultCloudProviderSettings_NullHetznerFields(t *testing.T) {
 	t.Parallel()
 	plan := hetznerServerResourceModel{}
-	if hasNonDefaultHetznerSettings(plan) {
+	if server.HasNonDefaultCloudProviderSettings((&plan).commonPtrs()) {
 		t.Error("expected false when all fields are null/zero-value")
 	}
 }

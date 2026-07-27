@@ -210,21 +210,7 @@ func (r *vultrServerResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	plan.UUID = types.StringValue(created.UUID)
-	if plan.Description.IsUnknown() {
-		plan.Description = types.StringNull()
-	}
-	if plan.IP.IsUnknown() {
-		plan.IP = types.StringNull()
-	}
-	if plan.IsReachable.IsUnknown() {
-		plan.IsReachable = types.BoolNull()
-	}
-	if plan.IsUsable.IsUnknown() {
-		plan.IsUsable = types.BoolNull()
-	}
-	if plan.ServerDiskUsageCheckFrequency.IsUnknown() {
-		plan.ServerDiskUsageCheckFrequency = types.StringNull()
-	}
+	server.NormalizeUnknownCloudServerPlanFields(plan.commonPtrs())
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -232,21 +218,11 @@ func (r *vultrServerResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	// The Vultr create endpoint only accepts Vultr-specific fields.
-	// General server fields (description, port, user, is_build_server)
-	// and settings must be applied via a follow-up PATCH.
-	if hasNonDefaultVultrSettings(plan) {
-		settingsUpdate := server.BuildPostCreateSettingsInput(plan.commonPtrs())
-		// Vultr Create doesn't accept these core fields; add them to the PATCH.
-		settingsUpdate.Description = flex.StringValueOrNull(plan.Description)
-		settingsUpdate.Port = flex.IntIfNonDefault(plan.Port, 22)
-		settingsUpdate.User = flex.StringValueOrNull(plan.User)
-		settingsUpdate.IsBuildServer = flex.BoolValueOrNull(plan.IsBuildServer)
-		if _, err := r.client.UpdateServer(ctx, created.UUID, settingsUpdate); err != nil {
-			resp.Diagnostics.AddError("Error setting Vultr server settings",
-				fmt.Sprintf("server %s: %s", created.UUID, err))
-			return
-		}
+	// Cloud create endpoints only accept provider-specific fields; shared
+	// settings/core fields need a follow-up PATCH when non-default.
+	if err := server.ApplyPostCreateCloudProviderSettings(ctx, r.client, created.UUID, plan.commonPtrs()); err != nil {
+		resp.Diagnostics.AddError("Error setting Vultr server settings", err.Error())
+		return
 	}
 
 	// Read back for full state.
@@ -345,14 +321,6 @@ func (r *vultrServerResource) ImportState(ctx context.Context, req resource.Impo
 		return
 	}
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
-}
-
-func hasNonDefaultVultrSettings(plan vultrServerResourceModel) bool {
-	return flex.StringValueNonDefault(plan.Description, "") ||
-		flex.Int64ValueNonDefault(plan.Port, 22) ||
-		flex.StringValueNonDefault(plan.User, "root") ||
-		flex.BoolValueNonDefault(plan.IsBuildServer, false) ||
-		server.HasNonDefaultSettings(plan.commonPtrs())
 }
 
 func (m *vultrServerResourceModel) commonPtrs() server.ServerCommonPtrs {
