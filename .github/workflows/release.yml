@@ -36,6 +36,11 @@ jobs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name: ${{ steps.rp.outputs.tag_name }}
     steps:
+      - name: Harden runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
       # Use a GitHub App token so that release-please PR pushes trigger
       # pull_request events (GITHUB_TOKEN suppresses them, which prevents
       # CI and auto-approve from running on the release PR).
@@ -69,6 +74,11 @@ jobs:
     env:
       RELEASE_TAG: ${{ needs.release-please.outputs.tag_name || github.event.inputs.tag || github.ref_name }}
     steps:
+      - name: Harden runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0

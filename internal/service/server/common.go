@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -296,6 +297,63 @@ func BuildPostCreateSettingsInput(p ServerCommonPtrs) client.UpdateServerInput {
 		ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(*p.ServerDiskUsageNotificationThreshold, 80),
 		ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(*p.ServerDiskUsageCheckFrequency),
 	}
+}
+
+// HasNonDefaultCloudProviderSettings reports whether a cloud-provisioned
+// server (Hetzner/DigitalOcean/Vultr) needs a post-create PATCH. Cloud create
+// endpoints only accept provider-specific fields, so description/port/user/
+// is_build_server and extended settings must be applied afterward when non-default.
+func HasNonDefaultCloudProviderSettings(p ServerCommonPtrs) bool {
+	return flex.StringValueNonDefault(*p.Description, "") ||
+		flex.Int64ValueNonDefault(*p.Port, 22) ||
+		flex.StringValueNonDefault(*p.User, "root") ||
+		flex.BoolValueNonDefault(*p.IsBuildServer, false) ||
+		HasNonDefaultSettings(p)
+}
+
+// BuildPostCreateCloudProviderInput builds the follow-up PATCH body for
+// Hetzner/DigitalOcean/Vultr servers after provider-specific create.
+func BuildPostCreateCloudProviderInput(p ServerCommonPtrs) client.UpdateServerInput {
+	input := BuildPostCreateSettingsInput(p)
+	// Core fields the cloud create endpoints do not accept.
+	input.Description = flex.StringValueOrNull(*p.Description)
+	input.Port = flex.IntIfNonDefault(*p.Port, 22)
+	input.User = flex.StringValueOrNull(*p.User)
+	input.IsBuildServer = flex.BoolValueOrNull(*p.IsBuildServer)
+	return input
+}
+
+// NormalizeUnknownCloudServerPlanFields resolves Optional+Computed fields
+// that remain unknown after create so partial state is valid before
+// read-back (cloud providers often leave IP/reachability unknown at create).
+func NormalizeUnknownCloudServerPlanFields(p ServerCommonPtrs) {
+	if p.Description != nil && p.Description.IsUnknown() {
+		*p.Description = types.StringNull()
+	}
+	if p.IP != nil && p.IP.IsUnknown() {
+		*p.IP = types.StringNull()
+	}
+	if p.IsReachable != nil && p.IsReachable.IsUnknown() {
+		*p.IsReachable = types.BoolNull()
+	}
+	if p.IsUsable != nil && p.IsUsable.IsUnknown() {
+		*p.IsUsable = types.BoolNull()
+	}
+	if p.ServerDiskUsageCheckFrequency != nil && p.ServerDiskUsageCheckFrequency.IsUnknown() {
+		*p.ServerDiskUsageCheckFrequency = types.StringNull()
+	}
+}
+
+// ApplyPostCreateCloudProviderSettings sends the shared post-create PATCH
+// when HasNonDefaultCloudProviderSettings is true. No-op when all defaults.
+func ApplyPostCreateCloudProviderSettings(ctx context.Context, c *client.Client, uuid string, p ServerCommonPtrs) error {
+	if !HasNonDefaultCloudProviderSettings(p) {
+		return nil
+	}
+	if _, err := c.UpdateServer(ctx, uuid, BuildPostCreateCloudProviderInput(p)); err != nil {
+		return fmt.Errorf("server %s: %w", uuid, err)
+	}
+	return nil
 }
 
 // BuildServerUpdateInput constructs an UpdateServerInput from the diff

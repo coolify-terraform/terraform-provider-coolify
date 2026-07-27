@@ -636,6 +636,124 @@ func TestHasNonDefaultSettings_ViaCommonPtrs(t *testing.T) {
 	}
 }
 
+func cloudProviderDefaultPtrs() (ServerCommonPtrs, *testModel) {
+	ptrs, m := newTestPtrs()
+	m.Description = types.StringValue("")
+	m.Port = types.Int64Value(22)
+	m.User = types.StringValue("root")
+	m.IsBuildServer = types.BoolValue(false)
+	m.ConcurrentBuilds = types.Int64Value(2)
+	m.DynamicTimeout = types.Int64Value(3600)
+	m.DeploymentQueueLimit = types.Int64Value(25)
+	m.ConnectionTimeout = types.Int64Value(10)
+	m.ServerDiskUsageNotificationThreshold = types.Int64Value(80)
+	m.ServerDiskUsageCheckFrequency = types.StringNull()
+	return ptrs, m
+}
+
+func TestHasNonDefaultCloudProviderSettings_AllDefaults(t *testing.T) {
+	t.Parallel()
+	ptrs, _ := cloudProviderDefaultPtrs()
+	if HasNonDefaultCloudProviderSettings(ptrs) {
+		t.Error("expected false when core fields and settings are at defaults")
+	}
+}
+
+func TestHasNonDefaultCloudProviderSettings_CoreFields(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		mutate func(*testModel)
+	}{
+		{"Description", func(m *testModel) { m.Description = types.StringValue("prod") }},
+		{"Port", func(m *testModel) { m.Port = types.Int64Value(2222) }},
+		{"User", func(m *testModel) { m.User = types.StringValue("deploy") }},
+		{"IsBuildServer", func(m *testModel) { m.IsBuildServer = types.BoolValue(true) }},
+		{"ConcurrentBuilds", func(m *testModel) { m.ConcurrentBuilds = types.Int64Value(8) }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ptrs, m := cloudProviderDefaultPtrs()
+			tc.mutate(m)
+			if !HasNonDefaultCloudProviderSettings(ptrs) {
+				t.Errorf("expected true when %s is non-default", tc.name)
+			}
+		})
+	}
+}
+
+func TestBuildPostCreateCloudProviderInput(t *testing.T) {
+	t.Parallel()
+	ptrs, m := cloudProviderDefaultPtrs()
+	m.Description = types.StringValue("edge node")
+	m.Port = types.Int64Value(2222)
+	m.User = types.StringValue("deploy")
+	m.IsBuildServer = types.BoolValue(true)
+	m.ConcurrentBuilds = types.Int64Value(4)
+
+	input := BuildPostCreateCloudProviderInput(ptrs)
+	if input.Description == nil || *input.Description != "edge node" {
+		t.Fatalf("Description = %v, want edge node", input.Description)
+	}
+	if input.Port == nil || *input.Port != 2222 {
+		t.Fatalf("Port = %v, want 2222", input.Port)
+	}
+	if input.User == nil || *input.User != "deploy" {
+		t.Fatalf("User = %v, want deploy", input.User)
+	}
+	if input.IsBuildServer == nil || !*input.IsBuildServer {
+		t.Fatalf("IsBuildServer = %v, want true", input.IsBuildServer)
+	}
+	if input.ConcurrentBuilds == nil || *input.ConcurrentBuilds != 4 {
+		t.Fatalf("ConcurrentBuilds = %v, want 4", input.ConcurrentBuilds)
+	}
+	// Provider-specific create owns Name/IP; post-create PATCH must not resend them.
+	if input.Name != nil {
+		t.Errorf("Name should be nil, got %v", *input.Name)
+	}
+	if input.IP != nil {
+		t.Errorf("IP should be nil, got %v", *input.IP)
+	}
+}
+
+func TestNormalizeUnknownCloudServerPlanFields(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	m.Description = types.StringUnknown()
+	m.IP = types.StringUnknown()
+	m.IsReachable = types.BoolUnknown()
+	m.IsUsable = types.BoolUnknown()
+	m.ServerDiskUsageCheckFrequency = types.StringUnknown()
+
+	NormalizeUnknownCloudServerPlanFields(ptrs)
+
+	if !m.Description.IsNull() {
+		t.Errorf("Description = %v, want null", m.Description)
+	}
+	if !m.IP.IsNull() {
+		t.Errorf("IP = %v, want null", m.IP)
+	}
+	if !m.IsReachable.IsNull() {
+		t.Errorf("IsReachable = %v, want null", m.IsReachable)
+	}
+	if !m.IsUsable.IsNull() {
+		t.Errorf("IsUsable = %v, want null", m.IsUsable)
+	}
+	if !m.ServerDiskUsageCheckFrequency.IsNull() {
+		t.Errorf("ServerDiskUsageCheckFrequency = %v, want null", m.ServerDiskUsageCheckFrequency)
+	}
+}
+
+func TestApplyPostCreateCloudProviderSettings_SkipsDefaults(t *testing.T) {
+	t.Parallel()
+	// No HTTP client needed when all defaults: helper must no-op without calling Update.
+	ptrs, _ := cloudProviderDefaultPtrs()
+	if err := ApplyPostCreateCloudProviderSettings(context.Background(), nil, "uuid", ptrs); err != nil {
+		t.Fatalf("expected nil error on defaults, got %v", err)
+	}
+}
+
 func TestHasNonDefaultSettings_AllDefaults(t *testing.T) {
 	t.Parallel()
 	plan := serverResourceModel{
