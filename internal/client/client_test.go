@@ -5301,6 +5301,22 @@ func TestClient_CreateVultrServer(t *testing.T) {
 	assert.Equal(t, "vu-uuid-1", server.UUID)
 }
 
+func TestClient_CreateHetznerServer_EmptyUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(Server{Name: "hz-node"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateHetznerServer(context.Background(), CreateHetznerServerInput{
+		Name: "hz-node", CloudProviderTokenUUID: "tok-1", Location: "fsn1", ServerType: "cx22",
+		Image: "ubuntu-24.04", PrivateKeyUUID: "pk-1",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty UUID")
+}
+
 func TestClient_CreateDigitalOceanServer_EmptyUUID(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
