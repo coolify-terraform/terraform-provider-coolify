@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.8...v0.1.9) (2026-07-27)
+
+
+### Features
+
+* Coolify v4.2 contract, DigitalOcean/Vultr servers, destinations ([#589](https://github.com/coolify-terraform/terraform-provider-coolify/issues/589)) ([6ae4681](https://github.com/coolify-terraform/terraform-provider-coolify/commit/6ae4681243514bc8525cba944e08bc6fe379404c))
+* coolify_storage_backup for volume backup schedules ([#601](https://github.com/coolify-terraform/terraform-provider-coolify/issues/601)) ([e5a9ed5](https://github.com/coolify-terraform/terraform-provider-coolify/commit/e5a9ed56c48f00a5dba2665af344fd72b2be757e))
+
+
+### Bug Fixes
+
+* accept Coolify bare human cron schedules ([#603](https://github.com/coolify-terraform/terraform-provider-coolify/issues/603)) ([e0f641f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/e0f641f71afe2dbc08b399bd4cda46c03c71a063))
+* destination coverage, empty UUID guards, and v4.2 docs ([#598](https://github.com/coolify-terraform/terraform-provider-coolify/issues/598)) ([d184aba](https://github.com/coolify-terraform/terraform-provider-coolify/commit/d184aba0ab7639489083a0ba5b6eb971732f0ed8))
+* preserve raw custom_nginx_configuration on read ([#604](https://github.com/coolify-terraform/terraform-provider-coolify/issues/604)) ([7e3a33b](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7e3a33b807c7911ac7ad7692309197b5a282aff7))
+* use POST for Coolify action/validate endpoints ([#587](https://github.com/coolify-terraform/terraform-provider-coolify/issues/587)) ([e03c47f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/e03c47f47be0a6c3df3d786d107217d38d98c003))
+
 ## [0.1.8](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.7...v0.1.8) (2026-07-18)
 
 
