@@ -27,9 +27,9 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 
 | Area | Coverage |
 |---|---|
-| Managed resources | 36 |
+| Managed resources | 37 |
 | Data sources | 44 |
-| Tests | 1040+ unit and acceptance tests |
+| Tests | 1060+ unit and acceptance tests |
 | Scenario examples | 17 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -131,6 +131,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_database_backup` | Schedule automated database backups |
 | `coolify_scheduled_task` | Manage scheduled tasks on applications/services |
 | `coolify_storage` | Manage persistent storage volumes |
+| `coolify_storage_backup` | Schedule backups for storage volumes (Coolify tip/nightly after v4.2.0) |
 | `coolify_cloud_token` | Manage cloud provider tokens (Hetzner, DigitalOcean, Vultr) |
 | `coolify_github_app` | Manage GitHub App integrations |
 | `coolify_envs_bulk` | Manage environment variables as a single atomic set |
@@ -303,7 +304,7 @@ targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
-make test                                       # Run unit tests (1040+ tests, race detector enabled)
+make test                                       # Run unit tests (1060+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
 make testacc                                    # Run acceptance tests with serialized package and in-package execution

@@ -302,7 +302,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (36 total)
+### Resources (37 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -393,7 +393,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 33/33 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 104
+- **Total acceptance test functions**: 105
 
 ### Testing strategies for edge cases
 

@@ -48,6 +48,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/storage"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/team"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/version"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/volumebackup"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/vultr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -234,6 +235,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		servervalidate.NewResource,      // coolify_server_validate
 		service.NewResource,             // coolify_service
 		storage.NewResource,             // coolify_storage
+		volumebackup.NewResource,        // coolify_storage_backup
 	}
 }
 

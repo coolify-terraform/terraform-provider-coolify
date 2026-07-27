@@ -7158,6 +7158,40 @@
         "network",
         "type"
       ]
+    },
+    "VolumeBackupsController::validateUpsertRequest": {
+      "allowed_fields": [
+        "frequency",
+        "enabled",
+        "save_s3",
+        "disable_local_backup",
+        "stop_during_backup",
+        "s3_storage_uuid",
+        "retention_amount_locally",
+        "retention_days_locally",
+        "retention_max_storage_locally",
+        "retention_amount_s3",
+        "retention_days_s3",
+        "retention_max_storage_s3",
+        "timeout"
+      ]
+    },
+    "VolumeBackupsController::upsert": {
+      "allowed_fields": [
+        "frequency",
+        "enabled",
+        "save_s3",
+        "disable_local_backup",
+        "stop_during_backup",
+        "s3_storage_uuid",
+        "retention_amount_locally",
+        "retention_days_locally",
+        "retention_max_storage_locally",
+        "retention_amount_s3",
+        "retention_days_s3",
+        "retention_max_storage_s3",
+        "timeout"
+      ]
     }
   },
   "enums": {
@@ -7563,6 +7597,20 @@
       ]
     },
     {
+      "method": "DELETE",
+      "path": "/applications/{uuid}/storages/{storage_uuid}/backups",
+      "controller": "VolumeBackupsController",
+      "action": "destroy",
+      "middleware": []
+    },
+    {
+      "method": "PUT",
+      "path": "/applications/{uuid}/storages/{storage_uuid}/backups",
+      "controller": "VolumeBackupsController",
+      "action": "upsert",
+      "middleware": []
+    },
+    {
       "method": "GET",
       "path": "/applications/{uuid}/tags",
       "controller": "ApplicationsController",
@@ -7957,6 +8005,20 @@
       "middleware": [
         "api.ability:write"
       ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/databases/{uuid}/storages/{storage_uuid}/backups",
+      "controller": "VolumeBackupsController",
+      "action": "destroy",
+      "middleware": []
+    },
+    {
+      "method": "PUT",
+      "path": "/databases/{uuid}/storages/{storage_uuid}/backups",
+      "controller": "VolumeBackupsController",
+      "action": "upsert",
+      "middleware": []
     },
     {
       "method": "GET",
@@ -8945,6 +9007,20 @@
       "middleware": [
         "api.ability:write"
       ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/services/{uuid}/storages/{storage_uuid}/backups",
+      "controller": "VolumeBackupsController",
+      "action": "destroy",
+      "middleware": []
+    },
+    {
+      "method": "PUT",
+      "path": "/services/{uuid}/storages/{storage_uuid}/backups",
+      "controller": "VolumeBackupsController",
+      "action": "upsert",
+      "middleware": []
     },
     {
       "method": "GET",

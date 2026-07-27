@@ -7,7 +7,7 @@ Priorities may shift based on community feedback and upstream Coolify API change
 
 The provider covers the core Coolify resource model:
 
-- 36 managed resources (projects, servers, applications, databases, services,
+- 37 managed resources (projects, servers, applications, databases, services,
   backups, environment variables, deployments, and more)
 - 54 data sources for reading existing infrastructure
 - 17 ACME Corp scenario examples with integration tests
