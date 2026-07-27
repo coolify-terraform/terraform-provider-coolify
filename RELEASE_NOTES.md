@@ -1,82 +1,81 @@
-## What's New
+## Highlights
 
-v0.1.9 expands Coolify cloud provisioning and operations coverage for the
-Coolify 4.2 line, while remaining compatible with Coolify 4.1.x installs.
-You can provision DigitalOcean and Vultr servers through Coolify, manage
-Docker network destinations, schedule volume backups when your Coolify
-build includes that API, and rely on several correctness fixes for actions,
-schedules, and nginx config round-trips.
+v0.1.9 adds cloud servers and destinations for Coolify 4.2, plus volume
+backup schedules where your Coolify build has that API. It also fixes
+start/stop (POST), schedule strings like `daily`, and perpetual diffs on
+custom nginx config.
 
-Minimum Coolify version is still **4.1.0**. New resources that need a newer
-API are called out below and in each resource doc.
+Minimum Coolify is still **4.1.0**. New surfaces that need a newer API are
+listed under Compatibility.
 
-### DigitalOcean and Vultr servers (Coolify >= v4.2.0)
+## New features
 
-Provision cloud VMs through Coolify with the same patterns as Hetzner:
+- **`coolify_server_digitalocean` and `coolify_server_vultr`** (Coolify >=
+  v4.2.0). Provision DO/Vultr VMs through Coolify, like Hetzner. Lookup data
+  sources cover regions, sizes/plans, images/OS, and SSH keys. Create-only
+  cloud fields are empty after import; set them in config before plan.
+  ([#589](https://github.com/coolify-terraform/terraform-provider-coolify/pull/589))
 
-- `coolify_server_digitalocean`
-- `coolify_server_vultr`
+- **`coolify_destination`** (Coolify >= v4.2.0). Manage Docker network
+  destinations (standalone or swarm), with singular and list data sources.
+  ([#589](https://github.com/coolify-terraform/terraform-provider-coolify/pull/589),
+  [#598](https://github.com/coolify-terraform/terraform-provider-coolify/pull/598))
 
-Pair them with lookup data sources for regions, sizes/plans, images/OS, and
-SSH keys (`coolify_digitalocean_*`, `coolify_vultr_*`). Create-only cloud
-fields are documented on import: set them in config after import so Terraform
-does not force replace. ([#589](https://github.com/coolify-terraform/terraform-provider-coolify/pull/589))
+- **`coolify_storage_backup`**. Schedule backups for app, database, or
+  service volumes. Coolify only offers PUT/DELETE (no schedule GET); the
+  provider keeps schedule fields from state and checks the parent storage
+  still exists. **Requires Coolify `v4.x` after
+  [coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946)**
+  (not git tag `v4.2.0` alone; not stable CDN 4.1.2). See the resource doc
+  for tip vs tag detail.
+  ([#601](https://github.com/coolify-terraform/terraform-provider-coolify/pull/601),
+  [#602](https://github.com/coolify-terraform/terraform-provider-coolify/pull/602))
 
-### Docker destinations (Coolify >= v4.2.0)
+Example (DigitalOcean server):
 
-`coolify_destination` manages Docker network destinations (standalone or
-swarm) via Terraform, with singular and plural data sources for lookup.
-([#589](https://github.com/coolify-terraform/terraform-provider-coolify/pull/589),
-[#598](https://github.com/coolify-terraform/terraform-provider-coolify/pull/598))
+```hcl
+resource "coolify_server_digitalocean" "app" {
+  name                      = "do-app-node"
+  cloud_provider_token_uuid = coolify_cloud_token.do.uuid
+  region                    = "nyc1"
+  size                      = "s-1vcpu-1gb"
+  image                     = "ubuntu-24-04-x64"
+  private_key_uuid          = coolify_private_key.main.uuid
+}
+```
 
-### Storage volume backup schedules
+## Bug fixes
 
-`coolify_storage_backup` schedules backups for persistent or directory
-storage on applications, databases, or services.
+- **Start/stop/restart and server validate returned 405.** Coolify switched
+  those endpoints to POST (`This endpoint has changed to a POST request`).
+  The provider now uses POST for application, database, and service lifecycle
+  actions and server validate, so `coolify_resource_action` works on current
+  Coolify.
+  ([#587](https://github.com/coolify-terraform/terraform-provider-coolify/pull/587))
 
-Coolify exposes **PUT** and **DELETE** only (no GET for the schedule). The
-provider keeps schedule attributes from state on refresh and checks that the
-parent storage still exists.
+- **Plan rejected valid schedules like `daily` or `hourly`.** Coolify accepts
+  bare human names (not only `@daily`). Frequency validation matches that for
+  database backups, storage backups, scheduled tasks, and server disk-check
+  fields.
+  ([#603](https://github.com/coolify-terraform/terraform-provider-coolify/pull/603))
 
-**Coolify version note:** this API landed on Coolify branch `v4.x` after
-[coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946).
-It is **not** in git tag `v4.2.0` or stable CDN `4.1.2`. Use a Coolify image
-built from `v4.x` after that merge (CDN nightly may still report `4.2.0`
-while tip commits differ). Docs and examples state the same floor.
-([#601](https://github.com/coolify-terraform/terraform-provider-coolify/pull/601),
-[#602](https://github.com/coolify-terraform/terraform-provider-coolify/pull/602))
+- **Endless plan diffs on `custom_nginx_configuration`.** Coolify stores
+  base64; config often has raw nginx text. Read now preserves equivalent raw
+  values (same approach as `custom_labels`).
+  ([#604](https://github.com/coolify-terraform/terraform-provider-coolify/pull/604))
 
-### Lifecycle actions use POST
+- **Create could continue with an empty UUID** when Coolify returned success
+  without an id (for example a server that was not actually usable). Create
+  now fails with a clear empty-UUID error.
+  ([#598](https://github.com/coolify-terraform/terraform-provider-coolify/pull/598))
 
-Coolify changed start/stop/restart and server validate endpoints from GET to
-POST. Calling the old method returned **405** (`This endpoint has changed to
-a POST request`). The provider now uses POST for application, database, and
-service start/stop/restart, and for server validate, so
-`coolify_resource_action` and related flows work against current Coolify.
-([#587](https://github.com/coolify-terraform/terraform-provider-coolify/pull/587))
+## Compatibility
 
-### Human-friendly backup and task schedules
-
-Coolify accepts bare schedule names such as `daily`, `hourly`, and
-`every_minute` (not only `@daily`). Terraform plan used to reject those
-strings before any API call. Frequency validation now matches Coolify for
-database backups, storage backups, scheduled tasks, and server disk-check
-cron fields. ([#603](https://github.com/coolify-terraform/terraform-provider-coolify/pull/603))
-
-### Custom nginx configuration stays stable across plans
-
-`custom_nginx_configuration` is base64 on the wire, like `custom_labels`.
-After apply, Read could store the API base64 form while config kept your raw
-text, which produced endless plan diffs. Read now preserves equivalent raw
-values the same way labels do.
-([#604](https://github.com/coolify-terraform/terraform-provider-coolify/pull/604))
-
-### Clearer create failures on empty UUIDs
-
-If Coolify returns success without a resource UUID (for example when a
-server is not actually usable), create now fails with an explicit empty-UUID
-error instead of continuing with a blank id.
-([#598](https://github.com/coolify-terraform/terraform-provider-coolify/pull/598))
+| Surface | Coolify requirement |
+|---------|---------------------|
+| Existing resources from v0.1.8 | Still work on **>= 4.1.0** (including stable CDN 4.1.2) |
+| DigitalOcean / Vultr servers, destinations | **>= v4.2.0** (git tag / API line) |
+| `coolify_storage_backup` | `v4.x` **after** [coolify#10946](https://github.com/coollabsio/coolify/pull/10946); not tag `v4.2.0` alone |
 
 ## Numbers
 
@@ -105,14 +104,11 @@ terraform {
 terraform init -upgrade
 ```
 
-No state migration is required for existing resources.
+No state migration is required for existing resources. Stay on Coolify
+4.1.x unless you adopt the Compatibility table rows that need 4.2 or tip.
 
-**Coolify version guidance:**
+Docs: https://registry.terraform.io/providers/coolify-terraform/coolify/latest/docs
 
-- Staying on Coolify **stable 4.1.x**: safe for resources you already use.
-  Do not adopt DigitalOcean/Vultr servers, destinations, or volume backups
-  until your instance has the matching API.
-- Coolify **>= v4.2.0** (tag): DigitalOcean/Vultr servers and destinations.
-- Volume backups: Coolify `v4.x` **after** #10946 (not the `v4.2.0` tag alone).
+## Full changelog
 
-Registry docs: https://registry.terraform.io/providers/coolify-terraform/coolify/latest/docs
+https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.8...v0.1.9
