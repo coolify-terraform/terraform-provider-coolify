@@ -10,6 +10,14 @@ inputs:
     description: Root directory for Coolify data
     required: false
     default: /home/runner/coolify-data
+  coolify-image-tag:
+    description: >
+      Docker image tag for coollabsio/coolify (LATEST_IMAGE in compose).
+      Default edge is the multi-arch tip of Coolify v4.x and includes
+      VolumeBackupsController (coollabsio/coolify#10946). Stable latest / 4.2.0
+      do not. Override with a sha-... tag to pin, or latest for older API surface.
+    required: false
+    default: edge
 
 runs:
   using: composite
@@ -34,6 +42,7 @@ runs:
       shell: bash
       env:
         COOLIFY_DATA_DIR: ${{ inputs.coolify-data-dir }}
+        COOLIFY_IMAGE_TAG: ${{ inputs.coolify-image-tag }}
       run: |
         mkdir -p "$COOLIFY_DATA_DIR"/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
         mkdir -p "$COOLIFY_DATA_DIR/proxy/dynamic"
@@ -49,6 +58,14 @@ runs:
         sed -i "s|PUSHER_APP_ID=.*|PUSHER_APP_ID=$(openssl rand -hex 32)|g" .env
         sed -i "s|PUSHER_APP_KEY=.*|PUSHER_APP_KEY=$(openssl rand -hex 32)|g" .env
         sed -i "s|PUSHER_APP_SECRET=.*|PUSHER_APP_SECRET=$(openssl rand -hex 32)|g" .env
+        # Pin Coolify image tag (compose uses ${LATEST_IMAGE:-latest}).
+        # edge = v4.x tip with VolumeBackupsController (#10946); not in tag v4.2.0.
+        if grep -qE '^LATEST_IMAGE=' .env; then
+          sed -i "s|^LATEST_IMAGE=.*|LATEST_IMAGE=${COOLIFY_IMAGE_TAG}|" .env
+        else
+          echo "LATEST_IMAGE=${COOLIFY_IMAGE_TAG}" >> .env
+        fi
+        echo "Using Coolify image tag: ${COOLIFY_IMAGE_TAG}"
         ssh-keygen -t ed25519 -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" -N "" -q
         cat "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub" >> ~/.ssh/authorized_keys
         sudo sh -c "cat $COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub >> /root/.ssh/authorized_keys"

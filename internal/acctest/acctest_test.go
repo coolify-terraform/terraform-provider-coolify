@@ -97,3 +97,89 @@ func TestAccTestServerUUID_SkipsWhenOverrideIsNotVisible(t *testing.T) {
 		t.Fatal("expected AccTestServerUUID to skip when COOLIFY_SERVER_UUID is not visible")
 	}
 }
+
+func TestAccTestSkipIfNoVolumeBackupAPI_Present(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.2.0-edge"})
+	})
+	// Controller present: resource not found for fake UUIDs
+	mux.HandleFunc("PUT /api/v1/applications/{app}/storages/{stor}/backups", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"Application not found."}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	for _, kv := range [][2]string{{"COOLIFY_ENDPOINT", srv.URL}, {"COOLIFY_TOKEN", "test-token"}} {
+		if err := os.Setenv(kv[0], kv[1]); err != nil {
+			t.Fatalf("setting %s: %v", kv[0], err)
+		}
+		defer os.Unsetenv(kv[0]) //nolint:errcheck
+	}
+
+	// Must not skip when controller is present
+	AccTestSkipIfNoVolumeBackupAPI(t)
+}
+
+func TestAccTestSkipIfNoVolumeBackupAPI_MissingRoute(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.2.0"})
+	})
+	// Unmatched PUT: Go ServeMux returns 404 with empty body (treated as missing route)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	for _, kv := range [][2]string{{"COOLIFY_ENDPOINT", srv.URL}, {"COOLIFY_TOKEN", "test-token"}} {
+		if err := os.Setenv(kv[0], kv[1]); err != nil {
+			t.Fatalf("setting %s: %v", kv[0], err)
+		}
+		defer os.Unsetenv(kv[0]) //nolint:errcheck
+	}
+
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfNoVolumeBackupAPI(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfNoVolumeBackupAPI to skip when volume backup route is missing")
+	}
+}
+
+func TestAccTestSkipIfNoVolumeBackupAPI_ValidationPresent(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.2.0-edge"})
+	})
+	mux.HandleFunc("PUT /api/v1/applications/{app}/storages/{stor}/backups", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = w.Write([]byte(`{"message":"Validation failed."}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	for _, kv := range [][2]string{{"COOLIFY_ENDPOINT", srv.URL}, {"COOLIFY_TOKEN", "test-token"}} {
+		if err := os.Setenv(kv[0], kv[1]); err != nil {
+			t.Fatalf("setting %s: %v", kv[0], err)
+		}
+		defer os.Unsetenv(kv[0]) //nolint:errcheck
+	}
+
+	AccTestSkipIfNoVolumeBackupAPI(t)
+}

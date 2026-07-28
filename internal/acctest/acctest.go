@@ -515,6 +515,90 @@ func AccCheckResourceDisappears(resourceAddr, apiDeletePath string) resource.Tes
 	}
 }
 
+// AccTestSkipIfNoVolumeBackupAPI skips when Coolify lacks VolumeBackupsController
+// (PUT/DELETE .../storages/{uuid}/backups from coollabsio/coolify#10946).
+//
+// That API is on Coolify branch v4.x after the merge; it is not in git tag
+// v4.2.0 or stable CDN latest. CI boots coollabsio/coolify:edge (v4.x tip).
+// Locally set LATEST_IMAGE=edge (or a post-#10946 sha-... tag) before compose up.
+//
+// Probe strategy: PUT a schedule for non-existent parent/storage UUIDs.
+// Present controller returns 404 resource/storage, 422 validation, or 401/403.
+// Missing route returns Laravel "route ... could not be found" (or similar).
+func AccTestSkipIfNoVolumeBackupAPI(t *testing.T) {
+	t.Helper()
+	TestAccPreCheck(t)
+
+	endpoint := strings.TrimRight(os.Getenv("COOLIFY_ENDPOINT"), "/")
+	token := os.Getenv("COOLIFY_TOKEN")
+	// NanoID-shaped placeholders; do not need to exist.
+	path := endpoint + "/api/v1/applications/tfaccprobe000000000000001/storages/tfaccprobe000000000000002/backups"
+	req, err := http.NewRequest(http.MethodPut, path, strings.NewReader(`{"frequency":"daily"}`))
+	if err != nil {
+		t.Fatalf("building volume backup probe request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Skipf("volume backup API probe failed (cannot reach Coolify): %v", err)
+	}
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	_ = resp.Body.Close()
+	msg := strings.ToLower(string(body))
+
+	switch resp.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		// Route is registered; auth/middleware ran.
+		return
+	case http.StatusUnprocessableEntity:
+		// Validation ran on the volume backup controller.
+		return
+	case http.StatusNotFound:
+		// Controller-style 404s mean the route exists.
+		if strings.Contains(msg, "application not found") ||
+			strings.Contains(msg, "resource not found") ||
+			strings.Contains(msg, "storage not found") ||
+			strings.Contains(msg, "database not found") ||
+			strings.Contains(msg, "service not found") {
+			return
+		}
+		// Laravel unmatched route, Go net/http default 404, or HTML without
+		// controller message. Controller 404s always name the resource.
+		if strings.Contains(msg, "could not be found") ||
+			strings.Contains(msg, "route ") ||
+			strings.Contains(msg, "page not found") ||
+			strings.TrimSpace(msg) == "" ||
+			strings.Contains(msg, "<html") {
+			t.Skipf("Coolify instance has no VolumeBackupsController (HTTP %d). "+
+				"Need image tip after coollabsio/coolify#10946 (CI uses coollabsio/coolify:edge; "+
+				"local: set LATEST_IMAGE=edge in Coolify compose .env). Body: %s",
+				resp.StatusCode, truncateForSkip(string(body), 200))
+		}
+		// Unknown 404 body: treat as present (resource not found variants).
+		return
+	case http.StatusMethodNotAllowed:
+		t.Skipf("Coolify instance has no volume backup PUT route (HTTP 405). " +
+			"Need tip after coollabsio/coolify#10946 (coollabsio/coolify:edge)")
+	default:
+		// 200/201 should not happen for fake UUIDs; other codes still mean a handler ran.
+		if resp.StatusCode >= 500 {
+			t.Skipf("volume backup API probe returned HTTP %d (server error); skipping: %s",
+				resp.StatusCode, truncateForSkip(string(body), 200))
+		}
+	}
+}
+
+func truncateForSkip(s string, n int) string {
+	s = strings.TrimSpace(s)
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
+}
+
 // AccTestS3StorageUUID returns the UUID of an S3 storage destination for
 // acceptance tests. Set COOLIFY_S3_STORAGE_UUID to the UUID of an S3
 // storage registered in Coolify. The test is skipped if not set.
