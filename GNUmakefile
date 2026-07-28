@@ -39,7 +39,26 @@ acc-preflight: ## Check required env, API reachability, and common acceptance fi
 	else echo "INFO: COOLIFY_SERVER_UUID not set. Acceptance helpers will auto-discover the first visible server."; fi; \
 	if [ -z "$$COOLIFY_HETZNER_TOKEN" ]; then echo "WARNING: COOLIFY_HETZNER_TOKEN not set. Hetzner and cloud token acceptance packages will skip."; else echo "Hetzner fixture OK: COOLIFY_HETZNER_TOKEN is set."; fi; \
 	if [ -z "$$COOLIFY_S3_STORAGE_UUID" ]; then echo "WARNING: COOLIFY_S3_STORAGE_UUID not set. S3 backup acceptance tests will skip."; else echo "S3 fixture OK: COOLIFY_S3_STORAGE_UUID is set."; fi; \
-	if [ -n "$$COOLIFY_GITHUB_APP_APP_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_INSTALLATION_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_CLIENT_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_CLIENT_SECRET" ] && [ -n "$$COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE" ] && [ -n "$$COOLIFY_GITHUB_APP_REPOSITORY" ]; then echo "GitHub App fixtures OK: COOLIFY_GITHUB_APP_* is configured."; else echo "WARNING: COOLIFY_GITHUB_APP_* fixtures are incomplete. GitHub App application acceptance will skip."; fi
+	if [ -n "$$COOLIFY_GITHUB_APP_APP_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_INSTALLATION_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_CLIENT_ID" ] && [ -n "$$COOLIFY_GITHUB_APP_CLIENT_SECRET" ] && [ -n "$$COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE" ] && [ -n "$$COOLIFY_GITHUB_APP_REPOSITORY" ]; then echo "GitHub App fixtures OK: COOLIFY_GITHUB_APP_* is configured."; else echo "WARNING: COOLIFY_GITHUB_APP_* fixtures are incomplete. GitHub App application acceptance will skip."; fi; \
+	endpoint=$$(printf '%s' "$$COOLIFY_ENDPOINT" | sed 's|/*$$||'); \
+	vb_code=$$(curl -sS -o /tmp/acc-preflight-vb.body -w '%{http_code}' \
+	  -X PUT \
+	  -H "Authorization: Bearer $$COOLIFY_TOKEN" \
+	  -H "Content-Type: application/json" \
+	  -H "Accept: application/json" \
+	  -d '{"frequency":"daily"}' \
+	  "$$endpoint/api/v1/applications/tfaccprobe000000000000001/storages/tfaccprobe000000000000002/backups" 2>/dev/null || echo "000"); \
+	vb_body=$$(tr '[:upper:]' '[:lower:]' < /tmp/acc-preflight-vb.body 2>/dev/null || true); \
+	rm -f /tmp/acc-preflight-vb.body; \
+	if [ "$$vb_code" = "401" ] || [ "$$vb_code" = "403" ] || [ "$$vb_code" = "422" ]; then \
+	  echo "Volume backup API OK: HTTP $$vb_code (VolumeBackupsController present)."; \
+	elif [ "$$vb_code" = "404" ] && printf '%s' "$$vb_body" | grep -qE 'application not found|resource not found|storage not found|database not found|service not found'; then \
+	  echo "Volume backup API OK: HTTP 404 resource/storage (VolumeBackupsController present)."; \
+	elif [ "$$vb_code" = "404" ] || [ "$$vb_code" = "405" ] || [ "$$vb_code" = "000" ]; then \
+	  echo "WARNING: Volume backup routes missing (HTTP $$vb_code). coolify_storage_backup acc tests will skip. Use coollabsio/coolify:edge (CI default) or pin LATEST_IMAGE=sha-<git-sha> after coollabsio/coolify#10946."; \
+	else \
+	  echo "Volume backup API OK: HTTP $$vb_code (handler responded)."; \
+	fi
 
 check-pkg: ## Verify PKG is set for package-scoped test targets
 	@test -n "$(PKG)" || (echo "ERROR: PKG is required, example: make test-pkg PKG=./internal/service/project/"; exit 1)

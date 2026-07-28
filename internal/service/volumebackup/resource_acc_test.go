@@ -77,6 +77,57 @@ func TestAccStorageBackupResource_CRUD(t *testing.T) {
 	})
 }
 
+// TestAccStorageBackupResource_S3 exercises save_s3 + s3_storage_uuid against
+// real Coolify MinIO (COOLIFY_S3_STORAGE_UUID). Requires VolumeBackupsController.
+func TestAccStorageBackupResource_S3(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	acctest.AccTestSkipIfNoVolumeBackupAPI(t)
+
+	serverUUID := acctest.AccTestServerUUID(t)
+	s3UUID := acctest.AccTestS3StorageUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-volbkp-s3")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             testAccStorageBackupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageBackupS3Config(name, serverUUID, s3UUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_storage_backup.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_storage_backup.test", "save_s3", "true"),
+					resource.TestCheckResourceAttr("coolify_storage_backup.test", "s3_storage_uuid", s3UUID),
+					resource.TestCheckResourceAttr("coolify_storage_backup.test", "frequency", "0 3 * * *"),
+					resource.TestCheckResourceAttr("coolify_storage_backup.test", "storage_type", "persistent"),
+				),
+			},
+			{
+				Config:             testAccStorageBackupS3Config(name, serverUUID, s3UUID),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				ResourceName:                         "coolify_storage_backup.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "storage_uuid",
+				ImportStateIdFunc: testAccStorageBackupImportStateIdFunc(
+					"coolify_application_dockerfile.test",
+					"coolify_storage.test",
+				),
+				ImportStateVerifyIgnore: []string{
+					"uuid", "frequency", "enabled", "save_s3", "disable_local_backup",
+					"stop_during_backup", "s3_storage_uuid", "storage_type",
+					"retention_amount_locally", "retention_days_locally", "retention_max_storage_locally",
+					"retention_amount_s3", "retention_days_s3", "retention_max_storage_s3", "timeout",
+				},
+			},
+		},
+	})
+}
+
 func testAccStorageBackupConfig(name, serverUUID, frequency string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {
@@ -107,6 +158,40 @@ resource "coolify_storage_backup" "test" {
   enabled          = true
 }
 `, name, serverUUID, frequency)
+}
+
+func testAccStorageBackupS3Config(name, serverUUID, s3UUID string) string {
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_application_dockerfile" "test" {
+  project_uuid        = coolify_project.test.uuid
+  server_uuid         = %[2]q
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
+  ports_exposes = "80"
+}
+
+resource "coolify_storage" "test" {
+  application_uuid = coolify_application_dockerfile.test.uuid
+  name             = %[1]q
+  mount_path       = "/data"
+}
+
+resource "coolify_storage_backup" "test" {
+  application_uuid = coolify_application_dockerfile.test.uuid
+  storage_uuid     = coolify_storage.test.uuid
+  frequency        = "0 3 * * *"
+  enabled          = true
+  save_s3          = true
+  s3_storage_uuid  = %[3]q
+}
+`, name, serverUUID, s3UUID)
 }
 
 func testAccStorageBackupImportStateIdFunc(appResourceName, storageResourceName string) resource.ImportStateIdFunc {
