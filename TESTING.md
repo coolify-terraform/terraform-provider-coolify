@@ -126,6 +126,8 @@ fixtures are still missing.
 | `COOLIFY_S3_STORAGE_UUID` | No | Required for S3 backup coverage if you are not using `make acc-bootstrap` |
 | `COOLIFY_GITHUB_APP_*` | No | Required for the GitHub App application acceptance test |
 
+`coolify_storage_backup` acceptance (`TestAccStorageBackupResource_CRUD`) needs a Coolify image with `VolumeBackupsController` (coollabsio/coolify#10946; not in tag `v4.2.0` or stable `latest`). CI sets `LATEST_IMAGE=edge` in [`.github/actions/setup-coolify`](.github/actions/setup-coolify/action.yml). Locally, add `LATEST_IMAGE=edge` to the Coolify compose `.env` before `docker compose up`. The test probes the API and skips with a clear reason if the route is missing; no extra secrets.
+
 #### Server validation for application tests
 
 Application-related tests require a validated server with SSH access.
