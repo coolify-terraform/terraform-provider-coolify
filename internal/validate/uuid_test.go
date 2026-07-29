@@ -24,9 +24,12 @@ func TestUUID_Valid(t *testing.T) {
 		"ABCDEF12-3456-7890-ABCD-EF1234567890",
 		// Coolify NanoID format
 		"deey8xhb2bm3fxpobcxyddfv",             // real NanoID (24 chars)
-		"abcdefghij0123456789",                 // boundary: exactly 20 chars
+		"abcdefghij0123456789",                 // 20 chars
 		"abcdefghij0123456789ABCDEFGHIJ012345", // boundary: exactly 36 chars
 		"ABCDEFghij0123456789abcdef",           // mixed case (26 chars)
+		// Legacy Cuid2(7) Coolify identifiers (pre v4.0.0-beta.400)
+		"usoc080", // real legacy id (7 chars)
+		"lk4cosc", // real legacy id (7 chars)
 	}
 	v := validate.UUID()
 	for _, s := range valid {
@@ -45,12 +48,14 @@ func TestUUID_Invalid(t *testing.T) {
 	invalid := []string{
 		"not-a-uuid",
 		"proj-uuid-1",
-		"12345",
+		"12345", // 5 chars
 		"550e8400-e29b-41d4-a716",
 		"550e8400-e29b-41d4-a716-44665544000g",
 		"",
-		// NanoID boundary violations
-		"abcdefghij012345678",                   // 19 chars (min - 1)
+		// Lengths Coolify never generated: 6, 8-19, 37+
+		"abc123",                                // 6 chars (legacy - 1)
+		"abc12345",                              // 8 chars (legacy + 1)
+		"abcdefghij012345678",                   // 19 chars (modern min - 1)
 		"abcdefghij0123456789ABCDEFGHIJ0123456", // 37 chars (max + 1)
 		"abcdef_ghij01234567890",                // underscore not in [a-zA-Z0-9]
 		"abcdef ghij01234567890",                // space not in [a-zA-Z0-9]
