@@ -48,7 +48,7 @@ func serviceValidateConfig(t *testing.T, typeVal, composeVal types.String) resou
 
 	resp := resource.ValidateConfigResponse{}
 	r.ValidateConfig(ctx, resource.ValidateConfigRequest{
-		Config: tfsdk.Config{Schema: state.Schema, Raw: state.Raw},
+		Config: tfsdk.Config(state),
 	}, &resp)
 	return resp
 }
