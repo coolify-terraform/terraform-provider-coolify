@@ -15,7 +15,7 @@ Terraform provider for [Coolify](https://coolify.io/), the open-source self-host
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
 Builds use `GOFIPS140=latest` for FIPS 140-3 compliant cryptography (required for
 government/enterprise adoption; set in `.goreleaser.yml` and `release.yml` smoke test).
-37 resources, 54 data sources, 1060+ tests (unit + acceptance), 9 CI jobs.
+37 resources, 54 data sources, 1070+ tests (unit + acceptance), 9 CI jobs.
 17 ACME Corp scenario examples (all with `terraform test` integration tests; acme-private-repo uses plan-only).
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
@@ -72,6 +72,7 @@ mismatches, and zero validation rules when we compared it against the source.
 
 ## Commands
 
+- **DCO required on every commit**: use `git commit -s` (or `git commit --amend -s --no-edit`). CI fails any PR commit missing a `Signed-off-by` trailer. See [CONTRIBUTING.md](CONTRIBUTING.md#dco-sign-off) for amend/rebase recovery.
 - **Run all checks before pushing**: `make ci` + targeted acceptance tests
 - **Note**: `make ci` does NOT include acceptance tests. It DOES include `python-test`, so ensure Python 3.9+ is available locally. For real-API changes, run `make acc-preflight` first, then `make testacc-pkg PKG=./internal/service/<changed-package>/` for serialized package-scoped acceptance coverage, or `make testacc` for the full suite.
 - **If `make ci` fails on `check-tfplugindocs`**: install it with `cd tools && GOBIN=$(cd .. && pwd)/bin go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs` then re-run with `PATH="$(pwd)/bin:$PATH" make ci`. Do NOT skip `make ci` and run individual targets instead; that misses `docs-check` and causes CI failures when schema descriptions or templates change.
@@ -218,7 +219,7 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 ## Testing
 
 - Framework: `hashicorp/terraform-plugin-testing` with `httptest` mock servers
-- 1060+ tests (unit + acceptance)
+- 1070+ tests (unit + acceptance)
 - Acceptance tests are skipped unless `TF_ACC=1` is set
 - Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, actionlint-check, python-test, docs-check, api-coverage-check, counts-check, contract-compat, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
 - Before adding a test function, grep for its name to avoid duplicates

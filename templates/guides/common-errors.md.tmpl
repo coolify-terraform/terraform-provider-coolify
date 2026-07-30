@@ -73,13 +73,21 @@ required fields that are not always obvious:
 ```
 Error: Invalid Attribute Value
 uuid must be a valid UUID (e.g. "550e8400-e29b-41d4-a716-446655440000")
+or Coolify identifier
 ```
 
 **Cause:** a UUID field received a malformed value.
 
-**Fix:** check that all UUID values use the standard format
-(`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`). Find UUIDs in the Coolify UI
-or with `terraform state show`.
+**Fix:** Coolify resource ids are either:
+
+- RFC 4122 UUIDs (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`), or
+- Coolify identifiers: **exactly 7** alphanumeric characters (legacy
+  `Cuid2(7)`, still present on older instances and some Coolify Cloud
+  teams) or **20-36** alphanumeric characters (modern NanoID/Cuid2).
+
+Copy the id from the Coolify UI URL or API (`GET /servers`, etc.), or
+from `terraform state show`. Values with dashes outside the RFC form,
+underscores, spaces, or lengths other than 7 and 20-36 are rejected.
 
 ### Cron syntax invalid
 
