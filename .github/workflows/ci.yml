@@ -398,12 +398,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh label create contract-drift --description "Upstream Coolify source contract has changed" --color "d93f0b" --force 2>/dev/null || true
+          BODY_FILE=.github/contract-freshness-issue.md
           EXISTING=$(gh issue list --label "contract-drift" --state open --json number --jq length)
           if [ "$EXISTING" = "0" ]; then
             gh issue create \
               --title "Upstream Coolify contract has changed" \
               --label "contract-drift" \
-              --body "The weekly contract-freshness check detected field or route changes in the upstream Coolify source code. Run \`make contract-extract\` to update the pinned contract and review the changes with \`make contract-check\`."
+              --body-file "$BODY_FILE"
+          else
+            NUM=$(gh issue list --label "contract-drift" --state open --json number --jq '.[0].number')
+            gh issue comment "$NUM" --body-file "$BODY_FILE"
           fi
 
   scenario-tests:
