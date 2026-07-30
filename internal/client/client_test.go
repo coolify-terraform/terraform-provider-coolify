@@ -2455,6 +2455,9 @@ func TestClient_CreateProject_WrongStatusCode(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "expected status 201")
 	assert.Contains(t, err.Error(), "got 200")
+	// Method and path help operators map failures to the Coolify endpoint.
+	assert.Contains(t, err.Error(), "POST")
+	assert.Contains(t, err.Error(), "/api/v1/projects")
 }
 
 // --- Malformed JSON response ---

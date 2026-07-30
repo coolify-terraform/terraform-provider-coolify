@@ -62,6 +62,15 @@ body excerpts are truncated to 500 characters.
 
 ## Common Issues
 
+### Invalid UUID / Coolify identifier
+
+Plan fails with `must be a valid UUID ... or Coolify identifier` when a
+`*_uuid` attribute is malformed. Coolify accepts RFC 4122 UUIDs, legacy
+7-character ids (older Cloud teams and upgraded instances), and modern
+20-36 character ids. See the [Common Errors](./common-errors) guide for
+examples. TRACE logs show the HTTP path that returned 404 when an id
+looks valid but the resource is missing.
+
 ### "Provider produced inconsistent result after apply"
 
 This usually means the provider's schema default doesn't match what the

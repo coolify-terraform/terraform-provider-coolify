@@ -320,10 +320,10 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 	})
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &NotFoundError{Message: fmt.Sprintf("resource not found: %s", extractAPIMessage(respBody))}
+		return &NotFoundError{Message: fmt.Sprintf("resource not found (GET %s): %s", path, extractAPIMessage(respBody))}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, extractAPIMessage(respBody))
+		return fmt.Errorf("API returned status %d for GET %s: %s", resp.StatusCode, path, extractAPIMessage(respBody))
 	}
 
 	// Cache only after successful unmarshal to avoid storing malformed data.
@@ -385,13 +385,13 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 
 	// Check 404 first, regardless of expectedStatus.
 	if resp.StatusCode == http.StatusNotFound {
-		return &NotFoundError{Message: fmt.Sprintf("resource not found: %s", extractAPIMessage(respBody))}
+		return &NotFoundError{Message: fmt.Sprintf("resource not found (%s %s): %s", method, path, extractAPIMessage(respBody))}
 	}
 	if expectedStatus != 0 && resp.StatusCode != expectedStatus {
-		return fmt.Errorf("expected status %d, got %d: %s", expectedStatus, resp.StatusCode, extractAPIMessage(respBody))
+		return fmt.Errorf("expected status %d, got %d for %s %s: %s", expectedStatus, resp.StatusCode, method, path, extractAPIMessage(respBody))
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("api error (status %d): %s", resp.StatusCode, extractAPIMessage(respBody))
+		return fmt.Errorf("api error (status %d) for %s %s: %s", resp.StatusCode, method, path, extractAPIMessage(respBody))
 	}
 
 	if result != nil {

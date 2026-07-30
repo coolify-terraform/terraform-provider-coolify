@@ -27,7 +27,7 @@ func TestUUID_Valid(t *testing.T) {
 		"abcdefghij0123456789",                 // 20 chars
 		"abcdefghij0123456789ABCDEFGHIJ012345", // boundary: exactly 36 chars
 		"ABCDEFghij0123456789abcdef",           // mixed case (26 chars)
-		// Legacy Cuid2(7) Coolify identifiers (pre v4.0.0-beta.400)
+		// Legacy Cuid2(7) Coolify identifiers (pre ~v4.0.0-beta.320)
 		"usoc080", // real legacy id (7 chars)
 		"lk4cosc", // real legacy id (7 chars)
 	}
