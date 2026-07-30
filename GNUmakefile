@@ -101,8 +101,8 @@ spec-check: ## Run OpenAPI spec compliance tests
 contract-extract: check-python3 ## Extract contract from Coolify source (usage: make contract-extract VERSION=v4.0.1)
 	scripts/extract-contract.sh $(or $(VERSION),latest)
 
-contract-check: ## Verify client structs cover all contract fields
-	go test -race -count=1 -run 'TestContractCoverage' ./internal/spectest/ -v
+contract-check: ## Verify contract client/schema coverage and skip taxonomy
+	go test -race -count=1 -run 'TestContractCoverage|TestWriteCoverage|TestSchemaCoverage|TestSkipTaxonomy|TestValidateFieldSkip|TestSkipMap' ./internal/spectest/ -v
 
 contract-compat: check-python3 ## Check endpoint field compatibility across Coolify versions
 	python3 scripts/check-contract-compat.py --ci
