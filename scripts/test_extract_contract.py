@@ -536,6 +536,23 @@ class FooController {
         result = ec.extract_allowed_fields(php)
         self.assertEqual(result["update"], ["extra_field"])
 
+    def test_validate_helper_aliased_to_public_caller(self):
+        # VolumeBackupsController::upsert calls validateUpsertRequest which owns
+        # $allowedFields; public write surface must not be lost in extract.
+        php = """<?php
+class VolumeBackupsController {
+    public function upsert(Request $request) {
+        $this->validateUpsertRequest($request);
+    }
+    private function validateUpsertRequest(Request $request) {
+        $allowedFields = ['frequency', 'enabled', 'timeout'];
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(result["validateUpsertRequest"], ["frequency", "enabled", "timeout"])
+        self.assertEqual(result["upsert"], ["frequency", "enabled", "timeout"])
+
 
 # ── _clean_rule ─────────────────────────────────────────────────────
 

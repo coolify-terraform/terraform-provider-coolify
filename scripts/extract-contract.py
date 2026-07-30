@@ -368,6 +368,25 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
             result[method].extend(extra)
         else:
             result[method] = extra
+
+    # Alias private validate* helpers onto public methods that call them.
+    # VolumeBackupsController::upsert calls validateUpsertRequest which owns
+    # $allowedFields; without this, tip extracts lose the public write surface
+    # and weekly freshness reports false "removed" upsert fields.
+    for helper, fields in list(result.items()):
+        if not helper.lower().startswith("validate"):
+            continue
+        call_pat = re.compile(rf"\$this->{re.escape(helper)}\s*\(")
+        for call in call_pat.finditer(content):
+            preceding = content[: call.start()]
+            methods = re.findall(r"function\s+(\w+)\s*\(", preceding)
+            caller = methods[-1] if methods else None
+            if not caller or caller == helper:
+                continue
+            existing = result.setdefault(caller, [])
+            for f in fields:
+                if f not in existing:
+                    existing.append(f)
     return result
 
 
