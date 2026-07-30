@@ -212,14 +212,21 @@ func (r *storageBackupResource) ValidateConfig(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if cfg.DisableLocalBackup.ValueBool() && !cfg.SaveS3.ValueBool() {
+	// Unknown attributes (vars, references) must not be treated as false/empty.
+	// ValueBool() on unknown is false, which falsely triggers these checks.
+	if cfg.DisableLocalBackup.IsUnknown() || cfg.SaveS3.IsUnknown() || cfg.S3StorageUUID.IsUnknown() {
+		return
+	}
+	if !cfg.DisableLocalBackup.IsNull() && cfg.DisableLocalBackup.ValueBool() &&
+		(cfg.SaveS3.IsNull() || !cfg.SaveS3.ValueBool()) {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("disable_local_backup"),
 			"Invalid backup destinations",
 			"disable_local_backup requires save_s3 = true (Coolify rejects local-only disable).",
 		)
 	}
-	if cfg.SaveS3.ValueBool() && (cfg.S3StorageUUID.IsNull() || cfg.S3StorageUUID.ValueString() == "") {
+	if !cfg.SaveS3.IsNull() && cfg.SaveS3.ValueBool() &&
+		(cfg.S3StorageUUID.IsNull() || cfg.S3StorageUUID.ValueString() == "") {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("s3_storage_uuid"),
 			"Missing S3 storage",

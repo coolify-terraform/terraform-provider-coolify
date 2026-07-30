@@ -190,14 +190,20 @@ func (r *databaseBackupResource) ValidateConfig(ctx context.Context, req resourc
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if !config.SaveS3.IsNull() && !config.SaveS3.IsUnknown() && config.SaveS3.ValueBool() {
-		if config.S3StorageUUID.IsNull() || config.S3StorageUUID.IsUnknown() {
-			resp.Diagnostics.AddAttributeError(
-				path.Root("s3_storage_uuid"),
-				"Missing S3 Storage UUID",
-				"`s3_storage_uuid` must be set when `save_s3` is `true`.",
-			)
-		}
+	// Only enforce when save_s3 is known true. Unknown s3_storage_uuid
+	// (e.g. from a data source or resource reference) must not fail plan.
+	if config.SaveS3.IsNull() || config.SaveS3.IsUnknown() || !config.SaveS3.ValueBool() {
+		return
+	}
+	if config.S3StorageUUID.IsUnknown() {
+		return
+	}
+	if config.S3StorageUUID.IsNull() || config.S3StorageUUID.ValueString() == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("s3_storage_uuid"),
+			"Missing S3 Storage UUID",
+			"`s3_storage_uuid` must be set when `save_s3` is `true`.",
+		)
 	}
 }
 
