@@ -298,14 +298,14 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 	tflog.Trace(ctx, "API request", map[string]interface{}{"method": "GET", "path": path})
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
-		return fmt.Errorf("creating request: %w", err)
+		return fmt.Errorf("creating request for GET %s: %w", path, err)
 	}
 	c.setCommonHeaders(req)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("executing request: %w", err)
+		return fmt.Errorf("executing request for GET %s: %w", path, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -358,7 +358,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 
 	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, reqBody)
 	if err != nil {
-		return fmt.Errorf("creating request: %w", err)
+		return fmt.Errorf("creating request for %s %s: %w", method, path, err)
 	}
 	c.setCommonHeaders(req)
 	req.Header.Set("Accept", "application/json")
@@ -368,7 +368,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("executing request: %w", err)
+		return fmt.Errorf("executing request for %s %s: %w", method, path, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
