@@ -5556,3 +5556,37 @@ func TestClient_CreateDockerfileApplication_ResolvesDestination(t *testing.T) {
 	assert.Equal(t, 2, attempts)
 	assert.Equal(t, "dest-1", gotBody["destination_uuid"])
 }
+
+func TestApplication_PromoteSettings(t *testing.T) {
+	t.Parallel()
+	preview := true
+	secrets := true
+	grace := int64(45)
+	app := Application{
+		Settings: &ApplicationSettings{
+			IsPreviewDeploymentsEnabled: &preview,
+			UseBuildSecrets:             &secrets,
+			StopGracePeriod:             &grace,
+		},
+	}
+	app.PromoteSettings()
+	if app.IsPreviewDeploymentsEnabled == nil || !*app.IsPreviewDeploymentsEnabled {
+		t.Fatal("expected is_preview_deployments_enabled promoted")
+	}
+	if app.UseBuildSecrets == nil || !*app.UseBuildSecrets {
+		t.Fatal("expected use_build_secrets promoted")
+	}
+	if app.StopGracePeriod == nil || *app.StopGracePeriod != 45 {
+		t.Fatalf("stop_grace_period = %v", app.StopGracePeriod)
+	}
+	// top-level wins over nested
+	topFalse := false
+	app2 := Application{
+		IsPreviewDeploymentsEnabled: &topFalse,
+		Settings:                    &ApplicationSettings{IsPreviewDeploymentsEnabled: &preview},
+	}
+	app2.PromoteSettings()
+	if app2.IsPreviewDeploymentsEnabled == nil || *app2.IsPreviewDeploymentsEnabled {
+		t.Fatal("top-level value must not be overwritten by settings")
+	}
+}

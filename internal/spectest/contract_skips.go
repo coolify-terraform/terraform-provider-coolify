@@ -59,15 +59,12 @@ var applicationFieldSkips = skipMap(
 	skipInternal("is_include_timestamps", "settings not on update allow list"),
 	skipInternal("is_log_drain_enabled", "settings not on update allow list"),
 	skipInternal("is_pr_deployments_public_enabled", "settings not on update allow list"),
-	// Public on ApplicationsController create/update allowed_fields (must not be internal).
-	skipDeferred("is_preview_deployments_enabled", 626, "public allow-list field; not yet on application client/schema"),
 	skipInternal("is_raw_compose_deployment_enabled", "settings not on update allow list"),
 	skipInternal("is_stripprefix_enabled", "settings not on update allow list"),
 	skipInternal("is_swarm_only_worker_nodes", "settings not on update allow list"),
-	skipDeferred("use_build_secrets", 626, "public allow-list field; not yet on application client/schema"),
 	// is_build_server_enabled is the setting name; the API field is use_build_server
 	skipNA("is_build_server_enabled", "API field is use_build_server on Application"),
-	skipDeferred("stop_grace_period", 626, "not yet exposed on application resource"),
+	// is_preview_deployments_enabled, use_build_secrets, stop_grace_period covered on client (#628)
 )
 
 var serverCoverageSkips = skipMap(
@@ -133,8 +130,7 @@ var scheduledTaskCoverageSkips = skipMap(
 	skipInternal("application_id", "numeric FK"),
 	skipInternal("service_id", "numeric FK"),
 	skipInternal("team_id", "FK"),
-	skipDeferred("container", 626, "on create/update allow list; not yet on scheduled_task schema"),
-	skipDeferred("timeout", 626, "not yet exposed on scheduled_task resource"),
+	// container, timeout covered on client (#629)
 )
 
 var projectCoverageSkips = skipMap(

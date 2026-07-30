@@ -6,6 +6,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -302,6 +303,28 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
+		},
+		"is_preview_deployments_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether preview deployments (e.g. pull requests) are enabled for this application. " +
+				"Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"use_build_secrets": schema.BoolAttribute{
+			MarkdownDescription: "Whether to use Docker Build secrets for build-time environment variables. " +
+				"Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"stop_grace_period": schema.Int64Attribute{
+			MarkdownDescription: "Container stop grace period in seconds (Coolify application setting). " +
+				"Valid range 1-3600. When null/omitted, Coolify uses its default stop behavior.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+			Validators:    []validator.Int64{int64validator.Between(1, 3600)},
 		},
 		"instant_deploy": schema.BoolAttribute{
 			MarkdownDescription: "Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.",

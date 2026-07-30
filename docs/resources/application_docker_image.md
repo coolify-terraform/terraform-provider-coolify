@@ -75,6 +75,7 @@ resource "coolify_application_docker_image" "nginx" {
 - `is_force_https_enabled` (Boolean) Whether to force HTTPS for the application.
 - `is_http_basic_auth_enabled` (Boolean) Whether HTTP Basic Authentication is enabled.
 - `is_preserve_repository_enabled` (Boolean) Whether to preserve the full Git repository (instead of shallow clone).
+- `is_preview_deployments_enabled` (Boolean) Whether preview deployments (e.g. pull requests) are enabled for this application. Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`.
 - `is_spa` (Boolean) Whether the application is a single-page application.
 - `is_static` (Boolean) Whether the application is a static site.
 - `limits_cpu_shares` (Number) CPU shares (relative weight).
@@ -99,7 +100,9 @@ resource "coolify_application_docker_image" "nginx" {
 - `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
 - `start_command` (String) The command to run to start the application.
 - `static_image` (String) The Docker image to use for serving static sites.
+- `stop_grace_period` (Number) Container stop grace period in seconds (Coolify application setting). Valid range 1-3600. When null/omitted, Coolify uses its default stop behavior.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
+- `use_build_secrets` (Boolean) Whether to use Docker Build secrets for build-time environment variables. Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`.
 - `use_build_server` (Boolean) Whether to use a build server for building the application.
 - `watch_paths` (String) Paths to watch for changes (triggers auto-deploy).
 

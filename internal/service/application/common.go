@@ -110,6 +110,9 @@ type commonAppFields struct {
 	IsContainerLabelEscapeEnabled *types.Bool
 	IsPreserveRepositoryEnabled   *types.Bool
 	UseBuildServer                *types.Bool
+	IsPreviewDeploymentsEnabled   *types.Bool
+	UseBuildSecrets               *types.Bool
+	StopGracePeriod               *types.Int64
 	InstantDeploy                 *types.Bool
 	RedeployOnUpdate              *types.Bool
 	MaxRestartCount               *types.Int64
@@ -185,6 +188,9 @@ type applicationCommonModel struct {
 	IsContainerLabelEscapeEnabled  types.Bool     `tfsdk:"is_container_label_escape_enabled"`
 	IsPreserveRepositoryEnabled    types.Bool     `tfsdk:"is_preserve_repository_enabled"`
 	UseBuildServer                 types.Bool     `tfsdk:"use_build_server"`
+	IsPreviewDeploymentsEnabled    types.Bool     `tfsdk:"is_preview_deployments_enabled"`
+	UseBuildSecrets                types.Bool     `tfsdk:"use_build_secrets"`
+	StopGracePeriod                types.Int64    `tfsdk:"stop_grace_period"`
 	InstantDeploy                  types.Bool     `tfsdk:"instant_deploy"`
 	RedeployOnUpdate               types.Bool     `tfsdk:"redeploy_on_update"`
 	MaxRestartCount                types.Int64    `tfsdk:"max_restart_count"`
@@ -230,7 +236,9 @@ func (m *applicationCommonModel) common() commonAppFields {
 		ManualWebhookSecretGitHub: &m.ManualWebhookSecretGitHub, ManualWebhookSecretGitLab: &m.ManualWebhookSecretGitLab,
 		ForceDomainOverride: &m.ForceDomainOverride, IsContainerLabelEscapeEnabled: &m.IsContainerLabelEscapeEnabled,
 		IsPreserveRepositoryEnabled: &m.IsPreserveRepositoryEnabled, UseBuildServer: &m.UseBuildServer,
-		InstantDeploy: &m.InstantDeploy, RedeployOnUpdate: &m.RedeployOnUpdate,
+		IsPreviewDeploymentsEnabled: &m.IsPreviewDeploymentsEnabled, UseBuildSecrets: &m.UseBuildSecrets,
+		StopGracePeriod: &m.StopGracePeriod,
+		InstantDeploy:   &m.InstantDeploy, RedeployOnUpdate: &m.RedeployOnUpdate,
 		MaxRestartCount: &m.MaxRestartCount,
 	}
 }
@@ -296,6 +304,9 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 	flex.NormalizeUnknownBool(&m.IsSPA)
 	flex.NormalizeUnknownBool(&m.IsPreserveRepositoryEnabled)
 	flex.NormalizeUnknownBool(&m.UseBuildServer)
+	flex.NormalizeUnknownBool(&m.IsPreviewDeploymentsEnabled)
+	flex.NormalizeUnknownBool(&m.UseBuildSecrets)
+	flex.NormalizeUnknownInt64(&m.StopGracePeriod)
 	flex.NormalizeUnknownString(&m.PreviewURLTemplate)
 	flex.NormalizeUnknownString(&m.HealthCheckHost)
 	flex.NormalizeUnknownString(&m.HealthCheckMethod)
@@ -383,6 +394,9 @@ func runtimeFieldsChanged(plan, state commonAppFields) bool {
 		boolFieldChanged(plan.IsContainerLabelEscapeEnabled, state.IsContainerLabelEscapeEnabled) ||
 		boolFieldChanged(plan.IsPreserveRepositoryEnabled, state.IsPreserveRepositoryEnabled) ||
 		boolFieldChanged(plan.UseBuildServer, state.UseBuildServer) ||
+		boolFieldChanged(plan.IsPreviewDeploymentsEnabled, state.IsPreviewDeploymentsEnabled) ||
+		boolFieldChanged(plan.UseBuildSecrets, state.UseBuildSecrets) ||
+		int64FieldChanged(plan.StopGracePeriod, state.StopGracePeriod) ||
 		stringFieldChanged(plan.Name, state.Name) ||
 		stringFieldChanged(plan.Description, state.Description) ||
 		boolFieldChanged(plan.IsAutoDeployEnabled, state.IsAutoDeployEnabled) ||

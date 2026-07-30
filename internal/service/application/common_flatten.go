@@ -202,6 +202,16 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	setBoolDefault(f.IsContainerLabelEscapeEnabled, app.IsContainerLabelEscapeEnabled, true)
 	setBoolDefault(f.IsPreserveRepositoryEnabled, app.IsPreserveRepositoryEnabled, false)
 	setBoolDefault(f.UseBuildServer, app.UseBuildServer, false)
+	setBoolDefault(f.IsPreviewDeploymentsEnabled, app.IsPreviewDeploymentsEnabled, false)
+	setBoolDefault(f.UseBuildSecrets, app.UseBuildSecrets, false)
+	if f.StopGracePeriod != nil {
+		if app.StopGracePeriod != nil {
+			*f.StopGracePeriod = types.Int64Value(*app.StopGracePeriod)
+		} else if f.StopGracePeriod.IsNull() || f.StopGracePeriod.IsUnknown() {
+			// Preserve null when API omits; UseStateForUnknown covers plan.
+			*f.StopGracePeriod = types.Int64Null()
+		}
+	}
 	// max_restart_count is Computed-only (not writable via API).
 	if f.MaxRestartCount != nil {
 		*f.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
@@ -337,6 +347,15 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	input.IsContainerLabelEscapeEnabled = boolDiff(*plan.IsContainerLabelEscapeEnabled, *state.IsContainerLabelEscapeEnabled)
 	input.IsPreserveRepositoryEnabled = boolDiff(*plan.IsPreserveRepositoryEnabled, *state.IsPreserveRepositoryEnabled)
 	input.UseBuildServer = boolDiff(*plan.UseBuildServer, *state.UseBuildServer)
+	if plan.IsPreviewDeploymentsEnabled != nil && state.IsPreviewDeploymentsEnabled != nil {
+		input.IsPreviewDeploymentsEnabled = boolDiff(*plan.IsPreviewDeploymentsEnabled, *state.IsPreviewDeploymentsEnabled)
+	}
+	if plan.UseBuildSecrets != nil && state.UseBuildSecrets != nil {
+		input.UseBuildSecrets = boolDiff(*plan.UseBuildSecrets, *state.UseBuildSecrets)
+	}
+	if plan.StopGracePeriod != nil && state.StopGracePeriod != nil {
+		input.StopGracePeriod = flex.Int64IfChanged(*plan.StopGracePeriod, *state.StopGracePeriod)
+	}
 	// Nil-safe resource-specific fields
 	if plan.ForceDomainOverride != nil && state.ForceDomainOverride != nil {
 		input.ForceDomainOverride = boolDiff(*plan.ForceDomainOverride, *state.ForceDomainOverride)
@@ -422,6 +441,9 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.BoolPtrNonDefault(f.IsContainerLabelEscapeEnabled, true) ||
 		flex.BoolPtrNonDefault(f.IsPreserveRepositoryEnabled, false) ||
 		flex.BoolPtrNonDefault(f.UseBuildServer, false) ||
+		flex.BoolPtrNonDefault(f.IsPreviewDeploymentsEnabled, false) ||
+		flex.BoolPtrNonDefault(f.UseBuildSecrets, false) ||
+		(f.StopGracePeriod != nil && !f.StopGracePeriod.IsNull() && !f.StopGracePeriod.IsUnknown()) ||
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
 		flex.StringPtrNonDefault(f.Redirect, defaultRedirect) ||
@@ -515,6 +537,9 @@ func buildPostCreatePatch(f commonAppFields) client.UpdateApplicationInput {
 	flex.SetBoolPtr(&input.IsContainerLabelEscapeEnabled, safeBool(f.IsContainerLabelEscapeEnabled))
 	flex.SetBoolPtr(&input.IsPreserveRepositoryEnabled, safeBool(f.IsPreserveRepositoryEnabled))
 	flex.SetBoolPtr(&input.UseBuildServer, safeBool(f.UseBuildServer))
+	flex.SetBoolPtr(&input.IsPreviewDeploymentsEnabled, safeBool(f.IsPreviewDeploymentsEnabled))
+	flex.SetBoolPtr(&input.UseBuildSecrets, safeBool(f.UseBuildSecrets))
+	flex.SetInt64Ptr(&input.StopGracePeriod, safeInt(f.StopGracePeriod))
 	flex.SetBoolPtr(&input.ForceDomainOverride, safeBool(f.ForceDomainOverride))
 	return input
 }

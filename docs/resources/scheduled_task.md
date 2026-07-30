@@ -46,8 +46,10 @@ resource "coolify_scheduled_task" "health_check" {
 ### Optional
 
 - `application_uuid` (String) The UUID of the application to create the scheduled task on. Exactly one of `application_uuid` or `service_uuid` must be provided. Changing this forces a new resource.
+- `container` (String) Container name where the command runs (for multi-container applications or services). When omitted, Coolify uses its default container selection.
 - `enabled` (Boolean) Whether the scheduled task is enabled (defaults to `true`).
 - `service_uuid` (String) The UUID of the service to create the scheduled task on. Exactly one of `application_uuid` or `service_uuid` must be provided. Changing this forces a new resource.
+- `timeout` (Number) Maximum run time for the task in seconds. Coolify defaults to `300` when omitted on create.
 
 ### Read-Only
 

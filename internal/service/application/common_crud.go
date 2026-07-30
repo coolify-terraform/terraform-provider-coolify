@@ -41,6 +41,8 @@ func setImportDefaults(ctx context.Context, resp *resource.ImportStateResponse) 
 	set("is_container_label_escape_enabled", true)
 	set("is_preserve_repository_enabled", false)
 	set("use_build_server", false)
+	set("is_preview_deployments_enabled", false)
+	set("use_build_secrets", false)
 }
 
 const applicationCreateReadBackFailedSummary = "Application created but refresh failed"
