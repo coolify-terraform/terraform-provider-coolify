@@ -214,8 +214,17 @@ func (r *serviceResource) ValidateConfig(ctx context.Context, req resource.Valid
 		return
 	}
 
-	hasType := !model.Type.IsNull() && !model.Type.IsUnknown()
-	hasCompose := !model.DockerComposeRaw.IsNull() && !model.DockerComposeRaw.IsUnknown()
+	// Values that come from variables, data sources or other resources are
+	// still unknown when ValidateConfig runs. Treat unknown as "set": the
+	// attribute is present in the config, only its value is not resolved yet.
+	// Without this, a config like docker_compose_raw = var.compose fails
+	// validation with "One of type or docker_compose_raw must be set".
+	if model.Type.IsUnknown() || model.DockerComposeRaw.IsUnknown() {
+		return
+	}
+
+	hasType := !model.Type.IsNull()
+	hasCompose := !model.DockerComposeRaw.IsNull()
 
 	if hasType && hasCompose {
 		resp.Diagnostics.AddAttributeError(
