@@ -61,15 +61,20 @@ resource "coolify_scheduled_task" "backup" {
   `ValidateConfig` treated unknown values as missing, so references like
   `docker_compose_raw = var.workers_compose` or backup `save_s3` /
   `s3_storage_uuid` set from other resources failed at plan. Unknown values
-  are skipped until they are known.
-  ([#618](https://github.com/coolify-terraform/terraform-provider-coolify/pull/618),
-  [#620](https://github.com/coolify-terraform/terraform-provider-coolify/pull/620))
+  are skipped until they are known. Thanks
+  [@oter](https://github.com/oter) for the service compose fix
+  ([#618](https://github.com/coolify-terraform/terraform-provider-coolify/pull/618);
+  follows [#616](https://github.com/coolify-terraform/terraform-provider-coolify/pull/616)).
+  Backup unknown-value guards:
+  ([#620](https://github.com/coolify-terraform/terraform-provider-coolify/pull/620))
 
 - **Short Coolify IDs rejected as invalid UUIDs.** Coolify still issues
   7-character identifiers on some resources. UUID validation accepts those
-  legacy ids again (full UUIDs remain valid).
-  ([#611](https://github.com/coolify-terraform/terraform-provider-coolify/pull/611),
-  [#615](https://github.com/coolify-terraform/terraform-provider-coolify/pull/615))
+  legacy ids again (full UUIDs remain valid). Thanks
+  [@oter](https://github.com/oter)
+  ([#611](https://github.com/coolify-terraform/terraform-provider-coolify/pull/611)).
+  Helper and docs coverage:
+  ([#615](https://github.com/coolify-terraform/terraform-provider-coolify/pull/615))
 
 - **Harder-to-debug API failures.** Client errors include HTTP method and
   path (for example `expected status 201, got 200 for POST /api/v1/projects`),
@@ -118,6 +123,19 @@ existing configs keep working. If you manage applications on Coolify older
 than 4.2, leave preview and build-secrets attributes unset.
 
 Docs: https://registry.terraform.io/providers/coolify-terraform/coolify/latest/docs
+
+## Contributors
+
+Thanks to external contributors in this release:
+
+- [@oter](https://github.com/oter) for accepting short Coolify identifiers
+  in UUID validation
+  ([#611](https://github.com/coolify-terraform/terraform-provider-coolify/pull/611))
+- [@oter](https://github.com/oter) for accepting unknown
+  `docker_compose_raw` / `type` values in service plan validation
+  ([#618](https://github.com/coolify-terraform/terraform-provider-coolify/pull/618);
+  original PR
+  [#616](https://github.com/coolify-terraform/terraform-provider-coolify/pull/616))
 
 ## Full changelog
 
