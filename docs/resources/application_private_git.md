@@ -105,7 +105,7 @@ resource "coolify_application_private_git" "api" {
 - `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
 - `start_command` (String) The command to run to start the application.
 - `static_image` (String) The Docker image to use for serving static sites.
-- `stop_grace_period` (Number) Container stop grace period in seconds (Coolify application setting). Valid range 1-3600. When null/omitted, Coolify uses its default stop behavior.
+- `stop_grace_period` (Number) Container stop grace period in seconds (Coolify application setting). Valid range 1-3600. When null/omitted, Coolify uses its default stop behavior. Write support depends on Coolify version (present on current ApplicationSetting write path; verify on older releases).
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `use_build_secrets` (Boolean) Whether to use Docker Build secrets for build-time environment variables. Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`.
 - `use_build_server` (Boolean) Whether to use a build server for building the application.
