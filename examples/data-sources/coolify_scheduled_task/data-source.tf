@@ -11,3 +11,11 @@ output "task_command" {
 output "task_frequency" {
   value = data.coolify_scheduled_task.example.frequency
 }
+
+output "task_container" {
+  value = data.coolify_scheduled_task.example.container
+}
+
+output "task_timeout" {
+  value = data.coolify_scheduled_task.example.timeout
+}
