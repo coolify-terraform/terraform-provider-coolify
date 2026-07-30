@@ -112,7 +112,7 @@ func TestIsUUID(t *testing.T) {
 		"not-a-uuid",
 		"../../admin",
 		"",
-		"abc123",  // 6 chars (legacy min - 1)
+		"abc123",   // 6 chars (legacy min - 1)
 		"abc12345", // 8 chars (legacy + 1)
 	}
 	for _, s := range invalid {
