@@ -34,11 +34,15 @@ type envVarListModel struct {
 }
 
 type envVarItemModel struct {
-	UUID      types.String `tfsdk:"uuid"`
-	Key       types.String `tfsdk:"key"`
-	Value     types.String `tfsdk:"value"`
-	IsPreview types.Bool   `tfsdk:"is_preview"`
-	IsBuild   types.Bool   `tfsdk:"is_build"`
+	UUID        types.String `tfsdk:"uuid"`
+	Key         types.String `tfsdk:"key"`
+	Value       types.String `tfsdk:"value"`
+	IsPreview   types.Bool   `tfsdk:"is_preview"`
+	IsBuild     types.Bool   `tfsdk:"is_build"`
+	IsRuntime   types.Bool   `tfsdk:"is_runtime"`
+	IsLiteral   types.Bool   `tfsdk:"is_literal"`
+	IsMultiline types.Bool   `tfsdk:"is_multiline"`
+	Comment     types.String `tfsdk:"comment"`
 }
 
 // dsParentTypeAndUUID resolves which parent UUID attribute is set and returns
@@ -92,11 +96,15 @@ func (d *envVarListDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"uuid":       schema.StringAttribute{MarkdownDescription: "The UUID of the environment variable.", Computed: true},
-						"key":        schema.StringAttribute{MarkdownDescription: "The variable name.", Computed: true},
-						"value":      schema.StringAttribute{MarkdownDescription: "The variable value.", Computed: true, Sensitive: true},
-						"is_preview": schema.BoolAttribute{MarkdownDescription: "Whether available in preview deployments.", Computed: true},
-						"is_build":   schema.BoolAttribute{MarkdownDescription: "Whether available at build time.", Computed: true},
+						"uuid":         schema.StringAttribute{MarkdownDescription: "The UUID of the environment variable.", Computed: true},
+						"key":          schema.StringAttribute{MarkdownDescription: "The variable name.", Computed: true},
+						"value":        schema.StringAttribute{MarkdownDescription: "The variable value.", Computed: true, Sensitive: true},
+						"is_preview":   schema.BoolAttribute{MarkdownDescription: "Whether available in preview deployments.", Computed: true},
+						"is_build":     schema.BoolAttribute{MarkdownDescription: "Whether available at build time (applications).", Computed: true},
+						"is_runtime":   schema.BoolAttribute{MarkdownDescription: "Whether available at runtime (applications).", Computed: true},
+						"is_literal":   schema.BoolAttribute{MarkdownDescription: "Whether the value is literal.", Computed: true},
+						"is_multiline": schema.BoolAttribute{MarkdownDescription: "Whether the value is multiline.", Computed: true},
+						"comment":      schema.StringAttribute{MarkdownDescription: "Optional comment.", Computed: true},
 					},
 				},
 			},
@@ -144,6 +152,14 @@ func (d *envVarListDataSource) Read(ctx context.Context, req datasource.ReadRequ
 			return filter.BoolToString(ev.IsPreview), true
 		case "is_build":
 			return filter.BoolToString(ev.IsBuild), true
+		case "is_runtime":
+			return filter.BoolToString(ev.IsRuntime), true
+		case "is_literal":
+			return filter.BoolToString(ev.IsLiteral), true
+		case "is_multiline":
+			return filter.BoolToString(ev.IsMultiline), true
+		case "comment":
+			return ev.Comment, true
 		default:
 			return "", false
 		}
@@ -152,11 +168,15 @@ func (d *envVarListDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	items := make([]envVarItemModel, len(envVars))
 	for i, ev := range envVars {
 		items[i] = envVarItemModel{
-			UUID:      types.StringValue(ev.UUID),
-			Key:       types.StringValue(ev.Key),
-			Value:     types.StringValue(ev.Value),
-			IsPreview: types.BoolValue(ev.IsPreview),
-			IsBuild:   types.BoolValue(ev.IsBuild),
+			UUID:        types.StringValue(ev.UUID),
+			Key:         types.StringValue(ev.Key),
+			Value:       types.StringValue(ev.Value),
+			IsPreview:   types.BoolValue(ev.IsPreview),
+			IsBuild:     types.BoolValue(ev.IsBuild),
+			IsRuntime:   types.BoolValue(ev.IsRuntime),
+			IsLiteral:   types.BoolValue(ev.IsLiteral),
+			IsMultiline: types.BoolValue(ev.IsMultiline),
+			Comment:     types.StringValue(ev.Comment),
 		}
 	}
 	config.EnvironmentVariables = items

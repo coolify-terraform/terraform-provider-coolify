@@ -448,19 +448,16 @@ func TestContractCoverage_PrivateKey(t *testing.T) {
 func TestContractCoverage_EnvironmentVariable(t *testing.T) {
 	t.Parallel()
 	contractCoverageTest(t, "EnvironmentVariable", reflect.TypeOf(client.EnvironmentVariable{}), map[string]bool{
-		"resourceable_id":   true,
-		"resourceable_type": true,
-		"team_id":           true,
+		"resourceable_id":   true, // polymorphic FK
+		"resourceable_type": true, // polymorphic FK
+		"team_id":           true, // internal FK
 		"real_value":        true, // computed accessor
-		"version":           true,
-		"comment":           true, // not exposed in provider
-		"is_literal":        true, // internal flag
-		"is_multiline":      true, // internal flag
-		"is_required":       true, // internal flag
-		"is_runtime":        true, // internal flag
-		"is_shared":         true, // internal flag
-		"is_shown_once":     true, // internal flag
+		"version":           true, // Coolify internal version stamp
+		"is_required":       true, // deferred product surface
+		"is_shared":         true, // computed/shared-var surface, not TF resource field
+		"is_shown_once":     true, // deferred UI-only flag (see #619 optional)
 		"order":             true, // UI ordering
+		// is_runtime, is_literal, is_multiline, comment, is_buildtime covered on client (#619)
 	})
 }
 

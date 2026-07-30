@@ -5,6 +5,7 @@ subcategory: ""
 description: |-
   Manages an environment variable on a Coolify application, service, or database.
   ~> Note: Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for environment variables. Large numbers of these resources on a single parent resource may cause slower plan/apply times due to this API limitation.
+  is_build and is_runtime are application-only (Coolify is_buildtime / is_runtime). is_literal, is_multiline, and comment are supported for applications, services, and databases.
 ---
 
 # coolify_environment_variable (Resource)
@@ -12,6 +13,8 @@ description: |-
 Manages an environment variable on a Coolify application, service, or database.
 
 ~> **Note:** Each instance requires a List API call to read because the Coolify API does not provide a singular GET endpoint for environment variables. Large numbers of these resources on a single parent resource may cause slower plan/apply times due to this API limitation.
+
+`is_build` and `is_runtime` are **application-only** (Coolify `is_buildtime` / `is_runtime`). `is_literal`, `is_multiline`, and `comment` are supported for applications, services, and databases.
 
 ## Example Usage
 
@@ -22,17 +25,32 @@ resource "coolify_environment_variable" "database_url" {
   key              = "DATABASE_URL"
   value            = "postgresql://user:pass@db:5432/myapp"
   is_build         = false
+  is_runtime       = true
   is_preview       = false
+  is_literal       = false
+  comment          = "Primary database DSN"
+}
+
+# Build-time only secret (not injected at runtime)
+resource "coolify_environment_variable" "npm_token" {
+  application_uuid = coolify_application.example.uuid
+  key              = "NPM_TOKEN"
+  value            = "change-me-in-production"
+  is_build         = true
+  is_runtime       = false
+  is_literal       = true
 }
 
 # Set a custom environment variable on a database
 # Note: do not duplicate built-in credential fields (e.g. POSTGRES_PASSWORD)
 # that are already managed by the database resource's own attributes.
-# `is_build` is application-only; omit it for database/service variables.
+# is_build / is_runtime are application-only; omit them for database/service variables.
 resource "coolify_environment_variable" "db_log_level" {
   database_uuid = coolify_database_postgresql.example.uuid
   key           = "POSTGRES_LOG_MIN_MESSAGES"
   value         = "warning"
+  is_literal    = true
+  comment       = "Quiet Postgres logs"
 }
 ```
 
@@ -47,9 +65,13 @@ resource "coolify_environment_variable" "db_log_level" {
 ### Optional
 
 - `application_uuid` (String) The UUID of the application to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
+- `comment` (String) Optional human-readable comment for the environment variable (max 256 characters on Coolify).
 - `database_uuid` (String) The UUID of the database to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
-- `is_build` (Boolean) Whether this variable is available at build time. Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.
+- `is_build` (Boolean) Whether this variable is available at build time (Coolify `is_buildtime`). Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.
+- `is_literal` (Boolean) Whether the value is treated as a literal (no Coolify escaping/expansion). Defaults to `false` when omitted on create.
+- `is_multiline` (Boolean) Whether the value is multiline. Defaults to `false` when omitted on create.
 - `is_preview` (Boolean) Whether this variable is available in preview deployments. Set it explicitly when you need preview-scoped behavior.
+- `is_runtime` (Boolean) Whether this variable is available at container runtime (Coolify `is_runtime`). Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.
 - `service_uuid` (String) The UUID of the service to set the variable on. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 
 ### Read-Only

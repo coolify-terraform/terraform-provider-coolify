@@ -60,8 +60,12 @@ Required:
 
 Read-Only:
 
-- `is_build` (Boolean) Whether available at build time.
+- `comment` (String) Optional comment.
+- `is_build` (Boolean) Whether available at build time (applications).
+- `is_literal` (Boolean) Whether the value is literal.
+- `is_multiline` (Boolean) Whether the value is multiline.
 - `is_preview` (Boolean) Whether available in preview deployments.
+- `is_runtime` (Boolean) Whether available at runtime (applications).
 - `key` (String) The variable name.
 - `uuid` (String) The UUID of the environment variable.
 - `value` (String, Sensitive) The variable value.

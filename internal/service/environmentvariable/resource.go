@@ -44,6 +44,10 @@ type environmentVariableResourceModel struct {
 	Value           types.String `tfsdk:"value"`
 	IsPreview       types.Bool   `tfsdk:"is_preview"`
 	IsBuild         types.Bool   `tfsdk:"is_build"`
+	IsRuntime       types.Bool   `tfsdk:"is_runtime"`
+	IsLiteral       types.Bool   `tfsdk:"is_literal"`
+	IsMultiline     types.Bool   `tfsdk:"is_multiline"`
+	Comment         types.String `tfsdk:"comment"`
 }
 
 // NewResource returns a new environmentVariableResource instance.
@@ -60,7 +64,9 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 		MarkdownDescription: "Manages an environment variable on a Coolify application, service, or database.\n\n" +
 			"~> **Note:** Each instance requires a List API call to read because the Coolify API does not " +
 			"provide a singular GET endpoint for environment variables. Large numbers of these resources " +
-			"on a single parent resource may cause slower plan/apply times due to this API limitation.",
+			"on a single parent resource may cause slower plan/apply times due to this API limitation.\n\n" +
+			"`is_build` and `is_runtime` are **application-only** (Coolify `is_buildtime` / `is_runtime`). " +
+			"`is_literal`, `is_multiline`, and `comment` are supported for applications, services, and databases.",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The unique identifier of the environment variable.",
@@ -121,10 +127,35 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"is_build": schema.BoolAttribute{
-				MarkdownDescription: "Whether this variable is available at build time. Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.",
+				MarkdownDescription: "Whether this variable is available at build time (Coolify `is_buildtime`). Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"is_runtime": schema.BoolAttribute{
+				MarkdownDescription: "Whether this variable is available at container runtime (Coolify `is_runtime`). Supported only for application-scoped environment variables. If omitted during create, Coolify defaults application env vars to `true`.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"is_literal": schema.BoolAttribute{
+				MarkdownDescription: "Whether the value is treated as a literal (no Coolify escaping/expansion). Defaults to `false` when omitted on create.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"is_multiline": schema.BoolAttribute{
+				MarkdownDescription: "Whether the value is multiline. Defaults to `false` when omitted on create.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"comment": schema.StringAttribute{
+				MarkdownDescription: "Optional human-readable comment for the environment variable (max 256 characters on Coolify).",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				Validators:          []validator.String{stringvalidator.LengthAtMost(256)},
 			},
 		},
 	}
@@ -141,35 +172,42 @@ func (r *environmentVariableResource) ValidateConfig(ctx context.Context, req re
 		return
 	}
 
-	if config.IsBuild.IsNull() || config.IsBuild.IsUnknown() {
-		return
+	// Application-only flags: is_build and is_runtime.
+	appOnly := []struct {
+		attr path.Path
+		val  types.Bool
+		name string
+		api  string
+	}{
+		{path.Root("is_build"), config.IsBuild, "is_build", "is_buildtime"},
+		{path.Root("is_runtime"), config.IsRuntime, "is_runtime", "is_runtime"},
 	}
 
-	if !config.ApplicationUUID.IsNull() && !config.ApplicationUUID.IsUnknown() {
-		return
-	}
-
-	if !config.ServiceUUID.IsNull() && !config.ServiceUUID.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("is_build"),
-			"Unsupported build-time environment variable scope",
-			"`is_build` is only supported for application-scoped environment variables because Coolify does not persist `is_buildtime` for services.",
-		)
-	}
-
-	if !config.DatabaseUUID.IsNull() && !config.DatabaseUUID.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("is_build"),
-			"Unsupported build-time environment variable scope",
-			"`is_build` is only supported for application-scoped environment variables because Coolify does not persist `is_buildtime` for databases.",
-		)
+	for _, f := range appOnly {
+		if f.val.IsNull() || f.val.IsUnknown() {
+			continue
+		}
+		if !config.ApplicationUUID.IsNull() && !config.ApplicationUUID.IsUnknown() {
+			continue
+		}
+		if !config.ServiceUUID.IsNull() && !config.ServiceUUID.IsUnknown() {
+			resp.Diagnostics.AddAttributeError(
+				f.attr,
+				"Unsupported environment variable scope",
+				fmt.Sprintf("`%s` is only supported for application-scoped environment variables because Coolify does not persist `%s` for services.", f.name, f.api),
+			)
+		}
+		if !config.DatabaseUUID.IsNull() && !config.DatabaseUUID.IsUnknown() {
+			resp.Diagnostics.AddAttributeError(
+				f.attr,
+				"Unsupported environment variable scope",
+				fmt.Sprintf("`%s` is only supported for application-scoped environment variables because Coolify does not persist `%s` for databases.", f.name, f.api),
+			)
+		}
 	}
 }
 
-// parentTypeAndUUID resolves which parent resource UUID is set and returns the
-// API parent type ("applications", "services", or "databases") and the UUID.
 // parentLabel returns a user-friendly singular label for the API slug.
-// NOTE: update this when adding new parent types to parentTypeAndUUID().
 func parentLabel(slug string) string {
 	switch slug {
 	case "applications":
@@ -196,6 +234,105 @@ func parentTypeAndUUID(m *environmentVariableResourceModel) (string, string, boo
 	return "", "", false
 }
 
+func boolPtrIfKnown(v types.Bool) *bool {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	b := v.ValueBool()
+	return &b
+}
+
+func boolPtrKnownOrDefault(v types.Bool, def bool) *bool {
+	if v.IsNull() || v.IsUnknown() {
+		return &def
+	}
+	b := v.ValueBool()
+	return &b
+}
+
+func stringPtrIfKnown(v types.String) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	s := v.ValueString()
+	return &s
+}
+
+// writeOptsFromPlan builds create/update opts. Application-only flags are
+// only set for applications. Shared flags apply to all parents.
+// forUpdate must be true on PATCH: Coolify application update uses
+// is_literal ?? false and assigns is_multiline without has(), so omitting
+// those keys would clear them.
+func writeOptsFromPlan(parentType string, plan *environmentVariableResourceModel, forUpdate bool) *client.EnvVarWriteOpts {
+	opts := &client.EnvVarWriteOpts{
+		Comment: stringPtrIfKnown(plan.Comment),
+	}
+	if forUpdate && parentType == "applications" {
+		opts.IsLiteral = boolPtrKnownOrDefault(plan.IsLiteral, false)
+		opts.IsMultiline = boolPtrKnownOrDefault(plan.IsMultiline, false)
+	} else {
+		opts.IsLiteral = boolPtrIfKnown(plan.IsLiteral)
+		opts.IsMultiline = boolPtrIfKnown(plan.IsMultiline)
+	}
+	if parentType == "applications" {
+		opts.IsBuild = boolPtrIfKnown(plan.IsBuild)
+		opts.IsRuntime = boolPtrIfKnown(plan.IsRuntime)
+	}
+	return opts
+}
+
+// applyCreateDefaults fills Optional+Computed fields after create when the
+// user omitted them (Coolify defaults).
+func applyCreateDefaults(parentType string, plan *environmentVariableResourceModel) {
+	if plan.IsPreview.IsNull() || plan.IsPreview.IsUnknown() {
+		plan.IsPreview = types.BoolValue(false)
+	}
+	if parentType == "applications" {
+		if plan.IsBuild.IsNull() || plan.IsBuild.IsUnknown() {
+			plan.IsBuild = types.BoolValue(true)
+		}
+		if plan.IsRuntime.IsNull() || plan.IsRuntime.IsUnknown() {
+			plan.IsRuntime = types.BoolValue(true)
+		}
+	} else {
+		// App-only attributes are not managed for service/database.
+		// Coolify model defaults both to true, but the provider surface
+		// treats them as false (ValidateConfig rejects user sets).
+		plan.IsBuild = types.BoolValue(false)
+		plan.IsRuntime = types.BoolValue(false)
+	}
+	if plan.IsLiteral.IsNull() || plan.IsLiteral.IsUnknown() {
+		plan.IsLiteral = types.BoolValue(false)
+	}
+	if plan.IsMultiline.IsNull() || plan.IsMultiline.IsUnknown() {
+		plan.IsMultiline = types.BoolValue(false)
+	}
+	if plan.Comment.IsNull() || plan.Comment.IsUnknown() {
+		plan.Comment = types.StringValue("")
+	}
+}
+
+func flattenEnvToModel(parentType string, ev client.EnvironmentVariable, state *environmentVariableResourceModel) {
+	priorValue := ""
+	if !state.Value.IsNull() && !state.Value.IsUnknown() {
+		priorValue = state.Value.ValueString()
+	}
+	state.Key = types.StringValue(ev.Key)
+	state.Value = types.StringValue(client.PreserveEnvVarValue(ev.Value, priorValue))
+	state.IsPreview = types.BoolValue(ev.IsPreview)
+	if parentType == "applications" {
+		state.IsBuild = types.BoolValue(ev.IsBuild)
+		state.IsRuntime = types.BoolValue(ev.IsRuntime)
+	} else {
+		// Ignore Coolify model defaults (true/true); keep provider semantics.
+		state.IsBuild = types.BoolValue(false)
+		state.IsRuntime = types.BoolValue(false)
+	}
+	state.IsLiteral = types.BoolValue(ev.IsLiteral)
+	state.IsMultiline = types.BoolValue(ev.IsMultiline)
+	state.Comment = types.StringValue(ev.Comment)
+}
+
 func (r *environmentVariableResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan environmentVariableResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -211,32 +348,29 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	isPreview := plan.IsPreview.ValueBool()
-	stateIsBuild := false
-	var createIsBuild *bool
-	if !plan.IsBuild.IsNull() && !plan.IsBuild.IsUnknown() {
-		stateIsBuild = plan.IsBuild.ValueBool()
-		createIsBuild = &stateIsBuild
-	} else if parentType == "applications" {
-		stateIsBuild = true
+	isPreview := false
+	if !plan.IsPreview.IsNull() && !plan.IsPreview.IsUnknown() {
+		isPreview = plan.IsPreview.ValueBool()
 	}
 
 	ev := client.EnvironmentVariable{
 		Key:       plan.Key.ValueString(),
 		Value:     plan.Value.ValueString(),
 		IsPreview: isPreview,
-		IsBuild:   stateIsBuild,
 	}
+	opts := writeOptsFromPlan(parentType, &plan, false)
 
-	createResp, err := r.client.CreateEnvVar(ctx, parentType, parentUUID, ev, createIsBuild)
+	createResp, err := r.client.CreateEnvVar(ctx, parentType, parentUUID, ev, opts)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating environment variable", fmt.Sprintf("env var %s: %s", plan.Key.ValueString(), err))
 		return
 	}
 
 	plan.UUID = types.StringValue(createResp.UUID)
+	// Known plan values are preserved; null/unknown get Coolify defaults.
+	applyCreateDefaults(parentType, &plan)
 	plan.IsPreview = types.BoolValue(isPreview)
-	plan.IsBuild = types.BoolValue(stateIsBuild)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": plan.UUID.ValueString()})
 }
@@ -274,16 +408,7 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	priorValue := ""
-	if !state.Value.IsNull() && !state.Value.IsUnknown() {
-		priorValue = state.Value.ValueString()
-	}
-
-	state.Key = types.StringValue(ev.Key)
-	state.Value = types.StringValue(client.PreserveEnvVarValue(ev.Value, priorValue))
-	state.IsPreview = types.BoolValue(ev.IsPreview)
-	state.IsBuild = types.BoolValue(ev.IsBuild)
-
+	flattenEnvToModel(parentType, ev, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -296,26 +421,27 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_environment_variable", "uuid": plan.UUID.ValueString()})
 
-	ev := client.EnvironmentVariable{
-		Key:       plan.Key.ValueString(),
-		Value:     plan.Value.ValueString(),
-		IsPreview: plan.IsPreview.ValueBool(),
-		IsBuild:   plan.IsBuild.ValueBool(),
-	}
-
 	parentType, parentUUID, ok := parentTypeAndUUID(&plan)
 	if !ok {
 		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
 		return
 	}
 
-	if err := r.client.UpdateEnvVar(ctx, parentType, parentUUID, ev); err != nil {
+	// On update, plan values are known (UseStateForUnknown / user input).
+	ev := client.EnvironmentVariable{
+		Key:       plan.Key.ValueString(),
+		Value:     plan.Value.ValueString(),
+		IsPreview: plan.IsPreview.ValueBool(),
+	}
+	opts := writeOptsFromPlan(parentType, &plan, true)
+
+	if err := r.client.UpdateEnvVar(ctx, parentType, parentUUID, ev, opts); err != nil {
 		resp.Diagnostics.AddError("Error updating environment variable", fmt.Sprintf("%s %s env var %s: %s", parentLabel(parentType), parentUUID, plan.UUID.ValueString(), err))
 		return
 	}
 
-	plan.IsPreview = types.BoolValue(ev.IsPreview)
-	plan.IsBuild = types.BoolValue(ev.IsBuild)
+	// Ensure Optional+Computed values are known in state after update.
+	applyCreateDefaults(parentType, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 

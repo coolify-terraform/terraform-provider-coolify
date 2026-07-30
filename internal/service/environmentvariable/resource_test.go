@@ -414,11 +414,15 @@ func TestEnvironmentVariableResource_ReadMatchesExactUUIDEvenWithDuplicateKeys(t
 func TestEnvironmentVariableResource_Import(t *testing.T) {
 	t.Parallel()
 	envVar := client.EnvironmentVariable{
-		UUID:      "eeee0001-0001-4000-8000-000000000001",
-		Key:       "IMPORT_VAR",
-		Value:     "import-value",
-		IsPreview: false,
-		IsBuild:   true,
+		UUID:        "eeee0001-0001-4000-8000-000000000001",
+		Key:         "IMPORT_VAR",
+		Value:       "import-value",
+		IsPreview:   false,
+		IsBuild:     true,
+		IsRuntime:   true,
+		IsLiteral:   false,
+		IsMultiline: false,
+		Comment:     "",
 	}
 
 	mux := http.NewServeMux()
@@ -1642,4 +1646,410 @@ func checkEnvVarDestroy(serverURL, parentType, parentUUID string) resource.TestC
 		}
 		return nil
 	}
+}
+
+// ---------------------------------------------------------------------------
+// TestEnvironmentVariableResource_ApplicationExtendedFlags
+// ---------------------------------------------------------------------------
+
+func TestEnvironmentVariableResource_ApplicationExtendedFlags(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID:        "env-ext-uuid",
+		Key:         "BUILD_SECRET",
+		Value:       "s3cret",
+		IsPreview:   false,
+		IsBuild:     true,
+		IsRuntime:   false,
+		IsLiteral:   true,
+		IsMultiline: false,
+		Comment:     "build only",
+	}
+	mu := sync.Mutex{}
+	deleted := false
+	var lastPOST map[string]interface{}
+	var lastPATCH map[string]interface{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("appUUID") != "cccc0001-0001-4000-8000-000000000001" {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
+			return
+		}
+		mu.Lock()
+		lastPOST = body
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if deleted {
+			json.NewEncoder(w).Encode([]client.EnvironmentVariable{})
+			return
+		}
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{appUUID}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPATCH = body
+		if v, ok := body["comment"].(string); ok {
+			envVar.Comment = v
+		}
+		if v, ok := body["is_runtime"].(bool); ok {
+			envVar.IsRuntime = v
+		}
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "BUILD_SECRET"
+					value            = "s3cret"
+					is_build         = true
+					is_runtime       = false
+					is_literal       = true
+					comment          = "build only"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "true"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_runtime", "false"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_literal", "true"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_multiline", "false"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "comment", "build only"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPOST["is_buildtime"] != true {
+							return fmt.Errorf("POST is_buildtime = %v, want true", lastPOST["is_buildtime"])
+						}
+						if lastPOST["is_runtime"] != false {
+							return fmt.Errorf("POST is_runtime = %v, want false", lastPOST["is_runtime"])
+						}
+						if lastPOST["is_literal"] != true {
+							return fmt.Errorf("POST is_literal = %v, want true", lastPOST["is_literal"])
+						}
+						if lastPOST["comment"] != "build only" {
+							return fmt.Errorf("POST comment = %v", lastPOST["comment"])
+						}
+						return nil
+					}),
+				),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					key              = "BUILD_SECRET"
+					value            = "s3cret"
+					is_build         = true
+					is_runtime       = true
+					is_literal       = true
+					comment          = "now runtime too"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_runtime", "true"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "comment", "now runtime too"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH["is_runtime"] != true {
+							return fmt.Errorf("PATCH is_runtime = %v, want true", lastPATCH["is_runtime"])
+						}
+						return nil
+					}),
+				),
+			},
+		},
+	})
+}
+
+func TestEnvironmentVariableResource_ValidateConfig_RuntimeOnService(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testEnvVarResourceConfig(srv.URL, `
+				service_uuid = "dddd0001-0001-4000-8000-000000000001"
+				key          = "X"
+				value        = "1"
+				is_runtime   = true
+			`),
+			ExpectError: regexp.MustCompile(`only supported for application-scoped`),
+		}},
+	})
+}
+
+func TestEnvironmentVariableResource_ValidateConfig_RuntimeOnDatabase(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testEnvVarResourceConfig(srv.URL, `
+				database_uuid = "eeee0001-0001-4000-8000-000000000001"
+				key           = "X"
+				value         = "1"
+				is_runtime    = true
+			`),
+			ExpectError: regexp.MustCompile(`only supported for application-scoped`),
+		}},
+	})
+}
+
+func TestEnvironmentVariableResource_ServiceLiteralComment(t *testing.T) {
+	t.Parallel()
+	// Coolify model defaults is_buildtime/is_runtime to true even for services;
+	// provider must not thrash state by reading those into app-only attrs.
+	envVar := client.EnvironmentVariable{
+		UUID:      "env-svc-lit",
+		Key:       "FLAG",
+		Value:     "1",
+		IsBuild:   true,
+		IsRuntime: true,
+		IsLiteral: true,
+		Comment:   "svc note",
+	}
+	mu := sync.Mutex{}
+	var lastPOST map[string]interface{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/services/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPOST = body
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/services/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("DELETE /api/v1/services/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testEnvVarResourceConfig(srv.URL, `
+				service_uuid = "dddd0001-0001-4000-8000-000000000001"
+				key          = "FLAG"
+				value        = "1"
+				is_literal   = true
+				comment      = "svc note"
+			`),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_literal", "true"),
+				resource.TestCheckResourceAttr("coolify_environment_variable.test", "comment", "svc note"),
+				resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_build", "false"),
+				resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_runtime", "false"),
+				resource.TestCheckFunc(func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if _, ok := lastPOST["is_buildtime"]; ok {
+						return fmt.Errorf("service POST must not send is_buildtime")
+					}
+					if _, ok := lastPOST["is_runtime"]; ok {
+						return fmt.Errorf("service POST must not send is_runtime")
+					}
+					if lastPOST["is_literal"] != true {
+						return fmt.Errorf("is_literal = %v", lastPOST["is_literal"])
+					}
+					return nil
+				}),
+			),
+		}},
+	})
+}
+
+func TestEnvironmentVariableResource_ApplicationMultiline(t *testing.T) {
+	t.Parallel()
+	envVar := client.EnvironmentVariable{
+		UUID:        "env-ml",
+		Key:         "CERT",
+		Value:       "line1\nline2",
+		IsBuild:     true,
+		IsRuntime:   true,
+		IsMultiline: true,
+	}
+	mu := sync.Mutex{}
+	var lastPOST map[string]interface{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPOST = body
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testEnvVarResourceConfig(srv.URL, `
+				application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+				key              = "CERT"
+				value            = "line1\nline2"
+				is_multiline     = true
+			`),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_multiline", "true"),
+				resource.TestCheckFunc(func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if lastPOST["is_multiline"] != true {
+						return fmt.Errorf("POST is_multiline = %v, want true", lastPOST["is_multiline"])
+					}
+					return nil
+				}),
+			),
+		}},
+	})
+}
+
+func TestEnvironmentVariableResource_UpdateValueOnlyPreservesLiteral(t *testing.T) {
+	t.Parallel()
+	// Coolify application update uses is_literal ?? false; a value-only update
+	// must still send is_literal so a true value is not cleared.
+	envVar := client.EnvironmentVariable{
+		UUID:      "env-lit-upd",
+		Key:       "TOKEN",
+		Value:     "v1",
+		IsBuild:   true,
+		IsRuntime: true,
+		IsLiteral: true,
+	}
+	mu := sync.Mutex{}
+	var lastPATCH map[string]interface{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if v, ok := body["value"].(string); ok {
+			envVar.Value = v
+		}
+		if v, ok := body["is_literal"].(bool); ok {
+			envVar.IsLiteral = v
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": envVar.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.EnvironmentVariable{envVar})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}/envs", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPATCH = body
+		mu.Unlock()
+		if v, ok := body["value"].(string); ok {
+			envVar.Value = v
+		}
+		if v, ok := body["is_literal"].(bool); ok {
+			envVar.IsLiteral = v
+		}
+		if v, ok := body["is_multiline"].(bool); ok {
+			envVar.IsMultiline = v
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}/envs/{envUUID}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+					key              = "TOKEN"
+					value            = "v1"
+					is_literal       = true
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_literal", "true"),
+			},
+			{
+				Config: testEnvVarResourceConfig(srv.URL, `
+					application_uuid = "aaaa0001-0001-4000-8000-000000000001"
+					key              = "TOKEN"
+					value            = "v2"
+					is_literal       = true
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "value", "v2"),
+					resource.TestCheckResourceAttr("coolify_environment_variable.test", "is_literal", "true"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH["is_literal"] != true {
+							return fmt.Errorf("PATCH is_literal = %v, want true (must not omit)", lastPATCH["is_literal"])
+						}
+						if lastPATCH["is_multiline"] != false {
+							return fmt.Errorf("PATCH is_multiline = %v, want false (must not omit)", lastPATCH["is_multiline"])
+						}
+						return nil
+					}),
+				),
+			},
+		},
+	})
 }

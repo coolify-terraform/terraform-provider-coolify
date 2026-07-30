@@ -9,11 +9,26 @@ import (
 
 // EnvironmentVariable represents a single environment variable from the Coolify API.
 type EnvironmentVariable struct {
-	UUID      string `json:"uuid,omitempty"`
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	IsPreview bool   `json:"is_preview"`
-	IsBuild   bool   `json:"is_buildtime"`
+	UUID        string `json:"uuid,omitempty"`
+	Key         string `json:"key"`
+	Value       string `json:"value"`
+	IsPreview   bool   `json:"is_preview"`
+	IsBuild     bool   `json:"is_buildtime"`
+	IsRuntime   bool   `json:"is_runtime"`
+	IsLiteral   bool   `json:"is_literal"`
+	IsMultiline bool   `json:"is_multiline"`
+	Comment     string `json:"comment,omitempty"`
+}
+
+// EnvVarWriteOpts holds optional fields for create/update payloads.
+// A nil pointer omits the JSON key so Coolify can apply its default.
+// Application-only: IsBuild, IsRuntime. All parents: IsLiteral, IsMultiline, Comment.
+type EnvVarWriteOpts struct {
+	IsBuild     *bool
+	IsRuntime   *bool
+	IsLiteral   *bool
+	IsMultiline *bool
+	Comment     *string
 }
 
 // PreferNonPreviewEnvVarsByKey collapses duplicate preview and non-preview rows
@@ -50,19 +65,28 @@ func FindEnvVarByUUID(envs []EnvironmentVariable, uuid string) (EnvironmentVaria
 	return EnvironmentVariable{}, false
 }
 
-// applicationEnvVarInput includes is_buildtime (only valid for applications).
+// applicationEnvVarInput is the write payload for application envs.
+// Coolify accepts is_runtime and is_buildtime only on applications.
 type applicationEnvVarInput struct {
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	IsPreview bool   `json:"is_preview"`
-	IsBuild   *bool  `json:"is_buildtime,omitempty"`
+	Key         string  `json:"key"`
+	Value       string  `json:"value"`
+	IsPreview   bool    `json:"is_preview"`
+	IsBuild     *bool   `json:"is_buildtime,omitempty"`
+	IsRuntime   *bool   `json:"is_runtime,omitempty"`
+	IsLiteral   *bool   `json:"is_literal,omitempty"`
+	IsMultiline *bool   `json:"is_multiline,omitempty"`
+	Comment     *string `json:"comment,omitempty"`
 }
 
-// envVarInput is the payload for service/database env var mutations.
+// envVarInput is the write payload for service/database envs.
+// Coolify does not accept is_buildtime / is_runtime on these parents.
 type envVarInput struct {
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	IsPreview bool   `json:"is_preview"`
+	Key         string  `json:"key"`
+	Value       string  `json:"value"`
+	IsPreview   bool    `json:"is_preview"`
+	IsLiteral   *bool   `json:"is_literal,omitempty"`
+	IsMultiline *bool   `json:"is_multiline,omitempty"`
+	Comment     *string `json:"comment,omitempty"`
 }
 
 // CreateEnvVarResponse is the response from creating an environment variable.
@@ -90,18 +114,39 @@ func envPath(parentType, parentUUID string) string {
 	return fmt.Sprintf("/api/v1/%s/%s/envs", parentType, url.PathEscape(parentUUID))
 }
 
+func buildEnvWriteInput(parentType string, key, value string, isPreview bool, opts *EnvVarWriteOpts) interface{} {
+	if opts == nil {
+		opts = &EnvVarWriteOpts{}
+	}
+	if parentType == "applications" {
+		return applicationEnvVarInput{
+			Key:         key,
+			Value:       value,
+			IsPreview:   isPreview,
+			IsBuild:     opts.IsBuild,
+			IsRuntime:   opts.IsRuntime,
+			IsLiteral:   opts.IsLiteral,
+			IsMultiline: opts.IsMultiline,
+			Comment:     opts.Comment,
+		}
+	}
+	return envVarInput{
+		Key:         key,
+		Value:       value,
+		IsPreview:   isPreview,
+		IsLiteral:   opts.IsLiteral,
+		IsMultiline: opts.IsMultiline,
+		Comment:     opts.Comment,
+	}
+}
+
 // CreateEnvVar creates an environment variable on a parent resource.
-// createIsBuild is only sent for applications (pass nil for services/databases).
-func (c *Client) CreateEnvVar(ctx context.Context, parentType, parentUUID string, ev EnvironmentVariable, createIsBuild *bool) (*CreateEnvVarResponse, error) {
+// Pass opts for optional flags; nil pointers are omitted from the JSON body.
+func (c *Client) CreateEnvVar(ctx context.Context, parentType, parentUUID string, ev EnvironmentVariable, opts *EnvVarWriteOpts) (*CreateEnvVarResponse, error) {
 	if err := validateParentType(parentType); err != nil {
 		return nil, err
 	}
-	var input interface{}
-	if parentType == "applications" {
-		input = applicationEnvVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview, IsBuild: createIsBuild}
-	} else {
-		input = envVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview}
-	}
+	input := buildEnvWriteInput(parentType, ev.Key, ev.Value, ev.IsPreview, opts)
 	var r CreateEnvVarResponse
 	path := envPath(parentType, parentUUID)
 	if err := c.doWithStatus(ctx, http.MethodPost, path, input, &r, http.StatusCreated); err != nil {
@@ -125,17 +170,25 @@ func (c *Client) ListEnvVars(ctx context.Context, parentType, parentUUID string)
 }
 
 // UpdateEnvVar updates an environment variable on a parent resource.
-// For applications, is_buildtime is included in the payload.
-func (c *Client) UpdateEnvVar(ctx context.Context, parentType, parentUUID string, ev EnvironmentVariable) error {
+// opts should carry the flags to send; application paths may include IsBuild/IsRuntime.
+func (c *Client) UpdateEnvVar(ctx context.Context, parentType, parentUUID string, ev EnvironmentVariable, opts *EnvVarWriteOpts) error {
 	if err := validateParentType(parentType); err != nil {
 		return err
 	}
-	var input interface{}
-	if parentType == "applications" {
-		input = applicationEnvVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview, IsBuild: &ev.IsBuild}
-	} else {
-		input = envVarInput{Key: ev.Key, Value: ev.Value, IsPreview: ev.IsPreview}
+	if opts == nil {
+		// Back-compat: populate write opts from the full entity so application
+		// omit-as-false fields (is_literal) are not silently cleared.
+		b, r, l, m := ev.IsBuild, ev.IsRuntime, ev.IsLiteral, ev.IsMultiline
+		c := ev.Comment
+		opts = &EnvVarWriteOpts{
+			IsBuild:     &b,
+			IsRuntime:   &r,
+			IsLiteral:   &l,
+			IsMultiline: &m,
+			Comment:     &c,
+		}
 	}
+	input := buildEnvWriteInput(parentType, ev.Key, ev.Value, ev.IsPreview, opts)
 	path := envPath(parentType, parentUUID)
 	if err := c.do(ctx, http.MethodPatch, path, input, nil); err != nil {
 		return fmt.Errorf("updating %s env var %s: %w", parentType, parentUUID, err)

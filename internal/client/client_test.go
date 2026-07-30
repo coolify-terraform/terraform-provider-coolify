@@ -998,7 +998,7 @@ func TestClient_CreateEnvVar_Application(t *testing.T) {
 		Key:     "DATABASE_URL",
 		Value:   "postgres://localhost/db",
 		IsBuild: true,
-	}, &createIsBuild)
+	}, &EnvVarWriteOpts{IsBuild: &createIsBuild})
 	require.NoError(t, err)
 	assert.Equal(t, "env-new", resp.UUID)
 }
@@ -1662,11 +1662,12 @@ func TestClient_UpdateEnvVar_Application(t *testing.T) {
 	defer srv.Close()
 
 	c := New(srv.URL, "test-token")
+	isBuild := false
 	err := c.UpdateEnvVar(context.Background(), "applications", "app-env-1", EnvironmentVariable{
 		Key:     "DATABASE_URL",
 		Value:   "postgres://new-host/db",
 		IsBuild: false,
-	})
+	}, &EnvVarWriteOpts{IsBuild: &isBuild})
 	require.NoError(t, err)
 }
 
@@ -1786,7 +1787,7 @@ func TestClient_UpdateEnvVar_Service(t *testing.T) {
 	err := c.UpdateEnvVar(context.Background(), "services", "svc-env-1", EnvironmentVariable{
 		Key:   "REDIS_URL",
 		Value: "redis://new-host:6379",
-	})
+	}, nil)
 	require.NoError(t, err)
 }
 
@@ -4162,8 +4163,73 @@ func TestClient_UpdateEnvVar_Database(t *testing.T) {
 	err := c.UpdateEnvVar(context.Background(), "databases", "db-env-1", EnvironmentVariable{
 		Key:   "DB_HOST",
 		Value: "new-host",
+	}, nil)
+	require.NoError(t, err)
+}
+
+func TestClient_CreateEnvVar_Application_ExtendedFlags(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var bodyMap map[string]any
+		require.NoError(t, json.Unmarshal(body, &bodyMap))
+		assert.Equal(t, "APP_SECRET", bodyMap["key"])
+		assert.Equal(t, false, bodyMap["is_runtime"])
+		assert.Equal(t, true, bodyMap["is_buildtime"])
+		assert.Equal(t, true, bodyMap["is_literal"])
+		assert.Equal(t, true, bodyMap["is_multiline"])
+		assert.Equal(t, "build only", bodyMap["comment"])
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CreateEnvVarResponse{UUID: "env-ext"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	isBuild, isRuntime, isLiteral, isMulti := true, false, true, true
+	comment := "build only"
+	resp, err := c.CreateEnvVar(context.Background(), "applications", "app-1", EnvironmentVariable{
+		Key:   "APP_SECRET",
+		Value: "secret",
+	}, &EnvVarWriteOpts{
+		IsBuild:     &isBuild,
+		IsRuntime:   &isRuntime,
+		IsLiteral:   &isLiteral,
+		IsMultiline: &isMulti,
+		Comment:     &comment,
 	})
 	require.NoError(t, err)
+	assert.Equal(t, "env-ext", resp.UUID)
+}
+
+func TestClient_CreateEnvVar_Service_LiteralComment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var bodyMap map[string]any
+		require.NoError(t, json.Unmarshal(body, &bodyMap))
+		assert.Equal(t, true, bodyMap["is_literal"])
+		assert.Equal(t, "note", bodyMap["comment"])
+		assert.NotContains(t, bodyMap, "is_buildtime")
+		assert.NotContains(t, bodyMap, "is_runtime")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(CreateEnvVarResponse{UUID: "svc-ext"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	isLiteral := true
+	comment := "note"
+	resp, err := c.CreateEnvVar(context.Background(), "services", "svc-1", EnvironmentVariable{
+		Key:   "FLAG",
+		Value: "1",
+	}, &EnvVarWriteOpts{IsLiteral: &isLiteral, Comment: &comment})
+	require.NoError(t, err)
+	assert.Equal(t, "svc-ext", resp.UUID)
 }
 
 func TestClient_DeleteEnvVar_Database(t *testing.T) {
