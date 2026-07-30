@@ -427,6 +427,28 @@ is_system_wide   = false
 	})
 }
 
+func TestGitHubAppResource_InvalidCustomPort(t *testing.T) {
+	t.Parallel()
+	server, _ := newMockCoolifyServer()
+	defer server.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: testGitHubAppResourceConfig(server.URL, `
+name             = "bad-port"
+app_id           = 1
+installation_id  = 2
+client_id        = "Iv1.x"
+client_secret    = "s"
+private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
+custom_port      = 70000
+`),
+			ExpectError: regexp.MustCompile(`(?i)65535|between|Attribute`),
+		}},
+	})
+}
+
 func TestGitHubAppResource_Update(t *testing.T) {
 	t.Parallel()
 	server, _ := newMockCoolifyServer()
