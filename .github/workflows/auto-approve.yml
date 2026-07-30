@@ -14,10 +14,19 @@ permissions:
 jobs:
   approve:
     name: Auto Approve
+    # Same-repo heads only. Fork PRs get a read-only GITHUB_TOKEN on
+    # pull_request, so createReview(APPROVE) fails with "Resource not
+    # accessible by integration". Also require a trusted actor so random
+    # same-repo collaborators are not auto-approved. Check head.repo, not
+    # only github.actor: a maintainer re-run on an external PR would make
+    # actor trusted and previously entered this job and failed red.
     if: >-
-      github.actor == 'SebTardif' ||
-      github.actor == 'dependabot[bot]' ||
-      github.actor == 'coolify-terraform-auto-approve[bot]'
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (
+        github.actor == 'SebTardif' ||
+        github.actor == 'dependabot[bot]' ||
+        github.actor == 'coolify-terraform-auto-approve[bot]'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
