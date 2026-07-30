@@ -155,6 +155,7 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				Validators:          []validator.String{stringvalidator.LengthAtMost(256)},
 			},
 		},
 	}
@@ -241,6 +242,14 @@ func boolPtrIfKnown(v types.Bool) *bool {
 	return &b
 }
 
+func boolPtrKnownOrDefault(v types.Bool, def bool) *bool {
+	if v.IsNull() || v.IsUnknown() {
+		return &def
+	}
+	b := v.ValueBool()
+	return &b
+}
+
 func stringPtrIfKnown(v types.String) *string {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
@@ -251,11 +260,19 @@ func stringPtrIfKnown(v types.String) *string {
 
 // writeOptsFromPlan builds create/update opts. Application-only flags are
 // only set for applications. Shared flags apply to all parents.
-func writeOptsFromPlan(parentType string, plan *environmentVariableResourceModel) *client.EnvVarWriteOpts {
+// forUpdate must be true on PATCH: Coolify application update uses
+// is_literal ?? false and assigns is_multiline without has(), so omitting
+// those keys would clear them.
+func writeOptsFromPlan(parentType string, plan *environmentVariableResourceModel, forUpdate bool) *client.EnvVarWriteOpts {
 	opts := &client.EnvVarWriteOpts{
-		IsLiteral:   boolPtrIfKnown(plan.IsLiteral),
-		IsMultiline: boolPtrIfKnown(plan.IsMultiline),
-		Comment:     stringPtrIfKnown(plan.Comment),
+		Comment: stringPtrIfKnown(plan.Comment),
+	}
+	if forUpdate && parentType == "applications" {
+		opts.IsLiteral = boolPtrKnownOrDefault(plan.IsLiteral, false)
+		opts.IsMultiline = boolPtrKnownOrDefault(plan.IsMultiline, false)
+	} else {
+		opts.IsLiteral = boolPtrIfKnown(plan.IsLiteral)
+		opts.IsMultiline = boolPtrIfKnown(plan.IsMultiline)
 	}
 	if parentType == "applications" {
 		opts.IsBuild = boolPtrIfKnown(plan.IsBuild)
@@ -278,7 +295,9 @@ func applyCreateDefaults(parentType string, plan *environmentVariableResourceMod
 			plan.IsRuntime = types.BoolValue(true)
 		}
 	} else {
-		// Not meaningful for service/database; store false so state is known.
+		// App-only attributes are not managed for service/database.
+		// Coolify model defaults both to true, but the provider surface
+		// treats them as false (ValidateConfig rejects user sets).
 		plan.IsBuild = types.BoolValue(false)
 		plan.IsRuntime = types.BoolValue(false)
 	}
@@ -293,7 +312,7 @@ func applyCreateDefaults(parentType string, plan *environmentVariableResourceMod
 	}
 }
 
-func flattenEnvToModel(ev client.EnvironmentVariable, state *environmentVariableResourceModel) {
+func flattenEnvToModel(parentType string, ev client.EnvironmentVariable, state *environmentVariableResourceModel) {
 	priorValue := ""
 	if !state.Value.IsNull() && !state.Value.IsUnknown() {
 		priorValue = state.Value.ValueString()
@@ -301,8 +320,14 @@ func flattenEnvToModel(ev client.EnvironmentVariable, state *environmentVariable
 	state.Key = types.StringValue(ev.Key)
 	state.Value = types.StringValue(client.PreserveEnvVarValue(ev.Value, priorValue))
 	state.IsPreview = types.BoolValue(ev.IsPreview)
-	state.IsBuild = types.BoolValue(ev.IsBuild)
-	state.IsRuntime = types.BoolValue(ev.IsRuntime)
+	if parentType == "applications" {
+		state.IsBuild = types.BoolValue(ev.IsBuild)
+		state.IsRuntime = types.BoolValue(ev.IsRuntime)
+	} else {
+		// Ignore Coolify model defaults (true/true); keep provider semantics.
+		state.IsBuild = types.BoolValue(false)
+		state.IsRuntime = types.BoolValue(false)
+	}
 	state.IsLiteral = types.BoolValue(ev.IsLiteral)
 	state.IsMultiline = types.BoolValue(ev.IsMultiline)
 	state.Comment = types.StringValue(ev.Comment)
@@ -333,7 +358,7 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 		Value:     plan.Value.ValueString(),
 		IsPreview: isPreview,
 	}
-	opts := writeOptsFromPlan(parentType, &plan)
+	opts := writeOptsFromPlan(parentType, &plan, false)
 
 	createResp, err := r.client.CreateEnvVar(ctx, parentType, parentUUID, ev, opts)
 	if err != nil {
@@ -342,23 +367,8 @@ func (r *environmentVariableResource) Create(ctx context.Context, req resource.C
 	}
 
 	plan.UUID = types.StringValue(createResp.UUID)
+	// Known plan values are preserved; null/unknown get Coolify defaults.
 	applyCreateDefaults(parentType, &plan)
-	// Overwrite defaults with known plan values that were sent.
-	if opts.IsBuild != nil {
-		plan.IsBuild = types.BoolValue(*opts.IsBuild)
-	}
-	if opts.IsRuntime != nil {
-		plan.IsRuntime = types.BoolValue(*opts.IsRuntime)
-	}
-	if opts.IsLiteral != nil {
-		plan.IsLiteral = types.BoolValue(*opts.IsLiteral)
-	}
-	if opts.IsMultiline != nil {
-		plan.IsMultiline = types.BoolValue(*opts.IsMultiline)
-	}
-	if opts.Comment != nil {
-		plan.Comment = types.StringValue(*opts.Comment)
-	}
 	plan.IsPreview = types.BoolValue(isPreview)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -398,7 +408,7 @@ func (r *environmentVariableResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	flattenEnvToModel(ev, &state)
+	flattenEnvToModel(parentType, ev, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -423,18 +433,7 @@ func (r *environmentVariableResource) Update(ctx context.Context, req resource.U
 		Value:     plan.Value.ValueString(),
 		IsPreview: plan.IsPreview.ValueBool(),
 	}
-	opts := writeOptsFromPlan(parentType, &plan)
-	// Ensure application flags are always sent on update when known in plan.
-	if parentType == "applications" {
-		if opts.IsBuild == nil && !plan.IsBuild.IsNull() && !plan.IsBuild.IsUnknown() {
-			b := plan.IsBuild.ValueBool()
-			opts.IsBuild = &b
-		}
-		if opts.IsRuntime == nil && !plan.IsRuntime.IsNull() && !plan.IsRuntime.IsUnknown() {
-			b := plan.IsRuntime.ValueBool()
-			opts.IsRuntime = &b
-		}
-	}
+	opts := writeOptsFromPlan(parentType, &plan, true)
 
 	if err := r.client.UpdateEnvVar(ctx, parentType, parentUUID, ev, opts); err != nil {
 		resp.Diagnostics.AddError("Error updating environment variable", fmt.Sprintf("%s %s env var %s: %s", parentLabel(parentType), parentUUID, plan.UUID.ValueString(), err))

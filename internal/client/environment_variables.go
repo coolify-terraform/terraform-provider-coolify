@@ -176,9 +176,17 @@ func (c *Client) UpdateEnvVar(ctx context.Context, parentType, parentUUID string
 		return err
 	}
 	if opts == nil {
-		// Back-compat: send build from entity for applications.
-		b := ev.IsBuild
-		opts = &EnvVarWriteOpts{IsBuild: &b}
+		// Back-compat: populate write opts from the full entity so application
+		// omit-as-false fields (is_literal) are not silently cleared.
+		b, r, l, m := ev.IsBuild, ev.IsRuntime, ev.IsLiteral, ev.IsMultiline
+		c := ev.Comment
+		opts = &EnvVarWriteOpts{
+			IsBuild:     &b,
+			IsRuntime:   &r,
+			IsLiteral:   &l,
+			IsMultiline: &m,
+			Comment:     &c,
+		}
 	}
 	input := buildEnvWriteInput(parentType, ev.Key, ev.Value, ev.IsPreview, opts)
 	path := envPath(parentType, parentUUID)
