@@ -5590,3 +5590,46 @@ func TestApplication_PromoteSettings(t *testing.T) {
 		t.Fatal("top-level value must not be overwritten by settings")
 	}
 }
+
+func TestClient_GetApplication_PromotesNestedSettings(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		// Real Coolify GET nests settings; top-level omit these keys.
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"uuid": "app-nested-1",
+			"name": "nested-app",
+			"settings": {
+				"is_preview_deployments_enabled": true,
+				"use_build_secrets": true,
+				"stop_grace_period": 42,
+				"is_auto_deploy_enabled": true,
+				"is_build_server_enabled": true,
+				"is_force_https_enabled": false
+			}
+		}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	app, err := c.GetApplication(context.Background(), "app-nested-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if app.IsPreviewDeploymentsEnabled == nil || !*app.IsPreviewDeploymentsEnabled {
+		t.Fatalf("IsPreviewDeploymentsEnabled = %v", app.IsPreviewDeploymentsEnabled)
+	}
+	if app.UseBuildSecrets == nil || !*app.UseBuildSecrets {
+		t.Fatalf("UseBuildSecrets = %v", app.UseBuildSecrets)
+	}
+	if app.StopGracePeriod == nil || *app.StopGracePeriod != 42 {
+		t.Fatalf("StopGracePeriod = %v", app.StopGracePeriod)
+	}
+	if app.UseBuildServer == nil || !*app.UseBuildServer {
+		t.Fatalf("UseBuildServer (from is_build_server_enabled) = %v", app.UseBuildServer)
+	}
+	if app.IsForceHTTPSEnabled == nil || *app.IsForceHTTPSEnabled {
+		t.Fatalf("IsForceHTTPSEnabled = %v", app.IsForceHTTPSEnabled)
+	}
+}
