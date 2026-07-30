@@ -16,10 +16,13 @@ type GitHubApp struct {
 	OrganizationName string `json:"organization,omitempty"`
 	APIURL           string `json:"api_url,omitempty"`
 	HTMLURL          string `json:"html_url,omitempty"`
+	CustomUser       string `json:"custom_user,omitempty"`
+	CustomPort       *int64 `json:"custom_port,omitempty"`
 	AppID            int64  `json:"app_id,omitempty"`
 	InstallationID   int64  `json:"installation_id,omitempty"`
 	ClientID         string `json:"client_id,omitempty"`
 	WebhookSecret    string `json:"webhook_secret,omitempty"`
+	IsSystemWide     bool   `json:"is_system_wide,omitempty"`
 }
 
 type CreateGitHubAppIntegrationInput struct {
@@ -27,23 +30,29 @@ type CreateGitHubAppIntegrationInput struct {
 	OrganizationName string `json:"organization,omitempty"`
 	APIURL           string `json:"api_url"`
 	HTMLURL          string `json:"html_url"`
+	CustomUser       string `json:"custom_user,omitempty"`
+	CustomPort       *int64 `json:"custom_port,omitempty"`
 	AppID            int64  `json:"app_id"`
 	InstallationID   int64  `json:"installation_id"`
 	ClientID         string `json:"client_id"`
 	ClientSecret     string `json:"client_secret"`
 	WebhookSecret    string `json:"webhook_secret,omitempty"`
 	PrivateKeyUUID   string `json:"private_key_uuid"`
+	IsSystemWide     *bool  `json:"is_system_wide,omitempty"`
 }
 
 type UpdateGitHubAppIntegrationInput struct {
 	Name             *string `json:"name,omitempty"`
 	OrganizationName *string `json:"organization,omitempty"`
+	CustomUser       *string `json:"custom_user,omitempty"`
+	CustomPort       *int64  `json:"custom_port,omitempty"`
 	AppID            *int64  `json:"app_id,omitempty"`
 	InstallationID   *int64  `json:"installation_id,omitempty"`
 	ClientID         *string `json:"client_id,omitempty"`
 	ClientSecret     *string `json:"client_secret,omitempty"`
 	WebhookSecret    *string `json:"webhook_secret,omitempty"`
 	PrivateKeyUUID   *string `json:"private_key_uuid,omitempty"`
+	IsSystemWide     *bool   `json:"is_system_wide,omitempty"`
 }
 
 type GitHubRepository struct {

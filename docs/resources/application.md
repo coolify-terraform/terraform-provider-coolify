@@ -45,6 +45,9 @@ resource "coolify_application" "example" {
   # pre_deployment_command   = "npm run migrate"      # Command to run before deployment
   # post_deployment_command  = "npm run seed"         # Command to run after deployment
   # custom_docker_run_options = "--memory=512m"       # Custom Docker run options passed to the container
+  # is_preview_deployments_enabled = false            # Enable PR preview deployments
+  # use_build_secrets              = false            # Expose Coolify secrets during build
+  # stop_grace_period              = 30               # Seconds to wait for graceful container stop
 }
 ```
 

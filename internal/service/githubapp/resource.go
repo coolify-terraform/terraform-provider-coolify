@@ -10,11 +10,15 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -39,12 +43,15 @@ type gitHubAppResourceModel struct {
 	UUID             types.String `tfsdk:"uuid"`
 	Name             types.String `tfsdk:"name"`
 	OrganizationName types.String `tfsdk:"organization_name"`
+	CustomUser       types.String `tfsdk:"custom_user"`
+	CustomPort       types.Int64  `tfsdk:"custom_port"`
 	AppID            types.Int64  `tfsdk:"app_id"`
 	InstallationID   types.Int64  `tfsdk:"installation_id"`
 	ClientID         types.String `tfsdk:"client_id"`
 	ClientSecret     types.String `tfsdk:"client_secret"`
 	WebhookSecret    types.String `tfsdk:"webhook_secret"`
 	PrivateKeyUUID   types.String `tfsdk:"private_key_uuid"`
+	IsSystemWide     types.Bool   `tfsdk:"is_system_wide"`
 }
 
 // NewResource returns a new GitHub App resource instance.
@@ -85,6 +92,19 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
+			"custom_user": schema.StringAttribute{
+				MarkdownDescription: "SSH user for git clone over SSH (Coolify default: `git`).",
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString("git"),
+			},
+			"custom_port": schema.Int64Attribute{
+				MarkdownDescription: "SSH port for git clone (Coolify default: `22`).",
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(22),
+				Validators:          []validator.Int64{int64validator.Between(1, 65535)},
+			},
 			"app_id": schema.Int64Attribute{
 				MarkdownDescription: "The GitHub App ID.",
 				Required:            true,
@@ -112,6 +132,12 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "UUID of an existing `coolify_private_key` resource for GitHub App authentication. Write-only: not returned by the API after creation.",
 				Required:            true,
 				Validators:          []validator.String{validate.UUID()},
+			},
+			"is_system_wide": schema.BoolAttribute{
+				MarkdownDescription: "Whether this GitHub App is available to all teams on the Coolify instance. Only applied on self-hosted (non-cloud) Coolify; cloud ignores the field. Coolify default: `false`.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 		},
 	}
@@ -141,6 +167,15 @@ func (r *gitHubAppResource) Create(ctx context.Context, req resource.CreateReque
 		PrivateKeyUUID: plan.PrivateKeyUUID.ValueString(),
 	}
 	flex.SetIfKnown(&input.OrganizationName, plan.OrganizationName)
+	flex.SetIfKnown(&input.CustomUser, plan.CustomUser)
+	if !plan.CustomPort.IsNull() && !plan.CustomPort.IsUnknown() {
+		port := plan.CustomPort.ValueInt64()
+		input.CustomPort = &port
+	}
+	if !plan.IsSystemWide.IsNull() && !plan.IsSystemWide.IsUnknown() {
+		sw := plan.IsSystemWide.ValueBool()
+		input.IsSystemWide = &sw
+	}
 	if plan.WebhookSecret.IsNull() || plan.WebhookSecret.IsUnknown() {
 		generatedSecret, err := randomWebhookSecret()
 		if err != nil {
@@ -224,12 +259,15 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 	input := client.UpdateGitHubAppIntegrationInput{
 		Name:             flex.StringIfChanged(plan.Name, state.Name),
 		OrganizationName: flex.StringIfChanged(plan.OrganizationName, state.OrganizationName),
+		CustomUser:       flex.StringIfChanged(plan.CustomUser, state.CustomUser),
+		CustomPort:       flex.Int64IfChanged(plan.CustomPort, state.CustomPort),
 		AppID:            flex.Int64IfChanged(plan.AppID, state.AppID),
 		InstallationID:   flex.Int64IfChanged(plan.InstallationID, state.InstallationID),
 		ClientID:         flex.StringIfChanged(plan.ClientID, state.ClientID),
 		ClientSecret:     flex.StringIfChanged(plan.ClientSecret, state.ClientSecret),
 		WebhookSecret:    flex.StringIfChanged(plan.WebhookSecret, state.WebhookSecret),
 		PrivateKeyUUID:   flex.StringIfChanged(plan.PrivateKeyUUID, state.PrivateKeyUUID),
+		IsSystemWide:     flex.BoolIfChanged(plan.IsSystemWide, state.IsSystemWide),
 	}
 
 	// Use the PATCH response directly (returns the full object) instead of
@@ -329,11 +367,14 @@ func (r *gitHubAppResource) UpgradeState(_ context.Context) map[int64]resource.S
 				resp.Diagnostics.Append(resp.State.Set(ctx, &gitHubAppResourceModel{
 					ID: old.ID, UUID: old.UUID, Name: old.Name,
 					OrganizationName: old.OrganizationName,
+					CustomUser:       types.StringValue("git"),
+					CustomPort:       types.Int64Value(22),
 					AppID:            old.AppID, InstallationID: old.InstallationID,
 					ClientID: old.ClientID, ClientSecret: old.ClientSecret,
 					WebhookSecret: old.WebhookSecret,
 					// Cannot convert raw PEM content to UUID; user must update config.
 					PrivateKeyUUID: types.StringUnknown(),
+					IsSystemWide:   types.BoolValue(false),
 				})...)
 			},
 		},
@@ -348,9 +389,20 @@ func flattenGitHubApp(app *client.GitHubApp, model *gitHubAppResourceModel) {
 	model.UUID = flex.StringToFramework(app.UUID)
 	model.Name = types.StringValue(app.Name)
 	model.OrganizationName = flex.StringToFramework(app.OrganizationName)
+	if app.CustomUser != "" {
+		model.CustomUser = types.StringValue(app.CustomUser)
+	} else if model.CustomUser.IsNull() || model.CustomUser.IsUnknown() {
+		model.CustomUser = types.StringValue("git")
+	}
+	if app.CustomPort != nil {
+		model.CustomPort = types.Int64Value(*app.CustomPort)
+	} else if model.CustomPort.IsNull() || model.CustomPort.IsUnknown() {
+		model.CustomPort = types.Int64Value(22)
+	}
 	model.AppID = types.Int64Value(app.AppID)
 	model.InstallationID = types.Int64Value(app.InstallationID)
 	model.ClientID = types.StringValue(app.ClientID)
+	model.IsSystemWide = types.BoolValue(app.IsSystemWide)
 	if app.WebhookSecret != "" {
 		model.WebhookSecret = types.StringValue(app.WebhookSecret)
 	}

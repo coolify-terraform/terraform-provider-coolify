@@ -14,9 +14,10 @@ import (
 func TestScheduledTaskDataSource_Application(t *testing.T) {
 	t.Parallel()
 
+	timeout600 := int64(600)
 	tasks := []client.ScheduledTask{
-		{UUID: "11111111-1111-4111-8111-111111111111", Name: "backup-db", Command: "pg_dump mydb", Frequency: "0 0 * * *", Enabled: true},
-		{UUID: "22222222-2222-4222-8222-222222222222", Name: "cleanup-logs", Command: "rm -rf /tmp/logs/*", Frequency: "0 */6 * * *", Enabled: false},
+		{UUID: "11111111-1111-4111-8111-111111111111", Name: "backup-db", Command: "pg_dump mydb", Frequency: "0 0 * * *", Enabled: true, Container: "db", Timeout: &timeout600},
+		{UUID: "22222222-2222-4222-8222-222222222222", Name: "cleanup-logs", Command: "rm -rf /tmp/logs/*", Frequency: "0 */6 * * *", Enabled: false, Container: "worker", Timeout: &timeout600},
 	}
 
 	mux := http.NewServeMux()
@@ -43,6 +44,8 @@ data "coolify_scheduled_task" "test" {
 					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "command", "rm -rf /tmp/logs/*"),
 					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "frequency", "0 */6 * * *"),
 					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "enabled", "false"),
+					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "container", "worker"),
+					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "timeout", "600"),
 				),
 			},
 		},
@@ -52,8 +55,9 @@ data "coolify_scheduled_task" "test" {
 func TestScheduledTaskDataSource_Service(t *testing.T) {
 	t.Parallel()
 
+	timeout90 := int64(90)
 	tasks := []client.ScheduledTask{
-		{UUID: "33333333-3333-4333-8333-333333333333", Name: "health-check", Command: "curl http://localhost/health", Frequency: "*/5 * * * *", Enabled: true},
+		{UUID: "33333333-3333-4333-8333-333333333333", Name: "health-check", Command: "curl http://localhost/health", Frequency: "*/5 * * * *", Enabled: true, Container: "api", Timeout: &timeout90},
 	}
 
 	mux := http.NewServeMux()
@@ -80,6 +84,8 @@ data "coolify_scheduled_task" "test" {
 					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "command", "curl http://localhost/health"),
 					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "frequency", "*/5 * * * *"),
 					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "container", "api"),
+					resource.TestCheckResourceAttr("data.coolify_scheduled_task.test", "timeout", "90"),
 				),
 			},
 		},
