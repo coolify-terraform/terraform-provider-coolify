@@ -202,11 +202,14 @@ func (r *serviceResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
-// ValidateConfig checks that type and docker_compose_raw are not both set.
+// ValidateConfig checks that exactly one of type or docker_compose_raw is set.
 // We use ValidateConfig instead of stringvalidator.ExactlyOneOf because type
 // is Optional+Computed with UseStateForUnknown. ExactlyOneOf operates at the
 // attribute level and would misfire when the computed value is populated from
 // state, incorrectly rejecting configs that only set docker_compose_raw.
+//
+// Unknown values (from variables, data sources, or other resources) must not
+// be treated as absent: ValidateConfig runs before those values are resolved.
 func (r *serviceResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 	var model serviceResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &model)...)
