@@ -202,11 +202,14 @@ func (r *serviceResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
-// ValidateConfig checks that type and docker_compose_raw are not both set.
+// ValidateConfig checks that exactly one of type or docker_compose_raw is set.
 // We use ValidateConfig instead of stringvalidator.ExactlyOneOf because type
 // is Optional+Computed with UseStateForUnknown. ExactlyOneOf operates at the
 // attribute level and would misfire when the computed value is populated from
 // state, incorrectly rejecting configs that only set docker_compose_raw.
+//
+// Unknown values (from variables, data sources, or other resources) must not
+// be treated as absent: ValidateConfig runs before those values are resolved.
 func (r *serviceResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 	var model serviceResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &model)...)
@@ -214,8 +217,17 @@ func (r *serviceResource) ValidateConfig(ctx context.Context, req resource.Valid
 		return
 	}
 
-	hasType := !model.Type.IsNull() && !model.Type.IsUnknown()
-	hasCompose := !model.DockerComposeRaw.IsNull() && !model.DockerComposeRaw.IsUnknown()
+	// Values that come from variables, data sources or other resources are
+	// still unknown when ValidateConfig runs. Treat unknown as "set": the
+	// attribute is present in the config, only its value is not resolved yet.
+	// Without this, a config like docker_compose_raw = var.compose fails
+	// validation with "One of type or docker_compose_raw must be set".
+	if model.Type.IsUnknown() || model.DockerComposeRaw.IsUnknown() {
+		return
+	}
+
+	hasType := !model.Type.IsNull()
+	hasCompose := !model.DockerComposeRaw.IsNull()
 
 	if hasType && hasCompose {
 		resp.Diagnostics.AddAttributeError(
