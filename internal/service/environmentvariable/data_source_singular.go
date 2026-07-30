@@ -34,6 +34,10 @@ type envVarDataSourceModel struct {
 	Value           types.String `tfsdk:"value"`
 	IsPreview       types.Bool   `tfsdk:"is_preview"`
 	IsBuild         types.Bool   `tfsdk:"is_build"`
+	IsRuntime       types.Bool   `tfsdk:"is_runtime"`
+	IsLiteral       types.Bool   `tfsdk:"is_literal"`
+	IsMultiline     types.Bool   `tfsdk:"is_multiline"`
+	Comment         types.String `tfsdk:"comment"`
 }
 
 // NewDataSource returns a new singular environment variable data source.
@@ -87,7 +91,23 @@ func (d *envVarDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				Computed:            true,
 			},
 			"is_build": schema.BoolAttribute{
-				MarkdownDescription: "Whether available at build time.",
+				MarkdownDescription: "Whether available at build time (applications).",
+				Computed:            true,
+			},
+			"is_runtime": schema.BoolAttribute{
+				MarkdownDescription: "Whether available at runtime (applications).",
+				Computed:            true,
+			},
+			"is_literal": schema.BoolAttribute{
+				MarkdownDescription: "Whether the value is literal.",
+				Computed:            true,
+			},
+			"is_multiline": schema.BoolAttribute{
+				MarkdownDescription: "Whether the value is multiline.",
+				Computed:            true,
+			},
+			"comment": schema.StringAttribute{
+				MarkdownDescription: "Optional comment.",
 				Computed:            true,
 			},
 		},
@@ -131,5 +151,9 @@ func (d *envVarDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	config.Value = types.StringValue(ev.Value)
 	config.IsPreview = types.BoolValue(ev.IsPreview)
 	config.IsBuild = types.BoolValue(ev.IsBuild)
+	config.IsRuntime = types.BoolValue(ev.IsRuntime)
+	config.IsLiteral = types.BoolValue(ev.IsLiteral)
+	config.IsMultiline = types.BoolValue(ev.IsMultiline)
+	config.Comment = types.StringValue(ev.Comment)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }
