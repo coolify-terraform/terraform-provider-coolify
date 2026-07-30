@@ -97,27 +97,41 @@ func TestUUID_NullAndUnknown(t *testing.T) {
 
 func TestIsUUID(t *testing.T) {
 	t.Parallel()
-	if !validate.IsUUID("550e8400-e29b-41d4-a716-446655440000") {
-		t.Error("expected valid UUID to return true")
+	valid := []string{
+		"550e8400-e29b-41d4-a716-446655440000",
+		"deey8xhb2bm3fxpobcxyddfv", // modern NanoID/Cuid2 (24)
+		"usoc080",                  // legacy Cuid2(7)
+		"lk4cosc",                  // legacy Cuid2(7)
 	}
-	if !validate.IsUUID("deey8xhb2bm3fxpobcxyddfv") {
-		t.Error("expected valid NanoID to return true")
+	for _, s := range valid {
+		if !validate.IsUUID(s) {
+			t.Errorf("IsUUID(%q) should be true", s)
+		}
 	}
-	if validate.IsUUID("not-a-uuid") {
-		t.Error("expected invalid string to return false")
+	invalid := []string{
+		"not-a-uuid",
+		"../../admin",
+		"",
+		"abc123",  // 6 chars (legacy min - 1)
+		"abc12345", // 8 chars (legacy + 1)
 	}
-	if validate.IsUUID("../../admin") {
-		t.Error("expected path traversal to return false")
-	}
-	if validate.IsUUID("") {
-		t.Error("expected empty string to return false")
+	for _, s := range invalid {
+		if validate.IsUUID(s) {
+			t.Errorf("IsUUID(%q) should be false", s)
+		}
 	}
 }
 
 func TestImportUUID_Valid(t *testing.T) {
 	t.Parallel()
-	if err := validate.ImportUUID("550e8400-e29b-41d4-a716-446655440000"); err != nil {
-		t.Errorf("expected nil error for valid UUID, got: %v", err)
+	for _, id := range []string{
+		"550e8400-e29b-41d4-a716-446655440000",
+		"usoc080",
+		"deey8xhb2bm3fxpobcxyddfv",
+	} {
+		if err := validate.ImportUUID(id); err != nil {
+			t.Errorf("ImportUUID(%q) expected nil, got: %v", id, err)
+		}
 	}
 }
 
@@ -130,19 +144,24 @@ func TestImportUUID_Invalid(t *testing.T) {
 	if !strings.Contains(err.Error(), "../../admin") {
 		t.Errorf("error should contain the bad ID, got: %v", err)
 	}
+	if err := validate.ImportUUID("abc123"); err == nil {
+		t.Error("expected error for 6-char id")
+	}
 }
 
 func TestParseCompoundImportID_SimpleUUID(t *testing.T) {
 	t.Parallel()
-	parsed, compound, err := validate.ParseCompoundImportID("deey8xhb2bm3fxpobcxyddfv")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if compound {
-		t.Error("expected compound=false for simple UUID")
-	}
-	if parsed.UUID != "deey8xhb2bm3fxpobcxyddfv" {
-		t.Errorf("expected UUID=%q, got %q", "deey8xhb2bm3fxpobcxyddfv", parsed.UUID)
+	for _, id := range []string{"deey8xhb2bm3fxpobcxyddfv", "usoc080"} {
+		parsed, compound, err := validate.ParseCompoundImportID(id)
+		if err != nil {
+			t.Fatalf("unexpected error for %q: %v", id, err)
+		}
+		if compound {
+			t.Errorf("expected compound=false for simple id %q", id)
+		}
+		if parsed.UUID != id {
+			t.Errorf("expected UUID=%q, got %q", id, parsed.UUID)
+		}
 	}
 }
 
@@ -224,35 +243,51 @@ func newImportStateResponse(s schema.Schema) *resource.ImportStateResponse {
 
 func TestImportParentChild_Valid(t *testing.T) {
 	t.Parallel()
-	parentUUID := "550e8400-e29b-41d4-a716-446655440000"
-	childUUID := "aaaa0001-0001-4000-8000-000000000001"
+	cases := []struct {
+		name       string
+		parentUUID string
+		childUUID  string
+	}{
+		{
+			name:       "rfc-uuid",
+			parentUUID: "550e8400-e29b-41d4-a716-446655440000",
+			childUUID:  "aaaa0001-0001-4000-8000-000000000001",
+		},
+		{
+			name:       "legacy-cuid2-7",
+			parentUUID: "usoc080",
+			childUUID:  "lk4cosc",
+		},
+	}
 	allowedTypes := []string{"application", "service", "database"}
 
-	for _, typ := range allowedTypes {
-		t.Run(typ, func(t *testing.T) {
-			t.Parallel()
-			ctx := context.Background()
-			s := importParentChildSchema(allowedTypes)
-			resp := newImportStateResponse(s)
-			req := resource.ImportStateRequest{ID: typ + ":" + parentUUID + ":" + childUUID}
+	for _, tc := range cases {
+		for _, typ := range allowedTypes {
+			t.Run(tc.name+"/"+typ, func(t *testing.T) {
+				t.Parallel()
+				ctx := context.Background()
+				s := importParentChildSchema(allowedTypes)
+				resp := newImportStateResponse(s)
+				req := resource.ImportStateRequest{ID: typ + ":" + tc.parentUUID + ":" + tc.childUUID}
 
-			validate.ImportParentChild(ctx, req, resp, allowedTypes, "storage")
+				validate.ImportParentChild(ctx, req, resp, allowedTypes, "storage")
 
-			if resp.Diagnostics.HasError() {
-				t.Fatalf("unexpected error: %s", resp.Diagnostics.Errors()[0].Detail())
-			}
+				if resp.Diagnostics.HasError() {
+					t.Fatalf("unexpected error: %s", resp.Diagnostics.Errors()[0].Detail())
+				}
 
-			var gotParent, gotChild types.String
-			resp.State.GetAttribute(ctx, path.Root(typ+"_uuid"), &gotParent)
-			resp.State.GetAttribute(ctx, path.Root("uuid"), &gotChild)
+				var gotParent, gotChild types.String
+				resp.State.GetAttribute(ctx, path.Root(typ+"_uuid"), &gotParent)
+				resp.State.GetAttribute(ctx, path.Root("uuid"), &gotChild)
 
-			if gotParent.ValueString() != parentUUID {
-				t.Errorf("expected %s_uuid=%s, got %s", typ, parentUUID, gotParent.ValueString())
-			}
-			if gotChild.ValueString() != childUUID {
-				t.Errorf("expected uuid=%s, got %s", childUUID, gotChild.ValueString())
-			}
-		})
+				if gotParent.ValueString() != tc.parentUUID {
+					t.Errorf("expected %s_uuid=%s, got %s", typ, tc.parentUUID, gotParent.ValueString())
+				}
+				if gotChild.ValueString() != tc.childUUID {
+					t.Errorf("expected uuid=%s, got %s", tc.childUUID, gotChild.ValueString())
+				}
+			})
+		}
 	}
 }
 
