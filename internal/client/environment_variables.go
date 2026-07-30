@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
+	"strings"
 )
 
 // EnvironmentVariable represents a single environment variable from the Coolify API.
@@ -221,4 +223,37 @@ func (c *Client) BulkUpdateEnvVars(ctx context.Context, parentType, parentUUID s
 	}
 	c.listCache.invalidate(envPath(parentType, parentUUID))
 	return nil
+}
+
+// EnvVarWriteJSONTags returns JSON object keys present on create/update env
+// write payloads for the given parent type ("applications", "services", or
+// "databases"). Used by contract write-coverage tests (#623).
+func EnvVarWriteJSONTags(parentType string) map[string]struct{} {
+	var sample interface{}
+	if parentType == "applications" {
+		sample = applicationEnvVarInput{}
+	} else {
+		sample = envVarInput{}
+	}
+	return jsonTagsFromValue(sample)
+}
+
+func jsonTagsFromValue(v interface{}) map[string]struct{} {
+	t := reflect.TypeOf(v)
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	out := make(map[string]struct{}, t.NumField())
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		tag := f.Tag.Get("json")
+		if tag == "" || tag == "-" {
+			continue
+		}
+		name := strings.Split(tag, ",")[0]
+		if name != "" {
+			out[name] = struct{}{}
+		}
+	}
+	return out
 }

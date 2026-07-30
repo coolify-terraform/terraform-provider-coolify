@@ -17,10 +17,16 @@ import (
 // This is the single source of truth for field definitions, defaults,
 // types, and sensitive markings.
 type contractFile struct {
-	Version            string                   `json:"version"`
-	Models             map[string]contractModel `json:"models"`
-	Enums              map[string][]string      `json:"enums"`
-	ValidationPatterns map[string]string        `json:"validation_patterns"`
+	Version            string                      `json:"version"`
+	Models             map[string]contractModel    `json:"models"`
+	Endpoints          map[string]contractEndpoint `json:"endpoints"`
+	Enums              map[string][]string         `json:"enums"`
+	ValidationPatterns map[string]string           `json:"validation_patterns"`
+}
+
+// contractEndpoint is a Coolify controller action with an allow list.
+type contractEndpoint struct {
+	AllowedFields []string `json:"allowed_fields"`
 }
 
 type contractModel struct {
@@ -87,91 +93,7 @@ func jsonTagsFromStruct(t reflect.Type) map[string]reflect.StructField {
 	return tags
 }
 
-// fieldsToIgnore are contract fields that are intentionally not in our client
-// structs because they are internal-only (DB IDs, morphs, computed, etc.).
-var fieldsToIgnore = map[string]map[string]bool{
-	"Application": {
-		// Internal DB identifiers (not exposed via API)
-		"environment_id":        true,
-		"destination_id":        true,
-		"destination_type":      true,
-		"source_id":             true,
-		"source_type":           true,
-		"private_key_id":        true,
-		"repository_project_id": true,
-		// Computed/internal fields not exposed by the API
-		"config_hash":              true,
-		"custom_healthcheck_found": true,
-		"compose_parsing_version":  true,
-		"last_online_at":           true,
-		"last_restart_at":          true,
-		"last_restart_type":        true,
-		"restart_count":            true,
-		"nixpkgsarchive":           true,
-		"git_full_url":             true,
-		// Docker compose PR fields (removed in later migrations)
-		"docker_compose_pr_location": true,
-		"docker_compose_pr":          true,
-		"docker_compose_pr_raw":      true,
-		// Fields served from related models, not Application table
-		"docker_compose": true,
-		// Swarm-only fields (not commonly used)
-		"swarm_replicas":              true,
-		"swarm_placement_constraints": true,
-		// Internal-only ApplicationSetting fields not exposed by update API
-		"application_id":                       true,
-		"custom_internal_name":                 true,
-		"disable_build_cache":                  true,
-		"docker_images_to_keep":                true,
-		"gpu_count":                            true,
-		"gpu_device_ids":                       true,
-		"gpu_driver":                           true,
-		"gpu_options":                          true,
-		"include_source_commit_in_build":       true,
-		"inject_build_args_to_dockerfile":      true,
-		"is_consistent_container_name_enabled": true,
-		"is_container_label_readonly_enabled":  true,
-		"is_custom_ssl":                        true,
-		"is_debug_enabled":                     true,
-		"is_dual_cert":                         true,
-		"is_env_sorting_enabled":               true,
-		"is_git_lfs_enabled":                   true,
-		"is_git_shallow_clone_enabled":         true,
-		"is_git_submodules_enabled":            true,
-		"is_gpu_enabled":                       true,
-		"is_gzip_enabled":                      true,
-		"is_http2":                             true,
-		"is_include_timestamps":                true,
-		"is_log_drain_enabled":                 true,
-		"is_pr_deployments_public_enabled":     true,
-		"is_preview_deployments_enabled":       true,
-		"is_raw_compose_deployment_enabled":    true,
-		"is_stripprefix_enabled":               true,
-		"is_swarm_only_worker_nodes":           true,
-		"use_build_secrets":                    true,
-		// is_build_server_enabled is the setting name; the API field is use_build_server (already in struct)
-		"is_build_server_enabled": true,
-		"stop_grace_period":       true, // not exposed yet
-	},
-	"Server": {
-		"proxy":                         true,
-		"traefik_outdated_info":         true,
-		"server_metadata":               true,
-		"logdrain_axiom_api_key":        true,
-		"logdrain_newrelic_license_key": true,
-		"delete_unused_volumes":         true,
-		"delete_unused_networks":        true,
-		"unreachable_notification_sent": true,
-		"unreachable_count":             true,
-		"validation_logs":               true,
-		"hetzner_server_id":             true,
-		"hetzner_server_status":         true,
-		"is_validating":                 true,
-		"detected_traefik_version":      true,
-		"ip_previous":                   true,
-		"sentinel_updated_at":           true,
-	},
-}
+// Application / Server model skips live in contract_skips.go (taxonomy #622).
 
 // TestContractCoverage_Application checks that client.Application has JSON
 // tags for all user-facing fillable fields in the contract, and that the
@@ -186,12 +108,12 @@ func TestContractCoverage_Application(t *testing.T) {
 	}
 
 	goTags := jsonTagsFromStruct(reflect.TypeOf(client.Application{}))
-	ignore := fieldsToIgnore["Application"]
+	ignore := applicationFieldSkips
 
 	var missing []string
 	var typeMismatches []string
 	for fieldName, field := range appContract.Fields {
-		if !field.Fillable || ignore[fieldName] {
+		if !field.Fillable || isSkipped(ignore, fieldName) {
 			continue
 		}
 		goField, ok := goTags[fieldName]
@@ -206,7 +128,7 @@ func TestContractCoverage_Application(t *testing.T) {
 
 	// Also check settings fields
 	for fieldName := range appContract.SettingsFields {
-		if ignore[fieldName] {
+		if isSkipped(ignore, fieldName) {
 			continue
 		}
 		if _, ok := goTags[fieldName]; !ok {
@@ -239,16 +161,7 @@ func TestContractCoverage_Databases(t *testing.T) {
 		"StandaloneKeydb", "StandaloneDragonfly",
 	}
 
-	dbIgnore := map[string]bool{
-		"environment_id":    true,
-		"destination_id":    true,
-		"destination_type":  true,
-		"started_at":        true,
-		"last_online_at":    true,
-		"last_restart_at":   true,
-		"last_restart_type": true,
-		"restart_count":     true,
-	}
+	dbIgnore := databaseModelSkips
 
 	for _, modelName := range dbModels {
 		model, ok := c.Models[modelName]
@@ -260,7 +173,7 @@ func TestContractCoverage_Databases(t *testing.T) {
 		var missing []string
 		var typeMismatches []string
 		for fieldName, field := range model.Fields {
-			if !field.Fillable || dbIgnore[fieldName] {
+			if !field.Fillable || isSkipped(dbIgnore, fieldName) {
 				continue
 			}
 			goField, ok := goTags[fieldName]
@@ -351,7 +264,8 @@ func checkTypeCompatibility(field contractField, goType reflect.Type) error {
 
 // contractCoverageTest is a reusable helper for model contract tests.
 // It checks both field name coverage and Go type compatibility.
-func contractCoverageTest(t *testing.T, modelName string, goType reflect.Type, ignore map[string]bool) {
+// ignore uses the skip taxonomy (#622): internal / deferred+#N / n/a.
+func contractCoverageTest(t *testing.T, modelName string, goType reflect.Type, ignore map[string]FieldSkip) {
 	t.Helper()
 	c := loadContract(t)
 	model, ok := c.Models[modelName]
@@ -360,14 +274,15 @@ func contractCoverageTest(t *testing.T, modelName string, goType reflect.Type, i
 	}
 	goTags := jsonTagsFromStruct(goType)
 	if ignore == nil {
-		ignore = map[string]bool{}
+		ignore = map[string]FieldSkip{}
 	}
+	requireValidSkips(t, ignore)
 
 	var missing []string
 	var typeMismatches []string
 
 	for fieldName, field := range model.Fields {
-		if !field.Fillable || ignore[fieldName] {
+		if !field.Fillable || isSkipped(ignore, fieldName) {
 			continue
 		}
 		goField, ok := goTags[fieldName]
@@ -394,176 +309,63 @@ func contractCoverageTest(t *testing.T, modelName string, goType reflect.Type, i
 
 func TestContractCoverage_Server(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "Server", reflect.TypeOf(client.Server{}), map[string]bool{
-		"team_id":                   true,
-		"private_key_id":            true,
-		"proxy":                     true, // complex JSON object
-		"sentinel_token":            true, // hidden by middleware
-		"sentinel_custom_url":       true,
-		"sentinel_metrics_token":    true,
-		"sentinel_metrics_history":  true,
-		"sentinel_metrics_interval": true,
-		"started_at":                true,
-		"last_online_at":            true,
-		"last_restart_at":           true,
-		"last_restart_type":         true,
-		"restart_count":             true,
-		"unreachable_notification":  true,
-		"unreachable_count":         true,
-		"log_drain_notification":    true,
-		"swarm_cluster":             true,
-		"cloud_provider_token_id":   true, // internal FK
-		"detected_traefik_version":  true, // ephemeral status
-		"hetzner_server_id":         true, // Hetzner-specific
-		"hetzner_server_status":     true, // Hetzner-specific
-		"ip_previous":               true, // internal tracking
-		"is_validating":             true, // ephemeral status
-		"server_metadata":           true, // internal metadata
-		"traefik_outdated_info":     true, // ephemeral status
-	})
+	contractCoverageTest(t, "Server", reflect.TypeOf(client.Server{}), serverCoverageSkips)
 }
 
 func TestContractCoverage_Service(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "Service", reflect.TypeOf(client.Service{}), map[string]bool{
-		"team_id":                             true,
-		"environment_id":                      true,
-		"destination_id":                      true,
-		"destination_type":                    true,
-		"server_id":                           true,
-		"is_container_label_readonly_enabled": true,
-		"is_readonly":                         true,
-		"compose_parsing_version":             true, // internal config
-		"service_type":                        true, // mapped to "type" in client struct
-	})
+	contractCoverageTest(t, "Service", reflect.TypeOf(client.Service{}), serviceCoverageSkips)
 }
 
 func TestContractCoverage_PrivateKey(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "PrivateKey", reflect.TypeOf(client.PrivateKey{}), map[string]bool{
-		"team_id": true,
-	})
+	contractCoverageTest(t, "PrivateKey", reflect.TypeOf(client.PrivateKey{}), privateKeyCoverageSkips)
 }
 
 func TestContractCoverage_EnvironmentVariable(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "EnvironmentVariable", reflect.TypeOf(client.EnvironmentVariable{}), map[string]bool{
-		"resourceable_id":   true, // polymorphic FK
-		"resourceable_type": true, // polymorphic FK
-		"team_id":           true, // internal FK
-		"real_value":        true, // computed accessor
-		"version":           true, // Coolify internal version stamp
-		"is_required":       true, // deferred product surface
-		"is_shared":         true, // computed/shared-var surface, not TF resource field
-		"is_shown_once":     true, // deferred UI-only flag (see #619 optional)
-		"order":             true, // UI ordering
-		// is_runtime, is_literal, is_multiline, comment, is_buildtime covered on client (#619)
-	})
+	// is_runtime, is_literal, is_multiline, comment, is_buildtime covered on client (#619)
+	contractCoverageTest(t, "EnvironmentVariable", reflect.TypeOf(client.EnvironmentVariable{}), environmentVariableCoverageSkips)
 }
 
 func TestContractCoverage_ScheduledTask(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "ScheduledTask", reflect.TypeOf(client.ScheduledTask{}), map[string]bool{
-		"application_id": true,
-		"service_id":     true,
-		"team_id":        true,
-		"container":      true, // not user-facing
-		"timeout":        true, // not exposed yet
-	})
+	contractCoverageTest(t, "ScheduledTask", reflect.TypeOf(client.ScheduledTask{}), scheduledTaskCoverageSkips)
 }
 
 func TestContractCoverage_Project(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "Project", reflect.TypeOf(client.Project{}), map[string]bool{
-		"team_id": true,
-	})
+	contractCoverageTest(t, "Project", reflect.TypeOf(client.Project{}), projectCoverageSkips)
 }
 
 func TestContractCoverage_GithubApp(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "GithubApp", reflect.TypeOf(client.GitHubApp{}), map[string]bool{
-		"team_id":        true,
-		"private_key_id": true,
-		"client_secret":  true, // sensitive, hidden
-		"is_system_wide": true,
-		"administration": true, // GitHub permission scope
-		"contents":       true, // GitHub permission scope
-		"custom_port":    true, // internal config
-		"custom_user":    true, // internal config
-		"is_public":      true, // internal flag
-		"metadata":       true, // GitHub permission scope
-		"pull_requests":  true, // GitHub permission scope
-	})
+	contractCoverageTest(t, "GithubApp", reflect.TypeOf(client.GitHubApp{}), githubAppCoverageSkips)
 }
 
 func TestContractCoverage_ScheduledDatabaseBackup(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "ScheduledDatabaseBackup", reflect.TypeOf(client.DatabaseBackup{}), map[string]bool{
-		"team_id":              true,
-		"database_id":          true,
-		"description":          true, // not exposed yet
-		"disable_local_backup": true, // not exposed yet
-		"s3_storage_id":        true, // numeric FK; provider uses s3_storage_uuid
-	})
+	contractCoverageTest(t, "ScheduledDatabaseBackup", reflect.TypeOf(client.DatabaseBackup{}), databaseBackupCoverageSkips)
 }
 
 func TestContractCoverage_CloudToken(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "CloudProviderToken", reflect.TypeOf(client.CloudToken{}), map[string]bool{
-		"team_id": true, // internal FK
-	})
+	contractCoverageTest(t, "CloudProviderToken", reflect.TypeOf(client.CloudToken{}), cloudTokenCoverageSkips)
 }
 
 func TestContractCoverage_Storage(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "LocalPersistentVolume", reflect.TypeOf(client.Storage{}), map[string]bool{
-		"container_id":              true, // internal Docker container ID
-		"resource_id":               true, // numeric FK; provider uses resource_uuid
-		"is_preview_suffix_enabled": true, // not exposed yet
-	})
+	contractCoverageTest(t, "LocalPersistentVolume", reflect.TypeOf(client.Storage{}), storageCoverageSkips)
 }
 
 func TestContractCoverage_ServerSetting(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "ServerSetting", reflect.TypeOf(client.ServerSettings{}), map[string]bool{
-		"server_id": true, // internal FK
-
-		"is_build_server": true, // on Server, not Settings
-
-		"is_force_disabled":   true, // not exposed yet
-		"is_reachable":        true, // on Server, not Settings
-		"is_usable":           true, // on Server, not Settings
-		"is_swarm_manager":    true, // not exposed yet
-		"is_swarm_worker":     true, // not exposed yet
-		"sentinel_custom_url": true, // not exposed yet
-		"sentinel_metrics_refresh_rate_in_seconds": true, // old contract name, superseded by sentinel_metrics_refresh_rate_seconds
-		"sentinel_push_interval_in_seconds":        true, // old contract name, superseded by sentinel_push_interval_seconds
-		"sentinel_token":                           true, // sensitive, not exposed yet
-		"is_logdrain_axiom_enabled":                true, // not exposed yet
-		"logdrain_axiom_api_key":                   true, // sensitive, not exposed yet
-		"logdrain_axiom_dataset_name":              true, // not exposed yet
-		"is_logdrain_custom_enabled":               true, // not exposed yet
-		"logdrain_custom_config":                   true, // not exposed yet
-		"logdrain_custom_config_parser":            true, // not exposed yet
-		"is_logdrain_highlight_enabled":            true, // not exposed yet
-		"logdrain_highlight_project_id":            true, // not exposed yet
-		"is_logdrain_newrelic_enabled":             true, // not exposed yet
-		"logdrain_newrelic_base_uri":               true, // not exposed yet
-		"logdrain_newrelic_license_key":            true, // sensitive, not exposed yet
-		"disable_application_image_retention":      true, // not exposed yet
-
-		"force_disabled":            true, // not exposed yet
-		"is_jump_server":            true, // not exposed yet
-		"is_sentinel_debug_enabled": true, // not exposed yet
-	})
+	contractCoverageTest(t, "ServerSetting", reflect.TypeOf(client.ServerSettings{}), serverSettingCoverageSkips)
 }
 
 func TestContractCoverage_Environment(t *testing.T) {
 	t.Parallel()
-	contractCoverageTest(t, "Environment", reflect.TypeOf(client.Environment{}), map[string]bool{
-		"project_id": true, // internal FK; provider uses project_uuid
-		"uuid":       true, // not used; provider identifies environments by name
-	})
+	contractCoverageTest(t, "Environment", reflect.TypeOf(client.Environment{}), environmentCoverageSkips)
 }
 
 // TestContractCoverage_Report prints a summary of coverage. Run with -v.
@@ -579,11 +381,11 @@ func TestContractCoverage_Report(t *testing.T) {
 	// Check Application coverage
 	if app, ok := c.Models["Application"]; ok {
 		goTags := jsonTagsFromStruct(reflect.TypeOf(client.Application{}))
-		ignore := fieldsToIgnore["Application"]
+		ignore := applicationFieldSkips
 		total := 0
 		covered := 0
 		for name, field := range app.Fields {
-			if !field.Fillable || ignore[name] {
+			if !field.Fillable || isSkipped(ignore, name) {
 				continue
 			}
 			total++
