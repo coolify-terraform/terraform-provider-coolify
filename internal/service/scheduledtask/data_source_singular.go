@@ -33,6 +33,8 @@ type scheduledTaskDataSourceModel struct {
 	Command         types.String `tfsdk:"command"`
 	Frequency       types.String `tfsdk:"frequency"`
 	Enabled         types.Bool   `tfsdk:"enabled"`
+	Container       types.String `tfsdk:"container"`
+	Timeout         types.Int64  `tfsdk:"timeout"`
 }
 
 // NewDataSource returns a new singular scheduled task data source.
@@ -82,6 +84,14 @@ func (d *scheduledTaskDataSource) Schema(_ context.Context, _ datasource.SchemaR
 				MarkdownDescription: "Whether the task is enabled.",
 				Computed:            true,
 			},
+			"container": schema.StringAttribute{
+				MarkdownDescription: "Container name where the command runs.",
+				Computed:            true,
+			},
+			"timeout": schema.Int64Attribute{
+				MarkdownDescription: "Maximum run time in seconds.",
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -125,6 +135,12 @@ func (d *scheduledTaskDataSource) Read(ctx context.Context, req datasource.ReadR
 			config.Command = types.StringValue(t.Command)
 			config.Frequency = types.StringValue(t.Frequency)
 			config.Enabled = types.BoolValue(t.Enabled)
+			config.Container = types.StringValue(t.Container)
+			if t.Timeout != nil {
+				config.Timeout = types.Int64Value(*t.Timeout)
+			} else {
+				config.Timeout = types.Int64Value(300)
+			}
 			resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 			return
 		}

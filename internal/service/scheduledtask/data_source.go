@@ -38,6 +38,8 @@ type scheduledTaskItemModel struct {
 	Command   types.String `tfsdk:"command"`
 	Frequency types.String `tfsdk:"frequency"`
 	Enabled   types.Bool   `tfsdk:"enabled"`
+	Container types.String `tfsdk:"container"`
+	Timeout   types.Int64  `tfsdk:"timeout"`
 }
 
 // NewListDataSource returns a new scheduledTaskListDataSource instance.
@@ -76,6 +78,8 @@ func (d *scheduledTaskListDataSource) Schema(_ context.Context, _ datasource.Sch
 						"command":   schema.StringAttribute{MarkdownDescription: "The command to execute.", Computed: true},
 						"frequency": schema.StringAttribute{MarkdownDescription: "The cron expression.", Computed: true},
 						"enabled":   schema.BoolAttribute{MarkdownDescription: "Whether the task is enabled.", Computed: true},
+						"container": schema.StringAttribute{MarkdownDescription: "Container name where the command runs.", Computed: true},
+						"timeout":   schema.Int64Attribute{MarkdownDescription: "Maximum run time in seconds.", Computed: true},
 					},
 				},
 			},
@@ -130,6 +134,13 @@ func (d *scheduledTaskListDataSource) Read(ctx context.Context, req datasource.R
 			return t.Frequency, true
 		case "enabled":
 			return filter.BoolToString(t.Enabled), true
+		case "container":
+			return t.Container, true
+		case "timeout":
+			if t.Timeout == nil {
+				return "300", true
+			}
+			return filter.Int64ToString(*t.Timeout), true
 		default:
 			return "", false
 		}
@@ -137,12 +148,18 @@ func (d *scheduledTaskListDataSource) Read(ctx context.Context, req datasource.R
 
 	items := make([]scheduledTaskItemModel, len(tasks))
 	for i, t := range tasks {
+		timeout := int64(300)
+		if t.Timeout != nil {
+			timeout = *t.Timeout
+		}
 		items[i] = scheduledTaskItemModel{
 			UUID:      types.StringValue(t.UUID),
 			Name:      types.StringValue(t.Name),
 			Command:   types.StringValue(t.Command),
 			Frequency: types.StringValue(t.Frequency),
 			Enabled:   types.BoolValue(t.Enabled),
+			Container: types.StringValue(t.Container),
+			Timeout:   types.Int64Value(timeout),
 		}
 	}
 	config.Tasks = items

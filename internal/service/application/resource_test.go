@@ -1451,6 +1451,145 @@ func TestApplicationResource_CreateAPIError(t *testing.T) {
 	})
 }
 
+func TestApplicationResource_PreviewBuildSecretsStopGrace(t *testing.T) {
+	t.Parallel()
+
+	trueVal := true
+	maxRestart := int64(10)
+	currentApp := client.Application{
+		UUID:                "app-settings-1",
+		Name:                "settings-app",
+		GitRepository:       "https://github.com/org/repo",
+		GitBranch:           "main",
+		BuildPack:           "nixpacks",
+		PortsExposes:        "3000",
+		IsAutoDeployEnabled: &trueVal,
+		MaxRestartCount:     &maxRestart,
+	}
+	mu := sync.Mutex{}
+	deleted := false
+	var lastPATCH map[string]interface{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPATCH = body
+		if v, ok := body["is_preview_deployments_enabled"].(bool); ok {
+			currentApp.IsPreviewDeploymentsEnabled = &v
+		}
+		if v, ok := body["use_build_secrets"].(bool); ok {
+			currentApp.UseBuildSecrets = &v
+		}
+		if v, ok := body["stop_grace_period"].(float64); ok {
+			n := int64(v)
+			currentApp.StopGracePeriod = &n
+		}
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid     = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+					server_uuid      = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+					environment_name = "production"
+					git_repository   = "https://github.com/org/repo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					name             = "settings-app"
+					is_preview_deployments_enabled = true
+					use_build_secrets              = true
+					stop_grace_period              = 30
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "is_preview_deployments_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_application.test", "use_build_secrets", "true"),
+					resource.TestCheckResourceAttr("coolify_application.test", "stop_grace_period", "30"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH["is_preview_deployments_enabled"] != true {
+							return fmt.Errorf("create PATCH is_preview_deployments_enabled = %v, want true", lastPATCH["is_preview_deployments_enabled"])
+						}
+						if lastPATCH["use_build_secrets"] != true {
+							return fmt.Errorf("create PATCH use_build_secrets = %v, want true", lastPATCH["use_build_secrets"])
+						}
+						if lastPATCH["stop_grace_period"] != float64(30) {
+							return fmt.Errorf("create PATCH stop_grace_period = %v, want 30", lastPATCH["stop_grace_period"])
+						}
+						return nil
+					}),
+				),
+			},
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid     = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+					server_uuid      = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+					environment_name = "production"
+					git_repository   = "https://github.com/org/repo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					name             = "settings-app"
+					is_preview_deployments_enabled = false
+					use_build_secrets              = false
+					stop_grace_period              = 60
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "is_preview_deployments_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_application.test", "use_build_secrets", "false"),
+					resource.TestCheckResourceAttr("coolify_application.test", "stop_grace_period", "60"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH["is_preview_deployments_enabled"] != false {
+							return fmt.Errorf("PATCH is_preview_deployments_enabled = %v", lastPATCH["is_preview_deployments_enabled"])
+						}
+						if lastPATCH["use_build_secrets"] != false {
+							return fmt.Errorf("PATCH use_build_secrets = %v", lastPATCH["use_build_secrets"])
+						}
+						if lastPATCH["stop_grace_period"] != float64(60) {
+							return fmt.Errorf("PATCH stop_grace_period = %v", lastPATCH["stop_grace_period"])
+						}
+						return nil
+					}),
+				),
+			},
+		},
+	})
+}
+
 func testApplicationResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application", "test", attrs)
 }

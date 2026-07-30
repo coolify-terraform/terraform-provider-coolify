@@ -1290,6 +1290,125 @@ func TestScheduledTaskResource_CreateAPIError(t *testing.T) {
 	})
 }
 
+func TestScheduledTaskResource_ContainerAndTimeout(t *testing.T) {
+	t.Parallel()
+
+	timeout := int64(600)
+	task := client.ScheduledTask{
+		UUID:      "task-ct-uuid",
+		Name:      "long-job",
+		Command:   "python worker.py",
+		Frequency: "0 * * * *",
+		Enabled:   true,
+		Container: "worker",
+		Timeout:   &timeout,
+	}
+	mu := sync.Mutex{}
+	var lastPOST, lastPATCH map[string]interface{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPOST = body
+		if v, ok := body["container"].(string); ok {
+			task.Container = v
+		}
+		if v, ok := body["timeout"].(float64); ok {
+			to := int64(v)
+			task.Timeout = &to
+		}
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": task.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{appUUID}/scheduled-tasks", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]client.ScheduledTask{task})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPATCH = body
+		if v, ok := body["container"].(string); ok {
+			task.Container = v
+		}
+		if v, ok := body["timeout"].(float64); ok {
+			to := int64(v)
+			task.Timeout = &to
+		}
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{appUUID}/scheduled-tasks/{taskUUID}", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "long-job"
+					command          = "python worker.py"
+					frequency        = "0 * * * *"
+					container        = "worker"
+					timeout          = 600
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "container", "worker"),
+					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "timeout", "600"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPOST["container"] != "worker" {
+							return fmt.Errorf("POST container = %v", lastPOST["container"])
+						}
+						if lastPOST["timeout"] != float64(600) {
+							return fmt.Errorf("POST timeout = %v", lastPOST["timeout"])
+						}
+						return nil
+					}),
+				),
+			},
+			{
+				Config: testScheduledTaskResourceConfig(srv.URL, `
+					application_uuid = "cccc0001-0001-4000-8000-000000000001"
+					name             = "long-job"
+					command          = "python worker.py"
+					frequency        = "0 * * * *"
+					container        = "api"
+					timeout          = 900
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "container", "api"),
+					resource.TestCheckResourceAttr("coolify_scheduled_task.test", "timeout", "900"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH["container"] != "api" {
+							return fmt.Errorf("PATCH container = %v", lastPATCH["container"])
+						}
+						if lastPATCH["timeout"] != float64(900) {
+							return fmt.Errorf("PATCH timeout = %v", lastPATCH["timeout"])
+						}
+						return nil
+					}),
+				),
+			},
+		},
+	})
+}
+
 func testScheduledTaskResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_scheduled_task", "test", attrs)
 }

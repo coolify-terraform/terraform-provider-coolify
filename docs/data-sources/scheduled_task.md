@@ -43,6 +43,8 @@ output "task_frequency" {
 ### Read-Only
 
 - `command` (String) The command to execute.
+- `container` (String) Container name where the command runs.
 - `enabled` (Boolean) Whether the task is enabled.
 - `frequency` (String) The cron expression.
 - `name` (String) The name of the scheduled task.
+- `timeout` (Number) Maximum run time in seconds.

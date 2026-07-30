@@ -7,12 +7,15 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -39,6 +42,8 @@ type scheduledTaskResourceModel struct {
 	Command         types.String `tfsdk:"command"`
 	Frequency       types.String `tfsdk:"frequency"`
 	Enabled         types.Bool   `tfsdk:"enabled"`
+	Container       types.String `tfsdk:"container"`
+	Timeout         types.Int64  `tfsdk:"timeout"`
 }
 
 // NewResource returns a new scheduledTaskResource instance.
@@ -104,6 +109,20 @@ func (r *scheduledTaskResource) Schema(_ context.Context, _ resource.SchemaReque
 				Computed:            true,
 				Default:             booldefault.StaticBool(true),
 			},
+			"container": schema.StringAttribute{
+				MarkdownDescription: "Container name where the command runs (for multi-container applications or services). When omitted, Coolify uses its default container selection.",
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(""),
+				Validators:          []validator.String{stringvalidator.LengthAtMost(255)},
+			},
+			"timeout": schema.Int64Attribute{
+				MarkdownDescription: "Maximum run time for the task in seconds. Coolify defaults to `300` when omitted on create.",
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(300),
+				Validators:          []validator.Int64{int64validator.AtLeast(1)},
+			},
 		},
 	}
 }
@@ -149,6 +168,11 @@ func (r *scheduledTaskResource) Create(ctx context.Context, req resource.CreateR
 		Command:   plan.Command.ValueString(),
 		Frequency: plan.Frequency.ValueString(),
 		Enabled:   plan.Enabled.ValueBool(),
+		Container: plan.Container.ValueString(),
+	}
+	if !plan.Timeout.IsNull() && !plan.Timeout.IsUnknown() {
+		to := plan.Timeout.ValueInt64()
+		input.Timeout = &to
 	}
 
 	taskUUID, err := r.client.CreateScheduledTask(ctx, parentType, parentUUID, input)
@@ -223,6 +247,8 @@ func (r *scheduledTaskResource) Update(ctx context.Context, req resource.UpdateR
 		Command:   flex.StringIfChanged(plan.Command, state.Command),
 		Frequency: flex.StringIfChanged(plan.Frequency, state.Frequency),
 		Enabled:   flex.BoolIfChanged(plan.Enabled, state.Enabled),
+		Container: flex.StringIfChanged(plan.Container, state.Container),
+		Timeout:   flex.Int64IfChanged(plan.Timeout, state.Timeout),
 	}
 
 	if err := r.client.UpdateScheduledTask(ctx, parentType, parentUUID, plan.UUID.ValueString(), input); err != nil {
@@ -270,6 +296,12 @@ func flattenScheduledTaskFromList(tasks []client.ScheduledTask, state *scheduled
 			state.Command = types.StringValue(t.Command)
 			state.Frequency = types.StringValue(t.Frequency)
 			state.Enabled = types.BoolValue(t.Enabled)
+			state.Container = types.StringValue(t.Container)
+			if t.Timeout != nil {
+				state.Timeout = types.Int64Value(*t.Timeout)
+			} else if state.Timeout.IsNull() || state.Timeout.IsUnknown() {
+				state.Timeout = types.Int64Value(300)
+			}
 			return true
 		}
 	}

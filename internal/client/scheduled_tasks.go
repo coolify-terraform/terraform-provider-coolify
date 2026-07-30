@@ -14,6 +14,8 @@ type ScheduledTask struct {
 	Command   string `json:"command"`
 	Frequency string `json:"frequency"`
 	Enabled   bool   `json:"enabled"`
+	Container string `json:"container,omitempty"`
+	Timeout   *int64 `json:"timeout,omitempty"`
 }
 
 // CreateScheduledTaskInput holds the fields required to create a scheduled task.
@@ -22,6 +24,8 @@ type CreateScheduledTaskInput struct {
 	Command   string `json:"command"`
 	Frequency string `json:"frequency"`
 	Enabled   bool   `json:"enabled"`
+	Container string `json:"container,omitempty"`
+	Timeout   *int64 `json:"timeout,omitempty"`
 }
 
 // UpdateScheduledTaskInput holds the fields that can be updated on a scheduled task.
@@ -30,6 +34,8 @@ type UpdateScheduledTaskInput struct {
 	Command   *string `json:"command,omitempty"`
 	Frequency *string `json:"frequency,omitempty"`
 	Enabled   *bool   `json:"enabled,omitempty"`
+	Container *string `json:"container,omitempty"`
+	Timeout   *int64  `json:"timeout,omitempty"`
 }
 
 type createScheduledTaskResponse struct {

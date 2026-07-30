@@ -95,12 +95,55 @@ type Application struct {
 	ManualWebhookSecretGitHub    string `json:"manual_webhook_secret_github,omitempty"`
 	ManualWebhookSecretGitLab    string `json:"manual_webhook_secret_gitlab,omitempty"`
 	// Other settings
-	ForceDomainOverride           *bool  `json:"force_domain_override,omitempty"`
-	IsContainerLabelEscapeEnabled *bool  `json:"is_container_label_escape_enabled,omitempty"`
-	IsPreserveRepositoryEnabled   *bool  `json:"is_preserve_repository_enabled,omitempty"`
-	UseBuildServer                *bool  `json:"use_build_server,omitempty"`
-	MaxRestartCount               *int64 `json:"max_restart_count,omitempty"`
+	ForceDomainOverride           *bool `json:"force_domain_override,omitempty"`
+	IsContainerLabelEscapeEnabled *bool `json:"is_container_label_escape_enabled,omitempty"`
+	IsPreserveRepositoryEnabled   *bool `json:"is_preserve_repository_enabled,omitempty"`
+	UseBuildServer                *bool `json:"use_build_server,omitempty"`
+	// Application settings (Coolify may nest under settings; also accepted at top-level on write).
+	IsPreviewDeploymentsEnabled *bool  `json:"is_preview_deployments_enabled,omitempty"`
+	UseBuildSecrets             *bool  `json:"use_build_secrets,omitempty"`
+	StopGracePeriod             *int64 `json:"stop_grace_period,omitempty"`
+	MaxRestartCount             *int64 `json:"max_restart_count,omitempty"`
+	// Nested settings blob from GET responses (promoted after decode).
+	Settings *ApplicationSettings `json:"settings,omitempty"`
 }
+
+// ApplicationSettings holds nested settings from GET application responses.
+type ApplicationSettings struct {
+	IsPreviewDeploymentsEnabled *bool  `json:"is_preview_deployments_enabled,omitempty"`
+	UseBuildSecrets             *bool  `json:"use_build_secrets,omitempty"`
+	StopGracePeriod             *int64 `json:"stop_grace_period,omitempty"`
+	IsAutoDeployEnabled         *bool  `json:"is_auto_deploy_enabled,omitempty"`
+	UseBuildServer              *bool  `json:"is_build_server_enabled,omitempty"` // settings column name
+	IsForceHTTPSEnabled         *bool  `json:"is_force_https_enabled,omitempty"`
+}
+
+// PromoteSettings copies nested settings onto top-level Application fields when unset.
+func (a *Application) PromoteSettings() {
+	if a == nil || a.Settings == nil {
+		return
+	}
+	s := a.Settings
+	if a.IsPreviewDeploymentsEnabled == nil && s.IsPreviewDeploymentsEnabled != nil {
+		a.IsPreviewDeploymentsEnabled = s.IsPreviewDeploymentsEnabled
+	}
+	if a.UseBuildSecrets == nil && s.UseBuildSecrets != nil {
+		a.UseBuildSecrets = s.UseBuildSecrets
+	}
+	if a.StopGracePeriod == nil && s.StopGracePeriod != nil {
+		a.StopGracePeriod = s.StopGracePeriod
+	}
+	if a.IsAutoDeployEnabled == nil && s.IsAutoDeployEnabled != nil {
+		a.IsAutoDeployEnabled = s.IsAutoDeployEnabled
+	}
+	if a.UseBuildServer == nil && s.UseBuildServer != nil {
+		a.UseBuildServer = s.UseBuildServer
+	}
+	if a.IsForceHTTPSEnabled == nil && s.IsForceHTTPSEnabled != nil {
+		a.IsForceHTTPSEnabled = s.IsForceHTTPSEnabled
+	}
+}
+
 type CreatePublicAppInput struct {
 	ProjectUUID        string `json:"project_uuid"`
 	ServerUUID         string `json:"server_uuid"`
@@ -202,16 +245,22 @@ type UpdateApplicationInput struct {
 	ManualWebhookSecretGitHub    *string `json:"manual_webhook_secret_github,omitempty"`
 	ManualWebhookSecretGitLab    *string `json:"manual_webhook_secret_gitlab,omitempty"`
 	// Other settings
-	ForceDomainOverride           *bool `json:"force_domain_override,omitempty"`
-	IsContainerLabelEscapeEnabled *bool `json:"is_container_label_escape_enabled,omitempty"`
-	IsPreserveRepositoryEnabled   *bool `json:"is_preserve_repository_enabled,omitempty"`
-	UseBuildServer                *bool `json:"use_build_server,omitempty"`
+	ForceDomainOverride           *bool  `json:"force_domain_override,omitempty"`
+	IsContainerLabelEscapeEnabled *bool  `json:"is_container_label_escape_enabled,omitempty"`
+	IsPreserveRepositoryEnabled   *bool  `json:"is_preserve_repository_enabled,omitempty"`
+	UseBuildServer                *bool  `json:"use_build_server,omitempty"`
+	IsPreviewDeploymentsEnabled   *bool  `json:"is_preview_deployments_enabled,omitempty"`
+	UseBuildSecrets               *bool  `json:"use_build_secrets,omitempty"`
+	StopGracePeriod               *int64 `json:"stop_grace_period,omitempty"`
 }
 
 func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {
 	var a []Application
 	if err := c.do(ctx, http.MethodGet, "/api/v1/applications", nil, &a); err != nil {
 		return nil, fmt.Errorf("listing applications: %w", err)
+	}
+	for i := range a {
+		a[i].PromoteSettings()
 	}
 	return a, nil
 }
@@ -233,6 +282,7 @@ func (c *Client) GetApplication(ctx context.Context, uuid string) (*Application,
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), nil, &a); err != nil {
 		return nil, fmt.Errorf("getting application %s: %w", uuid, err)
 	}
+	a.PromoteSettings()
 	return &a, nil
 }
 func (c *Client) CreatePublicApplication(ctx context.Context, input CreatePublicAppInput) (*Application, error) {
