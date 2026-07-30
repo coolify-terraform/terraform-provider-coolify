@@ -405,10 +405,9 @@ jobs:
               --title "Upstream Coolify contract has changed" \
               --label "contract-drift" \
               --body-file "$BODY_FILE"
-          else
-            NUM=$(gh issue list --label "contract-drift" --state open --json number --jq '.[0].number')
-            gh issue comment "$NUM" --body-file "$BODY_FILE"
           fi
+          # When a drift issue is already open, do not re-post the same checklist
+          # every week (noise). The open issue already carries the taxonomy body.
 
   scenario-tests:
     name: Scenario Tests

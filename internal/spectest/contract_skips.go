@@ -59,11 +59,12 @@ var applicationFieldSkips = skipMap(
 	skipInternal("is_include_timestamps", "settings not on update allow list"),
 	skipInternal("is_log_drain_enabled", "settings not on update allow list"),
 	skipInternal("is_pr_deployments_public_enabled", "settings not on update allow list"),
-	skipInternal("is_preview_deployments_enabled", "settings; version-gated separately where exposed"),
+	// Public on ApplicationsController create/update allowed_fields (must not be internal).
+	skipDeferred("is_preview_deployments_enabled", 626, "public allow-list field; not yet on application client/schema"),
 	skipInternal("is_raw_compose_deployment_enabled", "settings not on update allow list"),
 	skipInternal("is_stripprefix_enabled", "settings not on update allow list"),
 	skipInternal("is_swarm_only_worker_nodes", "settings not on update allow list"),
-	skipInternal("use_build_secrets", "settings; version-gated separately where exposed"),
+	skipDeferred("use_build_secrets", 626, "public allow-list field; not yet on application client/schema"),
 	// is_build_server_enabled is the setting name; the API field is use_build_server
 	skipNA("is_build_server_enabled", "API field is use_build_server on Application"),
 	skipDeferred("stop_grace_period", 626, "not yet exposed on application resource"),
@@ -87,7 +88,8 @@ var serverCoverageSkips = skipMap(
 	skipInternal("unreachable_count", "runtime counter"),
 	skipInternal("log_drain_notification", "notification flag"),
 	skipInternal("swarm_cluster", "swarm cluster blob"),
-	skipInternal("cloud_provider_token_id", "numeric FK"),
+	// Public on cloud create-server allow lists; provider maps tokens via UUID fields.
+	skipNA("cloud_provider_token_id", "numeric FK; cloud server resources use token UUID fields"),
 	skipInternal("detected_traefik_version", "ephemeral status"),
 	skipInternal("hetzner_server_id", "Hetzner-specific tracking"),
 	skipInternal("hetzner_server_status", "Hetzner-specific status"),
@@ -131,7 +133,7 @@ var scheduledTaskCoverageSkips = skipMap(
 	skipInternal("application_id", "numeric FK"),
 	skipInternal("service_id", "numeric FK"),
 	skipInternal("team_id", "FK"),
-	skipInternal("container", "not user-facing container name"),
+	skipDeferred("container", 626, "on create/update allow list; not yet on scheduled_task schema"),
 	skipDeferred("timeout", 626, "not yet exposed on scheduled_task resource"),
 )
 
@@ -142,15 +144,16 @@ var projectCoverageSkips = skipMap(
 var githubAppCoverageSkips = skipMap(
 	skipInternal("team_id", "FK"),
 	skipInternal("private_key_id", "numeric FK"),
-	skipInternal("client_secret", "sensitive write-only; hidden on read"),
-	skipInternal("is_system_wide", "system flag"),
-	skipInternal("administration", "GitHub permission scope"),
-	skipInternal("contents", "GitHub permission scope"),
-	skipInternal("custom_port", "internal git config"),
-	skipInternal("custom_user", "internal git config"),
-	skipInternal("is_public", "internal flag"),
-	skipInternal("metadata", "GitHub permission scope"),
-	skipInternal("pull_requests", "GitHub permission scope"),
+	// Public on GithubController create/update allow lists (must not be internal).
+	skipDeferred("client_secret", 626, "write-only sensitive; not on client entity read struct"),
+	skipDeferred("is_system_wide", 626, "public allow-list field; not yet on github_app client/schema"),
+	skipInternal("administration", "GitHub permission scope blob"),
+	skipInternal("contents", "GitHub permission scope blob"),
+	skipDeferred("custom_port", 626, "public allow-list field; not yet on github_app client/schema"),
+	skipDeferred("custom_user", 626, "public allow-list field; not yet on github_app client/schema"),
+	skipNA("is_public", "GitHub App visibility flag; not mapped on provider github_app resource"),
+	skipInternal("metadata", "GitHub permission scope blob"),
+	skipInternal("pull_requests", "GitHub permission scope blob"),
 )
 
 var databaseBackupCoverageSkips = skipMap(
