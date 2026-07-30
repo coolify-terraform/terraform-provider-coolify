@@ -132,25 +132,3 @@ func deferredIssueNumbers(skips map[string]FieldSkip) []int {
 	sort.Ints(out)
 	return out
 }
-
-// allPackageSkipTables returns every skip map defined for contract coverage.
-// Keep this list in sync when adding new skip tables.
-func allPackageSkipTables() []map[string]FieldSkip {
-	return []map[string]FieldSkip{
-		applicationFieldSkips,
-		serverCoverageSkips,
-		serviceCoverageSkips,
-		privateKeyCoverageSkips,
-		environmentVariableCoverageSkips,
-		scheduledTaskCoverageSkips,
-		projectCoverageSkips,
-		githubAppCoverageSkips,
-		databaseBackupCoverageSkips,
-		cloudTokenCoverageSkips,
-		storageCoverageSkips,
-		serverSettingCoverageSkips,
-		environmentCoverageSkips,
-		databaseModelSkips,
-		appEnvWriteSkips,
-	}
-}
