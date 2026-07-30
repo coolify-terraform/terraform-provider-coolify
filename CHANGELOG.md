@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.9...v0.1.10) (2026-07-30)
+
+
+### Features
+
+* application preview/build secrets/stop grace and scheduled task container/timeout ([#630](https://github.com/coolify-terraform/terraform-provider-coolify/issues/630)) ([7581335](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7581335057c2e3ac962ce86678f5a3969810f40a))
+* expose env is_runtime, is_literal, is_multiline, and comment ([#625](https://github.com/coolify-terraform/terraform-provider-coolify/issues/625)) ([a5dad15](https://github.com/coolify-terraform/terraform-provider-coolify/commit/a5dad15772401d01f61ea302a8b4bcb122a76046))
+* github_app SSH fields plus MPI test and docs polish ([#633](https://github.com/coolify-terraform/terraform-provider-coolify/issues/633)) ([fb4746a](https://github.com/coolify-terraform/terraform-provider-coolify/commit/fb4746a16fe2aa2447bfff94754d3bc92319a30d))
+
+
+### Bug Fixes
+
+* accept legacy short Coolify identifiers in UUID validation ([8009c61](https://github.com/coolify-terraform/terraform-provider-coolify/commit/8009c61cf184176b38a4e3a78778d739297db72c))
+* accept unknown docker_compose_raw/type in service ValidateConfig ([#618](https://github.com/coolify-terraform/terraform-provider-coolify/issues/618)) ([4ad9ae0](https://github.com/coolify-terraform/terraform-provider-coolify/commit/4ad9ae014c96e049958d9b88b360556582b79cbc))
+* **ci:** skip Auto Approve on fork PRs ([#613](https://github.com/coolify-terraform/terraform-provider-coolify/issues/613)) ([fff6810](https://github.com/coolify-terraform/terraform-provider-coolify/commit/fff68104e475ec5c43d64a3f96d17afbaa7efea5))
+* richer API error context and Coolify id troubleshooting ([#617](https://github.com/coolify-terraform/terraform-provider-coolify/issues/617)) ([e54443c](https://github.com/coolify-terraform/terraform-provider-coolify/commit/e54443ce4d4f0ff4dcd1a24f5dbd46f9e3f00d94))
+* ValidateConfig unknown guards for backups and richer client errors ([#620](https://github.com/coolify-terraform/terraform-provider-coolify/issues/620)) ([c37c0af](https://github.com/coolify-terraform/terraform-provider-coolify/commit/c37c0af8221e248eebf6fa3d385fe8e46a7d14fc))
+
 ## [0.1.9](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.8...v0.1.9) (2026-07-27)
 
 
