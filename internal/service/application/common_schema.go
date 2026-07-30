@@ -320,7 +320,8 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 		},
 		"stop_grace_period": schema.Int64Attribute{
 			MarkdownDescription: "Container stop grace period in seconds (Coolify application setting). " +
-				"Valid range 1-3600. When null/omitted, Coolify uses its default stop behavior.",
+				"Valid range 1-3600. When null/omitted, Coolify uses its default stop behavior. " +
+				"Write support depends on Coolify version (present on current ApplicationSetting write path; verify on older releases).",
 			Optional:      true,
 			Computed:      true,
 			PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},

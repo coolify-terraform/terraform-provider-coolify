@@ -1454,23 +1454,17 @@ func TestApplicationResource_CreateAPIError(t *testing.T) {
 func TestApplicationResource_PreviewBuildSecretsStopGrace(t *testing.T) {
 	t.Parallel()
 
-	preview := true
-	secrets := true
-	grace := int64(30)
 	trueVal := true
 	maxRestart := int64(10)
 	currentApp := client.Application{
-		UUID:                        "app-settings-1",
-		Name:                        "settings-app",
-		GitRepository:               "https://github.com/org/repo",
-		GitBranch:                   "main",
-		BuildPack:                   "nixpacks",
-		PortsExposes:                "3000",
-		IsPreviewDeploymentsEnabled: &preview,
-		UseBuildSecrets:             &secrets,
-		StopGracePeriod:             &grace,
-		IsAutoDeployEnabled:         &trueVal,
-		MaxRestartCount:             &maxRestart,
+		UUID:                "app-settings-1",
+		Name:                "settings-app",
+		GitRepository:       "https://github.com/org/repo",
+		GitBranch:           "main",
+		BuildPack:           "nixpacks",
+		PortsExposes:        "3000",
+		IsAutoDeployEnabled: &trueVal,
+		MaxRestartCount:     &maxRestart,
 	}
 	mu := sync.Mutex{}
 	deleted := false
@@ -1542,6 +1536,20 @@ func TestApplicationResource_PreviewBuildSecretsStopGrace(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_application.test", "is_preview_deployments_enabled", "true"),
 					resource.TestCheckResourceAttr("coolify_application.test", "use_build_secrets", "true"),
 					resource.TestCheckResourceAttr("coolify_application.test", "stop_grace_period", "30"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH["is_preview_deployments_enabled"] != true {
+							return fmt.Errorf("create PATCH is_preview_deployments_enabled = %v, want true", lastPATCH["is_preview_deployments_enabled"])
+						}
+						if lastPATCH["use_build_secrets"] != true {
+							return fmt.Errorf("create PATCH use_build_secrets = %v, want true", lastPATCH["use_build_secrets"])
+						}
+						if lastPATCH["stop_grace_period"] != float64(30) {
+							return fmt.Errorf("create PATCH stop_grace_period = %v, want 30", lastPATCH["stop_grace_period"])
+						}
+						return nil
+					}),
 				),
 			},
 			{
