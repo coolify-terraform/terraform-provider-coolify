@@ -30,10 +30,13 @@ type mockGitHubApp struct {
 	UUID             string `json:"uuid,omitempty"`
 	Name             string `json:"name"`
 	OrganizationName string `json:"organization,omitempty"`
+	CustomUser       string `json:"custom_user,omitempty"`
+	CustomPort       int64  `json:"custom_port,omitempty"`
 	AppID            int64  `json:"app_id,omitempty"`
 	InstallationID   int64  `json:"installation_id,omitempty"`
 	ClientID         string `json:"client_id,omitempty"`
 	WebhookSecret    string `json:"webhook_secret,omitempty"`
+	IsSystemWide     bool   `json:"is_system_wide"`
 }
 
 // mockGitHubAppStore is a thread-safe in-memory store for mock GitHub Apps.
@@ -43,19 +46,28 @@ type mockGitHubAppStore struct {
 	counter int64
 }
 
-func (s *mockGitHubAppStore) Create(name, orgName string, appID, installID int64, clientID, webhookSecret string) *mockGitHubApp {
+func (s *mockGitHubAppStore) Create(name, orgName, customUser string, customPort, appID, installID int64, clientID, webhookSecret string, isSystemWide bool) *mockGitHubApp {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.counter++
+	if customUser == "" {
+		customUser = "git"
+	}
+	if customPort == 0 {
+		customPort = 22
+	}
 	app := &mockGitHubApp{
 		ID:               s.counter,
 		UUID:             fmt.Sprintf("ghapp-uuid-%03d", s.counter),
 		Name:             name,
 		OrganizationName: orgName,
+		CustomUser:       customUser,
+		CustomPort:       customPort,
 		AppID:            appID,
 		InstallationID:   installID,
 		ClientID:         clientID,
 		WebhookSecret:    webhookSecret,
+		IsSystemWide:     isSystemWide,
 	}
 	s.apps[app.ID] = app
 	return app
@@ -81,6 +93,12 @@ func (s *mockGitHubAppStore) Update(id int64, upd mockGitHubAppUpdate) (*mockGit
 	if upd.OrganizationName != nil {
 		app.OrganizationName = *upd.OrganizationName
 	}
+	if upd.CustomUser != nil {
+		app.CustomUser = *upd.CustomUser
+	}
+	if upd.CustomPort != nil {
+		app.CustomPort = *upd.CustomPort
+	}
 	if upd.AppID != nil {
 		app.AppID = *upd.AppID
 	}
@@ -93,16 +111,22 @@ func (s *mockGitHubAppStore) Update(id int64, upd mockGitHubAppUpdate) (*mockGit
 	if upd.WebhookSecret != nil {
 		app.WebhookSecret = *upd.WebhookSecret
 	}
+	if upd.IsSystemWide != nil {
+		app.IsSystemWide = *upd.IsSystemWide
+	}
 	return app, true
 }
 
 type mockGitHubAppUpdate struct {
 	Name             *string `json:"name"`
 	OrganizationName *string `json:"organization"`
+	CustomUser       *string `json:"custom_user"`
+	CustomPort       *int64  `json:"custom_port"`
 	AppID            *int64  `json:"app_id"`
 	InstallationID   *int64  `json:"installation_id"`
 	ClientID         *string `json:"client_id"`
 	WebhookSecret    *string `json:"webhook_secret"`
+	IsSystemWide     *bool   `json:"is_system_wide"`
 }
 
 func (s *mockGitHubAppStore) Delete(id int64) bool {
@@ -154,19 +178,30 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 			OrganizationName string `json:"organization"`
 			APIURL           string `json:"api_url"`
 			HTMLURL          string `json:"html_url"`
+			CustomUser       string `json:"custom_user"`
+			CustomPort       *int64 `json:"custom_port"`
 			AppID            int64  `json:"app_id"`
 			InstallationID   int64  `json:"installation_id"`
 			ClientID         string `json:"client_id"`
 			ClientSecret     string `json:"client_secret"`
 			WebhookSecret    string `json:"webhook_secret"`
 			PrivateKeyUUID   string `json:"private_key_uuid"`
+			IsSystemWide     *bool  `json:"is_system_wide"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 			return
 		}
 
-		app := store.Create(body.Name, body.OrganizationName, body.AppID, body.InstallationID, body.ClientID, body.WebhookSecret)
+		var port int64
+		if body.CustomPort != nil {
+			port = *body.CustomPort
+		}
+		var systemWide bool
+		if body.IsSystemWide != nil {
+			systemWide = *body.IsSystemWide
+		}
+		app := store.Create(body.Name, body.OrganizationName, body.CustomUser, port, body.AppID, body.InstallationID, body.ClientID, body.WebhookSecret, systemWide)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -282,6 +317,9 @@ private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 					resource.TestCheckResourceAttr("coolify_github_app.test", "app_id", "12345"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "installation_id", "67890"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "client_id", "Iv1.abc123"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "custom_user", "git"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "custom_port", "22"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "is_system_wide", "false"),
 					resource.TestCheckResourceAttrSet("coolify_github_app.test", "webhook_secret"),
 					func(s *terraform.State) error {
 						rs, ok := s.RootModule().Resources["coolify_github_app.test"]
@@ -308,6 +346,9 @@ private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 						if app.WebhookSecret != secret {
 							return fmt.Errorf("expected API payload webhook_secret to match state")
 						}
+						if app.CustomUser != "git" || app.CustomPort != 22 {
+							return fmt.Errorf("expected default custom_user/port, got %q/%d", app.CustomUser, app.CustomPort)
+						}
 
 						return nil
 					},
@@ -318,6 +359,69 @@ private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 				Config:             config,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestGitHubAppResource_CustomSSHAndSystemWide(t *testing.T) {
+	t.Parallel()
+	server, store := newMockCoolifyServer(t)
+	defer server.Close()
+
+	config := testGitHubAppResourceConfig(server.URL, `
+name             = "enterprise-gh"
+app_id           = 111
+installation_id  = 222
+client_id        = "Iv1.ent"
+client_secret    = "secret"
+private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
+custom_user      = "gitolite"
+custom_port       = 2222
+is_system_wide   = true
+`)
+	updated := testGitHubAppResourceConfig(server.URL, `
+name             = "enterprise-gh"
+app_id           = 111
+installation_id  = 222
+client_id        = "Iv1.ent"
+client_secret    = "secret"
+private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
+custom_user      = "git"
+custom_port       = 22
+is_system_wide   = false
+`)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_github_app.test", "custom_user", "gitolite"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "custom_port", "2222"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "is_system_wide", "true"),
+					func(s *terraform.State) error {
+						rs := s.RootModule().Resources["coolify_github_app.test"]
+						id, _ := strconv.ParseInt(rs.Primary.Attributes["id"], 10, 64)
+						app, ok := store.Get(id)
+						if !ok {
+							return fmt.Errorf("app missing")
+						}
+						if app.CustomUser != "gitolite" || app.CustomPort != 2222 || !app.IsSystemWide {
+							return fmt.Errorf("POST body not applied: %+v", app)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: updated,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_github_app.test", "custom_user", "git"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "custom_port", "22"),
+					resource.TestCheckResourceAttr("coolify_github_app.test", "is_system_wide", "false"),
+				),
 			},
 		},
 	})
@@ -390,7 +494,15 @@ func TestGitHubAppResource_CreateUsesCreateResponse(t *testing.T) {
 			return
 		}
 
-		createdApp := store.Create(body.Name, body.OrganizationName, body.AppID, body.InstallationID, body.ClientID, body.WebhookSecret)
+		var port int64
+		if body.CustomPort != nil {
+			port = *body.CustomPort
+		}
+		var systemWide bool
+		if body.IsSystemWide != nil {
+			systemWide = *body.IsSystemWide
+		}
+		createdApp := store.Create(body.Name, body.OrganizationName, body.CustomUser, port, body.AppID, body.InstallationID, body.ClientID, body.WebhookSecret, systemWide)
 		responseApp := *createdApp
 		responseApp.UUID = "ghapp-create-response"
 

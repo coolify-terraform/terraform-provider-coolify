@@ -142,11 +142,8 @@ var githubAppCoverageSkips = skipMap(
 	skipInternal("private_key_id", "numeric FK"),
 	// Public on GithubController create/update allow lists (must not be internal).
 	skipDeferred("client_secret", 626, "write-only sensitive; not on client entity read struct"),
-	skipDeferred("is_system_wide", 626, "public allow-list field; not yet on github_app client/schema"),
 	skipInternal("administration", "GitHub permission scope blob"),
 	skipInternal("contents", "GitHub permission scope blob"),
-	skipDeferred("custom_port", 626, "public allow-list field; not yet on github_app client/schema"),
-	skipDeferred("custom_user", 626, "public allow-list field; not yet on github_app client/schema"),
 	skipNA("is_public", "GitHub App visibility flag; not mapped on provider github_app resource"),
 	skipInternal("metadata", "GitHub permission scope blob"),
 	skipInternal("pull_requests", "GitHub permission scope blob"),

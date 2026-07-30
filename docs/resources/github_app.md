@@ -50,6 +50,9 @@ resource "coolify_github_app" "example" {
 
 ### Optional
 
+- `custom_port` (Number) SSH port for git clone (Coolify default: `22`).
+- `custom_user` (String) SSH user for git clone over SSH (Coolify default: `git`).
+- `is_system_wide` (Boolean) Whether this GitHub App is available to all teams on the Coolify instance. Only applied on self-hosted (non-cloud) Coolify; cloud ignores the field. Coolify default: `false`.
 - `organization_name` (String) The GitHub organization name.
 - `webhook_secret` (String, Sensitive) The GitHub App webhook secret. If omitted on create, the provider generates a random secret, sends it to Coolify, and stores it in state. Coolify does not reliably return it after create or import, so keep the value in your Terraform configuration before the first terraform plan after import.
 

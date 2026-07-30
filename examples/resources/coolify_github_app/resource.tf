@@ -18,4 +18,9 @@ resource "coolify_github_app" "example" {
   client_secret    = var.github_app_client_secret
   webhook_secret   = var.github_app_webhook_secret
   private_key_uuid = coolify_private_key.example.uuid
+  # Optional SSH clone defaults (Coolify defaults: user git, port 22)
+  # custom_user = "git"
+  # custom_port = 22
+  # Self-hosted only: share app across teams
+  # is_system_wide = false
 }
