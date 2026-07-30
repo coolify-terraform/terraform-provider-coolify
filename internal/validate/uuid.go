@@ -14,9 +14,9 @@ import (
 
 // uuidRegexp matches RFC 4122 UUIDs (e.g. "550e8400-e29b-41d4-a716-446655440000")
 // and Coolify identifiers. Coolify has generated ids of two lengths:
-// exactly 7 chars via Cuid2(7) up to v4.0.0-beta.3xx (still live on older
+// exactly 7 chars via Cuid2(7) through ~v4.0.0-beta.310 (still live on older
 // instances and Coolify Cloud teams from that era, e.g. "usoc080"), and
-// 24 chars via Cuid2 / Str::random(24) since v4.0.0-beta.400 (e.g.
+// 24 chars via default Cuid2 / new_public_id() since ~v4.0.0-beta.320 (e.g.
 // "deey8xhb2bm3fxpobcxyddfv"). The 20-36 branch keeps headroom around the
 // modern length; 8-19 char ids never existed and stay rejected.
 var uuidRegexp = regexp.MustCompile(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-zA-Z]{7}|[0-9a-zA-Z]{20,36})$`)
