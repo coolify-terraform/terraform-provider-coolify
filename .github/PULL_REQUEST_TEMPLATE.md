@@ -4,6 +4,7 @@ What does this PR do?
 
 ## Checklist
 
+- [ ] Commits have DCO sign-off (`git commit -s` / `Signed-off-by` trailer; CI enforces this)
 - [ ] Tests added or updated
 - [ ] `make test` passes locally
 - [ ] `make fmt` ran (gofmt + go mod tidy)
