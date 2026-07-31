@@ -12,10 +12,13 @@ import (
 func TestDomains_Valid(t *testing.T) {
 	t.Parallel()
 	valid := []string{
+		"",
+		" ", // whitespace-only treated as clear/empty
 		"https://app.example.com",
 		"http://localhost:8080",
 		"https://coolify.io/api",
 		"http://192.168.1.1:3000",
+		"https://a.example.com,https://b.example.com",
 	}
 	v := validate.Domains()
 	for _, s := range valid {
@@ -36,8 +39,7 @@ func TestDomains_Invalid(t *testing.T) {
 		"ftp://files.example.com",
 		"https://",
 		"not-a-url",
-		"",
-		" ",
+		"https://ok.example.com,not-a-url",
 	}
 	v := validate.Domains()
 	for _, s := range invalid {

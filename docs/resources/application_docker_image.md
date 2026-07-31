@@ -38,6 +38,7 @@ resource "coolify_application_docker_image" "nginx" {
 
 ### Optional
 
+- `autogenerate_domain` (Boolean) Create-only. When `true` (Coolify default) and `domains` is empty, Coolify generates a public FQDN (`https://{uuid}.{wildcard}` or `http://{uuid}.{server-ip}.sslip.io`). Set `false` for internal apps that must not get a Traefik host. Ignored when `domains` is set. Not accepted on update; changing this after create has no effect and does not force replacement.
 - `base_directory` (String) The base directory for the application source code.
 - `connect_to_docker_network` (Boolean) Whether to connect the application to the Docker network.
 - `custom_docker_run_options` (String) Custom Docker run options passed to the container.
@@ -50,7 +51,7 @@ resource "coolify_application_docker_image" "nginx" {
 - `docker_images_to_keep` (Number) Number of Docker images to keep for this application. Coolify default is `2`.
 - `docker_registry_image_tag` (String) The Docker registry image tag.
 - `dockerfile` (String, Sensitive) Inline Dockerfile content (base64 encoded). For `coolify_application_dockerfile` resources, use `dockerfile_location` instead; this field is only used by Git-backed application types that embed a Dockerfile inline.
-- `domains` (String) The fully qualified domain name for the application (must start with http:// or https://).
+- `domains` (String) Application URL(s) as a comma-separated list of http:// or https:// URLs. Empty string is allowed in Terraform (validator and PATCH body send `domains: ""`). When omitted on create, Coolify may auto-generate a domain unless `autogenerate_domain` is false. Clearing an existing FQDN on update requires Coolify to treat empty `domains` as present (current Coolify uses `$request->has('domains')` with `ConvertEmptyStringsToNull`, which drops empty clears; tracked upstream).
 - `environment_name` (String) The environment name for the application (defaults to `production`). Changing this forces a new resource.
 - `force_domain_override` (Boolean) Whether to force domain override.
 - `git_commit_sha` (String) The specific Git commit SHA to deploy.

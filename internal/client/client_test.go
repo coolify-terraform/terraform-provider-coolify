@@ -1474,6 +1474,50 @@ func TestClient_UpdateApplication(t *testing.T) {
 	assert.Equal(t, "New description", app.Description)
 }
 
+// TestUpdateApplicationInput_ClearDomainsJSON documents that *string domains
+// with value "" is encoded (omitempty only skips nil), so PATCH can clear FQDN.
+func TestUpdateApplicationInput_ClearDomainsJSON(t *testing.T) {
+	t.Parallel()
+	empty := ""
+	name := "app"
+
+	// Unset domains: key omitted
+	b, err := json.Marshal(UpdateApplicationInput{Name: &name})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"name":"app"}`, string(b))
+
+	// Clear FQDN: domains must be present as ""
+	b, err = json.Marshal(UpdateApplicationInput{Name: &name, Domains: &empty})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"name":"app","domains":""}`, string(b))
+}
+
+func TestClient_UpdateApplication_ClearDomains(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var raw map[string]any
+		require.NoError(t, json.Unmarshal(body, &raw))
+		v, ok := raw["domains"]
+		require.True(t, ok, "domains key must be present to clear FQDN")
+		assert.Equal(t, "", v)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Application{UUID: "app-clear-dom", Name: "cleared", Domains: ""})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	empty := ""
+	app, err := c.UpdateApplication(context.Background(), "app-clear-dom", UpdateApplicationInput{
+		Domains: &empty,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "app-clear-dom", app.UUID)
+	assert.Equal(t, "", app.Domains)
+}
+
 func TestClient_DeleteApplication(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

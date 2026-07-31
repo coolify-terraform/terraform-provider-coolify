@@ -81,3 +81,72 @@ resource "coolify_application_docker_image" "test" {
 }
 `, name, serverUUID, extra)
 }
+
+// TestAccDockerImageApplicationResource_NoPublicDomain creates an internal app
+// with autogenerate_domain=false and no domains; Coolify must not assign sslip FQDN.
+func TestAccDockerImageApplicationResource_NoPublicDomain(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-nogen")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %q
+}
+
+resource "coolify_application_docker_image" "test" {
+  project_uuid         = coolify_project.test.uuid
+  server_uuid          = %q
+  name                 = %q
+  docker_image         = "nginx:alpine"
+  ports_exposes        = "80"
+  autogenerate_domain  = false
+}
+`, name, serverUUID, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_application_docker_image.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "autogenerate_domain", "false"),
+					// Empty or unset FQDN: Coolify may return "" or omit; accept empty string.
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "domains", ""),
+				),
+			},
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %q
+}
+
+resource "coolify_application_docker_image" "test" {
+  project_uuid         = coolify_project.test.uuid
+  server_uuid          = %q
+  name                 = %q
+  docker_image         = "nginx:alpine"
+  ports_exposes        = "80"
+  autogenerate_domain  = false
+}
+`, name, serverUUID, name),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// TestAccDockerImageApplicationResource_ClearDomains documents provider support for
+// domains="" on update (#645). Skipped against real Coolify: update_by_uuid only
+// writes fqdn when $request->has('domains') is true, and Laravel
+// ConvertEmptyStringsToNull + has() treat "" as absent, so empty never clears FQDN.
+// Unit test TestDockerImageApplicationResource_ClearDomainsOnUpdate covers the
+// provider wire format. Re-enable when Coolify uses exists('domains') (or equivalent).
+func TestAccDockerImageApplicationResource_ClearDomains(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	t.Skip("Coolify ignores empty domains on update ($request->has + ConvertEmptyStringsToNull); provider unit test covers wire format")
+}

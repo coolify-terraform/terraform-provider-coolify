@@ -199,3 +199,11 @@ var databaseModelSkips = skipMap(
 var appEnvWriteSkips = skipMap(
 // is_shown_once covered on applicationEnvVarInput write path.
 )
+
+// applicationCreateWriteSkips: create allow-list fields that are intentionally
+// not on Create*AppInput (or not schema) for silent-default coverage (#643).
+// Prefer implementing the field over skipping; use skipDeferred with an issue
+// when product work is tracked.
+var applicationCreateWriteSkips = skipMap(
+// empty: autogenerate_domain is required on create inputs + schema (#642).
+)
