@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -40,6 +41,8 @@ type databaseBackupResourceModel struct {
 	DatabaseUUID          types.String `tfsdk:"database_uuid"`
 	Frequency             types.String `tfsdk:"frequency"`
 	Enabled               types.Bool   `tfsdk:"enabled"`
+	Description           types.String `tfsdk:"description"`
+	DisableLocalBackup    types.Bool   `tfsdk:"disable_local_backup"`
 	SaveS3                types.Bool   `tfsdk:"save_s3"`
 	S3StorageUUID         types.String `tfsdk:"s3_storage_uuid"`
 	DatabasesToBackup     types.String `tfsdk:"databases_to_backup"`
@@ -91,6 +94,16 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				MarkdownDescription: "Cron or Coolify human schedule (e.g., `0 2 * * *`, `daily`, `@daily`, `hourly`). Bare names without `@` match Coolify VALID_CRON_STRINGS.",
 				Required:            true,
 				Validators:          []validator.String{validate.CoolifyFrequency()},
+			},
+			"description": schema.StringAttribute{
+				MarkdownDescription: "Optional description of the backup schedule. Read-only: Coolify does not accept this field on the public create/update backup API (UI-only write). Present when set out-of-band.",
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"disable_local_backup": schema.BoolAttribute{
+				MarkdownDescription: "Whether local backup retention is disabled. Read-only: Coolify does not accept this field on the public create/update backup API (UI-only write).",
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether the backup schedule is active.",
@@ -545,6 +558,8 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 		m.Frequency = types.StringValue(b.Frequency)
 	}
 	m.Enabled = types.BoolValue(b.Enabled)
+	m.Description = flex.StringToFramework(b.Description)
+	m.DisableLocalBackup = types.BoolValue(b.DisableLocalBackup)
 	m.SaveS3 = types.BoolValue(b.SaveS3)
 	// The API may return s3_storage_id as a numeric FK, not the UUID the
 	// user configured. Only populate on import (when state is empty);

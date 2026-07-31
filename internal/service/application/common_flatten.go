@@ -184,16 +184,6 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	flex.SetStringPreserveEmpty(f.ManualWebhookSecretGitHub, app.ManualWebhookSecretGitHub)
 	flex.SetStringPreserveEmpty(f.ManualWebhookSecretGitLab, app.ManualWebhookSecretGitLab)
 	// Computed+Default bool fields (always set from API)
-	setBoolDefault := func(dst *types.Bool, v *bool, def bool) {
-		if dst == nil {
-			return
-		}
-		if v != nil {
-			*dst = types.BoolValue(*v)
-			return
-		}
-		*dst = types.BoolValue(def)
-	}
 	setBoolDefault(f.ConnectToDockerNetwork, app.ConnectToDockerNetwork, false)
 	setBoolDefault(f.IsHTTPBasicAuthEnabled, app.IsHTTPBasicAuthEnabled, false)
 	setBoolDefault(f.IsStatic, app.IsStatic, false)
@@ -212,6 +202,7 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 			*f.StopGracePeriod = types.Int64Null()
 		}
 	}
+	flattenApplicationSettingFields(app, f)
 	// max_restart_count is Computed-only (not writable via API).
 	if f.MaxRestartCount != nil {
 		*f.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
@@ -356,6 +347,7 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	if plan.StopGracePeriod != nil && state.StopGracePeriod != nil {
 		input.StopGracePeriod = flex.Int64IfChanged(*plan.StopGracePeriod, *state.StopGracePeriod)
 	}
+	addApplicationSettingUpdateFields(plan, state, input)
 	// Nil-safe resource-specific fields
 	if plan.ForceDomainOverride != nil && state.ForceDomainOverride != nil {
 		input.ForceDomainOverride = boolDiff(*plan.ForceDomainOverride, *state.ForceDomainOverride)
@@ -444,6 +436,18 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.BoolPtrNonDefault(f.IsPreviewDeploymentsEnabled, false) ||
 		flex.BoolPtrNonDefault(f.UseBuildSecrets, false) ||
 		(f.StopGracePeriod != nil && !f.StopGracePeriod.IsNull() && !f.StopGracePeriod.IsUnknown()) ||
+		flex.BoolPtrNonDefault(f.IsGitSubmodulesEnabled, true) ||
+		flex.BoolPtrNonDefault(f.IsGitLfsEnabled, true) ||
+		flex.BoolPtrNonDefault(f.IsGitShallowCloneEnabled, true) ||
+		flex.BoolPtrNonDefault(f.DisableBuildCache, false) ||
+		flex.BoolPtrNonDefault(f.InjectBuildArgsToDockerfile, true) ||
+		flex.BoolPtrNonDefault(f.IncludeSourceCommitInBuild, false) ||
+		flex.BoolPtrNonDefault(f.IsEnvSortingEnabled, false) ||
+		flex.BoolPtrNonDefault(f.IsPrDeploymentsPublicEnabled, false) ||
+		(f.DockerImagesToKeep != nil && !f.DockerImagesToKeep.IsNull() && !f.DockerImagesToKeep.IsUnknown() && f.DockerImagesToKeep.ValueInt64() != 2) ||
+		flex.BoolPtrNonDefault(f.IsGzipEnabled, true) ||
+		flex.BoolPtrNonDefault(f.IsStripprefixEnabled, true) ||
+		flex.BoolPtrNonDefault(f.IsRawComposeDeploymentEnabled, false) ||
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
 		flex.StringPtrNonDefault(f.Redirect, defaultRedirect) ||
@@ -540,6 +544,7 @@ func buildPostCreatePatch(f commonAppFields) client.UpdateApplicationInput {
 	flex.SetBoolPtr(&input.IsPreviewDeploymentsEnabled, safeBool(f.IsPreviewDeploymentsEnabled))
 	flex.SetBoolPtr(&input.UseBuildSecrets, safeBool(f.UseBuildSecrets))
 	flex.SetInt64Ptr(&input.StopGracePeriod, safeInt(f.StopGracePeriod))
+	setApplicationSettingPostCreate(&input, f, safeBool, safeInt)
 	flex.SetBoolPtr(&input.ForceDomainOverride, safeBool(f.ForceDomainOverride))
 	return input
 }
@@ -559,4 +564,74 @@ func postCreatePatchExtendedFields(ctx context.Context, c *client.Client, uuid s
 			fmt.Sprintf("Application %s was created, but the post-create PATCH for extended fields failed: %s. "+
 				"Run terraform apply again to converge.", uuid, err))
 	}
+}
+
+// setBoolDefault sets a bool pointer field from API value or schema default.
+func setBoolDefault(dst *types.Bool, v *bool, def bool) {
+	if dst == nil {
+		return
+	}
+	if v != nil {
+		*dst = types.BoolValue(*v)
+	} else if dst.IsNull() || dst.IsUnknown() {
+		*dst = types.BoolValue(def)
+	}
+}
+
+func flattenApplicationSettingFields(app *client.Application, f commonAppFields) {
+	setBoolDefault(f.IsGitSubmodulesEnabled, app.IsGitSubmodulesEnabled, true)
+	setBoolDefault(f.IsGitLfsEnabled, app.IsGitLfsEnabled, true)
+	setBoolDefault(f.IsGitShallowCloneEnabled, app.IsGitShallowCloneEnabled, true)
+	setBoolDefault(f.DisableBuildCache, app.DisableBuildCache, false)
+	setBoolDefault(f.InjectBuildArgsToDockerfile, app.InjectBuildArgsToDockerfile, true)
+	setBoolDefault(f.IncludeSourceCommitInBuild, app.IncludeSourceCommitInBuild, false)
+	setBoolDefault(f.IsEnvSortingEnabled, app.IsEnvSortingEnabled, false)
+	setBoolDefault(f.IsPrDeploymentsPublicEnabled, app.IsPrDeploymentsPublicEnabled, false)
+	if f.DockerImagesToKeep != nil {
+		if app.DockerImagesToKeep != nil {
+			*f.DockerImagesToKeep = types.Int64Value(*app.DockerImagesToKeep)
+		} else if f.DockerImagesToKeep.IsNull() || f.DockerImagesToKeep.IsUnknown() {
+			*f.DockerImagesToKeep = types.Int64Value(2)
+		}
+	}
+	setBoolDefault(f.IsGzipEnabled, app.IsGzipEnabled, true)
+	setBoolDefault(f.IsStripprefixEnabled, app.IsStripprefixEnabled, true)
+	setBoolDefault(f.IsRawComposeDeploymentEnabled, app.IsRawComposeDeploymentEnabled, false)
+}
+
+func addApplicationSettingUpdateFields(plan, state commonAppFields, input *client.UpdateApplicationInput) {
+	setBoolDiff := func(dst **bool, p, s *types.Bool) {
+		if p != nil && s != nil {
+			*dst = flex.BoolIfChanged(*p, *s)
+		}
+	}
+	setBoolDiff(&input.IsGitSubmodulesEnabled, plan.IsGitSubmodulesEnabled, state.IsGitSubmodulesEnabled)
+	setBoolDiff(&input.IsGitLfsEnabled, plan.IsGitLfsEnabled, state.IsGitLfsEnabled)
+	setBoolDiff(&input.IsGitShallowCloneEnabled, plan.IsGitShallowCloneEnabled, state.IsGitShallowCloneEnabled)
+	setBoolDiff(&input.DisableBuildCache, plan.DisableBuildCache, state.DisableBuildCache)
+	setBoolDiff(&input.InjectBuildArgsToDockerfile, plan.InjectBuildArgsToDockerfile, state.InjectBuildArgsToDockerfile)
+	setBoolDiff(&input.IncludeSourceCommitInBuild, plan.IncludeSourceCommitInBuild, state.IncludeSourceCommitInBuild)
+	setBoolDiff(&input.IsEnvSortingEnabled, plan.IsEnvSortingEnabled, state.IsEnvSortingEnabled)
+	setBoolDiff(&input.IsPrDeploymentsPublicEnabled, plan.IsPrDeploymentsPublicEnabled, state.IsPrDeploymentsPublicEnabled)
+	setBoolDiff(&input.IsGzipEnabled, plan.IsGzipEnabled, state.IsGzipEnabled)
+	setBoolDiff(&input.IsStripprefixEnabled, plan.IsStripprefixEnabled, state.IsStripprefixEnabled)
+	setBoolDiff(&input.IsRawComposeDeploymentEnabled, plan.IsRawComposeDeploymentEnabled, state.IsRawComposeDeploymentEnabled)
+	if plan.DockerImagesToKeep != nil && state.DockerImagesToKeep != nil {
+		input.DockerImagesToKeep = flex.Int64IfChanged(*plan.DockerImagesToKeep, *state.DockerImagesToKeep)
+	}
+}
+
+func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f commonAppFields, safeBool func(*types.Bool) types.Bool, safeInt func(*types.Int64) types.Int64) {
+	flex.SetBoolPtr(&input.IsGitSubmodulesEnabled, safeBool(f.IsGitSubmodulesEnabled))
+	flex.SetBoolPtr(&input.IsGitLfsEnabled, safeBool(f.IsGitLfsEnabled))
+	flex.SetBoolPtr(&input.IsGitShallowCloneEnabled, safeBool(f.IsGitShallowCloneEnabled))
+	flex.SetBoolPtr(&input.DisableBuildCache, safeBool(f.DisableBuildCache))
+	flex.SetBoolPtr(&input.InjectBuildArgsToDockerfile, safeBool(f.InjectBuildArgsToDockerfile))
+	flex.SetBoolPtr(&input.IncludeSourceCommitInBuild, safeBool(f.IncludeSourceCommitInBuild))
+	flex.SetBoolPtr(&input.IsEnvSortingEnabled, safeBool(f.IsEnvSortingEnabled))
+	flex.SetBoolPtr(&input.IsPrDeploymentsPublicEnabled, safeBool(f.IsPrDeploymentsPublicEnabled))
+	flex.SetInt64Ptr(&input.DockerImagesToKeep, safeInt(f.DockerImagesToKeep))
+	flex.SetBoolPtr(&input.IsGzipEnabled, safeBool(f.IsGzipEnabled))
+	flex.SetBoolPtr(&input.IsStripprefixEnabled, safeBool(f.IsStripprefixEnabled))
+	flex.SetBoolPtr(&input.IsRawComposeDeploymentEnabled, safeBool(f.IsRawComposeDeploymentEnabled))
 }

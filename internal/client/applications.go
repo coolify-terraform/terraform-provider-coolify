@@ -103,19 +103,44 @@ type Application struct {
 	IsPreviewDeploymentsEnabled *bool  `json:"is_preview_deployments_enabled,omitempty"`
 	UseBuildSecrets             *bool  `json:"use_build_secrets,omitempty"`
 	StopGracePeriod             *int64 `json:"stop_grace_period,omitempty"`
-	MaxRestartCount             *int64 `json:"max_restart_count,omitempty"`
+	// Coolify APPLICATION_SETTING_FIELDS (public create/update allow-list).
+	IsGitSubmodulesEnabled        *bool  `json:"is_git_submodules_enabled,omitempty"`
+	IsGitLfsEnabled               *bool  `json:"is_git_lfs_enabled,omitempty"`
+	IsGitShallowCloneEnabled      *bool  `json:"is_git_shallow_clone_enabled,omitempty"`
+	DisableBuildCache             *bool  `json:"disable_build_cache,omitempty"`
+	InjectBuildArgsToDockerfile   *bool  `json:"inject_build_args_to_dockerfile,omitempty"`
+	IncludeSourceCommitInBuild    *bool  `json:"include_source_commit_in_build,omitempty"`
+	IsEnvSortingEnabled           *bool  `json:"is_env_sorting_enabled,omitempty"`
+	IsPrDeploymentsPublicEnabled  *bool  `json:"is_pr_deployments_public_enabled,omitempty"`
+	DockerImagesToKeep            *int64 `json:"docker_images_to_keep,omitempty"`
+	IsGzipEnabled                 *bool  `json:"is_gzip_enabled,omitempty"`
+	IsStripprefixEnabled          *bool  `json:"is_stripprefix_enabled,omitempty"`
+	IsRawComposeDeploymentEnabled *bool  `json:"is_raw_compose_deployment_enabled,omitempty"`
+	MaxRestartCount               *int64 `json:"max_restart_count,omitempty"`
 	// Nested settings blob from GET responses (promoted after decode).
 	Settings *ApplicationSettings `json:"settings,omitempty"`
 }
 
 // ApplicationSettings holds nested settings from GET application responses.
 type ApplicationSettings struct {
-	IsPreviewDeploymentsEnabled *bool  `json:"is_preview_deployments_enabled,omitempty"`
-	UseBuildSecrets             *bool  `json:"use_build_secrets,omitempty"`
-	StopGracePeriod             *int64 `json:"stop_grace_period,omitempty"`
-	IsAutoDeployEnabled         *bool  `json:"is_auto_deploy_enabled,omitempty"`
-	UseBuildServer              *bool  `json:"is_build_server_enabled,omitempty"` // settings column name
-	IsForceHTTPSEnabled         *bool  `json:"is_force_https_enabled,omitempty"`
+	IsPreviewDeploymentsEnabled   *bool  `json:"is_preview_deployments_enabled,omitempty"`
+	UseBuildSecrets               *bool  `json:"use_build_secrets,omitempty"`
+	StopGracePeriod               *int64 `json:"stop_grace_period,omitempty"`
+	IsAutoDeployEnabled           *bool  `json:"is_auto_deploy_enabled,omitempty"`
+	UseBuildServer                *bool  `json:"is_build_server_enabled,omitempty"` // settings column name
+	IsForceHTTPSEnabled           *bool  `json:"is_force_https_enabled,omitempty"`
+	IsGitSubmodulesEnabled        *bool  `json:"is_git_submodules_enabled,omitempty"`
+	IsGitLfsEnabled               *bool  `json:"is_git_lfs_enabled,omitempty"`
+	IsGitShallowCloneEnabled      *bool  `json:"is_git_shallow_clone_enabled,omitempty"`
+	DisableBuildCache             *bool  `json:"disable_build_cache,omitempty"`
+	InjectBuildArgsToDockerfile   *bool  `json:"inject_build_args_to_dockerfile,omitempty"`
+	IncludeSourceCommitInBuild    *bool  `json:"include_source_commit_in_build,omitempty"`
+	IsEnvSortingEnabled           *bool  `json:"is_env_sorting_enabled,omitempty"`
+	IsPrDeploymentsPublicEnabled  *bool  `json:"is_pr_deployments_public_enabled,omitempty"`
+	DockerImagesToKeep            *int64 `json:"docker_images_to_keep,omitempty"`
+	IsGzipEnabled                 *bool  `json:"is_gzip_enabled,omitempty"`
+	IsStripprefixEnabled          *bool  `json:"is_stripprefix_enabled,omitempty"`
+	IsRawComposeDeploymentEnabled *bool  `json:"is_raw_compose_deployment_enabled,omitempty"`
 }
 
 // PromoteSettings copies nested settings onto top-level Application fields when unset.
@@ -124,23 +149,35 @@ func (a *Application) PromoteSettings() {
 		return
 	}
 	s := a.Settings
-	if a.IsPreviewDeploymentsEnabled == nil && s.IsPreviewDeploymentsEnabled != nil {
-		a.IsPreviewDeploymentsEnabled = s.IsPreviewDeploymentsEnabled
+	promoteBool(&a.IsPreviewDeploymentsEnabled, s.IsPreviewDeploymentsEnabled)
+	promoteBool(&a.UseBuildSecrets, s.UseBuildSecrets)
+	promoteInt64(&a.StopGracePeriod, s.StopGracePeriod)
+	promoteBool(&a.IsAutoDeployEnabled, s.IsAutoDeployEnabled)
+	promoteBool(&a.UseBuildServer, s.UseBuildServer)
+	promoteBool(&a.IsForceHTTPSEnabled, s.IsForceHTTPSEnabled)
+	promoteBool(&a.IsGitSubmodulesEnabled, s.IsGitSubmodulesEnabled)
+	promoteBool(&a.IsGitLfsEnabled, s.IsGitLfsEnabled)
+	promoteBool(&a.IsGitShallowCloneEnabled, s.IsGitShallowCloneEnabled)
+	promoteBool(&a.DisableBuildCache, s.DisableBuildCache)
+	promoteBool(&a.InjectBuildArgsToDockerfile, s.InjectBuildArgsToDockerfile)
+	promoteBool(&a.IncludeSourceCommitInBuild, s.IncludeSourceCommitInBuild)
+	promoteBool(&a.IsEnvSortingEnabled, s.IsEnvSortingEnabled)
+	promoteBool(&a.IsPrDeploymentsPublicEnabled, s.IsPrDeploymentsPublicEnabled)
+	promoteInt64(&a.DockerImagesToKeep, s.DockerImagesToKeep)
+	promoteBool(&a.IsGzipEnabled, s.IsGzipEnabled)
+	promoteBool(&a.IsStripprefixEnabled, s.IsStripprefixEnabled)
+	promoteBool(&a.IsRawComposeDeploymentEnabled, s.IsRawComposeDeploymentEnabled)
+}
+
+func promoteBool(dst **bool, src *bool) {
+	if *dst == nil && src != nil {
+		*dst = src
 	}
-	if a.UseBuildSecrets == nil && s.UseBuildSecrets != nil {
-		a.UseBuildSecrets = s.UseBuildSecrets
-	}
-	if a.StopGracePeriod == nil && s.StopGracePeriod != nil {
-		a.StopGracePeriod = s.StopGracePeriod
-	}
-	if a.IsAutoDeployEnabled == nil && s.IsAutoDeployEnabled != nil {
-		a.IsAutoDeployEnabled = s.IsAutoDeployEnabled
-	}
-	if a.UseBuildServer == nil && s.UseBuildServer != nil {
-		a.UseBuildServer = s.UseBuildServer
-	}
-	if a.IsForceHTTPSEnabled == nil && s.IsForceHTTPSEnabled != nil {
-		a.IsForceHTTPSEnabled = s.IsForceHTTPSEnabled
+}
+
+func promoteInt64(dst **int64, src *int64) {
+	if *dst == nil && src != nil {
+		*dst = src
 	}
 }
 
@@ -252,6 +289,19 @@ type UpdateApplicationInput struct {
 	IsPreviewDeploymentsEnabled   *bool  `json:"is_preview_deployments_enabled,omitempty"`
 	UseBuildSecrets               *bool  `json:"use_build_secrets,omitempty"`
 	StopGracePeriod               *int64 `json:"stop_grace_period,omitempty"`
+	// Coolify APPLICATION_SETTING_FIELDS (public create/update allow-list).
+	IsGitSubmodulesEnabled        *bool  `json:"is_git_submodules_enabled,omitempty"`
+	IsGitLfsEnabled               *bool  `json:"is_git_lfs_enabled,omitempty"`
+	IsGitShallowCloneEnabled      *bool  `json:"is_git_shallow_clone_enabled,omitempty"`
+	DisableBuildCache             *bool  `json:"disable_build_cache,omitempty"`
+	InjectBuildArgsToDockerfile   *bool  `json:"inject_build_args_to_dockerfile,omitempty"`
+	IncludeSourceCommitInBuild    *bool  `json:"include_source_commit_in_build,omitempty"`
+	IsEnvSortingEnabled           *bool  `json:"is_env_sorting_enabled,omitempty"`
+	IsPrDeploymentsPublicEnabled  *bool  `json:"is_pr_deployments_public_enabled,omitempty"`
+	DockerImagesToKeep            *int64 `json:"docker_images_to_keep,omitempty"`
+	IsGzipEnabled                 *bool  `json:"is_gzip_enabled,omitempty"`
+	IsStripprefixEnabled          *bool  `json:"is_stripprefix_enabled,omitempty"`
+	IsRawComposeDeploymentEnabled *bool  `json:"is_raw_compose_deployment_enabled,omitempty"`
 }
 
 func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {

@@ -19,17 +19,19 @@ type EnvironmentVariable struct {
 	IsRuntime   bool   `json:"is_runtime"`
 	IsLiteral   bool   `json:"is_literal"`
 	IsMultiline bool   `json:"is_multiline"`
+	IsShownOnce bool   `json:"is_shown_once"`
 	Comment     string `json:"comment,omitempty"`
 }
 
 // EnvVarWriteOpts holds optional fields for create/update payloads.
 // A nil pointer omits the JSON key so Coolify can apply its default.
-// Application-only: IsBuild, IsRuntime. All parents: IsLiteral, IsMultiline, Comment.
+// Application-only: IsBuild, IsRuntime. All parents: IsLiteral, IsMultiline, IsShownOnce, Comment.
 type EnvVarWriteOpts struct {
 	IsBuild     *bool
 	IsRuntime   *bool
 	IsLiteral   *bool
 	IsMultiline *bool
+	IsShownOnce *bool
 	Comment     *string
 }
 
@@ -77,6 +79,7 @@ type applicationEnvVarInput struct {
 	IsRuntime   *bool   `json:"is_runtime,omitempty"`
 	IsLiteral   *bool   `json:"is_literal,omitempty"`
 	IsMultiline *bool   `json:"is_multiline,omitempty"`
+	IsShownOnce *bool   `json:"is_shown_once,omitempty"`
 	Comment     *string `json:"comment,omitempty"`
 }
 
@@ -88,6 +91,7 @@ type envVarInput struct {
 	IsPreview   bool    `json:"is_preview"`
 	IsLiteral   *bool   `json:"is_literal,omitempty"`
 	IsMultiline *bool   `json:"is_multiline,omitempty"`
+	IsShownOnce *bool   `json:"is_shown_once,omitempty"`
 	Comment     *string `json:"comment,omitempty"`
 }
 
@@ -129,9 +133,11 @@ func buildEnvWriteInput(parentType string, key, value string, isPreview bool, op
 			IsRuntime:   opts.IsRuntime,
 			IsLiteral:   opts.IsLiteral,
 			IsMultiline: opts.IsMultiline,
+			IsShownOnce: opts.IsShownOnce,
 			Comment:     opts.Comment,
 		}
 	}
+	// Service/database env write paths do not accept is_shown_once.
 	return envVarInput{
 		Key:         key,
 		Value:       value,
@@ -181,12 +187,14 @@ func (c *Client) UpdateEnvVar(ctx context.Context, parentType, parentUUID string
 		// Back-compat: populate write opts from the full entity so application
 		// omit-as-false fields (is_literal) are not silently cleared.
 		b, r, l, m := ev.IsBuild, ev.IsRuntime, ev.IsLiteral, ev.IsMultiline
+		so := ev.IsShownOnce
 		c := ev.Comment
 		opts = &EnvVarWriteOpts{
 			IsBuild:     &b,
 			IsRuntime:   &r,
 			IsLiteral:   &l,
 			IsMultiline: &m,
+			IsShownOnce: &so,
 			Comment:     &c,
 		}
 	}

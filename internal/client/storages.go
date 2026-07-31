@@ -9,12 +9,13 @@ import (
 
 // Storage represents a persistent storage volume in Coolify.
 type Storage struct {
-	UUID         string `json:"uuid"`
-	Name         string `json:"name"`
-	MountPath    string `json:"mount_path"`
-	HostPath     string `json:"host_path,omitempty"`
-	ResourceUUID string `json:"resource_uuid,omitempty"`
-	ResourceType string `json:"resource_type,omitempty"`
+	UUID                   string `json:"uuid"`
+	Name                   string `json:"name"`
+	MountPath              string `json:"mount_path"`
+	HostPath               string `json:"host_path,omitempty"`
+	ResourceUUID           string `json:"resource_uuid,omitempty"`
+	ResourceType           string `json:"resource_type,omitempty"`
+	IsPreviewSuffixEnabled *bool  `json:"is_preview_suffix_enabled,omitempty"`
 }
 
 // storageListResponse wraps the API response which nests storages by type.
@@ -25,11 +26,12 @@ type storageListResponse struct {
 
 // CreateStorageInput is the payload for creating a new persistent storage.
 type CreateStorageInput struct {
-	Type         string `json:"type"`
-	ResourceUUID string `json:"resource_uuid,omitempty"`
-	Name         string `json:"name"`
-	MountPath    string `json:"mount_path"`
-	HostPath     string `json:"host_path,omitempty"`
+	Type                   string `json:"type"`
+	ResourceUUID           string `json:"resource_uuid,omitempty"`
+	Name                   string `json:"name"`
+	MountPath              string `json:"mount_path"`
+	HostPath               string `json:"host_path,omitempty"`
+	IsPreviewSuffixEnabled *bool  `json:"is_preview_suffix_enabled,omitempty"`
 }
 
 // CreateStorageResponse is the response from creating a persistent storage.
@@ -40,11 +42,12 @@ type CreateStorageResponse struct {
 // UpdateStorageInput is the payload for updating a persistent storage.
 // All fields are optional; only non-nil fields are sent.
 type UpdateStorageInput struct {
-	UUID      *string `json:"uuid,omitempty"`
-	Type      string  `json:"type"`
-	Name      *string `json:"name,omitempty"`
-	MountPath *string `json:"mount_path,omitempty"`
-	HostPath  *string `json:"host_path,omitempty"`
+	UUID                   *string `json:"uuid,omitempty"`
+	Type                   string  `json:"type"`
+	Name                   *string `json:"name,omitempty"`
+	MountPath              *string `json:"mount_path,omitempty"`
+	HostPath               *string `json:"host_path,omitempty"`
+	IsPreviewSuffixEnabled *bool   `json:"is_preview_suffix_enabled,omitempty"`
 }
 
 // ListStorages lists all persistent storages for a parent resource.

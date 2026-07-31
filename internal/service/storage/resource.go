@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -33,14 +34,15 @@ type storageResource struct {
 
 // storageResourceModel maps the resource schema to Go types.
 type storageResourceModel struct {
-	UUID            types.String `tfsdk:"uuid"`
-	ApplicationUUID types.String `tfsdk:"application_uuid"`
-	ServiceUUID     types.String `tfsdk:"service_uuid"`
-	DatabaseUUID    types.String `tfsdk:"database_uuid"`
-	ResourceUUID    types.String `tfsdk:"resource_uuid"`
-	Name            types.String `tfsdk:"name"`
-	MountPath       types.String `tfsdk:"mount_path"`
-	HostPath        types.String `tfsdk:"host_path"`
+	UUID                   types.String `tfsdk:"uuid"`
+	ApplicationUUID        types.String `tfsdk:"application_uuid"`
+	ServiceUUID            types.String `tfsdk:"service_uuid"`
+	DatabaseUUID           types.String `tfsdk:"database_uuid"`
+	ResourceUUID           types.String `tfsdk:"resource_uuid"`
+	Name                   types.String `tfsdk:"name"`
+	MountPath              types.String `tfsdk:"mount_path"`
+	HostPath               types.String `tfsdk:"host_path"`
+	IsPreviewSuffixEnabled types.Bool   `tfsdk:"is_preview_suffix_enabled"`
 }
 
 // NewResource returns a new storageResource instance.
@@ -118,6 +120,12 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: "The host path to mount (optional; leave empty for a Docker volume).",
 				Optional:            true,
 			},
+			"is_preview_suffix_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Whether Coolify appends a `-pr-N` suffix for preview deployments. Coolify default is `true` for application storages.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(true),
+			},
 		},
 	}
 }
@@ -172,6 +180,10 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	flex.SetIfKnown(&input.HostPath, plan.HostPath)
 	flex.SetIfKnown(&input.ResourceUUID, plan.ResourceUUID)
+	if !plan.IsPreviewSuffixEnabled.IsNull() && !plan.IsPreviewSuffixEnabled.IsUnknown() {
+		v := plan.IsPreviewSuffixEnabled.ValueBool()
+		input.IsPreviewSuffixEnabled = &v
+	}
 
 	createResp, err := r.client.CreateStorage(ctx, parentType, parentUUID, input)
 	if err != nil {
@@ -243,11 +255,12 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	input := client.UpdateStorageInput{
-		UUID:      flex.StringValueOrNull(plan.UUID),
-		Type:      "persistent",
-		Name:      flex.StringIfChanged(plan.Name, state.Name),
-		MountPath: flex.StringIfChanged(plan.MountPath, state.MountPath),
-		HostPath:  flex.StringPtrForUpdate(plan.HostPath, state.HostPath),
+		UUID:                   flex.StringValueOrNull(plan.UUID),
+		Type:                   "persistent",
+		Name:                   flex.StringIfChanged(plan.Name, state.Name),
+		MountPath:              flex.StringIfChanged(plan.MountPath, state.MountPath),
+		HostPath:               flex.StringPtrForUpdate(plan.HostPath, state.HostPath),
+		IsPreviewSuffixEnabled: flex.BoolIfChanged(plan.IsPreviewSuffixEnabled, state.IsPreviewSuffixEnabled),
 	}
 
 	err := r.client.UpdateStorage(ctx, parentType, parentUUID, input)
@@ -319,6 +332,11 @@ func flattenStorageFromList(storages []client.Storage, state *storageResourceMod
 			state.HostPath = types.StringValue(s.HostPath)
 		} else if !state.HostPath.IsNull() {
 			state.HostPath = types.StringNull()
+		}
+		if s.IsPreviewSuffixEnabled != nil {
+			state.IsPreviewSuffixEnabled = types.BoolValue(*s.IsPreviewSuffixEnabled)
+		} else if state.IsPreviewSuffixEnabled.IsNull() || state.IsPreviewSuffixEnabled.IsUnknown() {
+			state.IsPreviewSuffixEnabled = types.BoolValue(true)
 		}
 		if s.ResourceUUID != "" {
 			state.ResourceUUID = types.StringValue(s.ResourceUUID)

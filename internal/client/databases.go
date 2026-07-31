@@ -286,6 +286,8 @@ type DatabaseBackup struct {
 	DatabaseUUID          string   `json:"database_uuid"`
 	Frequency             string   `json:"frequency"`
 	Enabled               bool     `json:"enabled"`
+	Description           string   `json:"description,omitempty"`
+	DisableLocalBackup    bool     `json:"disable_local_backup"`
 	SaveS3                bool     `json:"save_s3,omitempty"`
 	S3StorageID           string   `json:"s3_storage_uuid,omitempty"`
 	DatabaseType          string   `json:"database_type,omitempty"`

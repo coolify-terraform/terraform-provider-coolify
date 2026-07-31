@@ -81,6 +81,25 @@ type vultrServerResourceModel struct {
 	DeleteUnusedVolumes               types.Bool   `tfsdk:"delete_unused_volumes"`
 	DeleteUnusedNetworks              types.Bool   `tfsdk:"delete_unused_networks"`
 	GenerateExactLabels               types.Bool   `tfsdk:"generate_exact_labels"`
+	ForceDisabled                     types.Bool   `tfsdk:"force_disabled"`
+	IsJumpServer                      types.Bool   `tfsdk:"is_jump_server"`
+	IsSwarmManager                    types.Bool   `tfsdk:"is_swarm_manager"`
+	IsSwarmWorker                     types.Bool   `tfsdk:"is_swarm_worker"`
+	IsSentinelDebugEnabled            types.Bool   `tfsdk:"is_sentinel_debug_enabled"`
+	DisableApplicationImageRetention  types.Bool   `tfsdk:"disable_application_image_retention"`
+	SentinelToken                     types.String `tfsdk:"sentinel_token"`
+	SentinelCustomURL                 types.String `tfsdk:"sentinel_custom_url"`
+	IsLogdrainAxiomEnabled            types.Bool   `tfsdk:"is_logdrain_axiom_enabled"`
+	LogdrainAxiomAPIKey               types.String `tfsdk:"logdrain_axiom_api_key"`
+	LogdrainAxiomDatasetName          types.String `tfsdk:"logdrain_axiom_dataset_name"`
+	IsLogdrainCustomEnabled           types.Bool   `tfsdk:"is_logdrain_custom_enabled"`
+	LogdrainCustomConfig              types.String `tfsdk:"logdrain_custom_config"`
+	LogdrainCustomConfigParser        types.String `tfsdk:"logdrain_custom_config_parser"`
+	IsLogdrainHighlightEnabled        types.Bool   `tfsdk:"is_logdrain_highlight_enabled"`
+	LogdrainHighlightProjectID        types.String `tfsdk:"logdrain_highlight_project_id"`
+	IsLogdrainNewrelicEnabled         types.Bool   `tfsdk:"is_logdrain_newrelic_enabled"`
+	LogdrainNewrelicBaseURI           types.String `tfsdk:"logdrain_newrelic_base_uri"`
+	LogdrainNewrelicLicenseKey        types.String `tfsdk:"logdrain_newrelic_license_key"`
 }
 
 // NewResource returns a new Vultr server resource.
@@ -341,6 +360,16 @@ func (m *vultrServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 		DockerCleanupFrequency:      &m.DockerCleanupFrequency, DockerCleanupThreshold: &m.DockerCleanupThreshold,
 		ForceDockerCleanup: &m.ForceDockerCleanup, DeleteUnusedVolumes: &m.DeleteUnusedVolumes,
 		DeleteUnusedNetworks: &m.DeleteUnusedNetworks, GenerateExactLabels: &m.GenerateExactLabels,
+		ForceDisabled: &m.ForceDisabled, IsJumpServer: &m.IsJumpServer,
+		IsSwarmManager: &m.IsSwarmManager, IsSwarmWorker: &m.IsSwarmWorker,
+		IsSentinelDebugEnabled: &m.IsSentinelDebugEnabled, DisableApplicationImageRetention: &m.DisableApplicationImageRetention,
+		SentinelToken: &m.SentinelToken, SentinelCustomURL: &m.SentinelCustomURL,
+		IsLogdrainAxiomEnabled: &m.IsLogdrainAxiomEnabled, LogdrainAxiomAPIKey: &m.LogdrainAxiomAPIKey,
+		LogdrainAxiomDatasetName: &m.LogdrainAxiomDatasetName, IsLogdrainCustomEnabled: &m.IsLogdrainCustomEnabled,
+		LogdrainCustomConfig: &m.LogdrainCustomConfig, LogdrainCustomConfigParser: &m.LogdrainCustomConfigParser,
+		IsLogdrainHighlightEnabled: &m.IsLogdrainHighlightEnabled, LogdrainHighlightProjectID: &m.LogdrainHighlightProjectID,
+		IsLogdrainNewrelicEnabled: &m.IsLogdrainNewrelicEnabled, LogdrainNewrelicBaseURI: &m.LogdrainNewrelicBaseURI,
+		LogdrainNewrelicLicenseKey: &m.LogdrainNewrelicLicenseKey,
 	}
 }
 

@@ -113,6 +113,18 @@ type commonAppFields struct {
 	IsPreviewDeploymentsEnabled   *types.Bool
 	UseBuildSecrets               *types.Bool
 	StopGracePeriod               *types.Int64
+	IsGitSubmodulesEnabled        *types.Bool
+	IsGitLfsEnabled               *types.Bool
+	IsGitShallowCloneEnabled      *types.Bool
+	DisableBuildCache             *types.Bool
+	InjectBuildArgsToDockerfile   *types.Bool
+	IncludeSourceCommitInBuild    *types.Bool
+	IsEnvSortingEnabled           *types.Bool
+	IsPrDeploymentsPublicEnabled  *types.Bool
+	DockerImagesToKeep            *types.Int64
+	IsGzipEnabled                 *types.Bool
+	IsStripprefixEnabled          *types.Bool
+	IsRawComposeDeploymentEnabled *types.Bool
 	InstantDeploy                 *types.Bool
 	RedeployOnUpdate              *types.Bool
 	MaxRestartCount               *types.Int64
@@ -191,6 +203,18 @@ type applicationCommonModel struct {
 	IsPreviewDeploymentsEnabled    types.Bool     `tfsdk:"is_preview_deployments_enabled"`
 	UseBuildSecrets                types.Bool     `tfsdk:"use_build_secrets"`
 	StopGracePeriod                types.Int64    `tfsdk:"stop_grace_period"`
+	IsGitSubmodulesEnabled         types.Bool     `tfsdk:"is_git_submodules_enabled"`
+	IsGitLfsEnabled                types.Bool     `tfsdk:"is_git_lfs_enabled"`
+	IsGitShallowCloneEnabled       types.Bool     `tfsdk:"is_git_shallow_clone_enabled"`
+	DisableBuildCache              types.Bool     `tfsdk:"disable_build_cache"`
+	InjectBuildArgsToDockerfile    types.Bool     `tfsdk:"inject_build_args_to_dockerfile"`
+	IncludeSourceCommitInBuild     types.Bool     `tfsdk:"include_source_commit_in_build"`
+	IsEnvSortingEnabled            types.Bool     `tfsdk:"is_env_sorting_enabled"`
+	IsPrDeploymentsPublicEnabled   types.Bool     `tfsdk:"is_pr_deployments_public_enabled"`
+	DockerImagesToKeep             types.Int64    `tfsdk:"docker_images_to_keep"`
+	IsGzipEnabled                  types.Bool     `tfsdk:"is_gzip_enabled"`
+	IsStripprefixEnabled           types.Bool     `tfsdk:"is_stripprefix_enabled"`
+	IsRawComposeDeploymentEnabled  types.Bool     `tfsdk:"is_raw_compose_deployment_enabled"`
 	InstantDeploy                  types.Bool     `tfsdk:"instant_deploy"`
 	RedeployOnUpdate               types.Bool     `tfsdk:"redeploy_on_update"`
 	MaxRestartCount                types.Int64    `tfsdk:"max_restart_count"`
@@ -237,8 +261,14 @@ func (m *applicationCommonModel) common() commonAppFields {
 		ForceDomainOverride: &m.ForceDomainOverride, IsContainerLabelEscapeEnabled: &m.IsContainerLabelEscapeEnabled,
 		IsPreserveRepositoryEnabled: &m.IsPreserveRepositoryEnabled, UseBuildServer: &m.UseBuildServer,
 		IsPreviewDeploymentsEnabled: &m.IsPreviewDeploymentsEnabled, UseBuildSecrets: &m.UseBuildSecrets,
-		StopGracePeriod: &m.StopGracePeriod,
-		InstantDeploy:   &m.InstantDeploy, RedeployOnUpdate: &m.RedeployOnUpdate,
+		StopGracePeriod:        &m.StopGracePeriod,
+		IsGitSubmodulesEnabled: &m.IsGitSubmodulesEnabled, IsGitLfsEnabled: &m.IsGitLfsEnabled,
+		IsGitShallowCloneEnabled: &m.IsGitShallowCloneEnabled, DisableBuildCache: &m.DisableBuildCache,
+		InjectBuildArgsToDockerfile: &m.InjectBuildArgsToDockerfile, IncludeSourceCommitInBuild: &m.IncludeSourceCommitInBuild,
+		IsEnvSortingEnabled: &m.IsEnvSortingEnabled, IsPrDeploymentsPublicEnabled: &m.IsPrDeploymentsPublicEnabled,
+		DockerImagesToKeep: &m.DockerImagesToKeep, IsGzipEnabled: &m.IsGzipEnabled,
+		IsStripprefixEnabled: &m.IsStripprefixEnabled, IsRawComposeDeploymentEnabled: &m.IsRawComposeDeploymentEnabled,
+		InstantDeploy: &m.InstantDeploy, RedeployOnUpdate: &m.RedeployOnUpdate,
 		MaxRestartCount: &m.MaxRestartCount,
 	}
 }
@@ -307,6 +337,18 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 	flex.NormalizeUnknownBool(&m.IsPreviewDeploymentsEnabled)
 	flex.NormalizeUnknownBool(&m.UseBuildSecrets)
 	flex.NormalizeUnknownInt64(&m.StopGracePeriod)
+	flex.NormalizeUnknownBool(&m.IsGitSubmodulesEnabled)
+	flex.NormalizeUnknownBool(&m.IsGitLfsEnabled)
+	flex.NormalizeUnknownBool(&m.IsGitShallowCloneEnabled)
+	flex.NormalizeUnknownBool(&m.DisableBuildCache)
+	flex.NormalizeUnknownBool(&m.InjectBuildArgsToDockerfile)
+	flex.NormalizeUnknownBool(&m.IncludeSourceCommitInBuild)
+	flex.NormalizeUnknownBool(&m.IsEnvSortingEnabled)
+	flex.NormalizeUnknownBool(&m.IsPrDeploymentsPublicEnabled)
+	flex.NormalizeUnknownInt64(&m.DockerImagesToKeep)
+	flex.NormalizeUnknownBool(&m.IsGzipEnabled)
+	flex.NormalizeUnknownBool(&m.IsStripprefixEnabled)
+	flex.NormalizeUnknownBool(&m.IsRawComposeDeploymentEnabled)
 	flex.NormalizeUnknownString(&m.PreviewURLTemplate)
 	flex.NormalizeUnknownString(&m.HealthCheckHost)
 	flex.NormalizeUnknownString(&m.HealthCheckMethod)
@@ -397,6 +439,18 @@ func runtimeFieldsChanged(plan, state commonAppFields) bool {
 		boolFieldChanged(plan.IsPreviewDeploymentsEnabled, state.IsPreviewDeploymentsEnabled) ||
 		boolFieldChanged(plan.UseBuildSecrets, state.UseBuildSecrets) ||
 		int64FieldChanged(plan.StopGracePeriod, state.StopGracePeriod) ||
+		boolFieldChanged(plan.IsGitSubmodulesEnabled, state.IsGitSubmodulesEnabled) ||
+		boolFieldChanged(plan.IsGitLfsEnabled, state.IsGitLfsEnabled) ||
+		boolFieldChanged(plan.IsGitShallowCloneEnabled, state.IsGitShallowCloneEnabled) ||
+		boolFieldChanged(plan.DisableBuildCache, state.DisableBuildCache) ||
+		boolFieldChanged(plan.InjectBuildArgsToDockerfile, state.InjectBuildArgsToDockerfile) ||
+		boolFieldChanged(plan.IncludeSourceCommitInBuild, state.IncludeSourceCommitInBuild) ||
+		boolFieldChanged(plan.IsEnvSortingEnabled, state.IsEnvSortingEnabled) ||
+		boolFieldChanged(plan.IsPrDeploymentsPublicEnabled, state.IsPrDeploymentsPublicEnabled) ||
+		int64FieldChanged(plan.DockerImagesToKeep, state.DockerImagesToKeep) ||
+		boolFieldChanged(plan.IsGzipEnabled, state.IsGzipEnabled) ||
+		boolFieldChanged(plan.IsStripprefixEnabled, state.IsStripprefixEnabled) ||
+		boolFieldChanged(plan.IsRawComposeDeploymentEnabled, state.IsRawComposeDeploymentEnabled) ||
 		stringFieldChanged(plan.Name, state.Name) ||
 		stringFieldChanged(plan.Description, state.Description) ||
 		boolFieldChanged(plan.IsAutoDeployEnabled, state.IsAutoDeployEnabled) ||

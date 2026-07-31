@@ -25,7 +25,7 @@ func TestValidateFieldSkip_InternalFlagBannedOnDeferred(t *testing.T) {
 	err := validateFieldSkip(FieldSkip{
 		Field:  "is_runtime",
 		Status: SkipDeferred,
-		Issue:  626,
+		Issue:  99999,
 		Reason: "internal flag we might expose later",
 	})
 	if err == nil || !strings.Contains(err.Error(), "internal flag") {
@@ -37,7 +37,7 @@ func TestSkipMap_ValidDeferred(t *testing.T) {
 	t.Parallel()
 	m := skipMap(
 		skipInternal("team_id", "FK"),
-		skipDeferred("order", 626, "UI ordering not managed in Terraform"),
+		skipDeferred("order", 99999, "UI ordering not managed in Terraform"),
 		skipNA("service_type", "mapped to type in client"),
 	)
 	if !isSkipped(m, "order") {
@@ -47,8 +47,8 @@ func TestSkipMap_ValidDeferred(t *testing.T) {
 		t.Fatal("key should not be skipped")
 	}
 	issues := deferredIssueNumbers(m)
-	if len(issues) != 1 || issues[0] != 626 {
-		t.Fatalf("deferred issues = %v, want [626]", issues)
+	if len(issues) != 1 || issues[0] != 99999 {
+		t.Fatalf("deferred issues = %v, want [99999]", issues)
 	}
 }
 

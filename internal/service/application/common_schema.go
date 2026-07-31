@@ -237,7 +237,7 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 
 // extendedBuildDeployAttrs returns schema attributes for build, deploy, and static settings.
 func extendedBuildDeployAttrs() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
+	attrs := map[string]schema.Attribute{
 		"base_directory": schema.StringAttribute{
 			MarkdownDescription: "The base directory for the application source code.",
 			Optional:            true,
@@ -327,6 +327,7 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			Validators:    []validator.Int64{int64validator.Between(1, 3600)},
 		},
+
 		"instant_deploy": schema.BoolAttribute{
 			MarkdownDescription: "Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.",
 			Optional:            true,
@@ -360,6 +361,10 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Optional:            true,
 		},
 	}
+	for k, v := range applicationSettingAttrs() {
+		attrs[k] = v
+	}
+	return attrs
 }
 
 // extendedHealthCheckAttrs returns schema attributes for extended health check settings.
@@ -502,6 +507,85 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 			Computed:            true,
 			Sensitive:           true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+	}
+}
+
+// applicationSettingAttrs returns Coolify APPLICATION_SETTING_FIELDS schema attrs.
+func applicationSettingAttrs() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"is_git_submodules_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether Git submodules are fetched during clone. Coolify default is `true`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(true),
+		},
+		"is_git_lfs_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether Git LFS objects are fetched during clone. Coolify default is `true`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(true),
+		},
+		"is_git_shallow_clone_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether Git uses a shallow clone. Coolify default is `true`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(true),
+		},
+		"disable_build_cache": schema.BoolAttribute{
+			MarkdownDescription: "Whether to disable the Docker build cache for this application. Coolify default is `false`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"inject_build_args_to_dockerfile": schema.BoolAttribute{
+			MarkdownDescription: "Whether to inject build arguments into the Dockerfile. Coolify default is `true`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(true),
+		},
+		"include_source_commit_in_build": schema.BoolAttribute{
+			MarkdownDescription: "Whether to include the source commit SHA in the build. Coolify default is `false`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"is_env_sorting_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether environment variables are sorted. Coolify default is `false`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"is_pr_deployments_public_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether preview deployments from public pull requests are enabled. Coolify default is `false`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"docker_images_to_keep": schema.Int64Attribute{
+			MarkdownDescription: "Number of Docker images to keep for this application. Coolify default is `2`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             int64default.StaticInt64(2),
+			Validators:          []validator.Int64{int64validator.AtLeast(0)},
+		},
+		"is_gzip_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether gzip compression is enabled for the application proxy. Coolify default is `true`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(true),
+		},
+		"is_stripprefix_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether path prefix stripping is enabled for the application proxy. Coolify default is `true`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(true),
+		},
+		"is_raw_compose_deployment_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether raw Docker Compose deployment mode is enabled. Coolify default is `false`.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
 		},
 	}
 }
