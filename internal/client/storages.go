@@ -25,13 +25,14 @@ type storageListResponse struct {
 }
 
 // CreateStorageInput is the payload for creating a new persistent storage.
+// is_preview_suffix_enabled is intentionally omitted: Coolify create_storage
+// allow-list rejects it (update-only).
 type CreateStorageInput struct {
-	Type                   string `json:"type"`
-	ResourceUUID           string `json:"resource_uuid,omitempty"`
-	Name                   string `json:"name"`
-	MountPath              string `json:"mount_path"`
-	HostPath               string `json:"host_path,omitempty"`
-	IsPreviewSuffixEnabled *bool  `json:"is_preview_suffix_enabled,omitempty"`
+	Type         string `json:"type"`
+	ResourceUUID string `json:"resource_uuid,omitempty"`
+	Name         string `json:"name"`
+	MountPath    string `json:"mount_path"`
+	HostPath     string `json:"host_path,omitempty"`
 }
 
 // CreateStorageResponse is the response from creating a persistent storage.

@@ -121,10 +121,12 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Optional:            true,
 			},
 			"is_preview_suffix_enabled": schema.BoolAttribute{
-				MarkdownDescription: "Whether Coolify appends a `-pr-N` suffix for preview deployments. Coolify default is `true` for application storages.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(true),
+				MarkdownDescription: "Whether Coolify appends a `-pr-N` suffix for preview deployments. " +
+					"Coolify default is `true`. Not accepted on create; when set to `false`, the provider " +
+					"applies it with a post-create update (Coolify storage create allow-list omits this field).",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(true),
 			},
 		},
 	}
@@ -173,6 +175,9 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	// is_preview_suffix_enabled is accepted on PATCH only (create_storage
+	// allow-list is type/name/mount_path/host_path/content/…). Never send it
+	// on POST or Coolify returns 422 "This field is not allowed."
 	input := client.CreateStorageInput{
 		Type:      "persistent",
 		Name:      plan.Name.ValueString(),
@@ -180,10 +185,6 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	flex.SetIfKnown(&input.HostPath, plan.HostPath)
 	flex.SetIfKnown(&input.ResourceUUID, plan.ResourceUUID)
-	if !plan.IsPreviewSuffixEnabled.IsNull() && !plan.IsPreviewSuffixEnabled.IsUnknown() {
-		v := plan.IsPreviewSuffixEnabled.ValueBool()
-		input.IsPreviewSuffixEnabled = &v
-	}
 
 	createResp, err := r.client.CreateStorage(ctx, parentType, parentUUID, input)
 	if err != nil {
@@ -194,6 +195,51 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 	plan.UUID = types.StringValue(createResp.UUID)
 	if plan.ResourceUUID.IsUnknown() {
 		plan.ResourceUUID = types.StringNull()
+	}
+	// Save partial state so a post-create PATCH failure still tracks the volume.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Coolify defaults is_preview_suffix_enabled to true. When the plan wants
+	// a non-default value, apply it via the update allow-list.
+	if !plan.IsPreviewSuffixEnabled.IsNull() && !plan.IsPreviewSuffixEnabled.IsUnknown() &&
+		!plan.IsPreviewSuffixEnabled.ValueBool() {
+		v := false
+		uuid := createResp.UUID
+		upd := client.UpdateStorageInput{
+			UUID:                   &uuid,
+			Type:                   "persistent",
+			IsPreviewSuffixEnabled: &v,
+		}
+		if err := r.client.UpdateStorage(ctx, parentType, parentUUID, upd); err != nil {
+			resp.Diagnostics.AddError(
+				"Error setting is_preview_suffix_enabled after create",
+				fmt.Sprintf("storage %s was created, but updating is_preview_suffix_enabled failed: %s. "+
+					"Run terraform apply again to converge.", createResp.UUID, err),
+			)
+			return
+		}
+	}
+
+	// Read-back for computed fields and Coolify name prefix normalization.
+	storages, listErr := r.client.ListStorages(ctx, parentType, parentUUID)
+	if listErr != nil {
+		tflog.Warn(ctx, "read-back after create failed, using plan values", map[string]interface{}{
+			"resource_type": "coolify_storage", "uuid": createResp.UUID, "error": listErr.Error(),
+		})
+		if plan.IsPreviewSuffixEnabled.IsNull() || plan.IsPreviewSuffixEnabled.IsUnknown() {
+			plan.IsPreviewSuffixEnabled = types.BoolValue(true)
+		}
+		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		return
+	}
+	if !flattenStorageFromList(storages, &plan) {
+		// Created but not yet listed: keep plan values with default for preview suffix.
+		if plan.IsPreviewSuffixEnabled.IsNull() || plan.IsPreviewSuffixEnabled.IsUnknown() {
+			plan.IsPreviewSuffixEnabled = types.BoolValue(true)
+		}
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_storage", "uuid": createResp.UUID})
