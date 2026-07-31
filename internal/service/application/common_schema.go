@@ -139,11 +139,15 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},
 		"domains": schema.StringAttribute{
-			MarkdownDescription: "The fully qualified domain name for the application (must start with http:// or https://).",
-			Optional:            true,
-			Computed:            true,
-			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			Validators:          []validator.String{validate.Domains()},
+			MarkdownDescription: "Application URL(s) as a comma-separated list of http:// or https:// URLs. " +
+				"Empty string is allowed in Terraform (validator and PATCH body send `domains: \"\"`). " +
+				"When omitted on create, Coolify may auto-generate a domain unless `autogenerate_domain` is false. " +
+				"Clearing an existing FQDN on update requires Coolify to treat empty `domains` as present " +
+				"(current Coolify uses `$request->has('domains')` with `ConvertEmptyStringsToNull`, which drops empty clears; tracked upstream).",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			Validators:    []validator.String{validate.Domains()},
 		},
 		"status": schema.StringAttribute{
 			MarkdownDescription: "The current status of the application (e.g., running, stopped, exited). Read-only.",
@@ -333,6 +337,14 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
+		},
+		"autogenerate_domain": schema.BoolAttribute{
+			MarkdownDescription: "Create-only. When `true` (Coolify default) and `domains` is empty, Coolify generates a public FQDN " +
+				"(`https://{uuid}.{wildcard}` or `http://{uuid}.{server-ip}.sslip.io`). Set `false` for internal apps that must not get a Traefik host. " +
+				"Ignored when `domains` is set. Not accepted on update; changing this after create has no effect and does not force replacement.",
+			Optional: true,
+			Computed: true,
+			Default:  booldefault.StaticBool(true),
 		},
 		"preview_url_template": schema.StringAttribute{
 			MarkdownDescription: "The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.",
