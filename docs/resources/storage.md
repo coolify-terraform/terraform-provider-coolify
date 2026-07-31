@@ -58,6 +58,7 @@ resource "coolify_storage" "service_data" {
 - `application_uuid` (String) The UUID of the application to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `database_uuid` (String) The UUID of the database to attach the storage to. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. Changing this forces a new resource.
 - `host_path` (String) The host path to mount (optional; leave empty for a Docker volume).
+- `is_preview_suffix_enabled` (Boolean) Whether Coolify appends a `-pr-N` suffix for preview deployments. Coolify default is `true`. Not accepted on create; when set to `false`, the provider applies it with a post-create update (Coolify storage create allow-list omits this field).
 - `resource_uuid` (String) The UUID of the application or database within a service that the storage attaches to. Required when `service_uuid` is set because Coolify services contain multiple sub-resources and the storage must target a specific one. Ignored for `application_uuid` and `database_uuid`. Changing this forces a new resource.
 - `service_uuid` (String) The UUID of the service that contains the target application or database. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid` must be provided. When set, `resource_uuid` must also be provided to identify which sub-resource within the service the storage attaches to. Changing this forces a new resource.
 

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -33,14 +34,15 @@ type storageResource struct {
 
 // storageResourceModel maps the resource schema to Go types.
 type storageResourceModel struct {
-	UUID            types.String `tfsdk:"uuid"`
-	ApplicationUUID types.String `tfsdk:"application_uuid"`
-	ServiceUUID     types.String `tfsdk:"service_uuid"`
-	DatabaseUUID    types.String `tfsdk:"database_uuid"`
-	ResourceUUID    types.String `tfsdk:"resource_uuid"`
-	Name            types.String `tfsdk:"name"`
-	MountPath       types.String `tfsdk:"mount_path"`
-	HostPath        types.String `tfsdk:"host_path"`
+	UUID                   types.String `tfsdk:"uuid"`
+	ApplicationUUID        types.String `tfsdk:"application_uuid"`
+	ServiceUUID            types.String `tfsdk:"service_uuid"`
+	DatabaseUUID           types.String `tfsdk:"database_uuid"`
+	ResourceUUID           types.String `tfsdk:"resource_uuid"`
+	Name                   types.String `tfsdk:"name"`
+	MountPath              types.String `tfsdk:"mount_path"`
+	HostPath               types.String `tfsdk:"host_path"`
+	IsPreviewSuffixEnabled types.Bool   `tfsdk:"is_preview_suffix_enabled"`
 }
 
 // NewResource returns a new storageResource instance.
@@ -118,6 +120,14 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: "The host path to mount (optional; leave empty for a Docker volume).",
 				Optional:            true,
 			},
+			"is_preview_suffix_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Whether Coolify appends a `-pr-N` suffix for preview deployments. " +
+					"Coolify default is `true`. Not accepted on create; when set to `false`, the provider " +
+					"applies it with a post-create update (Coolify storage create allow-list omits this field).",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(true),
+			},
 		},
 	}
 }
@@ -165,6 +175,9 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	// is_preview_suffix_enabled is accepted on PATCH only (create_storage
+	// allow-list is type/name/mount_path/host_path/content/…). Never send it
+	// on POST or Coolify returns 422 "This field is not allowed."
 	input := client.CreateStorageInput{
 		Type:      "persistent",
 		Name:      plan.Name.ValueString(),
@@ -183,8 +196,63 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 	if plan.ResourceUUID.IsUnknown() {
 		plan.ResourceUUID = types.StringNull()
 	}
+	// Save partial state so a post-create PATCH failure still tracks the volume.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if err := r.applyPreviewSuffixAfterCreate(ctx, parentType, parentUUID, createResp.UUID, plan); err != nil {
+		resp.Diagnostics.AddError(
+			"Error setting is_preview_suffix_enabled after create",
+			err.Error(),
+		)
+		return
+	}
+
+	r.finalizeCreateState(ctx, parentType, parentUUID, createResp.UUID, &plan, resp)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_storage", "uuid": createResp.UUID})
+}
+
+// applyPreviewSuffixAfterCreate PATCHes is_preview_suffix_enabled when the plan
+// wants false (Coolify create rejects this field; default on create is true).
+func (r *storageResource) applyPreviewSuffixAfterCreate(ctx context.Context, parentType, parentUUID, uuid string, plan storageResourceModel) error {
+	if plan.IsPreviewSuffixEnabled.IsNull() || plan.IsPreviewSuffixEnabled.IsUnknown() || plan.IsPreviewSuffixEnabled.ValueBool() {
+		return nil
+	}
+	v := false
+	upd := client.UpdateStorageInput{
+		UUID:                   &uuid,
+		Type:                   "persistent",
+		IsPreviewSuffixEnabled: &v,
+	}
+	if err := r.client.UpdateStorage(ctx, parentType, parentUUID, upd); err != nil {
+		return fmt.Errorf("storage %s was created, but updating is_preview_suffix_enabled failed: %w. Run terraform apply again to converge", uuid, err)
+	}
+	return nil
+}
+
+// finalizeCreateState reads the volume back after create (or falls back to plan defaults).
+func (r *storageResource) finalizeCreateState(ctx context.Context, parentType, parentUUID, uuid string, plan *storageResourceModel, resp *resource.CreateResponse) {
+	storages, listErr := r.client.ListStorages(ctx, parentType, parentUUID)
+	if listErr != nil {
+		tflog.Warn(ctx, "read-back after create failed, using plan values", map[string]interface{}{
+			"resource_type": "coolify_storage", "uuid": uuid, "error": listErr.Error(),
+		})
+		ensurePreviewSuffixDefault(plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+		return
+	}
+	if !flattenStorageFromList(storages, plan) {
+		ensurePreviewSuffixDefault(plan)
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+func ensurePreviewSuffixDefault(m *storageResourceModel) {
+	if m.IsPreviewSuffixEnabled.IsNull() || m.IsPreviewSuffixEnabled.IsUnknown() {
+		m.IsPreviewSuffixEnabled = types.BoolValue(true)
+	}
 }
 
 func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -243,11 +311,12 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	input := client.UpdateStorageInput{
-		UUID:      flex.StringValueOrNull(plan.UUID),
-		Type:      "persistent",
-		Name:      flex.StringIfChanged(plan.Name, state.Name),
-		MountPath: flex.StringIfChanged(plan.MountPath, state.MountPath),
-		HostPath:  flex.StringPtrForUpdate(plan.HostPath, state.HostPath),
+		UUID:                   flex.StringValueOrNull(plan.UUID),
+		Type:                   "persistent",
+		Name:                   flex.StringIfChanged(plan.Name, state.Name),
+		MountPath:              flex.StringIfChanged(plan.MountPath, state.MountPath),
+		HostPath:               flex.StringPtrForUpdate(plan.HostPath, state.HostPath),
+		IsPreviewSuffixEnabled: flex.BoolIfChanged(plan.IsPreviewSuffixEnabled, state.IsPreviewSuffixEnabled),
 	}
 
 	err := r.client.UpdateStorage(ctx, parentType, parentUUID, input)
@@ -319,6 +388,11 @@ func flattenStorageFromList(storages []client.Storage, state *storageResourceMod
 			state.HostPath = types.StringValue(s.HostPath)
 		} else if !state.HostPath.IsNull() {
 			state.HostPath = types.StringNull()
+		}
+		if s.IsPreviewSuffixEnabled != nil {
+			state.IsPreviewSuffixEnabled = types.BoolValue(*s.IsPreviewSuffixEnabled)
+		} else if state.IsPreviewSuffixEnabled.IsNull() || state.IsPreviewSuffixEnabled.IsUnknown() {
+			state.IsPreviewSuffixEnabled = types.BoolValue(true)
 		}
 		if s.ResourceUUID != "" {
 			state.ResourceUUID = types.StringValue(s.ResourceUUID)

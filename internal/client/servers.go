@@ -33,6 +33,23 @@ type ServerSettings struct {
 	DeleteUnusedVolumes                  bool   `json:"delete_unused_volumes"`
 	DeleteUnusedNetworks                 bool   `json:"delete_unused_networks"`
 	GenerateExactLabels                  bool   `json:"generate_exact_labels"`
+	IsForceDisabled                      bool   `json:"force_disabled"`
+	IsJumpServer                         bool   `json:"is_jump_server"`
+	IsSwarmManager                       bool   `json:"is_swarm_manager"`
+	IsSwarmWorker                        bool   `json:"is_swarm_worker"`
+	IsSentinelDebugEnabled               bool   `json:"is_sentinel_debug_enabled"`
+	DisableApplicationImageRetention     bool   `json:"disable_application_image_retention"`
+	IsLogdrainAxiomEnabled               bool   `json:"is_logdrain_axiom_enabled"`
+	LogdrainAxiomAPIKey                  string `json:"logdrain_axiom_api_key,omitempty"`
+	LogdrainAxiomDatasetName             string `json:"logdrain_axiom_dataset_name,omitempty"`
+	IsLogdrainCustomEnabled              bool   `json:"is_logdrain_custom_enabled"`
+	LogdrainCustomConfig                 string `json:"logdrain_custom_config,omitempty"`
+	LogdrainCustomConfigParser           string `json:"logdrain_custom_config_parser,omitempty"`
+	IsLogdrainHighlightEnabled           bool   `json:"is_logdrain_highlight_enabled"`
+	LogdrainHighlightProjectID           string `json:"logdrain_highlight_project_id,omitempty"`
+	IsLogdrainNewrelicEnabled            bool   `json:"is_logdrain_newrelic_enabled"`
+	LogdrainNewrelicBaseURI              string `json:"logdrain_newrelic_base_uri,omitempty"`
+	LogdrainNewrelicLicenseKey           string `json:"logdrain_newrelic_license_key,omitempty"`
 }
 
 type Server struct {

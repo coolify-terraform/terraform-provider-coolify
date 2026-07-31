@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -47,6 +48,7 @@ type environmentVariableResourceModel struct {
 	IsRuntime       types.Bool   `tfsdk:"is_runtime"`
 	IsLiteral       types.Bool   `tfsdk:"is_literal"`
 	IsMultiline     types.Bool   `tfsdk:"is_multiline"`
+	IsShownOnce     types.Bool   `tfsdk:"is_shown_once"`
 	Comment         types.String `tfsdk:"comment"`
 }
 
@@ -143,6 +145,12 @@ func (r *environmentVariableResource) Schema(_ context.Context, _ resource.Schem
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"is_shown_once": schema.BoolAttribute{
+				MarkdownDescription: "Whether the value is revealed only once in the Coolify UI (sensitive-style display). Application env write path only; Coolify default is `false`.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 			"is_multiline": schema.BoolAttribute{
 				MarkdownDescription: "Whether the value is multiline. Defaults to `false` when omitted on create.",
@@ -270,9 +278,13 @@ func writeOptsFromPlan(parentType string, plan *environmentVariableResourceModel
 	if forUpdate && parentType == "applications" {
 		opts.IsLiteral = boolPtrKnownOrDefault(plan.IsLiteral, false)
 		opts.IsMultiline = boolPtrKnownOrDefault(plan.IsMultiline, false)
+		opts.IsShownOnce = boolPtrKnownOrDefault(plan.IsShownOnce, false)
 	} else {
 		opts.IsLiteral = boolPtrIfKnown(plan.IsLiteral)
 		opts.IsMultiline = boolPtrIfKnown(plan.IsMultiline)
+		if parentType == "applications" {
+			opts.IsShownOnce = boolPtrIfKnown(plan.IsShownOnce)
+		}
 	}
 	if parentType == "applications" {
 		opts.IsBuild = boolPtrIfKnown(plan.IsBuild)
@@ -307,6 +319,9 @@ func applyCreateDefaults(parentType string, plan *environmentVariableResourceMod
 	if plan.IsMultiline.IsNull() || plan.IsMultiline.IsUnknown() {
 		plan.IsMultiline = types.BoolValue(false)
 	}
+	if plan.IsShownOnce.IsNull() || plan.IsShownOnce.IsUnknown() {
+		plan.IsShownOnce = types.BoolValue(false)
+	}
 	if plan.Comment.IsNull() || plan.Comment.IsUnknown() {
 		plan.Comment = types.StringValue("")
 	}
@@ -330,6 +345,7 @@ func flattenEnvToModel(parentType string, ev client.EnvironmentVariable, state *
 	}
 	state.IsLiteral = types.BoolValue(ev.IsLiteral)
 	state.IsMultiline = types.BoolValue(ev.IsMultiline)
+	state.IsShownOnce = types.BoolValue(ev.IsShownOnce)
 	state.Comment = types.StringValue(ev.Comment)
 }
 

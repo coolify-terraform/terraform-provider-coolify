@@ -44,6 +44,25 @@ type ServerCommonPtrs struct {
 	DeleteUnusedVolumes               *types.Bool
 	DeleteUnusedNetworks              *types.Bool
 	GenerateExactLabels               *types.Bool
+	ForceDisabled                     *types.Bool
+	IsJumpServer                      *types.Bool
+	IsSwarmManager                    *types.Bool
+	IsSwarmWorker                     *types.Bool
+	IsSentinelDebugEnabled            *types.Bool
+	DisableApplicationImageRetention  *types.Bool
+	SentinelToken                     *types.String
+	SentinelCustomURL                 *types.String
+	IsLogdrainAxiomEnabled            *types.Bool
+	LogdrainAxiomAPIKey               *types.String
+	LogdrainAxiomDatasetName          *types.String
+	IsLogdrainCustomEnabled           *types.Bool
+	LogdrainCustomConfig              *types.String
+	LogdrainCustomConfigParser        *types.String
+	IsLogdrainHighlightEnabled        *types.Bool
+	LogdrainHighlightProjectID        *types.String
+	IsLogdrainNewrelicEnabled         *types.Bool
+	LogdrainNewrelicBaseURI           *types.String
+	LogdrainNewrelicLicenseKey        *types.String
 }
 
 // CommonServerAttrs returns the schema attributes shared by all server
@@ -211,6 +230,86 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 		MarkdownDescription: "Whether to generate exact Docker labels (removes extra labels from containers).",
 		Computed:            true,
 	}
+	attrs["force_disabled"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether the server is force-disabled in Coolify. Read-only (not on public server PATCH allow-list).",
+		Computed:            true,
+	}
+	attrs["is_jump_server"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether this server is a jump host. Read-only (not on public server PATCH allow-list).",
+		Computed:            true,
+	}
+	attrs["is_swarm_manager"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether this server is a Docker Swarm manager. Read-only (not on public server PATCH allow-list).",
+		Computed:            true,
+	}
+	attrs["is_swarm_worker"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether this server is a Docker Swarm worker. Read-only (not on public server PATCH allow-list).",
+		Computed:            true,
+	}
+	attrs["is_sentinel_debug_enabled"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether Sentinel debug mode is enabled. Read-only (not on public server PATCH allow-list).",
+		Computed:            true,
+	}
+	attrs["disable_application_image_retention"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether application image retention is disabled. Read-only (not on public server PATCH allow-list).",
+		Computed:            true,
+	}
+	attrs["sentinel_token"] = schema.StringAttribute{
+		MarkdownDescription: "Sentinel agent token. Sensitive; only returned when the API token can read secrets. Read-only.",
+		Computed:            true,
+		Sensitive:           true,
+	}
+	attrs["sentinel_custom_url"] = schema.StringAttribute{
+		MarkdownDescription: "Custom Sentinel push URL. Read-only (not on public server PATCH allow-list).",
+		Computed:            true,
+	}
+	attrs["is_logdrain_axiom_enabled"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether Axiom log drain is enabled. Read-only (not on public server PATCH allow-list).",
+		Computed:            true,
+	}
+	attrs["logdrain_axiom_api_key"] = schema.StringAttribute{
+		MarkdownDescription: "Axiom API key for log drain. Sensitive; read-only.",
+		Computed:            true,
+		Sensitive:           true,
+	}
+	attrs["logdrain_axiom_dataset_name"] = schema.StringAttribute{
+		MarkdownDescription: "Axiom dataset name for log drain. Read-only.",
+		Computed:            true,
+	}
+	attrs["is_logdrain_custom_enabled"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether custom log drain is enabled. Read-only.",
+		Computed:            true,
+	}
+	attrs["logdrain_custom_config"] = schema.StringAttribute{
+		MarkdownDescription: "Custom log drain configuration. Sensitive; read-only.",
+		Computed:            true,
+		Sensitive:           true,
+	}
+	attrs["logdrain_custom_config_parser"] = schema.StringAttribute{
+		MarkdownDescription: "Custom log drain config parser. Read-only.",
+		Computed:            true,
+	}
+	attrs["is_logdrain_highlight_enabled"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether Highlight log drain is enabled. Read-only.",
+		Computed:            true,
+	}
+	attrs["logdrain_highlight_project_id"] = schema.StringAttribute{
+		MarkdownDescription: "Highlight project ID for log drain. Read-only.",
+		Computed:            true,
+	}
+	attrs["is_logdrain_newrelic_enabled"] = schema.BoolAttribute{
+		MarkdownDescription: "Whether New Relic log drain is enabled. Read-only.",
+		Computed:            true,
+	}
+	attrs["logdrain_newrelic_base_uri"] = schema.StringAttribute{
+		MarkdownDescription: "New Relic base URI for log drain. Read-only.",
+		Computed:            true,
+	}
+	attrs["logdrain_newrelic_license_key"] = schema.StringAttribute{
+		MarkdownDescription: "New Relic license key for log drain. Sensitive; read-only.",
+		Computed:            true,
+		Sensitive:           true,
+	}
 }
 
 // FlattenServerCommon sets the fields shared by all server resource types
@@ -264,6 +363,39 @@ func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
 	*f.DeleteUnusedVolumes = types.BoolValue(s.DeleteUnusedVolumes)
 	*f.DeleteUnusedNetworks = types.BoolValue(s.DeleteUnusedNetworks)
 	*f.GenerateExactLabels = types.BoolValue(s.GenerateExactLabels)
+	setBoolPtr(f.ForceDisabled, s.IsForceDisabled)
+	setBoolPtr(f.IsJumpServer, s.IsJumpServer)
+	setBoolPtr(f.IsSwarmManager, s.IsSwarmManager)
+	setBoolPtr(f.IsSwarmWorker, s.IsSwarmWorker)
+	setBoolPtr(f.IsSentinelDebugEnabled, s.IsSentinelDebugEnabled)
+	setBoolPtr(f.DisableApplicationImageRetention, s.DisableApplicationImageRetention)
+	setStringPtr(f.SentinelToken, s.SentinelToken)
+	setStringPtr(f.SentinelCustomURL, s.SentinelCustomURL)
+	setBoolPtr(f.IsLogdrainAxiomEnabled, s.IsLogdrainAxiomEnabled)
+	setStringPtr(f.LogdrainAxiomAPIKey, s.LogdrainAxiomAPIKey)
+	setStringPtr(f.LogdrainAxiomDatasetName, s.LogdrainAxiomDatasetName)
+	setBoolPtr(f.IsLogdrainCustomEnabled, s.IsLogdrainCustomEnabled)
+	setStringPtr(f.LogdrainCustomConfig, s.LogdrainCustomConfig)
+	setStringPtr(f.LogdrainCustomConfigParser, s.LogdrainCustomConfigParser)
+	setBoolPtr(f.IsLogdrainHighlightEnabled, s.IsLogdrainHighlightEnabled)
+	setStringPtr(f.LogdrainHighlightProjectID, s.LogdrainHighlightProjectID)
+	setBoolPtr(f.IsLogdrainNewrelicEnabled, s.IsLogdrainNewrelicEnabled)
+	setStringPtr(f.LogdrainNewrelicBaseURI, s.LogdrainNewrelicBaseURI)
+	setStringPtr(f.LogdrainNewrelicLicenseKey, s.LogdrainNewrelicLicenseKey)
+}
+
+func setBoolPtr(dst *types.Bool, v bool) {
+	if dst == nil {
+		return
+	}
+	*dst = types.BoolValue(v)
+}
+
+func setStringPtr(dst *types.String, v string) {
+	if dst == nil {
+		return
+	}
+	*dst = flex.StringToFramework(v)
 }
 
 // HasNonDefaultSettings returns true if any settings field in the plan

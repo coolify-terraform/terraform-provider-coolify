@@ -1,7 +1,8 @@
 package spectest
 
 // Contract field skip tables (#622). deferred entries must cite an open issue.
-// Umbrella backlog for remaining product fields: #626.
+// Deferred public product fields use skipDeferred + issue number.
+// #626 was cleared when all remaining skips were either implemented or reclassified as n/a.
 
 // applicationFieldSkips are Application model + ApplicationSetting fields not
 // required on client.Application.
@@ -113,17 +114,16 @@ var privateKeyCoverageSkips = skipMap(
 )
 
 // environmentVariableCoverageSkips: after #619, deploy flags are on the client.
-// Remaining product/UI fields track under #626.
 var environmentVariableCoverageSkips = skipMap(
 	skipInternal("resourceable_id", "polymorphic FK"),
 	skipInternal("resourceable_type", "polymorphic FK"),
 	skipInternal("team_id", "FK"),
 	skipInternal("real_value", "computed accessor"),
 	skipInternal("version", "Coolify internal version stamp"),
-	skipDeferred("is_required", 626, "product surface not yet managed in Terraform"),
-	skipDeferred("is_shared", 626, "shared-var surface not managed as resource field"),
-	skipDeferred("is_shown_once", 626, "UI reveal-once; not deploy semantics"),
-	skipDeferred("order", 626, "UI ordering not managed in Terraform"),
+	// is_shown_once covered on client + coolify_environment_variable schema (app write path).
+	skipNA("is_required", "not on ApplicationsController create_env/update_env $allowedFields"),
+	skipNA("is_shared", "not on ApplicationsController create_env/update_env $allowedFields"),
+	skipNA("order", "not on ApplicationsController create_env/update_env $allowedFields"),
 )
 
 var scheduledTaskCoverageSkips = skipMap(
@@ -140,8 +140,9 @@ var projectCoverageSkips = skipMap(
 var githubAppCoverageSkips = skipMap(
 	skipInternal("team_id", "FK"),
 	skipInternal("private_key_id", "numeric FK"),
-	// Public on GithubController create/update allow lists (must not be internal).
-	skipDeferred("client_secret", 626, "write-only sensitive; not on client entity read struct"),
+	// Write-only on create/update; API never returns it on the entity read struct.
+	// Schema+create/update already manage client_secret; entity coverage is n/a.
+	skipNA("client_secret", "write-only sensitive; intentionally omitted from GitHubApp read entity"),
 	skipInternal("administration", "GitHub permission scope blob"),
 	skipInternal("contents", "GitHub permission scope blob"),
 	skipNA("is_public", "GitHub App visibility flag; not mapped on provider github_app resource"),
@@ -152,8 +153,7 @@ var githubAppCoverageSkips = skipMap(
 var databaseBackupCoverageSkips = skipMap(
 	skipInternal("team_id", "FK"),
 	skipInternal("database_id", "numeric FK"),
-	skipDeferred("description", 626, "not yet exposed on database_backup"),
-	skipDeferred("disable_local_backup", 626, "not yet on client DatabaseBackup entity"),
+	// description + disable_local_backup covered on client entity and schema (Computed read-only).
 	skipNA("s3_storage_id", "numeric FK; provider uses s3_storage_uuid"),
 )
 
@@ -164,36 +164,18 @@ var cloudTokenCoverageSkips = skipMap(
 var storageCoverageSkips = skipMap(
 	skipInternal("container_id", "internal Docker container ID"),
 	skipNA("resource_id", "numeric FK; provider uses resource_uuid"),
-	skipDeferred("is_preview_suffix_enabled", 626, "not yet exposed on storage resource"),
+	// is_preview_suffix_enabled covered on client + coolify_storage schema.
 )
 
 var serverSettingCoverageSkips = skipMap(
 	skipInternal("server_id", "FK"),
 	skipNA("is_build_server", "on Server entity, not Settings"),
-	skipDeferred("is_force_disabled", 626, "not yet exposed on server settings"),
+	skipNA("is_force_disabled", "alias of force_disabled on ServerSetting model"),
 	skipNA("is_reachable", "on Server entity, not Settings"),
 	skipNA("is_usable", "on Server entity, not Settings"),
-	skipDeferred("is_swarm_manager", 626, "not yet exposed on server settings"),
-	skipDeferred("is_swarm_worker", 626, "not yet exposed on server settings"),
-	skipDeferred("sentinel_custom_url", 626, "not yet exposed on server settings"),
 	skipNA("sentinel_metrics_refresh_rate_in_seconds", "old contract name; superseded by sentinel_metrics_refresh_rate_seconds"),
 	skipNA("sentinel_push_interval_in_seconds", "old contract name; superseded by sentinel_push_interval_seconds"),
-	skipDeferred("sentinel_token", 626, "sensitive; not yet exposed"),
-	skipDeferred("is_logdrain_axiom_enabled", 626, "not yet exposed"),
-	skipDeferred("logdrain_axiom_api_key", 626, "sensitive; not yet exposed"),
-	skipDeferred("logdrain_axiom_dataset_name", 626, "not yet exposed"),
-	skipDeferred("is_logdrain_custom_enabled", 626, "not yet exposed"),
-	skipDeferred("logdrain_custom_config", 626, "not yet exposed"),
-	skipDeferred("logdrain_custom_config_parser", 626, "not yet exposed"),
-	skipDeferred("is_logdrain_highlight_enabled", 626, "not yet exposed"),
-	skipDeferred("logdrain_highlight_project_id", 626, "not yet exposed"),
-	skipDeferred("is_logdrain_newrelic_enabled", 626, "not yet exposed"),
-	skipDeferred("logdrain_newrelic_base_uri", 626, "not yet exposed"),
-	skipDeferred("logdrain_newrelic_license_key", 626, "sensitive; not yet exposed"),
-	skipDeferred("disable_application_image_retention", 626, "not yet exposed"),
-	skipDeferred("force_disabled", 626, "not yet exposed"),
-	skipDeferred("is_jump_server", 626, "not yet exposed"),
-	skipDeferred("is_sentinel_debug_enabled", 626, "not yet exposed"),
+	// Remaining settings fields covered on client.ServerSettings + read-only server schema.
 )
 
 var environmentCoverageSkips = skipMap(
@@ -215,5 +197,5 @@ var databaseModelSkips = skipMap(
 // appEnvWriteSkips: allowed_fields on application create_env / update_env that
 // are intentionally not on applicationEnvVarInput (#623).
 var appEnvWriteSkips = skipMap(
-	skipDeferred("is_shown_once", 626, "UI reveal-once; not sent on write path yet"),
+// is_shown_once covered on applicationEnvVarInput write path.
 )

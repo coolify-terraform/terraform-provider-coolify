@@ -55,6 +55,8 @@ resource "coolify_database_backup" "daily" {
 
 ### Read-Only
 
+- `description` (String) Optional description of the backup schedule. Read-only: Coolify does not accept this field on the public create/update backup API (UI-only write). Present when set out-of-band.
+- `disable_local_backup` (Boolean) Whether local backup retention is disabled. Read-only: Coolify does not accept this field on the public create/update backup API (UI-only write).
 - `id` (Number) The numeric ID of the backup configuration.
 - `uuid` (String) The UUID of the backup configuration.
 

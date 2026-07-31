@@ -76,20 +76,39 @@ resource "coolify_server_hetzner" "example" {
 
 - `delete_unused_networks` (Boolean) Whether to delete unused Docker networks during cleanup.
 - `delete_unused_volumes` (Boolean) Whether to delete unused Docker volumes during cleanup.
+- `disable_application_image_retention` (Boolean) Whether application image retention is disabled. Read-only (not on public server PATCH allow-list).
 - `docker_cleanup_frequency` (String) Cron expression for Docker cleanup schedule.
 - `docker_cleanup_threshold` (Number) Disk usage percentage threshold for Docker cleanup.
+- `force_disabled` (Boolean) Whether the server is force-disabled in Coolify. Read-only (not on public server PATCH allow-list).
 - `force_docker_cleanup` (Boolean) Whether to force Docker cleanup regardless of disk usage.
 - `generate_exact_labels` (Boolean) Whether to generate exact Docker labels (removes extra labels from containers).
 - `ip` (String) The IP address assigned to the server by Hetzner.
 - `is_cloudflare_tunnel` (Boolean) Whether this server uses a Cloudflare Tunnel.
+- `is_jump_server` (Boolean) Whether this server is a jump host. Read-only (not on public server PATCH allow-list).
+- `is_logdrain_axiom_enabled` (Boolean) Whether Axiom log drain is enabled. Read-only (not on public server PATCH allow-list).
+- `is_logdrain_custom_enabled` (Boolean) Whether custom log drain is enabled. Read-only.
+- `is_logdrain_highlight_enabled` (Boolean) Whether Highlight log drain is enabled. Read-only.
+- `is_logdrain_newrelic_enabled` (Boolean) Whether New Relic log drain is enabled. Read-only.
 - `is_metrics_enabled` (Boolean) Whether metrics collection is enabled on this server.
 - `is_reachable` (Boolean) Whether the server is currently reachable.
+- `is_sentinel_debug_enabled` (Boolean) Whether Sentinel debug mode is enabled. Read-only (not on public server PATCH allow-list).
 - `is_sentinel_enabled` (Boolean) Whether the Sentinel monitoring agent is enabled.
+- `is_swarm_manager` (Boolean) Whether this server is a Docker Swarm manager. Read-only (not on public server PATCH allow-list).
+- `is_swarm_worker` (Boolean) Whether this server is a Docker Swarm worker. Read-only (not on public server PATCH allow-list).
 - `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server.
 - `is_usable` (Boolean) Whether the server is currently usable for deployments.
+- `logdrain_axiom_api_key` (String, Sensitive) Axiom API key for log drain. Sensitive; read-only.
+- `logdrain_axiom_dataset_name` (String) Axiom dataset name for log drain. Read-only.
+- `logdrain_custom_config` (String, Sensitive) Custom log drain configuration. Sensitive; read-only.
+- `logdrain_custom_config_parser` (String) Custom log drain config parser. Read-only.
+- `logdrain_highlight_project_id` (String) Highlight project ID for log drain. Read-only.
+- `logdrain_newrelic_base_uri` (String) New Relic base URI for log drain. Read-only.
+- `logdrain_newrelic_license_key` (String, Sensitive) New Relic license key for log drain. Sensitive; read-only.
+- `sentinel_custom_url` (String) Custom Sentinel push URL. Read-only (not on public server PATCH allow-list).
 - `sentinel_metrics_history_days` (Number) Number of days to retain Sentinel metrics.
 - `sentinel_metrics_refresh_rate_seconds` (Number) Sentinel metrics refresh rate in seconds.
 - `sentinel_push_interval_seconds` (Number) Interval in seconds between Sentinel metric pushes.
+- `sentinel_token` (String, Sensitive) Sentinel agent token. Sensitive; only returned when the API token can read secrets. Read-only.
 - `server_timezone` (String) Server timezone (e.g., `UTC`, `America/New_York`).
 - `uuid` (String) The unique identifier of the server.
 - `wildcard_domain` (String) Wildcard domain for applications on this server (e.g., `example.com`).
