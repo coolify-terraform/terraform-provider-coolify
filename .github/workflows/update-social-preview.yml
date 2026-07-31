@@ -100,7 +100,7 @@ jobs:
           DATASOURCES: ${{ steps.stats.outputs.datasources }}
           TESTS: ${{ steps.stats.outputs.tests }}
         run: |
-          NEW="Terraform provider for Coolify — manage ${RESOURCES} resources, ${DATASOURCES} data sources, ${TESTS} tests. Self-hosted PaaS as code."
+          NEW="Terraform provider for Coolify: manage ${RESOURCES} resources, ${DATASOURCES} data sources, ${TESTS} tests. Self-hosted PaaS as code."
           CURRENT=$(gh repo view --json description --jq '.description')
           if [ "$NEW" != "$CURRENT" ]; then
             gh repo edit --description "$NEW"
