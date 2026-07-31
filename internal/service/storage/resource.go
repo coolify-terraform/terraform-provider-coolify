@@ -202,47 +202,57 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// Coolify defaults is_preview_suffix_enabled to true. When the plan wants
-	// a non-default value, apply it via the update allow-list.
-	if !plan.IsPreviewSuffixEnabled.IsNull() && !plan.IsPreviewSuffixEnabled.IsUnknown() &&
-		!plan.IsPreviewSuffixEnabled.ValueBool() {
-		v := false
-		uuid := createResp.UUID
-		upd := client.UpdateStorageInput{
-			UUID:                   &uuid,
-			Type:                   "persistent",
-			IsPreviewSuffixEnabled: &v,
-		}
-		if err := r.client.UpdateStorage(ctx, parentType, parentUUID, upd); err != nil {
-			resp.Diagnostics.AddError(
-				"Error setting is_preview_suffix_enabled after create",
-				fmt.Sprintf("storage %s was created, but updating is_preview_suffix_enabled failed: %s. "+
-					"Run terraform apply again to converge.", createResp.UUID, err),
-			)
-			return
-		}
+	if err := r.applyPreviewSuffixAfterCreate(ctx, parentType, parentUUID, createResp.UUID, plan); err != nil {
+		resp.Diagnostics.AddError(
+			"Error setting is_preview_suffix_enabled after create",
+			err.Error(),
+		)
+		return
 	}
 
-	// Read-back for computed fields and Coolify name prefix normalization.
+	r.finalizeCreateState(ctx, parentType, parentUUID, createResp.UUID, &plan, resp)
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_storage", "uuid": createResp.UUID})
+}
+
+// applyPreviewSuffixAfterCreate PATCHes is_preview_suffix_enabled when the plan
+// wants false (Coolify create rejects this field; default on create is true).
+func (r *storageResource) applyPreviewSuffixAfterCreate(ctx context.Context, parentType, parentUUID, uuid string, plan storageResourceModel) error {
+	if plan.IsPreviewSuffixEnabled.IsNull() || plan.IsPreviewSuffixEnabled.IsUnknown() || plan.IsPreviewSuffixEnabled.ValueBool() {
+		return nil
+	}
+	v := false
+	upd := client.UpdateStorageInput{
+		UUID:                   &uuid,
+		Type:                   "persistent",
+		IsPreviewSuffixEnabled: &v,
+	}
+	if err := r.client.UpdateStorage(ctx, parentType, parentUUID, upd); err != nil {
+		return fmt.Errorf("storage %s was created, but updating is_preview_suffix_enabled failed: %w. Run terraform apply again to converge", uuid, err)
+	}
+	return nil
+}
+
+// finalizeCreateState reads the volume back after create (or falls back to plan defaults).
+func (r *storageResource) finalizeCreateState(ctx context.Context, parentType, parentUUID, uuid string, plan *storageResourceModel, resp *resource.CreateResponse) {
 	storages, listErr := r.client.ListStorages(ctx, parentType, parentUUID)
 	if listErr != nil {
 		tflog.Warn(ctx, "read-back after create failed, using plan values", map[string]interface{}{
-			"resource_type": "coolify_storage", "uuid": createResp.UUID, "error": listErr.Error(),
+			"resource_type": "coolify_storage", "uuid": uuid, "error": listErr.Error(),
 		})
-		if plan.IsPreviewSuffixEnabled.IsNull() || plan.IsPreviewSuffixEnabled.IsUnknown() {
-			plan.IsPreviewSuffixEnabled = types.BoolValue(true)
-		}
-		resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		ensurePreviewSuffixDefault(plan)
+		resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 		return
 	}
-	if !flattenStorageFromList(storages, &plan) {
-		// Created but not yet listed: keep plan values with default for preview suffix.
-		if plan.IsPreviewSuffixEnabled.IsNull() || plan.IsPreviewSuffixEnabled.IsUnknown() {
-			plan.IsPreviewSuffixEnabled = types.BoolValue(true)
-		}
+	if !flattenStorageFromList(storages, plan) {
+		ensurePreviewSuffixDefault(plan)
 	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_storage", "uuid": createResp.UUID})
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+func ensurePreviewSuffixDefault(m *storageResourceModel) {
+	if m.IsPreviewSuffixEnabled.IsNull() || m.IsPreviewSuffixEnabled.IsUnknown() {
+		m.IsPreviewSuffixEnabled = types.BoolValue(true)
+	}
 }
 
 func (r *storageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
