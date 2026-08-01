@@ -197,6 +197,19 @@ value the API returned on Read. Common triggers:
 3. If the field is a password you set, the token permissions are the
    most likely cause
 
+### Unexpected public domain (`sslip.io` or wildcard FQDN)
+
+**Symptom:** after `terraform apply`, the application has a public URL
+like `http://{uuid}.{ip}.sslip.io` even though you never set `domains`.
+
+**Cause:** Coolify defaults `autogenerate_domain` to `true` on create.
+When `domains` is blank, it generates a Traefik host automatically.
+
+**Fix:** set `autogenerate_domain = false` for internal apps (workers,
+queues, sidecars). See the [Domains and HTTPS](domains-and-https)
+guide. Clearing an existing FQDN with `domains = ""` is blocked by a
+Coolify update-path bug (`$request->has('domains')`); tracked as #647.
+
 ### "forces replacement"
 
 ```

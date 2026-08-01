@@ -50,6 +50,10 @@ func TestApplicationResource_Create(t *testing.T) {
 				return
 			}
 		}
+		// Default true matches Coolify $request->boolean('autogenerate_domain', true).
+		if v, ok := body["autogenerate_domain"].(bool); !ok || !v {
+			t.Errorf("POST create expected autogenerate_domain=true by default, got %v", body["autogenerate_domain"])
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
@@ -102,6 +106,7 @@ func TestApplicationResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_application.test", "build_pack", "nixpacks"),
 					resource.TestCheckResourceAttr("coolify_application.test", "ports_exposes", "3000"),
 					resource.TestCheckResourceAttr("coolify_application.test", "environment_name", "production"),
+					resource.TestCheckResourceAttr("coolify_application.test", "autogenerate_domain", "true"),
 				),
 			},
 			{
