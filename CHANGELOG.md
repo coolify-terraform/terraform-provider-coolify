@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.11](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.10...v0.1.11) (2026-08-01)
+
+
+### Features
+
+* clear deferred contract field umbrella ([#626](https://github.com/coolify-terraform/terraform-provider-coolify/issues/626)) ([#641](https://github.com/coolify-terraform/terraform-provider-coolify/issues/641)) ([ac8ebdc](https://github.com/coolify-terraform/terraform-provider-coolify/commit/ac8ebdcc2e60534997d0713446c5ca85cac070e3))
+* expose autogenerate_domain and related domain controls ([#646](https://github.com/coolify-terraform/terraform-provider-coolify/issues/646)) ([802a9fc](https://github.com/coolify-terraform/terraform-provider-coolify/commit/802a9fcd740fe561c978224b9896d6ae8b22a410))
+
+
+### Bug Fixes
+
+* **ci:** drop em dash from social-preview repo description ([#639](https://github.com/coolify-terraform/terraform-provider-coolify/issues/639)) ([36fd7ae](https://github.com/coolify-terraform/terraform-provider-coolify/commit/36fd7ae78b35fc038a84105c5a4435972e73b1d3))
+
 ## [0.1.10](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.9...v0.1.10) (2026-07-30)
 
 
