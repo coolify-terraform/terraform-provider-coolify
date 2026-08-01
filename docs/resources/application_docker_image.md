@@ -23,6 +23,7 @@ resource "coolify_application_docker_image" "nginx" {
 
   # Optional fields (uncomment as needed):
   # docker_registry_image_tag = "1.27-alpine"  # Pin to a specific image tag instead of :latest
+  # autogenerate_domain       = false          # Internal apps: no sslip/wildcard public FQDN
 }
 ```
 

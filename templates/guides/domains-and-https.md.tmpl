@@ -128,26 +128,54 @@ resource "coolify_application" "web" {
 All domains receive TLS certificates. Requests to any of them route to
 the same application container.
 
-## Wildcard Domains
+## Auto-generated Domains
 
-Servers have a `wildcard_domain` attribute that enables automatic domain
-assignment for applications that do not set an explicit `domains` value:
+On **create**, Coolify defaults `autogenerate_domain` to `true`. If you
+omit `domains` (or leave it blank), Coolify assigns a public FQDN and
+installs a Traefik/Caddy host for it:
+
+| Server config | Generated FQDN shape |
+|---------------|----------------------|
+| Wildcard domain set | `https://{application-uuid}.{wildcard}` |
+| No wildcard | `http://{application-uuid}.{server-ip}.sslip.io` |
+
+The provider exposes this as create-only `autogenerate_domain`
+(default `true`), matching Coolify's `$request->boolean('autogenerate_domain', true)`.
 
 ```hcl
-resource "coolify_server" "prod" {
+resource "coolify_application_docker_image" "public" {
   # ...
-  # This is a read-only attribute set via Coolify UI/API
-  # wildcard_domain = "example.com"
+  # domains omitted + default autogenerate_domain = true
+  # -> Coolify generates sslip.io or wildcard FQDN
 }
 ```
 
-When a wildcard domain is configured on the server, Coolify generates
-a domain like `<app-name>.<wildcard-domain>` for applications that
-do not have an explicit `domains` attribute set.
+Servers may also show a read-only `wildcard_domain` from Coolify UI/API
+configuration. Prefer explicit `domains = "https://..."` for production
+hostnames with Let's Encrypt HTTP-01.
 
--> **Wildcard TLS** requires DNS-01 validation (not HTTP-01) and
-additional proxy configuration. For most setups, explicit per-app
-domains with HTTP-01 validation are simpler and recommended.
+-> **Wildcard TLS** (server-level wildcards) often needs DNS-01 validation.
+For most setups, explicit per-app domains with HTTP-01 are simpler.
+
+## Internal Applications (No Public URL)
+
+Workers, queues, and sidecars that must **not** get a Traefik host should
+disable generation and leave `domains` empty:
+
+```hcl
+resource "coolify_application_docker_image" "worker" {
+  name                = "background-worker"
+  project_uuid        = coolify_project.main.uuid
+  server_uuid         = data.coolify_server.prod.uuid
+  docker_image        = "myorg/worker:latest"
+  ports_exposes       = "8080"
+  autogenerate_domain = false
+  # domains omitted or domains = ""
+}
+```
+
+Without `autogenerate_domain = false`, Coolify still generates a public
+sslip/wildcard URL even when you never set `domains`.
 
 ## Troubleshooting
 
