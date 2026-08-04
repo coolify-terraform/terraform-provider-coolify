@@ -19,6 +19,39 @@ const (
 	defaultHealthCheckCode = int64(200)
 )
 
+// coolifyDockerComposeDomainsNeedRaw is the Coolify API error substring when
+// docker_compose_domains is set before docker_compose_raw exists. Present on
+// all Coolify versions supported by this provider (v4.1.0 through v4.2.0+).
+const coolifyDockerComposeDomainsNeedRaw = "Cannot set docker_compose_domains without docker_compose_raw"
+
+// dockerComposeDomainsDescription is the shared schema docs for
+// docker_compose_domains on application resources. Kept as a constant so unit
+// tests can lock the ordering constraint and write shape for every supported
+// Coolify version without regenerating provider docs in the test.
+const dockerComposeDomainsDescription = "Domain mappings for Docker Compose services (`build_pack = \"dockercompose\"`). " +
+	"Send a JSON array of objects with `name` (compose service name) and `domain` (comma-separated http(s) URLs), for example " +
+	"`jsonencode([{ name = \"web\", domain = \"https://app.example.com\" }])`. " +
+	"Coolify rejects this field until `docker_compose_raw` is set. For git-sourced compose apps, Coolify only populates " +
+	"`docker_compose_raw` after a deployment loads the compose file from the repository; there is no separate load-compose API. " +
+	"This ordering is a Coolify API constraint on all Coolify versions supported by this provider (v4.1.0 and later). " +
+	"Recommended two-stage apply: (1) create without `docker_compose_domains` and deploy once (`instant_deploy = true` or a manual deploy), " +
+	"wait until the deployment succeeds; (2) add `docker_compose_domains` and apply again. " +
+	"Alternatively use `coolify_service` with inline `docker_compose_raw` when the compose file can live in Terraform."
+
+// annotateDockerComposeDomainsError appends operator guidance when Coolify
+// rejects docker_compose_domains because compose raw is not loaded yet.
+func annotateDockerComposeDomainsError(err error) string {
+	if err == nil {
+		return ""
+	}
+	if !strings.Contains(err.Error(), coolifyDockerComposeDomainsNeedRaw) {
+		return ""
+	}
+	return " Coolify requires docker_compose_raw before docker_compose_domains on all supported Coolify versions (v4.1.0+). " +
+		"For git-sourced dockercompose applications, deploy once so Coolify loads the compose file, then set " +
+		"docker_compose_domains on a second apply. See the docker_compose_domains attribute docs and the Common Errors guide."
+}
+
 // commonAppFields holds pointers to the fields shared by all application
 // resource models. This allows a single flatten function to write into
 // any concrete model type.

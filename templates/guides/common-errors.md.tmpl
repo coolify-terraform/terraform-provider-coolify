@@ -68,6 +68,43 @@ required fields that are not always obvious:
 | `coolify_server` | `ip`, `private_key_uuid` |
 | `coolify_database_backup` | `frequency` (cron expression) |
 
+### Cannot set docker_compose_domains without docker_compose_raw
+
+```
+Error: Error setting application extended fields
+Application … was created, but the post-create PATCH for extended fields failed:
+… Cannot set docker_compose_domains without docker_compose_raw.
+Reload the compose file from the git repository first.
+```
+
+**Cause:** Coolify refuses `docker_compose_domains` until `docker_compose_raw`
+is set. For git-sourced applications with `build_pack = "dockercompose"`, the
+compose file is loaded only when a deployment runs; there is no separate
+"load compose" API. This guard exists on **all Coolify versions supported by
+this provider** (v4.1.0 and later: verified on v4.1.0, v4.1.1, v4.1.2, and
+v4.2.0).
+
+**Fix (two-stage apply):**
+
+1. Create the application **without** `docker_compose_domains`. Deploy once
+   (`instant_deploy = true`, Coolify UI, or `coolify_deployment` with
+   `wait_for_completion = true`) and wait until that deployment succeeds so
+   Coolify has `docker_compose_raw`.
+2. Add `docker_compose_domains` as a JSON array and apply again:
+
+```hcl
+docker_compose_domains = jsonencode([
+  { name = "web", domain = "https://app.example.com" }
+])
+```
+
+**Alternative:** use `coolify_service` with inline `docker_compose_raw` when
+the compose YAML can live in Terraform (see the Docker Compose stacks guide).
+That path does not depend on a git deploy to populate compose raw.
+
+Do **not** force `instant_deploy = true` only to hide the constraint if you
+do not want an immediate deploy; the ordering is intrinsic to Coolify.
+
 ### UUID format invalid
 
 ```

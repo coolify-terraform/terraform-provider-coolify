@@ -260,7 +260,7 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Optional:            true,
 		},
 		"docker_compose_domains": schema.StringAttribute{
-			MarkdownDescription: "Domain mappings for Docker Compose services.",
+			MarkdownDescription: dockerComposeDomainsDescription,
 			Optional:            true,
 		},
 		"git_commit_sha": schema.StringAttribute{
