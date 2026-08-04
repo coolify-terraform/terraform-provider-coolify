@@ -112,6 +112,57 @@ resource "coolify_service" "grafana" {
 
 Note: you must remove `type` from config when adding `docker_compose_raw`, since they are mutually exclusive.
 
+## Git-sourced compose applications (ordering constraint)
+
+You can also deploy compose from a Git repository via application resources
+(`coolify_application`, `coolify_application_private_git`,
+`coolify_application_github_app`) with `build_pack = "dockercompose"`.
+
+For those apps, Coolify fills `docker_compose_raw` only when a **deployment**
+loads the compose file from the repo. Until then, setting
+`docker_compose_domains` fails with:
+
+```
+Cannot set docker_compose_domains without docker_compose_raw
+```
+
+This is a Coolify API constraint on **all supported Coolify versions**
+(v4.1.0+). It is not a provider-only limitation.
+
+**Recommended two-stage apply:**
+
+1. Create without `docker_compose_domains`; deploy once
+   (`instant_deploy = true`, Coolify UI, or `coolify_deployment` with
+   `wait_for_completion = true`) and wait for success.
+2. Add domains and apply again:
+
+```hcl
+resource "coolify_application" "compose_app" {
+  name             = "my-compose-app"
+  project_uuid     = coolify_project.myproject.uuid
+  server_uuid      = var.server_uuid
+  environment_name = "production"
+
+  git_repository = "https://github.com/example/my-compose-repo"
+  git_branch     = "main"
+  build_pack     = "dockercompose"
+  ports_exposes  = "3000"
+  instant_deploy = true
+
+  # Stage 1: omit docker_compose_domains until the first deploy has loaded compose.
+  # Stage 2: add:
+  # docker_compose_domains = jsonencode([
+  #   { name = "web", domain = "https://app.example.com" }
+  # ])
+}
+```
+
+Prefer `coolify_service` with `docker_compose_raw` (this guide's main path)
+when you can manage the compose YAML in Terraform and want domains without a
+deploy-first step.
+
+See also the [Common Errors](common-errors) guide entry for this message.
+
 ## Token Permissions
 
 The `docker_compose_raw` and `docker_compose` fields require an API token with `read:sensitive` or `root` permissions. Without this, these fields appear empty after import or read-back, which may cause unexpected diffs.

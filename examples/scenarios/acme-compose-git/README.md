@@ -20,6 +20,17 @@ This scenario deploys a 2-container stack: nginx serving static content with
 a Redis sidecar for caching. In a real project, this YAML would come from your
 repository's `docker-compose.yml`.
 
+## Note: git-sourced application compose
+
+This scenario uses **`coolify_service` + inline `docker_compose_raw`**, not a
+git-backed `coolify_application` with `build_pack = "dockercompose"`.
+
+For git-sourced compose applications, Coolify only loads `docker_compose_raw`
+during a deployment. Setting `docker_compose_domains` before that fails with
+`Cannot set docker_compose_domains without docker_compose_raw` on all Coolify
+versions supported by this provider (v4.1.0+). Use a two-stage apply (deploy
+first, then set domains), or keep using `coolify_service` as shown here.
+
 ## Running
 
 ```bash

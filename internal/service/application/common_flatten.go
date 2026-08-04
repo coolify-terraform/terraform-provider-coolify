@@ -570,9 +570,16 @@ func postCreatePatchExtendedFields(ctx context.Context, c *client.Client, uuid s
 	tflog.Debug(ctx, "patching extended fields after create", map[string]interface{}{"uuid": uuid})
 	input := buildPostCreatePatch(f)
 	if _, err := c.UpdateApplication(ctx, uuid, input); err != nil {
+		hint := annotateDockerComposeDomainsError(err)
+		converge := ""
+		if hint == "" {
+			// Re-apply alone does not help for docker_compose_domains empty-raw;
+			// that path uses annotateDockerComposeDomainsError instead.
+			converge = " Run terraform apply again to converge."
+		}
 		resp.Diagnostics.AddError("Error setting application extended fields",
-			fmt.Sprintf("Application %s was created, but the post-create PATCH for extended fields failed: %s. "+
-				"Run terraform apply again to converge.", uuid, err))
+			fmt.Sprintf("Application %s was created, but the post-create PATCH for extended fields failed: %s.%s%s",
+				uuid, err, converge, hint))
 	}
 }
 

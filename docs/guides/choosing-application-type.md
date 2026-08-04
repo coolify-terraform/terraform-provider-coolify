@@ -20,6 +20,7 @@ Start here: What do you have?
 │  ├─ Public repository (no authentication needed)
 │  │  │
 │  │  ├─ Has a Dockerfile ─────► coolify_application (build_pack = "dockerfile")
+│  │  ├─ Has docker-compose ───► coolify_application (build_pack = "dockercompose")*
 │  │  └─ No Dockerfile ────────► coolify_application (build_pack = "nixpacks")
 │  │
 │  └─ Private repository
@@ -29,8 +30,15 @@ Start here: What do you have?
 │
 ├─ A Dockerfile (no Git repo) ──► coolify_application_dockerfile
 │
+├─ A compose file in Terraform ─► coolify_service (docker_compose_raw)
+│
 └─ A pre-built Docker image ────► coolify_application_docker_image
 ```
+
+\* Git-sourced `dockercompose` apps: Coolify loads compose only on deploy.
+Set `docker_compose_domains` only after the first successful deployment
+(or use `coolify_service` with inline compose). See the
+[Docker Compose stacks](docker-compose-services) guide.
 
 ## Comparison Table
 

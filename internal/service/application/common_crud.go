@@ -110,7 +110,8 @@ func updateAndReadBack(
 	typeSpecificFieldChanged ...bool,
 ) {
 	if _, err := c.UpdateApplication(ctx, uuid, input); err != nil {
-		resp.Diagnostics.AddError("Error updating application", fmt.Sprintf("application %s: %s", uuid, err))
+		resp.Diagnostics.AddError("Error updating application",
+			fmt.Sprintf("application %s: %s%s", uuid, err, annotateDockerComposeDomainsError(err)))
 		return
 	}
 
