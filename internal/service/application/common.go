@@ -31,6 +31,8 @@ const coolifyDockerComposeDomainsNeedRaw = "Cannot set docker_compose_domains wi
 const dockerComposeDomainsDescription = "Domain mappings for Docker Compose services (`build_pack = \"dockercompose\"`). " +
 	"Send a JSON array of objects with `name` (compose service name) and `domain` (comma-separated http(s) URLs), for example " +
 	"`jsonencode([{ name = \"web\", domain = \"https://app.example.com\" }])`. " +
+	"Coolify accepts only that array form on write, stores an object map keyed by service name, and returns the object form on GET; " +
+	"the provider normalizes both shapes so Terraform plans stay empty after apply. " +
 	"Coolify rejects this field until `docker_compose_raw` is set. For git-sourced compose apps, Coolify only populates " +
 	"`docker_compose_raw` after a deployment loads the compose file from the repository; there is no separate load-compose API. " +
 	"This ordering is a Coolify API constraint on all Coolify versions supported by this provider (v4.1.0 and later). " +
@@ -440,7 +442,7 @@ func runtimeFieldsChanged(plan, state commonAppFields) bool {
 		stringFieldChanged(plan.HTTPBasicAuthUsername, state.HTTPBasicAuthUsername) ||
 		stringFieldChanged(plan.HTTPBasicAuthPassword, state.HTTPBasicAuthPassword) ||
 		stringFieldChanged(plan.CustomNetworkAliases, state.CustomNetworkAliases) ||
-		stringFieldChanged(plan.DockerComposeDomains, state.DockerComposeDomains) ||
+		dockerComposeDomainsFieldChanged(plan.DockerComposeDomains, state.DockerComposeDomains) ||
 		stringFieldChanged(plan.PreDeploymentCommandContainer, state.PreDeploymentCommandContainer) ||
 		stringFieldChanged(plan.PostDeploymentCommandContainer, state.PostDeploymentCommandContainer) ||
 		stringFieldChanged(plan.CustomLabels, state.CustomLabels) ||

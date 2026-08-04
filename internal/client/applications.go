@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -57,10 +58,13 @@ type Application struct {
 	DockerComposeLocation           string `json:"docker_compose_location,omitempty"`
 	DockerComposeCustomBuildCommand string `json:"docker_compose_custom_build_command,omitempty"`
 	DockerComposeCustomStartCommand string `json:"docker_compose_custom_start_command,omitempty"`
-	DockerComposeDomains            string `json:"docker_compose_domains,omitempty"`
-	GitCommitSha                    string `json:"git_commit_sha,omitempty"`
-	WatchPaths                      string `json:"watch_paths,omitempty"`
-	PreviewURLTemplate              string `json:"preview_url_template,omitempty"`
+	// DockerComposeDomains is a JSON string of Coolify's storage map form, or a
+	// flexible decoded value; see FlexibleJSONString. Callers should normalize
+	// to the write array shape before comparing to Terraform config (#652).
+	DockerComposeDomains FlexibleJSONString `json:"docker_compose_domains,omitempty"`
+	GitCommitSha         string             `json:"git_commit_sha,omitempty"`
+	WatchPaths           string             `json:"watch_paths,omitempty"`
+	PreviewURLTemplate   string             `json:"preview_url_template,omitempty"`
 	// Container/Network settings
 	CustomDockerRunOptions   string `json:"custom_docker_run_options,omitempty"`
 	CustomLabels             string `json:"custom_labels,omitempty"`
@@ -122,6 +126,30 @@ type Application struct {
 	// Nested settings blob from GET responses (promoted after decode).
 	Settings *ApplicationSettings `json:"settings,omitempty"`
 }
+
+// FlexibleJSONString unmarshals a JSON string or any other JSON value (object,
+// array) into its textual form. Coolify stores docker_compose_domains as a
+// string column (so GET usually returns a JSON string), but accepting a raw
+// object/array avoids hard decode failures if a response is already expanded.
+type FlexibleJSONString string
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (s *FlexibleJSONString) UnmarshalJSON(b []byte) error {
+	if string(b) == "null" {
+		*s = ""
+		return nil
+	}
+	var asString string
+	if err := json.Unmarshal(b, &asString); err == nil {
+		*s = FlexibleJSONString(asString)
+		return nil
+	}
+	*s = FlexibleJSONString(b)
+	return nil
+}
+
+// String returns the underlying value.
+func (s FlexibleJSONString) String() string { return string(s) }
 
 // ApplicationSettings holds nested settings from GET application responses.
 type ApplicationSettings struct {
@@ -248,10 +276,13 @@ type UpdateApplicationInput struct {
 	DockerComposeLocation           *string `json:"docker_compose_location,omitempty"`
 	DockerComposeCustomBuildCommand *string `json:"docker_compose_custom_build_command,omitempty"`
 	DockerComposeCustomStartCommand *string `json:"docker_compose_custom_start_command,omitempty"`
-	DockerComposeDomains            *string `json:"docker_compose_domains,omitempty"`
-	GitCommitSha                    *string `json:"git_commit_sha,omitempty"`
-	WatchPaths                      *string `json:"watch_paths,omitempty"`
-	PreviewURLTemplate              *string `json:"preview_url_template,omitempty"`
+	// DockerComposeDomains must be a JSON array of {name,domain} on the wire.
+	// Coolify validates 'array|nullable' (ApplicationsController). A Go *string
+	// would encode as a JSON string and fail with "must be an array" (#652).
+	DockerComposeDomains json.RawMessage `json:"docker_compose_domains,omitempty"`
+	GitCommitSha         *string         `json:"git_commit_sha,omitempty"`
+	WatchPaths           *string         `json:"watch_paths,omitempty"`
+	PreviewURLTemplate   *string         `json:"preview_url_template,omitempty"`
 	// Container/Network settings
 	CustomDockerRunOptions   *string `json:"custom_docker_run_options,omitempty"`
 	CustomLabels             *string `json:"custom_labels,omitempty"`

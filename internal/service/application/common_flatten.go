@@ -143,7 +143,9 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	flex.SetStringSeedOrClear(f.PublishDirectory, app.PublishDirectory)
 	flex.SetStringIfConfigured(f.Dockerfile, app.Dockerfile)
 	flex.SetStringOrClear(f.DockerRegistryImageTag, app.DockerRegistryImageTag)
-	flex.SetStringOrClear(f.DockerComposeDomains, app.DockerComposeDomains)
+	// Coolify stores/returns an object map; Terraform config uses the write
+	// array shape. Normalize on read so plan stays empty (#652).
+	resolveDockerComposeDomains(f.DockerComposeDomains, app.DockerComposeDomains.String())
 	flex.SetStringSeedOrClear(f.WatchPaths, app.WatchPaths)
 	flex.SetStringOrClear(f.CustomDockerRunOptions, app.CustomDockerRunOptions)
 	flex.SetStringOrClear(f.CustomNetworkAliases, app.CustomNetworkAliases)
@@ -311,7 +313,7 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	input.BaseDirectory = strDiff(*plan.BaseDirectory, *state.BaseDirectory)
 	input.PublishDirectory = strDiff(*plan.PublishDirectory, *state.PublishDirectory)
 	input.DockerRegistryImageTag = strDiff(*plan.DockerRegistryImageTag, *state.DockerRegistryImageTag)
-	input.DockerComposeDomains = strDiff(*plan.DockerComposeDomains, *state.DockerComposeDomains)
+	input.DockerComposeDomains = dockerComposeDomainsIfChanged(*plan.DockerComposeDomains, *state.DockerComposeDomains)
 	input.GitCommitSha = strDiff(*plan.GitCommitSha, *state.GitCommitSha)
 	input.WatchPaths = strDiff(*plan.WatchPaths, *state.WatchPaths)
 	// preview_url_template is not in Coolify v4's update $allowedFields.
@@ -515,7 +517,9 @@ func buildPostCreatePatch(f commonAppFields) client.UpdateApplicationInput {
 	flex.SetStrPtr(&input.BaseDirectory, safeStr(f.BaseDirectory))
 	flex.SetStrPtr(&input.PublishDirectory, safeStr(f.PublishDirectory))
 	flex.SetStrPtr(&input.DockerRegistryImageTag, safeStr(f.DockerRegistryImageTag))
-	flex.SetStrPtr(&input.DockerComposeDomains, safeStr(f.DockerComposeDomains))
+	if f.DockerComposeDomains != nil && !f.DockerComposeDomains.IsNull() && !f.DockerComposeDomains.IsUnknown() {
+		input.DockerComposeDomains = wireDockerComposeDomains(f.DockerComposeDomains.ValueString())
+	}
 	flex.SetStrPtr(&input.GitCommitSha, safeStr(f.GitCommitSha))
 	flex.SetStrPtr(&input.WatchPaths, safeStr(f.WatchPaths))
 	// Container/Network
