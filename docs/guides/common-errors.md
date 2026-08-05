@@ -105,6 +105,24 @@ That path does not depend on a git deploy to populate compose raw.
 Do **not** force `instant_deploy = true` only to hide the constraint if you
 do not want an immediate deploy; the ordering is intrinsic to Coolify.
 
+### Coolify version cannot write some application settings
+
+```
+Warning: Coolify version cannot write some application settings
+
+This Coolify instance (4.1.2) is older than v4.2.0, which is required to write:
+is_gzip_enabled, …. The provider will keep these values in Terraform state but
+will not send them to the Coolify API.
+```
+
+**Cause:** Coolify **v4.1.x** rejects several application write fields (the
+`APPLICATION_SETTING_FIELDS` set, plus `is_preview_deployments_enabled` and
+`use_build_secrets`). The provider withholds them on PATCH so Create does not
+422, but still keeps configured values in state.
+
+**Fix:** upgrade Coolify to **v4.2.0** or later, or remove those attributes
+from configuration. The warning is intentional; it is not a hard error.
+
 ### UUID format invalid
 
 ```

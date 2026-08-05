@@ -21,6 +21,7 @@ var (
 	_ resource.Resource                = &privateGitApplicationResource{}
 	_ resource.ResourceWithConfigure   = &privateGitApplicationResource{}
 	_ resource.ResourceWithImportState = &privateGitApplicationResource{}
+	_ resource.ResourceWithModifyPlan  = &privateGitApplicationResource{}
 )
 
 // privateGitApplicationResource manages a Coolify application deployed from a private Git repository.
@@ -65,6 +66,18 @@ func (r *privateGitApplicationResource) Schema(ctx context.Context, _ resource.S
 
 func (r *privateGitApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
+}
+
+func (r *privateGitApplicationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	var cfg privateGitApplicationResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
 }
 
 //nolint:dupl // Create methods differ by input struct type and API call

@@ -22,6 +22,7 @@ var (
 	_ resource.Resource                = &dockerImageApplicationResource{}
 	_ resource.ResourceWithConfigure   = &dockerImageApplicationResource{}
 	_ resource.ResourceWithImportState = &dockerImageApplicationResource{}
+	_ resource.ResourceWithModifyPlan  = &dockerImageApplicationResource{}
 )
 
 // dockerImageApplicationResource manages a Coolify application deployed from a Docker image.
@@ -72,6 +73,18 @@ func (r *dockerImageApplicationResource) Schema(ctx context.Context, _ resource.
 
 func (r *dockerImageApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
+}
+
+func (r *dockerImageApplicationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	var cfg dockerImageApplicationResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
 }
 
 func (r *dockerImageApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
