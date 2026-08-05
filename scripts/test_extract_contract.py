@@ -553,6 +553,118 @@ class VolumeBackupsController {
         self.assertEqual(result["validateUpsertRequest"], ["frequency", "enabled", "timeout"])
         self.assertEqual(result["upsert"], ["frequency", "enabled", "timeout"])
 
+    def test_self_const_spread_expanded(self):
+        # ApplicationsController (v4.2+) ends $allowedFields with
+        # ...self::APPLICATION_SETTING_FIELDS. Without expansion the contract
+        # understates the public write surface (#661).
+        php = """<?php
+class ApplicationsController {
+    private const APPLICATION_SETTING_FIELDS = [
+        'is_git_submodules_enabled',
+        'is_gzip_enabled',
+        'stop_grace_period',
+    ];
+
+    public function update_by_uuid(Request $request) {
+        $allowedFields = ['name', 'description', ...self::APPLICATION_SETTING_FIELDS];
+    }
+
+    public function create_application(Request $request) {
+        $allowedFields = ['project_uuid', 'name', ...self::APPLICATION_SETTING_FIELDS];
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(
+            result["update_by_uuid"],
+            [
+                "name",
+                "description",
+                "is_git_submodules_enabled",
+                "is_gzip_enabled",
+                "stop_grace_period",
+            ],
+        )
+        self.assertEqual(
+            result["create_application"],
+            [
+                "project_uuid",
+                "name",
+                "is_git_submodules_enabled",
+                "is_gzip_enabled",
+                "stop_grace_period",
+            ],
+        )
+
+    def test_static_const_spread_expanded(self):
+        php = """<?php
+class Foo {
+    protected const EXTRA = ['a', 'b'];
+    public function update(Request $r) {
+        $allowedFields = ['name', ...static::EXTRA];
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(result["update"], ["name", "a", "b"])
+
+    def test_unknown_const_spread_skipped(self):
+        php = """<?php
+class Foo {
+    public function update(Request $r) {
+        $allowedFields = ['name', ...self::MISSING_CONST];
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(result["update"], ["name"])
+
+    def test_spread_does_not_duplicate_literals(self):
+        php = """<?php
+class Foo {
+    private const EXTRA = ['name', 'other'];
+    public function update(Request $r) {
+        $allowedFields = ['name', ...self::EXTRA];
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(result["update"], ["name", "other"])
+
+    def test_no_spread_unchanged_on_old_controller(self):
+        # Coolify < 4.2.0 has no APPLICATION_SETTING_FIELDS; allow lists stay
+        # literal-only and must not invent settings fields.
+        php = """<?php
+class ApplicationsController {
+    public function update_by_uuid(Request $request) {
+        $allowedFields = ['name', 'is_preserve_repository_enabled'];
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(
+            result["update_by_uuid"],
+            ["name", "is_preserve_repository_enabled"],
+        )
+        self.assertNotIn("is_gzip_enabled", result["update_by_uuid"])
+
+
+class TestExtractPhpStringListConstants(unittest.TestCase):
+    def test_private_const_array(self):
+        php = """<?php
+class C {
+    private const APPLICATION_SETTING_FIELDS = [
+        'is_gzip_enabled',
+        'stop_grace_period',
+    ];
+}
+"""
+        result = ec.extract_php_string_list_constants(php)
+        self.assertEqual(
+            result["APPLICATION_SETTING_FIELDS"],
+            ["is_gzip_enabled", "stop_grace_period"],
+        )
+
 
 # ── _clean_rule ─────────────────────────────────────────────────────
 

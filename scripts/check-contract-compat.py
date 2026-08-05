@@ -38,16 +38,44 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "health_check_retries",
         "health_check_start_period",
     },
-    # Coolify v4.2.0 additions not yet modeled as Terraform attributes
-    # (tags are a separate resource surface; preview/build secrets need design).
+    # Coolify v4.2.0 additions. Settings fields land via
+    # ...self::APPLICATION_SETTING_FIELDS (extractor expands spreads, #661).
+    # Provider version-gates writes for Coolify < 4.2.0 (#660 / #662).
     "ApplicationsController::create_application": {
         "is_preview_deployments_enabled",
         "tags",
         "use_build_secrets",
+        # APPLICATION_SETTING_FIELDS (public from v4.2.0)
+        "is_git_submodules_enabled",
+        "is_git_lfs_enabled",
+        "is_git_shallow_clone_enabled",
+        "disable_build_cache",
+        "inject_build_args_to_dockerfile",
+        "include_source_commit_in_build",
+        "is_env_sorting_enabled",
+        "is_pr_deployments_public_enabled",
+        "stop_grace_period",
+        "docker_images_to_keep",
+        "is_gzip_enabled",
+        "is_stripprefix_enabled",
+        "is_raw_compose_deployment_enabled",
     },
     "ApplicationsController::update_by_uuid": {
         "is_preview_deployments_enabled",
         "use_build_secrets",
+        "is_git_submodules_enabled",
+        "is_git_lfs_enabled",
+        "is_git_shallow_clone_enabled",
+        "disable_build_cache",
+        "inject_build_args_to_dockerfile",
+        "include_source_commit_in_build",
+        "is_env_sorting_enabled",
+        "is_pr_deployments_public_enabled",
+        "stop_grace_period",
+        "docker_images_to_keep",
+        "is_gzip_enabled",
+        "is_stripprefix_enabled",
+        "is_raw_compose_deployment_enabled",
     },
     "DatabasesController::create_database": {
         "tags",
