@@ -369,7 +369,7 @@ resource "coolify_database_mariadb" "test" {
   ssl_mode     = "bogus"
 }
 `,
-				ExpectError: regexp.MustCompile(`must be one of`),
+				ExpectError: regexp.MustCompile(`(?s)ssl_mode value must be one of:`),
 			},
 		},
 	})

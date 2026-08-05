@@ -703,7 +703,7 @@ func TestGitHubAppApplicationResource_InvalidBuildPack(t *testing.T) {
 					build_pack       = "invalid_pack"
 					ports_exposes    = "3000"
 				`),
-				ExpectError: regexp.MustCompile(`must be one of`),
+				ExpectError: regexp.MustCompile(`(?s)build_pack value must be one of:.*nixpacks`),
 			},
 		},
 	})
