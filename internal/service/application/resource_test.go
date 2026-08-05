@@ -2465,14 +2465,7 @@ func TestApplicationResource_ImportCompoundEmptyEnv(t *testing.T) {
 func TestApplicationResource_SettingsWithheldOnOldCoolify(t *testing.T) {
 	t.Parallel()
 
-	settingKeys := []string{
-		"is_preview_deployments_enabled", "use_build_secrets",
-		"is_git_submodules_enabled", "is_git_lfs_enabled", "is_git_shallow_clone_enabled",
-		"disable_build_cache", "inject_build_args_to_dockerfile", "include_source_commit_in_build",
-		"is_env_sorting_enabled", "is_pr_deployments_public_enabled", "stop_grace_period",
-		"docker_images_to_keep", "is_gzip_enabled", "is_stripprefix_enabled",
-		"is_raw_compose_deployment_enabled",
-	}
+	settingKeys := client.ApplicationSettingsWriteJSONKeys
 
 	trueVal := true
 	currentApp := client.Application{

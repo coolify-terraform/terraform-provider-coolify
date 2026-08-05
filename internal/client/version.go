@@ -16,6 +16,31 @@ import (
 // the entire request, which fails Create and leaves the resource tainted.
 const minApplicationSettingsVersion = "4.2.0"
 
+// ApplicationSettingsWriteJSONKeys lists Coolify application PATCH JSON keys
+// accepted only on >= v4.2.0 (APPLICATION_SETTING_FIELDS plus the two v4.2.0
+// literals is_preview_deployments_enabled and use_build_secrets).
+//
+// clearApplicationSettings and the plan-time warning list in the application
+// service package must stay aligned with this slice. Prefer this list in tests
+// over re-declaring the keys.
+var ApplicationSettingsWriteJSONKeys = []string{
+	"is_preview_deployments_enabled",
+	"use_build_secrets",
+	"is_git_submodules_enabled",
+	"is_git_lfs_enabled",
+	"is_git_shallow_clone_enabled",
+	"disable_build_cache",
+	"inject_build_args_to_dockerfile",
+	"include_source_commit_in_build",
+	"is_env_sorting_enabled",
+	"is_pr_deployments_public_enabled",
+	"stop_grace_period",
+	"docker_images_to_keep",
+	"is_gzip_enabled",
+	"is_stripprefix_enabled",
+	"is_raw_compose_deployment_enabled",
+}
+
 // SupportsApplicationSettings reports whether the connected instance accepts
 // Coolify >= v4.2.0 application write fields (APPLICATION_SETTING_FIELDS plus
 // is_preview_deployments_enabled and use_build_secrets, which landed as
