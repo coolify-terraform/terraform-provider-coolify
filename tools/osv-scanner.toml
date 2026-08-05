@@ -1,0 +1,6 @@
+# OSV-Scanner config for tools/go.mod only (does not cascade from repo root).
+# OpenSSF Scorecard's Vulnerabilities check runs OSV-Scanner over the tree.
+
+[[IgnoredVulns]]
+id = "GO-2026-5932"
+reason = "Advisory targets golang.org/x/crypto/openpgp (frozen, no fixed release). Provider and tools do not import that path; OpenPGP is ProtonMail/go-crypto via HashiCorp tooling. govulncheck reports 0 call-path findings."
