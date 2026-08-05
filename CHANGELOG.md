@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.12](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.11...v0.1.12) (2026-08-05)
+
+
+### Features
+
+* **application:** warn when 4.2-only settings set on Coolify &lt; 4.2.0 ([#664](https://github.com/coolify-terraform/terraform-provider-coolify/issues/664)) ([50f657e](https://github.com/coolify-terraform/terraform-provider-coolify/commit/50f657eae618bcd63a5bd9f2fb10da907f467d5c)), closes [#663](https://github.com/coolify-terraform/terraform-provider-coolify/issues/663)
+
+
+### Bug Fixes
+
+* **application:** normalize docker_compose_domains array vs object ([#658](https://github.com/coolify-terraform/terraform-provider-coolify/issues/658)) ([90bfe97](https://github.com/coolify-terraform/terraform-provider-coolify/commit/90bfe976a623523274251e927892b3fa74a7414f))
+* **contract:** expand PHP ...self::CONST spreads in allow-list extract ([#665](https://github.com/coolify-terraform/terraform-provider-coolify/issues/665)) ([d280f37](https://github.com/coolify-terraform/terraform-provider-coolify/commit/d280f378f9298a2b146f81737e9ba3c4219c8ba5)), closes [#661](https://github.com/coolify-terraform/terraform-provider-coolify/issues/661)
+* **security:** scorecard improvements (vulns, provenance, branch) ([#669](https://github.com/coolify-terraform/terraform-provider-coolify/issues/669)) ([3677e33](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3677e33e43c203f96d3a9b1f96deff7a55cbd895))
+* version-gate Coolify 4.2-only application write fields ([#662](https://github.com/coolify-terraform/terraform-provider-coolify/issues/662)) ([91814a5](https://github.com/coolify-terraform/terraform-provider-coolify/commit/91814a59095a458d4871f471c5ab923386cd44e6))
+
 ## [0.1.11](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.10...v0.1.11) (2026-08-01)
 
 
