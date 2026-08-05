@@ -148,3 +148,54 @@ func TestHasOnlyApplicationSettings(t *testing.T) {
 		t.Error("input with a non-settings field still has work to do; want false")
 	}
 }
+
+func TestVersionGatedWriteKeysPresent(t *testing.T) {
+	t.Parallel()
+
+	if got := (UpdateApplicationInput{}).versionGatedWriteKeysPresent(); len(got) != 0 {
+		t.Fatalf("empty input: got %v", got)
+	}
+	got := fullSettingsInput().versionGatedWriteKeysPresent()
+	if len(got) != len(ApplicationSettingsWriteJSONKeys) {
+		t.Fatalf("got %d keys %v, want %d", len(got), got, len(ApplicationSettingsWriteJSONKeys))
+	}
+}
+
+// TestFullSettingsInput_CoversExportedKeys fails if ApplicationSettingsWriteJSONKeys
+// grows without fullSettingsInput (and thus clearApplicationSettings) following.
+func TestFullSettingsInput_CoversExportedKeys(t *testing.T) {
+	t.Parallel()
+
+	raw, err := json.Marshal(fullSettingsInput())
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var body map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	for _, key := range ApplicationSettingsWriteJSONKeys {
+		if _, ok := body[key]; !ok {
+			t.Errorf("fullSettingsInput omits %q; update the fixture and clearApplicationSettings", key)
+		}
+	}
+
+	cleared := fullSettingsInput()
+	cleared.clearApplicationSettings()
+	clearedRaw, err := json.Marshal(cleared)
+	if err != nil {
+		t.Fatalf("marshal cleared: %v", err)
+	}
+	var clearedBody map[string]json.RawMessage
+	if err := json.Unmarshal(clearedRaw, &clearedBody); err != nil {
+		t.Fatalf("unmarshal cleared: %v", err)
+	}
+	for _, key := range ApplicationSettingsWriteJSONKeys {
+		if _, ok := clearedBody[key]; ok {
+			t.Errorf("clearApplicationSettings left %q in the payload", key)
+		}
+	}
+	if _, ok := clearedBody["name"]; !ok {
+		t.Error("clearApplicationSettings must not drop non-settings fields")
+	}
+}
