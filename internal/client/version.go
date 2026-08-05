@@ -17,12 +17,14 @@ import (
 const minApplicationSettingsVersion = "4.2.0"
 
 // SupportsApplicationSettings reports whether the connected instance accepts
-// ApplicationSetting fields on the application write endpoints.
+// Coolify >= v4.2.0 application write fields (APPLICATION_SETTING_FIELDS plus
+// is_preview_deployments_enabled and use_build_secrets, which landed as
+// literals on the same endpoints in v4.2.0).
 //
 // An unknown version (empty CoolifyVersion) reports true: the provider already
 // refuses to configure against an instance below minCoolifyVersion, so the only
-// way to reach here without a version is a path that never called Configure —
-// unit tests, mostly. Assuming the newest behaviour there keeps those tests
+// way to reach here without a version is a path that never called Configure
+// (unit tests, mostly). Assuming the newest behaviour there keeps those tests
 // exercising the full payload.
 func (c *Client) SupportsApplicationSettings() bool {
 	if c == nil || c.CoolifyVersion == "" {

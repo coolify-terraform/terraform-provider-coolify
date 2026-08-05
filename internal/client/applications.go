@@ -403,11 +403,18 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 	return &a, nil
 }
 
-// clearApplicationSettings drops every ApplicationSetting field from the
-// payload. The gate lives here, on the single path every application PATCH
-// takes, rather than in each caller: a field that cannot be written must not
-// depend on which builder assembled the request.
+// clearApplicationSettings drops every application write field that Coolify
+// only accepts on >= v4.2.0 from the payload. That is APPLICATION_SETTING_FIELDS
+// plus is_preview_deployments_enabled and use_build_secrets (literals on the
+// same allow list from v4.2.0; absent on v4.1.x). The gate lives here, on the
+// single path every application PATCH takes, rather than in each caller: a
+// field that cannot be written must not depend on which builder assembled the
+// request.
 func (i *UpdateApplicationInput) clearApplicationSettings() {
+	// v4.2.0 literal allow-list fields (not in APPLICATION_SETTING_FIELDS).
+	i.IsPreviewDeploymentsEnabled = nil
+	i.UseBuildSecrets = nil
+	// APPLICATION_SETTING_FIELDS.
 	i.IsGitSubmodulesEnabled = nil
 	i.IsGitLfsEnabled = nil
 	i.IsGitShallowCloneEnabled = nil

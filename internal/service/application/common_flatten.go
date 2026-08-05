@@ -572,11 +572,11 @@ func postCreatePatchExtendedFields(ctx context.Context, c *client.Client, uuid s
 		return
 	}
 	input := buildPostCreatePatch(f)
-	// On Coolify < 4.2.0 the client strips the ApplicationSetting fields, so a
-	// plan whose only extended fields are settings would PATCH an empty body.
+	// On Coolify < 4.2.0 the client strips version-gated write fields, so a
+	// plan whose only extended fields are those would PATCH an empty body.
 	// Skip it rather than spend a request that can change nothing.
 	if !c.SupportsApplicationSettings() && input.HasOnlyApplicationSettings() {
-		tflog.Debug(ctx, "skipping post-create patch: only ApplicationSetting fields, unsupported on this Coolify version",
+		tflog.Debug(ctx, "skipping post-create patch: only Coolify>=4.2.0 write fields, unsupported on this Coolify version",
 			map[string]interface{}{"uuid": uuid})
 		return
 	}

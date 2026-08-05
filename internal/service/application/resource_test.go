@@ -2466,6 +2466,7 @@ func TestApplicationResource_SettingsWithheldOnOldCoolify(t *testing.T) {
 	t.Parallel()
 
 	settingKeys := []string{
+		"is_preview_deployments_enabled", "use_build_secrets",
 		"is_git_submodules_enabled", "is_git_lfs_enabled", "is_git_shallow_clone_enabled",
 		"disable_build_cache", "inject_build_args_to_dockerfile", "include_source_commit_in_build",
 		"is_env_sorting_enabled", "is_pr_deployments_public_enabled", "stop_grace_period",
@@ -2550,6 +2551,8 @@ func TestApplicationResource_SettingsWithheldOnOldCoolify(t *testing.T) {
 
 					is_preserve_repository_enabled = true
 					is_gzip_enabled                = false
+			is_preview_deployments_enabled = true
+			use_build_secrets              = true
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_application.test", "is_preserve_repository_enabled", "true"),
@@ -2557,6 +2560,8 @@ func TestApplicationResource_SettingsWithheldOnOldCoolify(t *testing.T) {
 					// Withheld from the wire, but still the practitioner's value
 					// in state: the gate must not rewrite what they asked for.
 					resource.TestCheckResourceAttr("coolify_application.test", "is_gzip_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_application.test", "is_preview_deployments_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_application.test", "use_build_secrets", "true"),
 				),
 			},
 		},

@@ -8,8 +8,10 @@ import (
 	"testing"
 )
 
-// settingFieldKeys mirrors Coolify's APPLICATION_SETTING_FIELDS.
+// versionGatedWriteFieldKeys are application PATCH fields Coolify accepts only
+// on >= v4.2.0 (APPLICATION_SETTING_FIELDS plus the two v4.2.0 literals).
 var settingFieldKeys = []string{
+	"is_preview_deployments_enabled", "use_build_secrets",
 	"is_git_submodules_enabled", "is_git_lfs_enabled", "is_git_shallow_clone_enabled",
 	"disable_build_cache", "inject_build_args_to_dockerfile", "include_source_commit_in_build",
 	"is_env_sorting_enabled", "is_pr_deployments_public_enabled", "stop_grace_period",
@@ -25,6 +27,8 @@ func fullSettingsInput() UpdateApplicationInput {
 	name := "gate-probe"
 	return UpdateApplicationInput{
 		Name:                          &name,
+		IsPreviewDeploymentsEnabled:   &b,
+		UseBuildSecrets:               &b,
 		IsGitSubmodulesEnabled:        &b,
 		IsGitLfsEnabled:               &b,
 		IsGitShallowCloneEnabled:      &b,
@@ -144,6 +148,12 @@ func TestHasOnlyApplicationSettings(t *testing.T) {
 	}
 	if !(UpdateApplicationInput{IsGzipEnabled: &b}).HasOnlyApplicationSettings() {
 		t.Error("settings-only input should report true so callers can skip the request")
+	}
+	if !(UpdateApplicationInput{IsPreviewDeploymentsEnabled: &b}).HasOnlyApplicationSettings() {
+		t.Error("preview-only input is version-gated and should report true so callers can skip the request")
+	}
+	if !(UpdateApplicationInput{UseBuildSecrets: &b}).HasOnlyApplicationSettings() {
+		t.Error("build-secrets-only input is version-gated and should report true so callers can skip the request")
 	}
 	if (UpdateApplicationInput{Name: &name, IsGzipEnabled: &b}).HasOnlyApplicationSettings() {
 		t.Error("input with a non-settings field still has work to do; want false")

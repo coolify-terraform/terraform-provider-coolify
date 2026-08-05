@@ -310,14 +310,16 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 		},
 		"is_preview_deployments_enabled": schema.BoolAttribute{
 			MarkdownDescription: "Whether preview deployments (e.g. pull requests) are enabled for this application. " +
-				"Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`.",
+				"Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`. " +
+				"Against older instances the provider omits this field on write rather than fail the whole request with 422.",
 			Optional:      true,
 			Computed:      true,
 			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"use_build_secrets": schema.BoolAttribute{
 			MarkdownDescription: "Whether to use Docker Build secrets for build-time environment variables. " +
-				"Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`.",
+				"Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`. " +
+				"Against older instances the provider omits this field on write rather than fail the whole request with 422.",
 			Optional:      true,
 			Computed:      true,
 			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
@@ -325,7 +327,7 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 		"stop_grace_period": schema.Int64Attribute{
 			MarkdownDescription: "Container stop grace period in seconds (Coolify application setting). " +
 				"Valid range 1-3600. When null/omitted, Coolify uses its default stop behavior. " +
-				"Write support depends on Coolify version (present on current ApplicationSetting write path; verify on older releases).",
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
 			Optional:      true,
 			Computed:      true,
 			PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
