@@ -70,6 +70,9 @@ jobs:
       actions: read
       contents: write
       pull-requests: write
+      # SLSA provenance / GitHub attestations for Scorecard Signed-Releases.
+      id-token: write
+      attestations: write
     timeout-minutes: 30
     env:
       RELEASE_TAG: ${{ needs.release-please.outputs.tag_name || github.event.inputs.tag || github.ref_name }}
@@ -168,6 +171,46 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+      # Build provenance (attune/patchloom pattern). Scorecard Signed-Releases
+      # looks for .intoto.jsonl (or sigstore) on the GitHub Release; GPG
+      # checksum signatures alone score 8/10 without provenance.
+      - name: Attest release archives
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: dist/*.zip
+      - name: Attest checksums
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: dist/*_SHA256SUMS
+      - name: Upload attestation bundles to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          set -euo pipefail
+          mkdir -p attestation-bundles
+          shopt -s nullglob
+          for asset in dist/*.zip dist/*_SHA256SUMS; do
+            [ -f "$asset" ] || continue
+            name=$(basename "$asset")
+            tmpdir=$(mktemp -d)
+            pushd "$tmpdir" >/dev/null
+            if gh attestation download "$OLDPWD/$asset" \
+              --repo "${{ github.repository }}" 2>/dev/null; then
+              for bundle in *.jsonl; do
+                [ -f "$bundle" ] || continue
+                cp "$bundle" "$OLDPWD/attestation-bundles/${name}.intoto.jsonl"
+                break
+              done
+            fi
+            popd >/dev/null
+            rm -rf "$tmpdir"
+          done
+          if ls attestation-bundles/*.intoto.jsonl 1>/dev/null 2>&1; then
+            gh release upload "$TAG" attestation-bundles/*.intoto.jsonl --clobber
+          else
+            echo "::warning::No attestation bundles produced; Scorecard provenance may stay incomplete"
+          fi
       # Generate a GitHub App token for the cleanup PR so that push events
       # trigger CI and auto-approve (GITHUB_TOKEN suppresses both).
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
