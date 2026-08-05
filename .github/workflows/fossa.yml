@@ -54,26 +54,27 @@ jobs:
           set -euo pipefail
           # FOSSA SaaS sometimes returns 503 on /api/cli/organization. Retry
           # with backoff rather than failing the whole PR for an outage.
+          # Capture stdout+stderr: the CLI prints 503 diagnostics on stdout.
           max_attempts=5
           delay=30
           attempt=1
           while [ "$attempt" -le "$max_attempts" ]; do
             set +e
-            fossa analyze 2>fossa-analyze-stderr.txt
+            fossa analyze >fossa-analyze.log 2>&1
             rc=$?
             set -e
             if [ "$rc" -eq 0 ]; then
               echo "fossa analyze succeeded on attempt ${attempt}"
               exit 0
             fi
-            if grep -Eq 'status code: (429|502|503|504)' fossa-analyze-stderr.txt; then
+            if grep -Eq 'status code: (429|502|503|504)|unexpected status code: (429|502|503|504)' fossa-analyze.log; then
               if [ "$attempt" -eq "$max_attempts" ]; then
                 echo "::error::fossa analyze still failing after ${max_attempts} attempts (FOSSA API transient error)"
-                cat fossa-analyze-stderr.txt
+                head -c 3000 fossa-analyze.log || true
                 exit 1
               fi
               echo "Transient FOSSA API error on attempt ${attempt}/${max_attempts}; retrying in ${delay}s..."
-              cat fossa-analyze-stderr.txt | head -c 1500 || true
+              head -c 1500 fossa-analyze.log || true
               sleep "$delay"
               delay=$((delay * 2))
               if [ "$delay" -gt 120 ]; then
@@ -83,7 +84,7 @@ jobs:
               continue
             fi
             echo "::error::fossa analyze failed with non-transient error"
-            cat fossa-analyze-stderr.txt
+            head -c 3000 fossa-analyze.log || true
             exit "$rc"
           done
 
@@ -120,7 +121,8 @@ jobs:
           attempt=1
           while [ "$attempt" -le "$max_attempts" ]; do
             set +e
-            fossa test --format json > fossa-results.json 2>fossa-stderr.txt
+            # JSON on stdout when issues are reported; 503 diagnostics may be on either stream.
+            fossa test --format json >fossa-results.json 2>fossa-stderr.txt
             TEST_EXIT=$?
             set -e
 
@@ -129,10 +131,12 @@ jobs:
               exit 0
             fi
 
-            if grep -Eq 'status code: (429|502|503|504)' fossa-stderr.txt; then
+            if grep -Eq 'status code: (429|502|503|504)|unexpected status code: (429|502|503|504)' \
+              fossa-results.json fossa-stderr.txt 2>/dev/null; then
               if [ "$attempt" -eq "$max_attempts" ]; then
                 echo "::error::fossa test still failing after ${max_attempts} attempts (FOSSA API transient error)"
                 head -c 2000 fossa-stderr.txt || true
+                head -c 1000 fossa-results.json || true
                 exit 1
               fi
               echo "Transient FOSSA API error on attempt ${attempt}/${max_attempts}; retrying in ${delay}s..."
@@ -147,14 +151,14 @@ jobs:
             fi
 
             # Non-zero exit with license issues (or parseable JSON): filter FPs.
-            if [ -s fossa-results.json ]; then
+            if [ -s fossa-results.json ] && grep -q '[{[]' fossa-results.json 2>/dev/null; then
               echo "FOSSA test found issues. Filtering known false positives..."
               head -c 2000 fossa-results.json || true
               python3 scripts/fossa-filter.py fossa-results.json
               exit $?
             fi
 
-            # Empty JSON / other failure: surface stderr and fail.
+            # Empty JSON / other failure: surface logs and fail.
             echo "::error::fossa test failed without JSON results"
             head -c 3000 fossa-stderr.txt || true
             exit "$TEST_EXIT"
