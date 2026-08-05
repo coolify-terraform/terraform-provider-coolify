@@ -17,6 +17,7 @@ var (
 	_ resource.Resource                = &applicationResource{}
 	_ resource.ResourceWithConfigure   = &applicationResource{}
 	_ resource.ResourceWithImportState = &applicationResource{}
+	_ resource.ResourceWithModifyPlan  = &applicationResource{}
 )
 
 // applicationResource manages a Coolify application.
@@ -57,6 +58,18 @@ func (r *applicationResource) Schema(ctx context.Context, _ resource.SchemaReque
 
 func (r *applicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
+}
+
+func (r *applicationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	var cfg applicationResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
 }
 
 func (r *applicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

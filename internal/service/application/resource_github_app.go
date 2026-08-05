@@ -19,6 +19,7 @@ var (
 	_ resource.Resource                = &gitHubAppApplicationResource{}
 	_ resource.ResourceWithConfigure   = &gitHubAppApplicationResource{}
 	_ resource.ResourceWithImportState = &gitHubAppApplicationResource{}
+	_ resource.ResourceWithModifyPlan  = &gitHubAppApplicationResource{}
 )
 
 // gitHubAppApplicationResource manages a Coolify application deployed via a GitHub App.
@@ -60,6 +61,18 @@ func (r *gitHubAppApplicationResource) Schema(ctx context.Context, _ resource.Sc
 
 func (r *gitHubAppApplicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
+}
+
+func (r *gitHubAppApplicationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	var cfg gitHubAppApplicationResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
 }
 
 //nolint:dupl // Create methods differ by input struct type and API call
