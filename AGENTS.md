@@ -15,7 +15,7 @@ Terraform provider for [Coolify](https://coolify.io/), the open-source self-host
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
 Builds use `GOFIPS140=latest` for FIPS 140-3 compliant cryptography (required for
 government/enterprise adoption; set in `.goreleaser.yml` and `release.yml` smoke test).
-37 resources, 54 data sources, 1100+ tests (unit + acceptance), 9 CI jobs.
+37 resources, 54 data sources, 1140+ tests (unit + acceptance), 9 CI jobs.
 17 ACME Corp scenario examples (all with `terraform test` integration tests; acme-private-repo uses plan-only).
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
@@ -203,7 +203,7 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 - Run `terraform fmt -recursive examples/` before committing HCL changes
 - **Scenario and resource counts live in 5+ files.** When adding a scenario, resource, or data source, grep for the old count across all docs before committing:
   ```bash
-  grep -rn '16 ACME\|16 tested\|16 scenario' AGENTS.md README.md ROADMAP.md templates/ docs/
+  grep -rn '17 ACME\|17 tested\|17 scenario\|16 ACME\|16 tested\|16 scenario' AGENTS.md README.md ROADMAP.md templates/ docs/
   ```
   Known locations for scenario counts: `AGENTS.md` (Project section), `README.md` (feature table + body text), `ROADMAP.md`, `templates/guides/architecture.md.tmpl` (ASCII diagram). Also check if a table row is missing in `README.md` for the new scenario.
 
@@ -220,7 +220,7 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 ## Testing
 
 - Framework: `hashicorp/terraform-plugin-testing` with `httptest` mock servers
-- 1100+ tests (unit + acceptance)
+- 1140+ tests (unit + acceptance)
 - Acceptance tests are skipped unless `TF_ACC=1` is set
 - Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, actionlint-check, python-test, docs-check, api-coverage-check, counts-check, contract-compat, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
 - Before adding a test function, grep for its name to avoid duplicates

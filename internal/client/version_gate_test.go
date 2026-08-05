@@ -8,17 +8,6 @@ import (
 	"testing"
 )
 
-// versionGatedWriteFieldKeys are application PATCH fields Coolify accepts only
-// on >= v4.2.0 (APPLICATION_SETTING_FIELDS plus the two v4.2.0 literals).
-var settingFieldKeys = []string{
-	"is_preview_deployments_enabled", "use_build_secrets",
-	"is_git_submodules_enabled", "is_git_lfs_enabled", "is_git_shallow_clone_enabled",
-	"disable_build_cache", "inject_build_args_to_dockerfile", "include_source_commit_in_build",
-	"is_env_sorting_enabled", "is_pr_deployments_public_enabled", "stop_grace_period",
-	"docker_images_to_keep", "is_gzip_enabled", "is_stripprefix_enabled",
-	"is_raw_compose_deployment_enabled",
-}
-
 // fullSettingsInput sets every ApplicationSetting field plus one ordinary field,
 // so a stripped payload is still a valid, non-empty request.
 func fullSettingsInput() UpdateApplicationInput {
@@ -100,7 +89,7 @@ func TestUpdateApplication_VersionGate(t *testing.T) {
 			if _, ok := body["name"]; !ok {
 				t.Error("the gate dropped a non-settings field; only settings may be withheld")
 			}
-			for _, key := range settingFieldKeys {
+			for _, key := range ApplicationSettingsWriteJSONKeys {
 				_, sent := body[key]
 				if sent != tt.wantSettings {
 					t.Errorf("Coolify %q: %s sent=%v, want %v", tt.version, key, sent, tt.wantSettings)
@@ -157,5 +146,56 @@ func TestHasOnlyApplicationSettings(t *testing.T) {
 	}
 	if (UpdateApplicationInput{Name: &name, IsGzipEnabled: &b}).HasOnlyApplicationSettings() {
 		t.Error("input with a non-settings field still has work to do; want false")
+	}
+}
+
+func TestVersionGatedWriteKeysPresent(t *testing.T) {
+	t.Parallel()
+
+	if got := (UpdateApplicationInput{}).versionGatedWriteKeysPresent(); len(got) != 0 {
+		t.Fatalf("empty input: got %v", got)
+	}
+	got := fullSettingsInput().versionGatedWriteKeysPresent()
+	if len(got) != len(ApplicationSettingsWriteJSONKeys) {
+		t.Fatalf("got %d keys %v, want %d", len(got), got, len(ApplicationSettingsWriteJSONKeys))
+	}
+}
+
+// TestFullSettingsInput_CoversExportedKeys fails if ApplicationSettingsWriteJSONKeys
+// grows without fullSettingsInput (and thus clearApplicationSettings) following.
+func TestFullSettingsInput_CoversExportedKeys(t *testing.T) {
+	t.Parallel()
+
+	raw, err := json.Marshal(fullSettingsInput())
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var body map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	for _, key := range ApplicationSettingsWriteJSONKeys {
+		if _, ok := body[key]; !ok {
+			t.Errorf("fullSettingsInput omits %q; update the fixture and clearApplicationSettings", key)
+		}
+	}
+
+	cleared := fullSettingsInput()
+	cleared.clearApplicationSettings()
+	clearedRaw, err := json.Marshal(cleared)
+	if err != nil {
+		t.Fatalf("marshal cleared: %v", err)
+	}
+	var clearedBody map[string]json.RawMessage
+	if err := json.Unmarshal(clearedRaw, &clearedBody); err != nil {
+		t.Fatalf("unmarshal cleared: %v", err)
+	}
+	for _, key := range ApplicationSettingsWriteJSONKeys {
+		if _, ok := clearedBody[key]; ok {
+			t.Errorf("clearApplicationSettings left %q in the payload", key)
+		}
+	}
+	if _, ok := clearedBody["name"]; !ok {
+		t.Error("clearApplicationSettings must not drop non-settings fields")
 	}
 }

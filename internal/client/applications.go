@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type Application struct {
@@ -394,6 +396,13 @@ func (c *Client) CreatePublicApplication(ctx context.Context, input CreatePublic
 }
 func (c *Client) UpdateApplication(ctx context.Context, uuid string, input UpdateApplicationInput) (*Application, error) {
 	if !c.SupportsApplicationSettings() {
+		if withheld := input.versionGatedWriteKeysPresent(); len(withheld) > 0 {
+			tflog.Debug(ctx, "withholding Coolify >= v4.2.0 application write fields unsupported on this instance", map[string]interface{}{
+				"uuid":    uuid,
+				"version": c.CoolifyVersion,
+				"fields":  withheld,
+			})
+		}
 		input.clearApplicationSettings()
 	}
 	var a Application
@@ -401,6 +410,26 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 		return nil, fmt.Errorf("updating application %s: %w", uuid, err)
 	}
 	return &a, nil
+}
+
+// versionGatedWriteKeysPresent returns ApplicationSettingsWriteJSONKeys that
+// would appear on the wire for this input (before clearApplicationSettings).
+func (i UpdateApplicationInput) versionGatedWriteKeysPresent() []string {
+	raw, err := json.Marshal(i)
+	if err != nil {
+		return nil
+	}
+	var body map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return nil
+	}
+	var present []string
+	for _, key := range ApplicationSettingsWriteJSONKeys {
+		if _, ok := body[key]; ok {
+			present = append(present, key)
+		}
+	}
+	return present
 }
 
 // clearApplicationSettings drops every application write field that Coolify

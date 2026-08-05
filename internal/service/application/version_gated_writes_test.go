@@ -1,6 +1,7 @@
 package application
 
 import (
+	"sort"
 	"strings"
 	"testing"
 
@@ -43,6 +44,37 @@ func TestConfiguredVersionGatedWriteAttrs(t *testing.T) {
 		want := []string{"is_gzip_enabled", "is_preview_deployments_enabled", "stop_grace_period"}
 		if strings.Join(got, ",") != strings.Join(want, ",") {
 			t.Fatalf("got %v, want %v", got, want)
+		}
+	})
+
+	// Drift guard: every JSON key the client strips on Coolify < 4.2.0 must
+	// surface in the plan warning list when configured (and no extra keys).
+	t.Run("matches client ApplicationSettingsWriteJSONKeys", func(t *testing.T) {
+		t.Parallel()
+		tb := types.BoolValue(true)
+		ti := types.Int64Value(1)
+		f := commonAppFields{
+			IsPreviewDeploymentsEnabled:   &tb,
+			UseBuildSecrets:               &tb,
+			IsGitSubmodulesEnabled:        &tb,
+			IsGitLfsEnabled:               &tb,
+			IsGitShallowCloneEnabled:      &tb,
+			DisableBuildCache:             &tb,
+			InjectBuildArgsToDockerfile:   &tb,
+			IncludeSourceCommitInBuild:    &tb,
+			IsEnvSortingEnabled:           &tb,
+			IsPrDeploymentsPublicEnabled:  &tb,
+			StopGracePeriod:               &ti,
+			DockerImagesToKeep:            &ti,
+			IsGzipEnabled:                 &tb,
+			IsStripprefixEnabled:          &tb,
+			IsRawComposeDeploymentEnabled: &tb,
+		}
+		got := configuredVersionGatedWriteAttrs(f)
+		want := append([]string(nil), client.ApplicationSettingsWriteJSONKeys...)
+		sort.Strings(want)
+		if strings.Join(got, ",") != strings.Join(want, ",") {
+			t.Fatalf("warn attrs drifted from client strip list\ngot:  %v\nwant: %v", got, want)
 		}
 	})
 }

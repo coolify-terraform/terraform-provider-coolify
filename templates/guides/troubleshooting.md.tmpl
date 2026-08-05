@@ -45,7 +45,14 @@ the raw API communication.
 [DEBUG] creating resource: resource_type=coolify_server
 [DEBUG] reading resource: resource_type=coolify_server uuid=abc-123
 [DEBUG] resource not found, removing from state: resource_type=coolify_server uuid=abc-123
+[DEBUG] withholding Coolify >= v4.2.0 application write fields unsupported on this instance: uuid=app-1 version=4.1.2 fields=[is_gzip_enabled]
+[DEBUG] skipping post-create patch: only Coolify>=4.2.0 write fields, unsupported on this Coolify version: uuid=app-1
 ```
+
+When connected to Coolify older than v4.2.0, the provider may log that it is
+withholding application settings so the PATCH does not 422. See the
+[Common Errors](./common-errors) guide for the plan-time warning and upgrade
+guidance.
 
 ### At TRACE Level
 
