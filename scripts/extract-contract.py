@@ -334,19 +334,71 @@ def _clean_rule(rule: str) -> str:
     return "|".join(parts) if parts else rule.strip()
 
 
+def extract_php_string_list_constants(content: str) -> dict[str, list[str]]:
+    """Extract class const string-array definitions from a PHP file.
+
+    Matches ``private/public/protected const NAME = ['a', 'b', ...];``.
+    Used to expand ``...self::NAME`` / ``...static::NAME`` spreads in allow
+    lists (e.g. ApplicationsController::APPLICATION_SETTING_FIELDS).
+    """
+    result: dict[str, list[str]] = {}
+    pattern = re.compile(
+        r"(?:private|public|protected)\s+const\s+([A-Z][A-Z0-9_]*)\s*=\s*\[(.*?)\];",
+        re.DOTALL,
+    )
+    for match in pattern.finditer(content):
+        name = match.group(1)
+        fields = re.findall(r"'([^']+)'", match.group(2))
+        if fields:
+            result[name] = fields
+    return result
+
+
+def expand_allowed_field_list(
+    array_body: str, constants: dict[str, list[str]]
+) -> list[str]:
+    """Expand string literals and PHP spreads inside an allow-list array body.
+
+    Supports ``...self::CONST`` and ``...static::CONST``. Unknown constants are
+    skipped (no phantom fields). Order is literals then spread members, with
+    duplicates removed while preserving first-seen order.
+    """
+    fields: list[str] = []
+    seen: set[str] = set()
+
+    def add(name: str) -> None:
+        if name not in seen:
+            seen.add(name)
+            fields.append(name)
+
+    for lit in re.findall(r"'([^']+)'", array_body):
+        add(lit)
+    for match in re.finditer(
+        r"\.\.\.(?:self|static)::([A-Z][A-Z0-9_]*)", array_body
+    ):
+        const_name = match.group(1)
+        for name in constants.get(const_name, []):
+            add(name)
+    return fields
+
+
 def extract_allowed_fields(content: str) -> dict[str, list[str]]:
     """Extract $allowedFields / $allowed arrays from controller methods.
 
     Coolify mostly uses ``$allowedFields = [...]``. DestinationsController
     (v4.2) uses the shorter ``$allowed = [...]`` for the same purpose.
+
+    PHP spreads such as ``...self::APPLICATION_SETTING_FIELDS`` are expanded
+    from class constants in the same file (#661).
     """
-    result = {}
+    constants = extract_php_string_list_constants(content)
+    result: dict[str, list[str]] = {}
     pattern = re.compile(
         r"\$(?:allowedFields|allowed)\s*=\s*\[(.*?)\];", re.DOTALL
     )
     # Find the enclosing method for context
     for match in pattern.finditer(content):
-        fields = re.findall(r"'([^']+)'", match.group(1))
+        fields = expand_allowed_field_list(match.group(1), constants)
         # Try to find the method name above this position
         preceding = content[:match.start()]
         method_matches = re.findall(r"function\s+(\w+)\s*\(", preceding)
@@ -360,12 +412,15 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
         re.DOTALL,
     )
     for match in merge_pattern.finditer(content):
-        extra = re.findall(r"'([^']+)'", match.group(1))
+        extra = expand_allowed_field_list(match.group(1), constants)
         preceding = content[:match.start()]
         method_matches = re.findall(r"function\s+(\w+)\s*\(", preceding)
         method = method_matches[-1] if method_matches else "unknown"
         if method in result:
-            result[method].extend(extra)
+            existing = result[method]
+            for f in extra:
+                if f not in existing:
+                    existing.append(f)
         else:
             result[method] = extra
 

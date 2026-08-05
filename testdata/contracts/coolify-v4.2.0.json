@@ -1,7 +1,7 @@
 {
   "version": "v4.2.0",
   "extracted_from": "coollabsio/coolify@v4.2.0",
-  "extracted_at": "2026-07-25T11:12:30.470822+00:00",
+  "extracted_at": "2026-08-05T16:01:37.529823+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -6764,7 +6764,20 @@
         "autogenerate_domain",
         "is_container_label_escape_enabled",
         "tags",
-        "is_preserve_repository_enabled"
+        "is_preserve_repository_enabled",
+        "is_git_submodules_enabled",
+        "is_git_lfs_enabled",
+        "is_git_shallow_clone_enabled",
+        "disable_build_cache",
+        "inject_build_args_to_dockerfile",
+        "include_source_commit_in_build",
+        "is_env_sorting_enabled",
+        "is_pr_deployments_public_enabled",
+        "stop_grace_period",
+        "docker_images_to_keep",
+        "is_gzip_enabled",
+        "is_stripprefix_enabled",
+        "is_raw_compose_deployment_enabled"
       ]
     },
     "ApplicationsController::update_by_uuid": {
@@ -6841,7 +6854,20 @@
         "connect_to_docker_network",
         "force_domain_override",
         "is_container_label_escape_enabled",
-        "is_preserve_repository_enabled"
+        "is_preserve_repository_enabled",
+        "is_git_submodules_enabled",
+        "is_git_lfs_enabled",
+        "is_git_shallow_clone_enabled",
+        "disable_build_cache",
+        "inject_build_args_to_dockerfile",
+        "include_source_commit_in_build",
+        "is_env_sorting_enabled",
+        "is_pr_deployments_public_enabled",
+        "stop_grace_period",
+        "docker_images_to_keep",
+        "is_gzip_enabled",
+        "is_stripprefix_enabled",
+        "is_raw_compose_deployment_enabled"
       ]
     },
     "ApplicationsController::update_env_by_uuid": {
@@ -6936,6 +6962,13 @@
         "mongo_initdb_root_password",
         "mongo_initdb_database",
         "tags"
+      ]
+    },
+    "DestinationsController::create": {
+      "allowed_fields": [
+        "name",
+        "network",
+        "type"
       ]
     },
     "DigitalOceanController::createServer": {
@@ -7150,13 +7183,6 @@
         "vultr_ssh_key_ids",
         "cloud_init_script",
         "instant_validate"
-      ]
-    },
-    "DestinationsController::create": {
-      "allowed_fields": [
-        "name",
-        "network",
-        "type"
       ]
     }
   },

@@ -23,53 +23,29 @@ import (
 // whole request, so a single stray field breaks Create for the whole resource.
 //
 // The tests below close that direction for the two request builders. They check
-// against the allow list of the NEWEST supported Coolify: withholding fields on
-// older instances is the version gate's job, covered by
-// TestUpdateApplication_VersionGate in internal/client.
-
-// applicationSettingFields is Coolify's APPLICATION_SETTING_FIELDS constant.
-//
-// It is spelled out here rather than read from the contract because the
-// extractor collects only string literals from `$allowedFields = [...]` and
-// does not expand the trailing `...self::APPLICATION_SETTING_FIELDS` spread, so
-// the generated contracts understate the allow list by exactly these entries.
-// Tracked as #661; once the extractor expands spreads, drop this list and let
-// updateAllowedFields carry them.
-var applicationSettingFields = []string{
-	"is_git_submodules_enabled",
-	"is_git_lfs_enabled",
-	"is_git_shallow_clone_enabled",
-	"disable_build_cache",
-	"inject_build_args_to_dockerfile",
-	"include_source_commit_in_build",
-	"is_env_sorting_enabled",
-	"is_pr_deployments_public_enabled",
-	"stop_grace_period",
-	"docker_images_to_keep",
-	"is_gzip_enabled",
-	"is_stripprefix_enabled",
-	"is_raw_compose_deployment_enabled",
-}
+// against the allow list of the NEWEST supported Coolify (pin / v4.2.0), which
+// includes expanded ...self::APPLICATION_SETTING_FIELDS spreads (#661).
+// Withholding settings on older instances is the version gate's job
+// (TestUpdateApplication_VersionGate).
 
 func readContractAllowList(t *testing.T) map[string]bool {
 	t.Helper()
 
+	// Prefer the pin (coolify-v4.json); fall back to newest versioned file.
 	_, thisFile, _, _ := runtime.Caller(0)
 	dir := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "testdata", "contracts")
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		t.Fatalf("reading contracts dir: %v", err)
+	candidates := []string{
+		filepath.Join(dir, "coolify-v4.json"),
+		filepath.Join(dir, "coolify-v4.2.0.json"),
 	}
-	var latest string
-	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
-			latest = e.Name()
+	var data []byte
+	var err error
+	for _, path := range candidates {
+		data, err = os.ReadFile(path)
+		if err == nil {
+			break
 		}
 	}
-	if latest == "" {
-		t.Fatal("no contract JSON found in testdata/contracts/")
-	}
-	data, err := os.ReadFile(filepath.Join(dir, latest))
 	if err != nil {
 		t.Fatalf("reading contract: %v", err)
 	}
@@ -95,17 +71,37 @@ func readContractAllowList(t *testing.T) map[string]bool {
 	return allowed
 }
 
-// updateAllowedFields returns the allow list Coolify >= 4.2.0 applies to
-// PATCH /applications/{uuid}: the literals from the pinned contract, plus the
-// settings spread the extractor misses (see #661).
-func updateAllowedFields(t *testing.T) map[string]bool {
-	t.Helper()
+// TestContractAllowList_IncludesApplicationSettingFields locks #661: the
+// extractor expands ...self::APPLICATION_SETTING_FIELDS so the pin lists them.
+func TestContractAllowList_IncludesApplicationSettingFields(t *testing.T) {
+	t.Parallel()
 
 	allowed := readContractAllowList(t)
-	for _, f := range applicationSettingFields {
-		allowed[f] = true
+	required := []string{
+		"is_git_submodules_enabled",
+		"is_git_lfs_enabled",
+		"is_git_shallow_clone_enabled",
+		"disable_build_cache",
+		"inject_build_args_to_dockerfile",
+		"include_source_commit_in_build",
+		"is_env_sorting_enabled",
+		"is_pr_deployments_public_enabled",
+		"stop_grace_period",
+		"docker_images_to_keep",
+		"is_gzip_enabled",
+		"is_stripprefix_enabled",
+		"is_raw_compose_deployment_enabled",
 	}
-	return allowed
+	var missing []string
+	for _, f := range required {
+		if !allowed[f] {
+			missing = append(missing, f)
+		}
+	}
+	if len(missing) > 0 {
+		t.Errorf("contract update_by_uuid missing APPLICATION_SETTING_FIELDS after #661: %s",
+			strings.Join(missing, ", "))
+	}
 }
 
 // fillCommonAppFields populates every pointer field of commonAppFields, so the
@@ -169,7 +165,7 @@ func disallowedKeys(t *testing.T, input any, allowed map[string]bool) []string {
 func TestPostCreatePatch_OnlySendsAllowedFields(t *testing.T) {
 	t.Parallel()
 
-	allowed := updateAllowedFields(t)
+	allowed := readContractAllowList(t)
 	f := fillCommonAppFields(t, "contract-probe", 7, true)
 
 	if bad := disallowedKeys(t, buildPostCreatePatch(f), allowed); len(bad) > 0 {
@@ -182,7 +178,7 @@ func TestPostCreatePatch_OnlySendsAllowedFields(t *testing.T) {
 func TestUpdateInput_OnlySendsAllowedFields(t *testing.T) {
 	t.Parallel()
 
-	allowed := updateAllowedFields(t)
+	allowed := readContractAllowList(t)
 	// Differing plan and state so every diff-guarded field is emitted.
 	plan := fillCommonAppFields(t, "contract-probe-plan", 7, true)
 	state := fillCommonAppFields(t, "contract-probe-state", 9, false)
@@ -214,26 +210,5 @@ func TestUpdateInput_OnlySendsAllowedFields(t *testing.T) {
 		if allowed[key] {
 			t.Errorf("%q is on the allow list now (%s); remove it from knownGaps", key, why)
 		}
-	}
-}
-
-// TestApplicationSettingFields_AbsentFromExtractedContract pins the #661 bug in
-// place. The moment the extractor learns to expand PHP spreads, this fails, and
-// whoever fixes it can delete applicationSettingFields above and read the whole
-// allow list from the contract instead.
-func TestApplicationSettingFields_AbsentFromExtractedContract(t *testing.T) {
-	t.Parallel()
-
-	literals := readContractAllowList(t)
-	var present []string
-	for _, f := range applicationSettingFields {
-		if literals[f] {
-			present = append(present, f)
-		}
-	}
-	if len(present) > 0 {
-		t.Errorf("the extractor now resolves the APPLICATION_SETTING_FIELDS spread (#661 fixed for %d field(s): %s).\n"+
-			"Delete applicationSettingFields in this file and read the allow list from the contract alone.",
-			len(present), strings.Join(present, ", "))
 	}
 }

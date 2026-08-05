@@ -34,38 +34,31 @@ var applicationFieldSkips = skipMap(
 	// Swarm-only fields (not commonly used)
 	skipNA("swarm_replicas", "swarm-only; not in provider surface"),
 	skipNA("swarm_placement_constraints", "swarm-only; not in provider surface"),
-	// Internal-only ApplicationSetting fields not exposed by update API
+	// Internal-only ApplicationSetting fields not on ApplicationsController
+	// APPLICATION_SETTING_FIELDS / update allow list (UI-only or other surfaces).
+	// Note: disable_build_cache, is_gzip_enabled, is_git_*, stop_grace_period, etc.
+	// ARE on the public allow list via ...self::APPLICATION_SETTING_FIELDS from
+	// Coolify v4.2.0 (extractor expands spreads, #661); they must not be skipInternal.
 	skipInternal("application_id", "settings FK"),
 	skipInternal("custom_internal_name", "settings internal"),
-	skipInternal("disable_build_cache", "settings not on update allow list"),
-	skipInternal("docker_images_to_keep", "settings not on update allow list"),
-	skipInternal("gpu_count", "settings not on update allow list"),
-	skipInternal("gpu_device_ids", "settings not on update allow list"),
-	skipInternal("gpu_driver", "settings not on update allow list"),
-	skipInternal("gpu_options", "settings not on update allow list"),
-	skipInternal("include_source_commit_in_build", "settings not on update allow list"),
-	skipInternal("inject_build_args_to_dockerfile", "settings not on update allow list"),
-	skipInternal("is_consistent_container_name_enabled", "settings not on update allow list"),
-	skipInternal("is_container_label_readonly_enabled", "settings not on update allow list"),
-	skipInternal("is_custom_ssl", "settings not on update allow list"),
-	skipInternal("is_debug_enabled", "settings not on update allow list"),
-	skipInternal("is_dual_cert", "settings not on update allow list"),
-	skipInternal("is_env_sorting_enabled", "settings not on update allow list"),
-	skipInternal("is_git_lfs_enabled", "settings not on update allow list"),
-	skipInternal("is_git_shallow_clone_enabled", "settings not on update allow list"),
-	skipInternal("is_git_submodules_enabled", "settings not on update allow list"),
-	skipInternal("is_gpu_enabled", "settings not on update allow list"),
-	skipInternal("is_gzip_enabled", "settings not on update allow list"),
-	skipInternal("is_http2", "settings not on update allow list"),
-	skipInternal("is_include_timestamps", "settings not on update allow list"),
-	skipInternal("is_log_drain_enabled", "settings not on update allow list"),
-	skipInternal("is_pr_deployments_public_enabled", "settings not on update allow list"),
-	skipInternal("is_raw_compose_deployment_enabled", "settings not on update allow list"),
-	skipInternal("is_stripprefix_enabled", "settings not on update allow list"),
-	skipInternal("is_swarm_only_worker_nodes", "settings not on update allow list"),
+	skipInternal("gpu_count", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("gpu_device_ids", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("gpu_driver", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("gpu_options", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_consistent_container_name_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_container_label_readonly_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_custom_ssl", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_debug_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_dual_cert", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_gpu_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_http2", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_include_timestamps", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_log_drain_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	skipInternal("is_swarm_only_worker_nodes", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	// is_build_server_enabled is the setting name; the API field is use_build_server
 	skipNA("is_build_server_enabled", "API field is use_build_server on Application"),
-	// is_preview_deployments_enabled, use_build_secrets, stop_grace_period covered on client (#628)
+	// is_preview_deployments_enabled, use_build_secrets, stop_grace_period and
+	// APPLICATION_SETTING_FIELDS are public allow-list fields covered on client (#628, #661)
 )
 
 var serverCoverageSkips = skipMap(
