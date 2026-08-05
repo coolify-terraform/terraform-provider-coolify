@@ -268,7 +268,8 @@ resource "coolify_resource_action" "bad" {
   action        = "delete"
 }
 `,
-				ExpectError: regexp.MustCompile("delete"),
+				// Framework OneOf: value must be one of start/stop/restart (not "delete").
+				ExpectError: regexp.MustCompile(`action.*must be one of.*start.*stop.*restart`),
 			},
 		},
 	})
@@ -407,7 +408,8 @@ resource "coolify_resource_action" "bad" {
   action        = "start"
 }
 `,
-				ExpectError: regexp.MustCompile("container"),
+				// Framework OneOf wraps the allowed list across lines in diagnostics.
+				ExpectError: regexp.MustCompile(`(?s)resource_type value must be one of: \["application" "database".*"service"\]`),
 			},
 		},
 	})
