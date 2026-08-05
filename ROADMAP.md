@@ -13,13 +13,11 @@ The provider covers the core Coolify resource model:
 - 17 ACME Corp scenario examples with integration tests
 - Full import support for adopting existing Coolify resources
 - Coolify v4.2 surfaces: destinations, DigitalOcean/Vultr server provisioning
+- Published on both [Terraform Registry](https://registry.terraform.io/providers/coolify-terraform/coolify)
+  and [OpenTofu Registry](https://search.opentofu.org/provider/coolify-terraform/coolify)
+  ([#414](https://github.com/coolify-terraform/terraform-provider-coolify/issues/414))
 
 ## Near Term
-
-### OpenTofu Registry publication
-
-Register the provider on the OpenTofu Registry for users who use OpenTofu
-instead of HashiCorp Terraform. ([#414](https://github.com/coolify-terraform/terraform-provider-coolify/issues/414))
 
 ### Notification channel resources
 
