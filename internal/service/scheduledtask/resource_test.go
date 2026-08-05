@@ -762,7 +762,7 @@ func TestScheduledTaskResource_CronAlias(t *testing.T) {
 					frequency        = "@daily"
 				`),
 				// The API call fails (NotFoundHandler), but validation passes.
-				ExpectError: regexp.MustCompile(`Error creating`),
+				ExpectError: regexp.MustCompile(`Error creating scheduled task`),
 			},
 		},
 	})

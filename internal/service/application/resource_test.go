@@ -1929,7 +1929,7 @@ func TestApplicationResource_ValidateRedirect(t *testing.T) {
 					ports_exposes  = "3000"
 					redirect       = "invalid"
 				`),
-				ExpectError: regexp.MustCompile(`www`),
+				ExpectError: regexp.MustCompile(`redirect.*must be one of.*"www".*"non-www".*"both"`),
 			},
 		},
 	})
@@ -1956,7 +1956,7 @@ func TestApplicationResource_ValidatePortsMappings(t *testing.T) {
 					ports_exposes  = "3000"
 					ports_mappings = "abc"
 				`),
-				ExpectError: regexp.MustCompile(`host:container`),
+				ExpectError: regexp.MustCompile(`expected host:container format, got "abc"`),
 			},
 		},
 	})
