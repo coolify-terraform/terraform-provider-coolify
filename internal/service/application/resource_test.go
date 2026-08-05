@@ -2445,3 +2445,125 @@ func TestApplicationResource_ImportCompoundEmptyEnv(t *testing.T) {
 		},
 	})
 }
+
+// TestApplicationResource_SettingsWithheldOnOldCoolify is the end-to-end guard
+// for the Create failure this gate exists to prevent (#660).
+//
+// On Coolify 4.1.x there is no APPLICATION_SETTING_FIELDS constant, so every
+// settings field falls outside the endpoint's allow list. The server below
+// answers exactly as Coolify does — 422 for any settings key — so if the
+// provider ever sends them again on an old instance, Create fails here rather
+// than in a practitioner's apply.
+//
+// The plan below covers both halves of the fix at once:
+//
+//   - `is_preserve_repository_enabled` is what arms the post-create PATCH, and
+//     used to drag the whole default settings blob in with it. Dropping the
+//     schema defaults keeps unset settings out of the payload.
+//   - `is_gzip_enabled` is set explicitly, so only the version gate can keep it
+//     out. Without the gate this test fails on the 422 below.
+func TestApplicationResource_SettingsWithheldOnOldCoolify(t *testing.T) {
+	t.Parallel()
+
+	settingKeys := []string{
+		"is_preview_deployments_enabled", "use_build_secrets",
+		"is_git_submodules_enabled", "is_git_lfs_enabled", "is_git_shallow_clone_enabled",
+		"disable_build_cache", "inject_build_args_to_dockerfile", "include_source_commit_in_build",
+		"is_env_sorting_enabled", "is_pr_deployments_public_enabled", "stop_grace_period",
+		"docker_images_to_keep", "is_gzip_enabled", "is_stripprefix_enabled",
+		"is_raw_compose_deployment_enabled",
+	}
+
+	trueVal := true
+	currentApp := client.Application{
+		UUID:                        "app-old-coolify",
+		Name:                        "old-coolify-app",
+		GitRepository:               "https://github.com/org/repo",
+		GitBranch:                   "main",
+		BuildPack:                   "dockercompose",
+		PortsExposes:                "3000",
+		BaseDirectory:               "/compose",
+		IsPreserveRepositoryEnabled: &trueVal,
+	}
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		// Reproduce Coolify 4.1.x: reject anything off the allow list.
+		for _, key := range settingKeys {
+			if _, present := body[key]; present {
+				t.Errorf("PATCH carried %q, which Coolify 4.1.x rejects with 422", key)
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"message": "Validation failed.",
+					"errors":  map[string]string{key: "This field is not allowed."},
+				})
+				return
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.1.2"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid     = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+					server_uuid      = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+					environment_name = "production"
+					git_repository   = "https://github.com/org/repo"
+					git_branch       = "main"
+					build_pack       = "dockercompose"
+					ports_exposes    = "3000"
+					name             = "old-coolify-app"
+					base_directory   = "/compose"
+
+					is_preserve_repository_enabled = true
+					is_gzip_enabled                = false
+			is_preview_deployments_enabled = true
+			use_build_secrets              = true
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "is_preserve_repository_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_application.test", "base_directory", "/compose"),
+					// Withheld from the wire, but still the practitioner's value
+					// in state: the gate must not rewrite what they asked for.
+					resource.TestCheckResourceAttr("coolify_application.test", "is_gzip_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_application.test", "is_preview_deployments_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_application.test", "use_build_secrets", "true"),
+				),
+			},
+		},
+	})
+}
