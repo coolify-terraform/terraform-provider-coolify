@@ -46,6 +46,7 @@ This provider follows these security principles:
 - Test credentials use placeholder values (`"test-token"`)
 - No real API tokens or secrets are committed to the repository
 - `.gitleaks.toml` allowlists suppress false positives in test fixtures and examples
+- `tools/osv-scanner.toml` ignores GO-2026-5932 (unfixed `x/crypto/openpgp` advisory; not imported; `govulncheck` clean)
 
 ## Assurance Case
 
