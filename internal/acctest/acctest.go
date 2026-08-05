@@ -26,14 +26,30 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
+// DefaultTestCoolifyVersion is the version mock servers report by default.
+//
+// It is a 4.2.x version because the provider gates some writes on the connected
+// version (see client.SupportsApplicationSettings): a mock reporting 4.1.x would
+// silently put every unit test on the withholding path, and tests asserting that
+// a settings field reaches the API would fail for reasons unrelated to what they
+// cover. Use WithVersionEndpointVersion to exercise the older behaviour on
+// purpose.
+const DefaultTestCoolifyVersion = "v4.2.0-test"
+
 // WithVersionEndpoint wraps an http.Handler to also respond to
 // GET /api/v1/version, which the provider calls during Configure
 // to validate the connection.
 func WithVersionEndpoint(next http.Handler) http.Handler {
+	return WithVersionEndpointVersion(next, DefaultTestCoolifyVersion)
+}
+
+// WithVersionEndpointVersion is WithVersionEndpoint with an explicit version,
+// for tests that need to pin the connected Coolify to a particular release.
+func WithVersionEndpointVersion(next http.Handler, version string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/version" {
 			w.Header().Set("Content-Type", "text/html")
-			_, _ = w.Write([]byte(`v4.1.0-test`))
+			_, _ = w.Write([]byte(version))
 			return
 		}
 		next.ServeHTTP(w, r)

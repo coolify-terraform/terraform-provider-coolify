@@ -527,77 +527,89 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 func applicationSettingAttrs() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"is_git_submodules_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether Git submodules are fetched during clone. Coolify default is `true`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(true),
+			MarkdownDescription: "Whether Git submodules are fetched during clone. Coolify default is `true`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"is_git_lfs_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether Git LFS objects are fetched during clone. Coolify default is `true`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(true),
+			MarkdownDescription: "Whether Git LFS objects are fetched during clone. Coolify default is `true`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"is_git_shallow_clone_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether Git uses a shallow clone. Coolify default is `true`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(true),
+			MarkdownDescription: "Whether Git uses a shallow clone. Coolify default is `true`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"disable_build_cache": schema.BoolAttribute{
-			MarkdownDescription: "Whether to disable the Docker build cache for this application. Coolify default is `false`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(false),
+			MarkdownDescription: "Whether to disable the Docker build cache for this application. Coolify default is `false`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"inject_build_args_to_dockerfile": schema.BoolAttribute{
-			MarkdownDescription: "Whether to inject build arguments into the Dockerfile. Coolify default is `true`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(true),
+			MarkdownDescription: "Whether to inject build arguments into the Dockerfile. Coolify default is `true`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"include_source_commit_in_build": schema.BoolAttribute{
-			MarkdownDescription: "Whether to include the source commit SHA in the build. Coolify default is `false`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(false),
+			MarkdownDescription: "Whether to include the source commit SHA in the build. Coolify default is `false`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"is_env_sorting_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether environment variables are sorted. Coolify default is `false`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(false),
+			MarkdownDescription: "Whether environment variables are sorted. Coolify default is `false`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"is_pr_deployments_public_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether preview deployments from public pull requests are enabled. Coolify default is `false`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(false),
+			MarkdownDescription: "Whether preview deployments from public pull requests are enabled. Coolify default is `false`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"docker_images_to_keep": schema.Int64Attribute{
-			MarkdownDescription: "Number of Docker images to keep for this application. Coolify default is `2`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             int64default.StaticInt64(2),
-			Validators:          []validator.Int64{int64validator.AtLeast(0)},
+			MarkdownDescription: "Number of Docker images to keep for this application. Coolify default is `2`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			Validators:    []validator.Int64{int64validator.AtLeast(0)},
+			PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 		},
 		"is_gzip_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether gzip compression is enabled for the application proxy. Coolify default is `true`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(true),
+			MarkdownDescription: "Whether gzip compression is enabled for the application proxy. Coolify default is `true`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"is_stripprefix_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether path prefix stripping is enabled for the application proxy. Coolify default is `true`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(true),
+			MarkdownDescription: "Whether path prefix stripping is enabled for the application proxy. Coolify default is `true`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"is_raw_compose_deployment_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether raw Docker Compose deployment mode is enabled. Coolify default is `false`.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(false),
+			MarkdownDescription: "Whether raw Docker Compose deployment mode is enabled. Coolify default is `false`. " +
+				"Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 	}
 }

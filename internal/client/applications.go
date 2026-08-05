@@ -393,11 +393,60 @@ func (c *Client) CreatePublicApplication(ctx context.Context, input CreatePublic
 	return &a, nil
 }
 func (c *Client) UpdateApplication(ctx context.Context, uuid string, input UpdateApplicationInput) (*Application, error) {
+	if !c.SupportsApplicationSettings() {
+		input.clearApplicationSettings()
+	}
 	var a Application
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), input, &a); err != nil {
 		return nil, fmt.Errorf("updating application %s: %w", uuid, err)
 	}
 	return &a, nil
+}
+
+// clearApplicationSettings drops every ApplicationSetting field from the
+// payload. The gate lives here, on the single path every application PATCH
+// takes, rather than in each caller: a field that cannot be written must not
+// depend on which builder assembled the request.
+func (i *UpdateApplicationInput) clearApplicationSettings() {
+	i.IsGitSubmodulesEnabled = nil
+	i.IsGitLfsEnabled = nil
+	i.IsGitShallowCloneEnabled = nil
+	i.DisableBuildCache = nil
+	i.InjectBuildArgsToDockerfile = nil
+	i.IncludeSourceCommitInBuild = nil
+	i.IsEnvSortingEnabled = nil
+	i.IsPrDeploymentsPublicEnabled = nil
+	i.DockerImagesToKeep = nil
+	i.IsGzipEnabled = nil
+	i.IsStripprefixEnabled = nil
+	i.IsRawComposeDeploymentEnabled = nil
+	i.StopGracePeriod = nil
+}
+
+// HasOnlyApplicationSettings reports whether the payload would be empty once
+// the settings fields are dropped. Callers use it to skip a PATCH that the gate
+// would reduce to `{}`.
+//
+// Counted through the JSON encoding rather than by comparing structs: the input
+// carries a json.RawMessage, so it is not comparable, and encoding is what
+// decides which fields actually reach Coolify anyway.
+func (i UpdateApplicationInput) HasOnlyApplicationSettings() bool {
+	stripped := i
+	stripped.clearApplicationSettings()
+	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
+}
+
+// encodedFieldCount returns how many fields the input serialises to.
+func (i UpdateApplicationInput) encodedFieldCount() int {
+	raw, err := json.Marshal(i)
+	if err != nil {
+		return 0
+	}
+	var body map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &body); err != nil {
+		return 0
+	}
+	return len(body)
 }
 func (c *Client) DeleteApplication(ctx context.Context, uuid string) error {
 	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), nil, nil); err != nil {

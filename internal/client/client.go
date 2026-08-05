@@ -26,10 +26,15 @@ const maxResponseSize = 10 << 20
 
 // Client is the Coolify API client.
 type Client struct {
-	BaseURL           string
-	apiToken          string // unexported: prevents %+v leaking the token
-	HTTPClient        *http.Client
-	UserAgent         string
+	BaseURL    string
+	apiToken   string // unexported: prevents %+v leaking the token
+	HTTPClient *http.Client
+	UserAgent  string
+	// CoolifyVersion is the connected instance's version, read once during
+	// provider Configure. Empty when unknown (unit tests, or a Configure that
+	// never ran); callers must treat empty as "assume the newest behaviour"
+	// rather than gating features off.
+	CoolifyVersion    string
 	cfAccessClientID  string // Cloudflare Access CF-Access-Client-Id header
 	cfAccessClientSec string // Cloudflare Access CF-Access-Client-Secret header
 	listCache         listCache

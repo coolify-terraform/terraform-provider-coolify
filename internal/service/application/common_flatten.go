@@ -571,8 +571,16 @@ func postCreatePatchExtendedFields(ctx context.Context, c *client.Client, uuid s
 	if !hasNonDefaultAppExtendedFields(f) {
 		return
 	}
-	tflog.Debug(ctx, "patching extended fields after create", map[string]interface{}{"uuid": uuid})
 	input := buildPostCreatePatch(f)
+	// On Coolify < 4.2.0 the client strips the ApplicationSetting fields, so a
+	// plan whose only extended fields are settings would PATCH an empty body.
+	// Skip it rather than spend a request that can change nothing.
+	if !c.SupportsApplicationSettings() && input.HasOnlyApplicationSettings() {
+		tflog.Debug(ctx, "skipping post-create patch: only ApplicationSetting fields, unsupported on this Coolify version",
+			map[string]interface{}{"uuid": uuid})
+		return
+	}
+	tflog.Debug(ctx, "patching extended fields after create", map[string]interface{}{"uuid": uuid})
 	if _, err := c.UpdateApplication(ctx, uuid, input); err != nil {
 		hint := annotateDockerComposeDomainsError(err)
 		converge := ""

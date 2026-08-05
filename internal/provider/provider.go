@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -171,6 +170,9 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 		)
 		return
 	}
+	// Remembered so write paths can gate fields the connected version rejects
+	// (see client.SupportsApplicationSettings).
+	c.CoolifyVersion = coolifyVersion
 
 	tflog.Debug(ctx, "provider configured", map[string]interface{}{
 		"endpoint": redactEndpointForDiagnostics(endpoint),
@@ -333,35 +335,5 @@ func buildClientConfig(config coolifyProviderModel) client.RetryConfig {
 // Returns true if actual >= minimum. Non-parseable versions return true
 // to avoid blocking on unexpected version formats.
 func isVersionAtLeast(actual, minimum string) bool {
-	parse := func(v string) (int, int, int, bool) {
-		v = strings.TrimPrefix(v, "v")
-		parts := strings.SplitN(v, ".", 3)
-		if len(parts) < 2 {
-			return 0, 0, 0, false
-		}
-		major, err1 := strconv.Atoi(parts[0])
-		minor, err2 := strconv.Atoi(parts[1])
-		patch := 0
-		if len(parts) == 3 {
-			// Strip pre-release suffix (e.g. "0-beta.335")
-			p := strings.SplitN(parts[2], "-", 2)[0]
-			patch, _ = strconv.Atoi(p)
-		}
-		if err1 != nil || err2 != nil {
-			return 0, 0, 0, false
-		}
-		return major, minor, patch, true
-	}
-	aMaj, aMin, aPat, aOk := parse(actual)
-	mMaj, mMin, mPat, mOk := parse(minimum)
-	if !aOk || !mOk {
-		return true
-	}
-	if aMaj != mMaj {
-		return aMaj > mMaj
-	}
-	if aMin != mMin {
-		return aMin > mMin
-	}
-	return aPat >= mPat
+	return client.IsVersionAtLeast(actual, minimum)
 }

@@ -57,9 +57,9 @@ resource "coolify_application_dockerfile" "app" {
 - `custom_network_aliases` (String) Custom network aliases for the container.
 - `custom_nginx_configuration` (String) Custom Nginx configuration for the application. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.
 - `description` (String) A description of the application.
-- `disable_build_cache` (Boolean) Whether to disable the Docker build cache for this application. Coolify default is `false`.
+- `disable_build_cache` (Boolean) Whether to disable the Docker build cache for this application. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
 - `docker_compose_domains` (String) Domain mappings for Docker Compose services (`build_pack = "dockercompose"`). Send a JSON array of objects with `name` (compose service name) and `domain` (comma-separated http(s) URLs), for example `jsonencode([{ name = "web", domain = "https://app.example.com" }])`. Coolify accepts only that array form on write, stores an object map keyed by service name, and returns the object form on GET; the provider normalizes both shapes so Terraform plans stay empty after apply. Coolify rejects this field until `docker_compose_raw` is set. For git-sourced compose apps, Coolify only populates `docker_compose_raw` after a deployment loads the compose file from the repository; there is no separate load-compose API. This ordering is a Coolify API constraint on all Coolify versions supported by this provider (v4.1.0 and later). Recommended two-stage apply: (1) create without `docker_compose_domains` and deploy once (`instant_deploy = true` or a manual deploy), wait until the deployment succeeds; (2) add `docker_compose_domains` and apply again. Alternatively use `coolify_service` with inline `docker_compose_raw` when the compose file can live in Terraform.
-- `docker_images_to_keep` (Number) Number of Docker images to keep for this application. Coolify default is `2`.
+- `docker_images_to_keep` (Number) Number of Docker images to keep for this application. Coolify default is `2`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
 - `docker_registry_image_tag` (String) The Docker registry image tag.
 - `dockerfile` (String, Sensitive) Inline Dockerfile content (base64 encoded). For `coolify_application_dockerfile` resources, use `dockerfile_location` instead; this field is only used by Git-backed application types that embed a Dockerfile inline.
 - `dockerfile_target_build` (String) The target stage for multi-stage Docker builds.
@@ -83,26 +83,26 @@ resource "coolify_application_dockerfile" "app" {
 - `health_check_type` (String) The type of health check. Valid values: `http`, `cmd`.
 - `http_basic_auth_password` (String, Sensitive) Password for HTTP Basic Authentication.
 - `http_basic_auth_username` (String) Username for HTTP Basic Authentication.
-- `include_source_commit_in_build` (Boolean) Whether to include the source commit SHA in the build. Coolify default is `false`.
-- `inject_build_args_to_dockerfile` (Boolean) Whether to inject build arguments into the Dockerfile. Coolify default is `true`.
+- `include_source_commit_in_build` (Boolean) Whether to include the source commit SHA in the build. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
+- `inject_build_args_to_dockerfile` (Boolean) Whether to inject build arguments into the Dockerfile. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
 - `install_command` (String) The command to run during the install phase.
 - `instant_deploy` (Boolean) Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.
 - `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled.
-- `is_env_sorting_enabled` (Boolean) Whether environment variables are sorted. Coolify default is `false`.
+- `is_env_sorting_enabled` (Boolean) Whether environment variables are sorted. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
 - `is_force_https_enabled` (Boolean) Whether to force HTTPS for the application.
-- `is_git_lfs_enabled` (Boolean) Whether Git LFS objects are fetched during clone. Coolify default is `true`.
-- `is_git_shallow_clone_enabled` (Boolean) Whether Git uses a shallow clone. Coolify default is `true`.
-- `is_git_submodules_enabled` (Boolean) Whether Git submodules are fetched during clone. Coolify default is `true`.
-- `is_gzip_enabled` (Boolean) Whether gzip compression is enabled for the application proxy. Coolify default is `true`.
+- `is_git_lfs_enabled` (Boolean) Whether Git LFS objects are fetched during clone. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
+- `is_git_shallow_clone_enabled` (Boolean) Whether Git uses a shallow clone. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
+- `is_git_submodules_enabled` (Boolean) Whether Git submodules are fetched during clone. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
+- `is_gzip_enabled` (Boolean) Whether gzip compression is enabled for the application proxy. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
 - `is_http_basic_auth_enabled` (Boolean) Whether HTTP Basic Authentication is enabled.
-- `is_pr_deployments_public_enabled` (Boolean) Whether preview deployments from public pull requests are enabled. Coolify default is `false`.
+- `is_pr_deployments_public_enabled` (Boolean) Whether preview deployments from public pull requests are enabled. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
 - `is_preserve_repository_enabled` (Boolean) Whether to preserve the full Git repository (instead of shallow clone).
 - `is_preview_deployments_enabled` (Boolean) Whether preview deployments (e.g. pull requests) are enabled for this application. Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`.
-- `is_raw_compose_deployment_enabled` (Boolean) Whether raw Docker Compose deployment mode is enabled. Coolify default is `false`.
+- `is_raw_compose_deployment_enabled` (Boolean) Whether raw Docker Compose deployment mode is enabled. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
 - `is_spa` (Boolean) Whether the application is a single-page application.
 - `is_static` (Boolean) Whether the application is a static site.
-- `is_stripprefix_enabled` (Boolean) Whether path prefix stripping is enabled for the application proxy. Coolify default is `true`.
+- `is_stripprefix_enabled` (Boolean) Whether path prefix stripping is enabled for the application proxy. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it rather than fail the whole request with 422.
 - `limits_cpu_shares` (Number) CPU shares (relative weight).
 - `limits_cpus` (String) CPU limit (e.g., `0.5`, `2`).
 - `limits_cpuset` (String) CPU set restriction (e.g., `0-3`, `0,2`).
