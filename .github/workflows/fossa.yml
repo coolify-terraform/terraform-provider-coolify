@@ -14,11 +14,16 @@ concurrency:
 permissions:
   contents: read
 
+# FOSSA CLI pin (checksum-verified install). Keep analyze and test on the same
+# version so CI behavior is reproducible.
+env:
+  FOSSA_VERSION: "3.17.16"
+
 jobs:
   fossa:
     name: FOSSA Analyze
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     if: >-
       github.event_name != 'pull_request' || (
         github.event.pull_request.head.repo.full_name == github.repository
@@ -33,14 +38,59 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: fossas/fossa-action@29693cc50323968e039056be419b32989fc5880c # v2.0.0
-        with:
-          api-key: ${{ secrets.FOSSA_API_KEY }}
+      - name: Install FOSSA CLI
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/fossas/fossa-cli/releases/download/v${FOSSA_VERSION}/fossa_${FOSSA_VERSION}_linux_amd64.tar.gz" -o "fossa_${FOSSA_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL "https://github.com/fossas/fossa-cli/releases/download/v${FOSSA_VERSION}/fossa_${FOSSA_VERSION}_linux_amd64.tar.gz.sha256" -o "fossa_${FOSSA_VERSION}_linux_amd64.tar.gz.sha256"
+          sha256sum -c "fossa_${FOSSA_VERSION}_linux_amd64.tar.gz.sha256"
+          tar xzf "fossa_${FOSSA_VERSION}_linux_amd64.tar.gz" fossa
+          sudo install fossa /usr/local/bin/fossa
+          fossa --version
+      - name: FOSSA analyze (retry on transient API errors)
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+        run: |
+          set -euo pipefail
+          # FOSSA SaaS sometimes returns 503 on /api/cli/organization. Retry
+          # with backoff rather than failing the whole PR for an outage.
+          max_attempts=5
+          delay=30
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            set +e
+            fossa analyze 2>fossa-analyze-stderr.txt
+            rc=$?
+            set -e
+            if [ "$rc" -eq 0 ]; then
+              echo "fossa analyze succeeded on attempt ${attempt}"
+              exit 0
+            fi
+            if grep -Eq 'status code: (429|502|503|504)' fossa-analyze-stderr.txt; then
+              if [ "$attempt" -eq "$max_attempts" ]; then
+                echo "::error::fossa analyze still failing after ${max_attempts} attempts (FOSSA API transient error)"
+                cat fossa-analyze-stderr.txt
+                exit 1
+              fi
+              echo "Transient FOSSA API error on attempt ${attempt}/${max_attempts}; retrying in ${delay}s..."
+              cat fossa-analyze-stderr.txt | head -c 1500 || true
+              sleep "$delay"
+              delay=$((delay * 2))
+              if [ "$delay" -gt 120 ]; then
+                delay=120
+              fi
+              attempt=$((attempt + 1))
+              continue
+            fi
+            echo "::error::fossa analyze failed with non-transient error"
+            cat fossa-analyze-stderr.txt
+            exit "$rc"
+          done
 
   fossa-test:
     name: FOSSA License Check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: fossa
     steps:
       - name: Harden runner
@@ -52,9 +102,8 @@ jobs:
         with:
           persist-credentials: false
       - name: Install FOSSA CLI
-        env:
-          FOSSA_VERSION: "3.17.10"
         run: |
+          set -euo pipefail
           curl -fsSL "https://github.com/fossas/fossa-cli/releases/download/v${FOSSA_VERSION}/fossa_${FOSSA_VERSION}_linux_amd64.tar.gz" -o "fossa_${FOSSA_VERSION}_linux_amd64.tar.gz"
           curl -fsSL "https://github.com/fossas/fossa-cli/releases/download/v${FOSSA_VERSION}/fossa_${FOSSA_VERSION}_linux_amd64.tar.gz.sha256" -o "fossa_${FOSSA_VERSION}_linux_amd64.tar.gz.sha256"
           sha256sum -c "fossa_${FOSSA_VERSION}_linux_amd64.tar.gz.sha256"
@@ -64,20 +113,49 @@ jobs:
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
         run: |
-          # Run fossa test in JSON mode; capture output regardless of exit code.
-          set +e
-          fossa test --format json > fossa-results.json 2>fossa-stderr.txt
-          TEST_EXIT=$?
-          set -e
+          set -euo pipefail
+          # Retry fossa test on the same class of FOSSA SaaS blips as analyze.
+          max_attempts=5
+          delay=30
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            set +e
+            fossa test --format json > fossa-results.json 2>fossa-stderr.txt
+            TEST_EXIT=$?
+            set -e
 
-          if [ "$TEST_EXIT" -eq 0 ]; then
-            echo "FOSSA test passed with no issues."
-            exit 0
-          fi
+            if [ "$TEST_EXIT" -eq 0 ]; then
+              echo "FOSSA test passed with no issues."
+              exit 0
+            fi
 
-          echo "FOSSA test found issues. Filtering known false positives..."
-          head -c 2000 fossa-results.json
+            if grep -Eq 'status code: (429|502|503|504)' fossa-stderr.txt; then
+              if [ "$attempt" -eq "$max_attempts" ]; then
+                echo "::error::fossa test still failing after ${max_attempts} attempts (FOSSA API transient error)"
+                head -c 2000 fossa-stderr.txt || true
+                exit 1
+              fi
+              echo "Transient FOSSA API error on attempt ${attempt}/${max_attempts}; retrying in ${delay}s..."
+              head -c 1500 fossa-stderr.txt || true
+              sleep "$delay"
+              delay=$((delay * 2))
+              if [ "$delay" -gt 120 ]; then
+                delay=120
+              fi
+              attempt=$((attempt + 1))
+              continue
+            fi
 
-          # Filter out documented false positives using the Python script
-          # shipped in this repo. If any genuine issues remain, fail the step.
-          python3 scripts/fossa-filter.py fossa-results.json
+            # Non-zero exit with license issues (or parseable JSON): filter FPs.
+            if [ -s fossa-results.json ]; then
+              echo "FOSSA test found issues. Filtering known false positives..."
+              head -c 2000 fossa-results.json || true
+              python3 scripts/fossa-filter.py fossa-results.json
+              exit $?
+            fi
+
+            # Empty JSON / other failure: surface stderr and fail.
+            echo "::error::fossa test failed without JSON results"
+            head -c 3000 fossa-stderr.txt || true
+            exit "$TEST_EXIT"
+          done
