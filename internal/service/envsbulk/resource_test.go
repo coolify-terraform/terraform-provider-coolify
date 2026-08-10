@@ -479,7 +479,7 @@ func TestEnvsBulkResource_CreateAPIError(t *testing.T) {
 						APP_ENV = "test"
 					}
 				`),
-				ExpectError: regexp.MustCompile(`Error creating bulk env vars`),
+				ExpectError: regexp.MustCompile(`Error creating bulk env vars[\s\S]*application 550e8400-e29b-41d4-a716-446655440010`),
 			},
 		},
 	})

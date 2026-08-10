@@ -82,10 +82,17 @@ func (r *envsBulkResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_envs_bulk"})
+	tflog.Debug(ctx, "creating resource", map[string]interface{}{
+		"resource_type":        "coolify_envs_bulk",
+		"parent_resource_type": plan.ResourceType.ValueString(),
+		"parent_resource_uuid": plan.ResourceUUID.ValueString(),
+	})
 
 	if err := r.bulkUpdate(ctx, &plan); err != nil {
-		resp.Diagnostics.AddError("Error creating bulk env vars", err.Error())
+		resp.Diagnostics.AddError(
+			"Error creating bulk env vars",
+			fmt.Sprintf("%s %s: %s", plan.ResourceType.ValueString(), plan.ResourceUUID.ValueString(), err),
+		)
 		return
 	}
 
@@ -99,10 +106,14 @@ func (r *envsBulkResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	tflog.Debug(ctx, "reading resource", map[string]interface{}{"resource_type": "coolify_envs_bulk"})
-
 	resType := state.ResourceType.ValueString()
 	uuid := state.ResourceUUID.ValueString()
+
+	tflog.Debug(ctx, "reading resource", map[string]interface{}{
+		"resource_type":        "coolify_envs_bulk",
+		"parent_resource_type": resType,
+		"parent_resource_uuid": uuid,
+	})
 
 	envs, err := r.listEnvVars(ctx, resType, uuid)
 	if err != nil {
@@ -110,7 +121,10 @@ func (r *envsBulkResource) Read(ctx context.Context, req resource.ReadRequest, r
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading bulk env vars", err.Error())
+		resp.Diagnostics.AddError(
+			"Error reading bulk env vars",
+			fmt.Sprintf("%s %s: %s", resType, uuid, err),
+		)
 		return
 	}
 
@@ -149,10 +163,17 @@ func (r *envsBulkResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_envs_bulk"})
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{
+		"resource_type":        "coolify_envs_bulk",
+		"parent_resource_type": plan.ResourceType.ValueString(),
+		"parent_resource_uuid": plan.ResourceUUID.ValueString(),
+	})
 
 	if err := r.bulkUpdate(ctx, &plan); err != nil {
-		resp.Diagnostics.AddError("Error updating bulk env vars", err.Error())
+		resp.Diagnostics.AddError(
+			"Error updating bulk env vars",
+			fmt.Sprintf("%s %s: %s", plan.ResourceType.ValueString(), plan.ResourceUUID.ValueString(), err),
+		)
 		return
 	}
 
@@ -195,7 +216,10 @@ func (r *envsBulkResource) ImportState(ctx context.Context, req resource.ImportS
 
 	envs, err := r.listEnvVars(ctx, resType, uuid)
 	if err != nil {
-		resp.Diagnostics.AddError("Error importing bulk env vars", err.Error())
+		resp.Diagnostics.AddError(
+			"Error importing bulk env vars",
+			fmt.Sprintf("%s %s: %s", resType, uuid, err),
+		)
 		return
 	}
 
