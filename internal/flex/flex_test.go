@@ -44,7 +44,6 @@ func TestStringValueOrNull(t *testing.T) {
 	}
 }
 
-
 // BoolValue / BoolValueOrNull
 // ---------------------------------------------------------------------------
 
