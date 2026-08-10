@@ -37,10 +37,14 @@ type ServiceURL struct {
 	URL  string `json:"url"`
 }
 type CreateServiceInput struct {
-	Type                string       `json:"type,omitempty"`
-	Name                string       `json:"name,omitempty"`
-	Description         string       `json:"description,omitempty"`
-	ServerUUID          string       `json:"server_uuid"`
+	Type        string `json:"type,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	ServerUUID  string `json:"server_uuid"`
+	// DestinationUUID is create-only on Coolify (ServicesController create
+	// $allowedFields; not on update). omitempty keeps single-destination
+	// and older installs unchanged when unset.
+	DestinationUUID     string       `json:"destination_uuid,omitempty"`
 	ProjectUUID         string       `json:"project_uuid"`
 	EnvironmentName     string       `json:"environment_name"`
 	EnvironmentUUID     string       `json:"environment_uuid,omitempty"`
@@ -67,7 +71,20 @@ func (c *Client) GetService(ctx context.Context, uuid string) (*Service, error) 
 func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*Service, error) {
 	var s Service
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/services", input, &s, http.StatusCreated); err != nil {
-		return nil, fmt.Errorf("creating service: %w", err)
+		// Same multi-destination gate as applications/databases
+		// (ServicesController::create_service). Retry with a resolved
+		// destination_uuid when Coolify returns that 400.
+		if !isMissingDestinationUUID(err) {
+			return nil, fmt.Errorf("creating service: %w", err)
+		}
+		dest, rerr := c.ResolveDestinationUUID(ctx, input.ServerUUID, input.DestinationUUID)
+		if rerr != nil || dest == "" {
+			return nil, fmt.Errorf("creating service: %w", err)
+		}
+		input.DestinationUUID = dest
+		if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/services", input, &s, http.StatusCreated); err != nil {
+			return nil, fmt.Errorf("creating service: %w", err)
+		}
 	}
 	if s.UUID == "" {
 		return nil, fmt.Errorf("creating service: API returned empty UUID")

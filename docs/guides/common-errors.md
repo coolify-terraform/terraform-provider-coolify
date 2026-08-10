@@ -141,8 +141,8 @@ returns an unexpected error.
 
 1. List destinations with `data.coolify_destinations` or
    `coolify_destination` resources for the server.
-2. Set `destination_uuid` on the application or database resource to the
-   destination you want (create-only; changing it forces replacement).
+2. Set `destination_uuid` on the application, database, or service resource
+   to the destination you want (create-only; changing it forces replacement).
 3. Prefer a single default network named `coolify` so auto-resolution is
    deterministic when `destination_uuid` is omitted.
 

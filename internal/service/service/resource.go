@@ -34,12 +34,15 @@ type serviceResource struct {
 }
 
 type serviceResourceModel struct {
-	Timeouts                      timeouts.Value    `tfsdk:"timeouts"`
-	UUID                          types.String      `tfsdk:"uuid"`
-	Name                          types.String      `tfsdk:"name"`
-	Description                   types.String      `tfsdk:"description"`
-	ProjectUUID                   types.String      `tfsdk:"project_uuid"`
-	ServerUUID                    types.String      `tfsdk:"server_uuid"`
+	Timeouts    timeouts.Value `tfsdk:"timeouts"`
+	UUID        types.String   `tfsdk:"uuid"`
+	Name        types.String   `tfsdk:"name"`
+	Description types.String   `tfsdk:"description"`
+	ProjectUUID types.String   `tfsdk:"project_uuid"`
+	ServerUUID  types.String   `tfsdk:"server_uuid"`
+	// DestinationUUID is create-only. Coolify GET does not return it; preserve
+	// from state after apply.
+	DestinationUUID               types.String      `tfsdk:"destination_uuid"`
 	EnvironmentName               types.String      `tfsdk:"environment_name"`
 	Type                          types.String      `tfsdk:"type"`
 	Status                        types.String      `tfsdk:"status"`
@@ -107,6 +110,23 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 			"server_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the server to deploy the service on. Changing this forces a new resource.",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					validate.UUID(),
+				},
+			},
+			"destination_uuid": schema.StringAttribute{
+				MarkdownDescription: "UUID of the Coolify destination (Docker network) on the server. Create-only; " +
+					"changing forces a new resource. Coolify requires this when the server has multiple destinations " +
+					"and ignores a mismatched value when only one destination exists. Supported on service create for " +
+					"all Coolify versions this provider supports (v4.1.0+; field is in create `$allowedFields`, not " +
+					"update). When omitted on a multi-destination server, the client auto-resolves after Coolify " +
+					"returns the multi-destination error (prefers network `coolify`). Manage destinations with " +
+					"`coolify_destination`. Import cannot recover this value (GET does not return destination UUID); " +
+					"re-adding it after import forces replacement unless you set it in state or omit the attribute.",
+				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -276,6 +296,7 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
+	flex.SetIfKnown(&input.DestinationUUID, plan.DestinationUUID)
 	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
 	input.URLs = expandServiceURLs(plan.URLs)
 	input.ForceDomainOverride = flex.BoolValueOrNull(plan.ForceDomainOverride)
