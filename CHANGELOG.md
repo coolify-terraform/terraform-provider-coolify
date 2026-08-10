@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.13](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.12...v0.1.13) (2026-08-10)
+
+
+### Features
+
+* expose destination_uuid on applications and databases ([#678](https://github.com/coolify-terraform/terraform-provider-coolify/issues/678)) ([ee533a0](https://github.com/coolify-terraform/terraform-provider-coolify/commit/ee533a07e6e6e343aac9d723ab40f56d745ea72e))
+* **service:** expose destination_uuid on coolify_service ([#680](https://github.com/coolify-terraform/terraform-provider-coolify/issues/680)) ([3da5208](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3da5208682f02e54dda5dc17b5954d955afbad5a))
+
 ## [0.1.12](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.11...v0.1.12) (2026-08-05)
 
 
