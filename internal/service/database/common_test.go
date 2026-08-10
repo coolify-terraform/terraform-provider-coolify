@@ -28,6 +28,34 @@ func TestHasExtendedFields_AllDefaults(t *testing.T) {
 	}
 }
 
+// TestPopulateBaseCreateInput_DestinationUUID locks create-only destination
+// wiring for all database types (via PopulateBaseCreateInput). Coolify accepts
+// destination_uuid on create across supported contracts (v4.1.0+).
+func TestPopulateBaseCreateInput_DestinationUUID(t *testing.T) {
+	t.Parallel()
+	const dest = "dddd0001-0001-4000-8000-000000000001"
+	m := CommonModel{
+		ServerUUID:      types.StringValue("bbbb0001-0001-4000-8000-000000000001"),
+		ProjectUUID:     types.StringValue("aaaa0001-0001-4000-8000-000000000001"),
+		EnvironmentName: types.StringValue("production"),
+		DestinationUUID: types.StringValue(dest),
+	}
+	var base client.CreateDatabaseBaseInput
+	PopulateBaseCreateInput(&base, &m)
+	if base.DestinationUUID != dest {
+		t.Fatalf("DestinationUUID = %q, want %q", base.DestinationUUID, dest)
+	}
+
+	// Omitted destination must stay empty so omitempty drops it from JSON
+	// (single-destination servers and older installs remain compatible).
+	m.DestinationUUID = types.StringNull()
+	base = client.CreateDatabaseBaseInput{}
+	PopulateBaseCreateInput(&base, &m)
+	if base.DestinationUUID != "" {
+		t.Fatalf("DestinationUUID = %q, want empty when null in plan", base.DestinationUUID)
+	}
+}
+
 func TestHasExtendedFields_EachField(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

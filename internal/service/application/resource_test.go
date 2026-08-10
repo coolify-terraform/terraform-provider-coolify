@@ -2560,3 +2560,164 @@ func TestApplicationResource_SettingsWithheldOnOldCoolify(t *testing.T) {
 		},
 	})
 }
+
+// TestApplicationResource_CreateSendsDestinationUUID ensures the public-git
+// create body includes destination_uuid when configured. Coolify create
+// $allowedFields includes destination_uuid on all supported versions; update
+// does not. GET returns destination_id/type only, so state preserves the
+// configured UUID after apply.
+func TestApplicationResource_CreateSendsDestinationUUID(t *testing.T) {
+	t.Parallel()
+	const (
+		appUUID  = "dest-app-uuid-001"
+		destUUID = "dddd0001-0001-4000-8000-000000000001"
+		projUUID = "aaaa0002-0002-4000-8000-000000000002"
+		srvUUID  = "bbbb0002-0002-4000-8000-000000000002"
+	)
+	var gotBody map[string]interface{}
+	app := client.Application{
+		UUID:            appUUID,
+		Name:            "dest-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     projUUID,
+		ServerUUID:      srvUUID,
+		EnvironmentName: "production",
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		gotBody = body
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	// Extended fields may trigger a post-create PATCH; ignore body.
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(app)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, fmt.Sprintf(`
+					project_uuid     = %q
+					server_uuid      = %q
+					destination_uuid = %q
+					git_repository   = "https://github.com/example/repo"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					name             = "dest-app"
+				`, projUUID, srvUUID, destUUID)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "destination_uuid", destUUID),
+					resource.TestCheckResourceAttr("coolify_application.test", "uuid", appUUID),
+					func(_ *terraform.State) error {
+						if gotBody == nil {
+							return fmt.Errorf("create body not captured")
+						}
+						got, _ := gotBody["destination_uuid"].(string)
+						if got != destUUID {
+							return fmt.Errorf("POST destination_uuid = %v, want %q", gotBody["destination_uuid"], destUUID)
+						}
+						return nil
+					},
+				),
+			},
+			// Plan must stay empty: create-only field preserved despite GET omitting it.
+			{
+				Config: testApplicationResourceConfig(srv.URL, fmt.Sprintf(`
+					project_uuid     = %q
+					server_uuid      = %q
+					destination_uuid = %q
+					git_repository   = "https://github.com/example/repo"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					name             = "dest-app"
+				`, projUUID, srvUUID, destUUID)),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset ensures we do
+// not send destination_uuid:null/"" which would change Coolify behavior.
+func TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
+	t.Parallel()
+	const appUUID = "no-dest-app-uuid"
+	var gotBody map[string]interface{}
+	app := client.Application{
+		UUID: appUUID, Name: "no-dest", GitRepository: "https://github.com/example/repo",
+		GitBranch: "main", BuildPack: "nixpacks", PortsExposes: "3000",
+		ProjectUUID: "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:  "bbbb0002-0002-4000-8000-000000000002", EnvironmentName: "production",
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		gotBody = body
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(app)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					func(_ *terraform.State) error {
+						if gotBody == nil {
+							return fmt.Errorf("create body not captured")
+						}
+						if _, ok := gotBody["destination_uuid"]; ok {
+							return fmt.Errorf("expected destination_uuid omitted from POST, got %v", gotBody["destination_uuid"])
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}

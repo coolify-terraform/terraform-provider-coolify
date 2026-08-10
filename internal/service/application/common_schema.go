@@ -131,6 +131,18 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 			Validators:          []validator.String{validate.UUID()},
 		},
+		"destination_uuid": schema.StringAttribute{
+			MarkdownDescription: "UUID of the Coolify destination (Docker network) on the server. Create-only; " +
+				"changing forces a new resource. Coolify requires this when the server has multiple destinations " +
+				"and ignores a mismatched value when only one destination exists (it always uses that one). " +
+				"Supported on application create for all Coolify versions this provider supports (v4.1.0+; field " +
+				"is in `$allowedFields` on create, not update). When omitted on a multi-destination server, the " +
+				"provider auto-resolves after Coolify returns the multi-destination error (prefers network " +
+				"`coolify`). Manage destinations with `coolify_destination`.",
+			Optional:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			Validators:    []validator.String{validate.UUID()},
+		},
 		"environment_name": schema.StringAttribute{
 			MarkdownDescription: "The environment name for the application (defaults to `production`). Changing this forces a new resource.",
 			Optional:            true,

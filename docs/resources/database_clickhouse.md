@@ -36,6 +36,7 @@ resource "coolify_database_clickhouse" "example" {
 - `clickhouse_db` (String) The default ClickHouse database name. If omitted, Coolify uses `default`.
 - `custom_docker_run_options` (String) Custom Docker run options passed to the container.
 - `description` (String) A description of the database.
+- `destination_uuid` (String) UUID of the Coolify destination (Docker network) on the server. Create-only; changing forces a new resource. Coolify requires this when the server has multiple destinations and ignores a mismatched value when only one destination exists. Supported on database create for all Coolify versions this provider supports (v4.1.0+). When omitted on a multi-destination server, the client may auto-resolve after Coolify returns the multi-destination error (prefers network `coolify`). Manage destinations with `coolify_destination`.
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `health_check_enabled` (Boolean) When `true`, enables the Docker health check probe for this database container. Defaults to `true`.
 - `health_check_interval` (Number) Health check interval in seconds. Minimum `1`. Defaults to `15`.

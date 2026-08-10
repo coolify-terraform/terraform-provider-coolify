@@ -142,6 +142,7 @@ func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource
 		PortsExposes:       plan.PortsExposes.ValueString(),
 	}
 	flex.SetIfKnown(&input.EnvironmentName, plan.EnvironmentName)
+	flex.SetIfKnown(&input.DestinationUUID, plan.DestinationUUID)
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)
 	flex.SetIfKnown(&input.Domains, plan.Domains)

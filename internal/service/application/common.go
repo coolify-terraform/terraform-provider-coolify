@@ -169,11 +169,14 @@ type commonAppFields struct {
 // applicationCommonModel holds the fields shared by all application resource
 // models. Embed this struct to avoid repeating ~60 fields in each model.
 type applicationCommonModel struct {
-	UUID                           types.String   `tfsdk:"uuid"`
-	Name                           types.String   `tfsdk:"name"`
-	Description                    types.String   `tfsdk:"description"`
-	ProjectUUID                    types.String   `tfsdk:"project_uuid"`
-	ServerUUID                     types.String   `tfsdk:"server_uuid"`
+	UUID        types.String `tfsdk:"uuid"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	ProjectUUID types.String `tfsdk:"project_uuid"`
+	ServerUUID  types.String `tfsdk:"server_uuid"`
+	// DestinationUUID is create-only. Coolify stores destination_id/destination_type
+	// on the morph; GET does not return destination_uuid. Preserve from state.
+	DestinationUUID                types.String   `tfsdk:"destination_uuid"`
 	EnvironmentName                types.String   `tfsdk:"environment_name"`
 	PortsExposes                   types.String   `tfsdk:"ports_exposes"`
 	Domains                        types.String   `tfsdk:"domains"`
