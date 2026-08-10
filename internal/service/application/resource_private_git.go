@@ -107,6 +107,7 @@ func (r *privateGitApplicationResource) Create(ctx context.Context, req resource
 		PrivateKeyUUID: plan.PrivateKeyUUID.ValueString(),
 	}
 	flex.SetIfKnown(&input.EnvironmentName, plan.EnvironmentName)
+	flex.SetIfKnown(&input.DestinationUUID, plan.DestinationUUID)
 	flex.SetIfKnown(&input.GitBranch, plan.GitBranch)
 	flex.SetIfKnown(&input.Name, plan.Name)
 	flex.SetIfKnown(&input.Description, plan.Description)

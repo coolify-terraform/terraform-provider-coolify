@@ -141,13 +141,10 @@ returns an unexpected error.
 
 1. List destinations with `data.coolify_destinations` or
    `coolify_destination` resources for the server.
-2. Prefer a single default network named `coolify` so auto-resolution is
-   deterministic.
-3. Explicit `destination_uuid` on application and database resources is
-   tracked in issue
-   [#675](https://github.com/coolify-terraform/terraform-provider-coolify/issues/675);
-   until that lands, keep one destination per server or rely on the
-   `coolify` network naming heuristic.
+2. Set `destination_uuid` on the application or database resource to the
+   destination you want (create-only; changing it forces replacement).
+3. Prefer a single default network named `coolify` so auto-resolution is
+   deterministic when `destination_uuid` is omitted.
 
 ### UUID format invalid
 

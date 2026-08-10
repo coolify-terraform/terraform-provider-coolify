@@ -26,36 +26,39 @@ import (
 )
 
 type CommonModel struct {
-	Timeouts                timeouts.Value `tfsdk:"timeouts"`
-	UUID                    types.String   `tfsdk:"uuid"`
-	Name                    types.String   `tfsdk:"name"`
-	Description             types.String   `tfsdk:"description"`
-	ProjectUUID             types.String   `tfsdk:"project_uuid"`
-	ServerUUID              types.String   `tfsdk:"server_uuid"`
-	EnvironmentName         types.String   `tfsdk:"environment_name"`
-	Image                   types.String   `tfsdk:"image"`
-	IsPublic                types.Bool     `tfsdk:"is_public"`
-	PublicPort              types.Int64    `tfsdk:"public_port"`
-	LimitsMemory            types.String   `tfsdk:"limits_memory"`
-	LimitsMemorySwap        types.String   `tfsdk:"limits_memory_swap"`
-	LimitsMemorySwappiness  types.Int64    `tfsdk:"limits_memory_swappiness"`
-	LimitsMemoryReservation types.String   `tfsdk:"limits_memory_reservation"`
-	LimitsCPUs              types.String   `tfsdk:"limits_cpus"`
-	LimitsCPUSet            types.String   `tfsdk:"limits_cpuset"`
-	LimitsCPUShares         types.Int64    `tfsdk:"limits_cpu_shares"`
-	PortsMappings           types.String   `tfsdk:"ports_mappings"`
-	CustomDockerRunOptions  types.String   `tfsdk:"custom_docker_run_options"`
-	PublicPortTimeout       types.Int64    `tfsdk:"public_port_timeout"`
-	IsLogDrainEnabled       types.Bool     `tfsdk:"is_log_drain_enabled"`
-	IsIncludeTimestamps     types.Bool     `tfsdk:"is_include_timestamps"`
-	HealthCheckEnabled      types.Bool     `tfsdk:"health_check_enabled"`
-	HealthCheckInterval     types.Int64    `tfsdk:"health_check_interval"`
-	HealthCheckTimeout      types.Int64    `tfsdk:"health_check_timeout"`
-	HealthCheckRetries      types.Int64    `tfsdk:"health_check_retries"`
-	HealthCheckStartPeriod  types.Int64    `tfsdk:"health_check_start_period"`
-	Status                  types.String   `tfsdk:"status"`
-	InternalDBUrl           types.String   `tfsdk:"internal_db_url"`
-	InstantDeploy           types.Bool     `tfsdk:"instant_deploy"`
+	Timeouts    timeouts.Value `tfsdk:"timeouts"`
+	UUID        types.String   `tfsdk:"uuid"`
+	Name        types.String   `tfsdk:"name"`
+	Description types.String   `tfsdk:"description"`
+	ProjectUUID types.String   `tfsdk:"project_uuid"`
+	ServerUUID  types.String   `tfsdk:"server_uuid"`
+	// DestinationUUID is create-only. Coolify stores destination_id on the morph;
+	// GET does not return destination_uuid. Preserve from state after create.
+	DestinationUUID         types.String `tfsdk:"destination_uuid"`
+	EnvironmentName         types.String `tfsdk:"environment_name"`
+	Image                   types.String `tfsdk:"image"`
+	IsPublic                types.Bool   `tfsdk:"is_public"`
+	PublicPort              types.Int64  `tfsdk:"public_port"`
+	LimitsMemory            types.String `tfsdk:"limits_memory"`
+	LimitsMemorySwap        types.String `tfsdk:"limits_memory_swap"`
+	LimitsMemorySwappiness  types.Int64  `tfsdk:"limits_memory_swappiness"`
+	LimitsMemoryReservation types.String `tfsdk:"limits_memory_reservation"`
+	LimitsCPUs              types.String `tfsdk:"limits_cpus"`
+	LimitsCPUSet            types.String `tfsdk:"limits_cpuset"`
+	LimitsCPUShares         types.Int64  `tfsdk:"limits_cpu_shares"`
+	PortsMappings           types.String `tfsdk:"ports_mappings"`
+	CustomDockerRunOptions  types.String `tfsdk:"custom_docker_run_options"`
+	PublicPortTimeout       types.Int64  `tfsdk:"public_port_timeout"`
+	IsLogDrainEnabled       types.Bool   `tfsdk:"is_log_drain_enabled"`
+	IsIncludeTimestamps     types.Bool   `tfsdk:"is_include_timestamps"`
+	HealthCheckEnabled      types.Bool   `tfsdk:"health_check_enabled"`
+	HealthCheckInterval     types.Int64  `tfsdk:"health_check_interval"`
+	HealthCheckTimeout      types.Int64  `tfsdk:"health_check_timeout"`
+	HealthCheckRetries      types.Int64  `tfsdk:"health_check_retries"`
+	HealthCheckStartPeriod  types.Int64  `tfsdk:"health_check_start_period"`
+	Status                  types.String `tfsdk:"status"`
+	InternalDBUrl           types.String `tfsdk:"internal_db_url"`
+	InstantDeploy           types.Bool   `tfsdk:"instant_deploy"`
 }
 
 // DatabaseCommonPtrs groups pointers to the core database model fields
@@ -111,6 +114,7 @@ func PopulateBaseCreateInput(base *client.CreateDatabaseBaseInput, m *CommonMode
 	base.ServerUUID = m.ServerUUID.ValueString()
 	base.ProjectUUID = m.ProjectUUID.ValueString()
 	base.EnvironmentName = m.EnvironmentName.ValueString()
+	flex.SetIfKnown(&base.DestinationUUID, m.DestinationUUID)
 	flex.SetIfKnown(&base.Name, m.Name)
 	flex.SetIfKnown(&base.Description, m.Description)
 	flex.SetIfKnown(&base.Image, m.Image)
@@ -122,12 +126,25 @@ func PopulateBaseCreateInput(base *client.CreateDatabaseBaseInput, m *CommonMode
 // CommonDatabaseAttrs returns the shared schema attributes for all database types.
 func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute) map[string]schema.Attribute {
 	attrs := map[string]schema.Attribute{
-		"timeouts":         timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
-		"uuid":             schema.StringAttribute{MarkdownDescription: "The UUID of the database.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"name":             schema.StringAttribute{MarkdownDescription: "The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"description":      schema.StringAttribute{MarkdownDescription: "A description of the database.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"project_uuid":     schema.StringAttribute{MarkdownDescription: "The UUID of the project this database belongs to. Changing this forces a new resource.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
-		"server_uuid":      schema.StringAttribute{MarkdownDescription: "The UUID of the server to deploy the database on. Changing this forces a new resource.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
+		"timeouts":     timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
+		"uuid":         schema.StringAttribute{MarkdownDescription: "The UUID of the database.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"name":         schema.StringAttribute{MarkdownDescription: "The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"description":  schema.StringAttribute{MarkdownDescription: "A description of the database.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"project_uuid": schema.StringAttribute{MarkdownDescription: "The UUID of the project this database belongs to. Changing this forces a new resource.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
+		"server_uuid":  schema.StringAttribute{MarkdownDescription: "The UUID of the server to deploy the database on. Changing this forces a new resource.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
+		"destination_uuid": schema.StringAttribute{
+			MarkdownDescription: "UUID of the Coolify destination (Docker network) on the server. Create-only; " +
+				"changing forces a new resource. Coolify requires this when the server has multiple destinations " +
+				"and ignores a mismatched value when only one destination exists. Supported on database create for " +
+				"all Coolify versions this provider supports (v4.1.0+). When omitted on a multi-destination server, " +
+				"the client may auto-resolve after Coolify returns the multi-destination error (prefers network " +
+				"`coolify`). Manage destinations with `coolify_destination`. " +
+				"Import cannot recover this value (GET does not return destination UUID); re-adding it after import " +
+				"forces replacement unless you set it in state or omit the attribute.",
+			Optional:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			Validators:    []validator.String{validate.UUID()},
+		},
 		"environment_name": schema.StringAttribute{MarkdownDescription: "The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.", Optional: true, Computed: true, Default: stringdefault.StaticString("production"), PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 		"image":            schema.StringAttribute{MarkdownDescription: "The Docker image to use.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"is_public":        schema.BoolAttribute{MarkdownDescription: "When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},

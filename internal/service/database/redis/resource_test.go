@@ -14,6 +14,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/dbtest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestRedisDatabaseResource_CreateUpdateImport(t *testing.T) {
@@ -331,6 +332,179 @@ resource "coolify_database_redis" "test" {
 					acctest.CheckResourceDisappears(srv.URL, "coolify_database_redis.test", "/api/v1/databases/"),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// TestRedisDatabaseResource_CreateSendsDestinationUUID verifies the shared
+// PopulateBaseCreateInput path sends destination_uuid on database create.
+func TestRedisDatabaseResource_CreateSendsDestinationUUID(t *testing.T) {
+	t.Parallel()
+	const (
+		redisUUID = "aaaa0001-0001-4000-8000-000000000099"
+		destUUID  = "dddd0001-0001-4000-8000-000000000001"
+	)
+	var gotBody map[string]interface{}
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/redis":
+			if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+				http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
+				return
+			}
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": redisUUID})
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":                      redisUUID,
+				"name":                      "redis-dest-db",
+				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name":          "production",
+				"image":                     "redis:7",
+				"is_public":                 false,
+				"redis_password":            "secret",
+				"limits_memory":             "0",
+				"limits_memory_swap":        "0",
+				"limits_memory_swappiness":  60,
+				"limits_memory_reservation": "0",
+				"limits_cpus":               "0",
+				"limits_cpuset":             "0",
+				"limits_cpu_shares":         1024,
+				"status":                    "running",
+				"is_log_drain_enabled":      false,
+				"is_include_timestamps":     false,
+				"health_check_enabled":      true,
+				"health_check_interval":     15,
+				"health_check_timeout":      5,
+				"health_check_retries":      5,
+				"health_check_start_period": 5,
+				"enable_ssl":                false,
+			})
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+		case r.Method == http.MethodPost && (strings.HasSuffix(r.URL.Path, "/start") || strings.HasSuffix(r.URL.Path, "/stop")):
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + fmt.Sprintf(`
+resource "coolify_database_redis" "test" {
+  project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+  destination_uuid = %q
+  name             = "redis-dest-db"
+}
+`, destUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "destination_uuid", destUUID),
+					resource.TestCheckResourceAttr("coolify_database_redis.test", "uuid", redisUUID),
+					func(_ *terraform.State) error {
+						if gotBody == nil {
+							return fmt.Errorf("create body not captured")
+						}
+						got, _ := gotBody["destination_uuid"].(string)
+						if got != destUUID {
+							return fmt.Errorf("POST destination_uuid = %v, want %q", gotBody["destination_uuid"], destUUID)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + fmt.Sprintf(`
+resource "coolify_database_redis" "test" {
+  project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+  destination_uuid = %q
+  name             = "redis-dest-db"
+}
+`, destUUID),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// TestRedisDatabaseResource_CreateOmitsDestinationUUIDWhenUnset ensures the
+// POST body does not include destination_uuid when the attribute is omitted.
+func TestRedisDatabaseResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
+	t.Parallel()
+	const redisUUID = "aaaa0001-0001-4000-8000-000000000098"
+	var gotBody map[string]interface{}
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/redis":
+			if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+				http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
+				return
+			}
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": redisUUID})
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid": redisUUID, "name": "redis-omit-dest",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name": "production", "image": "redis:7", "is_public": false,
+				"redis_password": "secret", "limits_memory": "0", "limits_memory_swap": "0",
+				"limits_memory_swappiness": 60, "limits_memory_reservation": "0",
+				"limits_cpus": "0", "limits_cpuset": "0", "limits_cpu_shares": 1024,
+				"status": "running", "is_log_drain_enabled": false, "is_include_timestamps": false,
+				"health_check_enabled": true, "health_check_interval": 15, "health_check_timeout": 5,
+				"health_check_retries": 5, "health_check_start_period": 5, "enable_ssl": false,
+			})
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+		case r.Method == http.MethodPost && (strings.HasSuffix(r.URL.Path, "/start") || strings.HasSuffix(r.URL.Path, "/stop")):
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_redis" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  name         = "redis-omit-dest"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					func(_ *terraform.State) error {
+						if gotBody == nil {
+							return fmt.Errorf("create body not captured")
+						}
+						if _, ok := gotBody["destination_uuid"]; ok {
+							return fmt.Errorf("expected destination_uuid omitted from POST, got %v", gotBody["destination_uuid"])
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
