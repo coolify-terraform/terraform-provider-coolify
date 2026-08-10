@@ -9,6 +9,9 @@ resource "coolify_service" "catalog" {
   server_uuid      = coolify_server.example.uuid
   environment_name = "production"
 
+  # Optional: pin Docker network when the server has multiple destinations (create-only)
+  # destination_uuid = coolify_destination.app_net.uuid
+
   # Optional: connect service containers to the Coolify Docker network
   # connect_to_docker_network = true
 }
