@@ -123,6 +123,32 @@ will not send them to the Coolify API.
 **Fix:** upgrade Coolify to **v4.2.0** or later, or remove those attributes
 from configuration. The warning is intentional; it is not a hard error.
 
+### Server has multiple destinations and you do not set destination_uuid
+
+```
+Error: Error creating application: …
+Server has multiple destinations and you do not set destination_uuid.
+```
+
+**Cause:** the Coolify server has more than one Docker network destination
+(Coolify >= v4.2.0). Create APIs require `destination_uuid` when more than
+one destination exists. The provider auto-resolves a destination when it can
+(prefers network `coolify`, then the first standalone destination, then the
+first entry). Resolution fails if the destinations list is empty or the API
+returns an unexpected error.
+
+**Fix:**
+
+1. List destinations with `data.coolify_destinations` or
+   `coolify_destination` resources for the server.
+2. Prefer a single default network named `coolify` so auto-resolution is
+   deterministic.
+3. Explicit `destination_uuid` on application and database resources is
+   tracked in issue
+   [#675](https://github.com/coolify-terraform/terraform-provider-coolify/issues/675);
+   until that lands, keep one destination per server or rely on the
+   `coolify` network naming heuristic.
+
 ### UUID format invalid
 
 ```
