@@ -58,6 +58,23 @@ func TestUpdateServiceInput_PublicPatchSurfaceMatchesExpectedKeys(t *testing.T) 
 	}
 }
 
+// Regression: Coolify update_by_uuid does not allow destination_uuid; create-only.
+func TestUpdateServiceInput_NoDestinationUUID(t *testing.T) {
+	t.Parallel()
+	for _, k := range expectedWritableServiceUpdateKeys {
+		if k == "destination_uuid" {
+			t.Fatal("UpdateServiceInput must not include destination_uuid (create-only field)")
+		}
+	}
+	updateType := reflect.TypeOf(client.UpdateServiceInput{})
+	for i := 0; i < updateType.NumField(); i++ {
+		key, _, _ := strings.Cut(updateType.Field(i).Tag.Get("json"), ",")
+		if key == "destination_uuid" {
+			t.Fatal("UpdateServiceInput JSON tag destination_uuid found; remove it")
+		}
+	}
+}
+
 const serviceTestConfig = `
 resource "coolify_service" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"

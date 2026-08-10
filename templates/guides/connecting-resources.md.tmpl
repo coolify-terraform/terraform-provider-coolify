@@ -15,6 +15,14 @@ applications to databases and other services.
 
 Every Coolify project gets its own Docker network. All resources (apps,
 databases, services) within that project are attached to the same network.
+
+On Coolify **>= v4.2.0**, a server can also have **multiple destinations**
+(extra Docker networks managed with `coolify_destination`). When more than
+one destination exists, create calls require `destination_uuid` on the
+application, database, or service (create-only). If you omit it, the
+provider auto-resolves when possible (prefers network name `coolify`).
+See the Common Errors guide for the multi-destination API message.
+
 This means:
 
 - **Containers can reach each other by resource name.** If your database
