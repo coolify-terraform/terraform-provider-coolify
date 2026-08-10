@@ -138,7 +138,9 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 				"and ignores a mismatched value when only one destination exists. Supported on database create for " +
 				"all Coolify versions this provider supports (v4.1.0+). When omitted on a multi-destination server, " +
 				"the client may auto-resolve after Coolify returns the multi-destination error (prefers network " +
-				"`coolify`). Manage destinations with `coolify_destination`.",
+				"`coolify`). Manage destinations with `coolify_destination`. " +
+				"Import cannot recover this value (GET does not return destination UUID); re-adding it after import " +
+				"forces replacement unless you set it in state or omit the attribute.",
 			Optional:      true,
 			PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 			Validators:    []validator.String{validate.UUID()},

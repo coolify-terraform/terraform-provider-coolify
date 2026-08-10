@@ -138,7 +138,9 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 				"Supported on application create for all Coolify versions this provider supports (v4.1.0+; field " +
 				"is in `$allowedFields` on create, not update). When omitted on a multi-destination server, the " +
 				"provider auto-resolves after Coolify returns the multi-destination error (prefers network " +
-				"`coolify`). Manage destinations with `coolify_destination`.",
+				"`coolify`). Manage destinations with `coolify_destination`. " +
+				"Import cannot recover this value (GET returns `destination_id`/`destination_type`, not UUID); " +
+				"re-adding it after import forces replacement unless you set it in state or omit the attribute.",
 			Optional:      true,
 			PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 			Validators:    []validator.String{validate.UUID()},
