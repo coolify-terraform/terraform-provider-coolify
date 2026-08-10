@@ -5601,6 +5601,65 @@ func TestClient_CreateDockerfileApplication_ResolvesDestination(t *testing.T) {
 	assert.Equal(t, "dest-1", gotBody["destination_uuid"])
 }
 
+// TestClient_CreateDatabase_ResolvesDestination covers the retry path in
+// CreateDatabase: when Coolify rejects the first POST for missing
+// destination_uuid on a multi-destination server, the client resolves a
+// destination and retries. Applications resolve proactively; databases use
+// this error-driven path (inputWithResolvedDestination).
+func TestClient_CreateDatabase_ResolvesDestination(t *testing.T) {
+	t.Parallel()
+	var attempts int
+	var gotBody map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{{UUID: "dest-db-1", Network: "coolify", Type: "standalone"}})
+	})
+	mux.HandleFunc("POST /api/v1/databases/{dbType}", func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+		if attempts == 1 {
+			http.Error(w, `{"message":"Server has multiple destinations and you do not set destination_uuid."}`, http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Database{UUID: "db-1", Name: "pg"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	db, err := c.CreateDatabase(context.Background(), "postgresql", CreatePostgresqlInput{
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ProjectUUID: "p", ServerUUID: "s", EnvironmentName: "production", Name: "pg",
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "db-1", db.UUID)
+	assert.Equal(t, 2, attempts)
+	assert.Equal(t, "dest-db-1", gotBody["destination_uuid"])
+}
+
+func TestClient_CreateDatabase_ResolveDestinationFails(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	// Empty destinations list: resolve returns "" and retry is skipped.
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{})
+	})
+	mux.HandleFunc("POST /api/v1/databases/{dbType}", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"message":"Server has multiple destinations and you do not set destination_uuid."}`, http.StatusBadRequest)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateDatabase(context.Background(), "redis", CreateRedisInput{
+		CreateDatabaseBaseInput: CreateDatabaseBaseInput{
+			ProjectUUID: "p", ServerUUID: "s", EnvironmentName: "production",
+		},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "destination_uuid")
+}
+
 func TestApplication_PromoteSettings(t *testing.T) {
 	t.Parallel()
 	preview := true
