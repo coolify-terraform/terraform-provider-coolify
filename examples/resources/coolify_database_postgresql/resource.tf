@@ -4,9 +4,10 @@ variable "postgres_password" {
 }
 
 resource "coolify_database_postgresql" "example" {
-  name              = "my-postgres"
-  project_uuid      = coolify_project.example.uuid
-  server_uuid       = coolify_server.example.uuid
+  name         = "my-postgres"
+  project_uuid = coolify_project.example.uuid
+  server_uuid  = coolify_server.example.uuid
+  # destination_uuid = coolify_destination.app_net.uuid  # create-only; multi-destination servers
   image             = "postgres:16"
   postgres_user     = "app"
   postgres_password = var.postgres_password

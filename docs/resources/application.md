@@ -36,6 +36,7 @@ resource "coolify_application" "example" {
   domains        = "https://app.example.com"
 
   # Optional fields (uncomment as needed):
+  # destination_uuid         = coolify_destination.app_net.uuid  # create-only; required when the server has multiple Docker networks
   # redirect                 = "both"                # WWW redirect: "www", "non-www", or "both" (default: "both")
   # base_directory           = "/app"                 # Base directory for the application source code (default: "/")
   # watch_paths              = "/src:/lib"            # Paths to watch for changes (triggers auto-deploy)
