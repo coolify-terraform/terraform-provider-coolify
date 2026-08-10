@@ -346,6 +346,7 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 		Description                   types.String      `tfsdk:"description"`
 		ProjectUUID                   types.String      `tfsdk:"project_uuid"`
 		ServerUUID                    types.String      `tfsdk:"server_uuid"`
+		DestinationUUID               types.String      `tfsdk:"destination_uuid"`
 		EnvironmentName               types.String      `tfsdk:"environment_name"`
 		Type                          types.String      `tfsdk:"type"`
 		Status                        types.String      `tfsdk:"status"`
@@ -364,6 +365,7 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 		Description:                   types.StringNull(),
 		ProjectUUID:                   types.StringNull(),
 		ServerUUID:                    types.StringNull(),
+		DestinationUUID:               types.StringNull(),
 		EnvironmentName:               types.StringNull(),
 		Type:                          types.StringNull(),
 		Status:                        types.StringNull(),
@@ -1082,6 +1084,153 @@ resource "coolify_service" "test" {
 }
 `,
 				ExpectError: regexp.MustCompile(`Error creating service`),
+			},
+		},
+	})
+}
+
+// TestServiceResource_CreateSendsDestinationUUID ensures POST /services includes
+// destination_uuid when set. Coolify create allows the field (both catalog and
+// docker_compose_raw branches); update does not. GET omits it, so state preserves
+// the configured value after apply.
+func TestServiceResource_CreateSendsDestinationUUID(t *testing.T) {
+	t.Parallel()
+	const destUUID = "dddd0001-0001-4000-8000-000000000099"
+	var gotBody map[string]interface{}
+	state := &mockServiceState{
+		uuid: "dddd0001-0001-4000-8000-000000000088",
+		name: "plausible-dest",
+	}
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+				http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
+				return
+			}
+			if v, ok := gotBody["name"].(string); ok && v != "" {
+				state.name = v
+			}
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":             state.uuid,
+				"name":             state.name,
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name": "production",
+				"type":             "plausible",
+			})
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost && (strings.HasSuffix(r.URL.Path, "/start") || strings.HasSuffix(r.URL.Path, "/stop")):
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + fmt.Sprintf(`
+resource "coolify_service" "test" {
+  project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+  destination_uuid = %q
+  type             = "plausible"
+  name             = "plausible-dest"
+}
+`, destUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_service.test", "destination_uuid", destUUID),
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", state.uuid),
+					func(_ *terraform.State) error {
+						if gotBody == nil {
+							return fmt.Errorf("create body not captured")
+						}
+						got, _ := gotBody["destination_uuid"].(string)
+						if got != destUUID {
+							return fmt.Errorf("POST destination_uuid = %v, want %q", gotBody["destination_uuid"], destUUID)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + fmt.Sprintf(`
+resource "coolify_service" "test" {
+  project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+  destination_uuid = %q
+  type             = "plausible"
+  name             = "plausible-dest"
+}
+`, destUUID),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// TestServiceResource_CreateOmitsDestinationUUIDWhenUnset ensures we do not
+// send destination_uuid when the attribute is omitted (omitempty / single-
+// destination compatibility).
+func TestServiceResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
+	t.Parallel()
+	var gotBody map[string]interface{}
+	state := &mockServiceState{
+		uuid: "dddd0001-0001-4000-8000-000000000077",
+		name: "plausible-omit",
+	}
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+				http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
+				return
+			}
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid": state.uuid, "name": state.name, "type": "plausible",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name": "production",
+			})
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost && (strings.HasSuffix(r.URL.Path, "/start") || strings.HasSuffix(r.URL.Path, "/stop")):
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: serviceConfig(srv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					func(_ *terraform.State) error {
+						if gotBody == nil {
+							return fmt.Errorf("create body not captured")
+						}
+						if _, ok := gotBody["destination_uuid"]; ok {
+							return fmt.Errorf("expected destination_uuid omitted from POST, got %v", gotBody["destination_uuid"])
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})

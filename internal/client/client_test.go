@@ -5660,6 +5660,57 @@ func TestClient_CreateDatabase_ResolveDestinationFails(t *testing.T) {
 	assert.Contains(t, err.Error(), "destination_uuid")
 }
 
+// TestClient_CreateService_ResolvesDestination covers multi-destination
+// auto-retry for services (parity with applications/databases).
+func TestClient_CreateService_ResolvesDestination(t *testing.T) {
+	t.Parallel()
+	var attempts int
+	var gotBody map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{{UUID: "dest-svc-1", Network: "coolify", Type: "standalone"}})
+	})
+	mux.HandleFunc("POST /api/v1/services", func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+		if attempts == 1 {
+			http.Error(w, `{"message":"Server has multiple destinations and you do not set destination_uuid."}`, http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Service{UUID: "svc-1", Name: "n"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	svc, err := c.CreateService(context.Background(), CreateServiceInput{
+		Type: "plausible", ServerUUID: "s", ProjectUUID: "p", EnvironmentName: "production",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "svc-1", svc.UUID)
+	assert.Equal(t, 2, attempts)
+	assert.Equal(t, "dest-svc-1", gotBody["destination_uuid"])
+}
+
+func TestClient_CreateService_SendsExplicitDestinationUUID(t *testing.T) {
+	t.Parallel()
+	const dest = "dddd0001-0001-4000-8000-000000000001"
+	var got CreateServiceInput
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&got))
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Service{UUID: "svc-x"})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateService(context.Background(), CreateServiceInput{
+		Type: "plausible", ServerUUID: "s", ProjectUUID: "p", EnvironmentName: "production",
+		DestinationUUID: dest,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, dest, got.DestinationUUID)
+}
+
 func TestApplication_PromoteSettings(t *testing.T) {
 	t.Parallel()
 	preview := true
