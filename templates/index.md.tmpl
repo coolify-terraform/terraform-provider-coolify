@@ -11,7 +11,7 @@ Define your entire [Coolify](https://coolify.io/) infrastructure as code. Deploy
 
 Coolify gives you a self-hosted PaaS with a great UI. This provider adds what the UI cannot: reproducible environments, pull-request-based infrastructure reviews, disaster recovery from state, and CI/CD integration. Whether you run a single VPS or manage Coolify for a team, Terraform turns your infrastructure into a reviewable, testable, git-tracked configuration.
 
-**37 resources, 54 data sources, 99%+ Coolify API coverage.**
+**38 resources, 56 data sources, 99%+ Coolify API coverage.**
 
 ## Requirements
 

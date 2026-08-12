@@ -28,9 +28,9 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 
 | Area | Coverage |
 |---|---|
-| Managed resources | 37 |
+| Managed resources | 38 |
 | Data sources | 54 |
-| Tests | 1150+ unit and acceptance tests |
+| Tests | 1180+ unit and acceptance tests |
 | Scenario examples | 17 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -134,6 +134,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_scheduled_task` | Manage scheduled tasks on applications/services |
 | `coolify_storage` | Manage persistent storage volumes |
 | `coolify_storage_backup` | Schedule backups for storage volumes (Coolify >= v4.3.0; [coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946)) |
+| `coolify_s3_storage` | Manage S3-compatible storage for backups (Coolify >= v4.3.0) |
 | `coolify_cloud_token` | Manage cloud provider tokens (Hetzner, DigitalOcean, Vultr) |
 | `coolify_github_app` | Manage GitHub App integrations |
 | `coolify_envs_bulk` | Manage environment variables as a single atomic set |
@@ -162,6 +163,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_service` / `coolify_services` | Read service(s) |
 | `coolify_scheduled_task` / `coolify_scheduled_tasks` / `coolify_task_executions` | Read scheduled task(s) and executions |
 | `coolify_storage` / `coolify_storages` | Read / list persistent storage volumes |
+| `coolify_s3_storage` / `coolify_s3_storages` | Read / list S3-compatible storage configurations (Coolify >= v4.3.0) |
 | `coolify_cloud_token` / `coolify_cloud_tokens` | Read cloud token(s) |
 | `coolify_github_app` / `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` | Read GitHub App(s), repos, branches |
 | `coolify_backup_executions` | List backup execution history |
@@ -306,7 +308,7 @@ targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
-make test                                       # Run unit tests (1150+ tests, race detector enabled)
+make test                                       # Run unit tests (1180+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
 make testacc                                    # Run acceptance tests with serialized package and in-package execution

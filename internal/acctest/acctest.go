@@ -627,6 +627,58 @@ func AccTestS3StorageUUID(t *testing.T) string {
 	return v
 }
 
+// AccTestSkipIfNoS3StorageAPI skips when Coolify lacks S3StoragesController
+// (GET/POST /api/v1/s3-storages from Coolify >= v4.3.0).
+//
+// Probe strategy: GET /api/v1/s3-storages.
+// Present controller returns 200 (list) or 401/403.
+// Missing route returns Laravel "could not be found" style 404.
+func AccTestSkipIfNoS3StorageAPI(t *testing.T) {
+	t.Helper()
+	TestAccPreCheck(t)
+
+	endpoint := strings.TrimRight(os.Getenv("COOLIFY_ENDPOINT"), "/")
+	token := os.Getenv("COOLIFY_TOKEN")
+	path := endpoint + "/api/v1/s3-storages"
+	req, err := http.NewRequest(http.MethodGet, path, nil)
+	if err != nil {
+		t.Fatalf("building s3 storage probe request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Skipf("s3 storage API probe failed (cannot reach Coolify): %v", err)
+	}
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	_ = resp.Body.Close()
+	msg := strings.ToLower(string(body))
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusUnauthorized, http.StatusForbidden:
+		return
+	case http.StatusNotFound:
+		if strings.Contains(msg, "could not be found") ||
+			strings.Contains(msg, "route ") ||
+			strings.Contains(msg, "page not found") ||
+			strings.TrimSpace(msg) == "" ||
+			strings.Contains(msg, "<html") {
+			t.Skipf("Coolify instance has no S3StoragesController (HTTP %d). "+
+				"Need Coolify >= v4.3.0. Body: %s",
+				resp.StatusCode, truncateForSkip(string(body), 200))
+		}
+		return
+	case http.StatusMethodNotAllowed:
+		t.Skip("Coolify instance has no S3 storage GET route (HTTP 405). Need Coolify >= v4.3.0")
+	default:
+		if resp.StatusCode >= 500 {
+			t.Skipf("s3 storage API probe returned HTTP %d (server error); skipping: %s",
+				resp.StatusCode, truncateForSkip(string(body), 200))
+		}
+	}
+}
+
 // AccTestDockerfileAppConfig returns a Terraform config for an acceptance test
 // of a Dockerfile application resource, including a project dependency. The
 // extra parameter allows injecting additional HCL attributes.

@@ -3796,6 +3796,248 @@ func TestClient_ValidateCloudToken_NotFound(t *testing.T) {
 	assert.True(t, IsNotFound(err))
 }
 
+// --- S3 Storages ---
+
+func TestClient_ListS3Storages(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/s3-storages", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]S3Storage{
+			{UUID: "s3-1", Name: "minio", Endpoint: "http://minio:9000", Bucket: "b1", Region: "us-east-1"},
+			{UUID: "s3-2", Name: "aws", Endpoint: "https://s3.amazonaws.com", Bucket: "b2", Region: "eu-west-1"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	list, err := c.ListS3Storages(context.Background())
+	require.NoError(t, err)
+	require.Len(t, list, 2)
+	assert.Equal(t, "s3-1", list[0].UUID)
+	assert.Equal(t, "minio", list[0].Name)
+	assert.Equal(t, "s3-2", list[1].UUID)
+}
+
+func TestClient_GetS3Storage(t *testing.T) {
+	t.Parallel()
+	usable := true
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/s3-storages/s3-uuid-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(S3Storage{
+			UUID: "s3-uuid-1", Name: "my-s3", Description: "desc",
+			Endpoint: "https://s3.us-east-1.amazonaws.com", Bucket: "my-bucket",
+			Region: "us-east-1", Key: "ak", Secret: "sk", IsUsable: &usable,
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	s, err := c.GetS3Storage(context.Background(), "s3-uuid-1")
+	require.NoError(t, err)
+	assert.Equal(t, "s3-uuid-1", s.UUID)
+	assert.Equal(t, "my-s3", s.Name)
+	assert.Equal(t, "my-bucket", s.Bucket)
+	assert.Equal(t, "ak", s.Key)
+	require.NotNil(t, s.IsUsable)
+	assert.True(t, *s.IsUsable)
+}
+
+func TestClient_GetS3Storage_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetS3Storage(context.Background(), "nonexistent")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_GetS3Storage_URLEscape(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/s3-storages/uuid%2Fwith%2Fslashes", r.URL.EscapedPath())
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(S3Storage{UUID: "uuid/with/slashes", Name: "escaped"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	s, err := c.GetS3Storage(context.Background(), "uuid/with/slashes")
+	require.NoError(t, err)
+	assert.Equal(t, "escaped", s.Name)
+}
+
+func TestClient_CreateS3Storage(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/s3-storages", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input CreateS3StorageInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		assert.Equal(t, "new-s3", input.Name)
+		assert.Equal(t, "https://s3.amazonaws.com", input.Endpoint)
+		assert.Equal(t, "bucket", input.Bucket)
+		assert.Equal(t, "us-east-1", input.Region)
+		assert.Equal(t, "ak", input.Key)
+		assert.Equal(t, "sk", input.Secret)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(S3Storage{UUID: "s3-new", Name: "new-s3"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	s, err := c.CreateS3Storage(context.Background(), CreateS3StorageInput{
+		Name: "new-s3", Endpoint: "https://s3.amazonaws.com", Bucket: "bucket",
+		Region: "us-east-1", Key: "ak", Secret: "sk",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "s3-new", s.UUID)
+	assert.Equal(t, "new-s3", s.Name)
+}
+
+func TestClient_CreateS3Storage_WrongStatusCode(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(S3Storage{UUID: "s3-wrong"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.CreateS3Storage(context.Background(), CreateS3StorageInput{
+		Name: "t", Endpoint: "https://s3.amazonaws.com", Bucket: "b", Region: "us-east-1", Key: "k", Secret: "s",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "expected status 201")
+	assert.Contains(t, err.Error(), "got 200")
+}
+
+func TestClient_UpdateS3Storage(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/s3-storages/s3-upd", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var input UpdateS3StorageInput
+		require.NoError(t, json.Unmarshal(body, &input))
+		require.NotNil(t, input.Name)
+		assert.Equal(t, "renamed", *input.Name)
+		require.NotNil(t, input.Bucket)
+		assert.Equal(t, "new-bucket", *input.Bucket)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(S3Storage{UUID: "s3-upd", Name: "renamed"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "renamed"
+	bucket := "new-bucket"
+	s, err := c.UpdateS3Storage(context.Background(), "s3-upd", UpdateS3StorageInput{
+		Name: &name, Bucket: &bucket,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "s3-upd", s.UUID)
+	assert.Equal(t, "renamed", s.Name)
+}
+
+func TestClient_UpdateS3Storage_PartialUpdate(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &raw))
+		_, hasName := raw["name"]
+		assert.True(t, hasName, "expected 'name' in request body")
+		_, hasSecret := raw["secret"]
+		assert.False(t, hasSecret, "expected 'secret' to be omitted when nil")
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(S3Storage{UUID: "s3-partial", Name: "only-name"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	name := "only-name"
+	s, err := c.UpdateS3Storage(context.Background(), "s3-partial", UpdateS3StorageInput{
+		Name: &name,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "s3-partial", s.UUID)
+}
+
+func TestClient_DeleteS3Storage(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/s3-storages/s3-del", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteS3Storage(context.Background(), "s3-del")
+	require.NoError(t, err)
+}
+
+func TestClient_DeleteS3Storage_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.DeleteS3Storage(context.Background(), "nonexistent")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ValidateS3Storage(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/s3-storages/s3-val/validate", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.ValidateS3Storage(context.Background(), "s3-val")
+	require.NoError(t, err)
+}
+
+func TestClient_ValidateS3Storage_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.ValidateS3Storage(context.Background(), "nonexistent")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
 // --- GitHub Apps (CRUD + Repositories/Branches) ---
 
 func TestClient_ListGitHubApps(t *testing.T) {

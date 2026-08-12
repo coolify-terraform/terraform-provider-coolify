@@ -259,15 +259,23 @@ jobs:
         with:
           terraform_wrapper: false
           terraform_version: "1.15.x"
+      # OpenTofu GitHub releases occasionally return 503 (CDN flake). Terraform
+      # already formats examples; tofu fmt is a second opinion, not a hard gate.
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        id: setup-tofu
+        continue-on-error: true
         with:
           tofu_wrapper: false
       - name: Check HCL formatting
         if: ${{ !cancelled() }}
         run: terraform fmt -check -recursive examples/
       - name: Check HCL formatting (OpenTofu)
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.setup-tofu.outcome == 'success' }}
         run: tofu fmt -check -recursive examples/
+      - name: Warn if OpenTofu install failed
+        if: ${{ steps.setup-tofu.outcome == 'failure' }}
+        run: |
+          echo "::warning::OpenTofu install failed (likely GitHub releases CDN flake). HCL fmt already checked with terraform."
       - name: Check generated docs
         if: ${{ !cancelled() }}
         run: |

@@ -16,9 +16,9 @@ This guide helps you migrate from the
 This provider is a complete rewrite using the Terraform Plugin Framework
 (not the older SDK v2). It offers:
 
-- **37 resources** vs. ~10 in the community provider
-- **54 data sources** with filtering support
-- **1150+ tests** (unit + acceptance + scenario)
+- **38 resources** vs. ~10 in the community provider
+- **56 data sources** with filtering support
+- **1180+ tests** (unit + acceptance + scenario)
 - Database backup management, scheduled tasks, storage volumes,
   cloud tokens, GitHub App sources, and resource actions (start/stop/restart)
 - Contract-verified field coverage against the real Coolify source code

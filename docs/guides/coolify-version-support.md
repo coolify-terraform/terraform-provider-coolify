@@ -81,6 +81,7 @@ needs Coolify >= 4.2.0; see [Connecting Resources](connecting-resources).
 | Resource / data source | Role |
 |------------------------|------|
 | `coolify_storage_backup` | Scheduled volume/directory backups (VolumeBackups API, [coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946)) |
+| `coolify_s3_storage` / `coolify_s3_storages` | Manage and list S3-compatible storage configurations (database backup targets) |
 
 ## Application attributes by Coolify version
 

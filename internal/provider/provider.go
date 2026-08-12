@@ -40,6 +40,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/project"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/resourceaction"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/resourcelist"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/s3storage"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/scheduledtask"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/server"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/servervalidate"
@@ -229,6 +230,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		privatekey.NewResource,          // coolify_private_key
 		project.NewResource,             // coolify_project
 		resourceaction.NewResource,      // coolify_resource_action
+		s3storage.NewResource,           // coolify_s3_storage
 		scheduledtask.NewResource,       // coolify_scheduled_task
 		server.NewResource,              // coolify_server
 		digitalocean.NewResource,        // coolify_server_digitalocean
@@ -277,6 +279,8 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		project.NewDataSource,
 		project.NewListDataSource,
 		resourcelist.NewDataSource,
+		s3storage.NewDataSource,
+		s3storage.NewListDataSource,
 		scheduledtask.NewDataSource,
 		scheduledtask.NewExecutionsDataSource,
 		scheduledtask.NewListDataSource,

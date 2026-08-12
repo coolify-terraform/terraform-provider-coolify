@@ -37,16 +37,13 @@ MODEL_TO_SCHEMA = {
 }
 
 # Contract models that intentionally have no client JSON mapping surface.
-CLIENT_JSON_TAG_OVERRIDES = {
-    "S3Storage": set(),
-}
+CLIENT_JSON_TAG_OVERRIDES: dict[str, set[str]] = {}
 
 # Models we keep in the contract-only / inline-only section even though the
 # pinned route spec may mention them elsewhere.
 CONTRACT_ONLY_MODELS = {
     "CloudProviderToken",
     "GithubApp",
-    "S3Storage",
 }
 
 # Map contract field types to a normalised display type.
