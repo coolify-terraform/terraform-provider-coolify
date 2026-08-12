@@ -74,9 +74,10 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_project"})
 
-	project, err := d.client.GetProject(ctx, config.UUID.ValueString())
+	uuid := config.UUID.ValueString()
+	project, err := d.client.GetProject(ctx, uuid)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading project", fmt.Sprintf("Could not read project: %s", err))
+		resp.Diagnostics.AddError("Error reading project", fmt.Sprintf("Could not read project %s: %s", uuid, err))
 		return
 	}
 

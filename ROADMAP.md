@@ -26,12 +26,10 @@ Telegram, etc.) once the upstream API supports full CRUD.
 ([#394](https://github.com/coolify-terraform/terraform-provider-coolify/issues/394),
 blocked on upstream)
 
-### S3 storage resource
+### ~~S3 storage resource~~ (shipped)
 
-Add a `coolify_s3_storage` resource for managing S3-compatible backup
-destinations once the upstream API exposes top-level S3 storage endpoints.
-([#393](https://github.com/coolify-terraform/terraform-provider-coolify/issues/393),
-blocked on upstream)
+`coolify_s3_storage` and `coolify_s3_storages` ship for Coolify >= v4.3.0
+(provider v0.1.14+). See the [version support guide](https://registry.terraform.io/providers/coolify-terraform/coolify/latest/docs/guides/coolify-version-support).
 
 ## Medium Term
 

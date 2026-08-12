@@ -95,9 +95,10 @@ func (d *s3StorageDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_s3_storage"})
 
-	s, err := d.client.GetS3Storage(ctx, config.UUID.ValueString())
+	uuid := config.UUID.ValueString()
+	s, err := d.client.GetS3Storage(ctx, uuid)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading S3 storage", fmt.Sprintf("Could not read s3 storage: %s", err))
+		resp.Diagnostics.AddError("Error reading S3 storage", fmt.Sprintf("Could not read s3 storage %s: %s", uuid, err))
 		return
 	}
 

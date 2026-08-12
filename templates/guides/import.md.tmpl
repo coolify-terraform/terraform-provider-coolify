@@ -30,7 +30,14 @@ terraform import coolify_database_postgresql.db <db-uuid>
 terraform import coolify_service.plausible <service-uuid>
 terraform import coolify_private_key.deploy <key-uuid>
 terraform import coolify_cloud_token.hetzner <token-uuid>
+terraform import coolify_s3_storage.backups <s3-storage-uuid>
 ```
+
+~> **Note:** After importing `coolify_s3_storage`, keep `key` and `secret` in
+your configuration. Coolify may omit those sensitive fields on read unless the
+API token can read sensitive data. When `coolify_database_backup` uses
+`save_s3 = true`, set `s3_storage_uuid` to a managed or existing storage UUID
+(for example `coolify_s3_storage.backups.uuid`).
 
 ### Compound Import Format (Recommended for Applications, Databases, and Services)
 
@@ -60,11 +67,6 @@ is not corrected on refresh. On replace, Terraform would recreate the resource
 on the wrong server. Compound import for applications, databases, and services
 validates membership via `GET /servers/{server_uuid}/resources` and fails if
 the resource is not listed on that server.
-
-~> **Note:** Top-level S3 storages are managed in the Coolify web UI. When
-`coolify_database_backup` uses `save_s3 = true`, set `s3_storage_uuid` to an
-existing storage UUID.
-
 
 The `coolify_github_app` resource uses the **GitHub App ID** (shown as "App Id" in the Coolify UI under Sources), not a UUID or internal database ID:
 

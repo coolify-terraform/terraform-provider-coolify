@@ -79,9 +79,10 @@ func (d *cloudTokenDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_cloud_token"})
 
-	ct, err := d.client.GetCloudToken(ctx, config.UUID.ValueString())
+	uuid := config.UUID.ValueString()
+	ct, err := d.client.GetCloudToken(ctx, uuid)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading cloud token", fmt.Sprintf("Could not read cloud token: %s", err))
+		resp.Diagnostics.AddError("Error reading cloud token", fmt.Sprintf("Could not read cloud token %s: %s", uuid, err))
 		return
 	}
 
