@@ -16,7 +16,7 @@ Coolify gives you a self-hosted PaaS with a great UI. This provider adds what th
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.6
-- A running [Coolify](https://coolify.io/) instance (v4.x)
+- A running [Coolify](https://coolify.io/) instance (v4.1.0+)
 
 ## Authentication
 
@@ -58,6 +58,7 @@ provider "coolify" {
 
 - **[Quick Start](guides/quickstart)** - Deploy your first application in under 5 minutes
 - **[Installation](guides/installation)** - Detailed setup and configuration options
+- **[Coolify Version Support](guides/coolify-version-support)** - What works on Coolify 4.1, 4.2, and 4.3
 - **[Concepts](guides/concepts)** - How Coolify resources map to Terraform
 - **[Choosing an Application Type](guides/choosing-application-type)** - Pick the right resource for your deployment method
 - **[Connecting Resources](guides/connecting-resources)** - Wire apps to databases using Coolify's Docker networking

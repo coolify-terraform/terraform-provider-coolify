@@ -12,7 +12,9 @@ description: |-
 | Requirement | Minimum Version |
 |-------------|-----------------|
 | Terraform   | 1.6+            |
-| Coolify     | v4.x            |
+| Coolify     | v4.1.0+         |
+
+Instances older than v4.1.0 are rejected on `terraform plan` / `terraform apply`.
 
 ## Install from Terraform Registry
 
@@ -75,20 +77,20 @@ The provider validates the Coolify version on `terraform plan` /
 will return an error and refuse to continue. Upgrade your Coolify instance
 before using the provider.
 
-### Version compatibility matrix
+### Version compatibility
 
-The provider tracks the latest Coolify v4 release. Older Coolify versions
-may work for basic resources, but the API surface changed significantly
-between v4.0.0 and v4.1.0 (69 application fields were added), so v4.1.0
-is the minimum supported version.
+| | Coolify |
+|--|---------|
+| **Minimum (hard floor)** | **v4.1.0** |
+| **Recommended for full features** | **≥ v4.3.0** |
 
-| Provider Version | Min Coolify | Key Features |
-|-----------------|-------------|--------------|
-| 0.1.x | 4.1.0 | Core resources: projects, servers, applications, environments |
-| 0.2.x | 4.1.0 | Databases (8 types), services, environment variables, private keys |
-| 0.3.x | 4.1.0 | Cloud tokens (Hetzner), GitHub Apps, scheduled tasks, storage |
-| 0.4.x | 4.1.0 | Database SSL/TLS (`enable_ssl`, `ssl_mode`), log drain settings, custom TLS CA |
-| 0.5.x | 4.1.0 | Server `connection_timeout`, `railpack` build pack, versioned API contracts |
+The API surface changed significantly between v4.0.0 and v4.1.0, so v4.1.0
+is the minimum. Destinations and DO/Vultr provisioning need **≥ v4.2.0**.
+Volume backup schedules and some application settings need **≥ v4.3.0**.
+
+For a full resource and attribute matrix (what works on 4.1 vs 4.2 vs 4.3,
+and how version gates behave), see
+**[Coolify Version Support](coolify-version-support)**.
 
 -> **Tip:** Run `data "coolify_version" "current" {}` to check your
 instance version programmatically.
