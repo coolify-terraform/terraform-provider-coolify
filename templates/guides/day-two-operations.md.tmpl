@@ -25,7 +25,8 @@ the API may gain new fields, endpoints, or changed defaults.
   it only works if your Coolify instance is v4.1+.
 - **The provider validates the Coolify version.** On every `plan` and
   `apply`, the provider checks `/api/v1/version`. If the version is
-  below v4.1.0, it refuses to continue.
+  below v4.1.0, it refuses to continue. Feature-level support (4.2 / 4.3
+  APIs) is summarized in [Coolify Version Support](coolify-version-support).
 
 ### Before upgrading
 

@@ -107,6 +107,9 @@ do not want an immediate deploy; the ordering is intrinsic to Coolify.
 
 ### Coolify version cannot write some application settings
 
+Full matrix of which application attributes need Coolify 4.2 vs 4.3:
+[Coolify Version Support](coolify-version-support).
+
 ```
 Warning: Coolify version cannot write some application settings
 
@@ -115,13 +118,20 @@ is_gzip_enabled, …. The provider will keep these values in Terraform state but
 will not send them to the Coolify API.
 ```
 
-**Cause:** Coolify **v4.1.x** rejects several application write fields (the
-`APPLICATION_SETTING_FIELDS` set, plus `is_preview_deployments_enabled` and
-`use_build_secrets`). The provider withholds them on PATCH so Create does not
-422, but still keeps configured values in state.
+**Cause:** Coolify rejects application write fields that are not on that
+version's allow list. The provider withholds them on PATCH so Create does not
+422, but still keeps configured values in state. The same warning title covers
+both gates:
 
-**Fix:** upgrade Coolify to **v4.2.0** or later, or remove those attributes
-from configuration. The warning is intentional; it is not a hard error.
+- Coolify **v4.1.x**: 4.2 settings (gzip, git LFS, preview deploys, build
+  secrets, and related fields)
+- Coolify **v4.2.x**: 4.3 settings (log drain, GPU, `custom_internal_name`,
+  `noindex_domains`, and related fields)
+
+**Fix:** upgrade Coolify to the version named in the warning (**v4.2.0** or
+**v4.3.0** as listed), or remove those attributes from configuration. The
+warning is intentional; it is not a hard error. Full attribute lists:
+[Coolify Version Support](coolify-version-support).
 
 ### Server has multiple destinations and you do not set destination_uuid
 
