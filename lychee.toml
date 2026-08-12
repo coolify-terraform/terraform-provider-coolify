@@ -1,3 +1,13 @@
+# Retries help with intermittent GitHub transport errors on remaining links.
+max_retries = 5
+retry_wait_time = 3
+
+# release-please CHANGELOG is dense with commit/issue/PR URLs. Concurrent
+# checks against github.com produce HTTP/2 protocol errors in CI (not real
+# 404s). Link value there is low vs README/docs; compare/tag race is already
+# excluded below. See PR #687 / lychee skill lesson on CHANGELOG load.
+exclude_path = ["CHANGELOG.md"]
+
 exclude = [
   "localhost",
   "127\\.0\\.0\\.1",

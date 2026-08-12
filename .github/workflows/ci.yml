@@ -218,12 +218,21 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
           govulncheck ./...
+      # goreleaser-action downloads the binary from GitHub releases; CDN
+      # flakes (socket hang up) should not fail the whole Lint job. Real
+      # .goreleaser.yml breakage still surfaces on the release workflow.
       - name: GoReleaser check
         if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch') }}
+        id: goreleaser-check
+        continue-on-error: true
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
         with:
           version: "~> 2"
           args: check
+      - name: Warn if GoReleaser check failed
+        if: ${{ steps.goreleaser-check.outcome == 'failure' }}
+        run: |
+          echo "::warning::GoReleaser check failed (often a GitHub releases download flake). Config is still validated on the release workflow."
 
   validate:
     name: Validate

@@ -41,4 +41,7 @@ jobs:
       - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
         with:
           args: --no-progress --exclude-path docs --config lychee.toml '**/*.md'
-          fail: true
+          # External hosts flake (GitHub HTTP/2, CDN). Soft-fail on PRs so
+          # release-please and docs PRs are not blocked; hard-fail on main
+          # and the weekly schedule so real doc rot still surfaces.
+          fail: ${{ github.event_name != 'pull_request' }}
