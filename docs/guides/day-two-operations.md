@@ -74,7 +74,7 @@ before upgrading. Breaking changes are listed under the **Breaking Changes**
 section. Common breaking changes include:
 
 - Renamed attributes (e.g., `host` to `endpoint`, `retain_days` to `retain_amount_locally`)
-- Removed resources (e.g., `coolify_s3_storage` was removed because the API endpoint no longer exists)
+- Removed or replaced resources (check the upgrade notes in the release)
 - Changed attribute types or validation rules
 
 After upgrading:

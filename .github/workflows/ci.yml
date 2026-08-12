@@ -74,9 +74,13 @@ jobs:
               - 'scripts/**'
               - '.github/workflows/ci.yml'
             scenarios:
+              # Product + scenario HCL only. Do not include ci.yml alone: every
+              # workflow-only PR was running the full ~45m Coolify scenario
+              # suite (path filter true from the workflow path). Edit the
+              # scenario-tests job via workflow_dispatch or after an internal/
+              # scenarios change when you need that matrix.
               - 'internal/**'
               - 'examples/scenarios/**'
-              - '.github/workflows/ci.yml'
 
   dco:
     name: DCO
