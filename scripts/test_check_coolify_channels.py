@@ -50,6 +50,57 @@ class TestLoadVersions(unittest.TestCase):
             cc.load_versions_json({"coolify": {"v4": {"version": "4.1.2"}}})
 
 
+class TestTipVersionParse(unittest.TestCase):
+    def test_parse_constants_php(self):
+        php = """
+        return [
+            'coolify' => [
+                'version' => env('COOLIFY_VERSION') ?: '4.3.0',
+                'helper_version' => '1.0.14',
+            ],
+        ];
+        """
+        self.assertEqual(cc.parse_tip_version_from_constants(php), "4.3.0")
+
+    def test_parse_missing(self):
+        self.assertEqual(cc.parse_tip_version_from_constants("no version here"), "")
+
+
+class TestContractDiff(unittest.TestCase):
+    def test_detects_new_fields(self):
+        pin = {
+            "models": {"Application": {"fields": {"name": {}, "domains": {}}}},
+            "endpoints": {
+                "ApplicationsController::update_by_uuid": {
+                    "allowed_fields": ["name", "domains"]
+                }
+            },
+        }
+        tip = {
+            "models": {
+                "Application": {
+                    "fields": {"name": {}, "domains": {}, "noindex_domains": {}}
+                }
+            },
+            "endpoints": {
+                "ApplicationsController::update_by_uuid": {
+                    "allowed_fields": ["name", "domains", "noindex_domains"]
+                }
+            },
+        }
+        count, summary = cc.diff_contract_signatures(pin, tip)
+        self.assertGreater(count, 0)
+        self.assertIn("noindex_domains", summary)
+
+    def test_identical_zero(self):
+        c = {
+            "models": {"Application": {"fields": {"name": {}}}},
+            "endpoints": {},
+        }
+        count, _ = cc.diff_contract_signatures(c, c)
+        self.assertEqual(count, 0)
+
+
 class TestDecide(unittest.TestCase):
     def test_pin_behind_nightly(self):
         snap = cc.ChannelSnapshot(
@@ -65,7 +116,6 @@ class TestDecide(unittest.TestCase):
         self.assertIn("make contract-extract VERSION=v4.2.0", d.body)
 
     def test_pin_current_with_nightly_watch_stable(self):
-        # Our situation after supporting 4.2 early: pin==nightly, stable lags
         snap = cc.ChannelSnapshot(
             stable="4.1.2", nightly="4.2.0", pin="4.2.0", prereleases=["4.2.0"]
         )
@@ -77,15 +127,21 @@ class TestDecide(unittest.TestCase):
 
     def test_all_aligned(self):
         snap = cc.ChannelSnapshot(
-            stable="4.2.0", nightly="4.2.0", pin="4.2.0", prereleases=[]
+            stable="4.2.0",
+            nightly="4.2.0",
+            pin="4.2.0",
+            prereleases=[],
+            latest_release="4.2.0",
+            tip_version="4.2.0",
+            tip_contract_diff_count=0,
         )
         d = cc.decide(snap)
         self.assertEqual(d.action, "none")
         self.assertFalse(d.pin_behind_nightly)
         self.assertFalse(d.nightly_ahead_of_stable)
+        self.assertFalse(d.pin_behind_tip_api)
 
     def test_old_prerelease_ignored_when_aligned(self):
-        # Older leftover prerelease tags must not keep the pin "behind".
         snap = cc.ChannelSnapshot(
             stable="4.2.0", nightly="4.2.0", pin="4.2.0", prereleases=["4.1.0"]
         )
@@ -113,6 +169,49 @@ class TestDecide(unittest.TestCase):
         self.assertTrue(d.pin_behind_stable)
         self.assertIn(d.action, ("open", "update"))
 
+    def test_pin_behind_tip_version_before_cdn(self):
+        # The v4.3 failure mode: CDN still 4.2.0, tip already 4.3.0.
+        snap = cc.ChannelSnapshot(
+            stable="4.1.2",
+            nightly="4.2.0",
+            pin="4.2.0",
+            prereleases=["4.2.0"],
+            tip_version="4.3.0",
+            latest_release="4.2.0",
+        )
+        d = cc.decide(snap)
+        self.assertTrue(d.pin_behind_tip_version)
+        self.assertFalse(d.pin_behind_nightly)
+        self.assertEqual(d.action, "open")
+        self.assertTrue(any("tip version" in r.lower() for r in d.reasons))
+        self.assertIn("4.3.0", d.title)
+
+    def test_pin_behind_tip_api_without_version_bump(self):
+        snap = cc.ChannelSnapshot(
+            stable="4.2.0",
+            nightly="4.2.0",
+            pin="4.2.0",
+            tip_version="4.2.0",
+            tip_contract_diff_count=3,
+            tip_contract_summary="+ Application fields: noindex_domains",
+        )
+        d = cc.decide(snap)
+        self.assertTrue(d.pin_behind_tip_api)
+        self.assertEqual(d.action, "open")
+        self.assertTrue(any("API drift" in r for r in d.reasons))
+        self.assertIn("noindex_domains", d.body)
+
+    def test_pin_behind_latest_release(self):
+        snap = cc.ChannelSnapshot(
+            stable="4.1.2",
+            nightly="4.1.2",
+            pin="4.1.2",
+            latest_release="4.3.0",
+        )
+        d = cc.decide(snap)
+        self.assertTrue(d.pin_behind_latest_release)
+        self.assertEqual(d.action, "open")
+
     def test_channel_change_comment(self):
         snap = cc.ChannelSnapshot(
             stable="4.2.0", nightly="4.2.0", pin="4.2.0", prereleases=[]
@@ -124,7 +223,13 @@ class TestDecide(unittest.TestCase):
 
     def test_state_roundtrip(self):
         snap = cc.ChannelSnapshot(
-            stable="4.1.2", nightly="4.2.0", pin="4.1.2", prereleases=["4.2.0"]
+            stable="4.1.2",
+            nightly="4.2.0",
+            pin="4.1.2",
+            prereleases=["4.2.0"],
+            latest_release="4.2.0",
+            tip_version="4.2.0",
+            tip_contract_diff_count=1,
         )
         body = cc.build_body(snap, ["reason"])
         state = cc.decode_state(body)
@@ -132,6 +237,8 @@ class TestDecide(unittest.TestCase):
         self.assertEqual(state["stable"], "4.1.2")
         self.assertEqual(state["nightly"], "4.2.0")
         self.assertEqual(state["prereleases"], ["4.2.0"])
+        self.assertEqual(state["tip_version"], "4.2.0")
+        self.assertEqual(state["tip_contract_diff_count"], 1)
 
 
 class TestCLI(unittest.TestCase):
@@ -166,7 +273,6 @@ class TestCLI(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "versions.json"
             path.write_text(json.dumps(data))
-            # pin behind nightly => exit 1
             rc = cc.main(
                 [
                     "--versions-json",
@@ -179,7 +285,6 @@ class TestCLI(unittest.TestCase):
                 ]
             )
             self.assertEqual(rc, 1)
-            # pin current => exit 0 (may still open watch when apply, but no apply)
             rc2 = cc.main(
                 [
                     "--versions-json",
@@ -188,11 +293,57 @@ class TestCLI(unittest.TestCase):
                     "4.2.0",
                     "--prerelease-tags",
                     "4.2.0",
+                    "--tip-version",
+                    "4.2.0",
+                    "--latest-release",
+                    "4.2.0",
                     "--json",
                 ]
             )
-            # action is open for nightly ahead of stable but exit 0 without pin lag
             self.assertEqual(rc2, 0)
+
+    def test_cli_tip_api_diff_exit_one(self):
+        data = {
+            "coolify": {
+                "v4": {"version": "4.2.0"},
+                "nightly": {"version": "4.2.0"},
+            }
+        }
+        pin = {
+            "version": "v4.2.0",
+            "models": {"Application": {"fields": {"name": {}}}},
+            "endpoints": {},
+        }
+        tip = {
+            "version": "v4-latest",
+            "models": {"Application": {"fields": {"name": {}, "noindex_domains": {}}}},
+            "endpoints": {},
+        }
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            vpath = root / "versions.json"
+            vpath.write_text(json.dumps(data))
+            pin_path = root / "pin.json"
+            tip_path = root / "tip.json"
+            pin_path.write_text(json.dumps(pin))
+            tip_path.write_text(json.dumps(tip))
+            rc = cc.main(
+                [
+                    "--versions-json",
+                    str(vpath),
+                    "--contract",
+                    str(pin_path),
+                    "--tip-contract",
+                    str(tip_path),
+                    "--tip-version",
+                    "4.2.0",
+                    "--latest-release",
+                    "4.2.0",
+                    "--prerelease-tags",
+                    "--json",
+                ]
+            )
+            self.assertEqual(rc, 1)
 
 
 if __name__ == "__main__":

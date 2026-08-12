@@ -131,7 +131,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_database_backup` | Schedule automated database backups |
 | `coolify_scheduled_task` | Manage scheduled tasks on applications/services |
 | `coolify_storage` | Manage persistent storage volumes |
-| `coolify_storage_backup` | Schedule backups for storage volumes (Coolify `v4.x` after [coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946); not in tag `v4.2.0`) |
+| `coolify_storage_backup` | Schedule backups for storage volumes (Coolify >= v4.3.0; [coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946)) |
 | `coolify_cloud_token` | Manage cloud provider tokens (Hetzner, DigitalOcean, Vultr) |
 | `coolify_github_app` | Manage GitHub App integrations |
 | `coolify_envs_bulk` | Manage environment variables as a single atomic set |

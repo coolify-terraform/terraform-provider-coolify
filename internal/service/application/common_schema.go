@@ -13,10 +13,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // CommonAppAttrs returns the shared schema attributes for all application types.
@@ -541,6 +543,15 @@ func securityNetworkAttrs() map[string]schema.Attribute {
 
 // applicationSettingAttrs returns Coolify APPLICATION_SETTING_FIELDS schema attrs.
 func applicationSettingAttrs() map[string]schema.Attribute {
+	attrs := applicationSettingAttrsV42()
+	for k, v := range applicationSettingAttrsV43() {
+		attrs[k] = v
+	}
+	return attrs
+}
+
+// applicationSettingAttrsV42 is the Coolify >= v4.2.0 APPLICATION_SETTING_FIELDS set.
+func applicationSettingAttrsV42() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"is_git_submodules_enabled": schema.BoolAttribute{
 			MarkdownDescription: "Whether Git submodules are fetched during clone. Coolify default is `true`. " +
@@ -626,6 +637,78 @@ func applicationSettingAttrs() map[string]schema.Attribute {
 			Optional:      true,
 			Computed:      true,
 			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+	}
+}
+
+// applicationSettingAttrsV43 is Coolify >= v4.3.0 settings + noindex_domains.
+// No schema Default: older Coolify rejects these on write after import if Default forces a plan.
+func applicationSettingAttrsV43() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"is_log_drain_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether log drain is enabled for this application. Coolify default is `false`. " +
+				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"is_gpu_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether GPU support is enabled for this application. Coolify default is `false`. " +
+				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"gpu_driver": schema.StringAttribute{
+			MarkdownDescription: "GPU driver for the application container (Coolify default `nvidia`). " +
+				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"gpu_count": schema.StringAttribute{
+			MarkdownDescription: "Number of GPUs to allocate (string form as accepted by Coolify). " +
+				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"gpu_device_ids": schema.StringAttribute{
+			MarkdownDescription: "Comma-separated GPU device IDs to pass to the container. " +
+				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"gpu_options": schema.StringAttribute{
+			MarkdownDescription: "Additional GPU options string for the application container. " +
+				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"is_consistent_container_name_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether Coolify uses a consistent container name for this application. Coolify default is `false`. " +
+				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"custom_internal_name": schema.StringAttribute{
+			MarkdownDescription: "Custom internal container name for the application. " +
+				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"noindex_domains": schema.ListAttribute{
+			ElementType: types.StringType,
+			MarkdownDescription: "Subset of application domain URLs served with an `X-Robots-Tag: noindex, nofollow` response header " +
+				"(keeps them out of search engines). Entries that are not among the application domains are ignored by Coolify. " +
+				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
 		},
 	}
 }

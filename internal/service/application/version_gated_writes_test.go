@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -77,6 +78,30 @@ func TestConfiguredVersionGatedWriteAttrs(t *testing.T) {
 			t.Fatalf("warn attrs drifted from client strip list\ngot:  %v\nwant: %v", got, want)
 		}
 	})
+
+	t.Run("matches client ApplicationSettingsV43WriteJSONKeys", func(t *testing.T) {
+		t.Parallel()
+		tb := types.BoolValue(true)
+		ts := types.StringValue("x")
+		configuredList := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("https://a.example.com")})
+		f := commonAppFields{
+			IsLogDrainEnabled:                &tb,
+			IsGpuEnabled:                     &tb,
+			GpuDriver:                        &ts,
+			GpuCount:                         &ts,
+			GpuDeviceIds:                     &ts,
+			GpuOptions:                       &ts,
+			IsConsistentContainerNameEnabled: &tb,
+			CustomInternalName:               &ts,
+			NoindexDomains:                   &configuredList,
+		}
+		got := configuredVersionGatedV43WriteAttrs(f)
+		want := append([]string(nil), client.ApplicationSettingsV43WriteJSONKeys...)
+		sort.Strings(want)
+		if strings.Join(got, ",") != strings.Join(want, ",") {
+			t.Fatalf("v43 warn attrs drifted from client strip list\ngot:  %v\nwant: %v", got, want)
+		}
+	})
 }
 
 func TestWarnUnsupportedApplicationSettingsWrites(t *testing.T) {
@@ -85,11 +110,40 @@ func TestWarnUnsupportedApplicationSettingsWrites(t *testing.T) {
 	setGzip := types.BoolValue(false)
 	fields := commonAppFields{IsGzipEnabled: &setGzip}
 
-	t.Run("no warn on 4.2.0", func(t *testing.T) {
+	t.Run("no warn on 4.2.0 for v4.2 fields", func(t *testing.T) {
 		t.Parallel()
 		var diags diag.Diagnostics
 		c := &client.Client{CoolifyVersion: "4.2.0"}
 		warnUnsupportedApplicationSettingsWrites(c, fields, &diags)
+		if diags.WarningsCount() != 0 {
+			t.Fatalf("warnings=%d body=%v", diags.WarningsCount(), diags.Warnings())
+		}
+	})
+
+	t.Run("warn on 4.2.0 for v4.3 fields", func(t *testing.T) {
+		t.Parallel()
+		var diags diag.Diagnostics
+		c := &client.Client{CoolifyVersion: "4.2.0"}
+		setLog := types.BoolValue(true)
+		v43 := commonAppFields{IsLogDrainEnabled: &setLog}
+		warnUnsupportedApplicationSettingsWrites(c, v43, &diags)
+		if diags.WarningsCount() != 1 {
+			t.Fatalf("warnings=%d, want 1: %v", diags.WarningsCount(), diags.Warnings())
+		}
+		detail := diags.Warnings()[0].Detail()
+		for _, needle := range []string{"4.2.0", "v4.3.0", "is_log_drain_enabled"} {
+			if !strings.Contains(detail, needle) {
+				t.Errorf("detail missing %q: %s", needle, detail)
+			}
+		}
+	})
+
+	t.Run("no warn on 4.3.0 for v4.3 fields", func(t *testing.T) {
+		t.Parallel()
+		var diags diag.Diagnostics
+		c := &client.Client{CoolifyVersion: "4.3.0"}
+		setLog := types.BoolValue(true)
+		warnUnsupportedApplicationSettingsWrites(c, commonAppFields{IsLogDrainEnabled: &setLog}, &diags)
 		if diags.WarningsCount() != 0 {
 			t.Fatalf("warnings=%d body=%v", diags.WarningsCount(), diags.Warnings())
 		}

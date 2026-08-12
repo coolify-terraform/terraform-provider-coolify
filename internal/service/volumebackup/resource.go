@@ -68,12 +68,9 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 		MarkdownDescription: "Manages a Coolify scheduled backup for a persistent volume or directory storage " +
 			"attached to an application, database, or service.\n\n" +
 			"**Coolify version requirement:** needs `PUT/DELETE .../storages/{storage_uuid}/backups` " +
-			"(VolumeBackupsController). That API landed on Coolify branch `v4.x` in " +
-			"[coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946) (merged 2026-07-20). " +
-			"It is **not** present in git tag `v4.2.0` or stable CDN `4.1.2`. " +
-			"There is no Coolify release tag yet that is known to include it; use a self-built or " +
-			"nightly image from `v4.x` after that merge. CDN nightly may still report version `4.2.0` " +
-			"even when tip commits are present, so do not treat the version string alone as proof.\n\n" +
+			"(VolumeBackupsController). That API landed in " +
+			"[coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946) and ships in " +
+			"**Coolify >= v4.3.0** (stable CDN). It is **not** present in git tag `v4.2.0` or older stable lines.\n\n" +
 			"~> **API note:** Coolify only exposes create/replace (PUT) and delete. There is no GET for the schedule. " +
 			"Read verifies the parent storage still exists via list and keeps schedule attributes from state. " +
 			"Out-of-band schedule edits may not appear until the next apply.",

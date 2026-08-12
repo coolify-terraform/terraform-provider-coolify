@@ -124,7 +124,19 @@ type Application struct {
 	IsGzipEnabled                 *bool  `json:"is_gzip_enabled,omitempty"`
 	IsStripprefixEnabled          *bool  `json:"is_stripprefix_enabled,omitempty"`
 	IsRawComposeDeploymentEnabled *bool  `json:"is_raw_compose_deployment_enabled,omitempty"`
-	MaxRestartCount               *int64 `json:"max_restart_count,omitempty"`
+	// Coolify >= v4.3.0 APPLICATION_SETTING_FIELDS additions.
+	IsLogDrainEnabled                *bool  `json:"is_log_drain_enabled,omitempty"`
+	IsGpuEnabled                     *bool  `json:"is_gpu_enabled,omitempty"`
+	GpuDriver                        string `json:"gpu_driver,omitempty"`
+	GpuCount                         string `json:"gpu_count,omitempty"`
+	GpuDeviceIds                     string `json:"gpu_device_ids,omitempty"`
+	GpuOptions                       string `json:"gpu_options,omitempty"`
+	IsConsistentContainerNameEnabled *bool  `json:"is_consistent_container_name_enabled,omitempty"`
+	CustomInternalName               string `json:"custom_internal_name,omitempty"`
+	// NoindexDomains is the subset of domains served with X-Robots-Tag noindex
+	// (Coolify >= v4.3.0). JSON array on the wire; empty means none.
+	NoindexDomains  []string `json:"noindex_domains,omitempty"`
+	MaxRestartCount *int64   `json:"max_restart_count,omitempty"`
 	// Nested settings blob from GET responses (promoted after decode).
 	Settings *ApplicationSettings `json:"settings,omitempty"`
 }
@@ -173,6 +185,15 @@ type ApplicationSettings struct {
 	IsGzipEnabled                 *bool  `json:"is_gzip_enabled,omitempty"`
 	IsStripprefixEnabled          *bool  `json:"is_stripprefix_enabled,omitempty"`
 	IsRawComposeDeploymentEnabled *bool  `json:"is_raw_compose_deployment_enabled,omitempty"`
+	// Coolify >= v4.3.0 APPLICATION_SETTING_FIELDS additions.
+	IsLogDrainEnabled                *bool  `json:"is_log_drain_enabled,omitempty"`
+	IsGpuEnabled                     *bool  `json:"is_gpu_enabled,omitempty"`
+	GpuDriver                        string `json:"gpu_driver,omitempty"`
+	GpuCount                         string `json:"gpu_count,omitempty"`
+	GpuDeviceIds                     string `json:"gpu_device_ids,omitempty"`
+	GpuOptions                       string `json:"gpu_options,omitempty"`
+	IsConsistentContainerNameEnabled *bool  `json:"is_consistent_container_name_enabled,omitempty"`
+	CustomInternalName               string `json:"custom_internal_name,omitempty"`
 }
 
 // PromoteSettings copies nested settings onto top-level Application fields when unset.
@@ -199,6 +220,24 @@ func (a *Application) PromoteSettings() {
 	promoteBool(&a.IsGzipEnabled, s.IsGzipEnabled)
 	promoteBool(&a.IsStripprefixEnabled, s.IsStripprefixEnabled)
 	promoteBool(&a.IsRawComposeDeploymentEnabled, s.IsRawComposeDeploymentEnabled)
+	promoteBool(&a.IsLogDrainEnabled, s.IsLogDrainEnabled)
+	promoteBool(&a.IsGpuEnabled, s.IsGpuEnabled)
+	if a.GpuDriver == "" && s.GpuDriver != "" {
+		a.GpuDriver = s.GpuDriver
+	}
+	if a.GpuCount == "" && s.GpuCount != "" {
+		a.GpuCount = s.GpuCount
+	}
+	if a.GpuDeviceIds == "" && s.GpuDeviceIds != "" {
+		a.GpuDeviceIds = s.GpuDeviceIds
+	}
+	if a.GpuOptions == "" && s.GpuOptions != "" {
+		a.GpuOptions = s.GpuOptions
+	}
+	promoteBool(&a.IsConsistentContainerNameEnabled, s.IsConsistentContainerNameEnabled)
+	if a.CustomInternalName == "" && s.CustomInternalName != "" {
+		a.CustomInternalName = s.CustomInternalName
+	}
 }
 
 func promoteBool(dst **bool, src *bool) {
@@ -341,6 +380,18 @@ type UpdateApplicationInput struct {
 	IsGzipEnabled                 *bool  `json:"is_gzip_enabled,omitempty"`
 	IsStripprefixEnabled          *bool  `json:"is_stripprefix_enabled,omitempty"`
 	IsRawComposeDeploymentEnabled *bool  `json:"is_raw_compose_deployment_enabled,omitempty"`
+	// Coolify >= v4.3.0 APPLICATION_SETTING_FIELDS additions.
+	IsLogDrainEnabled                *bool   `json:"is_log_drain_enabled,omitempty"`
+	IsGpuEnabled                     *bool   `json:"is_gpu_enabled,omitempty"`
+	GpuDriver                        *string `json:"gpu_driver,omitempty"`
+	GpuCount                         *string `json:"gpu_count,omitempty"`
+	GpuDeviceIds                     *string `json:"gpu_device_ids,omitempty"`
+	GpuOptions                       *string `json:"gpu_options,omitempty"`
+	IsConsistentContainerNameEnabled *bool   `json:"is_consistent_container_name_enabled,omitempty"`
+	CustomInternalName               *string `json:"custom_internal_name,omitempty"`
+	// NoindexDomains is a JSON array on the wire. Use a non-nil empty slice to
+	// clear when the attribute is configured empty (Coolify >= v4.3.0).
+	NoindexDomains *[]string `json:"noindex_domains,omitempty"`
 }
 
 func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {
@@ -404,6 +455,15 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 			})
 		}
 		input.clearApplicationSettings()
+	} else if !c.SupportsApplicationSettingsV43() {
+		if withheld := input.versionGatedV43WriteKeysPresent(); len(withheld) > 0 {
+			tflog.Debug(ctx, "withholding Coolify >= v4.3.0 application write fields unsupported on this instance", map[string]interface{}{
+				"uuid":    uuid,
+				"version": c.CoolifyVersion,
+				"fields":  withheld,
+			})
+		}
+		input.clearApplicationSettingsV43()
 	}
 	var a Application
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), input, &a); err != nil {
@@ -412,9 +472,19 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 	return &a, nil
 }
 
-// versionGatedWriteKeysPresent returns ApplicationSettingsWriteJSONKeys that
-// would appear on the wire for this input (before clearApplicationSettings).
+// versionGatedWriteKeysPresent returns gated write JSON keys (v4.2.0 and
+// v4.3.0) that would appear on the wire for this input before clearing.
 func (i UpdateApplicationInput) versionGatedWriteKeysPresent() []string {
+	return i.keysPresent(append(append([]string{}, ApplicationSettingsWriteJSONKeys...), ApplicationSettingsV43WriteJSONKeys...))
+}
+
+// versionGatedV43WriteKeysPresent returns ApplicationSettingsV43WriteJSONKeys
+// that would appear on the wire for this input before clearApplicationSettingsV43.
+func (i UpdateApplicationInput) versionGatedV43WriteKeysPresent() []string {
+	return i.keysPresent(ApplicationSettingsV43WriteJSONKeys)
+}
+
+func (i UpdateApplicationInput) keysPresent(keys []string) []string {
 	raw, err := json.Marshal(i)
 	if err != nil {
 		return nil
@@ -424,7 +494,7 @@ func (i UpdateApplicationInput) versionGatedWriteKeysPresent() []string {
 		return nil
 	}
 	var present []string
-	for _, key := range ApplicationSettingsWriteJSONKeys {
+	for _, key := range keys {
 		if _, ok := body[key]; ok {
 			present = append(present, key)
 		}
@@ -433,17 +503,17 @@ func (i UpdateApplicationInput) versionGatedWriteKeysPresent() []string {
 }
 
 // clearApplicationSettings drops every application write field that Coolify
-// only accepts on >= v4.2.0 from the payload. That is APPLICATION_SETTING_FIELDS
-// plus is_preview_deployments_enabled and use_build_secrets (literals on the
-// same allow list from v4.2.0; absent on v4.1.x). The gate lives here, on the
-// single path every application PATCH takes, rather than in each caller: a
-// field that cannot be written must not depend on which builder assembled the
-// request.
+// only accepts on >= v4.2.0 (and, transitively, the v4.3.0 additions) from the
+// payload. That is APPLICATION_SETTING_FIELDS plus is_preview_deployments_enabled
+// and use_build_secrets (literals on the same allow list from v4.2.0; absent on
+// v4.1.x), plus v4.3.0 fields. The gate lives here, on the single path every
+// application PATCH takes, rather than in each caller: a field that cannot be
+// written must not depend on which builder assembled the request.
 func (i *UpdateApplicationInput) clearApplicationSettings() {
 	// v4.2.0 literal allow-list fields (not in APPLICATION_SETTING_FIELDS).
 	i.IsPreviewDeploymentsEnabled = nil
 	i.UseBuildSecrets = nil
-	// APPLICATION_SETTING_FIELDS.
+	// v4.2.0 APPLICATION_SETTING_FIELDS.
 	i.IsGitSubmodulesEnabled = nil
 	i.IsGitLfsEnabled = nil
 	i.IsGitShallowCloneEnabled = nil
@@ -457,11 +527,27 @@ func (i *UpdateApplicationInput) clearApplicationSettings() {
 	i.IsStripprefixEnabled = nil
 	i.IsRawComposeDeploymentEnabled = nil
 	i.StopGracePeriod = nil
+	i.clearApplicationSettingsV43()
+}
+
+// clearApplicationSettingsV43 drops Coolify >= v4.3.0 application write fields
+// (settings additions plus noindex_domains). Used when the instance is
+// v4.2.x (settings gate open, v4.3 gate closed).
+func (i *UpdateApplicationInput) clearApplicationSettingsV43() {
+	i.IsLogDrainEnabled = nil
+	i.IsGpuEnabled = nil
+	i.GpuDriver = nil
+	i.GpuCount = nil
+	i.GpuDeviceIds = nil
+	i.GpuOptions = nil
+	i.IsConsistentContainerNameEnabled = nil
+	i.CustomInternalName = nil
+	i.NoindexDomains = nil
 }
 
 // HasOnlyApplicationSettings reports whether the payload would be empty once
-// the settings fields are dropped. Callers use it to skip a PATCH that the gate
-// would reduce to `{}`.
+// all version-gated settings fields (v4.2.0 and v4.3.0) are dropped. Callers
+// use it to skip a PATCH that the gate would reduce to `{}`.
 //
 // Counted through the JSON encoding rather than by comparing structs: the input
 // carries a json.RawMessage, so it is not comparable, and encoding is what
@@ -469,6 +555,15 @@ func (i *UpdateApplicationInput) clearApplicationSettings() {
 func (i UpdateApplicationInput) HasOnlyApplicationSettings() bool {
 	stripped := i
 	stripped.clearApplicationSettings()
+	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
+}
+
+// HasOnlyApplicationSettingsV43 reports whether the payload would be empty once
+// only the v4.3.0 gated fields are dropped. Used to skip a post-create PATCH on
+// Coolify 4.2.x when the only extended fields are v4.3.0 additions.
+func (i UpdateApplicationInput) HasOnlyApplicationSettingsV43() bool {
+	stripped := i
+	stripped.clearApplicationSettingsV43()
 	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
 }
 
