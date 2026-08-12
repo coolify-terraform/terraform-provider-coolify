@@ -58,6 +58,11 @@ jobs:
               - 'templates/**'
               - 'docs/**'
               - '*.md'
+              # release-please / release override files: not provider docs.
+              # Matching them alone must not force full Validate (fmt, docs gen,
+              # Trivy, Gitleaks) on every version-bump PR.
+              - '!CHANGELOG.md'
+              - '!RELEASE_NOTES.md'
             terraform:
               - 'examples/**/*.tf'
             ci:
@@ -331,6 +336,8 @@ jobs:
             echo "::error::Trivy scan failed (tried fresh download and cached DB)"
             exit 1
           fi
+      # Download can flake (empty archive / socket hang from GitHub releases).
+      # Retry to a temp file before tar; do not pipe curl into tar.
       - name: Gitleaks
         if: ${{ !cancelled() }}
         env:
@@ -339,6 +346,7 @@ jobs:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
+          set -euo pipefail
           VER="8.30.1"
           BIN_DIR="$HOME/.local/bin"
           export PATH="$BIN_DIR:$PATH"
@@ -347,8 +355,24 @@ jobs:
             OS=$(uname -s | tr '[:upper:]' '[:lower:]')
             ARCH=$(uname -m)
             case "$ARCH" in x86_64) ARCH="x64" ;; aarch64|arm64) ARCH="arm64" ;; esac
-            curl -sfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_${OS}_${ARCH}.tar.gz" \
-              | tar xz -C "$BIN_DIR" gitleaks
+            URL="https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_${OS}_${ARCH}.tar.gz"
+            TMP="$(mktemp)"
+            ok=0
+            for attempt in 1 2 3; do
+              if curl -sfL --retry 3 --retry-delay 2 --retry-all-errors -o "$TMP" "$URL" \
+                && tar tzf "$TMP" gitleaks >/dev/null 2>&1 \
+                && tar xzf "$TMP" -C "$BIN_DIR" gitleaks; then
+                ok=1
+                break
+              fi
+              echo "::warning::Gitleaks download/extract failed (attempt ${attempt}/3)"
+              sleep $((attempt * 2))
+            done
+            rm -f "$TMP"
+            if [ "$ok" != "1" ]; then
+              echo "::error::Failed to install gitleaks v${VER} after 3 attempts (GitHub releases flake)"
+              exit 1
+            fi
           fi
           if [ "$EVENT_NAME" = "pull_request" ]; then
             gitleaks detect --source . --config .gitleaks.toml --log-opts="${PR_BASE_SHA}..HEAD" --exit-code 1
