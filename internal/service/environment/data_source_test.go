@@ -60,7 +60,7 @@ data "coolify_environment" "test" {
   project_uuid = "00000000-0000-4000-8000-000000000000"
   name         = "nonexistent"
 }`,
-				ExpectError: regexp.MustCompile(`Error reading environment`),
+				ExpectError: regexp.MustCompile(`(?s)Error reading environment.*"nonexistent".*00000000-0000-4000-8000-000000000000`),
 			},
 		},
 	})

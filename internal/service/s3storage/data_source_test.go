@@ -63,7 +63,7 @@ func TestS3StorageDataSource_NotFound(t *testing.T) {
 data "coolify_s3_storage" "test" {
   uuid = "00000000-0000-4000-8000-000000000000"
 }`,
-				ExpectError: regexp.MustCompile(`Error reading S3 storage`),
+				ExpectError: regexp.MustCompile(`(?s)Error reading S3 storage.*00000000-0000-4000-8000-000000000000`),
 			},
 		},
 	})

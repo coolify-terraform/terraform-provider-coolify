@@ -58,7 +58,7 @@ func TestCloudTokenDataSource_NotFound(t *testing.T) {
 data "coolify_cloud_token" "test" {
   uuid = "00000000-0000-4000-8000-000000000000"
 }`,
-				ExpectError: regexp.MustCompile(`Error reading cloud token`),
+				ExpectError: regexp.MustCompile(`(?s)Error reading cloud token.*00000000-0000-4000-8000-000000000000`),
 			},
 		},
 	})

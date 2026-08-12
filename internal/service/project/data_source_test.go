@@ -57,7 +57,7 @@ func TestProjectDataSource_NotFound(t *testing.T) {
 data "coolify_project" "test" {
   uuid = "00000000-0000-4000-8000-000000000000"
 }`,
-				ExpectError: regexp.MustCompile(`Error reading project`),
+				ExpectError: regexp.MustCompile(`(?s)Error reading project.*00000000-0000-4000-8000-000000000000`),
 			},
 		},
 	})

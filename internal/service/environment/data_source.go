@@ -79,9 +79,11 @@ func (d *environmentDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	tflog.Debug(ctx, "reading data source", map[string]interface{}{"data_source_type": "coolify_environment"})
 
-	env, err := d.client.GetEnvironment(ctx, config.ProjectUUID.ValueString(), config.Name.ValueString())
+	projectUUID := config.ProjectUUID.ValueString()
+	name := config.Name.ValueString()
+	env, err := d.client.GetEnvironment(ctx, projectUUID, name)
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading environment", fmt.Sprintf("Could not read environment: %s", err))
+		resp.Diagnostics.AddError("Error reading environment", fmt.Sprintf("Could not read environment %q in project %s: %s", name, projectUUID, err))
 		return
 	}
 
