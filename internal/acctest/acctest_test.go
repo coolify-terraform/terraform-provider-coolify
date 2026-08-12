@@ -157,6 +157,21 @@ func TestAccTestSkipIfNoVolumeBackupAPI_MissingRoute(t *testing.T) {
 	}
 }
 
+func TestRequireTipAPIs(t *testing.T) {
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+	if requireTipAPIs() {
+		t.Fatal("expected requireTipAPIs false when unset/empty")
+	}
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "1")
+	if !requireTipAPIs() {
+		t.Fatal("expected requireTipAPIs true when COOLIFY_REQUIRE_TIP_APIS=1")
+	}
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "true")
+	if !requireTipAPIs() {
+		t.Fatal("expected requireTipAPIs true when COOLIFY_REQUIRE_TIP_APIS=true")
+	}
+}
+
 func TestAccTestSkipIfNoVolumeBackupAPI_ValidationPresent(t *testing.T) {
 	resetAccTestCaches()
 	defer resetAccTestCaches()

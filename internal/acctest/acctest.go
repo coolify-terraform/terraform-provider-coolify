@@ -531,12 +531,35 @@ func AccCheckResourceDisappears(resourceAddr, apiDeletePath string) resource.Tes
 	}
 }
 
+// requireTipAPIs reports whether tip-only Coolify surfaces must be present.
+// Set COOLIFY_REQUIRE_TIP_APIS=1 on jobs that boot coollabsio/coolify:edge
+// (PR Acceptance Tests + Coolify Nightly Acc tip-edge) so missing S3 storage,
+// volume backup, or bootstrap S3 UUID fails the run instead of silently
+// skipping features the version-support guide claims on tip.
+func requireTipAPIs() bool {
+	v := strings.TrimSpace(os.Getenv("COOLIFY_REQUIRE_TIP_APIS"))
+	return v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
+}
+
+// accTestMissingFeature skips unless COOLIFY_REQUIRE_TIP_APIS is set, in which
+// case it fails the test (tip must expose claimed APIs).
+func accTestMissingFeature(t *testing.T, format string, args ...interface{}) {
+	t.Helper()
+	msg := fmt.Sprintf(format, args...)
+	if requireTipAPIs() {
+		t.Fatalf("tip Coolify is missing a claimed feature (COOLIFY_REQUIRE_TIP_APIS=1): %s", msg)
+	}
+	t.Skip(msg)
+}
+
 // AccTestSkipIfNoVolumeBackupAPI skips when Coolify lacks VolumeBackupsController
 // (PUT/DELETE .../storages/{uuid}/backups from coollabsio/coolify#10946).
 //
 // That API is on Coolify branch v4.x after the merge; it is not in git tag
 // v4.2.0 or stable CDN latest. CI boots coollabsio/coolify:edge (v4.x tip).
 // Locally set LATEST_IMAGE=edge (or a post-#10946 sha-... tag) before compose up.
+//
+// When COOLIFY_REQUIRE_TIP_APIS=1, a missing controller fails instead of skips.
 //
 // Probe strategy: PUT a schedule for non-existent parent/storage UUIDs.
 // Present controller returns 404 resource/storage, 422 validation, or 401/403.
@@ -559,7 +582,8 @@ func AccTestSkipIfNoVolumeBackupAPI(t *testing.T) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Skipf("volume backup API probe failed (cannot reach Coolify): %v", err)
+		accTestMissingFeature(t, "volume backup API probe failed (cannot reach Coolify): %v", err)
+		return
 	}
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	_ = resp.Body.Close()
@@ -588,20 +612,21 @@ func AccTestSkipIfNoVolumeBackupAPI(t *testing.T) {
 			strings.Contains(msg, "page not found") ||
 			strings.TrimSpace(msg) == "" ||
 			strings.Contains(msg, "<html") {
-			t.Skipf("Coolify instance has no VolumeBackupsController (HTTP %d). "+
+			accTestMissingFeature(t, "Coolify instance has no VolumeBackupsController (HTTP %d). "+
 				"Need image tip after coollabsio/coolify#10946 (CI uses coollabsio/coolify:edge; "+
 				"local: set LATEST_IMAGE=edge in Coolify compose .env). Body: %s",
 				resp.StatusCode, truncateForSkip(string(body), 200))
+			return
 		}
 		// Unknown 404 body: treat as present (resource not found variants).
 		return
 	case http.StatusMethodNotAllowed:
-		t.Skipf("Coolify instance has no volume backup PUT route (HTTP 405). " +
+		accTestMissingFeature(t, "Coolify instance has no volume backup PUT route (HTTP 405). "+
 			"Need tip after coollabsio/coolify#10946 (coollabsio/coolify:edge)")
 	default:
 		// 200/201 should not happen for fake UUIDs; other codes still mean a handler ran.
 		if resp.StatusCode >= 500 {
-			t.Skipf("volume backup API probe returned HTTP %d (server error); skipping: %s",
+			accTestMissingFeature(t, "volume backup API probe returned HTTP %d (server error): %s",
 				resp.StatusCode, truncateForSkip(string(body), 200))
 		}
 	}
@@ -617,18 +642,21 @@ func truncateForSkip(s string, n int) string {
 
 // AccTestS3StorageUUID returns the UUID of an S3 storage destination for
 // acceptance tests. Set COOLIFY_S3_STORAGE_UUID to the UUID of an S3
-// storage registered in Coolify. The test is skipped if not set.
+// storage registered in Coolify. The test is skipped if not set (or fails when
+// COOLIFY_REQUIRE_TIP_APIS=1; tip bootstrap must create minio-test).
 func AccTestS3StorageUUID(t *testing.T) string {
 	t.Helper()
 	v := os.Getenv("COOLIFY_S3_STORAGE_UUID")
 	if v == "" {
-		t.Skip("COOLIFY_S3_STORAGE_UUID not set, skipping S3 backup test")
+		accTestMissingFeature(t, "COOLIFY_S3_STORAGE_UUID not set (tip bootstrap should register minio-test S3 storage)")
 	}
 	return v
 }
 
 // AccTestSkipIfNoS3StorageAPI skips when Coolify lacks S3StoragesController
 // (GET/POST /api/v1/s3-storages from Coolify >= v4.3.0).
+//
+// When COOLIFY_REQUIRE_TIP_APIS=1, a missing controller fails instead of skips.
 //
 // Probe strategy: GET /api/v1/s3-storages.
 // Present controller returns 200 (list) or 401/403.
@@ -649,7 +677,8 @@ func AccTestSkipIfNoS3StorageAPI(t *testing.T) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Skipf("s3 storage API probe failed (cannot reach Coolify): %v", err)
+		accTestMissingFeature(t, "s3 storage API probe failed (cannot reach Coolify): %v", err)
+		return
 	}
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	_ = resp.Body.Close()
@@ -664,19 +693,39 @@ func AccTestSkipIfNoS3StorageAPI(t *testing.T) {
 			strings.Contains(msg, "page not found") ||
 			strings.TrimSpace(msg) == "" ||
 			strings.Contains(msg, "<html") {
-			t.Skipf("Coolify instance has no S3StoragesController (HTTP %d). "+
+			accTestMissingFeature(t, "Coolify instance has no S3StoragesController (HTTP %d). "+
 				"Need Coolify >= v4.3.0. Body: %s",
 				resp.StatusCode, truncateForSkip(string(body), 200))
+			return
 		}
 		return
 	case http.StatusMethodNotAllowed:
-		t.Skip("Coolify instance has no S3 storage GET route (HTTP 405). Need Coolify >= v4.3.0")
+		accTestMissingFeature(t, "Coolify instance has no S3 storage GET route (HTTP 405). Need Coolify >= v4.3.0")
 	default:
 		if resp.StatusCode >= 500 {
-			t.Skipf("s3 storage API probe returned HTTP %d (server error); skipping: %s",
+			accTestMissingFeature(t, "s3 storage API probe returned HTTP %d (server error): %s",
 				resp.StatusCode, truncateForSkip(string(body), 200))
 		}
 	}
+}
+
+// AccTestSkipIfCoolifyBelow skips (or fails with COOLIFY_REQUIRE_TIP_APIS=1)
+// when the connected Coolify version is older than min (e.g. "4.3.0").
+func AccTestSkipIfCoolifyBelow(t *testing.T, min string) {
+	t.Helper()
+	TestAccPreCheck(t)
+	c := AccTestClient(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	ver, err := c.GetVersion(ctx)
+	if err != nil {
+		accTestMissingFeature(t, "could not read Coolify version: %v", err)
+		return
+	}
+	if client.IsVersionAtLeast(ver, min) {
+		return
+	}
+	accTestMissingFeature(t, "Coolify version %s is below required %s", ver, min)
 }
 
 // AccTestDockerfileAppConfig returns a Terraform config for an acceptance test

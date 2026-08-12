@@ -190,6 +190,9 @@ jobs:
           COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE }}
           COOLIFY_GITHUB_APP_REPOSITORY: ${{ secrets.COOLIFY_GITHUB_APP_REPOSITORY }}
           COOLIFY_GITHUB_APP_BRANCH: ${{ secrets.COOLIFY_GITHUB_APP_BRANCH }}
+          # tip-edge must expose claimed tip APIs (S3, volume backup, S3 UUID).
+          # stable/floor keep skip-if-missing so older images stay soft.
+          COOLIFY_REQUIRE_TIP_APIS: ${{ matrix.coolify_image == 'edge' && '1' || '0' }}
         run: |
           set -euo pipefail
           set -a

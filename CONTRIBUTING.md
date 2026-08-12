@@ -80,8 +80,13 @@ started by hand:
 2. Choose profile `tip-and-stable` (faster) or `all` (includes floor `4.1.2`)
 3. Wait for the **Nightly gate** job to go green
 
-This workflow is not a required status check on pull requests. Tip-only APIs
-(S3 storage, volume backups) skip on older images via `AccTestSkipIf*` helpers.
+This workflow is not a required status check on pull requests.
+
+**Tip vs older images:** on `edge` (PR Acceptance Tests and nightly tip-edge),
+`COOLIFY_REQUIRE_TIP_APIS=1` makes missing tip APIs **fail** (S3 storage
+controller, volume backup controller, bootstrap `COOLIFY_S3_STORAGE_UUID`,
+Coolify ≥ 4.3 for v4.3 application settings acc). On `latest` / `4.1.2`, those
+probes still **skip** so older images remain soft without claiming tip features.
 
 ### Code Quality
 
