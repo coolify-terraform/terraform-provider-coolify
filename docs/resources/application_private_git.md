@@ -45,6 +45,7 @@ resource "coolify_application_private_git" "api" {
 - `build_command` (String) The command to run during the build phase.
 - `connect_to_docker_network` (Boolean) Whether to connect the application to the Docker network.
 - `custom_docker_run_options` (String) Custom Docker run options passed to the container.
+- `custom_internal_name` (String) Custom internal container name for the application. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `custom_labels` (String) Custom Docker labels for the container. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.
 - `custom_network_aliases` (String) Custom network aliases for the container.
 - `custom_nginx_configuration` (String) Custom Nginx configuration for the application. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.
@@ -61,6 +62,10 @@ resource "coolify_application_private_git" "api" {
 - `force_domain_override` (Boolean) Whether to force domain override.
 - `git_branch` (String) The Git branch to deploy (defaults to `main`).
 - `git_commit_sha` (String) The specific Git commit SHA to deploy.
+- `gpu_count` (String) Number of GPUs to allocate (string form as accepted by Coolify). Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
+- `gpu_device_ids` (String) Comma-separated GPU device IDs to pass to the container. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
+- `gpu_driver` (String) GPU driver for the application container (Coolify default `nvidia`). Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
+- `gpu_options` (String) Additional GPU options string for the application container. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `health_check_command` (String) Custom health check command (used when type is `cmd`).
 - `health_check_enabled` (Boolean) Whether health checks are enabled. Coolify defaults to `false` for new applications.
 - `health_check_host` (String) The host for health checks.
@@ -82,14 +87,17 @@ resource "coolify_application_private_git" "api" {
 - `install_command` (String) The command to run during the install phase.
 - `instant_deploy` (Boolean) Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.
 - `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled.
+- `is_consistent_container_name_enabled` (Boolean) Whether Coolify uses a consistent container name for this application. Coolify default is `false`. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled.
 - `is_env_sorting_enabled` (Boolean) Whether environment variables are sorted. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `is_force_https_enabled` (Boolean) Whether to force HTTPS for the application.
 - `is_git_lfs_enabled` (Boolean) Whether Git LFS objects are fetched during clone. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `is_git_shallow_clone_enabled` (Boolean) Whether Git uses a shallow clone. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `is_git_submodules_enabled` (Boolean) Whether Git submodules are fetched during clone. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
+- `is_gpu_enabled` (Boolean) Whether GPU support is enabled for this application. Coolify default is `false`. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `is_gzip_enabled` (Boolean) Whether gzip compression is enabled for the application proxy. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `is_http_basic_auth_enabled` (Boolean) Whether HTTP Basic Authentication is enabled.
+- `is_log_drain_enabled` (Boolean) Whether log drain is enabled for this application. Coolify default is `false`. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `is_pr_deployments_public_enabled` (Boolean) Whether preview deployments from public pull requests are enabled. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `is_preserve_repository_enabled` (Boolean) Whether to preserve the full Git repository (instead of shallow clone).
 - `is_preview_deployments_enabled` (Boolean) Whether preview deployments (e.g. pull requests) are enabled for this application. Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`. Against older instances the provider omits this field on write and emits a plan warning if it is set, rather than fail the whole request with 422.
@@ -109,6 +117,7 @@ resource "coolify_application_private_git" "api" {
 - `manual_webhook_secret_github` (String, Sensitive) Manual webhook secret for GitHub. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
 - `manual_webhook_secret_gitlab` (String, Sensitive) Manual webhook secret for GitLab. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
 - `name` (String) The name of the application.
+- `noindex_domains` (List of String) Subset of application domain URLs served with an `X-Robots-Tag: noindex, nofollow` response header (keeps them out of search engines). Entries that are not among the application domains are ignored by Coolify. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:80` or `8080:80,8443:443`).
 - `post_deployment_command` (String) Command to run after deployment.
 - `post_deployment_command_container` (String) Container to run the post-deployment command in.

@@ -36,25 +36,21 @@ var applicationFieldSkips = skipMap(
 	skipNA("swarm_placement_constraints", "swarm-only; not in provider surface"),
 	// Internal-only ApplicationSetting fields not on ApplicationsController
 	// APPLICATION_SETTING_FIELDS / update allow list (UI-only or other surfaces).
-	// Note: disable_build_cache, is_gzip_enabled, is_git_*, stop_grace_period, etc.
-	// ARE on the public allow list via ...self::APPLICATION_SETTING_FIELDS from
-	// Coolify v4.2.0 (extractor expands spreads, #661); they must not be skipInternal.
+	// Note: disable_build_cache, is_gzip_enabled, is_git_*, stop_grace_period, and
+	// Coolify v4.3.0 additions (log drain, GPU, consistent container name,
+	// custom_internal_name, noindex_domains) ARE on the public allow list via
+	// ...self::APPLICATION_SETTING_FIELDS (extractor expands spreads, #661);
+	// they must not be skipInternal.
 	skipInternal("application_id", "settings FK"),
-	skipInternal("custom_internal_name", "settings internal"),
-	skipInternal("gpu_count", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
-	skipInternal("gpu_device_ids", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
-	skipInternal("gpu_driver", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
-	skipInternal("gpu_options", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
-	skipInternal("is_consistent_container_name_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_container_label_readonly_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_custom_ssl", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_debug_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_dual_cert", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
-	skipInternal("is_gpu_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_http2", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_include_timestamps", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
-	skipInternal("is_log_drain_enabled", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
 	skipInternal("is_swarm_only_worker_nodes", "settings UI-only; not in APPLICATION_SETTING_FIELDS"),
+	// Runtime DNS probe state on Application; not Terraform-managed.
+	skipNA("domain_dns_statuses", "runtime DNS probe state; not Terraform-managed"),
 	// is_build_server_enabled is the setting name; the API field is use_build_server
 	skipNA("is_build_server_enabled", "API field is use_build_server on Application"),
 	// is_preview_deployments_enabled, use_build_secrets, stop_grace_period and

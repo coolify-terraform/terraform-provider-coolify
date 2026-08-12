@@ -59,6 +59,19 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "is_gzip_enabled",
         "is_stripprefix_enabled",
         "is_raw_compose_deployment_enabled",
+        # Coolify >= v4.3.0 APPLICATION_SETTING_FIELDS + noindex (version-gated writes)
+        "is_log_drain_enabled",
+        "is_gpu_enabled",
+        "gpu_driver",
+        "gpu_count",
+        "gpu_device_ids",
+        "gpu_options",
+        "is_consistent_container_name_enabled",
+        "custom_internal_name",
+        "noindex_domains",
+        # Allow-list expansions on v4.3.0 (provider already maps or documents)
+        "max_restart_count",
+        "preview_url_template",
     },
     "ApplicationsController::update_by_uuid": {
         "is_preview_deployments_enabled",
@@ -76,6 +89,17 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "is_gzip_enabled",
         "is_stripprefix_enabled",
         "is_raw_compose_deployment_enabled",
+        "is_log_drain_enabled",
+        "is_gpu_enabled",
+        "gpu_driver",
+        "gpu_count",
+        "gpu_device_ids",
+        "gpu_options",
+        "is_consistent_container_name_enabled",
+        "custom_internal_name",
+        "noindex_domains",
+        "max_restart_count",
+        "preview_url_template",
     },
     "DatabasesController::create_database": {
         "tags",
@@ -87,6 +111,14 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "enable_backups",
         "hetzner_firewall_ids",
         "hetzner_network_ids",
+    },
+    # Coolify >= v4.3.0 server terminal toggle (already on coolify_server schema).
+    "ServersController::update_server": {
+        "is_terminal_enabled",
+    },
+    # Service-application noindex (service stack apps; app resource covers standalone apps).
+    "ServiceApplicationsController::update": {
+        "noindex_domains",
     },
 }
 

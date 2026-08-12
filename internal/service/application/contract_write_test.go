@@ -91,6 +91,16 @@ func TestContractAllowList_IncludesApplicationSettingFields(t *testing.T) {
 		"is_gzip_enabled",
 		"is_stripprefix_enabled",
 		"is_raw_compose_deployment_enabled",
+		// Coolify >= v4.3.0 APPLICATION_SETTING_FIELDS + noindex_domains
+		"is_log_drain_enabled",
+		"is_gpu_enabled",
+		"gpu_driver",
+		"gpu_count",
+		"gpu_device_ids",
+		"gpu_options",
+		"is_consistent_container_name_enabled",
+		"custom_internal_name",
+		"noindex_domains",
 	}
 	var missing []string
 	for _, f := range required {
@@ -188,11 +198,12 @@ func TestUpdateInput_OnlySendsAllowedFields(t *testing.T) {
 	// Known gaps, tracked separately: these are not ApplicationSetting fields
 	// and removing them would drop practitioner-visible behaviour, so they need
 	// their own decision rather than being silently dropped here.
+	// preview_url_template is on the v4.3.0 update allow list (and already sent
+	// when changed via shared update builders).
 	knownGaps := map[string]string{
-		"dockerfile":           "create-only field; editing a Dockerfile in place has no allowed update route",
-		"docker_compose_raw":   "create-only field, and only for the deprecated inline-compose endpoint",
-		"github_app_uuid":      "create-only field; re-pointing an app at another GitHub App has no update route",
-		"preview_url_template": "absent from both allow lists; no write route at all",
+		"dockerfile":         "create-only field; editing a Dockerfile in place has no allowed update route",
+		"docker_compose_raw": "create-only field, and only for the deprecated inline-compose endpoint",
+		"github_app_uuid":    "create-only field; re-pointing an app at another GitHub App has no update route",
 	}
 	var unexpected []string
 	for _, key := range bad {

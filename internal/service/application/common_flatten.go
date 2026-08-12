@@ -6,6 +6,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -460,10 +461,25 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.BoolPtrNonDefault(f.IsGzipEnabled, true) ||
 		flex.BoolPtrNonDefault(f.IsStripprefixEnabled, true) ||
 		flex.BoolPtrNonDefault(f.IsRawComposeDeploymentEnabled, false) ||
+		flex.BoolPtrNonDefault(f.IsLogDrainEnabled, false) ||
+		flex.BoolPtrNonDefault(f.IsGpuEnabled, false) ||
+		flex.StringPtrNonDefault(f.GpuDriver, "nvidia") ||
+		flex.StringPtrNonDefault(f.GpuCount, "") ||
+		flex.StringPtrNonDefault(f.GpuDeviceIds, "") ||
+		flex.StringPtrNonDefault(f.GpuOptions, "") ||
+		flex.BoolPtrNonDefault(f.IsConsistentContainerNameEnabled, false) ||
+		flex.StringPtrNonDefault(f.CustomInternalName, "") ||
+		listPtrConfigured(f.NoindexDomains) ||
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
 		flex.StringPtrNonDefault(f.Redirect, defaultRedirect) ||
 		flex.StringPtrNonDefault(f.StaticImage, defaultStaticImage)
+}
+
+// listPtrConfigured reports whether a List pointer is set (non-null, non-unknown).
+// Empty lists count as configured so post-create can clear noindex_domains.
+func listPtrConfigured(v *types.List) bool {
+	return v != nil && !v.IsNull() && !v.IsUnknown()
 }
 
 // buildPostCreatePatch builds an UpdateApplicationInput from the plan's extended
@@ -572,11 +588,16 @@ func postCreatePatchExtendedFields(ctx context.Context, c *client.Client, uuid s
 		return
 	}
 	input := buildPostCreatePatch(f)
-	// On Coolify < 4.2.0 the client strips version-gated write fields, so a
-	// plan whose only extended fields are those would PATCH an empty body.
-	// Skip it rather than spend a request that can change nothing.
+	// On Coolify below the settings gates the client strips version-gated write
+	// fields, so a plan whose only extended fields are those would PATCH an
+	// empty body. Skip it rather than spend a request that can change nothing.
 	if !c.SupportsApplicationSettings() && input.HasOnlyApplicationSettings() {
 		tflog.Debug(ctx, "skipping post-create patch: only Coolify>=4.2.0 write fields, unsupported on this Coolify version",
+			map[string]interface{}{"uuid": uuid})
+		return
+	}
+	if c.SupportsApplicationSettings() && !c.SupportsApplicationSettingsV43() && input.HasOnlyApplicationSettingsV43() {
+		tflog.Debug(ctx, "skipping post-create patch: only Coolify>=4.3.0 write fields, unsupported on this Coolify version",
 			map[string]interface{}{"uuid": uuid})
 		return
 	}
@@ -626,12 +647,73 @@ func flattenApplicationSettingFields(app *client.Application, f commonAppFields)
 	setBoolDefault(f.IsGzipEnabled, app.IsGzipEnabled, true)
 	setBoolDefault(f.IsStripprefixEnabled, app.IsStripprefixEnabled, true)
 	setBoolDefault(f.IsRawComposeDeploymentEnabled, app.IsRawComposeDeploymentEnabled, false)
+	// Coolify >= v4.3.0 fields (defaults applied only when null/unknown).
+	setBoolDefault(f.IsLogDrainEnabled, app.IsLogDrainEnabled, false)
+	setBoolDefault(f.IsGpuEnabled, app.IsGpuEnabled, false)
+	if f.GpuDriver != nil {
+		if app.GpuDriver != "" {
+			*f.GpuDriver = types.StringValue(app.GpuDriver)
+		} else if f.GpuDriver.IsNull() || f.GpuDriver.IsUnknown() {
+			*f.GpuDriver = types.StringValue("nvidia")
+		}
+	}
+	flex.SetStringSeedOrClear(f.GpuCount, app.GpuCount)
+	flex.SetStringSeedOrClear(f.GpuDeviceIds, app.GpuDeviceIds)
+	flex.SetStringSeedOrClear(f.GpuOptions, app.GpuOptions)
+	setBoolDefault(f.IsConsistentContainerNameEnabled, app.IsConsistentContainerNameEnabled, false)
+	flex.SetStringSeedOrClear(f.CustomInternalName, app.CustomInternalName)
+	flattenNoindexDomains(app.NoindexDomains, f.NoindexDomains)
+}
+
+func flattenNoindexDomains(api []string, dst *types.List) {
+	if dst == nil {
+		return
+	}
+	if len(api) > 0 {
+		*dst = stringListValue(api)
+		return
+	}
+	if dst.IsNull() || dst.IsUnknown() {
+		*dst = types.ListNull(types.StringType)
+		return
+	}
+	// Configured (including empty list): reflect empty API as empty list.
+	*dst = types.ListValueMust(types.StringType, []attr.Value{})
+}
+
+func stringListValue(items []string) types.List {
+	elems := make([]attr.Value, len(items))
+	for i, s := range items {
+		elems[i] = types.StringValue(s)
+	}
+	return types.ListValueMust(types.StringType, elems)
+}
+
+func stringListFromTypes(v types.List) []string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	elems := v.Elements()
+	out := make([]string, 0, len(elems))
+	for _, e := range elems {
+		sv, ok := e.(types.String)
+		if !ok || sv.IsNull() || sv.IsUnknown() {
+			continue
+		}
+		out = append(out, sv.ValueString())
+	}
+	return out
 }
 
 func addApplicationSettingUpdateFields(plan, state commonAppFields, input *client.UpdateApplicationInput) {
 	setBoolDiff := func(dst **bool, p, s *types.Bool) {
 		if p != nil && s != nil {
 			*dst = flex.BoolIfChanged(*p, *s)
+		}
+	}
+	setStrDiff := func(dst **string, p, s *types.String) {
+		if p != nil && s != nil {
+			*dst = flex.StringIfChanged(*p, *s)
 		}
 	}
 	setBoolDiff(&input.IsGitSubmodulesEnabled, plan.IsGitSubmodulesEnabled, state.IsGitSubmodulesEnabled)
@@ -648,6 +730,23 @@ func addApplicationSettingUpdateFields(plan, state commonAppFields, input *clien
 	if plan.DockerImagesToKeep != nil && state.DockerImagesToKeep != nil {
 		input.DockerImagesToKeep = flex.Int64IfChanged(*plan.DockerImagesToKeep, *state.DockerImagesToKeep)
 	}
+	setBoolDiff(&input.IsLogDrainEnabled, plan.IsLogDrainEnabled, state.IsLogDrainEnabled)
+	setBoolDiff(&input.IsGpuEnabled, plan.IsGpuEnabled, state.IsGpuEnabled)
+	setStrDiff(&input.GpuDriver, plan.GpuDriver, state.GpuDriver)
+	setStrDiff(&input.GpuCount, plan.GpuCount, state.GpuCount)
+	setStrDiff(&input.GpuDeviceIds, plan.GpuDeviceIds, state.GpuDeviceIds)
+	setStrDiff(&input.GpuOptions, plan.GpuOptions, state.GpuOptions)
+	setBoolDiff(&input.IsConsistentContainerNameEnabled, plan.IsConsistentContainerNameEnabled, state.IsConsistentContainerNameEnabled)
+	setStrDiff(&input.CustomInternalName, plan.CustomInternalName, state.CustomInternalName)
+	if plan.NoindexDomains != nil && state.NoindexDomains != nil && !plan.NoindexDomains.Equal(*state.NoindexDomains) {
+		if plan.NoindexDomains.IsNull() {
+			empty := []string{}
+			input.NoindexDomains = &empty
+		} else if !plan.NoindexDomains.IsUnknown() {
+			list := stringListFromTypes(*plan.NoindexDomains)
+			input.NoindexDomains = &list
+		}
+	}
 }
 
 func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f commonAppFields, safeBool func(*types.Bool) types.Bool, safeInt func(*types.Int64) types.Int64) {
@@ -663,4 +762,26 @@ func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f com
 	flex.SetBoolPtr(&input.IsGzipEnabled, safeBool(f.IsGzipEnabled))
 	flex.SetBoolPtr(&input.IsStripprefixEnabled, safeBool(f.IsStripprefixEnabled))
 	flex.SetBoolPtr(&input.IsRawComposeDeploymentEnabled, safeBool(f.IsRawComposeDeploymentEnabled))
+	flex.SetBoolPtr(&input.IsLogDrainEnabled, safeBool(f.IsLogDrainEnabled))
+	flex.SetBoolPtr(&input.IsGpuEnabled, safeBool(f.IsGpuEnabled))
+	if f.GpuDriver != nil {
+		flex.SetStrPtr(&input.GpuDriver, *f.GpuDriver)
+	}
+	if f.GpuCount != nil {
+		flex.SetStrPtr(&input.GpuCount, *f.GpuCount)
+	}
+	if f.GpuDeviceIds != nil {
+		flex.SetStrPtr(&input.GpuDeviceIds, *f.GpuDeviceIds)
+	}
+	if f.GpuOptions != nil {
+		flex.SetStrPtr(&input.GpuOptions, *f.GpuOptions)
+	}
+	flex.SetBoolPtr(&input.IsConsistentContainerNameEnabled, safeBool(f.IsConsistentContainerNameEnabled))
+	if f.CustomInternalName != nil {
+		flex.SetStrPtr(&input.CustomInternalName, *f.CustomInternalName)
+	}
+	if listPtrConfigured(f.NoindexDomains) {
+		list := stringListFromTypes(*f.NoindexDomains)
+		input.NoindexDomains = &list
+	}
 }

@@ -11,8 +11,8 @@ import (
 // or directory storage.
 //
 // API requires VolumeBackupsController (PUT/DELETE .../storages/{uuid}/backups),
-// which landed on Coolify v4.x in coollabsio/coolify#10946 (2026-07-20). Not in
-// git tag v4.2.0 or stable 4.1.2; no later release tag is known to include it yet.
+// which landed in coollabsio/coolify#10946 and ships in Coolify >= v4.3.0.
+// Not present in git tag v4.2.0 or older stable lines.
 type VolumeBackupSchedule struct {
 	UUID                     string  `json:"uuid"`
 	Message                  string  `json:"message,omitempty"`

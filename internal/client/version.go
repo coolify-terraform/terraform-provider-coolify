@@ -17,12 +17,15 @@ import (
 const minApplicationSettingsVersion = "4.2.0"
 
 // ApplicationSettingsWriteJSONKeys lists Coolify application PATCH JSON keys
-// accepted only on >= v4.2.0 (APPLICATION_SETTING_FIELDS plus the two v4.2.0
-// literals is_preview_deployments_enabled and use_build_secrets).
+// accepted only on >= v4.2.0 (the v4.2.0 APPLICATION_SETTING_FIELDS set plus
+// the two v4.2.0 literals is_preview_deployments_enabled and use_build_secrets).
 //
 // clearApplicationSettings and the plan-time warning list in the application
 // service package must stay aligned with this slice. Prefer this list in tests
 // over re-declaring the keys.
+//
+// Coolify v4.3.0 added more APPLICATION_SETTING_FIELDS and noindex_domains;
+// those live in ApplicationSettingsV43WriteJSONKeys.
 var ApplicationSettingsWriteJSONKeys = []string{
 	"is_preview_deployments_enabled",
 	"use_build_secrets",
@@ -41,6 +44,27 @@ var ApplicationSettingsWriteJSONKeys = []string{
 	"is_raw_compose_deployment_enabled",
 }
 
+// minApplicationSettingsV43Version is the first Coolify release whose
+// application endpoints accept the v4.3.0 APPLICATION_SETTING_FIELDS additions
+// (log drain, GPU, consistent container name, custom_internal_name) and
+// noindex_domains on the Application model.
+const minApplicationSettingsV43Version = "4.3.0"
+
+// ApplicationSettingsV43WriteJSONKeys lists Coolify application PATCH JSON keys
+// accepted only on >= v4.3.0. clearApplicationSettingsV43 and the plan-time
+// warning list must stay aligned with this slice.
+var ApplicationSettingsV43WriteJSONKeys = []string{
+	"is_log_drain_enabled",
+	"is_gpu_enabled",
+	"gpu_driver",
+	"gpu_count",
+	"gpu_device_ids",
+	"gpu_options",
+	"is_consistent_container_name_enabled",
+	"custom_internal_name",
+	"noindex_domains",
+}
+
 // SupportsApplicationSettings reports whether the connected instance accepts
 // Coolify >= v4.2.0 application write fields (APPLICATION_SETTING_FIELDS plus
 // is_preview_deployments_enabled and use_build_secrets, which landed as
@@ -56,6 +80,18 @@ func (c *Client) SupportsApplicationSettings() bool {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minApplicationSettingsVersion)
+}
+
+// SupportsApplicationSettingsV43 reports whether the connected instance accepts
+// Coolify >= v4.3.0 application write fields (log drain, GPU settings,
+// consistent container name, custom_internal_name, noindex_domains).
+//
+// Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
+func (c *Client) SupportsApplicationSettingsV43() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minApplicationSettingsV43Version)
 }
 
 // IsVersionAtLeast compares two semver-like version strings (e.g. "4.0.0").

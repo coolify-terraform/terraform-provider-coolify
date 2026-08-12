@@ -1,13 +1,14 @@
-# Daily Coolify channel watch: stable CDN vs nightly CDN vs pinned contract,
-# plus GitHub prereleases. Opens/updates an issue when we should start
-# supporting the next Coolify line (historically nightly version bumps
-# lead GitHub prereleases by weeks, as with 4.2.0).
+# Coolify channel watch: stable CDN, nightly CDN, GitHub releases, source tip
+# version (config/constants.php), and tip contract API drift vs pin.
+# Goal: open/update issues early enough to finish provider work before stable ships.
+# Lesson from v4.3.0: CDN nightly can stay on the previous line until release day
+# while tip already carries next-line API fields.
 name: Coolify Channels
 
 on:
   schedule:
-    # Daily 07:00 UTC (after CDN churn; independent of weekly CI contract job)
-    - cron: "0 7 * * *"
+    # Every 6 hours (was daily; 4.3.0 shipped between daily runs with no prior CDN bump)
+    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -20,9 +21,9 @@ permissions:
 
 jobs:
   watch:
-    name: Watch stable / nightly / prerelease
+    name: Watch channels + tip API
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Harden runner
         if: runner.os == 'Linux'
@@ -33,6 +34,13 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Extract Coolify tip contract (default branch)
+        run: |
+          set -euo pipefail
+          # Fresh tip extract for API drift detection (version strings can lag tip).
+          make contract-extract VERSION=latest
+          test -f testdata/contracts/coolify-v4-latest.json
+
       - name: Check Coolify channels and open/update issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -42,7 +50,10 @@ jobs:
           python3 scripts/check-coolify-channels.py \
             --fetch \
             --fetch-prereleases \
+            --fetch-latest-release \
+            --fetch-tip-version \
             --contract testdata/contracts/coolify-v4.json \
+            --tip-contract testdata/contracts/coolify-v4-latest.json \
             --json \
             --apply \
             > /tmp/coolify-channels-decision.json
@@ -56,6 +67,18 @@ jobs:
               echo ""
               echo '```json'
               cat /tmp/coolify-channels-decision.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f testdata/contracts/coolify-v4-latest.json ]; then
+            {
+              echo ""
+              echo "### Tip vs pin (contract diff)"
+              echo ""
+              echo '```'
+              scripts/diff-contracts.sh \
+                testdata/contracts/coolify-v4.json \
+                testdata/contracts/coolify-v4-latest.json || true
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
           fi
