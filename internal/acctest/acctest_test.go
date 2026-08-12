@@ -198,3 +198,79 @@ func TestAccTestSkipIfNoVolumeBackupAPI_ValidationPresent(t *testing.T) {
 
 	AccTestSkipIfNoVolumeBackupAPI(t)
 }
+
+// Coolify unmatched routes return {"message":"Not found."} (no resource name).
+// That must skip, not treat the volume-backup controller as present (floor 4.1.2).
+func TestAccTestSkipIfNoVolumeBackupAPI_PlainNotFound(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.1.2"})
+	})
+	mux.HandleFunc("PUT /api/v1/applications/{app}/storages/{stor}/backups", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"Not found."}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfNoVolumeBackupAPI(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfNoVolumeBackupAPI to skip on plain Not found. body")
+	}
+}
+
+func TestAccTestSkipIfNoS3StorageAPI_PlainNotFound(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.1.2"})
+	})
+	mux.HandleFunc("GET /api/v1/s3-storages", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"Not found."}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfNoS3StorageAPI(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfNoS3StorageAPI to skip on plain Not found. body")
+	}
+}
+
+func TestIsControllerResourceNotFound(t *testing.T) {
+	if !isControllerResourceNotFound("application not found.") {
+		t.Fatal("expected application not found to be controller-style")
+	}
+	if isControllerResourceNotFound(`{"message":"not found."}`) {
+		t.Fatal("plain not found must not look like controller resource 404")
+	}
+	if isControllerResourceNotFound("not found.") {
+		t.Fatal("plain not found. must not look like controller resource 404")
+	}
+}

@@ -12,6 +12,8 @@ func TestAccDestinationResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	// DestinationsController create: Coolify >= v4.2.0 (POST .../servers/{uuid}/destinations).
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
 
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-dest")

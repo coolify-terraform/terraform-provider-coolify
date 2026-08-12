@@ -103,6 +103,8 @@ func TestAccServerValidationDataSource(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	// POST /api/v1/servers/{uuid}/validate is Coolify >= v4.2.0.
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
 	serverUUID := acctest.AccTestServerUUID(t)
 
 	resource.Test(t, resource.TestCase{
