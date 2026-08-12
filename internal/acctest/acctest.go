@@ -562,8 +562,9 @@ func accTestMissingFeature(t *testing.T, format string, args ...interface{}) {
 // When COOLIFY_REQUIRE_TIP_APIS=1, a missing controller fails instead of skips.
 //
 // Probe strategy: PUT a schedule for non-existent parent/storage UUIDs.
-// Present controller returns 404 resource/storage, 422 validation, or 401/403.
-// Missing route returns Laravel "route ... could not be found" (or similar).
+// Present controller: named resource 404 (see isControllerResourceNotFound),
+// 422 validation, or 401/403. Missing route: plain {"message":"Not found."}
+// (Coolify catch-all), empty body, or HTML (floor 4.1.2 regression).
 func AccTestSkipIfNoVolumeBackupAPI(t *testing.T) {
 	t.Helper()
 	TestAccPreCheck(t)
@@ -597,28 +598,15 @@ func AccTestSkipIfNoVolumeBackupAPI(t *testing.T) {
 		// Validation ran on the volume backup controller.
 		return
 	case http.StatusNotFound:
-		// Controller-style 404s mean the route exists.
-		if strings.Contains(msg, "application not found") ||
-			strings.Contains(msg, "resource not found") ||
-			strings.Contains(msg, "storage not found") ||
-			strings.Contains(msg, "database not found") ||
-			strings.Contains(msg, "service not found") {
+		// Controller-style 404s (named resource) mean the route exists.
+		// Plain "Not found." / empty / Laravel unmatched means no controller.
+		if isControllerResourceNotFound(msg) {
 			return
 		}
-		// Laravel unmatched route, Go net/http default 404, or HTML without
-		// controller message. Controller 404s always name the resource.
-		if strings.Contains(msg, "could not be found") ||
-			strings.Contains(msg, "route ") ||
-			strings.Contains(msg, "page not found") ||
-			strings.TrimSpace(msg) == "" ||
-			strings.Contains(msg, "<html") {
-			accTestMissingFeature(t, "Coolify instance has no VolumeBackupsController (HTTP %d). "+
-				"Need image tip after coollabsio/coolify#10946 (CI uses coollabsio/coolify:edge; "+
-				"local: set LATEST_IMAGE=edge in Coolify compose .env). Body: %s",
-				resp.StatusCode, truncateForSkip(string(body), 200))
-			return
-		}
-		// Unknown 404 body: treat as present (resource not found variants).
+		accTestMissingFeature(t, "Coolify instance has no VolumeBackupsController (HTTP %d). "+
+			"Need image tip after coollabsio/coolify#10946 (CI uses coollabsio/coolify:edge; "+
+			"local: set LATEST_IMAGE=edge in Coolify compose .env). Body: %s",
+			resp.StatusCode, truncateForSkip(string(body), 200))
 		return
 	case http.StatusMethodNotAllowed:
 		accTestMissingFeature(t, "Coolify instance has no volume backup PUT route (HTTP 405). "+
@@ -640,6 +628,28 @@ func truncateForSkip(s string, n int) string {
 	return s[:n] + "..."
 }
 
+// isControllerResourceNotFound reports whether a lowercased 404 body looks like
+// a Coolify controller response for a missing parent/resource (route present).
+// Unmatched routes typically return plain "Not found." without naming a resource.
+func isControllerResourceNotFound(msgLower string) bool {
+	for _, s := range []string{
+		"application not found",
+		"resource not found",
+		"storage not found",
+		"database not found",
+		"service not found",
+		"server not found",
+		"s3 storage not found",
+		"destination not found",
+		"backup not found",
+	} {
+		if strings.Contains(msgLower, s) {
+			return true
+		}
+	}
+	return false
+}
+
 // AccTestS3StorageUUID returns the UUID of an S3 storage destination for
 // acceptance tests. Set COOLIFY_S3_STORAGE_UUID to the UUID of an S3
 // storage registered in Coolify. The test is skipped if not set (or fails when
@@ -659,8 +669,8 @@ func AccTestS3StorageUUID(t *testing.T) string {
 // When COOLIFY_REQUIRE_TIP_APIS=1, a missing controller fails instead of skips.
 //
 // Probe strategy: GET /api/v1/s3-storages.
-// Present controller returns 200 (list) or 401/403.
-// Missing route returns Laravel "could not be found" style 404.
+// Present controller returns 200 (list) or 401/403. Any 404 means no route
+// (index never 404s when registered), including Coolify plain Not found.
 func AccTestSkipIfNoS3StorageAPI(t *testing.T) {
 	t.Helper()
 	TestAccPreCheck(t)
@@ -682,22 +692,16 @@ func AccTestSkipIfNoS3StorageAPI(t *testing.T) {
 	}
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	_ = resp.Body.Close()
-	msg := strings.ToLower(string(body))
 
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusUnauthorized, http.StatusForbidden:
 		return
 	case http.StatusNotFound:
-		if strings.Contains(msg, "could not be found") ||
-			strings.Contains(msg, "route ") ||
-			strings.Contains(msg, "page not found") ||
-			strings.TrimSpace(msg) == "" ||
-			strings.Contains(msg, "<html") {
-			accTestMissingFeature(t, "Coolify instance has no S3StoragesController (HTTP %d). "+
-				"Need Coolify >= v4.3.0. Body: %s",
-				resp.StatusCode, truncateForSkip(string(body), 200))
-			return
-		}
+		// Index endpoint never 404s when the controller is registered; any 404
+		// (including Coolify's plain {"message":"Not found."}) means no route.
+		accTestMissingFeature(t, "Coolify instance has no S3StoragesController (HTTP %d). "+
+			"Need Coolify >= v4.3.0. Body: %s",
+			resp.StatusCode, truncateForSkip(string(body), 200))
 		return
 	case http.StatusMethodNotAllowed:
 		accTestMissingFeature(t, "Coolify instance has no S3 storage GET route (HTTP 405). Need Coolify >= v4.3.0")

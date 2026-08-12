@@ -11,6 +11,8 @@ import (
 func TestAccAPISettings_Enable(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	// POST /api/v1/enable is Coolify >= v4.2.0 (4.1.x only has GET post_required).
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
@@ -42,6 +44,8 @@ resource "coolify_api_settings" "test" {
 func TestAccAPISettings_MCPEnableDisable(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	// POST /api/v1/enable (API on) needs Coolify >= v4.2.0; MCP enable alone is older.
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),

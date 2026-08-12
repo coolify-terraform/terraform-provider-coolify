@@ -48,7 +48,7 @@ teams, and most list/single data sources.
 | Resource / data source family | Notes |
 |-------------------------------|--------|
 | `coolify_project`, `coolify_environment` | |
-| `coolify_server`, `coolify_server_hetzner`, `coolify_server_validate` | Hetzner provision path |
+| `coolify_server`, `coolify_server_hetzner` | Hetzner provision path (`coolify_server_validate` needs 4.2+) |
 | `coolify_application*` (public, docker image, dockerfile, private git, github app) | Some **attributes** need 4.2/4.3 (see below) |
 | `coolify_application_preview` | |
 | Eight database engines + `coolify_database_backup`, `coolify_backup_execution` | Core CRUD works on 4.1+. Some optional settings exist only on newer Coolify lines; omit attributes you do not need so plans stay empty on older instances. |
@@ -58,7 +58,7 @@ teams, and most list/single data sources.
 | `coolify_cloud_token`, `coolify_cloud_token_validate` (Hetzner and generic) | |
 | `coolify_scheduled_task` | |
 | `coolify_deployment`, `coolify_resource_action` | |
-| `coolify_api_settings`, `coolify_team` / teams | |
+| `coolify_team` / teams | |
 | `coolify_version` | Read instance version |
 | Most list/single data sources without a version note in the README | |
 
@@ -67,6 +67,8 @@ teams, and most list/single data sources.
 | Resource / data source | Role |
 |------------------------|------|
 | `coolify_destination` / `coolify_destinations` | Docker network destinations |
+| `coolify_server_validate`, `coolify_server_validation` | Provider uses POST validate; 4.1.x only exposes GET |
+| `coolify_api_settings` | Provider uses POST `/enable`; 4.1.x only exposes GET (MCP enable alone is older) |
 | `coolify_server_digitalocean` | Provision DO droplets into Coolify |
 | `coolify_server_vultr` | Provision Vultr instances into Coolify |
 | `coolify_digitalocean_*` data sources | regions, sizes, images, ssh_keys |

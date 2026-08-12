@@ -12,6 +12,8 @@ func TestAccDestinationDataSource(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	// DestinationsController: Coolify >= v4.2.0.
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
 
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-dest-ds")
@@ -37,6 +39,8 @@ func TestAccDestinationsDataSource(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	// DestinationsController: Coolify >= v4.2.0.
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
 
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-dests")
