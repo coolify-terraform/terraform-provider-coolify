@@ -241,6 +241,10 @@ A daily Coolify Channels workflow (`.github/workflows/coolify-channels.yml`)
 compares CDN stable/nightly and GitHub prereleases to the pinned contract and
 opens, updates, or closes a `coolify-channel` issue
 (`scripts/check-coolify-channels.py`).
+A **Coolify Nightly Acc** workflow (`.github/workflows/coolify-nightly.yml`)
+runs full acceptance on Coolify `edge`, `latest` (stable), and `4.1.2` (floor),
+plus tip scenarios on `edge`. Schedule: daily 06:00 UTC. Also
+`workflow_dispatch` for pre-release checks (not a required PR status).
 
 ## Releases
 
@@ -259,8 +263,10 @@ The correct sequence for curated releases:
 1. Write `RELEASE_NOTES.md` with user-facing release description
 2. Push it to main via a small PR (e.g., `docs: add release notes for vX.Y.Z`)
 3. Wait for release-please to update its PR (picks up the new commit)
-4. Merge the release-please PR
-5. Release workflow applies the curated notes and cleans up the file
+4. Optional but recommended: Actions → **Coolify Nightly Acc** → Run workflow
+   (profile `tip-and-stable` or `all`) on `main` and wait for green
+5. Merge the release-please PR
+6. Release workflow applies the curated notes and cleans up the file
 
 Published to both [Terraform Registry](https://registry.terraform.io/providers/coolify-terraform/coolify)
 and [OpenTofu Registry](https://search.opentofu.org/provider/coolify-terraform/coolify).

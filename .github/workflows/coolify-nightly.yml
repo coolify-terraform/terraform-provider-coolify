@@ -1,0 +1,406 @@
+# Nightly multi-version Coolify acceptance matrix.
+#
+# PR/main CI still boots a single Coolify (edge) for fast feedback.
+# This workflow is NOT a required merge check. Use it to:
+#   - catch breaks on stable/floor images overnight
+#   - re-run before merging a release-please PR (workflow_dispatch)
+#
+# Matrix cells (profile "all"):
+#   tip-edge     — coollabsio/coolify:edge   (v4.x tip; full surface)
+#   stable-latest — coollabsio/coolify:latest (CDN stable; most self-hosters)
+#   floor-4.1.2  — coollabsio/coolify:4.1.2  (provider minCoolifyVersion floor)
+#
+# Scenarios run only on tip-edge (expensive; tip-shaped demos).
+# Tip-only APIs (S3 storage, volume backups) skip via AccTestSkipIf* on older images.
+name: Coolify Nightly Acc
+
+on:
+  schedule:
+    # 06:00 UTC daily (after Coolify Channels 00/06/12/18 window)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: >
+          Which Coolify images to test. "all" = edge + latest + 4.1.2.
+          Use tip-and-stable or tip-only for a faster pre-release check.
+        type: choice
+        options:
+          - all
+          - tip-and-stable
+          - tip-only
+          - floor-only
+          - custom
+        default: all
+      custom_image:
+        description: Docker tag for coollabsio/coolify when profile=custom (e.g. 4.2.0, 4.3.1, edge)
+        type: string
+        default: edge
+      run_scenarios:
+        description: Run terraform scenario tests on tip-edge (or on custom image if tip is not selected)
+        type: boolean
+        default: true
+
+concurrency:
+  group: coolify-nightly-${{ github.ref }}
+  # Do not cancel in-progress matrix runs; they are long and expensive.
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+      run_scenarios: ${{ steps.set.outputs.run_scenarios }}
+      profile: ${{ steps.set.outputs.profile }}
+    steps:
+      - name: Harden runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - name: Build matrix JSON
+        id: set
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PROFILE: ${{ github.event.inputs.profile }}
+          CUSTOM_IMAGE: ${{ github.event.inputs.custom_image }}
+          RUN_SCENARIOS: ${{ github.event.inputs.run_scenarios }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            profile="${PROFILE:-all}"
+            custom="${CUSTOM_IMAGE:-edge}"
+            # workflow_dispatch boolean inputs are the strings "true"/"false"
+            run_scenarios="${RUN_SCENARIOS:-true}"
+          else
+            profile="all"
+            custom="edge"
+            run_scenarios="true"
+          fi
+
+          case "$profile" in
+            all)
+              matrix='{"include":[{"coolify_image":"edge","label":"tip-edge"},{"coolify_image":"latest","label":"stable-latest"},{"coolify_image":"4.1.2","label":"floor-4.1.2"}]}'
+              ;;
+            tip-and-stable)
+              matrix='{"include":[{"coolify_image":"edge","label":"tip-edge"},{"coolify_image":"latest","label":"stable-latest"}]}'
+              ;;
+            tip-only)
+              matrix='{"include":[{"coolify_image":"edge","label":"tip-edge"}]}'
+              ;;
+            floor-only)
+              matrix='{"include":[{"coolify_image":"4.1.2","label":"floor-4.1.2"}]}'
+              ;;
+            custom)
+              # Label must be artifact-safe (no slashes).
+              safe_label=$(echo "custom-${custom}" | tr '/:' '--')
+              matrix=$(printf '{"include":[{"coolify_image":"%s","label":"%s"}]}' "$custom" "$safe_label")
+              ;;
+            *)
+              echo "::error::Unknown profile: $profile"
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "matrix=${matrix}"
+            echo "run_scenarios=${run_scenarios}"
+            echo "profile=${profile}"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Coolify Nightly Acc plan"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| Profile | \`${profile}\` |"
+            echo "| Run scenarios | \`${run_scenarios}\` |"
+            echo "| Matrix | \`${matrix}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  acceptance:
+    name: Acc (${{ matrix.label }})
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      COOLIFY_DATA_DIR: /home/runner/coolify-data
+    steps:
+      - name: Harden runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+          terraform_version: "1.15.x"
+
+      - name: Setup Coolify (${{ matrix.coolify_image }})
+        uses: ./.github/actions/setup-coolify
+        with:
+          coolify-image-tag: ${{ matrix.coolify_image }}
+
+      - name: Record Coolify version
+        run: |
+          set -euo pipefail
+          set -a
+          # shellcheck source=/dev/null
+          source /tmp/coolify-env
+          set +a
+          ver=$(curl -fsS -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            -H "Accept: application/json" \
+            "$COOLIFY_ENDPOINT/api/v1/version" || echo "unknown")
+          echo "Coolify image tag: ${{ matrix.coolify_image }}"
+          echo "Coolify /api/v1/version: ${ver}"
+          {
+            echo "### Acc cell \`${{ matrix.label }}\`"
+            echo ""
+            echo "- Image tag: \`${{ matrix.coolify_image }}\`"
+            echo "- Reported version: \`${ver}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@v1.13.0
+
+      - name: Run acceptance tests
+        env:
+          COOLIFY_HETZNER_TOKEN: ${{ secrets.COOLIFY_HETZNER_TOKEN }}
+          COOLIFY_GITHUB_APP_APP_ID: ${{ secrets.COOLIFY_GITHUB_APP_APP_ID }}
+          COOLIFY_GITHUB_APP_INSTALLATION_ID: ${{ secrets.COOLIFY_GITHUB_APP_INSTALLATION_ID }}
+          COOLIFY_GITHUB_APP_CLIENT_ID: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_ID }}
+          COOLIFY_GITHUB_APP_CLIENT_SECRET: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_SECRET }}
+          COOLIFY_GITHUB_APP_PRIVATE_KEY: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY }}
+          COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY_FILE }}
+          COOLIFY_GITHUB_APP_REPOSITORY: ${{ secrets.COOLIFY_GITHUB_APP_REPOSITORY }}
+          COOLIFY_GITHUB_APP_BRANCH: ${{ secrets.COOLIFY_GITHUB_APP_BRANCH }}
+        run: |
+          set -euo pipefail
+          set -a
+          # shellcheck source=/dev/null
+          source /tmp/coolify-env
+          set +a
+          export TF_ACC=1
+
+          mkdir -p test-results
+          gotestsum \
+            --format pkgname \
+            --junitfile "test-results/acceptance-${{ matrix.label }}.xml" \
+            --packages ./internal/service/... \
+            -- -run TestAcc -race -count=1 -timeout=40m -parallel=1
+
+      - name: Upload acceptance test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: acceptance-test-results-${{ matrix.label }}
+          path: test-results/
+          retention-days: 14
+
+      - name: Capture Coolify logs on failure
+        if: failure()
+        run: |
+          docker compose -f "$COOLIFY_DATA_DIR/source/docker-compose.yml" \
+            logs --timestamps > /tmp/coolify-logs.txt 2>&1 || true
+      - name: Upload Coolify logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coolify-logs-acc-${{ matrix.label }}
+          path: /tmp/coolify-logs.txt
+          retention-days: 7
+
+  scenarios:
+    name: Scenarios (tip-edge)
+    needs: prepare
+    # Scenarios target tip-shaped demos; only run when tip-edge is in the matrix
+    # (or custom profile with run_scenarios) and the dispatch flag allows it.
+    if: >-
+      always() &&
+      needs.prepare.result == 'success' &&
+      needs.prepare.outputs.run_scenarios == 'true' &&
+      (
+        needs.prepare.outputs.profile == 'all' ||
+        needs.prepare.outputs.profile == 'tip-and-stable' ||
+        needs.prepare.outputs.profile == 'tip-only' ||
+        needs.prepare.outputs.profile == 'custom'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COOLIFY_DATA_DIR: /home/runner/coolify-data
+    steps:
+      - name: Harden runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+          terraform_version: "1.15.x"
+
+      - name: Build and install provider locally
+        run: |
+          GOFIPS140=latest go build -o terraform-provider-coolify .
+          PLUGIN_DIR="$HOME/.terraform.d/plugins/coolify-terraform/coolify/0.0.0-dev/$(go env GOOS)_$(go env GOARCH)"
+          mkdir -p "$PLUGIN_DIR"
+          cp terraform-provider-coolify "$PLUGIN_DIR/"
+          cat > "$HOME/.terraformrc" <<EOF
+          provider_installation {
+            dev_overrides {
+              "coolify-terraform/coolify" = "$PLUGIN_DIR"
+            }
+            direct {}
+          }
+          EOF
+
+      - name: Setup Coolify (edge)
+        uses: ./.github/actions/setup-coolify
+        with:
+          coolify-image-tag: edge
+
+      - name: Generate deploy key for scenarios
+        run: |
+          rm -f /tmp/scenario-deploy-key /tmp/scenario-deploy-key.pub
+          ssh-keygen -t rsa -b 2048 -f /tmp/scenario-deploy-key -N "" -q
+          DEPLOY_KEY=$(cat /tmp/scenario-deploy-key)
+          {
+            echo "TF_VAR_deploy_ssh_key<<EOFKEY"
+            echo "$DEPLOY_KEY"
+            echo "EOFKEY"
+            echo "TF_VAR_deploy_key<<EOFKEY2"
+            echo "$DEPLOY_KEY"
+            echo "EOFKEY2"
+          } >> "$GITHUB_ENV"
+
+      - name: Run scenario tests
+        env:
+          TF_VAR_github_app_private_key: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY }}
+          TF_VAR_github_app_id: ${{ secrets.COOLIFY_GITHUB_APP_APP_ID }}
+          TF_VAR_github_app_installation_id: ${{ secrets.COOLIFY_GITHUB_APP_INSTALLATION_ID }}
+          TF_VAR_github_app_client_id: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_ID }}
+          TF_VAR_github_app_client_secret: ${{ secrets.COOLIFY_GITHUB_APP_CLIENT_SECRET }}
+          TF_VAR_git_repository: ${{ secrets.COOLIFY_GITHUB_APP_REPOSITORY }}
+          TF_VAR_hetzner_api_token: ${{ secrets.COOLIFY_HETZNER_TOKEN }}
+        run: |
+          set -a
+          source /tmp/coolify-env
+          set +a
+          export TF_VAR_coolify_endpoint="$COOLIFY_ENDPOINT"
+          export TF_VAR_coolify_token="$COOLIFY_TOKEN"
+          export TF_VAR_server_uuid="$COOLIFY_SERVER_UUID"
+
+          failed=0
+          for dir in examples/scenarios/acme-*/; do
+            scenario=$(basename "$dir")
+            echo "=== Testing $scenario ==="
+
+            case "$scenario" in
+              acme-github-cicd)
+                if [ -z "$TF_VAR_github_app_id" ]; then
+                  echo "SKIP: GitHub App secrets not configured"
+                  echo ""
+                  continue
+                fi
+                ;;
+              acme-hetzner-infra)
+                if [ -z "$TF_VAR_hetzner_api_token" ]; then
+                  echo "SKIP: Hetzner token not configured"
+                  echo ""
+                  continue
+                fi
+                ;;
+            esac
+
+            (
+              cd "$dir"
+              if [ -d "modules" ]; then
+                terraform get
+              fi
+              terraform test -verbose
+            ) || failed=1
+            echo ""
+          done
+          exit $failed
+
+      - name: Capture Coolify logs on failure
+        if: failure()
+        run: |
+          docker compose -f "$COOLIFY_DATA_DIR/source/docker-compose.yml" \
+            logs --timestamps > /tmp/coolify-logs.txt 2>&1 || true
+      - name: Upload Coolify logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coolify-logs-nightly-scenarios
+          path: /tmp/coolify-logs.txt
+          retention-days: 7
+
+  report:
+    name: Nightly gate
+    if: always()
+    needs: [prepare, acceptance, scenarios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Harden runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - name: Check matrix results
+        run: |
+          set -euo pipefail
+          prepare='${{ needs.prepare.result }}'
+          acc='${{ needs.acceptance.result }}'
+          scenarios='${{ needs.scenarios.result }}'
+          {
+            echo "### Coolify Nightly Acc results"
+            echo ""
+            echo "| Job | Result |"
+            echo "|-----|--------|"
+            echo "| Prepare | \`${prepare}\` |"
+            echo "| Acceptance matrix | \`${acc}\` |"
+            echo "| Scenarios (tip-edge) | \`${scenarios}\` |"
+            echo ""
+            echo "Not a PR required check. Before a release: Actions → **Coolify Nightly Acc** → Run workflow (profile tip-and-stable or all)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$prepare" != "success" ]; then
+            echo "::error::Prepare failed"
+            exit 1
+          fi
+          if [ "$acc" = "failure" ] || [ "$acc" = "cancelled" ]; then
+            echo "::error::One or more acceptance matrix cells failed (result=${acc})"
+            exit 1
+          fi
+          # scenarios may be skipped when run_scenarios=false or floor-only profile
+          if [ "$scenarios" = "failure" ] || [ "$scenarios" = "cancelled" ]; then
+            echo "::error::Scenario tests failed (result=${scenarios})"
+            exit 1
+          fi
+          echo "Nightly gate green (acc=${acc}, scenarios=${scenarios})"

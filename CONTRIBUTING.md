@@ -59,6 +59,30 @@ test.
 **Note**: See [TESTING.md](TESTING.md) for the full local Coolify installation
 procedure, API token creation, and server validation steps.
 
+### Multi-version Coolify (nightly / pre-release)
+
+Pull request CI boots a single Coolify image (`edge`) for acceptance and
+scenario tests. For broader coverage, the **Coolify Nightly Acc** workflow
+(`.github/workflows/coolify-nightly.yml`) runs on a schedule and can be
+started by hand:
+
+| Profile | Images | Scenarios |
+|---------|--------|-----------|
+| `all` (nightly default) | `edge`, `latest`, `4.1.2` | tip (`edge`) only |
+| `tip-and-stable` | `edge`, `latest` | tip only |
+| `tip-only` | `edge` | tip only |
+| `floor-only` | `4.1.2` | no |
+| `custom` | free-form Docker tag | optional |
+
+**Before merging a release-please PR**, prefer:
+
+1. Open **Actions → Coolify Nightly Acc → Run workflow**
+2. Choose profile `tip-and-stable` (faster) or `all` (includes floor `4.1.2`)
+3. Wait for the **Nightly gate** job to go green
+
+This workflow is not a required status check on pull requests. Tip-only APIs
+(S3 storage, volume backups) skip on older images via `AccTestSkipIf*` helpers.
+
 ### Code Quality
 
 Run the aggregate local checks before pushing:
