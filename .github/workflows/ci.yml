@@ -173,6 +173,10 @@ jobs:
           file: coverage.xml
           language: Go
           label: code-coverage/go
+          # Upload succeeds; GitHub processing can hang beyond the default 160s and
+          # fail an otherwise green unit-test job. Do not gate CI on that infra wait.
+          fail-on-error: false
+          wait-for-processing-timeout: 300
 
   lint:
     name: Lint
