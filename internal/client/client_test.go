@@ -3796,7 +3796,6 @@ func TestClient_ValidateCloudToken_NotFound(t *testing.T) {
 	assert.True(t, IsNotFound(err))
 }
 
-
 // --- S3 Storages ---
 
 func TestClient_ListS3Storages(t *testing.T) {
