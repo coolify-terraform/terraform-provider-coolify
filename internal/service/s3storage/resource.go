@@ -70,8 +70,11 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:            true,
 			},
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "S3-compatible endpoint URL (e.g. `https://s3.us-east-1.amazonaws.com`).",
-				Required:            true,
+				MarkdownDescription: "S3-compatible endpoint URL (e.g. `https://s3.us-east-1.amazonaws.com`). " +
+					"Coolify validates this with its SafeWebhookUrl rule: private, loopback, and most internal hostnames " +
+					"(including Docker DNS names such as `coolify-minio`) are rejected unless the Coolify instance " +
+					"explicitly allowlists them. Use a public HTTPS endpoint for API-managed storages.",
+				Required: true,
 			},
 			"bucket": schema.StringAttribute{
 				MarkdownDescription: "S3 bucket name.",

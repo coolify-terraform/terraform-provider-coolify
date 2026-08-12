@@ -29,7 +29,7 @@ func TestAccS3StorageResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "name", name),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "bucket", "acc-bucket"),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "region", "us-east-1"),
-					resource.TestCheckResourceAttr("coolify_s3_storage.test", "endpoint", "http://coolify-minio:9000"),
+					resource.TestCheckResourceAttr("coolify_s3_storage.test", "endpoint", "https://s3.us-east-1.amazonaws.com"),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "key", "minioadmin"),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "secret", "minioadmin123"),
 					resource.TestCheckResourceAttr("coolify_s3_storage.test", "is_usable", "false"),
@@ -95,7 +95,7 @@ func testAccS3StorageConfig(name, region, bucket string) string {
 resource "coolify_s3_storage" "test" {
   name        = %[1]q
   description = "acceptance test"
-  endpoint    = "http://coolify-minio:9000"
+  endpoint    = "https://s3.us-east-1.amazonaws.com"
   bucket      = %[3]q
   region      = %[2]q
   key         = "minioadmin"
@@ -108,7 +108,7 @@ func testAccS3StorageDataSourceConfig(name string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_s3_storage" "test" {
   name     = %[1]q
-  endpoint = "http://coolify-minio:9000"
+  endpoint = "https://s3.us-east-1.amazonaws.com"
   bucket   = "ds-bucket"
   region   = "us-east-1"
   key      = "minioadmin"

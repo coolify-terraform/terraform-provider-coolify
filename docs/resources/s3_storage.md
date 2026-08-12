@@ -40,7 +40,7 @@ resource "coolify_s3_storage" "example" {
 ### Required
 
 - `bucket` (String) S3 bucket name.
-- `endpoint` (String) S3-compatible endpoint URL (e.g. `https://s3.us-east-1.amazonaws.com`).
+- `endpoint` (String) S3-compatible endpoint URL (e.g. `https://s3.us-east-1.amazonaws.com`). Coolify validates this with its SafeWebhookUrl rule: private, loopback, and most internal hostnames (including Docker DNS names such as `coolify-minio`) are rejected unless the Coolify instance explicitly allowlists them. Use a public HTTPS endpoint for API-managed storages.
 - `key` (String, Sensitive) Access key. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields. Preserve the value in configuration after import.
 - `name` (String) A friendly name for the S3 storage.
 - `region` (String) S3 region (e.g. `us-east-1`).
