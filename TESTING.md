@@ -318,7 +318,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (37 total)
+### Resources (38 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -335,6 +335,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_cloud_token` | Yes | Yes | Yes | Yes | |
 | `coolify_scheduled_task` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
 | `coolify_storage` | Yes | Yes | Yes | Yes | Attached to dockerfile app |
+| `coolify_s3_storage` | Yes | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
 | `coolify_database_mysql` | Yes | Yes | Yes | Yes | Second DB type for coverage |
 | `coolify_application` | Yes | Yes | Yes | Yes | Public git with coollabsio/coolify-examples |
 | `coolify_application_private_git` | Yes | Yes | Yes | Yes | SSH URL, dummy key |
@@ -356,7 +357,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_validate` | Yes | Yes | N/A | N/A | Trigger resource |
 | `coolify_envs_bulk` | Yes | Yes | N/A | N/A | Atomic env var set management |
 
-### Data Sources (54 total)
+### Data Sources (56 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -388,6 +389,8 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_services` | Yes | Via service test |
 | `coolify_storage` | Yes | Via storage test |
 | `coolify_storages` | Yes | Via storage test |
+| `coolify_s3_storage` | Yes | Via s3_storage test; requires Coolify >= v4.3.0 |
+| `coolify_s3_storages` | Yes | Via s3_storage test; requires Coolify >= v4.3.0 |
 | `coolify_scheduled_task` | Yes | Via scheduled_task test |
 | `coolify_scheduled_tasks` | Yes | Via scheduled_task test |
 | `coolify_cloud_token` | Yes | Via cloud_token test |
@@ -409,7 +412,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 33/33 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 108
+- **Total acceptance test functions**: 110
 
 ### Testing strategies for edge cases
 
