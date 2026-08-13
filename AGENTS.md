@@ -16,7 +16,7 @@ Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for release
 Builds use `GOFIPS140=latest` for FIPS 140-3 compliant cryptography (required for
 government/enterprise adoption; set in `.goreleaser.yml` and `release.yml` smoke test).
 45 resources, 56 data sources, 1240+ tests (unit + acceptance), 10 CI jobs.
-17 ACME Corp scenario examples (all with `terraform test` integration tests; acme-private-repo uses plan-only).
+18 ACME Corp scenario examples (all with `terraform test` integration tests; acme-private-repo uses plan-only).
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)
 
@@ -203,7 +203,7 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 - Run `terraform fmt -recursive examples/` before committing HCL changes
 - **Scenario and resource counts live in 5+ files.** When adding a scenario, resource, or data source, grep for the old count across all docs before committing:
   ```bash
-  grep -rn '17 ACME\|17 tested\|17 scenario\|16 ACME\|16 tested\|16 scenario' AGENTS.md README.md ROADMAP.md templates/ docs/
+  grep -rn '18 ACME\|18 tested\|18 scenario\|17 ACME\|17 tested\|17 scenario' AGENTS.md README.md ROADMAP.md templates/ docs/
   ```
   Known locations for scenario counts: `AGENTS.md` (Project section), `README.md` (feature table + body text), `ROADMAP.md`, `templates/guides/architecture.md.tmpl` (ASCII diagram). Also check if a table row is missing in `README.md` for the new scenario.
 

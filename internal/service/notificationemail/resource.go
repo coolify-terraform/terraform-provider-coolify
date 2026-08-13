@@ -2,17 +2,15 @@ package notificationemail
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -20,8 +18,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
-
-const importIDCurrent = "current"
 
 var (
 	_ resource.Resource                = (*emailResource)(nil)
@@ -75,19 +71,6 @@ func (r *emailResource) Metadata(_ context.Context, req resource.MetadataRequest
 }
 
 func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	eventDesc := func(event string) string {
-		return fmt.Sprintf("Whether to send email notifications for %s events.", event)
-	}
-	boolOptComputed := func(desc string) schema.BoolAttribute {
-		return schema.BoolAttribute{
-			MarkdownDescription: desc,
-			Optional:            true,
-			Computed:            true,
-			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.UseStateForUnknown(),
-			},
-		}
-	}
 	sensStr := func(desc string) schema.StringAttribute {
 		return schema.StringAttribute{
 			MarkdownDescription: desc + " Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.",
@@ -100,6 +83,68 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 		}
 	}
 
+	attrs := map[string]schema.Attribute{
+		"id": notificationcommon.IDAttribute(),
+
+		"smtp_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether SMTP delivery is enabled.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"smtp_from_address": sensStr("SMTP From address."),
+		"smtp_from_name":    sensStr("SMTP From display name."),
+		"smtp_recipients":   sensStr("Comma-separated recipient addresses."),
+		"smtp_host":         sensStr("SMTP host."),
+		"smtp_port": schema.Int64Attribute{
+			MarkdownDescription: "SMTP port (1-65535).",
+			Optional:            true,
+			Computed:            true,
+			Validators: []validator.Int64{
+				int64validator.Between(1, 65535),
+			},
+			PlanModifiers: []planmodifier.Int64{
+				int64planmodifier.UseStateForUnknown(),
+			},
+		},
+		"smtp_encryption": schema.StringAttribute{
+			MarkdownDescription: "SMTP encryption. One of `starttls`, `tls`, or `none`.",
+			Optional:            true,
+			Computed:            true,
+			Validators: []validator.String{
+				stringvalidator.OneOf("starttls", "tls", "none"),
+			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+		"smtp_username": sensStr("SMTP username."),
+		"smtp_password": sensStr("SMTP password."),
+		"smtp_timeout": schema.Int64Attribute{
+			MarkdownDescription: "SMTP timeout in seconds (>= 0).",
+			Optional:            true,
+			Computed:            true,
+			Validators: []validator.Int64{
+				int64validator.AtLeast(0),
+			},
+			PlanModifiers: []planmodifier.Int64{
+				int64planmodifier.UseStateForUnknown(),
+			},
+		},
+		"resend_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether Resend delivery is enabled.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+		"resend_api_key": sensStr("Resend API key."),
+		"use_instance_email_settings": schema.BoolAttribute{
+			MarkdownDescription: "Whether to use the Coolify instance's shared email settings for this team.",
+			Optional:            true,
+			Computed:            true,
+			Default:             booldefault.StaticBool(false),
+		},
+	}
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages the current team's email notification settings in Coolify. " +
 			"This is a team-scoped singleton (one configuration per team, selected by the API token). " +
@@ -107,87 +152,7 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"Email can use SMTP, Resend, and/or instance-level settings. Coolify treats the channel as enabled when any of " +
 			"`smtp_enabled`, `resend_enabled`, or `use_instance_email_settings` is true.\n\n" +
 			"On destroy, all three enable flags are set to `false`; credentials are left unchanged. Import with id `current`.",
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				MarkdownDescription: "Resource identifier. Always `current` (team is implied by the API token).",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"smtp_enabled": schema.BoolAttribute{
-				MarkdownDescription: "Whether SMTP delivery is enabled.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-			},
-			"smtp_from_address": sensStr("SMTP From address."),
-			"smtp_from_name":    sensStr("SMTP From display name."),
-			"smtp_recipients":   sensStr("Comma-separated recipient addresses."),
-			"smtp_host":         sensStr("SMTP host."),
-			"smtp_port": schema.Int64Attribute{
-				MarkdownDescription: "SMTP port (1-65535).",
-				Optional:            true,
-				Computed:            true,
-				Validators: []validator.Int64{
-					int64validator.Between(1, 65535),
-				},
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
-			},
-			"smtp_encryption": schema.StringAttribute{
-				MarkdownDescription: "SMTP encryption. One of `starttls`, `tls`, or `none`.",
-				Optional:            true,
-				Computed:            true,
-				Validators: []validator.String{
-					stringvalidator.OneOf("starttls", "tls", "none"),
-				},
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"smtp_username": sensStr("SMTP username."),
-			"smtp_password": sensStr("SMTP password."),
-			"smtp_timeout": schema.Int64Attribute{
-				MarkdownDescription: "SMTP timeout in seconds (>= 0).",
-				Optional:            true,
-				Computed:            true,
-				Validators: []validator.Int64{
-					int64validator.AtLeast(0),
-				},
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
-			},
-			"resend_enabled": schema.BoolAttribute{
-				MarkdownDescription: "Whether Resend delivery is enabled.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-			},
-			"resend_api_key": sensStr("Resend API key."),
-			"use_instance_email_settings": schema.BoolAttribute{
-				MarkdownDescription: "Whether to use the Coolify instance's shared email settings for this team.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-			},
-			"deployment_success":     boolOptComputed(eventDesc("deployment success")),
-			"deployment_failure":     boolOptComputed(eventDesc("deployment failure")),
-			"status_change":          boolOptComputed(eventDesc("status change")),
-			"backup_success":         boolOptComputed(eventDesc("backup success")),
-			"backup_failure":         boolOptComputed(eventDesc("backup failure")),
-			"scheduled_task_success": boolOptComputed(eventDesc("scheduled task success")),
-			"scheduled_task_failure": boolOptComputed(eventDesc("scheduled task failure")),
-			"docker_cleanup_success": boolOptComputed(eventDesc("Docker cleanup success")),
-			"docker_cleanup_failure": boolOptComputed(eventDesc("Docker cleanup failure")),
-			"server_disk_usage":      boolOptComputed(eventDesc("server disk usage")),
-			"server_reachable":       boolOptComputed(eventDesc("server reachable")),
-			"server_unreachable":     boolOptComputed(eventDesc("server unreachable")),
-			"server_patch":           boolOptComputed(eventDesc("server patch")),
-			"traefik_outdated":       boolOptComputed(eventDesc("Traefik outdated")),
-		},
+		Attributes: notificationcommon.MergeAttrs(attrs, notificationcommon.EventSchemaAttrs("email")),
 	}
 }
 
@@ -269,15 +234,7 @@ func (r *emailResource) Delete(ctx context.Context, _ resource.DeleteRequest, re
 }
 
 func (r *emailResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	id := req.ID
-	if id != "" && id != importIDCurrent {
-		resp.Diagnostics.AddError(
-			"Invalid import ID",
-			fmt.Sprintf("coolify_notification_email is a team singleton; import with id %q (got %q)", importIDCurrent, id),
-		)
-		return
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), importIDCurrent)...)
+	notificationcommon.ImportStateCurrent(ctx, req, resp, "coolify_notification_email")
 }
 
 func createInputFromPlan(plan model) client.UpdateEmailNotificationInput {
@@ -375,7 +332,7 @@ func updateInputFromPlan(plan, state model) client.UpdateEmailNotificationInput 
 }
 
 func flatten(api *client.EmailNotificationSettings, m *model) {
-	m.ID = types.StringValue(importIDCurrent)
+	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.SMTPEnabled = types.BoolValue(api.SMTPEnabled)
 	m.ResendEnabled = types.BoolValue(api.ResendEnabled)
 	m.UseInstanceEmail = types.BoolValue(api.UseInstanceEmail)

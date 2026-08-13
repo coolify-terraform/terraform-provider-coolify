@@ -1,0 +1,127 @@
+// Package notificationcommon holds shared schema and import helpers for
+// team-scoped Coolify notification channel resources (Discord, Slack, email,
+// Telegram, webhook, Pushover).
+package notificationcommon
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+)
+
+// ImportIDCurrent is the only valid terraform import id for team-singleton
+// notification resources. The team is implied by the API token.
+const ImportIDCurrent = "current"
+
+// eventNames is the ordered list of shared event bool attributes on Coolify
+// notification channels (must stay aligned with Coolify channelConfig).
+var eventNames = []struct {
+	attr  string
+	label string
+}{
+	{"deployment_success", "deployment success"},
+	{"deployment_failure", "deployment failure"},
+	{"status_change", "status change"},
+	{"backup_success", "backup success"},
+	{"backup_failure", "backup failure"},
+	{"scheduled_task_success", "scheduled task success"},
+	{"scheduled_task_failure", "scheduled task failure"},
+	{"docker_cleanup_success", "Docker cleanup success"},
+	{"docker_cleanup_failure", "Docker cleanup failure"},
+	{"server_disk_usage", "server disk usage"},
+	{"server_reachable", "server reachable"},
+	{"server_unreachable", "server unreachable"},
+	{"server_patch", "server patch"},
+	{"traefik_outdated", "Traefik outdated"},
+}
+
+// EventAttributeNames returns the 14 shared event attribute names in stable order.
+func EventAttributeNames() []string {
+	out := make([]string, len(eventNames))
+	for i, e := range eventNames {
+		out[i] = e.attr
+	}
+	return out
+}
+
+// BoolOptComputed is Optional+Computed with UseStateForUnknown for API-defaulted bools.
+func BoolOptComputed(desc string) schema.BoolAttribute {
+	return schema.BoolAttribute{
+		MarkdownDescription: desc,
+		Optional:            true,
+		Computed:            true,
+		PlanModifiers: []planmodifier.Bool{
+			boolplanmodifier.UseStateForUnknown(),
+		},
+	}
+}
+
+// EventSchemaAttrs returns the 14 shared event bool attributes for a channel.
+// channel is the display name used in Markdown descriptions (e.g. "Discord", "email").
+func EventSchemaAttrs(channel string) map[string]schema.Attribute {
+	attrs := make(map[string]schema.Attribute, len(eventNames))
+	for _, e := range eventNames {
+		desc := fmt.Sprintf("Whether to send %s notifications for %s events.", channel, e.label)
+		attrs[e.attr] = BoolOptComputed(desc)
+	}
+	return attrs
+}
+
+// MergeAttrs returns a new map with base attributes plus overlay (overlay wins on key collision).
+func MergeAttrs(base map[string]schema.Attribute, overlay map[string]schema.Attribute) map[string]schema.Attribute {
+	out := make(map[string]schema.Attribute, len(base)+len(overlay))
+	for k, v := range base {
+		out[k] = v
+	}
+	for k, v := range overlay {
+		out[k] = v
+	}
+	return out
+}
+
+// IDAttribute is the computed singleton id attribute (always "current").
+func IDAttribute() schema.StringAttribute {
+	return schema.StringAttribute{
+		MarkdownDescription: "Resource identifier. Always `current` (team is implied by the API token).",
+		Computed:            true,
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.UseStateForUnknown(),
+		},
+	}
+}
+
+// EnabledAttribute is the channel master enable flag (default false).
+func EnabledAttribute(channel string) schema.BoolAttribute {
+	return schema.BoolAttribute{
+		MarkdownDescription: fmt.Sprintf("Whether %s notifications are enabled for the team.", channel),
+		Optional:            true,
+		Computed:            true,
+		Default:             booldefault.StaticBool(false),
+	}
+}
+
+// ImportIDError returns a non-nil error when id is not empty and not ImportIDCurrent.
+// Empty id is accepted (terraform import sometimes passes blank then framework sets it).
+func ImportIDError(typeName, id string) error {
+	if id == "" || id == ImportIDCurrent {
+		return nil
+	}
+	return fmt.Errorf("%s is a team singleton; import with id %q (got %q)", typeName, ImportIDCurrent, id)
+}
+
+// ImportStateCurrent validates the import id and sets state id to "current".
+// typeName is the full resource type (e.g. coolify_notification_slack) for error text.
+func ImportStateCurrent(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse, typeName string) {
+	if err := ImportIDError(typeName, req.ID); err != nil {
+		resp.Diagnostics.AddError("Invalid import ID", err.Error())
+		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), ImportIDCurrent)...)
+}

@@ -11,7 +11,7 @@ The provider covers the core Coolify resource model:
   backups, environment variables, deployments, notification channels, S3 storage,
   and more)
 - 56 data sources for reading existing infrastructure
-- 17 ACME Corp scenario examples with integration tests
+- 18 ACME Corp scenario examples with integration tests
 - Full import support for adopting existing Coolify resources
 - Coolify v4.2 surfaces: destinations, DigitalOcean/Vultr server provisioning
 - Coolify v4.3 surfaces: notification channels, S3 storage, docker/compose version probes

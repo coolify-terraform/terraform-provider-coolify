@@ -2,22 +2,17 @@ package notificationtelegram
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
-	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
-
-const importIDCurrent = "current"
 
 var (
 	_ resource.Resource                = (*telegramResource)(nil)
@@ -75,19 +70,6 @@ func (r *telegramResource) Metadata(_ context.Context, req resource.MetadataRequ
 }
 
 func (r *telegramResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	eventDesc := func(event string) string {
-		return fmt.Sprintf("Whether to send Telegram notifications for %s events.", event)
-	}
-	boolOptComputed := func(desc string) schema.BoolAttribute {
-		return schema.BoolAttribute{
-			MarkdownDescription: desc,
-			Optional:            true,
-			Computed:            true,
-			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.UseStateForUnknown(),
-			},
-		}
-	}
 	sensStr := func(desc string) schema.StringAttribute {
 		return schema.StringAttribute{
 			MarkdownDescription: desc + " Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.",
@@ -99,58 +81,33 @@ func (r *telegramResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 		}
 	}
-
+	attrs := map[string]schema.Attribute{
+		"id":                            notificationcommon.IDAttribute(),
+		"enabled":                       notificationcommon.EnabledAttribute("Telegram"),
+		"token":                         sensStr("Telegram bot token."),
+		"chat_id":                       sensStr("Telegram chat ID."),
+		"thread_deployment_success":     sensStr("Telegram forum thread ID for deployment_success events."),
+		"thread_deployment_failure":     sensStr("Telegram forum thread ID for deployment_failure events."),
+		"thread_status_change":          sensStr("Telegram forum thread ID for status_change events."),
+		"thread_backup_success":         sensStr("Telegram forum thread ID for backup_success events."),
+		"thread_backup_failure":         sensStr("Telegram forum thread ID for backup_failure events."),
+		"thread_scheduled_task_success": sensStr("Telegram forum thread ID for scheduled_task_success events."),
+		"thread_scheduled_task_failure": sensStr("Telegram forum thread ID for scheduled_task_failure events."),
+		"thread_docker_cleanup_success": sensStr("Telegram forum thread ID for docker_cleanup_success events."),
+		"thread_docker_cleanup_failure": sensStr("Telegram forum thread ID for docker_cleanup_failure events."),
+		"thread_server_disk_usage":      sensStr("Telegram forum thread ID for server_disk_usage events."),
+		"thread_server_reachable":       sensStr("Telegram forum thread ID for server_reachable events."),
+		"thread_server_unreachable":     sensStr("Telegram forum thread ID for server_unreachable events."),
+		"thread_server_patch":           sensStr("Telegram forum thread ID for server_patch events."),
+		"thread_traefik_outdated":       sensStr("Telegram forum thread ID for traefik_outdated events."),
+	}
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages the current team's Telegram notification settings in Coolify. " +
 			"This is a team-scoped singleton (one configuration per team, selected by the API token). " +
 			"**Requires Coolify >= v4.3.0** (notification routes are absent on v4.2.x and older; acceptance tests skip when the API is missing).\n\n" +
 			"On destroy, Telegram notifications are disabled (`enabled = false`); token, chat ID, and thread IDs are left unchanged. " +
 			"Import with id `current`.",
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				MarkdownDescription: "Resource identifier. Always `current` (team is implied by the API token).",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "Whether Telegram notifications are enabled for the team.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-			},
-			"token":                         sensStr("Telegram bot token."),
-			"chat_id":                       sensStr("Telegram chat ID."),
-			"deployment_success":            boolOptComputed(eventDesc("deployment success")),
-			"deployment_failure":            boolOptComputed(eventDesc("deployment failure")),
-			"status_change":                 boolOptComputed(eventDesc("status change")),
-			"backup_success":                boolOptComputed(eventDesc("backup success")),
-			"backup_failure":                boolOptComputed(eventDesc("backup failure")),
-			"scheduled_task_success":        boolOptComputed(eventDesc("scheduled task success")),
-			"scheduled_task_failure":        boolOptComputed(eventDesc("scheduled task failure")),
-			"docker_cleanup_success":        boolOptComputed(eventDesc("Docker cleanup success")),
-			"docker_cleanup_failure":        boolOptComputed(eventDesc("Docker cleanup failure")),
-			"server_disk_usage":             boolOptComputed(eventDesc("server disk usage")),
-			"server_reachable":              boolOptComputed(eventDesc("server reachable")),
-			"server_unreachable":            boolOptComputed(eventDesc("server unreachable")),
-			"server_patch":                  boolOptComputed(eventDesc("server patch")),
-			"traefik_outdated":              boolOptComputed(eventDesc("Traefik outdated")),
-			"thread_deployment_success":     sensStr("Telegram forum thread ID for deployment_success events."),
-			"thread_deployment_failure":     sensStr("Telegram forum thread ID for deployment_failure events."),
-			"thread_status_change":          sensStr("Telegram forum thread ID for status_change events."),
-			"thread_backup_success":         sensStr("Telegram forum thread ID for backup_success events."),
-			"thread_backup_failure":         sensStr("Telegram forum thread ID for backup_failure events."),
-			"thread_scheduled_task_success": sensStr("Telegram forum thread ID for scheduled_task_success events."),
-			"thread_scheduled_task_failure": sensStr("Telegram forum thread ID for scheduled_task_failure events."),
-			"thread_docker_cleanup_success": sensStr("Telegram forum thread ID for docker_cleanup_success events."),
-			"thread_docker_cleanup_failure": sensStr("Telegram forum thread ID for docker_cleanup_failure events."),
-			"thread_server_disk_usage":      sensStr("Telegram forum thread ID for server_disk_usage events."),
-			"thread_server_reachable":       sensStr("Telegram forum thread ID for server_reachable events."),
-			"thread_server_unreachable":     sensStr("Telegram forum thread ID for server_unreachable events."),
-			"thread_server_patch":           sensStr("Telegram forum thread ID for server_patch events."),
-			"thread_traefik_outdated":       sensStr("Telegram forum thread ID for traefik_outdated events."),
-		},
+		Attributes: notificationcommon.MergeAttrs(attrs, notificationcommon.EventSchemaAttrs("Telegram")),
 	}
 }
 
@@ -230,15 +187,7 @@ func (r *telegramResource) Delete(ctx context.Context, _ resource.DeleteRequest,
 }
 
 func (r *telegramResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	id := req.ID
-	if id != "" && id != importIDCurrent {
-		resp.Diagnostics.AddError(
-			"Invalid import ID",
-			fmt.Sprintf("coolify_notification_telegram is a team singleton; import with id %q (got %q)", importIDCurrent, id),
-		)
-		return
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), importIDCurrent)...)
+	notificationcommon.ImportStateCurrent(ctx, req, resp, "coolify_notification_telegram")
 }
 
 func createInputFromPlan(plan model) client.UpdateTelegramNotificationInput {
@@ -396,7 +345,7 @@ func updateInputFromPlan(plan, state model) client.UpdateTelegramNotificationInp
 }
 
 func flatten(api *client.TelegramNotificationSettings, m *model) {
-	m.ID = types.StringValue(importIDCurrent)
+	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	flex.SetStringPreserveEmpty(&m.Token, api.Token)
 	flex.SetStringPreserveEmpty(&m.ChatID, api.ChatID)

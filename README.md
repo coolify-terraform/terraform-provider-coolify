@@ -31,7 +31,7 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 | Managed resources | 45 |
 | Data sources | 56 |
 | Tests | 1240+ unit and acceptance tests |
-| Scenario examples | 17 ACME Corp setups |
+| Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
 ## Demo
@@ -187,13 +187,14 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 
 Deploy a full stack (app, database, backups, env vars) in a single `terraform apply`, or adopt the provider incrementally by importing your existing Coolify resources.
 
-**Real-world scenarios included** -- 17 tested ACME Corp examples cover common patterns:
+**Real-world scenarios included** -- 18 tested ACME Corp examples cover common patterns:
 
 | Scenario | What it deploys |
 |---|---|
 | [acme-website](examples/scenarios/acme-website) | Project + PostgreSQL + web app + env vars |
 | [acme-api](examples/scenarios/acme-api) | Dockerfile + Docker image apps + Redis + scheduled tasks + backups |
 | [acme-backups](examples/scenarios/acme-backups) | Backup scheduling, S3 off-site storage, execution monitoring |
+| [acme-notifications](examples/scenarios/acme-notifications) | Team Discord/email/webhook channels (Coolify >= 4.3) |
 | [acme-multi-env](examples/scenarios/acme-multi-env) | Terraform modules for dev/staging environments |
 | [acme-databases](examples/scenarios/acme-databases) | All 8 database engines side by side |
 | [acme-platform](examples/scenarios/acme-platform) | Private keys, environments, storage, data sources |
