@@ -31,7 +31,8 @@ func TestServerDataSource(t *testing.T) {
 			DeploymentQueueLimit:                 0,
 			ConnectionTimeout:                    0,
 			ServerDiskUsageNotificationThreshold: 80,
-			ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+			ComposeVersion:                       "2.29.1", DockerVersion: "27.0.3",
+			ServerDiskUsageCheckFrequency: "*/5 * * * *",
 		},
 	}
 
@@ -73,6 +74,8 @@ data "coolify_server" "test" {
 					resource.TestCheckResourceAttr("data.coolify_server.test", "deployment_queue_limit", "0"),
 					resource.TestCheckResourceAttr("data.coolify_server.test", "connection_timeout", "10"),
 					resource.TestCheckResourceAttr("data.coolify_server.test", "server_disk_usage_notification_threshold", "80"),
+					resource.TestCheckResourceAttr("data.coolify_server.test", "compose_version", "2.29.1"),
+					resource.TestCheckResourceAttr("data.coolify_server.test", "docker_version", "27.0.3"),
 					resource.TestCheckResourceAttr("data.coolify_server.test", "server_disk_usage_check_frequency", "*/5 * * * *"),
 				),
 			},

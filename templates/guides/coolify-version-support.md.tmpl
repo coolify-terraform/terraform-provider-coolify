@@ -32,7 +32,7 @@ output "coolify_version" {
 | **&lt; 4.1.0** | Configure fails. Upgrade Coolify. |
 | **4.1.x** | Core resources work. Version-gated 4.2/4.3 attributes stay in state if set, but are **not sent** on write (plan warning). |
 | **4.2.x** | 4.2 resources and application settings writes work. 4.3-only attributes still withheld with a plan warning. |
-| **≥ 4.3.0** | Full current surface: volume backup schedules, `noindex_domains`, GPU/log-drain application settings, etc. |
+| **≥ 4.3.0** | Full current surface: volume backup schedules, notification channels, `noindex_domains`, GPU/log-drain application settings, etc. |
 
 Pinned API contract today: Coolify **v4.3.2** (`testdata/contracts/coolify-v4.json`).
 The provider remains usable on 4.1.0+ for the common surface.
@@ -85,6 +85,17 @@ needs Coolify >= 4.2.0; see [Connecting Resources](connecting-resources).
 | `coolify_storage_backup` | Scheduled volume/directory backups (VolumeBackups API, [coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946)) |
 | `coolify_s3_storage` / `coolify_s3_storages` | Manage and list S3-compatible storage configurations (database backup targets) |
 | `coolify_s3_storage_validate` | POST validate S3 connectivity (after credential rotation) |
+| `coolify_notification_discord` | Team Discord notification settings |
+| `coolify_notification_slack` | Team Slack notification settings |
+| `coolify_notification_email` | Team email (SMTP/Resend) notification settings |
+| `coolify_notification_telegram` | Team Telegram notification settings |
+| `coolify_notification_webhook` | Team generic webhook notification settings |
+| `coolify_notification_pushover` | Team Pushover notification settings |
+
+Server host version probes (`compose_version`, `docker_version`, and `*_checked_at`)
+on `coolify_server` / cloud server resources and `coolify_server` / `coolify_servers`
+data sources are populated on Coolify **≥ 4.3.2** after Coolify probes the host.
+Empty on older instances.
 
 ## Application attributes by Coolify version
 

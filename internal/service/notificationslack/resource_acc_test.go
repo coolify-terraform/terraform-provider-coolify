@@ -12,6 +12,7 @@ import (
 func TestAccSlackNotificationResource(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.AccTestSkipIfNoNotificationAPI(t)
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.3.0")
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),

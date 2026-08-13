@@ -31,7 +31,8 @@ func TestServersDataSource(t *testing.T) {
 				DeploymentQueueLimit:                 0,
 				ConnectionTimeout:                    0,
 				ServerDiskUsageNotificationThreshold: 80,
-				ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+				ComposeVersion:                       "2.29.1", DockerVersion: "27.0.3",
+				ServerDiskUsageCheckFrequency: "*/5 * * * *",
 			},
 		},
 		{
