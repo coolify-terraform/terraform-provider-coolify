@@ -57,7 +57,7 @@ and maintainers. End users do not need to read this; see the
 | `internal/acctest/` | Shared test utilities: provider factories, mock server wrappers (`WithVersionEndpoint`), acceptance test helpers |
 | `internal/validate/` | Custom validators: UUID format, FQDN URL, cron syntax |
 | `internal/filter/` | Generic filtering helpers for plural data sources |
-| `internal/spectest/` | OpenAPI spec compliance tests, API coverage tracking, contract coverage verification |
+| `internal/spectest/` | Contract field/route coverage, API_COVERAGE.md generation, optional OpenAPI request checks |
 | `scripts/` | Python tooling: contract extraction from Coolify source, OpenAPI spec generation, contract diffing |
 | `testdata/contracts/` | Versioned contract JSON extracted from Coolify PHP source (source of truth for field definitions) |
 

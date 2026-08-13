@@ -1,14 +1,13 @@
 package spectest
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
-
-	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
 // coverageStatus tracks a single API endpoint's provider coverage.
@@ -20,15 +19,35 @@ type coverageStatus struct {
 	notes    string // human-readable context
 }
 
+// contractRoutePin is the pin contract whose routes[] define the coverage inventory.
+const contractRoutePin = "coolify-v4.json"
+
+// registryExtrasNotInContract are registry keys kept for historical OpenAPI-only
+// aliases that Coolify no longer lists as first-class routes (or never did in
+// the extract). Completeness still requires them to be classified.
+var registryExtrasNotInContract = map[string]bool{
+	// Deprecated Coolify alias: creates a Service, not an Application.
+	"POST /applications/dockercompose": true,
+}
+
 // coveredEndpoints returns the provider's route coverage registry.
-// The pinned OpenAPI spec is the route inventory for completeness checks.
-// The source-derived contract remains the field-level source of truth.
-// TestSpecCoverage_Completeness fails if the pinned route inventory and
-// this registry drift. TestSpecCoverage_GenerateDoc generates API_COVERAGE.md
-// from this data.
+//
+// Route inventory for completeness is the source-extracted contract
+// (testdata/contracts/coolify-v4.json routes[]), not the partial OpenAPI
+// path list. Field-level truth is the same contract. OpenAPI under
+// testdata/specs/ is not authoritative for routes.
+//
+// TestSpecCoverage_Completeness fails if contract routes and this registry
+// drift. TestSpecCoverage_GenerateDoc generates API_COVERAGE.md from this data.
 func coveredEndpoints() map[string]coverageStatus {
 	covered := func(resource, since string) coverageStatus {
 		return coverageStatus{category: "covered", resource: resource, since: since}
+	}
+	skipped := func(reason string) coverageStatus {
+		return coverageStatus{category: "skipped", resource: reason}
+	}
+	planned := func(priority int, notes string) coverageStatus {
+		return coverageStatus{category: "planned", priority: priority, notes: notes}
 	}
 
 	return map[string]coverageStatus{
@@ -198,54 +217,232 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /disable":      covered("client.DisableAPI", "v0.2.0"),
 		"POST /mcp/enable":  covered("coolify_api_settings (mcp_enabled)", "v0.4.0"),
 		"POST /mcp/disable": covered("coolify_api_settings (mcp_enabled)", "v0.4.0"),
+
+		// ── Contract routes not present in legacy OpenAPI inventory ──
+		// (classified so API_COVERAGE reflects Coolify source, not OpenAPI)
+		"DELETE /applications/{uuid}/destinations/{destination_uuid}":                   skipped("Application multi-destination attach/detach; primary TF surface is coolify_destination"),
+		"DELETE /applications/{uuid}/tags/{tag_uuid}":                                   skipped("Resource tags API; not modeled as first-class TF resources"),
+		"DELETE /cloud-init-scripts/{uuid}":                                             skipped("Cloud-init script library; not a TF resource"),
+		"DELETE /databases/{uuid}/tags/{tag_uuid}":                                      skipped("Resource tags API; not modeled as first-class TF resources"),
+		"DELETE /destinations/{uuid}":                                                   covered("coolify_destination", "v0.2.0"),
+		"DELETE /gitlab-apps/{gitlab_app_id}":                                           skipped("GitLab App integration; provider covers GitHub Apps only today"),
+		"DELETE /projects/{uuid}/environments/{environment_name_or_uuid}/envs/{env_id}": skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"DELETE /projects/{uuid}/envs/{env_id}":                                         skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"DELETE /s3-storages/{uuid}":                                                    covered("coolify_s3_storage", "v0.1.13"),
+		"DELETE /servers/{uuid}/envs/{env_id}":                                          skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"DELETE /services/{uuid}/tags/{tag_uuid}":                                       skipped("Resource tags API; not modeled as first-class TF resources"),
+		"DELETE /tags/{uuid}":                                                           skipped("Resource tags API; not modeled as first-class TF resources"),
+		"DELETE /team/envs/{env_id}":                                                    skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"GET /applications/{uuid}/destinations":                                         skipped("Application multi-destination attach/detach; primary TF surface is coolify_destination"),
+		"GET /applications/{uuid}/rollback-images":                                      skipped("Application rollback/images; operational, not TF lifecycle"),
+		"GET /applications/{uuid}/tags":                                                 skipped("Resource tags API; not modeled as first-class TF resources"),
+		"GET /cloud-init-scripts":                                                       skipped("Cloud-init script library; not a TF resource"),
+		"GET /cloud-init-scripts/{uuid}":                                                skipped("Cloud-init script library; not a TF resource"),
+		"GET /databases/{uuid}/logs":                                                    skipped("Resource logs streaming; not durable TF state"),
+		"GET /databases/{uuid}/tags":                                                    skipped("Resource tags API; not modeled as first-class TF resources"),
+		"GET /destinations":                                                             covered("data.coolify_destinations", "v0.2.0"),
+		"GET /destinations/{uuid}":                                                      covered("data.coolify_destination", "v0.2.0"),
+		"GET /digitalocean/images":                                                      covered("data.coolify_digitalocean_images", "v0.2.0"),
+		"GET /digitalocean/regions":                                                     covered("data.coolify_digitalocean_regions", "v0.2.0"),
+		"GET /digitalocean/sizes":                                                       covered("data.coolify_digitalocean_sizes", "v0.2.0"),
+		"GET /digitalocean/ssh-keys":                                                    covered("data.coolify_digitalocean_ssh_keys", "v0.2.0"),
+		"GET /gitlab-apps":                                                              skipped("GitLab App integration; provider covers GitHub Apps only today"),
+		"GET /hetzner/firewalls":                                                        skipped("Hetzner firewalls/networks list; not required for coolify_server_hetzner"),
+		"GET /hetzner/networks":                                                         skipped("Hetzner firewalls/networks list; not required for coolify_server_hetzner"),
+		"GET /notifications/discord":                                                    planned(2, "Notification channel resources (#394)"),
+		"GET /notifications/email":                                                      planned(2, "Notification channel resources (#394)"),
+		"GET /notifications/pushover":                                                   planned(2, "Notification channel resources (#394)"),
+		"GET /notifications/slack":                                                      planned(2, "Notification channel resources (#394)"),
+		"GET /notifications/telegram":                                                   planned(2, "Notification channel resources (#394)"),
+		"GET /notifications/webhook":                                                    planned(2, "Notification channel resources (#394)"),
+		"GET /projects/{uuid}/environments/{environment_name_or_uuid}/envs":             skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"GET /projects/{uuid}/envs":                                                     skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"GET /s3-storages":                                                              covered("data.coolify_s3_storages", "v0.1.13"),
+		"GET /s3-storages/{uuid}":                                                       covered("data.coolify_s3_storage", "v0.1.13"),
+		"GET /servers/{server_uuid}/destinations":                                       covered("data.coolify_destinations", "v0.2.0"),
+		"GET /servers/{uuid}/cloudflare-tunnel":                                         skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"GET /servers/{uuid}/docker-cleanup":                                            skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"GET /servers/{uuid}/docker-cleanup/executions":                                 skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"GET /servers/{uuid}/envs":                                                      skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"GET /servers/{uuid}/export":                                                    skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"GET /servers/{uuid}/log-drains":                                                skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"GET /servers/{uuid}/proxy":                                                     skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"GET /servers/{uuid}/sentinel":                                                  skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"GET /services/{uuid}/applications":                                             skipped("Nested service components; coolify_service manages the compose service unit"),
+		"GET /services/{uuid}/applications/{app_uuid}":                                  skipped("Nested service components; coolify_service manages the compose service unit"),
+		"GET /services/{uuid}/applications/{app_uuid}/logs":                             skipped("Resource logs streaming; not durable TF state"),
+		"GET /services/{uuid}/applications/{app_uuid}/restart":                          skipped("Nested service components; coolify_service manages the compose service unit"),
+		"GET /services/{uuid}/applications/{app_uuid}/start":                            skipped("Nested service components; coolify_service manages the compose service unit"),
+		"GET /services/{uuid}/applications/{app_uuid}/stop":                             skipped("Nested service components; coolify_service manages the compose service unit"),
+		"GET /services/{uuid}/databases":                                                skipped("Nested service components; coolify_service manages the compose service unit"),
+		"GET /services/{uuid}/databases/{database_uuid}":                                skipped("Nested service components; coolify_service manages the compose service unit"),
+		"GET /services/{uuid}/databases/{database_uuid}/logs":                           skipped("Resource logs streaming; not durable TF state"),
+		"GET /services/{uuid}/logs":                                                     skipped("Resource logs streaming; not durable TF state"),
+		"GET /services/{uuid}/tags":                                                     skipped("Resource tags API; not modeled as first-class TF resources"),
+		"GET /tags":                                                                     skipped("Resource tags API; not modeled as first-class TF resources"),
+		"GET /team":                                                                     skipped("Alias of /teams/current*; use data.coolify_team / team_members"),
+		"GET /team/envs":                                                                skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"GET /team/members":                                                             skipped("Alias of /teams/current*; use data.coolify_team / team_members"),
+		"GET /vultr/os":                                                                 covered("data.coolify_vultr_os", "v0.2.0"),
+		"GET /vultr/plans":                                                              covered("data.coolify_vultr_plans", "v0.2.0"),
+		"GET /vultr/regions":                                                            covered("data.coolify_vultr_regions", "v0.2.0"),
+		"GET /vultr/ssh-keys":                                                           covered("data.coolify_vultr_ssh_keys", "v0.2.0"),
+		"PATCH /cloud-init-scripts/{uuid}":                                              skipped("Cloud-init script library; not a TF resource"),
+		"PATCH /destinations/{uuid}":                                                    skipped("Destination fields RequireReplace; provider does not call PATCH"),
+		"PATCH /gitlab-apps/{gitlab_app_id}":                                            skipped("GitLab App integration; provider covers GitHub Apps only today"),
+		"PATCH /notifications/discord":                                                  planned(2, "Notification channel resources (#394)"),
+		"PATCH /notifications/email":                                                    planned(2, "Notification channel resources (#394)"),
+		"PATCH /notifications/pushover":                                                 planned(2, "Notification channel resources (#394)"),
+		"PATCH /notifications/slack":                                                    planned(2, "Notification channel resources (#394)"),
+		"PATCH /notifications/telegram":                                                 planned(2, "Notification channel resources (#394)"),
+		"PATCH /notifications/webhook":                                                  planned(2, "Notification channel resources (#394)"),
+		"PATCH /projects/{uuid}/environments/{environment_name_or_uuid}":                skipped("Environment description is TF state-only today; client has no Update call"),
+		"PATCH /projects/{uuid}/environments/{environment_name_or_uuid}/envs/{env_id}": skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"PATCH /projects/{uuid}/envs/{env_id}":                                         skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"PATCH /s3-storages/{uuid}":                                                    covered("coolify_s3_storage", "v0.1.13"),
+		"PATCH /servers/{uuid}/cloudflare-tunnel":                                      skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"PATCH /servers/{uuid}/docker-cleanup":                                         skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"PATCH /servers/{uuid}/envs/{env_id}":                                          skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"PATCH /servers/{uuid}/log-drains":                                             skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"PATCH /servers/{uuid}/proxy":                                                  skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"PATCH /servers/{uuid}/sentinel":                                               skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"PATCH /services/{uuid}/applications/{app_uuid}":                               skipped("Nested service components; coolify_service manages the compose service unit"),
+		"PATCH /services/{uuid}/databases/{database_uuid}":                             skipped("Nested service components; coolify_service manages the compose service unit"),
+		"PATCH /tags/{uuid}":                                                           skipped("Resource tags API; not modeled as first-class TF resources"),
+		"PATCH /team/envs/{env_id}":                                                    skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"POST /applications/{uuid}/clone":                                              skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /applications/{uuid}/destinations":                                       skipped("Application multi-destination attach/detach; primary TF surface is coolify_destination"),
+		"POST /applications/{uuid}/migrate":                                            skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /applications/{uuid}/move":                                               skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /applications/{uuid}/restart":                                            covered("coolify_resource_action", "v0.3.0"),
+		"POST /applications/{uuid}/rollback":                                           skipped("Application rollback/images; operational, not TF lifecycle"),
+		"POST /applications/{uuid}/scheduled-tasks/{task_uuid}/execute":                skipped("One-shot task execute; coolify_scheduled_task manages definition only"),
+		"POST /applications/{uuid}/start":                                              covered("coolify_resource_action", "v0.3.0"),
+		"POST /applications/{uuid}/stop":                                               covered("coolify_resource_action", "v0.3.0"),
+		"POST /applications/{uuid}/storages/{storage_uuid}/backups/run":                skipped("One-shot volume backup run; coolify_storage_backup manages schedule only"),
+		"POST /applications/{uuid}/tags":                                               skipped("Resource tags API; not modeled as first-class TF resources"),
+		"POST /cloud-init-scripts":                                                     skipped("Cloud-init script library; not a TF resource"),
+		"POST /databases/{uuid}/clone":                                                 skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /databases/{uuid}/migrate":                                               skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /databases/{uuid}/move":                                                  skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /databases/{uuid}/restart":                                               covered("coolify_resource_action", "v0.3.0"),
+		"POST /databases/{uuid}/start":                                                 covered("coolify_resource_action", "v0.3.0"),
+		"POST /databases/{uuid}/stop":                                                  covered("coolify_resource_action", "v0.3.0"),
+		"POST /databases/{uuid}/storages/{storage_uuid}/backups/run":                   skipped("One-shot volume backup run; coolify_storage_backup manages schedule only"),
+		"POST /databases/{uuid}/tags":                                                  skipped("Resource tags API; not modeled as first-class TF resources"),
+		"POST /deploy":                                                                 covered("client.Deploy", "v0.2.0"),
+		"POST /disable":                                                                covered("coolify_api_settings", "v0.2.0"),
+		"POST /enable":                                                                 covered("coolify_api_settings", "v0.2.0"),
+		"POST /feedback":                                                               skipped("Coolify product feedback endpoint; not TF"),
+		"POST /gitlab-apps":                                                            skipped("GitLab App integration; provider covers GitHub Apps only today"),
+		"POST /projects/{uuid}/environments/{environment_name_or_uuid}/envs":           skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"POST /projects/{uuid}/envs":                                                   skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"POST /s3-storages":                                                            covered("coolify_s3_storage", "v0.1.13"),
+		"POST /s3-storages/{uuid}/validate":                                            covered("coolify_s3_storage_validate", "v0.1.14"),
+		"POST /sentinel/push":                                                          skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"POST /servers/digitalocean":                                                   covered("coolify_server_digitalocean", "v0.2.0"),
+		"POST /servers/import":                                                         skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"POST /servers/vultr":                                                          covered("coolify_server_vultr", "v0.2.0"),
+		"POST /servers/{server_uuid}/destinations":                                     covered("coolify_destination", "v0.2.0"),
+		"POST /servers/{uuid}/claim":                                                   skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"POST /servers/{uuid}/cloudflare-tunnel/disable":                               skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"POST /servers/{uuid}/cloudflare-tunnel/enable":                                skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"POST /servers/{uuid}/docker-cleanup/run":                                      skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"POST /servers/{uuid}/envs":                                                    skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"POST /servers/{uuid}/export/mailbox":                                          skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"POST /servers/{uuid}/migrate":                                                 skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /servers/{uuid}/proxy/restart":                                           skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"POST /servers/{uuid}/transfer/complete":                                       skipped("Server operational/control-plane API; not modeled as TF resources"),
+		"POST /servers/{uuid}/validate":                                                covered("coolify_server_validate", "v0.2.0"),
+		"POST /services/{uuid}/applications/{app_uuid}/logs":                           skipped("Resource logs streaming; not durable TF state"),
+		"POST /services/{uuid}/applications/{app_uuid}/restart":                        skipped("Nested service app/DB lifecycle; manage via parent coolify_service"),
+		"POST /services/{uuid}/applications/{app_uuid}/start":                          skipped("Nested service app/DB lifecycle; manage via parent coolify_service"),
+		"POST /services/{uuid}/applications/{app_uuid}/stop":                           skipped("Nested service app/DB lifecycle; manage via parent coolify_service"),
+		"POST /services/{uuid}/clone":                                                  skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /services/{uuid}/databases/{database_uuid}/restart":                      skipped("Nested service app/DB lifecycle; manage via parent coolify_service"),
+		"POST /services/{uuid}/databases/{database_uuid}/start":                        skipped("Nested service app/DB lifecycle; manage via parent coolify_service"),
+		"POST /services/{uuid}/databases/{database_uuid}/stop":                         skipped("Nested service app/DB lifecycle; manage via parent coolify_service"),
+		"POST /services/{uuid}/migrate":                                                skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /services/{uuid}/move":                                                   skipped("One-shot clone/migrate/move; not Terraform lifecycle"),
+		"POST /services/{uuid}/restart":                                                covered("coolify_resource_action", "v0.3.0"),
+		"POST /services/{uuid}/scheduled-tasks/{task_uuid}/execute":                    skipped("One-shot task execute; coolify_scheduled_task manages definition only"),
+		"POST /services/{uuid}/start":                                                  covered("coolify_resource_action", "v0.3.0"),
+		"POST /services/{uuid}/stop":                                                   covered("coolify_resource_action", "v0.3.0"),
+		"POST /services/{uuid}/storages/{storage_uuid}/backups/run":                    skipped("One-shot volume backup run; coolify_storage_backup manages schedule only"),
+		"POST /services/{uuid}/tags":                                                   skipped("Resource tags API; not modeled as first-class TF resources"),
+		"POST /tags":                                                                   skipped("Resource tags API; not modeled as first-class TF resources"),
+		"POST /team/envs":                                                              skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
+		"PUT /servers/{uuid}/proxy/configuration":                                      skipped("Server operational/control-plane API; not modeled as TF resources"),
 	}
 }
 
-// TestSpecCoverage_Completeness verifies that every endpoint in the OpenAPI
-// spec is tracked in coveredEndpoints(). Fails if the spec has new endpoints
-// not yet classified, or if the registry has stale entries removed from the spec.
+// TestSpecCoverage_Completeness verifies every contract route is classified in
+// coveredEndpoints(), and the registry has no unexpected keys outside the
+// contract (except registryExtrasNotInContract).
 func TestSpecCoverage_Completeness(t *testing.T) {
 	t.Parallel()
 
-	doc, err := LoadSpec("coolify-v4")
-	if err != nil {
-		t.Fatalf("loading spec: %v", err)
-	}
-
-	model, errs := (*doc).BuildV3Model()
-	if errs != nil {
-		t.Fatalf("building model: %v", errs)
-	}
-
 	coverage := coveredEndpoints()
-	specOps := extractSpecOperations(model.Model)
+	contractOps, err := loadContractRoutes(contractRoutePin)
+	if err != nil {
+		t.Fatalf("loading contract routes: %v", err)
+	}
 
 	var missing []string
-	for _, op := range specOps {
+	for _, op := range contractOps {
 		if _, ok := coverage[op]; !ok {
 			missing = append(missing, op)
 		}
 	}
 	if len(missing) > 0 {
 		sort.Strings(missing)
-		t.Errorf("spec has %d endpoints not tracked in coveredEndpoints():\n  %s",
+		t.Errorf("contract has %d routes not tracked in coveredEndpoints():\n  %s",
 			len(missing), strings.Join(missing, "\n  "))
 	}
 
-	specSet := make(map[string]bool, len(specOps))
-	for _, op := range specOps {
-		specSet[op] = true
+	contractSet := make(map[string]bool, len(contractOps))
+	for _, op := range contractOps {
+		contractSet[op] = true
 	}
 	var stale []string
 	for op := range coverage {
-		if !specSet[op] {
-			stale = append(stale, op)
+		if contractSet[op] || registryExtrasNotInContract[op] {
+			continue
 		}
+		stale = append(stale, op)
 	}
 	if len(stale) > 0 {
 		sort.Strings(stale)
-		t.Errorf("coveredEndpoints() has %d entries not in the spec (stale?):\n  %s",
+		t.Errorf("coveredEndpoints() has %d entries not in the contract and not allowlisted:\n  %s",
 			len(stale), strings.Join(stale, "\n  "))
+	}
+}
+
+// TestLoadContractRoutes_Pin loads the pin and expects a non-empty route set.
+func TestLoadContractRoutes_Pin(t *testing.T) {
+	t.Parallel()
+	ops, err := loadContractRoutes(contractRoutePin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ops) < 100 {
+		t.Fatalf("expected many contract routes, got %d", len(ops))
+	}
+	// Sanity: known Coolify routes from source extract
+	want := []string{
+		"GET /s3-storages",
+		"POST /s3-storages/{uuid}/validate",
+		"POST /servers/{uuid}/validate",
+		"GET /destinations",
+	}
+	set := make(map[string]bool, len(ops))
+	for _, o := range ops {
+		set[o] = true
+	}
+	for _, w := range want {
+		if !set[w] {
+			t.Errorf("pin contract missing expected route %s", w)
+		}
 	}
 }
 
@@ -323,10 +520,12 @@ func TestSpecCoverage_GenerateDoc(t *testing.T) {
 	b.WriteString("# API Coverage\n\n")
 	b.WriteString("<!-- Auto-generated from internal/spectest/coverage_test.go. Do not edit manually. -->\n")
 	b.WriteString("<!-- Run: make api-coverage -->\n\n")
-	b.WriteString("**Route inventory**: pinned OpenAPI spec in `testdata/specs/coolify-v4.json`  \n")
-	b.WriteString("**Field source of truth**: source-derived contract in `testdata/contracts/coolify-v4.json`  \n")
-	fmt.Fprintf(&b, "**Coverage**: %d / %d endpoints (%.1f%%)  \n", len(coveredList), total, pct)
-	fmt.Fprintf(&b, "**Planned**: %d | **Skipped**: %d\n", len(plannedList), len(skippedList))
+	b.WriteString("**Route inventory**: source-derived contract `testdata/contracts/coolify-v4.json` (`routes[]`)  \n")
+	b.WriteString("**Field source of truth**: same contract (`models` / endpoint allow lists)  \n")
+	b.WriteString("**Not inventory**: OpenAPI under `testdata/specs/` (partial upstream path list; do not treat as Coolify API completeness)  \n")
+	fmt.Fprintf(&b, "**Coverage**: %d covered / %d registry entries (%.1f%%)  \n", len(coveredList), total, pct)
+	fmt.Fprintf(&b, "**Planned**: %d | **Skipped**: %d  \n", len(plannedList), len(skippedList))
+	fmt.Fprintf(&b, "**Registry size**: %d (contract routes + allowlisted extras)\n", total)
 
 	// Covered
 	b.WriteString("\n## Covered\n\n")
@@ -354,11 +553,10 @@ func TestSpecCoverage_GenerateDoc(t *testing.T) {
 		fmt.Fprintf(&b, "| `%s` | %s |\n", e.endpoint, e.status.resource)
 	}
 
-	b.WriteString("\n## New in Spec (Unclassified)\n\n")
-	b.WriteString("_None. All spec endpoints are classified._\n\n")
-	b.WriteString("This section appears when the pinned spec is updated with new endpoints\n")
-	b.WriteString("that haven't been added to the coverage registry yet. The\n")
-	b.WriteString("`TestSpecCoverage_Completeness` test also fails in this case.\n")
+	b.WriteString("\n## Unclassified contract routes\n\n")
+	b.WriteString("_None. All pin contract routes are classified in `coveredEndpoints()`._\n\n")
+	b.WriteString("When `make contract-extract` adds routes, classify them in\n")
+	b.WriteString("`internal/spectest/coverage_test.go` or `TestSpecCoverage_Completeness` fails.\n")
 
 	outPath := filepath.Join(testdataDir(), "..", "API_COVERAGE.md")
 	if err := os.WriteFile(outPath, []byte(b.String()), 0644); err != nil {
@@ -367,28 +565,41 @@ func TestSpecCoverage_GenerateDoc(t *testing.T) {
 	t.Logf("Generated %s (%d bytes)", outPath, len(b.String()))
 }
 
-// extractSpecOperations returns all "METHOD /path" strings from the spec.
-func extractSpecOperations(model v3high.Document) []string {
-	var ops []string
-	if model.Paths == nil {
-		return ops
+// loadContractRoutes returns sorted unique "METHOD /path" keys from a contract JSON file
+// under testdata/contracts/.
+func loadContractRoutes(filename string) ([]string, error) {
+	path := filepath.Join(testdataDir(), "contracts", filename)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
 	}
-	for pair := model.Paths.PathItems.Oldest(); pair != nil; pair = pair.Next() {
-		path := pair.Key
-		item := pair.Value
-
-		for method, op := range map[string]*v3high.Operation{
-			"GET":    item.Get,
-			"POST":   item.Post,
-			"PUT":    item.Put,
-			"PATCH":  item.Patch,
-			"DELETE": item.Delete,
-		} {
-			if op != nil {
-				ops = append(ops, fmt.Sprintf("%s %s", method, path))
-			}
+	var doc struct {
+		Routes []struct {
+			Method string `json:"method"`
+			Path   string `json:"path"`
+		} `json:"routes"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		return nil, fmt.Errorf("parse %s: %w", filename, err)
+	}
+	seen := make(map[string]bool, len(doc.Routes))
+	var ops []string
+	for _, r := range doc.Routes {
+		method := strings.ToUpper(strings.TrimSpace(r.Method))
+		p := strings.TrimSpace(r.Path)
+		if method == "" || p == "" {
+			return nil, fmt.Errorf("%s: route entry with empty method or path", filename)
 		}
+		if !strings.HasPrefix(p, "/") {
+			p = "/" + p
+		}
+		key := method + " " + p
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		ops = append(ops, key)
 	}
 	sort.Strings(ops)
-	return ops
+	return ops, nil
 }

@@ -147,7 +147,7 @@ internal/
   acctest/      Shared test utilities
   validate/     Input validators (UUID format, FQDN URL, cron)
   filter/       Generic data source filtering helpers
-  spectest/     OpenAPI spec compliance and contract coverage tests
+  spectest/     Contract field/route coverage (API_COVERAGE.md) and optional OpenAPI helpers
 ```
 
 ## Adding a New Resource
@@ -176,7 +176,7 @@ and run `make ci`.
 6. Add client methods in `internal/client/`
 7. Register the resource in `internal/provider/provider.go`
 8. Add examples in `examples/resources/coolify_<type>/`: both `resource.tf` and `import.sh`
-9. Add endpoint(s) to `coveredEndpoints()` in `internal/spectest/coverage_test.go`
+9. Classify new contract routes in `coveredEndpoints()` (`internal/spectest/coverage_test.go`); inventory is contract `routes[]`, not OpenAPI
 10. Run `make api-coverage` to regenerate API_COVERAGE.md
 11. Update resource/data source/test counts in AGENTS.md and README.md
 12. Run `make docs` to generate documentation
