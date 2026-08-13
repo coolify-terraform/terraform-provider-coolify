@@ -98,13 +98,26 @@ runs:
           sleep 5
         done
 
+    - name: Cache Playwright browsers
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      id: playwright-cache
+      with:
+        # Playwright stores browsers under this path on Linux CI.
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('.github/requirements/playwright.txt') }}
+
     - name: Bootstrap Coolify test fixtures
       shell: bash
       env:
         COOLIFY_ENV_FILE: ${{ inputs.coolify-env-file }}
       run: |
         pip install --require-hashes -r .github/requirements/playwright.txt
-        playwright install --with-deps chromium
+        if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+          # Browsers cached; still need OS deps (not in the browser cache).
+          playwright install-deps chromium
+        else
+          playwright install --with-deps chromium
+        fi
         ./scripts/setup-coolify-test.sh
 
     - name: Verify Coolify API health

@@ -117,10 +117,12 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    # Sharded wall clock is ~max(heaviest package) plus sibling work, not full suite.
     timeout-minutes: 20
     permissions:
       contents: read
-      code-quality: write
+      # gotestsum binary cache save
+      actions: write
     needs: changes
     if: >-
       always() &&
@@ -130,6 +132,14 @@ jobs:
         github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch'
       )
+    strategy:
+      fail-fast: false
+      matrix:
+        # Three shards: pins multi-minute packages (application/service/redis)
+        # onto separate runners so the critical path drops from ~14m to ~8-9m.
+        shard: [0, 1, 2]
+    env:
+      UNIT_SHARD_COUNT: "3"
     steps:
       - name: Harden runner
         if: runner.os == 'Linux'
@@ -148,31 +158,127 @@ jobs:
         with:
           terraform_wrapper: false
           terraform_version: "1.15.x"
+      # Binary release is faster than `go install` (~8s) and cache hits are ~0s.
+      - name: Cache gotestsum
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.local/bin/gotestsum
+          key: gotestsum-1.13.0-${{ runner.os }}-${{ runner.arch }}
       - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@v1.13.0
+        env:
+          GOTESTSUM_VERSION: "1.13.0"
+        run: |
+          set -euo pipefail
+          BIN_DIR="${HOME}/.local/bin"
+          mkdir -p "$BIN_DIR"
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          if [ -x "$BIN_DIR/gotestsum" ] && "$BIN_DIR/gotestsum" --version 2>/dev/null | grep -q "$GOTESTSUM_VERSION"; then
+            echo "gotestsum ${GOTESTSUM_VERSION} restored from cache"
+            exit 0
+          fi
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64) ARCH="amd64" ;;
+            aarch64|arm64) ARCH="arm64" ;;
+          esac
+          URL="https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_VERSION}/gotestsum_${GOTESTSUM_VERSION}_${OS}_${ARCH}.tar.gz"
+          TMP="$(mktemp)"
+          curl -sfL --retry 3 --retry-delay 2 --retry-all-errors -o "$TMP" "$URL"
+          tar xzf "$TMP" -C "$BIN_DIR" gotestsum
+          rm -f "$TMP"
+          gotestsum --version
       - name: Run tests
         run: |
-          mkdir -p test-results
+          set -euo pipefail
+          mkdir -p test-results coverage
+          # -parallel=1 is required for packages that fork terraform under -race
+          # (TSAN + fork/exec). See commit 39f893d. -p 4 still runs packages
+          # concurrently within the shard.
+          mapfile -t pkgs < <(bash scripts/ci-unit-packages.sh "${{ matrix.shard }}" "${UNIT_SHARD_COUNT}")
+          echo "Shard ${{ matrix.shard }}/${UNIT_SHARD_COUNT}: ${#pkgs[@]} packages"
+          printf '  %s\n' "${pkgs[@]}"
+          # gotestsum --packages wants a space-separated list (not commas).
+          pkg_list="${pkgs[*]}"
           gotestsum \
             --format pkgname \
-            --junitfile test-results/unit.xml \
+            --junitfile "test-results/unit-shard-${{ matrix.shard }}.xml" \
             --rerun-fails \
             --rerun-fails-max-failures=5 \
-            --packages ./... \
-            -- -race -cover -coverprofile=coverage.out -count=1 -p 4 -parallel=1 -timeout=15m
-      - name: Coverage summary
-        run: go tool cover -func=coverage.out | tail -1
-      - name: Convert coverage to Cobertura XML
-        run: |
-          go install github.com/boumenot/gocover-cobertura@v1.5.0
-          gocover-cobertura < coverage.out > coverage.xml
+            --packages "$pkg_list" \
+            -- -race -cover -coverprofile="coverage/coverage-shard-${{ matrix.shard }}.out" -count=1 -p 4 -parallel=1 -timeout=15m
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: test-results
+          name: test-results-shard-${{ matrix.shard }}
           path: test-results/
           retention-days: 14
+      - name: Upload coverage shard
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coverage-shard-${{ matrix.shard }}
+          path: coverage/
+          retention-days: 3
+          if-no-files-found: ignore
+
+  # Merge sharded coverage and publish once (avoids three competing uploads).
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [changes, test]
+    if: >-
+      always() &&
+      needs.test.result == 'success' &&
+      (
+        needs.changes.outputs.go == 'true' ||
+        needs.changes.outputs.ci == 'true' ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
+    permissions:
+      contents: read
+      actions: read
+      code-quality: write
+    steps:
+      - name: Harden runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Download coverage shards
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: coverage-shard-*
+          path: coverage-shards
+          merge-multiple: true
+      - name: Merge coverage and summarize
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(coverage-shards/coverage-shard-*.out)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::No coverage shard files found"
+            ls -laR coverage-shards || true
+            exit 1
+          fi
+          echo "mode: atomic" > coverage.out
+          for f in "${files[@]}"; do
+            # Drop the mode line from each shard profile.
+            tail -n +2 "$f" >> coverage.out || true
+          done
+          go tool cover -func=coverage.out | tail -1
+          go install github.com/boumenot/gocover-cobertura@v1.5.0
+          gocover-cobertura < coverage.out > coverage.xml
       - name: Upload coverage
         if: >-
           always() &&
@@ -469,6 +575,10 @@ jobs:
         needs.changes.outputs.scenarios == 'true' ||
         github.event_name == 'workflow_dispatch'
       )
+    permissions:
+      contents: read
+      # Playwright browser cache save in setup-coolify.
+      actions: write
     env:
       COOLIFY_DATA_DIR: /home/runner/coolify-data
     steps:
@@ -600,6 +710,10 @@ jobs:
         needs.changes.outputs.scripts == 'true' ||
         github.event_name == 'workflow_dispatch'
       )
+    permissions:
+      contents: read
+      # Playwright browser cache save in setup-coolify.
+      actions: write
     env:
       COOLIFY_DATA_DIR: /home/runner/coolify-data
     steps:
@@ -623,8 +737,35 @@ jobs:
       - name: Setup Coolify
         uses: ./.github/actions/setup-coolify
 
+      - name: Cache gotestsum
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.local/bin/gotestsum
+          key: gotestsum-1.13.0-${{ runner.os }}-${{ runner.arch }}
       - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@v1.13.0
+        env:
+          GOTESTSUM_VERSION: "1.13.0"
+        run: |
+          set -euo pipefail
+          BIN_DIR="${HOME}/.local/bin"
+          mkdir -p "$BIN_DIR"
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          if [ -x "$BIN_DIR/gotestsum" ] && "$BIN_DIR/gotestsum" --version 2>/dev/null | grep -q "$GOTESTSUM_VERSION"; then
+            echo "gotestsum ${GOTESTSUM_VERSION} restored from cache"
+            exit 0
+          fi
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64) ARCH="amd64" ;;
+            aarch64|arm64) ARCH="arm64" ;;
+          esac
+          URL="https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_VERSION}/gotestsum_${GOTESTSUM_VERSION}_${OS}_${ARCH}.tar.gz"
+          TMP="$(mktemp)"
+          curl -sfL --retry 3 --retry-delay 2 --retry-all-errors -o "$TMP" "$URL"
+          tar xzf "$TMP" -C "$BIN_DIR" gotestsum
+          rm -f "$TMP"
+          gotestsum --version
       - name: Run acceptance tests
         env:
           # External secrets for tests that need real cloud APIs
@@ -678,6 +819,8 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    # coverage is best-effort for the GitHub code-quality upload; do not gate
+    # merge on it (upload already uses fail-on-error: false).
     needs: [dco, test, lint, validate, scenario-tests, acceptance-tests]
     steps:
       - name: Harden runner

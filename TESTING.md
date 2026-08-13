@@ -15,6 +15,16 @@ make test
 
 All unit tests run with `-race` detection and must pass in CI.
 
+`make test` runs pure packages (client, flex, filter, validate, spectest,
+acctest) with higher in-package parallelism, then plugin packages
+(`internal/provider`, `internal/service/...`) with `-parallel=1`. Plugin
+packages fork the Terraform binary under `resource.UnitTest`; higher
+in-package parallelism under `-race` has caused TSAN segfaults.
+
+CI shards unit tests across 3 runners (`scripts/ci-unit-packages.sh`) so
+the heaviest packages (application, service, redis) do not serialize the
+critical path.
+
 ### Writing a unit test
 
 1. Create `resource_test.go` in the resource's package
