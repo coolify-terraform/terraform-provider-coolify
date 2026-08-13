@@ -46,20 +46,7 @@ type model struct {
 	ResendAPIKey     types.String `tfsdk:"resend_api_key"`
 	UseInstanceEmail types.Bool   `tfsdk:"use_instance_email_settings"`
 
-	DeploymentSuccess    types.Bool `tfsdk:"deployment_success"`
-	DeploymentFailure    types.Bool `tfsdk:"deployment_failure"`
-	StatusChange         types.Bool `tfsdk:"status_change"`
-	BackupSuccess        types.Bool `tfsdk:"backup_success"`
-	BackupFailure        types.Bool `tfsdk:"backup_failure"`
-	ScheduledTaskSuccess types.Bool `tfsdk:"scheduled_task_success"`
-	ScheduledTaskFailure types.Bool `tfsdk:"scheduled_task_failure"`
-	DockerCleanupSuccess types.Bool `tfsdk:"docker_cleanup_success"`
-	DockerCleanupFailure types.Bool `tfsdk:"docker_cleanup_failure"`
-	ServerDiskUsage      types.Bool `tfsdk:"server_disk_usage"`
-	ServerReachable      types.Bool `tfsdk:"server_reachable"`
-	ServerUnreachable    types.Bool `tfsdk:"server_unreachable"`
-	ServerPatch          types.Bool `tfsdk:"server_patch"`
-	TraefikOutdated      types.Bool `tfsdk:"traefik_outdated"`
+	notificationcommon.EventModel
 }
 
 func NewResource() resource.Resource {
@@ -239,24 +226,11 @@ func (r *emailResource) ImportState(ctx context.Context, req resource.ImportStat
 
 func createInputFromPlan(plan model) client.UpdateEmailNotificationInput {
 	in := client.UpdateEmailNotificationInput{
-		SMTPEnabled:          flex.BoolValueOrNull(plan.SMTPEnabled),
-		ResendEnabled:        flex.BoolValueOrNull(plan.ResendEnabled),
-		UseInstanceEmail:     flex.BoolValueOrNull(plan.UseInstanceEmail),
-		DeploymentSuccess:    flex.BoolValueOrNull(plan.DeploymentSuccess),
-		DeploymentFailure:    flex.BoolValueOrNull(plan.DeploymentFailure),
-		StatusChange:         flex.BoolValueOrNull(plan.StatusChange),
-		BackupSuccess:        flex.BoolValueOrNull(plan.BackupSuccess),
-		BackupFailure:        flex.BoolValueOrNull(plan.BackupFailure),
-		ScheduledTaskSuccess: flex.BoolValueOrNull(plan.ScheduledTaskSuccess),
-		ScheduledTaskFailure: flex.BoolValueOrNull(plan.ScheduledTaskFailure),
-		DockerCleanupSuccess: flex.BoolValueOrNull(plan.DockerCleanupSuccess),
-		DockerCleanupFailure: flex.BoolValueOrNull(plan.DockerCleanupFailure),
-		ServerDiskUsage:      flex.BoolValueOrNull(plan.ServerDiskUsage),
-		ServerReachable:      flex.BoolValueOrNull(plan.ServerReachable),
-		ServerUnreachable:    flex.BoolValueOrNull(plan.ServerUnreachable),
-		ServerPatch:          flex.BoolValueOrNull(plan.ServerPatch),
-		TraefikOutdated:      flex.BoolValueOrNull(plan.TraefikOutdated),
+		SMTPEnabled:      flex.BoolValueOrNull(plan.SMTPEnabled),
+		ResendEnabled:    flex.BoolValueOrNull(plan.ResendEnabled),
+		UseInstanceEmail: flex.BoolValueOrNull(plan.UseInstanceEmail),
 	}
+	_ = client.ApplyEventUpdate(&in, plan.CreateUpdate())
 	setStr := func(v types.String, dst **string) {
 		if flex.StringValueConfigured(v) {
 			s := v.ValueString()
@@ -284,24 +258,11 @@ func createInputFromPlan(plan model) client.UpdateEmailNotificationInput {
 
 func updateInputFromPlan(plan, state model) client.UpdateEmailNotificationInput {
 	in := client.UpdateEmailNotificationInput{
-		SMTPEnabled:          flex.BoolIfChanged(plan.SMTPEnabled, state.SMTPEnabled),
-		ResendEnabled:        flex.BoolIfChanged(plan.ResendEnabled, state.ResendEnabled),
-		UseInstanceEmail:     flex.BoolIfChanged(plan.UseInstanceEmail, state.UseInstanceEmail),
-		DeploymentSuccess:    flex.BoolIfChanged(plan.DeploymentSuccess, state.DeploymentSuccess),
-		DeploymentFailure:    flex.BoolIfChanged(plan.DeploymentFailure, state.DeploymentFailure),
-		StatusChange:         flex.BoolIfChanged(plan.StatusChange, state.StatusChange),
-		BackupSuccess:        flex.BoolIfChanged(plan.BackupSuccess, state.BackupSuccess),
-		BackupFailure:        flex.BoolIfChanged(plan.BackupFailure, state.BackupFailure),
-		ScheduledTaskSuccess: flex.BoolIfChanged(plan.ScheduledTaskSuccess, state.ScheduledTaskSuccess),
-		ScheduledTaskFailure: flex.BoolIfChanged(plan.ScheduledTaskFailure, state.ScheduledTaskFailure),
-		DockerCleanupSuccess: flex.BoolIfChanged(plan.DockerCleanupSuccess, state.DockerCleanupSuccess),
-		DockerCleanupFailure: flex.BoolIfChanged(plan.DockerCleanupFailure, state.DockerCleanupFailure),
-		ServerDiskUsage:      flex.BoolIfChanged(plan.ServerDiskUsage, state.ServerDiskUsage),
-		ServerReachable:      flex.BoolIfChanged(plan.ServerReachable, state.ServerReachable),
-		ServerUnreachable:    flex.BoolIfChanged(plan.ServerUnreachable, state.ServerUnreachable),
-		ServerPatch:          flex.BoolIfChanged(plan.ServerPatch, state.ServerPatch),
-		TraefikOutdated:      flex.BoolIfChanged(plan.TraefikOutdated, state.TraefikOutdated),
+		SMTPEnabled:      flex.BoolIfChanged(plan.SMTPEnabled, state.SMTPEnabled),
+		ResendEnabled:    flex.BoolIfChanged(plan.ResendEnabled, state.ResendEnabled),
+		UseInstanceEmail: flex.BoolIfChanged(plan.UseInstanceEmail, state.UseInstanceEmail),
 	}
+	_ = client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel))
 	if w := flex.StringIfChanged(plan.SMTPFromAddress, state.SMTPFromAddress); w != nil {
 		in.SMTPFromAddress = w
 	}
@@ -332,6 +293,9 @@ func updateInputFromPlan(plan, state model) client.UpdateEmailNotificationInput 
 }
 
 func flatten(api *client.EmailNotificationSettings, m *model) {
+	if ev, err := client.EventsFrom(api); err == nil {
+		m.FlattenEvents(ev)
+	}
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.SMTPEnabled = types.BoolValue(api.SMTPEnabled)
 	m.ResendEnabled = types.BoolValue(api.ResendEnabled)
@@ -357,18 +321,4 @@ func flatten(api *client.EmailNotificationSettings, m *model) {
 	} else if m.SMTPTimeout.IsNull() || m.SMTPTimeout.IsUnknown() {
 		m.SMTPTimeout = types.Int64Null()
 	}
-	m.DeploymentSuccess = types.BoolValue(api.DeploymentSuccess)
-	m.DeploymentFailure = types.BoolValue(api.DeploymentFailure)
-	m.StatusChange = types.BoolValue(api.StatusChange)
-	m.BackupSuccess = types.BoolValue(api.BackupSuccess)
-	m.BackupFailure = types.BoolValue(api.BackupFailure)
-	m.ScheduledTaskSuccess = types.BoolValue(api.ScheduledTaskSuccess)
-	m.ScheduledTaskFailure = types.BoolValue(api.ScheduledTaskFailure)
-	m.DockerCleanupSuccess = types.BoolValue(api.DockerCleanupSuccess)
-	m.DockerCleanupFailure = types.BoolValue(api.DockerCleanupFailure)
-	m.ServerDiskUsage = types.BoolValue(api.ServerDiskUsage)
-	m.ServerReachable = types.BoolValue(api.ServerReachable)
-	m.ServerUnreachable = types.BoolValue(api.ServerUnreachable)
-	m.ServerPatch = types.BoolValue(api.ServerPatch)
-	m.TraefikOutdated = types.BoolValue(api.TraefikOutdated)
 }

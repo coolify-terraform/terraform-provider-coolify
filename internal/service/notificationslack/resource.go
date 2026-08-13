@@ -29,20 +29,7 @@ type model struct {
 	Enabled    types.Bool   `tfsdk:"enabled"`
 	WebhookURL types.String `tfsdk:"webhook_url"`
 
-	DeploymentSuccess    types.Bool `tfsdk:"deployment_success"`
-	DeploymentFailure    types.Bool `tfsdk:"deployment_failure"`
-	StatusChange         types.Bool `tfsdk:"status_change"`
-	BackupSuccess        types.Bool `tfsdk:"backup_success"`
-	BackupFailure        types.Bool `tfsdk:"backup_failure"`
-	ScheduledTaskSuccess types.Bool `tfsdk:"scheduled_task_success"`
-	ScheduledTaskFailure types.Bool `tfsdk:"scheduled_task_failure"`
-	DockerCleanupSuccess types.Bool `tfsdk:"docker_cleanup_success"`
-	DockerCleanupFailure types.Bool `tfsdk:"docker_cleanup_failure"`
-	ServerDiskUsage      types.Bool `tfsdk:"server_disk_usage"`
-	ServerReachable      types.Bool `tfsdk:"server_reachable"`
-	ServerUnreachable    types.Bool `tfsdk:"server_unreachable"`
-	ServerPatch          types.Bool `tfsdk:"server_patch"`
-	TraefikOutdated      types.Bool `tfsdk:"traefik_outdated"`
+	notificationcommon.EventModel
 }
 
 // NewResource returns a new Slack notification resource.
@@ -170,22 +157,9 @@ func (r *slackResource) ImportState(ctx context.Context, req resource.ImportStat
 
 func createInputFromPlan(plan model) client.UpdateSlackNotificationInput {
 	in := client.UpdateSlackNotificationInput{
-		Enabled:              flex.BoolValueOrNull(plan.Enabled),
-		DeploymentSuccess:    flex.BoolValueOrNull(plan.DeploymentSuccess),
-		DeploymentFailure:    flex.BoolValueOrNull(plan.DeploymentFailure),
-		StatusChange:         flex.BoolValueOrNull(plan.StatusChange),
-		BackupSuccess:        flex.BoolValueOrNull(plan.BackupSuccess),
-		BackupFailure:        flex.BoolValueOrNull(plan.BackupFailure),
-		ScheduledTaskSuccess: flex.BoolValueOrNull(plan.ScheduledTaskSuccess),
-		ScheduledTaskFailure: flex.BoolValueOrNull(plan.ScheduledTaskFailure),
-		DockerCleanupSuccess: flex.BoolValueOrNull(plan.DockerCleanupSuccess),
-		DockerCleanupFailure: flex.BoolValueOrNull(plan.DockerCleanupFailure),
-		ServerDiskUsage:      flex.BoolValueOrNull(plan.ServerDiskUsage),
-		ServerReachable:      flex.BoolValueOrNull(plan.ServerReachable),
-		ServerUnreachable:    flex.BoolValueOrNull(plan.ServerUnreachable),
-		ServerPatch:          flex.BoolValueOrNull(plan.ServerPatch),
-		TraefikOutdated:      flex.BoolValueOrNull(plan.TraefikOutdated),
+		Enabled: flex.BoolValueOrNull(plan.Enabled),
 	}
+	_ = client.ApplyEventUpdate(&in, plan.CreateUpdate())
 	if flex.StringValueConfigured(plan.WebhookURL) {
 		v := plan.WebhookURL.ValueString()
 		in.Webhook = &v
@@ -195,22 +169,9 @@ func createInputFromPlan(plan model) client.UpdateSlackNotificationInput {
 
 func updateInputFromPlan(plan, state model) client.UpdateSlackNotificationInput {
 	in := client.UpdateSlackNotificationInput{
-		Enabled:              flex.BoolIfChanged(plan.Enabled, state.Enabled),
-		DeploymentSuccess:    flex.BoolIfChanged(plan.DeploymentSuccess, state.DeploymentSuccess),
-		DeploymentFailure:    flex.BoolIfChanged(plan.DeploymentFailure, state.DeploymentFailure),
-		StatusChange:         flex.BoolIfChanged(plan.StatusChange, state.StatusChange),
-		BackupSuccess:        flex.BoolIfChanged(plan.BackupSuccess, state.BackupSuccess),
-		BackupFailure:        flex.BoolIfChanged(plan.BackupFailure, state.BackupFailure),
-		ScheduledTaskSuccess: flex.BoolIfChanged(plan.ScheduledTaskSuccess, state.ScheduledTaskSuccess),
-		ScheduledTaskFailure: flex.BoolIfChanged(plan.ScheduledTaskFailure, state.ScheduledTaskFailure),
-		DockerCleanupSuccess: flex.BoolIfChanged(plan.DockerCleanupSuccess, state.DockerCleanupSuccess),
-		DockerCleanupFailure: flex.BoolIfChanged(plan.DockerCleanupFailure, state.DockerCleanupFailure),
-		ServerDiskUsage:      flex.BoolIfChanged(plan.ServerDiskUsage, state.ServerDiskUsage),
-		ServerReachable:      flex.BoolIfChanged(plan.ServerReachable, state.ServerReachable),
-		ServerUnreachable:    flex.BoolIfChanged(plan.ServerUnreachable, state.ServerUnreachable),
-		ServerPatch:          flex.BoolIfChanged(plan.ServerPatch, state.ServerPatch),
-		TraefikOutdated:      flex.BoolIfChanged(plan.TraefikOutdated, state.TraefikOutdated),
+		Enabled: flex.BoolIfChanged(plan.Enabled, state.Enabled),
 	}
+	_ = client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel))
 	if w := flex.StringIfChanged(plan.WebhookURL, state.WebhookURL); w != nil {
 		in.Webhook = w
 	}
@@ -218,21 +179,10 @@ func updateInputFromPlan(plan, state model) client.UpdateSlackNotificationInput 
 }
 
 func flatten(api *client.SlackNotificationSettings, m *model) {
+	if ev, err := client.EventsFrom(api); err == nil {
+		m.FlattenEvents(ev)
+	}
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	flex.SetStringPreserveEmpty(&m.WebhookURL, api.Webhook)
-	m.DeploymentSuccess = types.BoolValue(api.DeploymentSuccess)
-	m.DeploymentFailure = types.BoolValue(api.DeploymentFailure)
-	m.StatusChange = types.BoolValue(api.StatusChange)
-	m.BackupSuccess = types.BoolValue(api.BackupSuccess)
-	m.BackupFailure = types.BoolValue(api.BackupFailure)
-	m.ScheduledTaskSuccess = types.BoolValue(api.ScheduledTaskSuccess)
-	m.ScheduledTaskFailure = types.BoolValue(api.ScheduledTaskFailure)
-	m.DockerCleanupSuccess = types.BoolValue(api.DockerCleanupSuccess)
-	m.DockerCleanupFailure = types.BoolValue(api.DockerCleanupFailure)
-	m.ServerDiskUsage = types.BoolValue(api.ServerDiskUsage)
-	m.ServerReachable = types.BoolValue(api.ServerReachable)
-	m.ServerUnreachable = types.BoolValue(api.ServerUnreachable)
-	m.ServerPatch = types.BoolValue(api.ServerPatch)
-	m.TraefikOutdated = types.BoolValue(api.TraefikOutdated)
 }
