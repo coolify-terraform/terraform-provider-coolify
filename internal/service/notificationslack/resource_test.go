@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -154,6 +155,31 @@ func TestSlackNotificationResource_CreateUpdateImport(t *testing.T) {
 				ImportStateId:           "current",
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"webhook_url"},
+			},
+		},
+	})
+}
+
+func TestSlackNotificationResource_InvalidImport(t *testing.T) {
+	t.Parallel()
+	store := &mockSlack{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_slack", "test", `
+  enabled     = true
+  webhook_url = "https://example.com/slack"
+`),
+			},
+			{
+				ResourceName:  "coolify_notification_slack.test",
+				ImportState:   true,
+				ImportStateId: "not-current",
+				ExpectError:   regexp.MustCompile(`team singleton|import with id "current"`),
 			},
 		},
 	})

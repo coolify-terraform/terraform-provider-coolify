@@ -52,6 +52,7 @@ func TestClient_DiscordNotifications_GetUpdate(t *testing.T) {
 
 func TestClient_SlackNotifications_GetUpdate(t *testing.T) {
 	t.Parallel()
+	var lastPatch map[string]interface{}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/notifications/slack", func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -61,12 +62,11 @@ func TestClient_SlackNotifications_GetUpdate(t *testing.T) {
 		})
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/slack", func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]interface{}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&lastPatch))
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id": 1, "team_id": 0,
-			"slack_enabled":     body["slack_enabled"],
-			"slack_webhook_url": body["slack_webhook_url"],
+			"slack_enabled":     lastPatch["slack_enabled"],
+			"slack_webhook_url": lastPatch["slack_webhook_url"],
 		})
 	})
 	srv := httptest.NewServer(mux)
@@ -82,6 +82,8 @@ func TestClient_SlackNotifications_GetUpdate(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, out.Enabled)
 	assert.Equal(t, wh, out.Webhook)
+	assert.Equal(t, true, lastPatch["slack_enabled"])
+	assert.Equal(t, wh, lastPatch["slack_webhook_url"])
 }
 
 func TestClient_EmailNotifications_GetUpdate(t *testing.T) {
@@ -123,6 +125,7 @@ func TestClient_EmailNotifications_GetUpdate(t *testing.T) {
 
 func TestClient_TelegramNotifications_GetUpdate(t *testing.T) {
 	t.Parallel()
+	var lastPatch map[string]interface{}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/notifications/telegram", func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -132,12 +135,11 @@ func TestClient_TelegramNotifications_GetUpdate(t *testing.T) {
 		})
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/telegram", func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]interface{}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&lastPatch))
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id": 1, "team_id": 0,
-			"telegram_enabled": body["telegram_enabled"],
-			"telegram_token":   body["telegram_token"],
+			"telegram_enabled": lastPatch["telegram_enabled"],
+			"telegram_token":   lastPatch["telegram_token"],
 		})
 	})
 	srv := httptest.NewServer(mux)
@@ -153,4 +155,91 @@ func TestClient_TelegramNotifications_GetUpdate(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, out.Enabled)
 	assert.Equal(t, "new", out.Token)
+	assert.Equal(t, true, lastPatch["telegram_enabled"])
+	assert.Equal(t, "new", lastPatch["telegram_token"])
+}
+
+func TestClient_WebhookNotifications_GetUpdate(t *testing.T) {
+	t.Parallel()
+	var lastPatch map[string]interface{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/webhook", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0,
+			"webhook_enabled": true,
+			"webhook_url":     "https://example.com/hooks/coolify",
+		})
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/webhook", func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&lastPatch))
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0,
+			"webhook_enabled": lastPatch["webhook_enabled"],
+			"webhook_url":     lastPatch["webhook_url"],
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := client.New(srv.URL, "tok")
+	ctx := context.Background()
+
+	got, err := c.GetWebhookNotifications(ctx)
+	require.NoError(t, err)
+	assert.True(t, got.Enabled)
+	assert.Equal(t, "https://example.com/hooks/coolify", got.Webhook)
+
+	en := false
+	wh := "https://example.com/hooks/coolify-updated"
+	out, err := c.UpdateWebhookNotifications(ctx, client.UpdateWebhookNotificationInput{Enabled: &en, Webhook: &wh})
+	require.NoError(t, err)
+	assert.False(t, out.Enabled)
+	assert.Equal(t, wh, out.Webhook)
+	assert.Equal(t, false, lastPatch["webhook_enabled"])
+	assert.Equal(t, wh, lastPatch["webhook_url"])
+}
+
+func TestClient_PushoverNotifications_GetUpdate(t *testing.T) {
+	t.Parallel()
+	var lastPatch map[string]interface{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/pushover", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0,
+			"pushover_enabled":   false,
+			"pushover_user_key":  "user-key",
+			"pushover_api_token": "api-token",
+		})
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/pushover", func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&lastPatch))
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0,
+			"pushover_enabled":   lastPatch["pushover_enabled"],
+			"pushover_user_key":  lastPatch["pushover_user_key"],
+			"pushover_api_token": lastPatch["pushover_api_token"],
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := client.New(srv.URL, "tok")
+	ctx := context.Background()
+
+	got, err := c.GetPushoverNotifications(ctx)
+	require.NoError(t, err)
+	assert.False(t, got.Enabled)
+	assert.Equal(t, "user-key", got.UserKey)
+
+	en := true
+	user := "new-user"
+	tok := "new-token"
+	out, err := c.UpdatePushoverNotifications(ctx, client.UpdatePushoverNotificationInput{
+		Enabled: &en, UserKey: &user, APIToken: &tok,
+	})
+	require.NoError(t, err)
+	assert.True(t, out.Enabled)
+	assert.Equal(t, "new-user", out.UserKey)
+	assert.Equal(t, "new-token", out.APIToken)
+	assert.Equal(t, true, lastPatch["pushover_enabled"])
+	assert.Equal(t, "new-user", lastPatch["pushover_user_key"])
+	assert.Equal(t, "new-token", lastPatch["pushover_api_token"])
 }

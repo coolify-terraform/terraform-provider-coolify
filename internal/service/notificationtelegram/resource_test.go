@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -179,6 +180,32 @@ func TestTelegramNotificationResource_PreserveHiddenSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_notification_telegram.test", "token", "secret-token"),
 					resource.TestCheckResourceAttr("coolify_notification_telegram.test", "chat_id", "chat-1"),
 				),
+			},
+		},
+	})
+}
+
+func TestTelegramNotificationResource_InvalidImport(t *testing.T) {
+	t.Parallel()
+	store := &mockTelegram{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_telegram", "test", `
+  enabled = true
+  token   = "tok"
+  chat_id = "1"
+`),
+			},
+			{
+				ResourceName:  "coolify_notification_telegram.test",
+				ImportState:   true,
+				ImportStateId: "not-current",
+				ExpectError:   regexp.MustCompile(`team singleton|import with id "current"`),
 			},
 		},
 	})
