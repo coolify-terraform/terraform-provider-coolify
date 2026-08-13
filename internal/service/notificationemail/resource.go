@@ -154,12 +154,20 @@ func (r *emailResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_notification_email"})
-	updated, err := r.client.UpdateEmailNotifications(ctx, createInputFromPlan(plan))
+	input, err := createInputFromPlan(plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdateEmailNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error configuring email notifications", err.Error())
 		return
 	}
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -179,7 +187,10 @@ func (r *emailResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		resp.Diagnostics.AddError("Error reading email notifications", err.Error())
 		return
 	}
-	flatten(got, &state)
+	if err := flatten(got, &state); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -195,12 +206,20 @@ func (r *emailResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_notification_email"})
-	updated, err := r.client.UpdateEmailNotifications(ctx, updateInputFromPlan(plan, state))
+	input, err := updateInputFromPlan(plan, state)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdateEmailNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating email notifications", err.Error())
 		return
 	}
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -224,13 +243,15 @@ func (r *emailResource) ImportState(ctx context.Context, req resource.ImportStat
 	notificationcommon.ImportStateCurrent(ctx, req, resp, "coolify_notification_email")
 }
 
-func createInputFromPlan(plan model) client.UpdateEmailNotificationInput {
+func createInputFromPlan(plan model) (client.UpdateEmailNotificationInput, error) {
 	in := client.UpdateEmailNotificationInput{
 		SMTPEnabled:      flex.BoolValueOrNull(plan.SMTPEnabled),
 		ResendEnabled:    flex.BoolValueOrNull(plan.ResendEnabled),
 		UseInstanceEmail: flex.BoolValueOrNull(plan.UseInstanceEmail),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.CreateUpdate())
+	if err := client.ApplyEventUpdate(&in, plan.CreateUpdate()); err != nil {
+		return in, err
+	}
 	setStr := func(v types.String, dst **string) {
 		if flex.StringValueConfigured(v) {
 			s := v.ValueString()
@@ -253,16 +274,18 @@ func createInputFromPlan(plan model) client.UpdateEmailNotificationInput {
 		v := int(plan.SMTPTimeout.ValueInt64())
 		in.SMTPTimeout = &v
 	}
-	return in
+	return in, nil
 }
 
-func updateInputFromPlan(plan, state model) client.UpdateEmailNotificationInput {
+func updateInputFromPlan(plan, state model) (client.UpdateEmailNotificationInput, error) {
 	in := client.UpdateEmailNotificationInput{
 		SMTPEnabled:      flex.BoolIfChanged(plan.SMTPEnabled, state.SMTPEnabled),
 		ResendEnabled:    flex.BoolIfChanged(plan.ResendEnabled, state.ResendEnabled),
 		UseInstanceEmail: flex.BoolIfChanged(plan.UseInstanceEmail, state.UseInstanceEmail),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel))
+	if err := client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel)); err != nil {
+		return in, err
+	}
 	if w := flex.StringIfChanged(plan.SMTPFromAddress, state.SMTPFromAddress); w != nil {
 		in.SMTPFromAddress = w
 	}
@@ -289,13 +312,15 @@ func updateInputFromPlan(plan, state model) client.UpdateEmailNotificationInput 
 	}
 	in.SMTPPort = flex.IntIfChanged(plan.SMTPPort, state.SMTPPort)
 	in.SMTPTimeout = flex.IntIfChanged(plan.SMTPTimeout, state.SMTPTimeout)
-	return in
+	return in, nil
 }
 
-func flatten(api *client.EmailNotificationSettings, m *model) {
-	if ev, err := client.EventsFrom(api); err == nil {
-		m.FlattenEvents(ev)
+func flatten(api *client.EmailNotificationSettings, m *model) error {
+	ev, err := client.EventsFrom(api)
+	if err != nil {
+		return err
 	}
+	m.FlattenEvents(ev)
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.SMTPEnabled = types.BoolValue(api.SMTPEnabled)
 	m.ResendEnabled = types.BoolValue(api.ResendEnabled)
@@ -321,4 +346,5 @@ func flatten(api *client.EmailNotificationSettings, m *model) {
 	} else if m.SMTPTimeout.IsNull() || m.SMTPTimeout.IsUnknown() {
 		m.SMTPTimeout = types.Int64Null()
 	}
+	return nil
 }

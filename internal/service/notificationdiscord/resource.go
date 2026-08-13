@@ -83,14 +83,21 @@ func (r *discordResource) Create(ctx context.Context, req resource.CreateRequest
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_notification_discord"})
 
-	input := createInputFromPlan(plan)
+	input, err := createInputFromPlan(plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	updated, err := r.client.UpdateDiscordNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error configuring Discord notifications", err.Error())
 		return
 	}
 
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -113,7 +120,10 @@ func (r *discordResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	flatten(got, &state)
+	if err := flatten(got, &state); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -131,14 +141,21 @@ func (r *discordResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_notification_discord"})
 
-	input := updateInputFromPlan(plan, state)
+	input, err := updateInputFromPlan(plan, state)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	updated, err := r.client.UpdateDiscordNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Discord notifications", err.Error())
 		return
 	}
 
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -160,38 +177,45 @@ func (r *discordResource) ImportState(ctx context.Context, req resource.ImportSt
 	notificationcommon.ImportStateCurrent(ctx, req, resp, "coolify_notification_discord")
 }
 
-func createInputFromPlan(plan model) client.UpdateDiscordNotificationInput {
+func createInputFromPlan(plan model) (client.UpdateDiscordNotificationInput, error) {
 	in := client.UpdateDiscordNotificationInput{
 		Enabled:     flex.BoolValueOrNull(plan.Enabled),
 		PingEnabled: flex.BoolValueOrNull(plan.PingEnabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.CreateUpdate())
+	if err := client.ApplyEventUpdate(&in, plan.CreateUpdate()); err != nil {
+		return in, err
+	}
 	if flex.StringValueConfigured(plan.WebhookURL) {
 		v := plan.WebhookURL.ValueString()
 		in.Webhook = &v
 	}
-	return in
+	return in, nil
 }
 
-func updateInputFromPlan(plan, state model) client.UpdateDiscordNotificationInput {
+func updateInputFromPlan(plan, state model) (client.UpdateDiscordNotificationInput, error) {
 	in := client.UpdateDiscordNotificationInput{
 		Enabled:     flex.BoolIfChanged(plan.Enabled, state.Enabled),
 		PingEnabled: flex.BoolIfChanged(plan.PingEnabled, state.PingEnabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel))
+	if err := client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel)); err != nil {
+		return in, err
+	}
 	if w := flex.StringIfChanged(plan.WebhookURL, state.WebhookURL); w != nil {
 		in.Webhook = w
 	}
-	return in
+	return in, nil
 }
 
-func flatten(api *client.DiscordNotificationSettings, m *model) {
-	if ev, err := client.EventsFrom(api); err == nil {
-		m.FlattenEvents(ev)
+func flatten(api *client.DiscordNotificationSettings, m *model) error {
+	ev, err := client.EventsFrom(api)
+	if err != nil {
+		return err
 	}
+	m.FlattenEvents(ev)
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	m.PingEnabled = types.BoolValue(api.PingEnabled)
 	// Preserve webhook from state when API hides encrypted field.
 	flex.SetStringPreserveEmpty(&m.WebhookURL, api.Webhook)
+	return nil
 }

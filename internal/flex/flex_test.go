@@ -611,6 +611,20 @@ func TestSetStringSeedOrClear(t *testing.T) {
 	t.Run("handles nil dst", func(t *testing.T) {
 		flex.SetStringSeedOrClear(nil, "x")
 	})
+	t.Run("overwrites configured when API non-empty", func(t *testing.T) {
+		dst := types.StringValue("old")
+		flex.SetStringSeedOrClear(&dst, "new")
+		if dst.ValueString() != "new" {
+			t.Fatalf("expected new, got %q", dst.ValueString())
+		}
+	})
+	t.Run("seeds unknown from non-empty API", func(t *testing.T) {
+		dst := types.StringUnknown()
+		flex.SetStringSeedOrClear(&dst, "from-api")
+		if dst.ValueString() != "from-api" {
+			t.Fatalf("expected seeded value, got %q", dst.ValueString())
+		}
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -645,6 +659,16 @@ func TestSetStringSeedIfConfigured(t *testing.T) {
 		flex.SetStringSeedIfConfigured(&dst, "", "/")
 		if dst.ValueString() != "/keep" {
 			t.Fatalf("expected /keep, got %q", dst.ValueString())
+		}
+	})
+	t.Run("handles nil dst", func(t *testing.T) {
+		flex.SetStringSeedIfConfigured(nil, "/x", "/")
+	})
+	t.Run("does not seed unknown from API default", func(t *testing.T) {
+		dst := types.StringUnknown()
+		flex.SetStringSeedIfConfigured(&dst, "/", "/")
+		if !dst.IsUnknown() {
+			t.Fatalf("expected unknown for default API value")
 		}
 	})
 }
@@ -682,6 +706,9 @@ func TestSetStringPreserveEmpty(t *testing.T) {
 		if dst.ValueString() != "generated" {
 			t.Fatalf("expected generated, got %q", dst.ValueString())
 		}
+	})
+	t.Run("handles nil dst", func(t *testing.T) {
+		flex.SetStringPreserveEmpty(nil, "x")
 	})
 }
 

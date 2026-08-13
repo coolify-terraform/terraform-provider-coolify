@@ -374,10 +374,16 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_validate` | Yes | Yes | N/A | N/A | Trigger resource |
 | `coolify_envs_bulk` | Yes | Yes | N/A | N/A | Atomic env var set management |
 
-### Data Sources (56 total)
+### Data Sources (62 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
+| `coolify_notification_discord` | Yes | Team singleton; Coolify >= v4.3.0 |
+| `coolify_notification_slack` | Yes | Team singleton; Coolify >= v4.3.0 |
+| `coolify_notification_email` | Yes | Team singleton; Coolify >= v4.3.0 |
+| `coolify_notification_telegram` | Yes | Team singleton; Coolify >= v4.3.0 |
+| `coolify_notification_webhook` | Yes | Team singleton; Coolify >= v4.3.0 |
+| `coolify_notification_pushover` | Yes | Team singleton; Coolify >= v4.3.0 |
 | `coolify_version` | Yes | |
 | `coolify_health` | Yes | |
 | `coolify_team` | Yes | |
@@ -429,7 +435,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 45/45 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 118
+- **Total acceptance test functions**: 124
 
 ### Testing strategies for edge cases
 

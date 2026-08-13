@@ -316,3 +316,79 @@ func TestWebhookNotificationResource_DestroyAPIError(t *testing.T) {
 		},
 	})
 }
+
+func TestWebhookNotificationResource_ReadNotFound(t *testing.T) {
+	t.Parallel()
+	var gone bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/webhook", func(w http.ResponseWriter, _ *http.Request) {
+		if gone {
+			http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"webhook_enabled":true,"webhook_url":"https://example.com/hook"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/webhook", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"webhook_enabled":true,"webhook_url":"https://example.com/hook"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_webhook", "test", `
+  enabled     = true
+  webhook_url = "https://example.com/hook"
+`),
+			},
+			{
+				PreConfig: func() { gone = true },
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_webhook", "test", `
+  enabled     = true
+  webhook_url = "https://example.com/hook"
+`),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestWebhookNotificationResource_DestroyNotFound(t *testing.T) {
+	t.Parallel()
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/webhook", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"webhook_enabled":true,"webhook_url":"https://example.com/hook"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/webhook", func(w http.ResponseWriter, _ *http.Request) {
+		patches++
+		if patches >= 2 {
+			http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"webhook_enabled":true,"webhook_url":"https://example.com/hook"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_webhook", "test", `
+  enabled     = true
+  webhook_url = "https://example.com/hook"
+`),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL),
+			},
+		},
+	})
+}

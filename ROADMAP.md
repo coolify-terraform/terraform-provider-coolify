@@ -10,7 +10,7 @@ The provider covers the core Coolify resource model:
 - 45 managed resources (projects, servers, applications, databases, services,
   backups, environment variables, deployments, notification channels, S3 storage,
   and more)
-- 56 data sources for reading existing infrastructure
+- 62 data sources for reading existing infrastructure
 - 18 ACME Corp scenario examples with integration tests
 - Full import support for adopting existing Coolify resources
 - Coolify v4.2 surfaces: destinations, DigitalOcean/Vultr server provisioning

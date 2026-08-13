@@ -420,3 +420,85 @@ func TestEmailNotificationResource_DestroyAPIError(t *testing.T) {
 		},
 	})
 }
+
+func TestEmailNotificationResource_ReadNotFound(t *testing.T) {
+	t.Parallel()
+	var gone bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		if gone {
+			http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+			},
+			{
+				PreConfig: func() { gone = true },
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestEmailNotificationResource_DestroyNotFound(t *testing.T) {
+	t.Parallel()
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		patches++
+		if patches >= 2 {
+			http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL),
+			},
+		},
+	})
+}

@@ -80,13 +80,21 @@ func (r *webhookResource) Create(ctx context.Context, req resource.CreateRequest
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_notification_webhook"})
 
-	updated, err := r.client.UpdateWebhookNotifications(ctx, createInputFromPlan(plan))
+	input, err := createInputFromPlan(plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdateWebhookNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error configuring Webhook notifications", err.Error())
 		return
 	}
 
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -109,7 +117,10 @@ func (r *webhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	flatten(got, &state)
+	if err := flatten(got, &state); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -127,13 +138,21 @@ func (r *webhookResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_notification_webhook"})
 
-	updated, err := r.client.UpdateWebhookNotifications(ctx, updateInputFromPlan(plan, state))
+	input, err := updateInputFromPlan(plan, state)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdateWebhookNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Webhook notifications", err.Error())
 		return
 	}
 
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -155,34 +174,41 @@ func (r *webhookResource) ImportState(ctx context.Context, req resource.ImportSt
 	notificationcommon.ImportStateCurrent(ctx, req, resp, "coolify_notification_webhook")
 }
 
-func createInputFromPlan(plan model) client.UpdateWebhookNotificationInput {
+func createInputFromPlan(plan model) (client.UpdateWebhookNotificationInput, error) {
 	in := client.UpdateWebhookNotificationInput{
 		Enabled: flex.BoolValueOrNull(plan.Enabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.CreateUpdate())
+	if err := client.ApplyEventUpdate(&in, plan.CreateUpdate()); err != nil {
+		return in, err
+	}
 	if flex.StringValueConfigured(plan.WebhookURL) {
 		v := plan.WebhookURL.ValueString()
 		in.Webhook = &v
 	}
-	return in
+	return in, nil
 }
 
-func updateInputFromPlan(plan, state model) client.UpdateWebhookNotificationInput {
+func updateInputFromPlan(plan, state model) (client.UpdateWebhookNotificationInput, error) {
 	in := client.UpdateWebhookNotificationInput{
 		Enabled: flex.BoolIfChanged(plan.Enabled, state.Enabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel))
+	if err := client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel)); err != nil {
+		return in, err
+	}
 	if w := flex.StringIfChanged(plan.WebhookURL, state.WebhookURL); w != nil {
 		in.Webhook = w
 	}
-	return in
+	return in, nil
 }
 
-func flatten(api *client.WebhookNotificationSettings, m *model) {
-	if ev, err := client.EventsFrom(api); err == nil {
-		m.FlattenEvents(ev)
+func flatten(api *client.WebhookNotificationSettings, m *model) error {
+	ev, err := client.EventsFrom(api)
+	if err != nil {
+		return err
 	}
+	m.FlattenEvents(ev)
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	flex.SetStringPreserveEmpty(&m.WebhookURL, api.Webhook)
+	return nil
 }
