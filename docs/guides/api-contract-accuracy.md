@@ -9,25 +9,22 @@ description: "Comparison of Coolify OpenAPI spec vs real source code contract."
 This page compares the pinned reusable OpenAPI schemas with the source-derived
 Coolify contract extracted from the real application code.
 
-> The source-derived contract is the source of truth for fields **and** routes
-> (`API_COVERAGE.md` inventories contract `routes[]`). The pinned OpenAPI spec is
-> useful only for reusable public schemas and optional request-shape checks; it is
-> **not** a complete Coolify route inventory.
+> The source-derived contract is the field-level source of truth. The pinned OpenAPI spec is useful for reusable public schemas and route inventory, but some contract models only exist as internal implementation details or inline request bodies.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
-Contract version: `v4.1.2` | Extracted from: `coollabsio/coolify@v4.1.2`
+Contract version: `v4.3.2` | Extracted from: `coollabsio/coolify@v4.3.2`
 
 ## Summary
 
 | Metric | Count |
 |--------|------:|
-| Public schema fields compared | 299 |
-| Public schema type matches | 299/299 |
-| Public schema nullable matches | 269/299 |
-| Public schema client JSON mappings | 143/299 |
-| Reusable public schemas compared | 9 |
-| Contract-only / inline-only models documented | 13 |
+| Public schema fields compared | 311 |
+| Public schema type matches | 311/311 |
+| Public schema nullable matches | 251/311 |
+| Public schema client JSON mappings | 241/311 |
+| Reusable public schemas compared | 10 |
+| Contract-only / inline-only models documented | 12 |
 
 ---
 
@@ -35,56 +32,53 @@ Contract version: `v4.1.2` | Extracted from: `coollabsio/coolify@v4.1.2`
 
 ## Application
 
-Fields: 133 | Type matches: 133/133 | Nullable matches: 120/133 | Client JSON mappings: 78/133
+Fields: 136 | Type matches: 136/136 | Nullable matches: 119/136 | Client JSON mappings: 107/136
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| additional_destinations | string | string | yes | **WRONG** | - | n/a |
 | application_id | integer | integer | yes | yes | - | n/a |
 | base_directory | string | string | yes | yes | / | mapped |
 | build_command | string | string | yes | reviewed drift | - | mapped |
 | build_pack | string | string | yes | yes | - | mapped |
-| compose_parsing_version | string | string | yes | yes | - | n/a |
-| config_hash | string | string | yes | **WRONG** | - | n/a |
-| connect_to_docker_network | string | string | yes | yes | - | mapped |
+| compose_parsing_version | string | string | yes | yes | 1 | n/a |
+| config_hash | string | string | yes | **WRONG** | - | mapped |
+| connect_to_docker_network | boolean | boolean | yes | yes | false | mapped |
 | custom_docker_run_options | string | string | yes | yes | - | mapped |
-| custom_healthcheck_found | string | string | yes | yes | - | n/a |
-| custom_internal_name | string | string | yes | yes | - | n/a |
-| custom_labels | string | string | yes | reviewed drift | - | mapped |
-| custom_network_aliases | string | string | yes | reviewed drift | - | mapped |
-| custom_nginx_configuration | string | string | yes | reviewed drift | - | mapped |
-| description | string | string | yes | reviewed drift | - | mapped |
+| custom_healthcheck_found | boolean | boolean | yes | yes | false | n/a |
+| custom_internal_name | string | string | yes | **WRONG** | - | mapped |
+| custom_labels | string | string | yes | yes | - | mapped |
+| custom_network_aliases | string | string | yes | yes | - | mapped |
+| custom_nginx_configuration | string | string | yes | yes | - | mapped |
+| description | string | string | yes | yes | - | mapped |
 | destination_id | integer | integer | yes | **WRONG** | - | n/a |
 | destination_type | string | string | yes | **WRONG** | - | n/a |
-| disable_build_cache | string | string | yes | yes | - | n/a |
-| docker_compose | string | string | yes | **WRONG** | - | n/a |
-| docker_compose_custom_build_command | string | string | yes | reviewed drift | - | mapped |
-| docker_compose_custom_start_command | string | string | yes | reviewed drift | - | mapped |
-| docker_compose_domains | string | string | yes | reviewed drift | - | mapped |
-| docker_compose_location | string | string | yes | yes | - | mapped |
-| docker_compose_pr | string | string | yes | **WRONG** | - | n/a |
-| docker_compose_pr_location | string | string | yes | **WRONG** | /docker-compose.yaml | n/a |
-| docker_compose_pr_raw | string | string | yes | **WRONG** | - | n/a |
-| docker_compose_raw | string | string | yes | reviewed drift | - | mapped |
-| docker_images_to_keep | string | string | yes | yes | - | n/a |
+| disable_build_cache | boolean | boolean | yes | yes | false | mapped |
+| docker_compose | string | string | yes | yes | - | mapped |
+| docker_compose_custom_build_command | string | string | yes | yes | - | mapped |
+| docker_compose_custom_start_command | string | string | yes | yes | - | mapped |
+| docker_compose_domains | string | string | yes | yes | - | mapped |
+| docker_compose_location | string | string | yes | **WRONG** | /docker-compose.yaml | mapped |
+| docker_compose_raw | string | string | yes | yes | - | mapped |
+| docker_images_to_keep | integer | integer | yes | yes | 2 | mapped |
 | docker_registry_image_name | string | string | yes | yes | - | mapped |
 | docker_registry_image_tag | string | string | yes | yes | - | mapped |
-| dockerfile | string | string | yes | reviewed drift | - | mapped |
-| dockerfile_location | string | string | yes | yes | - | mapped |
-| dockerfile_target_build | string | string | yes | reviewed drift | - | mapped |
+| dockerfile | string | string | yes | yes | - | mapped |
+| dockerfile_location | string | string | yes | **WRONG** | - | mapped |
+| dockerfile_target_build | string | string | yes | yes | - | mapped |
+| domain_dns_statuses | object | object | yes | **WRONG** | - | n/a |
 | environment_id | integer | integer | yes | yes | - | n/a |
 | force_domain_override | string | string | yes | yes | - | mapped |
-| domains | string | string | yes | yes | - | mapped |
+| fqdn | string | string | yes | yes | - | mapped |
 | git_branch | string | string | yes | yes | - | mapped |
 | git_commit_sha | string | string | yes | yes | HEAD | mapped |
 | git_full_url | string | string | yes | yes | - | n/a |
 | git_repository | string | string | yes | yes | - | mapped |
-| gpu_count | string | string | yes | yes | - | n/a |
-| gpu_device_ids | string | string | yes | yes | - | n/a |
-| gpu_driver | string | string | yes | yes | - | n/a |
-| gpu_options | string | string | yes | yes | - | n/a |
-| health_check_command | string | string | yes | reviewed drift | - | mapped |
-| health_check_enabled | boolean | boolean | yes | yes | true | mapped |
+| gpu_count | string | string | yes | **WRONG** | - | mapped |
+| gpu_device_ids | string | string | yes | **WRONG** | - | mapped |
+| gpu_driver | string | string | yes | yes | nvidia | mapped |
+| gpu_options | string | string | yes | **WRONG** | - | mapped |
+| health_check_command | string | string | yes | yes | - | mapped |
+| health_check_enabled | boolean | boolean | yes | yes | false | mapped |
 | health_check_host | string | string | yes | reviewed drift | localhost | mapped |
 | health_check_interval | integer | integer | yes | yes | 5 | mapped |
 | health_check_method | string | string | yes | yes | GET | mapped |
@@ -96,65 +90,67 @@ Fields: 133 | Type matches: 133/133 | Nullable matches: 120/133 | Client JSON ma
 | health_check_scheme | string | string | yes | yes | http | mapped |
 | health_check_start_period | integer | integer | yes | yes | 5 | mapped |
 | health_check_timeout | integer | integer | yes | yes | 5 | mapped |
-| health_check_type | string | string | yes | yes | - | mapped |
-| http_basic_auth_password | string | string | yes | reviewed drift | - | mapped |
-| http_basic_auth_username | string | string | yes | reviewed drift | - | mapped |
-| include_source_commit_in_build | string | string | yes | yes | - | n/a |
-| inject_build_args_to_dockerfile | string | string | yes | yes | - | n/a |
+| health_check_type | string | string | yes | yes | http | mapped |
+| http_basic_auth_password | string | string | yes | yes | - | mapped |
+| http_basic_auth_username | string | string | yes | yes | - | mapped |
+| include_source_commit_in_build | boolean | boolean | yes | yes | false | mapped |
+| inject_build_args_to_dockerfile | boolean | boolean | yes | yes | true | mapped |
 | install_command | string | string | yes | reviewed drift | - | mapped |
 | is_auto_deploy_enabled | boolean | boolean | yes | yes | true | mapped |
-| is_build_server_enabled | string | string | yes | yes | - | n/a |
-| is_consistent_container_name_enabled | string | string | yes | yes | - | n/a |
-| is_container_label_escape_enabled | string | string | yes | yes | - | mapped |
-| is_container_label_readonly_enabled | boolean | boolean | yes | yes | false | n/a |
+| is_build_server_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_consistent_container_name_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_container_label_escape_enabled | boolean | boolean | yes | yes | true | mapped |
+| is_container_label_readonly_enabled | boolean | boolean | yes | yes | true | n/a |
 | is_custom_ssl | boolean | boolean | yes | yes | false | n/a |
 | is_debug_enabled | boolean | boolean | yes | yes | false | n/a |
 | is_dual_cert | boolean | boolean | yes | yes | false | n/a |
-| is_env_sorting_enabled | boolean | boolean | yes | yes | false | n/a |
+| is_env_sorting_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_force_https_enabled | boolean | boolean | yes | yes | true | mapped |
-| is_git_lfs_enabled | boolean | boolean | yes | yes | true | n/a |
-| is_git_shallow_clone_enabled | string | string | yes | yes | - | n/a |
-| is_git_submodules_enabled | boolean | boolean | yes | yes | true | n/a |
-| is_gpu_enabled | string | string | yes | yes | - | n/a |
-| is_gzip_enabled | string | string | yes | yes | - | n/a |
+| is_git_lfs_enabled | boolean | boolean | yes | yes | true | mapped |
+| is_git_shallow_clone_enabled | boolean | boolean | yes | yes | true | mapped |
+| is_git_submodules_enabled | boolean | boolean | yes | yes | true | mapped |
+| is_gpu_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_gzip_enabled | boolean | boolean | yes | yes | true | mapped |
 | is_http2 | boolean | boolean | yes | yes | false | n/a |
-| is_http_basic_auth_enabled | string | string | yes | yes | - | mapped |
-| is_include_timestamps | string | string | yes | yes | - | n/a |
-| is_log_drain_enabled | string | string | yes | yes | - | n/a |
-| is_pr_deployments_public_enabled | string | string | yes | yes | - | n/a |
-| is_preserve_repository_enabled | string | string | yes | yes | - | mapped |
-| is_preview_deployments_enabled | boolean | boolean | yes | yes | false | n/a |
-| is_raw_compose_deployment_enabled | string | string | yes | yes | - | n/a |
-| is_spa | string | string | yes | yes | - | mapped |
+| is_http_basic_auth_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_include_timestamps | boolean | boolean | yes | yes | false | mapped |
+| is_log_drain_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_pr_deployments_public_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_preserve_repository_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_preview_deployments_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_raw_compose_deployment_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_spa | boolean | boolean | yes | yes | false | mapped |
 | is_static | boolean | boolean | yes | yes | false | mapped |
-| is_stripprefix_enabled | string | string | yes | yes | - | n/a |
-| is_swarm_only_worker_nodes | string | string | yes | yes | - | n/a |
-| last_online_at | string | string | yes | yes | - | n/a |
+| is_stripprefix_enabled | boolean | boolean | yes | yes | true | mapped |
+| is_swarm_only_worker_nodes | boolean | boolean | yes | yes | true | n/a |
+| last_online_at | string | string | yes | yes | now( | n/a |
 | last_restart_at | string | string | yes | **WRONG** | - | n/a |
 | last_restart_type | string | string | yes | **WRONG** | - | n/a |
 | limits_cpu_shares | integer | integer | yes | yes | 1024 | mapped |
 | limits_cpus | string | string | yes | yes | 0 | mapped |
-| limits_cpuset | string | string | yes | yes | 0 | mapped |
+| limits_cpuset | string | string | yes | yes | - | mapped |
 | limits_memory | string | string | yes | yes | 0 | mapped |
 | limits_memory_reservation | string | string | yes | yes | 0 | mapped |
 | limits_memory_swap | string | string | yes | yes | 0 | mapped |
 | limits_memory_swappiness | integer | integer | yes | yes | 60 | mapped |
-| manual_webhook_secret_bitbucket | string | string | yes | reviewed drift | - | mapped |
-| manual_webhook_secret_gitea | string | string | yes | reviewed drift | - | mapped |
-| manual_webhook_secret_github | string | string | yes | reviewed drift | - | mapped |
-| manual_webhook_secret_gitlab | string | string | yes | reviewed drift | - | mapped |
+| manual_webhook_secret_bitbucket | string | string | yes | yes | - | mapped |
+| manual_webhook_secret_gitea | string | string | yes | yes | - | mapped |
+| manual_webhook_secret_github | string | string | yes | yes | - | mapped |
+| manual_webhook_secret_gitlab | string | string | yes | yes | - | mapped |
+| max_restart_count | string | string | yes | yes | - | mapped |
 | name | string | string | yes | yes | - | mapped |
 | nixpkgsarchive | string | string | yes | yes | - | n/a |
-| ports_exposes | string | string | yes | yes | - | mapped |
+| noindex_domains | object | object | yes | **WRONG** | - | mapped |
+| ports_exposes | string | string | yes | **WRONG** | - | mapped |
 | ports_mappings | string | string | yes | yes | - | mapped |
 | post_deployment_command | string | string | yes | yes | - | mapped |
-| post_deployment_command_container | string | string | yes | reviewed drift | - | mapped |
+| post_deployment_command_container | string | string | yes | yes | - | mapped |
 | pre_deployment_command | string | string | yes | yes | - | mapped |
-| pre_deployment_command_container | string | string | yes | reviewed drift | - | mapped |
+| pre_deployment_command_container | string | string | yes | yes | - | mapped |
 | preview_url_template | string | string | yes | yes | { {pr_id} }.{ {domain} } | mapped |
 | private_key_id | integer | integer | yes | yes | - | n/a |
 | publish_directory | string | string | yes | reviewed drift | - | mapped |
-| redirect | string | string | yes | reviewed drift | - | mapped |
+| redirect | string | string | yes | reviewed drift | both | mapped |
 | repository_project_id | integer | integer | yes | yes | - | n/a |
 | restart_count | integer | integer | yes | yes | 0 | n/a |
 | source_id | integer | integer | yes | yes | - | n/a |
@@ -162,79 +158,70 @@ Fields: 133 | Type matches: 133/133 | Nullable matches: 120/133 | Client JSON ma
 | start_command | string | string | yes | reviewed drift | - | mapped |
 | static_image | string | string | yes | yes | nginx:alpine | mapped |
 | status | string | string | yes | yes | exited | mapped |
-| swarm_placement_constraints | string | string | yes | **WRONG** | - | n/a |
-| swarm_replicas | string | string | yes | **WRONG** | - | n/a |
-| use_build_secrets | string | string | yes | yes | - | n/a |
+| stop_grace_period | integer | integer | yes | **WRONG** | - | mapped |
+| swarm_placement_constraints | string | string | yes | yes | - | n/a |
+| swarm_replicas | integer | integer | yes | **WRONG** | 1 | n/a |
+| use_build_secrets | boolean | boolean | yes | yes | false | mapped |
 | use_build_server | string | string | yes | yes | - | mapped |
 | uuid | string | string | yes | yes | - | mapped |
-| watch_paths | string | string | yes | reviewed drift | - | mapped |
+| watch_paths | string | string | yes | yes | - | mapped |
 | created_at | - | string | - | - | - | mapped |
 | deleted_at | - | string | - | - | - | n/a |
+| docker_compose_pr | - | string | - | - | - | n/a |
+| docker_compose_pr_location | - | string | - | - | - | n/a |
+| docker_compose_pr_raw | - | string | - | - | - | n/a |
 | id | - | integer | - | - | - | mapped |
 | updated_at | - | string | - | - | - | mapped |
 
 ## Environment
 
-Fields: 7 | Type matches: 7/7 | Nullable matches: 7/7 | Client JSON mappings: 6/7
+Fields: 7 | Type matches: 7/7 | Nullable matches: 5/7 | Client JSON mappings: 6/7
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| description | string | string | yes | yes | - | mapped |
+| description | string | string | yes | **WRONG** | - | mapped |
 | name | string | string | yes | yes | - | mapped |
 | project_id | integer | integer | yes | yes | - | n/a |
-| uuid | string | string | yes | yes | - | mapped |
+| uuid | string | string | yes | **WRONG** | - | mapped |
 | created_at | - | string | - | - | - | mapped |
 | id | - | integer | - | - | - | mapped |
 | updated_at | - | string | - | - | - | mapped |
 
 ## EnvironmentVariable
 
-Fields: 33 | Type matches: 33/33 | Nullable matches: 21/33 | Client JSON mappings: 8/33
+Fields: 20 | Type matches: 20/20 | Nullable matches: 16/20 | Client JSON mappings: 13/20
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| application_id | integer | integer | yes | **WRONG** | - | n/a |
-| comment | string | string | yes | **WRONG** | - | n/a |
-| database_id | integer | integer | yes | **WRONG** | - | n/a |
-| is_build_time | boolean | boolean | yes | yes | false | n/a |
-| is_buildtime | string | string | yes | yes | true | mapped |
-| is_buildtime_only | boolean | boolean | yes | yes | false | n/a |
-| is_literal | string | string | yes | yes | - | n/a |
-| is_multiline | string | string | yes | yes | - | n/a |
+| comment | string | string | yes | yes | - | mapped |
+| is_buildtime | boolean | boolean | yes | yes | true | mapped |
+| is_literal | boolean | boolean | yes | yes | false | mapped |
+| is_multiline | boolean | boolean | yes | yes | false | mapped |
 | is_preview | boolean | boolean | yes | yes | false | mapped |
-| is_required | string | string | yes | yes | - | n/a |
-| is_runtime | string | string | yes | yes | true | n/a |
-| is_shared | string | string | yes | yes | - | n/a |
-| is_shown_once | string | string | yes | yes | - | n/a |
+| is_required | boolean | boolean | yes | yes | false | n/a |
+| is_runtime | boolean | boolean | yes | yes | true | mapped |
+| is_shared | boolean | boolean | yes | yes | false | n/a |
+| is_shown_once | boolean | boolean | yes | yes | false | mapped |
 | key | string | string | yes | yes | - | mapped |
-| order | string | string | yes | yes | - | n/a |
-| resourceable_id | string | string | yes | yes | - | n/a |
-| resourceable_type | string | string | yes | yes | - | n/a |
-| service_id | integer | integer | yes | **WRONG** | - | n/a |
-| standalone_clickhouse_id | integer | integer | yes | **WRONG** | - | n/a |
-| standalone_dragonfly_id | integer | integer | yes | **WRONG** | - | n/a |
-| standalone_keydb_id | integer | integer | yes | **WRONG** | - | n/a |
-| standalone_mariadb_id | integer | integer | yes | **WRONG** | - | n/a |
-| standalone_mongodb_id | integer | integer | yes | **WRONG** | - | n/a |
-| standalone_mysql_id | integer | integer | yes | **WRONG** | - | n/a |
-| standalone_postgresql_id | integer | integer | yes | **WRONG** | - | n/a |
-| standalone_redis_id | integer | integer | yes | **WRONG** | - | n/a |
+| order | integer | integer | yes | **WRONG** | - | n/a |
+| resourceable_id | integer | integer | yes | **WRONG** | - | n/a |
+| resourceable_type | string | string | yes | **WRONG** | - | n/a |
+| uuid | string | string | yes | **WRONG** | - | mapped |
 | value | string | string | yes | reviewed drift | - | mapped |
-| version | string | string | yes | yes | - | n/a |
+| version | string | string | yes | yes | 4.0.0-beta.239 | n/a |
 | created_at | - | string | - | - | - | mapped |
 | id | - | integer | - | - | - | mapped |
 | real_value | - | string | - | - | - | n/a |
 | updated_at | - | string | - | - | - | mapped |
-| uuid | - | string | - | - | - | mapped |
 
 ## PrivateKey
 
-Fields: 11 | Type matches: 11/11 | Nullable matches: 11/11 | Client JSON mappings: 10/11
+Fields: 11 | Type matches: 11/11 | Nullable matches: 10/11 | Client JSON mappings: 11/11
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | description | string | string | yes | reviewed drift | - | mapped |
-| fingerprint | string | string | yes | yes | - | mapped |
+| fingerprint | string | string | yes | **WRONG** | - | mapped |
 | is_git_related | boolean | boolean | yes | yes | false | mapped |
 | name | string | string | yes | yes | - | mapped |
 | private_key | string | string | yes | yes | - | mapped |
@@ -242,7 +229,7 @@ Fields: 11 | Type matches: 11/11 | Nullable matches: 11/11 | Client JSON mapping
 | created_at | - | string | - | - | - | mapped |
 | id | - | integer | - | - | - | mapped |
 | public_key | - | string | - | - | - | mapped |
-| team_id | - | integer | - | - | - | n/a |
+| team_id | - | integer | - | - | - | mapped |
 | updated_at | - | string | - | - | - | mapped |
 
 ## Project
@@ -256,20 +243,50 @@ Fields: 4 | Type matches: 4/4 | Nullable matches: 4/4 | Client JSON mappings: 4/
 | uuid | string | string | yes | yes | - | mapped |
 | id | - | integer | - | - | - | mapped |
 
+## ScheduledDatabaseBackup
+
+This section compares the internal source-derived backup model against the public backup request bodies in the pinned spec.
+Coolify stores the relation as `s3_storage_id` internally, while the public API accepts `s3_storage_uuid` on request bodies.
+That identifier translation is expected and does not imply a missing top-level S3 CRUD API.
+
+Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mappings: 16/19
+
+| Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
+|-------|:---:|:---:|:---:|:---:|---------|:---:|
+| database_backup_retention_amount_locally | integer | integer | yes | yes | 0 | mapped |
+| database_backup_retention_amount_s3 | integer | integer | yes | yes | 0 | mapped |
+| database_backup_retention_days_locally | integer | integer | yes | yes | 0 | mapped |
+| database_backup_retention_days_s3 | integer | integer | yes | yes | 0 | mapped |
+| database_backup_retention_max_storage_locally | string | string | yes | yes | - | mapped |
+| database_backup_retention_max_storage_s3 | string | string | yes | yes | - | mapped |
+| database_id | integer | integer | yes | yes | - | n/a |
+| database_type | string | string | yes | yes | - | mapped |
+| databases_to_backup | string | string | yes | yes | - | mapped |
+| description | string | string | yes | yes | - | mapped |
+| disable_local_backup | boolean | boolean | yes | yes | false | mapped |
+| dump_all | boolean | boolean | yes | yes | false | mapped |
+| enabled | boolean | boolean | yes | yes | true | mapped |
+| frequency | string | string | yes | yes | - | mapped |
+| number_of_backups_locally | integer | integer | yes | yes | 7 | n/a |
+| s3_storage_id | integer | integer | yes | yes | - | n/a |
+| save_s3 | boolean | boolean | yes | yes | true | mapped |
+| timeout | integer | integer | yes | yes | 3600 | mapped |
+| uuid | string | string | yes | yes | - | mapped |
+
 ## ScheduledTask
 
-Fields: 12 | Type matches: 12/12 | Nullable matches: 10/12 | Client JSON mappings: 9/12
+Fields: 12 | Type matches: 12/12 | Nullable matches: 10/12 | Client JSON mappings: 10/12
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | application_id | integer | integer | yes | **WRONG** | - | n/a |
 | command | string | string | yes | yes | - | mapped |
-| container | string | string | yes | yes | - | n/a |
+| container | string | string | yes | yes | - | mapped |
 | enabled | boolean | boolean | yes | yes | true | mapped |
 | frequency | string | string | yes | yes | - | mapped |
 | name | string | string | yes | yes | - | mapped |
 | service_id | integer | integer | yes | **WRONG** | - | n/a |
-| timeout | string | string | yes | yes | - | mapped |
+| timeout | integer | integer | yes | yes | 300 | mapped |
 | uuid | string | string | yes | yes | - | mapped |
 | created_at | - | string | - | - | - | mapped |
 | id | - | integer | - | - | - | mapped |
@@ -277,119 +294,120 @@ Fields: 12 | Type matches: 12/12 | Nullable matches: 10/12 | Client JSON mapping
 
 ## Server
 
-Fields: 26 | Type matches: 26/26 | Nullable matches: 26/26 | Client JSON mappings: 8/26
+Fields: 30 | Type matches: 30/30 | Nullable matches: 17/30 | Client JSON mappings: 13/30
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| cloud_provider_token_id | string | string | yes | yes | - | n/a |
+| cloud_provider_token_id | integer | integer | yes | **WRONG** | - | n/a |
 | description | string | string | yes | reviewed drift | - | mapped |
-| detected_traefik_version | string | string | yes | yes | - | n/a |
-| hetzner_server_id | string | string | yes | yes | - | n/a |
-| hetzner_server_status | string | string | yes | yes | - | n/a |
+| detected_traefik_version | string | string | yes | **WRONG** | - | n/a |
+| digitalocean_droplet_id | integer | integer | yes | **WRONG** | - | mapped |
+| digitalocean_droplet_status | string | string | yes | **WRONG** | - | mapped |
+| hetzner_server_id | integer | integer | yes | **WRONG** | - | n/a |
+| hetzner_server_status | string | string | yes | **WRONG** | - | n/a |
+| high_disk_usage_notification_sent | boolean | boolean | yes | yes | false | n/a |
 | ip | string | string | yes | yes | - | mapped |
-| ip_previous | string | string | yes | yes | - | n/a |
-| is_metrics_enabled | boolean | boolean | yes | yes | true | n/a |
-| is_validating | string | string | yes | yes | - | n/a |
+| ip_previous | string | string | yes | **WRONG** | - | n/a |
+| is_validating | boolean | boolean | yes | yes | false | n/a |
+| log_drain_notification_sent | boolean | boolean | yes | yes | false | n/a |
 | name | string | string | yes | yes | - | mapped |
 | port | integer | integer | yes | yes | 22 | mapped |
 | private_key_id | integer | integer | yes | yes | - | n/a |
-| server_metadata | string | string | yes | yes | - | n/a |
-| traefik_outdated_info | string | string | yes | yes | - | n/a |
+| server_metadata | object | object | yes | **WRONG** | - | n/a |
+| swarm_cluster | integer | integer | yes | **WRONG** | - | n/a |
+| traefik_outdated_info | object | object | yes | **WRONG** | - | n/a |
+| unreachable_count | integer | integer | yes | yes | 0 | n/a |
+| unreachable_email_sent | boolean | boolean | yes | yes | false | n/a |
 | user | string | string | yes | yes | root | mapped |
 | uuid | string | string | yes | yes | - | mapped |
-| high_disk_usage_notification_sent | - | boolean | - | - | - | n/a |
+| validation_logs | string | string | yes | **WRONG** | - | mapped |
+| vultr_instance_id | string | string | yes | **WRONG** | - | mapped |
+| vultr_instance_status | string | string | yes | **WRONG** | - | mapped |
 | id | - | integer | - | - | - | mapped |
-| log_drain_notification_sent | - | boolean | - | - | - | n/a |
 | proxy | - | object | - | - | - | n/a |
 | proxy_type | - | string | - | - | - | n/a |
 | settings | - |  | - | - | - | mapped |
-| swarm_cluster | - | string | - | - | - | n/a |
-| unreachable_count | - | integer | - | - | - | n/a |
 | unreachable_notification_sent | - | boolean | - | - | - | n/a |
-| validation_logs | - | string | - | - | - | n/a |
 
 ## ServerSetting
 
-> For server resources, the Terraform write surface is intentionally smaller than the read surface. The provider only sends the shared `UpdateServerInput` fields on PATCH: `name`, `description`, `ip`, `port`, `user`, `private_key_uuid`, `is_build_server`, `concurrent_builds`, `dynamic_timeout`, `deployment_queue_limit`, `server_disk_usage_notification_threshold`, `server_disk_usage_check_frequency`, and `connection_timeout`. Other `ServerSetting` fields can still appear on GET responses without being valid Terraform inputs or public PATCH fields.
-
-Fields: 54 | Type matches: 54/54 | Nullable matches: 53/54 | Client JSON mappings: 11/54
+Fields: 53 | Type matches: 53/53 | Nullable matches: 39/53 | Client JSON mappings: 50/53
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| cleanup_after_percentage | integer | integer | yes | yes | 80 | n/a |
-| concurrent_builds | string | string | yes | yes | - | mapped |
-| delete_unused_networks | string | string | yes | yes | - | n/a |
-| delete_unused_volumes | string | string | yes | yes | - | n/a |
-| deployment_queue_limit | string | string | yes | yes | - | mapped |
-| disable_application_image_retention | string | string | yes | yes | - | n/a |
-| docker_cleanup_frequency | string | string | yes | yes | */10 * * * * | n/a |
-| docker_cleanup_threshold | string | string | yes | yes | - | n/a |
-| dynamic_timeout | string | string | yes | yes | - | mapped |
-| force_disabled | string | string | yes | yes | - | n/a |
-| force_docker_cleanup | boolean | boolean | yes | yes | false | n/a |
-| force_server_cleanup | boolean | boolean | yes | yes | false | n/a |
-| generate_exact_labels | string | string | yes | yes | - | n/a |
+| compose_version | string | string | yes | **WRONG** | - | mapped |
+| compose_version_checked_at | string | string | yes | **WRONG** | - | mapped |
+| concurrent_builds | integer | integer | yes | yes | 2 | mapped |
+| connection_timeout | integer | integer | yes | yes | 10 | mapped |
+| delete_unused_networks | boolean | boolean | yes | yes | false | mapped |
+| delete_unused_volumes | boolean | boolean | yes | yes | false | mapped |
+| deployment_queue_limit | integer | integer | yes | yes | 25 | mapped |
+| disable_application_image_retention | boolean | boolean | yes | yes | false | mapped |
+| docker_cleanup_frequency | string | string | yes | yes | 0 0 * * * | mapped |
+| docker_cleanup_threshold | integer | integer | yes | yes | 80 | mapped |
+| docker_version | string | string | yes | **WRONG** | - | mapped |
+| docker_version_checked_at | string | string | yes | **WRONG** | - | mapped |
+| dynamic_timeout | integer | integer | yes | yes | 3600 | mapped |
+| force_disabled | boolean | boolean | yes | yes | false | mapped |
+| force_docker_cleanup | boolean | boolean | yes | yes | true | mapped |
+| generate_exact_labels | boolean | boolean | yes | yes | false | mapped |
 | is_build_server | boolean | boolean | yes | yes | false | mapped |
-| is_cloudflare_tunnel | string | string | yes | yes | - | n/a |
-| is_force_cleanup_enabled | boolean | boolean | yes | yes | false | n/a |
-| is_jump_server | boolean | boolean | yes | yes | false | n/a |
-| is_logdrain_axiom_enabled | string | string | yes | yes | - | n/a |
-| is_logdrain_custom_enabled | string | string | yes | yes | - | n/a |
-| is_logdrain_highlight_enabled | string | string | yes | yes | - | n/a |
-| is_logdrain_newrelic_enabled | string | string | yes | yes | - | n/a |
-| is_metrics_enabled | string | string | yes | yes | - | n/a |
+| is_cloudflare_tunnel | boolean | boolean | yes | yes | false | mapped |
+| is_jump_server | boolean | boolean | yes | yes | false | mapped |
+| is_logdrain_axiom_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_logdrain_custom_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_logdrain_highlight_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_logdrain_newrelic_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_metrics_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_part_of_swarm | boolean | boolean | yes | yes | false | n/a |
 | is_reachable | boolean | boolean | yes | yes | false | mapped |
-| is_sentinel_debug_enabled | string | string | yes | yes | - | n/a |
-| is_sentinel_enabled | boolean | boolean | yes | yes | false | n/a |
-| is_server_api_enabled | boolean | boolean | yes | yes | false | n/a |
-| is_swarm_manager | string | string | yes | yes | - | n/a |
-| is_swarm_worker | string | string | yes | yes | - | n/a |
-| is_terminal_enabled | string | string | yes | yes | - | n/a |
+| is_sentinel_debug_enabled | boolean | boolean | yes | yes | false | mapped |
+| is_sentinel_enabled | boolean | boolean | yes | yes | true | mapped |
+| is_swarm_manager | string | string | yes | yes | - | mapped |
+| is_swarm_worker | boolean | boolean | yes | yes | false | mapped |
+| is_terminal_enabled | boolean | boolean | yes | yes | true | mapped |
 | is_usable | boolean | boolean | yes | yes | false | mapped |
-| logdrain_axiom_api_key | string | string | yes | yes | - | n/a |
-| logdrain_axiom_dataset_name | string | string | yes | yes | - | n/a |
-| logdrain_custom_config | string | string | yes | yes | - | n/a |
-| logdrain_custom_config_parser | string | string | yes | yes | - | n/a |
-| logdrain_highlight_project_id | string | string | yes | yes | - | n/a |
-| logdrain_newrelic_base_uri | string | string | yes | yes | - | n/a |
-| logdrain_newrelic_license_key | string | string | yes | yes | - | n/a |
-| metrics_history_days | integer | integer | yes | yes | 30 | n/a |
-| metrics_refresh_rate_seconds | integer | integer | yes | yes | 5 | n/a |
-| metrics_token | string | string | yes | **WRONG** | - | n/a |
-| sentinel_custom_url | string | string | yes | yes | - | n/a |
-| sentinel_metrics_history_days | string | string | yes | yes | - | n/a |
-| sentinel_metrics_refresh_rate_seconds | string | string | yes | yes | - | n/a |
-| sentinel_push_interval_seconds | string | string | yes | yes | - | n/a |
-| sentinel_token | string | string | yes | yes | - | n/a |
-| server_disk_usage_check_frequency | string | string | yes | yes | - | mapped |
-| server_disk_usage_notification_threshold | string | string | yes | yes | - | mapped |
+| logdrain_axiom_api_key | string | string | yes | **WRONG** | - | mapped |
+| logdrain_axiom_dataset_name | string | string | yes | **WRONG** | - | mapped |
+| logdrain_custom_config | string | string | yes | **WRONG** | - | mapped |
+| logdrain_custom_config_parser | string | string | yes | **WRONG** | - | mapped |
+| logdrain_highlight_project_id | string | string | yes | **WRONG** | - | mapped |
+| logdrain_newrelic_base_uri | string | string | yes | **WRONG** | - | mapped |
+| logdrain_newrelic_license_key | string | string | yes | **WRONG** | - | mapped |
+| sentinel_custom_url | string | string | yes | **WRONG** | - | mapped |
+| sentinel_metrics_history_days | integer | integer | yes | yes | 7 | mapped |
+| sentinel_metrics_refresh_rate_seconds | integer | integer | yes | yes | 10 | mapped |
+| sentinel_push_interval_seconds | integer | integer | yes | yes | 60 | mapped |
+| sentinel_token | string | string | yes | **WRONG** | - | mapped |
+| server_disk_usage_check_frequency | string | string | yes | yes | 0 23 * * * | mapped |
+| server_disk_usage_notification_threshold | integer | integer | yes | yes | 80 | mapped |
 | server_id | integer | integer | yes | yes | - | n/a |
-| server_timezone | string | string | yes | yes |  | n/a |
-| wildcard_domain | string | string | yes | yes | - | n/a |
+| server_timezone | string | string | yes | yes | UTC | mapped |
+| wildcard_domain | string | string | yes | **WRONG** | - | mapped |
 | created_at | - | string | - | - | - | mapped |
+| force_server_cleanup | - | boolean | - | - | - | n/a |
 | id | - | integer | - | - | - | mapped |
 | updated_at | - | string | - | - | - | mapped |
 
 ## Service
 
-Fields: 19 | Type matches: 19/19 | Nullable matches: 17/19 | Client JSON mappings: 9/19
+Fields: 19 | Type matches: 19/19 | Nullable matches: 12/19 | Client JSON mappings: 11/19
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| compose_parsing_version | string | string | yes | yes | - | n/a |
-| config_hash | string | string | yes | yes | - | n/a |
-| connect_to_docker_network | string | string | yes | yes | - | mapped |
-| description | string | string | yes | yes | - | mapped |
+| compose_parsing_version | string | string | yes | yes | 2 | n/a |
+| config_hash | string | string | yes | **WRONG** | - | mapped |
+| connect_to_docker_network | boolean | boolean | yes | yes | false | mapped |
+| description | string | string | yes | **WRONG** | - | mapped |
 | destination_id | integer | integer | yes | **WRONG** | - | n/a |
 | destination_type | string | string | yes | **WRONG** | - | n/a |
-| docker_compose | string | string | yes | yes | - | n/a |
+| docker_compose | string | string | yes | **WRONG** | - | mapped |
 | docker_compose_raw | string | string | yes | yes | - | mapped |
 | environment_id | integer | integer | yes | yes | - | n/a |
-| is_container_label_escape_enabled | string | string | yes | yes | - | mapped |
+| is_container_label_escape_enabled | boolean | boolean | yes | yes | true | mapped |
 | name | string | string | yes | yes | - | mapped |
-| server_id | string | string | yes | yes | - | n/a |
-| service_type | string | string | yes | yes | - | n/a |
+| server_id | integer | integer | yes | **WRONG** | - | n/a |
+| service_type | string | string | yes | **WRONG** | - | n/a |
 | uuid | string | string | yes | yes | - | mapped |
 | created_at | - | string | - | - | - | mapped |
 | deleted_at | - | string | - | - | - | n/a |
@@ -401,55 +419,27 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 17/19 | Client JSON mapping
 
 These sections document source-derived models that do not map cleanly to reusable public OpenAPI component schemas.
 
-## ScheduledDatabaseBackup
-
-This section compares the internal source-derived backup model against the public backup request bodies in the pinned spec.
-Coolify stores the relation as `s3_storage_id` internally, while the public API accepts `s3_storage_uuid` on request bodies.
-That identifier translation is expected and does not imply a missing top-level S3 CRUD API.
-
-Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mappings: 15/19
-
-| Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
-|-------|:---:|:---:|:---:|:---:|---------|:---:|
-| database_backup_retention_amount_locally | integer | - | - | - | 0 | mapped |
-| database_backup_retention_amount_s3 | string | - | - | - | - | mapped |
-| database_backup_retention_days_locally | string | - | - | - | - | mapped |
-| database_backup_retention_days_s3 | string | - | - | - | - | mapped |
-| database_backup_retention_max_storage_locally | string | - | - | - | - | mapped |
-| database_backup_retention_max_storage_s3 | string | - | - | - | - | mapped |
-| database_id | integer | - | - | - | - | n/a |
-| database_type | string | - | - | - | - | mapped |
-| databases_to_backup | string | - | - | - | - | mapped |
-| description | string | - | - | - | - | mapped |
-| disable_local_backup | string | - | - | - | - | n/a |
-| dump_all | string | - | - | - | - | mapped |
-| enabled | boolean | - | - | - | true | mapped |
-| frequency | string | - | - | - | - | mapped |
-| number_of_backups_locally | integer | - | - | - | 7 | n/a |
-| s3_storage_id | integer | - | - | - | - | n/a |
-| save_s3 | boolean | - | - | - | true | mapped |
-| timeout | integer | - | - | - | 3600 | mapped |
-| uuid | string | - | - | - | - | mapped |
-
 ## CloudProviderToken
 
 This model exists in the extracted source contract but not as a reusable public OpenAPI schema.
 Treat it as implementation detail coverage, not proof of a standalone public API surface.
 
-Fields: 3 | Type matches: 3/3 | Nullable matches: 3/3 | Client JSON mappings: 3/3
+Fields: 5 | Type matches: 5/5 | Nullable matches: 5/5 | Client JSON mappings: 5/5
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| description | string | - | - | - | - | mapped |
 | name | string | - | - | - | - | mapped |
 | provider | string | - | - | - | - | mapped |
 | token | string | - | - | - | - | mapped |
+| uuid | string | - | - | - | - | mapped |
 
 ## GithubApp
 
 This model exists in the extracted source contract but not as a reusable public OpenAPI schema.
 Treat it as implementation detail coverage, not proof of a standalone public API surface.
 
-Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mappings: 11/19
+Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mappings: 14/19
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -459,12 +449,12 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mapping
 | client_id | string | - | - | - | - | mapped |
 | client_secret | string | - | - | - | - | mapped |
 | contents | string | - | - | - | - | n/a |
-| custom_port | integer | - | - | - | 22 | n/a |
-| custom_user | string | - | - | - | git | n/a |
+| custom_port | integer | - | - | - | 22 | mapped |
+| custom_user | string | - | - | - | git | mapped |
 | html_url | string | - | - | - | - | mapped |
 | installation_id | integer | - | - | - | - | mapped |
 | is_public | boolean | - | - | - | false | mapped |
-| is_system_wide | boolean | - | - | - | false | n/a |
+| is_system_wide | boolean | - | - | - | false | mapped |
 | metadata | string | - | - | - | - | n/a |
 | name | string | - | - | - | - | mapped |
 | organization | string | - | - | - | - | mapped |
@@ -475,58 +465,61 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mapping
 
 ## LocalPersistentVolume
 
-Fields: 8 | Type matches: 8/8 | Nullable matches: 8/8 | Client JSON mappings: 3/8
+Fields: 8 | Type matches: 8/8 | Nullable matches: 8/8 | Client JSON mappings: 6/8
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | container_id | string | - | - | - | - | n/a |
 | host_path | string | - | - | - | - | mapped |
-| is_preview_suffix_enabled | string | - | - | - | - | n/a |
-| is_readonly | boolean | - | - | - | false | n/a |
+| is_preview_suffix_enabled | boolean | - | - | - | true | mapped |
 | mount_path | string | - | - | - | - | mapped |
 | name | string | - | - | - | - | mapped |
 | resource_id | integer | - | - | - | - | n/a |
-| resource_type | string | - | - | - | - | n/a |
+| resource_type | string | - | - | - | - | mapped |
+| uuid | string | - | - | - | - | mapped |
 
 ## S3Storage
 
-This model exists in the extracted source contract but not as a reusable public OpenAPI schema.
-Treat it as implementation detail coverage, not proof of a standalone public API surface.
-
-Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Client JSON mappings: 0/10
+Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Client JSON mappings: 9/10
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
-| bucket | string | - | - | - | - | n/a |
-| description | string | - | - | - | - | n/a |
-| endpoint | string | - | - | - | - | n/a |
-| is_usable | string | - | - | - | - | n/a |
-| key | string | - | - | - | - | n/a |
-| name | string | - | - | - | - | n/a |
-| region | string | - | - | - | us-east-1 | n/a |
-| secret | string | - | - | - | - | n/a |
-| unusable_email_sent | string | - | - | - | - | n/a |
-| uuid | string | - | - | - | - | n/a |
+| bucket | string | - | - | - | - | mapped |
+| description | string | - | - | - | - | mapped |
+| endpoint | string | - | - | - | - | mapped |
+| is_usable | boolean | - | - | - | false | mapped |
+| key | string | - | - | - | - | mapped |
+| name | string | - | - | - | - | mapped |
+| region | string | - | - | - | us-east-1 | mapped |
+| secret | string | - | - | - | - | mapped |
+| unusable_email_sent | boolean | - | - | - | false | n/a |
+| uuid | string | - | - | - | - | mapped |
 
 ## StandaloneClickhouse
 
-Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Client JSON mappings: 20/30
+Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Client JSON mappings: 28/36
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | clickhouse_admin_password | string | - | - | - | - | mapped |
 | clickhouse_admin_user | string | - | - | - | default | mapped |
 | clickhouse_db | string | - | - | - | default | mapped |
+| config_hash | string | - | - | - | - | mapped |
 | custom_docker_run_options | string | - | - | - | - | mapped |
 | description | string | - | - | - | - | mapped |
 | destination_id | integer | - | - | - | - | n/a |
 | destination_type | string | - | - | - | - | n/a |
 | environment_id | integer | - | - | - | - | n/a |
-| image | string | - | - | - | bitnamilegacy/clickhouse | mapped |
-| is_include_timestamps | boolean | - | - | - | false | n/a |
-| is_log_drain_enabled | boolean | - | - | - | false | n/a |
+| health_check_enabled | string | - | - | - | - | mapped |
+| health_check_interval | string | - | - | - | - | mapped |
+| health_check_retries | string | - | - | - | - | mapped |
+| health_check_start_period | string | - | - | - | - | mapped |
+| health_check_timeout | string | - | - | - | - | mapped |
+| image | string | - | - | - | clickhouse/clickhouse-server:25.11 | mapped |
+| is_include_timestamps | boolean | - | - | - | false | mapped |
+| is_log_drain_enabled | boolean | - | - | - | false | mapped |
 | is_public | boolean | - | - | - | false | mapped |
-| last_online_at | string | - | - | - | - | n/a |
+| last_online_at | string | - | - | - | now( | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
 | limits_cpu_shares | integer | - | - | - | 1024 | mapped |
@@ -547,22 +540,28 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Client JSON mapping
 
 ## StandaloneDragonfly
 
-Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Client JSON mappings: 18/29
+Fields: 35 | Type matches: 35/35 | Nullable matches: 35/35 | Client JSON mappings: 27/35
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| config_hash | string | - | - | - | - | mapped |
 | custom_docker_run_options | string | - | - | - | - | mapped |
 | description | string | - | - | - | - | mapped |
 | destination_id | integer | - | - | - | - | n/a |
 | destination_type | string | - | - | - | - | n/a |
 | dragonfly_password | string | - | - | - | - | mapped |
-| enable_ssl | string | - | - | - | - | n/a |
+| enable_ssl | boolean | - | - | - | false | mapped |
 | environment_id | integer | - | - | - | - | n/a |
+| health_check_enabled | string | - | - | - | - | mapped |
+| health_check_interval | string | - | - | - | - | mapped |
+| health_check_retries | string | - | - | - | - | mapped |
+| health_check_start_period | string | - | - | - | - | mapped |
+| health_check_timeout | string | - | - | - | - | mapped |
 | image | string | - | - | - | docker.dragonflydb.io/dragonflydb/dragonfly | mapped |
-| is_include_timestamps | boolean | - | - | - | false | n/a |
-| is_log_drain_enabled | boolean | - | - | - | false | n/a |
+| is_include_timestamps | boolean | - | - | - | false | mapped |
+| is_log_drain_enabled | boolean | - | - | - | false | mapped |
 | is_public | boolean | - | - | - | false | mapped |
-| last_online_at | string | - | - | - | - | n/a |
+| last_online_at | string | - | - | - | now( | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
 | limits_cpu_shares | integer | - | - | - | 1024 | mapped |
@@ -583,23 +582,29 @@ Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Client JSON mapping
 
 ## StandaloneKeydb
 
-Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Client JSON mappings: 19/30
+Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Client JSON mappings: 28/36
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| config_hash | string | - | - | - | - | mapped |
 | custom_docker_run_options | string | - | - | - | - | mapped |
 | description | string | - | - | - | - | mapped |
 | destination_id | integer | - | - | - | - | n/a |
 | destination_type | string | - | - | - | - | n/a |
-| enable_ssl | string | - | - | - | - | n/a |
+| enable_ssl | boolean | - | - | - | false | mapped |
 | environment_id | integer | - | - | - | - | n/a |
+| health_check_enabled | string | - | - | - | - | mapped |
+| health_check_interval | string | - | - | - | - | mapped |
+| health_check_retries | string | - | - | - | - | mapped |
+| health_check_start_period | string | - | - | - | - | mapped |
+| health_check_timeout | string | - | - | - | - | mapped |
 | image | string | - | - | - | eqalpha/keydb:latest | mapped |
-| is_include_timestamps | boolean | - | - | - | false | n/a |
-| is_log_drain_enabled | boolean | - | - | - | false | n/a |
+| is_include_timestamps | boolean | - | - | - | false | mapped |
+| is_log_drain_enabled | boolean | - | - | - | false | mapped |
 | is_public | boolean | - | - | - | false | mapped |
 | keydb_conf | string | - | - | - | - | mapped |
 | keydb_password | string | - | - | - | - | mapped |
-| last_online_at | string | - | - | - | - | n/a |
+| last_online_at | string | - | - | - | now( | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
 | limits_cpu_shares | integer | - | - | - | 1024 | mapped |
@@ -620,25 +625,31 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 30/30 | Client JSON mapping
 
 ## StandaloneMariadb
 
-Fields: 32 | Type matches: 32/32 | Nullable matches: 32/32 | Client JSON mappings: 22/32
+Fields: 38 | Type matches: 38/38 | Nullable matches: 38/38 | Client JSON mappings: 30/38
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| config_hash | string | - | - | - | - | mapped |
 | custom_docker_run_options | string | - | - | - | - | mapped |
 | description | string | - | - | - | - | mapped |
 | destination_id | integer | - | - | - | - | n/a |
 | destination_type | string | - | - | - | - | n/a |
-| enable_ssl | string | - | - | - | - | n/a |
+| enable_ssl | boolean | - | - | - | false | mapped |
 | environment_id | integer | - | - | - | - | n/a |
+| health_check_enabled | string | - | - | - | - | mapped |
+| health_check_interval | string | - | - | - | - | mapped |
+| health_check_retries | string | - | - | - | - | mapped |
+| health_check_start_period | string | - | - | - | - | mapped |
+| health_check_timeout | string | - | - | - | - | mapped |
 | image | string | - | - | - | mariadb:11 | mapped |
-| is_log_drain_enabled | string | - | - | - | - | n/a |
+| is_log_drain_enabled | boolean | - | - | - | false | mapped |
 | is_public | boolean | - | - | - | false | mapped |
-| last_online_at | string | - | - | - | - | n/a |
+| last_online_at | string | - | - | - | now( | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
 | limits_cpu_shares | integer | - | - | - | 1024 | mapped |
 | limits_cpus | string | - | - | - | 0 | mapped |
-| limits_cpuset | string | - | - | - | 0 | mapped |
+| limits_cpuset | string | - | - | - | - | mapped |
 | limits_memory | string | - | - | - | 0 | mapped |
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
@@ -659,26 +670,32 @@ Fields: 32 | Type matches: 32/32 | Nullable matches: 32/32 | Client JSON mapping
 
 ## StandaloneMongodb
 
-Fields: 33 | Type matches: 33/33 | Nullable matches: 33/33 | Client JSON mappings: 21/33
+Fields: 39 | Type matches: 39/39 | Nullable matches: 39/39 | Client JSON mappings: 31/39
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| config_hash | string | - | - | - | - | mapped |
 | custom_docker_run_options | string | - | - | - | - | mapped |
 | description | string | - | - | - | - | mapped |
 | destination_id | integer | - | - | - | - | n/a |
 | destination_type | string | - | - | - | - | n/a |
-| enable_ssl | boolean | - | - | - | true | n/a |
+| enable_ssl | boolean | - | - | - | false | mapped |
 | environment_id | integer | - | - | - | - | n/a |
+| health_check_enabled | string | - | - | - | - | mapped |
+| health_check_interval | string | - | - | - | - | mapped |
+| health_check_retries | string | - | - | - | - | mapped |
+| health_check_start_period | string | - | - | - | - | mapped |
+| health_check_timeout | string | - | - | - | - | mapped |
 | image | string | - | - | - | mongo:7 | mapped |
-| is_include_timestamps | string | - | - | - | - | n/a |
-| is_log_drain_enabled | string | - | - | - | - | n/a |
+| is_include_timestamps | boolean | - | - | - | false | mapped |
+| is_log_drain_enabled | boolean | - | - | - | false | mapped |
 | is_public | boolean | - | - | - | false | mapped |
-| last_online_at | string | - | - | - | - | n/a |
+| last_online_at | string | - | - | - | now( | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
 | limits_cpu_shares | integer | - | - | - | 1024 | mapped |
 | limits_cpus | string | - | - | - | 0 | mapped |
-| limits_cpuset | string | - | - | - | 0 | mapped |
+| limits_cpuset | string | - | - | - | - | mapped |
 | limits_memory | string | - | - | - | 0 | mapped |
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
@@ -692,33 +709,39 @@ Fields: 33 | Type matches: 33/33 | Nullable matches: 33/33 | Client JSON mapping
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
-| ssl_mode | string | - | - | - | - | n/a |
+| ssl_mode | string | - | - | - | require | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
 | uuid | string | - | - | - | - | mapped |
 
 ## StandaloneMysql
 
-Fields: 34 | Type matches: 34/34 | Nullable matches: 34/34 | Client JSON mappings: 22/34
+Fields: 40 | Type matches: 40/40 | Nullable matches: 40/40 | Client JSON mappings: 32/40
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| config_hash | string | - | - | - | - | mapped |
 | custom_docker_run_options | string | - | - | - | - | mapped |
 | description | string | - | - | - | - | mapped |
 | destination_id | integer | - | - | - | - | n/a |
 | destination_type | string | - | - | - | - | n/a |
-| enable_ssl | string | - | - | - | - | n/a |
+| enable_ssl | boolean | - | - | - | false | mapped |
 | environment_id | integer | - | - | - | - | n/a |
+| health_check_enabled | string | - | - | - | - | mapped |
+| health_check_interval | string | - | - | - | - | mapped |
+| health_check_retries | string | - | - | - | - | mapped |
+| health_check_start_period | string | - | - | - | - | mapped |
+| health_check_timeout | string | - | - | - | - | mapped |
 | image | string | - | - | - | mysql:8 | mapped |
-| is_include_timestamps | string | - | - | - | - | n/a |
-| is_log_drain_enabled | string | - | - | - | - | n/a |
+| is_include_timestamps | boolean | - | - | - | false | mapped |
+| is_log_drain_enabled | boolean | - | - | - | false | mapped |
 | is_public | boolean | - | - | - | false | mapped |
-| last_online_at | string | - | - | - | - | n/a |
+| last_online_at | string | - | - | - | now( | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
 | limits_cpu_shares | integer | - | - | - | 1024 | mapped |
 | limits_cpus | string | - | - | - | 0 | mapped |
-| limits_cpuset | string | - | - | - | 0 | mapped |
+| limits_cpuset | string | - | - | - | - | mapped |
 | limits_memory | string | - | - | - | 0 | mapped |
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
@@ -733,34 +756,40 @@ Fields: 34 | Type matches: 34/34 | Nullable matches: 34/34 | Client JSON mapping
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
-| ssl_mode | string | - | - | - | - | n/a |
+| ssl_mode | string | - | - | - | REQUIRED | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
 | uuid | string | - | - | - | - | mapped |
 
 ## StandalonePostgresql
 
-Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Client JSON mappings: 24/36
+Fields: 42 | Type matches: 42/42 | Nullable matches: 42/42 | Client JSON mappings: 34/42
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| config_hash | string | - | - | - | - | mapped |
 | custom_docker_run_options | string | - | - | - | - | mapped |
 | description | string | - | - | - | - | mapped |
 | destination_id | integer | - | - | - | - | n/a |
 | destination_type | string | - | - | - | - | n/a |
-| enable_ssl | string | - | - | - | - | n/a |
+| enable_ssl | boolean | - | - | - | false | mapped |
 | environment_id | integer | - | - | - | - | n/a |
+| health_check_enabled | string | - | - | - | - | mapped |
+| health_check_interval | string | - | - | - | - | mapped |
+| health_check_retries | string | - | - | - | - | mapped |
+| health_check_start_period | string | - | - | - | - | mapped |
+| health_check_timeout | string | - | - | - | - | mapped |
 | image | string | - | - | - | postgres:16-alpine | mapped |
 | init_scripts | object | - | - | - | - | mapped |
-| is_include_timestamps | string | - | - | - | - | n/a |
-| is_log_drain_enabled | string | - | - | - | - | n/a |
+| is_include_timestamps | boolean | - | - | - | false | mapped |
+| is_log_drain_enabled | boolean | - | - | - | false | mapped |
 | is_public | boolean | - | - | - | false | mapped |
-| last_online_at | string | - | - | - | - | n/a |
+| last_online_at | string | - | - | - | now( | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
 | limits_cpu_shares | integer | - | - | - | 1024 | mapped |
 | limits_cpus | string | - | - | - | 0 | mapped |
-| limits_cpuset | string | - | - | - | 0 | mapped |
+| limits_cpuset | string | - | - | - | - | mapped |
 | limits_memory | string | - | - | - | 0 | mapped |
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
@@ -776,33 +805,39 @@ Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Client JSON mapping
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
-| ssl_mode | string | - | - | - | - | n/a |
+| ssl_mode | string | - | - | - | require | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
 | uuid | string | - | - | - | - | mapped |
 
 ## StandaloneRedis
 
-Fields: 29 | Type matches: 29/29 | Nullable matches: 29/29 | Client JSON mappings: 18/29
+Fields: 35 | Type matches: 35/35 | Nullable matches: 35/35 | Client JSON mappings: 27/35
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| config_hash | string | - | - | - | - | mapped |
 | custom_docker_run_options | string | - | - | - | - | mapped |
 | description | string | - | - | - | - | mapped |
 | destination_id | integer | - | - | - | - | n/a |
 | destination_type | string | - | - | - | - | n/a |
-| enable_ssl | string | - | - | - | - | n/a |
+| enable_ssl | boolean | - | - | - | false | mapped |
 | environment_id | integer | - | - | - | - | n/a |
+| health_check_enabled | string | - | - | - | - | mapped |
+| health_check_interval | string | - | - | - | - | mapped |
+| health_check_retries | string | - | - | - | - | mapped |
+| health_check_start_period | string | - | - | - | - | mapped |
+| health_check_timeout | string | - | - | - | - | mapped |
 | image | string | - | - | - | redis:7.2 | mapped |
-| is_include_timestamps | string | - | - | - | - | n/a |
-| is_log_drain_enabled | string | - | - | - | - | n/a |
+| is_include_timestamps | boolean | - | - | - | false | mapped |
+| is_log_drain_enabled | boolean | - | - | - | false | mapped |
 | is_public | boolean | - | - | - | false | mapped |
-| last_online_at | string | - | - | - | - | n/a |
+| last_online_at | string | - | - | - | now( | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
 | limits_cpu_shares | integer | - | - | - | 1024 | mapped |
 | limits_cpus | string | - | - | - | 0 | mapped |
-| limits_cpuset | string | - | - | - | 0 | mapped |
+| limits_cpuset | string | - | - | - | - | mapped |
 | limits_memory | string | - | - | - | 0 | mapped |
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |

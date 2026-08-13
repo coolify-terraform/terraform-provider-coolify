@@ -34,7 +34,7 @@ output "coolify_version" {
 | **4.2.x** | 4.2 resources and application settings writes work. 4.3-only attributes still withheld with a plan warning. |
 | **≥ 4.3.0** | Full current surface: volume backup schedules, `noindex_domains`, GPU/log-drain application settings, etc. |
 
-Pinned API contract today: Coolify **v4.3.1** (`testdata/contracts/coolify-v4.json`).
+Pinned API contract today: Coolify **v4.3.2** (`testdata/contracts/coolify-v4.json`).
 The provider remains usable on 4.1.0+ for the common surface.
 
 ## Resources and data sources by Coolify version

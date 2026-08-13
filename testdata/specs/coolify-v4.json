@@ -14124,6 +14124,16 @@
             "ServerSetting": {
                 "description": "Server Settings model",
                 "properties": {
+                    "compose_version": {
+                        "type": "string",
+                        "description": "Compose version.",
+                        "maxLength": 255
+                    },
+                    "compose_version_checked_at": {
+                        "type": "string",
+                        "description": "Compose version checked at.",
+                        "format": "date-time"
+                    },
                     "concurrent_builds": {
                         "type": "integer",
                         "default": 2
@@ -14162,6 +14172,16 @@
                     "docker_cleanup_threshold": {
                         "type": "integer",
                         "default": 80
+                    },
+                    "docker_version": {
+                        "type": "string",
+                        "description": "Docker version.",
+                        "maxLength": 255
+                    },
+                    "docker_version_checked_at": {
+                        "type": "string",
+                        "description": "Docker version checked at.",
+                        "format": "date-time"
                     },
                     "dynamic_timeout": {
                         "type": "integer",
