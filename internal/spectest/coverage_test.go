@@ -46,9 +46,6 @@ func coveredEndpoints() map[string]coverageStatus {
 	skipped := func(reason string) coverageStatus {
 		return coverageStatus{category: "skipped", resource: reason}
 	}
-	planned := func(priority int, notes string) coverageStatus {
-		return coverageStatus{category: "planned", priority: priority, notes: notes}
-	}
 
 	return map[string]coverageStatus{
 		// ── Projects ──
@@ -250,10 +247,10 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /hetzner/firewalls":                                                        skipped("Hetzner firewalls/networks list; not required for coolify_server_hetzner"),
 		"GET /hetzner/networks":                                                         skipped("Hetzner firewalls/networks list; not required for coolify_server_hetzner"),
 		"GET /notifications/discord":                                                    covered("coolify_notification_discord", "v0.1.14"),
-		"GET /notifications/email":                                                      planned(2, "Notification channel resources (#704)"),
+		"GET /notifications/email":                                                      covered("coolify_notification_email", "v0.1.14"),
 		"GET /notifications/pushover":                                                   covered("coolify_notification_pushover", "v0.1.14"),
 		"GET /notifications/slack":                                                      covered("coolify_notification_slack", "v0.1.14"),
-		"GET /notifications/telegram":                                                   planned(2, "Notification channel resources (#704)"),
+		"GET /notifications/telegram":                                                   covered("coolify_notification_telegram", "v0.1.14"),
 		"GET /notifications/webhook":                                                    covered("coolify_notification_webhook", "v0.1.14"),
 		"GET /projects/{uuid}/environments/{environment_name_or_uuid}/envs":             skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
 		"GET /projects/{uuid}/envs":                                                     skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
@@ -291,10 +288,10 @@ func coveredEndpoints() map[string]coverageStatus {
 		"PATCH /destinations/{uuid}":                                                    skipped("Destination fields RequireReplace; provider does not call PATCH"),
 		"PATCH /gitlab-apps/{gitlab_app_id}":                                            skipped("GitLab App integration; provider covers GitHub Apps only today"),
 		"PATCH /notifications/discord":                                                  covered("coolify_notification_discord", "v0.1.14"),
-		"PATCH /notifications/email":                                                    planned(2, "Notification channel resources (#704)"),
+		"PATCH /notifications/email":                                                    covered("coolify_notification_email", "v0.1.14"),
 		"PATCH /notifications/pushover":                                                 covered("coolify_notification_pushover", "v0.1.14"),
 		"PATCH /notifications/slack":                                                    covered("coolify_notification_slack", "v0.1.14"),
-		"PATCH /notifications/telegram":                                                 planned(2, "Notification channel resources (#704)"),
+		"PATCH /notifications/telegram":                                                 covered("coolify_notification_telegram", "v0.1.14"),
 		"PATCH /notifications/webhook":                                                  covered("coolify_notification_webhook", "v0.1.14"),
 		"PATCH /projects/{uuid}/environments/{environment_name_or_uuid}":                skipped("Environment description is TF state-only today; client has no Update call"),
 		"PATCH /projects/{uuid}/environments/{environment_name_or_uuid}/envs/{env_id}": skipped("Shared/project/server/team env vars; provider models resource-scoped envs (app/db/service)"),
