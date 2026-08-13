@@ -309,7 +309,7 @@ targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
-make test                                       # Run unit tests (1180+ tests, race detector enabled)
+make test                                       # Run unit tests (1190+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
 make testacc                                    # Run acceptance tests with serialized package and in-package execution

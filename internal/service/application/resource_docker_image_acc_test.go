@@ -148,5 +148,5 @@ resource "coolify_application_docker_image" "test" {
 func TestAccDockerImageApplicationResource_ClearDomains(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
-	t.Skip("Coolify ignores empty domains on update ($request->has + ConvertEmptyStringsToNull); provider unit test covers wire format")
+	t.Skip("Coolify ignores empty domains on update ($request->has + ConvertEmptyStringsToNull); tracked in #647; provider unit test covers wire format")
 }
