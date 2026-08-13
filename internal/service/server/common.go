@@ -174,6 +174,12 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 
 // addExtendedSettingsAttrs adds read-only extended server settings returned by the API.
 func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
+	addCoreExtendedSettingsAttrs(attrs)
+	addLogdrainSettingsAttrs(attrs)
+	addHostProbeVersionAttrs(attrs)
+}
+
+func addCoreExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 	attrs["wildcard_domain"] = schema.StringAttribute{
 		MarkdownDescription: "Wildcard domain for applications on this server (e.g., `example.com`).",
 		Computed:            true,
@@ -267,6 +273,9 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 		MarkdownDescription: "Custom Sentinel push URL. Read-only (not on public server PATCH allow-list).",
 		Computed:            true,
 	}
+}
+
+func addLogdrainSettingsAttrs(attrs map[string]schema.Attribute) {
 	attrs["is_logdrain_axiom_enabled"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether Axiom log drain is enabled. Read-only (not on public server PATCH allow-list).",
 		Computed:            true,
@@ -314,6 +323,10 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 		Computed:            true,
 		Sensitive:           true,
 	}
+}
+
+// addHostProbeVersionAttrs adds Coolify tip/main host probe fields (expected >= 4.3.2).
+func addHostProbeVersionAttrs(attrs map[string]schema.Attribute) {
 	attrs["compose_version"] = schema.StringAttribute{
 		MarkdownDescription: "Docker Compose version reported by Coolify for this server (host probe). " +
 			"Read-only; populated by Coolify tip/main (expected in Coolify >= 4.3.2). Empty on older instances.",
