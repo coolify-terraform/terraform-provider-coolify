@@ -276,3 +276,30 @@ func TestDiscordNotificationResource_DestroyDisables(t *testing.T) {
 		},
 	})
 }
+
+func TestDiscordNotificationResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/discord", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"discord_enabled":false}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/discord", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_discord", "test", `
+  enabled     = true
+  webhook_url = "https://discord.com/api/webhooks/1/x"
+`),
+				ExpectError: regexp.MustCompile(`Error configuring Discord notifications`),
+			},
+		},
+	})
+}
