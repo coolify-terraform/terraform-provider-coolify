@@ -37,7 +37,9 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/health"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/hetzner"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationdiscord"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationpushover"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationslack"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationwebhook"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/privatekey"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/project"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/resourceaction"
@@ -218,34 +220,36 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		postgresql.NewResource,
 		redis.NewResource,
 		// Other resources (sorted alphabetically by type name).
-		apisettings.NewResource,         // coolify_api_settings
-		applicationpreview.NewResource,  // coolify_application_preview
-		backupexecution.NewResource,     // coolify_backup_execution
-		cloudtoken.NewResource,          // coolify_cloud_token
-		cloudtokenvalidate.NewResource,  // coolify_cloud_token_validate
-		backup.NewResource,              // coolify_database_backup
-		deployment.NewResource,          // coolify_deployment
-		destination.NewResource,         // coolify_destination
-		environment.NewResource,         // coolify_environment
-		environmentvariable.NewResource, // coolify_environment_variable
-		envsbulk.NewResource,            // coolify_envs_bulk
-		githubapp.NewResource,           // coolify_github_app
-		notificationdiscord.NewResource, // coolify_notification_discord
-		notificationslack.NewResource,   // coolify_notification_slack
-		privatekey.NewResource,          // coolify_private_key
-		project.NewResource,             // coolify_project
-		resourceaction.NewResource,      // coolify_resource_action
-		s3storage.NewResource,           // coolify_s3_storage
-		s3storagevalidate.NewResource,   // coolify_s3_storage_validate
-		scheduledtask.NewResource,       // coolify_scheduled_task
-		server.NewResource,              // coolify_server
-		digitalocean.NewResource,        // coolify_server_digitalocean
-		hetzner.NewResource,             // coolify_server_hetzner
-		vultr.NewResource,               // coolify_server_vultr
-		servervalidate.NewResource,      // coolify_server_validate
-		service.NewResource,             // coolify_service
-		storage.NewResource,             // coolify_storage
-		volumebackup.NewResource,        // coolify_storage_backup
+		apisettings.NewResource,          // coolify_api_settings
+		applicationpreview.NewResource,   // coolify_application_preview
+		backupexecution.NewResource,      // coolify_backup_execution
+		cloudtoken.NewResource,           // coolify_cloud_token
+		cloudtokenvalidate.NewResource,   // coolify_cloud_token_validate
+		backup.NewResource,               // coolify_database_backup
+		deployment.NewResource,           // coolify_deployment
+		destination.NewResource,          // coolify_destination
+		environment.NewResource,          // coolify_environment
+		environmentvariable.NewResource,  // coolify_environment_variable
+		envsbulk.NewResource,             // coolify_envs_bulk
+		githubapp.NewResource,            // coolify_github_app
+		notificationdiscord.NewResource,  // coolify_notification_discord
+		notificationpushover.NewResource, // coolify_notification_pushover
+		notificationslack.NewResource,    // coolify_notification_slack
+		notificationwebhook.NewResource,  // coolify_notification_webhook
+		privatekey.NewResource,           // coolify_private_key
+		project.NewResource,              // coolify_project
+		resourceaction.NewResource,       // coolify_resource_action
+		s3storage.NewResource,            // coolify_s3_storage
+		s3storagevalidate.NewResource,    // coolify_s3_storage_validate
+		scheduledtask.NewResource,        // coolify_scheduled_task
+		server.NewResource,               // coolify_server
+		digitalocean.NewResource,         // coolify_server_digitalocean
+		hetzner.NewResource,              // coolify_server_hetzner
+		vultr.NewResource,                // coolify_server_vultr
+		servervalidate.NewResource,       // coolify_server_validate
+		service.NewResource,              // coolify_service
+		storage.NewResource,              // coolify_storage
+		volumebackup.NewResource,         // coolify_storage_backup
 	}
 }
 

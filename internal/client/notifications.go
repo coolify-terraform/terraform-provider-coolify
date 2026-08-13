@@ -139,3 +139,131 @@ func (c *Client) UpdateSlackNotifications(ctx context.Context, input UpdateSlack
 	}
 	return &r, nil
 }
+
+// WebhookNotificationSettings is the current team's generic webhook notification config.
+// Requires Coolify >= v4.3.0.
+type WebhookNotificationSettings struct {
+	ID      int    `json:"id"`
+	TeamID  int    `json:"team_id"`
+	Enabled bool   `json:"webhook_enabled"`
+	Webhook string `json:"webhook_url,omitempty"`
+
+	DeploymentSuccess    bool `json:"deployment_success_webhook_notifications"`
+	DeploymentFailure    bool `json:"deployment_failure_webhook_notifications"`
+	StatusChange         bool `json:"status_change_webhook_notifications"`
+	BackupSuccess        bool `json:"backup_success_webhook_notifications"`
+	BackupFailure        bool `json:"backup_failure_webhook_notifications"`
+	ScheduledTaskSuccess bool `json:"scheduled_task_success_webhook_notifications"`
+	ScheduledTaskFailure bool `json:"scheduled_task_failure_webhook_notifications"`
+	DockerCleanupSuccess bool `json:"docker_cleanup_success_webhook_notifications"`
+	DockerCleanupFailure bool `json:"docker_cleanup_failure_webhook_notifications"`
+	ServerDiskUsage      bool `json:"server_disk_usage_webhook_notifications"`
+	ServerReachable      bool `json:"server_reachable_webhook_notifications"`
+	ServerUnreachable    bool `json:"server_unreachable_webhook_notifications"`
+	ServerPatch          bool `json:"server_patch_webhook_notifications"`
+	TraefikOutdated      bool `json:"traefik_outdated_webhook_notifications"`
+}
+
+// UpdateWebhookNotificationInput is the PATCH body for webhook notifications.
+type UpdateWebhookNotificationInput struct {
+	Enabled *bool   `json:"webhook_enabled,omitempty"`
+	Webhook *string `json:"webhook_url,omitempty"`
+
+	DeploymentSuccess    *bool `json:"deployment_success_webhook_notifications,omitempty"`
+	DeploymentFailure    *bool `json:"deployment_failure_webhook_notifications,omitempty"`
+	StatusChange         *bool `json:"status_change_webhook_notifications,omitempty"`
+	BackupSuccess        *bool `json:"backup_success_webhook_notifications,omitempty"`
+	BackupFailure        *bool `json:"backup_failure_webhook_notifications,omitempty"`
+	ScheduledTaskSuccess *bool `json:"scheduled_task_success_webhook_notifications,omitempty"`
+	ScheduledTaskFailure *bool `json:"scheduled_task_failure_webhook_notifications,omitempty"`
+	DockerCleanupSuccess *bool `json:"docker_cleanup_success_webhook_notifications,omitempty"`
+	DockerCleanupFailure *bool `json:"docker_cleanup_failure_webhook_notifications,omitempty"`
+	ServerDiskUsage      *bool `json:"server_disk_usage_webhook_notifications,omitempty"`
+	ServerReachable      *bool `json:"server_reachable_webhook_notifications,omitempty"`
+	ServerUnreachable    *bool `json:"server_unreachable_webhook_notifications,omitempty"`
+	ServerPatch          *bool `json:"server_patch_webhook_notifications,omitempty"`
+	TraefikOutdated      *bool `json:"traefik_outdated_webhook_notifications,omitempty"`
+}
+
+// PushoverNotificationSettings is the current team's Pushover notification config.
+// Requires Coolify >= v4.3.0.
+type PushoverNotificationSettings struct {
+	ID       int    `json:"id"`
+	TeamID   int    `json:"team_id"`
+	Enabled  bool   `json:"pushover_enabled"`
+	UserKey  string `json:"pushover_user_key,omitempty"`
+	APIToken string `json:"pushover_api_token,omitempty"`
+
+	DeploymentSuccess    bool `json:"deployment_success_pushover_notifications"`
+	DeploymentFailure    bool `json:"deployment_failure_pushover_notifications"`
+	StatusChange         bool `json:"status_change_pushover_notifications"`
+	BackupSuccess        bool `json:"backup_success_pushover_notifications"`
+	BackupFailure        bool `json:"backup_failure_pushover_notifications"`
+	ScheduledTaskSuccess bool `json:"scheduled_task_success_pushover_notifications"`
+	ScheduledTaskFailure bool `json:"scheduled_task_failure_pushover_notifications"`
+	DockerCleanupSuccess bool `json:"docker_cleanup_success_pushover_notifications"`
+	DockerCleanupFailure bool `json:"docker_cleanup_failure_pushover_notifications"`
+	ServerDiskUsage      bool `json:"server_disk_usage_pushover_notifications"`
+	ServerReachable      bool `json:"server_reachable_pushover_notifications"`
+	ServerUnreachable    bool `json:"server_unreachable_pushover_notifications"`
+	ServerPatch          bool `json:"server_patch_pushover_notifications"`
+	TraefikOutdated      bool `json:"traefik_outdated_pushover_notifications"`
+}
+
+// UpdatePushoverNotificationInput is the PATCH body for Pushover notifications.
+type UpdatePushoverNotificationInput struct {
+	Enabled  *bool   `json:"pushover_enabled,omitempty"`
+	UserKey  *string `json:"pushover_user_key,omitempty"`
+	APIToken *string `json:"pushover_api_token,omitempty"`
+
+	DeploymentSuccess    *bool `json:"deployment_success_pushover_notifications,omitempty"`
+	DeploymentFailure    *bool `json:"deployment_failure_pushover_notifications,omitempty"`
+	StatusChange         *bool `json:"status_change_pushover_notifications,omitempty"`
+	BackupSuccess        *bool `json:"backup_success_pushover_notifications,omitempty"`
+	BackupFailure        *bool `json:"backup_failure_pushover_notifications,omitempty"`
+	ScheduledTaskSuccess *bool `json:"scheduled_task_success_pushover_notifications,omitempty"`
+	ScheduledTaskFailure *bool `json:"scheduled_task_failure_pushover_notifications,omitempty"`
+	DockerCleanupSuccess *bool `json:"docker_cleanup_success_pushover_notifications,omitempty"`
+	DockerCleanupFailure *bool `json:"docker_cleanup_failure_pushover_notifications,omitempty"`
+	ServerDiskUsage      *bool `json:"server_disk_usage_pushover_notifications,omitempty"`
+	ServerReachable      *bool `json:"server_reachable_pushover_notifications,omitempty"`
+	ServerUnreachable    *bool `json:"server_unreachable_pushover_notifications,omitempty"`
+	ServerPatch          *bool `json:"server_patch_pushover_notifications,omitempty"`
+	TraefikOutdated      *bool `json:"traefik_outdated_pushover_notifications,omitempty"`
+}
+
+// GetWebhookNotifications returns the current team's webhook settings.
+func (c *Client) GetWebhookNotifications(ctx context.Context) (*WebhookNotificationSettings, error) {
+	var r WebhookNotificationSettings
+	if err := c.do(ctx, http.MethodGet, "/api/v1/notifications/webhook", nil, &r); err != nil {
+		return nil, fmt.Errorf("getting webhook notifications: %w", err)
+	}
+	return &r, nil
+}
+
+// UpdateWebhookNotifications updates the current team's webhook settings.
+func (c *Client) UpdateWebhookNotifications(ctx context.Context, input UpdateWebhookNotificationInput) (*WebhookNotificationSettings, error) {
+	var r WebhookNotificationSettings
+	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/webhook", input, &r); err != nil {
+		return nil, fmt.Errorf("updating webhook notifications: %w", err)
+	}
+	return &r, nil
+}
+
+// GetPushoverNotifications returns the current team's Pushover settings.
+func (c *Client) GetPushoverNotifications(ctx context.Context) (*PushoverNotificationSettings, error) {
+	var r PushoverNotificationSettings
+	if err := c.do(ctx, http.MethodGet, "/api/v1/notifications/pushover", nil, &r); err != nil {
+		return nil, fmt.Errorf("getting pushover notifications: %w", err)
+	}
+	return &r, nil
+}
+
+// UpdatePushoverNotifications updates the current team's Pushover settings.
+func (c *Client) UpdatePushoverNotifications(ctx context.Context, input UpdatePushoverNotificationInput) (*PushoverNotificationSettings, error) {
+	var r PushoverNotificationSettings
+	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/pushover", input, &r); err != nil {
+		return nil, fmt.Errorf("updating pushover notifications: %w", err)
+	}
+	return &r, nil
+}

@@ -34,6 +34,10 @@ func TestCoveredEndpoints_NotificationsCoverage(t *testing.T) {
 		"PATCH /notifications/discord",
 		"GET /notifications/slack",
 		"PATCH /notifications/slack",
+		"GET /notifications/webhook",
+		"PATCH /notifications/webhook",
+		"GET /notifications/pushover",
+		"PATCH /notifications/pushover",
 	} {
 		s, ok := cov[op]
 		if !ok {
@@ -48,8 +52,6 @@ func TestCoveredEndpoints_NotificationsCoverage(t *testing.T) {
 	for _, op := range []string{
 		"GET /notifications/email",
 		"GET /notifications/telegram",
-		"GET /notifications/pushover",
-		"GET /notifications/webhook",
 	} {
 		s, ok := cov[op]
 		if !ok {
