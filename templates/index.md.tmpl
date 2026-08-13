@@ -11,7 +11,7 @@ Define your entire [Coolify](https://coolify.io/) infrastructure as code. Deploy
 
 Coolify gives you a self-hosted PaaS with a great UI. This provider adds what the UI cannot: reproducible environments, pull-request-based infrastructure reviews, disaster recovery from state, and CI/CD integration. Whether you run a single VPS or manage Coolify for a team, Terraform turns your infrastructure into a reviewable, testable, git-tracked configuration.
 
-**38 resources, 56 data sources, 99%+ Coolify API coverage.**
+**39 resources, 56 data sources, 99%+ Coolify API coverage.**
 
 ## Requirements
 
@@ -75,11 +75,11 @@ export COOLIFY_CF_ACCESS_CLIENT_SECRET="your-cf-client-secret"
 | Databases | `coolify_database_postgresql`, `coolify_database_mysql`, `coolify_database_mariadb`, `coolify_database_redis`, `coolify_database_mongodb`, `coolify_database_clickhouse`, `coolify_database_keydb`, `coolify_database_dragonfly` |
 | Services | `coolify_service` |
 | Operations | `coolify_environment_variable`, `coolify_envs_bulk`, `coolify_storage`, `coolify_scheduled_task`, `coolify_deployment`, `coolify_resource_action`, `coolify_database_backup`, `coolify_backup_execution`, `coolify_application_preview` |
-| Validation | `coolify_server_validate`, `coolify_cloud_token_validate`, `coolify_api_settings` |
+| Validation | `coolify_server_validate`, `coolify_cloud_token_validate`, `coolify_s3_storage_validate`, `coolify_api_settings` |
 
 All stateful resources support `terraform import`. Action and validation resources
 (`coolify_api_settings`, `coolify_application_preview`, `coolify_cloud_token_validate`,
-`coolify_server_validate`, `coolify_resource_action`) are lifecycle-only and do not
+`coolify_s3_storage_validate`, `coolify_server_validate`, `coolify_resource_action`) are lifecycle-only and do not
 support import. See the [Import Guide](guides/import) for composite ID formats,
 known limitations, and field normalization behaviors.
 

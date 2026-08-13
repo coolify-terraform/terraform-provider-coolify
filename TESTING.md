@@ -318,7 +318,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (38 total)
+### Resources (39 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -354,6 +354,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_backup_execution` | Yes | Yes | N/A | N/A | Trigger resource |
 | `coolify_cloud_token_validate` | Yes | Yes | N/A | N/A | Trigger resource, needs `COOLIFY_HETZNER_TOKEN` |
 | `coolify_resource_action` | Yes | Yes | N/A | N/A | Start/stop/restart trigger with force-replace |
+| `coolify_s3_storage_validate` | Yes | Yes | N/A | N/A | Trigger resource, needs `COOLIFY_S3_STORAGE_UUID` |
 | `coolify_server_validate` | Yes | Yes | N/A | N/A | Trigger resource |
 | `coolify_envs_bulk` | Yes | Yes | N/A | N/A | Atomic env var set management |
 
@@ -410,9 +411,9 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ### Coverage Summary
 
-- **Resources**: 33/33 direct acceptance coverage
+- **Resources**: 39/39 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 111
+- **Total acceptance test functions**: 112
 
 ### Testing strategies for edge cases
 

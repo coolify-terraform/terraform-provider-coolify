@@ -28,7 +28,7 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 
 | Area | Coverage |
 |---|---|
-| Managed resources | 38 |
+| Managed resources | 39 |
 | Data sources | 54 |
 | Tests | 1180+ unit and acceptance tests |
 | Scenario examples | 17 ACME Corp setups |
@@ -143,6 +143,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_backup_execution` | Trigger database backup executions |
 | `coolify_cloud_token_validate` | Validate cloud provider tokens |
 | `coolify_resource_action` | Trigger start/stop/restart actions on resources |
+| `coolify_s3_storage_validate` | Validate S3 storage connectivity |
 | `coolify_server_validate` | Validate server SSH connectivity |
 
 ## Data Sources

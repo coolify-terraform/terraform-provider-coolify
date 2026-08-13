@@ -147,8 +147,8 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	key, err := r.client.GetPrivateKey(ctx, created.UUID)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Private key created but refresh failed",
-			fmt.Sprintf("Coolify created private key %s, but the provider could not read it back: Could not read private key %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, created.UUID, err),
+			flex.CreateReadBackFailedSummary("Private key"),
+			flex.CreateReadBackFailedDetail("private key", created.UUID, err),
 		)
 		return
 	}
