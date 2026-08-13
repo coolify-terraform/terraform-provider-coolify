@@ -232,8 +232,8 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 Detect Changes, DCO (PR only), Test (4 package shards), Coverage (merge shards),
 Lint (includes Govulncheck + GoReleaser Check),
 Validate (includes HCL fmt + Docs + Trivy + Gitleaks),
-Acceptance Tests, Scenario Tests, Contract Freshness (weekly only), CI (gate).
-Acceptance Tests bootstrap a fresh Coolify instance on ubuntu-latest and run the full suite.
+Acceptance Tests (2 shards), Scenario Tests, Contract Freshness (weekly only), CI (gate).
+Acceptance Tests boot two Coolify instances and split TestAcc packages across them.
 Scenario Tests bootstrap Coolify and run `terraform test` against it.
 A separate Dependabot Auto-Merge workflow auto-merges minor/patch PRs.
 An Issue Triage workflow auto-labels new issues (`needs-triage` or `ready`).

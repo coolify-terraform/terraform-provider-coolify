@@ -69,6 +69,7 @@ jobs:
               - '.github/workflows/ci.yml'
               - '.github/actions/**'
               - 'scripts/ci-unit-packages.sh'
+              - 'scripts/ci-acc-packages.sh'
               - 'scripts/ci-coolify-boot.sh'
               - '.codecov.yml'
               - '.goreleaser.yml'
@@ -730,12 +731,19 @@ jobs:
         needs.changes.outputs.scripts == 'true' ||
         github.event_name == 'workflow_dispatch'
       )
+    strategy:
+      fail-fast: false
+      matrix:
+        # Two Coolify instances. Application acc is pinned on shard 0;
+        # service acc on shard 1; remaining TestAcc packages round-robin.
+        shard: [0, 1]
     permissions:
       contents: read
       # Playwright browser cache save in setup-coolify.
       actions: write
     env:
       COOLIFY_DATA_DIR: /home/runner/coolify-data
+      ACC_SHARD_COUNT: "2"
     steps:
       - name: Harden runner
         if: runner.os == 'Linux'
@@ -811,17 +819,22 @@ jobs:
           set +a
           export TF_ACC=1
 
+          mapfile -t pkgs < <(bash scripts/ci-acc-packages.sh "${{ matrix.shard }}" "${ACC_SHARD_COUNT}")
+          echo "Acc shard ${{ matrix.shard }}/${ACC_SHARD_COUNT}: ${#pkgs[@]} packages"
+          printf '  %s\n' "${pkgs[@]}"
+          pkg_list="${pkgs[*]}"
+
           mkdir -p test-results
           gotestsum \
             --format pkgname \
-            --junitfile test-results/acceptance.xml \
-            --packages ./internal/service/... \
+            --junitfile "test-results/acceptance-shard-${{ matrix.shard }}.xml" \
+            --packages "$pkg_list" \
             -- -run TestAcc -race -count=1 -timeout=30m -parallel=1
       - name: Upload acceptance test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: acceptance-test-results
+          name: acceptance-test-results-shard-${{ matrix.shard }}
           path: test-results/
           retention-days: 14
 
@@ -834,7 +847,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: coolify-logs-acceptance-tests
+          name: coolify-logs-acceptance-tests-shard-${{ matrix.shard }}
           path: /tmp/coolify-logs.txt
           retention-days: 7
 
