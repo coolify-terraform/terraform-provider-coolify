@@ -380,3 +380,82 @@ func TestTelegramNotificationResource_DestroyAPIError(t *testing.T) {
 		},
 	})
 }
+
+func TestTelegramNotificationResource_ReadNotFound(t *testing.T) {
+	t.Parallel()
+	var gone bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/telegram", func(w http.ResponseWriter, _ *http.Request) {
+		if gone {
+			http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"telegram_enabled":true,"telegram_token":"bot:token","telegram_chat_id":"123"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/telegram", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"telegram_enabled":true,"telegram_token":"bot:token","telegram_chat_id":"123"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_telegram", "test", `
+  enabled = true
+  token   = "bot:token"
+  chat_id = "123"
+`),
+			},
+			{
+				PreConfig: func() { gone = true },
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_telegram", "test", `
+  enabled = true
+  token   = "bot:token"
+  chat_id = "123"
+`),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestTelegramNotificationResource_DestroyNotFound(t *testing.T) {
+	t.Parallel()
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/telegram", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"telegram_enabled":true,"telegram_token":"bot:token","telegram_chat_id":"123"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/telegram", func(w http.ResponseWriter, _ *http.Request) {
+		patches++
+		if patches >= 2 {
+			http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"telegram_enabled":true,"telegram_token":"bot:token","telegram_chat_id":"123"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_telegram", "test", `
+  enabled = true
+  token   = "bot:token"
+  chat_id = "123"
+`),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL),
+			},
+		},
+	})
+}
