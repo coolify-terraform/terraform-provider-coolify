@@ -26,18 +26,39 @@ func TestCoveredEndpoints_HasS3AndDestinations(t *testing.T) {
 	}
 }
 
-func TestCoveredEndpoints_NotificationsPlanned(t *testing.T) {
+func TestCoveredEndpoints_NotificationsCoverage(t *testing.T) {
 	t.Parallel()
 	cov := coveredEndpoints()
-	s, ok := cov["GET /notifications/slack"]
-	if !ok {
-		t.Fatal("missing GET /notifications/slack")
+	for _, op := range []string{
+		"GET /notifications/discord",
+		"PATCH /notifications/discord",
+		"GET /notifications/slack",
+		"PATCH /notifications/slack",
+	} {
+		s, ok := cov[op]
+		if !ok {
+			t.Errorf("missing registry entry %s", op)
+			continue
+		}
+		if s.category != "covered" {
+			t.Errorf("%s: want covered, got %s (%s)", op, s.category, s.resource)
+		}
 	}
-	if s.category != "planned" {
-		t.Fatalf("want planned, got %s", s.category)
-	}
-	if s.priority != 2 {
-		t.Fatalf("priority: got %d", s.priority)
+	// Remaining channels stay planned until their resources land (#394 follow-up).
+	for _, op := range []string{
+		"GET /notifications/email",
+		"GET /notifications/telegram",
+		"GET /notifications/pushover",
+		"GET /notifications/webhook",
+	} {
+		s, ok := cov[op]
+		if !ok {
+			t.Errorf("missing registry entry %s", op)
+			continue
+		}
+		if s.category != "planned" {
+			t.Errorf("%s: want planned, got %s", op, s.category)
+		}
 	}
 }
 

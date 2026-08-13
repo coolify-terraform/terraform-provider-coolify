@@ -717,6 +717,54 @@ func AccTestSkipIfNoS3StorageAPI(t *testing.T) {
 	}
 }
 
+// AccTestSkipIfNoNotificationAPI skips when Coolify lacks NotificationsController
+// (GET /api/v1/notifications/discord from Coolify >= v4.3.0).
+//
+// When COOLIFY_REQUIRE_TIP_APIS=1, a missing controller fails instead of skips.
+//
+// Probe strategy: GET /api/v1/notifications/discord.
+// Present controller returns 200 (settings) or 401/403. Any 404 means no route
+// (including Coolify plain Not found).
+func AccTestSkipIfNoNotificationAPI(t *testing.T) {
+	t.Helper()
+	TestAccPreCheck(t)
+
+	endpoint := strings.TrimRight(os.Getenv("COOLIFY_ENDPOINT"), "/")
+	token := os.Getenv("COOLIFY_TOKEN")
+	path := endpoint + "/api/v1/notifications/discord"
+	req, err := http.NewRequest(http.MethodGet, path, nil)
+	if err != nil {
+		t.Fatalf("building notification API probe request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		accTestMissingFeature(t, "notification API probe failed (cannot reach Coolify): %v", err)
+		return
+	}
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	_ = resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusUnauthorized, http.StatusForbidden:
+		return
+	case http.StatusNotFound:
+		accTestMissingFeature(t, "Coolify instance has no NotificationsController (HTTP %d). "+
+			"Need Coolify >= v4.3.0. Body: %s",
+			resp.StatusCode, truncateForSkip(string(body), 200))
+		return
+	case http.StatusMethodNotAllowed:
+		accTestMissingFeature(t, "Coolify instance has no notification GET route (HTTP 405). Need Coolify >= v4.3.0")
+	default:
+		if resp.StatusCode >= 500 {
+			accTestMissingFeature(t, "notification API probe returned HTTP %d (server error): %s",
+				resp.StatusCode, truncateForSkip(string(body), 200))
+		}
+	}
+}
+
 // AccTestSkipIfCoolifyBelow skips (or fails with COOLIFY_REQUIRE_TIP_APIS=1)
 // when the connected Coolify version is older than min (e.g. "4.3.0").
 func AccTestSkipIfCoolifyBelow(t *testing.T, min string) {
