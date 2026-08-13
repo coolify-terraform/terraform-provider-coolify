@@ -30,7 +30,7 @@ func (m *mockSlack) snapshot() map[string]interface{} {
 		"slack_enabled":     m.Enabled,
 		"slack_webhook_url": m.Webhook,
 	}
-	m.EventStore.PutSnapshot(out, "slack")
+	m.PutSnapshot(out, "slack")
 	return out
 }
 
@@ -47,7 +47,7 @@ func newMockServer(store *mockSlack) *httptest.Server {
 		store.mu.Lock()
 		notificationcommon.BoolFromBody(body, "slack_enabled", &store.Enabled)
 		notificationcommon.StringFromBody(body, "slack_webhook_url", &store.Webhook)
-		store.EventStore.ApplyBody("slack", body)
+		store.ApplyBody("slack", body)
 		store.mu.Unlock()
 		notificationcommon.WriteJSON(w, store.snapshot())
 	})

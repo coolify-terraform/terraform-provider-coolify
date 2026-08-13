@@ -41,7 +41,7 @@ func (m *mockEmail) snapshot() map[string]interface{} {
 	if m.SMTPPort != 0 {
 		out["smtp_port"] = m.SMTPPort
 	}
-	m.EventStore.PutSnapshot(out, "email")
+	m.PutSnapshot(out, "email")
 	return out
 }
 
@@ -75,7 +75,7 @@ func newMockServer(store *mockEmail) *httptest.Server {
 		}
 		notificationcommon.BoolFromBody(body, "resend_enabled", &store.ResendEnabled)
 		notificationcommon.BoolFromBody(body, "use_instance_email_settings", &store.UseInstanceEmail)
-		store.EventStore.ApplyBody("email", body)
+		store.ApplyBody("email", body)
 		store.mu.Unlock()
 		notificationcommon.WriteJSON(w, store.snapshot())
 	})

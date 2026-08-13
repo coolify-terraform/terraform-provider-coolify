@@ -32,7 +32,7 @@ func (m *mockDiscord) snapshot() map[string]interface{} {
 		"discord_enabled":      m.Enabled,
 		"discord_ping_enabled": m.PingEnabled,
 	}
-	m.EventStore.PutSnapshot(out, "discord")
+	m.PutSnapshot(out, "discord")
 	if !m.HideWebhook {
 		out["discord_webhook_url"] = m.Webhook
 	}
@@ -60,7 +60,7 @@ func newMockServer(store *mockDiscord) *httptest.Server {
 		notificationcommon.BoolFromBody(body, "discord_enabled", &store.Enabled)
 		notificationcommon.StringFromBody(body, "discord_webhook_url", &store.Webhook)
 		notificationcommon.BoolFromBody(body, "discord_ping_enabled", &store.PingEnabled)
-		store.EventStore.ApplyBody("discord", body)
+		store.ApplyBody("discord", body)
 		store.mu.Unlock()
 		notificationcommon.WriteJSON(w, store.snapshot())
 	})

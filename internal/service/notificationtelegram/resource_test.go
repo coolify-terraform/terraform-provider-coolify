@@ -32,7 +32,7 @@ func (m *mockTelegram) snapshot() map[string]interface{} {
 		"team_id":          0,
 		"telegram_enabled": m.Enabled,
 	}
-	m.EventStore.PutSnapshot(out, "telegram")
+	m.PutSnapshot(out, "telegram")
 	if !m.HideSecrets {
 		out["telegram_token"] = m.Token
 		out["telegram_chat_id"] = m.ChatID
@@ -77,7 +77,7 @@ func newMockServer(store *mockTelegram) *httptest.Server {
 		notificationcommon.StringFromBody(body, "telegram_token", &store.Token)
 		notificationcommon.StringFromBody(body, "telegram_chat_id", &store.ChatID)
 		notificationcommon.StringFromBody(body, "telegram_notifications_deployment_failure_thread_id", &store.ThreadDeployFail)
-		store.EventStore.ApplyBody("telegram", body)
+		store.ApplyBody("telegram", body)
 		store.mu.Unlock()
 		notificationcommon.WriteJSON(w, store.snapshot())
 	})

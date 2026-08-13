@@ -30,7 +30,7 @@ func (m *mockWebhook) snapshot() map[string]interface{} {
 		"webhook_enabled": m.Enabled,
 		"webhook_url":     m.Webhook,
 	}
-	m.EventStore.PutSnapshot(out, "webhook")
+	m.PutSnapshot(out, "webhook")
 	return out
 }
 
@@ -47,7 +47,7 @@ func newMockServer(store *mockWebhook) *httptest.Server {
 		store.mu.Lock()
 		notificationcommon.BoolFromBody(body, "webhook_enabled", &store.Enabled)
 		notificationcommon.StringFromBody(body, "webhook_url", &store.Webhook)
-		store.EventStore.ApplyBody("webhook", body)
+		store.ApplyBody("webhook", body)
 		store.mu.Unlock()
 		notificationcommon.WriteJSON(w, store.snapshot())
 	})

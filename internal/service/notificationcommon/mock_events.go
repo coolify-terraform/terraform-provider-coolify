@@ -33,7 +33,8 @@ func EventJSONKey(channel, eventAttr string) string {
 	return eventAttr + "_" + channel + "_notifications"
 }
 
-// eventFieldMaps maps EventAttributeNames entries to EventStore fields.
+// fieldPtrs maps EventAttributeNames entries to EventStore fields.
+// Keep attrs in the same order/names as eventNames in common.go.
 func (e *EventStore) fieldPtrs() []struct {
 	attr string
 	ptr  *bool

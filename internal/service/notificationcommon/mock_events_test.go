@@ -54,6 +54,54 @@ func TestEventAllowedFields_AllFourteen(t *testing.T) {
 	}
 }
 
+// TestEventStore_AlignsWithEventAttributeNames guards fieldPtrs attrs against
+// eventNames drift (EventAllowedFields uses eventNames; PutSnapshot uses fieldPtrs).
+func TestEventStore_AlignsWithEventAttributeNames(t *testing.T) {
+	t.Parallel()
+	names := notificationcommon.EventAttributeNames()
+	require.Len(t, names, 14)
+
+	var e notificationcommon.EventStore
+	// Flip every field so the snapshot is not all-false noise.
+	e.DeploymentSuccess = true
+	e.DeploymentFailure = true
+	e.StatusChange = true
+	e.BackupSuccess = true
+	e.BackupFailure = true
+	e.ScheduledTaskSuccess = true
+	e.ScheduledTaskFailure = true
+	e.DockerCleanupSuccess = true
+	e.DockerCleanupFailure = true
+	e.ServerDiskUsage = true
+	e.ServerReachable = true
+	e.ServerUnreachable = true
+	e.ServerPatch = true
+	e.TraefikOutdated = true
+
+	out := map[string]interface{}{}
+	e.PutSnapshot(out, "discord")
+	require.Len(t, out, len(names))
+	for _, name := range names {
+		key := notificationcommon.EventJSONKey("discord", name)
+		v, ok := out[key]
+		require.True(t, ok, "PutSnapshot missing key for attr %q", name)
+		assert.Equal(t, true, v, "PutSnapshot value for %q", name)
+	}
+
+	// ApplyBody must accept every EventJSONKey from EventAttributeNames.
+	body := make(map[string]interface{}, len(names))
+	for _, name := range names {
+		body[notificationcommon.EventJSONKey("discord", name)] = false
+	}
+	e.ApplyBody("discord", body)
+	out2 := map[string]interface{}{}
+	e.PutSnapshot(out2, "discord")
+	for _, name := range names {
+		key := notificationcommon.EventJSONKey("discord", name)
+		assert.Equal(t, false, out2[key], "ApplyBody did not clear %q", name)
+	}
+}
+
 func TestMergeAllowed(t *testing.T) {
 	t.Parallel()
 	base := notificationcommon.EventAllowedFields("slack")

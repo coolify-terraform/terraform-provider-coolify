@@ -32,7 +32,7 @@ func (m *mockPushover) snapshot() map[string]interface{} {
 		"pushover_user_key":  m.UserKey,
 		"pushover_api_token": m.Token,
 	}
-	m.EventStore.PutSnapshot(out, "pushover")
+	m.PutSnapshot(out, "pushover")
 	return out
 }
 
@@ -50,7 +50,7 @@ func newMockServer(store *mockPushover) *httptest.Server {
 		notificationcommon.BoolFromBody(body, "pushover_enabled", &store.Enabled)
 		notificationcommon.StringFromBody(body, "pushover_user_key", &store.UserKey)
 		notificationcommon.StringFromBody(body, "pushover_api_token", &store.Token)
-		store.EventStore.ApplyBody("pushover", body)
+		store.ApplyBody("pushover", body)
 		store.mu.Unlock()
 		notificationcommon.WriteJSON(w, store.snapshot())
 	})
