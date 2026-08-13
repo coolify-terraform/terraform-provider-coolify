@@ -30,7 +30,7 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 |---|---|
 | Managed resources | 45 |
 | Data sources | 56 |
-| Tests | 1270+ unit and acceptance tests |
+| Tests | 1280+ unit and acceptance tests |
 | Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -316,7 +316,7 @@ targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
-make test                                       # Run unit tests (1270+ tests, race detector enabled)
+make test                                       # Run unit tests (1280+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
 make testacc                                    # Run acceptance tests with serialized package and in-package execution
