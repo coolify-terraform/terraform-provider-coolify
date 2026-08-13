@@ -33,7 +33,10 @@ if (( count < 1 || shard < 0 || shard >= count )); then
 fi
 
 # Heaviest UnitTest packages by recent CI package wall time.
-# Keep the three multi-minute packages on separate shards when count>=3.
+# Only the first $count entries are exclusive pins (one per shard). Remaining
+# names fall through to the general round-robin so application does not also
+# carry scheduledtask+storage+deployment on a 3-wide matrix (PR #729 Test(0)
+# was 10.5m vs ~6m for the other shards).
 heavy_pins=(
   "github.com/coolify-terraform/terraform-provider-coolify/internal/service/application"
   "github.com/coolify-terraform/terraform-provider-coolify/internal/service/service"
@@ -64,18 +67,20 @@ pkg_in_module() {
   grep -Fxq "$1" "$all_pkgs_file"
 }
 
-# 1) Place heavy pins round-robin so application→0, service→1, redis→2.
+# 1) Exclusive pin: first `count` existing heavies, one per shard.
 pin_i=0
 for pkg in "${heavy_pins[@]}"; do
   if ! pkg_in_module "$pkg"; then
     continue
   fi
-  target=$((pin_i % count))
-  pin_i=$((pin_i + 1))
+  if (( pin_i >= count )); then
+    break
+  fi
   printf '%s\n' "$pkg" >>"$assigned_file"
-  if (( target == shard )); then
+  if (( pin_i == shard )); then
     printf '%s\n' "$pkg" >>"$selected_file"
   fi
+  pin_i=$((pin_i + 1))
 done
 
 # 2) Remaining packages: stable sorted order, round-robin into shards.

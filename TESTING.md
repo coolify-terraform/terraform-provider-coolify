@@ -21,7 +21,7 @@ acctest) with higher in-package parallelism, then plugin packages
 packages fork the Terraform binary under `resource.UnitTest`; higher
 in-package parallelism under `-race` has caused TSAN segfaults.
 
-CI shards unit tests across 3 runners (`scripts/ci-unit-packages.sh`) so
+CI shards unit tests across 4 runners (`scripts/ci-unit-packages.sh`) so
 the heaviest packages (application, service, redis) do not serialize the
 critical path.
 
