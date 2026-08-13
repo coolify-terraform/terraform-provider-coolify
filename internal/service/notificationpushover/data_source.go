@@ -63,7 +63,7 @@ func (d *pushoverDataSource) Read(ctx context.Context, _ datasource.ReadRequest,
 	}
 	var state model
 	if err := flatten(got, &state); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

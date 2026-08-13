@@ -144,7 +144,7 @@ func (r *emailResource) Create(ctx context.Context, req resource.CreateRequest, 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_notification_email"})
 	input, err := createInputFromPlan(plan)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdateEmailNotifications(ctx, input)
@@ -153,7 +153,7 @@ func (r *emailResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -176,7 +176,7 @@ func (r *emailResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 	if err := flatten(got, &state); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -196,7 +196,7 @@ func (r *emailResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_notification_email"})
 	input, err := updateInputFromPlan(plan, state)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdateEmailNotifications(ctx, input)
@@ -205,7 +205,7 @@ func (r *emailResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)

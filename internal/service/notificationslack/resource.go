@@ -82,7 +82,7 @@ func (r *slackResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	input, err := createInputFromPlan(plan)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdateSlackNotifications(ctx, input)
@@ -92,7 +92,7 @@ func (r *slackResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -118,7 +118,7 @@ func (r *slackResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	}
 
 	if err := flatten(got, &state); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -140,7 +140,7 @@ func (r *slackResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	input, err := updateInputFromPlan(plan, state)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdateSlackNotifications(ctx, input)
@@ -150,7 +150,7 @@ func (r *slackResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
