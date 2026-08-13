@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.14](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.13...v0.1.14) (2026-08-13)
+
+
+### Features
+
+* coolify_notification_discord and coolify_notification_slack ([#703](https://github.com/coolify-terraform/terraform-provider-coolify/issues/703)) ([46f8388](https://github.com/coolify-terraform/terraform-provider-coolify/commit/46f838871559195d862de7c045a7a1d0c1b846f6))
+* coolify_notification_email and coolify_notification_telegram ([#706](https://github.com/coolify-terraform/terraform-provider-coolify/issues/706)) ([cf398bb](https://github.com/coolify-terraform/terraform-provider-coolify/commit/cf398bbac71d781882e5cd23cb85e16636425cc9))
+* coolify_notification_webhook and coolify_notification_pushover ([#705](https://github.com/coolify-terraform/terraform-provider-coolify/issues/705)) ([fb0d7ad](https://github.com/coolify-terraform/terraform-provider-coolify/commit/fb0d7add2d8c4ca64a80e85402c8a9bab6845239))
+* coolify_s3_storage and CI OpenTofu flake hardening ([#689](https://github.com/coolify-terraform/terraform-provider-coolify/issues/689)) ([23c5952](https://github.com/coolify-terraform/terraform-provider-coolify/commit/23c5952644c16fe7ec5e68869fd571fde0d5c5c8))
+* coolify_s3_storage_validate and shared create read-back helpers ([#698](https://github.com/coolify-terraform/terraform-provider-coolify/issues/698)) ([f333989](https://github.com/coolify-terraform/terraform-provider-coolify/commit/f33398957cd2e3e189689abc7e1cba1a2fffd920))
+* drive API_COVERAGE from Coolify contract routes ([#702](https://github.com/coolify-terraform/terraform-provider-coolify/issues/702)) ([b250364](https://github.com/coolify-terraform/terraform-provider-coolify/commit/b2503646171bad4629c38e169b54ae43db1f0349))
+* expose Coolify tip docker/compose version probes on servers ([#708](https://github.com/coolify-terraform/terraform-provider-coolify/issues/708)) ([c8a1699](https://github.com/coolify-terraform/terraform-provider-coolify/commit/c8a16995963627429cd468e4ce0069da2fd92e3f))
+* notification data sources, 404 tests, and event mapping errors ([#725](https://github.com/coolify-terraform/terraform-provider-coolify/issues/725)) ([2d4e4e1](https://github.com/coolify-terraform/terraform-provider-coolify/commit/2d4e4e1e3fe676f1623bf69f3c902a17d7d5e3f3))
+* pin Coolify API contract to v4.3.2 ([#709](https://github.com/coolify-terraform/terraform-provider-coolify/issues/709)) ([d791afa](https://github.com/coolify-terraform/terraform-provider-coolify/commit/d791afa79c78096d81ef7a0606490c3840604472)), closes [#699](https://github.com/coolify-terraform/terraform-provider-coolify/issues/699)
+* pin Coolify contract to v4.3.1 and watch tip API early ([#686](https://github.com/coolify-terraform/terraform-provider-coolify/issues/686)) ([8da70af](https://github.com/coolify-terraform/terraform-provider-coolify/commit/8da70af0c04f49fc08dc6c02cf990eed3343d561))
+* shared notification helpers and acme-notifications scenario ([#715](https://github.com/coolify-terraform/terraform-provider-coolify/issues/715)) ([fac7535](https://github.com/coolify-terraform/terraform-provider-coolify/commit/fac7535ccf32062b411fa2b464b2829b605e2292))
+
+
+### Bug Fixes
+
+* align notification mapping errors and thread tests ([#729](https://github.com/coolify-terraform/terraform-provider-coolify/issues/729)) ([fe28850](https://github.com/coolify-terraform/terraform-provider-coolify/commit/fe28850a3f56eb95b7ab312694c61cb8a712e78d))
+* bump Go 1.26.5 to 1.26.6 for stdlib CVEs ([#734](https://github.com/coolify-terraform/terraform-provider-coolify/issues/734)) ([2ec06ce](https://github.com/coolify-terraform/terraform-provider-coolify/commit/2ec06cec2156b5a72a2d88ebff0709631f3f0a78))
+* include Coolify deploy logs and retry acme-github-cicd ([#730](https://github.com/coolify-terraform/terraform-provider-coolify/issues/730)) ([8a2df24](https://github.com/coolify-terraform/terraform-provider-coolify/commit/8a2df2485c2f1f023308081cd88b434645993bdf)), closes [#728](https://github.com/coolify-terraform/terraform-provider-coolify/issues/728)
+* S3 docs accuracy, CI scenario path filter, DS error IDs ([#694](https://github.com/coolify-terraform/terraform-provider-coolify/issues/694)) ([336b046](https://github.com/coolify-terraform/terraform-provider-coolify/commit/336b046cd2906204716ad021b26ed3f89b2bbf72))
+
 ## [0.1.13](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.12...v0.1.13) (2026-08-10)
 
 
