@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 type Deployment struct {
@@ -15,7 +17,50 @@ type Deployment struct {
 	ID         int    `json:"id,omitempty"`
 	Status     string `json:"status,omitempty"`
 	ServerUUID string `json:"server_uuid,omitempty"`
+	// Logs is the Coolify ApplicationDeploymentQueue log payload. The API
+	// returns it only when the token can read sensitive fields. The wire
+	// form is either a JSON array of entries or a JSON string containing
+	// that array.
+	Logs json.RawMessage `json:"logs,omitempty"`
 }
+
+type deploymentLogEntry struct {
+	Output string `json:"output"`
+	Hidden bool   `json:"hidden"`
+}
+
+// FormatLogs returns the last maxLines visible log outputs, joined by
+// newlines. Empty when logs are missing, hidden, or unreadable.
+func (d Deployment) FormatLogs(maxLines int) string {
+	raw := bytes.TrimSpace(d.Logs)
+	if len(raw) == 0 || string(raw) == "null" {
+		return ""
+	}
+	var asString string
+	if err := json.Unmarshal(raw, &asString); err == nil {
+		raw = []byte(asString)
+	}
+	var entries []deploymentLogEntry
+	if err := json.Unmarshal(raw, &entries); err != nil {
+		s := string(raw)
+		if len(s) > 2000 {
+			s = s[len(s)-2000:]
+		}
+		return s
+	}
+	var lines []string
+	for _, e := range entries {
+		if e.Hidden || e.Output == "" {
+			continue
+		}
+		lines = append(lines, e.Output)
+	}
+	if maxLines > 0 && len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
+	}
+	return strings.Join(lines, "\n")
+}
+
 type DeployByTagInput struct {
 	ForceRebuild bool `json:"force_rebuild"`
 }

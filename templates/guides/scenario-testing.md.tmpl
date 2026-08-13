@@ -272,18 +272,17 @@ export TF_VAR_server_uuid="$COOLIFY_SERVER_UUID"
 cd examples/scenarios/acme-website
 terraform test -verbose
 
-# Run all scenarios
-for dir in examples/scenarios/acme-*/; do
-  echo "=== Testing $(basename "$dir") ==="
-  cd "$dir"
-  if [ -d "modules" ]; then
-    # terraform init still resolves providers with dev_overrides, so fetch only local modules here.
-    terraform get
-  fi
-  terraform test -verbose
-  cd -
-done
+# Run all scenarios (retries acme-github-cicd once if Coolify deploy status is failed)
+bash scripts/run-scenario-tests.sh
 ```
+
+CI uses the same script. A single Coolify deploy `failed` on
+`acme-github-cicd` is retried once; if it still fails, Coolify
+deployment JSON (including logs when the API token can read them)
+is written to `/tmp/scenario-diag/` and uploaded with the job
+artifact. Acceptance Tests remain the product-code gate; inspect
+those before treating a lone scenario deploy failure as a provider
+regression.
 
 ## Coming Back Later
 

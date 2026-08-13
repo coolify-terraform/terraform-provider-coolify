@@ -41,6 +41,16 @@ Every resource test should include these scenarios:
 - **Disappears** (simulate out-of-band deletion)
 - **CheckDestroy** (verify cleanup after `terraform destroy`)
 
+## Scenario Tests
+
+`terraform test` under `examples/scenarios/` boots a real Coolify
+instance in CI. `scripts/run-scenario-tests.sh` retries
+`acme-github-cicd` once when Coolify reports deploy status `failed`
+(see #728). A single failed Coolify build is not a provider regression
+if Acceptance Tests on the same SHA are green; inspect the job artifact
+(`scenario-diag/` plus compose logs) and the `coolify_deployment`
+error, which now includes the last Coolify deployment log lines.
+
 ## Acceptance Tests
 
 Acceptance tests run against a real Coolify instance. They exercise the
