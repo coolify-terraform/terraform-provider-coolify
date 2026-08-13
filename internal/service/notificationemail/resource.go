@@ -6,6 +6,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -128,6 +129,9 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				MarkdownDescription: "SMTP port (1-65535).",
 				Optional:            true,
 				Computed:            true,
+				Validators: []validator.Int64{
+					int64validator.Between(1, 65535),
+				},
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
@@ -149,6 +153,9 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				MarkdownDescription: "SMTP timeout in seconds (>= 0).",
 				Optional:            true,
 				Computed:            true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(0),
+				},
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
@@ -376,7 +383,10 @@ func flatten(api *client.EmailNotificationSettings, m *model) {
 	flex.SetStringPreserveEmpty(&m.SMTPFromName, api.SMTPFromName)
 	flex.SetStringPreserveEmpty(&m.SMTPRecipients, api.SMTPRecipients)
 	flex.SetStringPreserveEmpty(&m.SMTPHost, api.SMTPHost)
-	flex.SetStringPreserveEmpty(&m.SMTPEncryption, api.SMTPEncryption)
+	m.SMTPEncryption = types.StringValue(api.SMTPEncryption)
+	if api.SMTPEncryption == "" {
+		m.SMTPEncryption = types.StringNull()
+	}
 	flex.SetStringPreserveEmpty(&m.SMTPUsername, api.SMTPUsername)
 	flex.SetStringPreserveEmpty(&m.SMTPPassword, api.SMTPPassword)
 	flex.SetStringPreserveEmpty(&m.ResendAPIKey, api.ResendAPIKey)

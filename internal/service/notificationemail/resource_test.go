@@ -2,6 +2,7 @@ package notificationemail_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -162,7 +163,7 @@ func TestEmailNotificationResource_CreateUpdateImport(t *testing.T) {
 				ImportState:             true,
 				ImportStateId:           "current",
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"smtp_host", "smtp_password", "smtp_username", "smtp_from_address", "smtp_from_name", "smtp_recipients", "resend_api_key"},
+				ImportStateVerifyIgnore: []string{"smtp_password", "smtp_username", "smtp_from_address", "smtp_from_name", "smtp_recipients", "resend_api_key"},
 			},
 		},
 	})
@@ -183,6 +184,91 @@ func TestEmailNotificationResource_InvalidEncryption(t *testing.T) {
   smtp_encryption = "ssl"
 `),
 				ExpectError: regexp.MustCompile(`starttls|tls|none`),
+			},
+		},
+	})
+}
+
+func TestEmailNotificationResource_DestroyDisablesAll(t *testing.T) {
+	t.Parallel()
+	store := &mockEmail{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(_ *terraform.State) error {
+			store.mu.Lock()
+			defer store.mu.Unlock()
+			if store.SMTPEnabled || store.ResendEnabled || store.UseInstanceEmail {
+				return fmt.Errorf("expected all enables false after destroy: smtp=%v resend=%v instance=%v",
+					store.SMTPEnabled, store.ResendEnabled, store.UseInstanceEmail)
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled                = true
+  resend_enabled              = true
+  use_instance_email_settings = true
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_notification_email.test", "smtp_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_notification_email.test", "resend_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_notification_email.test", "use_instance_email_settings", "true"),
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL),
+			},
+		},
+	})
+}
+
+func TestEmailNotificationResource_PreserveHiddenSecrets(t *testing.T) {
+	t.Parallel()
+	store := &mockEmail{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0,
+			"smtp_enabled": true,
+		})
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		store.mu.Lock()
+		if v, ok := body["smtp_enabled"].(bool); ok {
+			store.SMTPEnabled = v
+		}
+		if v, ok := body["smtp_host"].(string); ok {
+			store.SMTPHost = v
+		}
+		store.mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0, "smtp_enabled": true,
+		})
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled  = true
+  smtp_host     = "smtp.example.com"
+  smtp_password = "s3cret"
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_notification_email.test", "smtp_host", "smtp.example.com"),
+					resource.TestCheckResourceAttr("coolify_notification_email.test", "smtp_password", "s3cret"),
+				),
 			},
 		},
 	})

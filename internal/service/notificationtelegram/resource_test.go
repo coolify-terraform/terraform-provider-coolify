@@ -48,7 +48,33 @@ func newMockServer(store *mockTelegram) *httptest.Server {
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/telegram", func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"message":"bad json"}`, http.StatusBadRequest)
+			return
+		}
+		allowed := map[string]bool{
+			"telegram_enabled": true, "telegram_token": true, "telegram_chat_id": true,
+			"deployment_success_telegram_notifications": true, "deployment_failure_telegram_notifications": true,
+			"status_change_telegram_notifications": true, "backup_success_telegram_notifications": true,
+			"backup_failure_telegram_notifications": true, "scheduled_task_success_telegram_notifications": true,
+			"scheduled_task_failure_telegram_notifications": true, "docker_cleanup_success_telegram_notifications": true,
+			"docker_cleanup_failure_telegram_notifications": true, "server_disk_usage_telegram_notifications": true,
+			"server_reachable_telegram_notifications": true, "server_unreachable_telegram_notifications": true,
+			"server_patch_telegram_notifications": true, "traefik_outdated_telegram_notifications": true,
+			"telegram_notifications_deployment_success_thread_id": true, "telegram_notifications_deployment_failure_thread_id": true,
+			"telegram_notifications_status_change_thread_id": true, "telegram_notifications_backup_success_thread_id": true,
+			"telegram_notifications_backup_failure_thread_id": true, "telegram_notifications_scheduled_task_success_thread_id": true,
+			"telegram_notifications_scheduled_task_failure_thread_id": true, "telegram_notifications_docker_cleanup_success_thread_id": true,
+			"telegram_notifications_docker_cleanup_failure_thread_id": true, "telegram_notifications_server_disk_usage_thread_id": true,
+			"telegram_notifications_server_reachable_thread_id": true, "telegram_notifications_server_unreachable_thread_id": true,
+			"telegram_notifications_server_patch_thread_id": true, "telegram_notifications_traefik_outdated_thread_id": true,
+		}
+		for k := range body {
+			if !allowed[k] {
+				http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+				return
+			}
+		}
 		store.mu.Lock()
 		if v, ok := body["telegram_enabled"].(bool); ok {
 			store.Enabled = v
