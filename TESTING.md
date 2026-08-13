@@ -354,7 +354,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_backup_execution` | Yes | Yes | N/A | N/A | Trigger resource |
 | `coolify_cloud_token_validate` | Yes | Yes | N/A | N/A | Trigger resource, needs `COOLIFY_HETZNER_TOKEN` |
 | `coolify_resource_action` | Yes | Yes | N/A | N/A | Start/stop/restart trigger with force-replace |
-| `coolify_s3_storage_validate` | Yes | Yes | N/A | N/A | Trigger resource, needs `COOLIFY_S3_STORAGE_UUID` |
+| `coolify_s3_storage_validate` | Yes | Yes | N/A | N/A | Trigger resource; creates disposable S3 storage (does not use bootstrap minio-test UUID) |
 | `coolify_server_validate` | Yes | Yes | N/A | N/A | Trigger resource |
 | `coolify_envs_bulk` | Yes | Yes | N/A | N/A | Atomic env var set management |
 

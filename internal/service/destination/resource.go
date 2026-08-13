@@ -124,9 +124,10 @@ func (r *destinationResource) Create(ctx context.Context, req resource.CreateReq
 
 	got, err := r.client.GetDestination(ctx, created.UUID)
 	if err != nil {
+		// Detail uses lower-case "destination" for historical wording; summary is title case.
 		resp.Diagnostics.AddError(
-			"Destination created but refresh failed",
-			fmt.Sprintf("Coolify created destination %s, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, err),
+			flex.CreateReadBackFailedSummary("Destination"),
+			flex.CreateReadBackFailedDetail("destination", created.UUID, err),
 		)
 		return
 	}

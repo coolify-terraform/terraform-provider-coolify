@@ -34,6 +34,25 @@ func TestS3StorageValidateResource_Success(t *testing.T) {
 	})
 }
 
+func TestS3StorageValidateResource_InvalidUUID(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_s3_storage_validate", "test", `
+					s3_storage_uuid = "not-a-valid-uuid"
+				`),
+				ExpectError: regexp.MustCompile(`(?i)uuid|invalid|must`),
+			},
+		},
+	})
+}
+
 func TestS3StorageValidateResource_Failure(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()

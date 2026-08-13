@@ -232,7 +232,14 @@ func (r *gitHubAppResource) Read(ctx context.Context, req resource.ReadRequest, 
 			resp.State.RemoveResource(ctx)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading GitHub App", fmt.Sprintf("Could not read GitHub App: %s", err))
+		id := state.ID.ValueInt64()
+		if state.ID.IsNull() || state.ID.IsUnknown() {
+			resp.Diagnostics.AddError("Error reading GitHub App",
+				fmt.Sprintf("Could not read GitHub App (app_id %d): %s", state.AppID.ValueInt64(), err))
+		} else {
+			resp.Diagnostics.AddError("Error reading GitHub App",
+				fmt.Sprintf("Could not read GitHub App %d: %s", id, err))
+		}
 		return
 	}
 
