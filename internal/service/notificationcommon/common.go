@@ -75,6 +75,15 @@ func StringOptComputedSensitive(desc string) schema.StringAttribute {
 	}
 }
 
+// SensitiveOmitSuffix is appended to resource schema descriptions for values
+// Coolify may hide without read:sensitive.
+const SensitiveOmitSuffix = " Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import."
+
+// StringSensitiveOmit is StringOptComputedSensitive with SensitiveOmitSuffix.
+func StringSensitiveOmit(prefix string) schema.StringAttribute {
+	return StringOptComputedSensitive(prefix + SensitiveOmitSuffix)
+}
+
 // BoolOptComputed is Optional+Computed with UseStateForUnknown for API-defaulted bools.
 func BoolOptComputed(desc string) schema.BoolAttribute {
 	return schema.BoolAttribute{
@@ -109,14 +118,17 @@ func ThreadSchemaAttrs(channel string) map[string]schema.Attribute {
 	return attrs
 }
 
-// MergeAttrs returns a new map with base attributes plus overlay (overlay wins on key collision).
-func MergeAttrs(base map[string]schema.Attribute, overlay map[string]schema.Attribute) map[string]schema.Attribute {
-	out := make(map[string]schema.Attribute, len(base)+len(overlay))
-	for k, v := range base {
-		out[k] = v
+// MergeAttrs returns a new map with later maps winning on key collision.
+func MergeAttrs(maps ...map[string]schema.Attribute) map[string]schema.Attribute {
+	n := 0
+	for _, m := range maps {
+		n += len(m)
 	}
-	for k, v := range overlay {
-		out[k] = v
+	out := make(map[string]schema.Attribute, n)
+	for _, m := range maps {
+		for k, v := range m {
+			out[k] = v
+		}
 	}
 	return out
 }

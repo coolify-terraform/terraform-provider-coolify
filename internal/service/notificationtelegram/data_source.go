@@ -46,10 +46,7 @@ func (d *telegramDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Reads the current team's Telegram notification settings. " +
 			"This is a team-scoped singleton (selected by the API token). Requires Coolify >= v4.3.0.",
-		Attributes: notificationcommon.MergeDSAttrs(
-			notificationcommon.MergeDSAttrs(attrs, notificationcommon.EventDataSourceAttrs("Telegram")),
-			notificationcommon.ThreadDataSourceAttrs(),
-		),
+		Attributes: notificationcommon.MergeDSAttrs(attrs, notificationcommon.EventDataSourceAttrs("Telegram"), notificationcommon.ThreadDataSourceAttrs()),
 	}
 }
 

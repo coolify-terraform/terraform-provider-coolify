@@ -2,6 +2,7 @@ package notificationcommon_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
@@ -124,6 +125,17 @@ func TestEnabledAttribute_DefaultFalse(t *testing.T) {
 	assert.True(t, a.Computed)
 	assert.NotNil(t, a.Default)
 	assert.Contains(t, a.MarkdownDescription, "Discord")
+}
+
+func TestStringSensitiveOmit(t *testing.T) {
+	t.Parallel()
+	a := notificationcommon.StringSensitiveOmit("Telegram bot token.")
+	assert.True(t, a.Optional)
+	assert.True(t, a.Computed)
+	assert.True(t, a.Sensitive)
+	assert.True(t, strings.HasPrefix(a.MarkdownDescription, "Telegram bot token."))
+	assert.Contains(t, a.MarkdownDescription, "read:sensitive")
+	assert.NotEmpty(t, a.PlanModifiers)
 }
 
 func TestBoolOptComputed_PlanModifiers(t *testing.T) {

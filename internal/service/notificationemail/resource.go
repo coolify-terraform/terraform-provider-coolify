@@ -58,18 +58,6 @@ func (r *emailResource) Metadata(_ context.Context, req resource.MetadataRequest
 }
 
 func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	sensStr := func(desc string) schema.StringAttribute {
-		return schema.StringAttribute{
-			MarkdownDescription: desc + " Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.",
-			Optional:            true,
-			Computed:            true,
-			Sensitive:           true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.UseStateForUnknown(),
-			},
-		}
-	}
-
 	attrs := map[string]schema.Attribute{
 		"id": notificationcommon.IDAttribute(),
 
@@ -79,10 +67,10 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
 		},
-		"smtp_from_address": sensStr("SMTP From address."),
-		"smtp_from_name":    sensStr("SMTP From display name."),
-		"smtp_recipients":   sensStr("Comma-separated recipient addresses."),
-		"smtp_host":         sensStr("SMTP host."),
+		"smtp_from_address": notificationcommon.StringSensitiveOmit("SMTP From address."),
+		"smtp_from_name":    notificationcommon.StringSensitiveOmit("SMTP From display name."),
+		"smtp_recipients":   notificationcommon.StringSensitiveOmit("Comma-separated recipient addresses."),
+		"smtp_host":         notificationcommon.StringSensitiveOmit("SMTP host."),
 		"smtp_port": schema.Int64Attribute{
 			MarkdownDescription: "SMTP port (1-65535).",
 			Optional:            true,
@@ -105,8 +93,8 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
-		"smtp_username": sensStr("SMTP username."),
-		"smtp_password": sensStr("SMTP password."),
+		"smtp_username": notificationcommon.StringSensitiveOmit("SMTP username."),
+		"smtp_password": notificationcommon.StringSensitiveOmit("SMTP password."),
 		"smtp_timeout": schema.Int64Attribute{
 			MarkdownDescription: "SMTP timeout in seconds (>= 0).",
 			Optional:            true,
@@ -124,7 +112,7 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
 		},
-		"resend_api_key": sensStr("Resend API key."),
+		"resend_api_key": notificationcommon.StringSensitiveOmit("Resend API key."),
 		"use_instance_email_settings": schema.BoolAttribute{
 			MarkdownDescription: "Whether to use the Coolify instance's shared email settings for this team.",
 			Optional:            true,

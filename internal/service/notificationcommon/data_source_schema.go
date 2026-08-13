@@ -54,14 +54,17 @@ func ThreadDataSourceAttrs() map[string]schema.Attribute {
 	return attrs
 }
 
-// MergeDSAttrs returns a new map with base attributes plus overlay (overlay wins).
-func MergeDSAttrs(base map[string]schema.Attribute, overlay map[string]schema.Attribute) map[string]schema.Attribute {
-	out := make(map[string]schema.Attribute, len(base)+len(overlay))
-	for k, v := range base {
-		out[k] = v
+// MergeDSAttrs returns a new map with later maps winning on key collision.
+func MergeDSAttrs(maps ...map[string]schema.Attribute) map[string]schema.Attribute {
+	n := 0
+	for _, m := range maps {
+		n += len(m)
 	}
-	for k, v := range overlay {
-		out[k] = v
+	out := make(map[string]schema.Attribute, n)
+	for _, m := range maps {
+		for k, v := range m {
+			out[k] = v
+		}
 	}
 	return out
 }
