@@ -128,3 +128,53 @@ func TestWriteCoverage_ApplicationCreateSilentDefaultsInSchema(t *testing.T) {
 		}
 	}
 }
+
+// notificationWriteChannels maps Coolify channel names to contract endpoint keys.
+// Rules live in NotificationsController::channelConfig (not $allowedFields).
+var notificationWriteChannels = []struct {
+	channel  string
+	endpoint string
+}{
+	{"email", "NotificationsController::update_email"},
+	{"discord", "NotificationsController::update_discord"},
+	{"slack", "NotificationsController::update_slack"},
+	{"telegram", "NotificationsController::update_telegram"},
+	{"pushover", "NotificationsController::update_pushover"},
+	{"webhook", "NotificationsController::update_webhook"},
+}
+
+// TestWriteCoverage_NotificationUpdates ensures channelConfig write fields
+// appear on client Update*NotificationInput JSON tags.
+func TestWriteCoverage_NotificationUpdates(t *testing.T) {
+	t.Parallel()
+	c := loadContract(t)
+
+	for _, ch := range notificationWriteChannels {
+		ch := ch
+		t.Run(ch.channel, func(t *testing.T) {
+			t.Parallel()
+			ep, ok := c.Endpoints[ch.endpoint]
+			if !ok {
+				t.Fatalf("endpoint %s not found in contract", ch.endpoint)
+			}
+			if len(ep.AllowedFields) == 0 {
+				t.Fatalf("endpoint %s has empty allowed_fields (channelConfig extract missing?)", ch.endpoint)
+			}
+			tags := client.NotificationUpdateJSONTags(ch.channel)
+			if len(tags) == 0 {
+				t.Fatalf("NotificationUpdateJSONTags(%q) returned empty set", ch.channel)
+			}
+			var missing []string
+			for _, field := range ep.AllowedFields {
+				if _, ok := tags[field]; !ok {
+					missing = append(missing, field)
+				}
+			}
+			sort.Strings(missing)
+			if len(missing) > 0 {
+				t.Errorf("%s allowed_fields missing from Update*NotificationInput:\n  %s",
+					ch.endpoint, strings.Join(missing, "\n  "))
+			}
+		})
+	}
+}

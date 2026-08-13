@@ -448,3 +448,25 @@ func (c *Client) UpdateTelegramNotifications(ctx context.Context, input UpdateTe
 	}
 	return &r, nil
 }
+
+// NotificationUpdateJSONTags returns JSON keys on Update*NotificationInput for
+// the given Coolify channel name (email, discord, slack, telegram, pushover,
+// webhook). Used by spectest write coverage against channelConfig rules.
+func NotificationUpdateJSONTags(channel string) map[string]struct{} {
+	switch channel {
+	case "email":
+		return jsonTagsFromValue(UpdateEmailNotificationInput{})
+	case "discord":
+		return jsonTagsFromValue(UpdateDiscordNotificationInput{})
+	case "slack":
+		return jsonTagsFromValue(UpdateSlackNotificationInput{})
+	case "telegram":
+		return jsonTagsFromValue(UpdateTelegramNotificationInput{})
+	case "pushover":
+		return jsonTagsFromValue(UpdatePushoverNotificationInput{})
+	case "webhook":
+		return jsonTagsFromValue(UpdateWebhookNotificationInput{})
+	default:
+		return nil
+	}
+}

@@ -553,6 +553,69 @@ class VolumeBackupsController {
         self.assertEqual(result["validateUpsertRequest"], ["frequency", "enabled", "timeout"])
         self.assertEqual(result["upsert"], ["frequency", "enabled", "timeout"])
 
+    def test_channel_config_rules_mapped_to_update_methods(self):
+        # NotificationsController (v4.3+) puts write fields in channelConfig()
+        # match arms, not $allowedFields.
+        php = """<?php
+class NotificationsController {
+    private function channelConfig(string $channel): array
+    {
+        return match ($channel) {
+            'email' => [
+                'model' => EmailNotificationSettings::class,
+                'rules' => [
+                    'smtp_enabled' => 'sometimes|boolean',
+                    'smtp_host' => 'sometimes|nullable|string|max:255',
+                    'smtp_port' => 'sometimes|nullable|integer|min:1|max:65535',
+                ],
+            ],
+            'discord' => [
+                'model' => DiscordNotificationSettings::class,
+                'rules' => [
+                    'discord_enabled' => 'sometimes|boolean',
+                    'discord_webhook_url' => ['sometimes', 'nullable', 'string'],
+                    'discord_ping_enabled' => 'sometimes|boolean',
+                ],
+            ],
+        };
+    }
+    public function update_email(Request $request): JsonResponse
+    {
+        return $this->updateChannel($request, 'email');
+    }
+    public function update_discord(Request $request): JsonResponse
+    {
+        return $this->updateChannel($request, 'discord');
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(
+            result["update_email"],
+            ["smtp_enabled", "smtp_host", "smtp_port"],
+        )
+        self.assertEqual(
+            result["update_discord"],
+            ["discord_enabled", "discord_webhook_url", "discord_ping_enabled"],
+        )
+
+    def test_extract_channel_config_rules_direct(self):
+        php = """<?php
+private function channelConfig(string $channel): array {
+    return match ($channel) {
+        'webhook' => [
+            'model' => WebhookNotificationSettings::class,
+            'rules' => [
+                'webhook_enabled' => 'sometimes|boolean',
+                'webhook_url' => 'sometimes|nullable|string',
+            ],
+        ],
+    };
+}
+"""
+        rules = ec.extract_channel_config_rules(php)
+        self.assertEqual(rules["webhook"], ["webhook_enabled", "webhook_url"])
+
     def test_self_const_spread_expanded(self):
         # ApplicationsController (v4.2+) ends $allowedFields with
         # ...self::APPLICATION_SETTING_FIELDS. Without expansion the contract

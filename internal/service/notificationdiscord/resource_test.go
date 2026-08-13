@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -213,6 +214,31 @@ func TestDiscordNotificationResource_PreserveHiddenWebhook(t *testing.T) {
 					"webhook_url",
 					"https://discord.com/api/webhooks/999/secret",
 				),
+			},
+		},
+	})
+}
+
+func TestDiscordNotificationResource_InvalidImport(t *testing.T) {
+	t.Parallel()
+	store := &mockDiscord{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_discord", "test", `
+  enabled     = true
+  webhook_url = "https://discord.com/api/webhooks/1/x"
+`),
+			},
+			{
+				ResourceName:  "coolify_notification_discord.test",
+				ImportState:   true,
+				ImportStateId: "not-current",
+				ExpectError:   regexp.MustCompile(`team singleton|import with id "current"`),
 			},
 		},
 	})

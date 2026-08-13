@@ -442,7 +442,108 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
             for f in fields:
                 if f not in existing:
                     existing.append(f)
+
+    # NotificationsController (v4.3+) owns write fields in channelConfig()'s
+    # match arms (rules arrays), not $allowedFields. Map each channel to
+    # update_{channel} so endpoints get a public write surface for coverage.
+    for channel, fields in extract_channel_config_rules(content).items():
+        method = f"update_{channel}"
+        existing = result.setdefault(method, [])
+        for f in fields:
+            if f not in existing:
+                existing.append(f)
     return result
+
+
+def _php_bracket_slice(s: str, open_idx: int) -> Optional[str]:
+    """Return the interior of a [...] or {...} starting at open_idx, or None."""
+    if open_idx < 0 or open_idx >= len(s) or s[open_idx] not in "[{":
+        return None
+    open_ch = s[open_idx]
+    close_ch = "]" if open_ch == "[" else "}"
+    depth = 0
+    i = open_idx
+    in_str = False
+    str_ch = ""
+    escape = False
+    while i < len(s):
+        ch = s[i]
+        if in_str:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == str_ch:
+                in_str = False
+            i += 1
+            continue
+        if ch in ("'", '"'):
+            in_str = True
+            str_ch = ch
+            i += 1
+            continue
+        if ch == open_ch:
+            depth += 1
+        elif ch == close_ch:
+            depth -= 1
+            if depth == 0:
+                return s[open_idx + 1 : i]
+        i += 1
+    return None
+
+
+def extract_channel_config_rules(content: str) -> dict[str, list[str]]:
+    """Extract per-channel validation rule keys from channelConfig() match arms.
+
+    Coolify NotificationsController defines writeable fields as:
+      private function channelConfig(string $channel): array {
+          return match ($channel) {
+              'email' => [ 'model' => ..., 'rules' => [ 'smtp_enabled' => '...', ... ] ],
+              ...
+          };
+      }
+    Returns {channel: [field, ...]} preserving declaration order.
+
+    Nested rule values (e.g. ``'discord_webhook_url' => ['sometimes', ...]``)
+    are handled via bracket-depth scanning so they do not truncate the arm.
+    """
+    fn = re.search(r"function\s+channelConfig\s*\(", content)
+    if not fn:
+        return {}
+    # Find the match ($channel) { ... } body via bracket scan on '{'.
+    match_kw = re.search(r"return\s+match\s*\(\s*\$channel\s*\)\s*\{", content[fn.start() :])
+    if not match_kw:
+        return {}
+    brace_idx = fn.start() + match_kw.end() - 1  # points at '{'
+    body = _php_bracket_slice(content, brace_idx)
+    if body is None:
+        return {}
+
+    out: dict[str, list[str]] = {}
+    # Channel arms: 'email' => [
+    for ch_m in re.finditer(r"'([a-z][a-z0-9_]*)'\s*=>\s*\[", body):
+        channel = ch_m.group(1)
+        if channel in ("model", "rules"):
+            continue
+        arm_open = ch_m.end() - 1
+        arm_body = _php_bracket_slice(body, arm_open)
+        if arm_body is None:
+            continue
+        rules_m = re.search(r"'rules'\s*=>\s*\[", arm_body)
+        if not rules_m:
+            continue
+        rules_open = rules_m.end() - 1
+        rules_body = _php_bracket_slice(arm_body, rules_open)
+        if rules_body is None:
+            continue
+        fields: list[str] = []
+        for fm in re.finditer(r"'([a-z][a-z0-9_]*)'\s*=>", rules_body):
+            name = fm.group(1)
+            if name not in fields:
+                fields.append(name)
+        if fields:
+            out[channel] = fields
+    return out
 
 
 def extract_shared_validation(helpers_dir: Path) -> dict[str, str]:

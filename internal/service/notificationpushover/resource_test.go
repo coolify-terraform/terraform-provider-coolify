@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -42,7 +43,10 @@ func newMockServer(store *mockPushover) *httptest.Server {
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/pushover", func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		store.mu.Lock()
 		if v, ok := body["pushover_enabled"].(bool); ok {
 			store.Enabled = v
@@ -115,6 +119,32 @@ func TestPushoverNotificationResource_CreateUpdateImport(t *testing.T) {
 				ImportStateId:           "current",
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"user_key", "api_token"},
+			},
+		},
+	})
+}
+
+func TestPushoverNotificationResource_InvalidImport(t *testing.T) {
+	t.Parallel()
+	store := &mockPushover{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_pushover", "test", `
+  enabled   = true
+  user_key  = "u"
+  api_token = "t"
+`),
+			},
+			{
+				ResourceName:  "coolify_notification_pushover.test",
+				ImportState:   true,
+				ImportStateId: "not-current",
+				ExpectError:   regexp.MustCompile(`team singleton|import with id "current"`),
 			},
 		},
 	})

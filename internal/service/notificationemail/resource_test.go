@@ -239,7 +239,10 @@ func TestEmailNotificationResource_PreserveHiddenSecrets(t *testing.T) {
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]interface{}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		store.mu.Lock()
 		if v, ok := body["smtp_enabled"].(bool); ok {
 			store.SMTPEnabled = v
@@ -269,6 +272,31 @@ func TestEmailNotificationResource_PreserveHiddenSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_notification_email.test", "smtp_host", "smtp.example.com"),
 					resource.TestCheckResourceAttr("coolify_notification_email.test", "smtp_password", "s3cret"),
 				),
+			},
+		},
+	})
+}
+
+func TestEmailNotificationResource_InvalidImport(t *testing.T) {
+	t.Parallel()
+	store := &mockEmail{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled = true
+  smtp_host    = "smtp.example.com"
+`),
+			},
+			{
+				ResourceName:  "coolify_notification_email.test",
+				ImportState:   true,
+				ImportStateId: "not-current",
+				ExpectError:   regexp.MustCompile(`team singleton|import with id "current"`),
 			},
 		},
 	})
