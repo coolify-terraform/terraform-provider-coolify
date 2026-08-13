@@ -47,6 +47,33 @@ func TestEventAttributeNames_CountAndOrder(t *testing.T) {
 	}
 }
 
+func TestThreadAttributeNames_PrefixAndOrder(t *testing.T) {
+	t.Parallel()
+	events := notificationcommon.EventAttributeNames()
+	threads := notificationcommon.ThreadAttributeNames()
+	require.Len(t, threads, len(events))
+	for i, ev := range events {
+		assert.Equal(t, "thread_"+ev, threads[i])
+	}
+}
+
+func TestThreadSchemaAttrs_HasAllThreadsAndChannelInDesc(t *testing.T) {
+	t.Parallel()
+	attrs := notificationcommon.ThreadSchemaAttrs("Telegram")
+	require.Len(t, attrs, 14)
+	for _, name := range notificationcommon.ThreadAttributeNames() {
+		a, ok := attrs[name]
+		require.True(t, ok, "missing attr %s", name)
+		sa, ok := a.(schema.StringAttribute)
+		require.True(t, ok, "%s should be StringAttribute", name)
+		assert.True(t, sa.Optional)
+		assert.True(t, sa.Computed)
+		assert.True(t, sa.Sensitive)
+		assert.Contains(t, sa.MarkdownDescription, "Telegram")
+		assert.NotEmpty(t, sa.PlanModifiers)
+	}
+}
+
 func TestEventSchemaAttrs_HasAllEventsAndChannelInDesc(t *testing.T) {
 	t.Parallel()
 	attrs := notificationcommon.EventSchemaAttrs("Discord")

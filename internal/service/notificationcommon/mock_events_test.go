@@ -102,6 +102,35 @@ func TestEventStore_AlignsWithEventAttributeNames(t *testing.T) {
 	}
 }
 
+func TestThreadJSONKey(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, "telegram_notifications_deployment_failure_thread_id",
+		notificationcommon.ThreadJSONKey("telegram", "deployment_failure"))
+	assert.Equal(t, "telegram_notifications_traefik_outdated_thread_id",
+		notificationcommon.ThreadJSONKey("telegram", "traefik_outdated"))
+}
+
+func TestThreadAllowedFields_AllFourteen(t *testing.T) {
+	t.Parallel()
+	allowed := notificationcommon.ThreadAllowedFields("telegram")
+	require.Len(t, allowed, 14)
+	for _, name := range notificationcommon.EventAttributeNames() {
+		key := notificationcommon.ThreadJSONKey("telegram", name)
+		assert.True(t, allowed[key], "missing %s", key)
+	}
+}
+
+func TestMergeAllowedMaps(t *testing.T) {
+	t.Parallel()
+	merged := notificationcommon.MergeAllowedMaps(
+		notificationcommon.EventAllowedFields("telegram"),
+		notificationcommon.ThreadAllowedFields("telegram"),
+	)
+	require.Len(t, merged, 28)
+	assert.True(t, merged[notificationcommon.EventJSONKey("telegram", "backup_failure")])
+	assert.True(t, merged[notificationcommon.ThreadJSONKey("telegram", "backup_failure")])
+}
+
 func TestMergeAllowed(t *testing.T) {
 	t.Parallel()
 	base := notificationcommon.EventAllowedFields("slack")

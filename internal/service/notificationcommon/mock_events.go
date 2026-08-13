@@ -33,6 +33,12 @@ func EventJSONKey(channel, eventAttr string) string {
 	return eventAttr + "_" + channel + "_notifications"
 }
 
+// ThreadJSONKey returns the Coolify PATCH/GET JSON key for a Telegram thread id.
+// eventAttr is the schema event name (e.g. deployment_failure).
+func ThreadJSONKey(channel, eventAttr string) string {
+	return channel + "_notifications_" + eventAttr + "_thread_id"
+}
+
 // fieldPtrs maps EventAttributeNames entries to EventStore fields.
 // Keep attrs in the same order/names as eventNames in common.go.
 func (e *EventStore) fieldPtrs() []struct {
@@ -82,6 +88,30 @@ func EventAllowedFields(channel string) map[string]bool {
 	out := make(map[string]bool, len(eventNames))
 	for _, e := range eventNames {
 		out[EventJSONKey(channel, e.attr)] = true
+	}
+	return out
+}
+
+// ThreadAllowedFields returns a map with all 14 Telegram thread-id JSON keys.
+func ThreadAllowedFields(channel string) map[string]bool {
+	out := make(map[string]bool, len(eventNames))
+	for _, e := range eventNames {
+		out[ThreadJSONKey(channel, e.attr)] = true
+	}
+	return out
+}
+
+// MergeAllowedMaps returns a new map with every key from the inputs.
+func MergeAllowedMaps(maps ...map[string]bool) map[string]bool {
+	n := 0
+	for _, m := range maps {
+		n += len(m)
+	}
+	out := make(map[string]bool, n)
+	for _, m := range maps {
+		for k, v := range m {
+			out[k] = v
+		}
 	}
 	return out
 }

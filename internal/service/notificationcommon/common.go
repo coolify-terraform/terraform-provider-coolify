@@ -51,6 +51,30 @@ func EventAttributeNames() []string {
 	return out
 }
 
+// ThreadAttributeNames returns the 14 Telegram thread-id attribute names
+// (thread_ + EventAttributeNames) in the same order.
+func ThreadAttributeNames() []string {
+	out := make([]string, len(eventNames))
+	for i, e := range eventNames {
+		out[i] = "thread_" + e.attr
+	}
+	return out
+}
+
+// StringOptComputedSensitive is Optional+Computed+Sensitive with UseStateForUnknown
+// for Coolify fields that may be omitted on read without read:sensitive.
+func StringOptComputedSensitive(desc string) schema.StringAttribute {
+	return schema.StringAttribute{
+		MarkdownDescription: desc,
+		Optional:            true,
+		Computed:            true,
+		Sensitive:           true,
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.UseStateForUnknown(),
+		},
+	}
+}
+
 // BoolOptComputed is Optional+Computed with UseStateForUnknown for API-defaulted bools.
 func BoolOptComputed(desc string) schema.BoolAttribute {
 	return schema.BoolAttribute{
@@ -70,6 +94,17 @@ func EventSchemaAttrs(channel string) map[string]schema.Attribute {
 	for _, e := range eventNames {
 		desc := fmt.Sprintf("Whether to send %s notifications for %s events.", channel, e.label)
 		attrs[e.attr] = BoolOptComputed(desc)
+	}
+	return attrs
+}
+
+// ThreadSchemaAttrs returns the 14 Telegram forum thread-id attributes.
+// channel is the display name used in Markdown descriptions (e.g. "Telegram").
+func ThreadSchemaAttrs(channel string) map[string]schema.Attribute {
+	attrs := make(map[string]schema.Attribute, len(eventNames))
+	for _, e := range eventNames {
+		desc := fmt.Sprintf("%s forum thread ID for %s events. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.", channel, e.attr)
+		attrs["thread_"+e.attr] = StringOptComputedSensitive(desc)
 	}
 	return attrs
 }

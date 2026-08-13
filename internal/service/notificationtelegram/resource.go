@@ -31,21 +31,7 @@ type model struct {
 	ChatID  types.String `tfsdk:"chat_id"`
 
 	notificationcommon.EventModel
-
-	ThreadDeploymentSuccess    types.String `tfsdk:"thread_deployment_success"`
-	ThreadDeploymentFailure    types.String `tfsdk:"thread_deployment_failure"`
-	ThreadStatusChange         types.String `tfsdk:"thread_status_change"`
-	ThreadBackupSuccess        types.String `tfsdk:"thread_backup_success"`
-	ThreadBackupFailure        types.String `tfsdk:"thread_backup_failure"`
-	ThreadScheduledTaskSuccess types.String `tfsdk:"thread_scheduled_task_success"`
-	ThreadScheduledTaskFailure types.String `tfsdk:"thread_scheduled_task_failure"`
-	ThreadDockerCleanupSuccess types.String `tfsdk:"thread_docker_cleanup_success"`
-	ThreadDockerCleanupFailure types.String `tfsdk:"thread_docker_cleanup_failure"`
-	ThreadServerDiskUsage      types.String `tfsdk:"thread_server_disk_usage"`
-	ThreadServerReachable      types.String `tfsdk:"thread_server_reachable"`
-	ThreadServerUnreachable    types.String `tfsdk:"thread_server_unreachable"`
-	ThreadServerPatch          types.String `tfsdk:"thread_server_patch"`
-	ThreadTraefikOutdated      types.String `tfsdk:"thread_traefik_outdated"`
+	notificationcommon.ThreadModel
 }
 
 func NewResource() resource.Resource {
@@ -69,24 +55,10 @@ func (r *telegramResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 		}
 	}
 	attrs := map[string]schema.Attribute{
-		"id":                            notificationcommon.IDAttribute(),
-		"enabled":                       notificationcommon.EnabledAttribute("Telegram"),
-		"token":                         sensStr("Telegram bot token."),
-		"chat_id":                       sensStr("Telegram chat ID."),
-		"thread_deployment_success":     sensStr("Telegram forum thread ID for deployment_success events."),
-		"thread_deployment_failure":     sensStr("Telegram forum thread ID for deployment_failure events."),
-		"thread_status_change":          sensStr("Telegram forum thread ID for status_change events."),
-		"thread_backup_success":         sensStr("Telegram forum thread ID for backup_success events."),
-		"thread_backup_failure":         sensStr("Telegram forum thread ID for backup_failure events."),
-		"thread_scheduled_task_success": sensStr("Telegram forum thread ID for scheduled_task_success events."),
-		"thread_scheduled_task_failure": sensStr("Telegram forum thread ID for scheduled_task_failure events."),
-		"thread_docker_cleanup_success": sensStr("Telegram forum thread ID for docker_cleanup_success events."),
-		"thread_docker_cleanup_failure": sensStr("Telegram forum thread ID for docker_cleanup_failure events."),
-		"thread_server_disk_usage":      sensStr("Telegram forum thread ID for server_disk_usage events."),
-		"thread_server_reachable":       sensStr("Telegram forum thread ID for server_reachable events."),
-		"thread_server_unreachable":     sensStr("Telegram forum thread ID for server_unreachable events."),
-		"thread_server_patch":           sensStr("Telegram forum thread ID for server_patch events."),
-		"thread_traefik_outdated":       sensStr("Telegram forum thread ID for traefik_outdated events."),
+		"id":      notificationcommon.IDAttribute(),
+		"enabled": notificationcommon.EnabledAttribute("Telegram"),
+		"token":   sensStr("Telegram bot token."),
+		"chat_id": sensStr("Telegram chat ID."),
 	}
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages the current team's Telegram notification settings in Coolify. " +
@@ -94,7 +66,10 @@ func (r *telegramResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"**Requires Coolify >= v4.3.0** (notification routes are absent on v4.2.x and older; acceptance tests skip when the API is missing).\n\n" +
 			"On destroy, Telegram notifications are disabled (`enabled = false`); token, chat ID, and thread IDs are left unchanged. " +
 			"Import with id `current`.",
-		Attributes: notificationcommon.MergeAttrs(attrs, notificationcommon.EventSchemaAttrs("Telegram")),
+		Attributes: notificationcommon.MergeAttrs(
+			notificationcommon.MergeAttrs(attrs, notificationcommon.EventSchemaAttrs("Telegram")),
+			notificationcommon.ThreadSchemaAttrs("Telegram"),
+		),
 	}
 }
 
@@ -111,7 +86,7 @@ func (r *telegramResource) Create(ctx context.Context, req resource.CreateReques
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_notification_telegram"})
 	input, err := createInputFromPlan(plan)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdateTelegramNotifications(ctx, input)
@@ -120,7 +95,7 @@ func (r *telegramResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -143,7 +118,7 @@ func (r *telegramResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 	if err := flatten(got, &state); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -163,7 +138,7 @@ func (r *telegramResource) Update(ctx context.Context, req resource.UpdateReques
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_notification_telegram"})
 	input, err := updateInputFromPlan(plan, state)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdateTelegramNotifications(ctx, input)
@@ -172,7 +147,7 @@ func (r *telegramResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -203,6 +178,9 @@ func createInputFromPlan(plan model) (client.UpdateTelegramNotificationInput, er
 	if err := client.ApplyEventUpdate(&in, plan.CreateUpdate()); err != nil {
 		return in, err
 	}
+	if err := client.ApplyThreadUpdate(&in, plan.CreateThreadUpdate()); err != nil {
+		return in, err
+	}
 	if flex.StringValueConfigured(plan.Token) {
 		s := plan.Token.ValueString()
 		in.Token = &s
@@ -210,62 +188,6 @@ func createInputFromPlan(plan model) (client.UpdateTelegramNotificationInput, er
 	if flex.StringValueConfigured(plan.ChatID) {
 		s := plan.ChatID.ValueString()
 		in.ChatID = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadDeploymentSuccess) {
-		s := plan.ThreadDeploymentSuccess.ValueString()
-		in.ThreadDeploymentSuccess = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadDeploymentFailure) {
-		s := plan.ThreadDeploymentFailure.ValueString()
-		in.ThreadDeploymentFailure = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadStatusChange) {
-		s := plan.ThreadStatusChange.ValueString()
-		in.ThreadStatusChange = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadBackupSuccess) {
-		s := plan.ThreadBackupSuccess.ValueString()
-		in.ThreadBackupSuccess = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadBackupFailure) {
-		s := plan.ThreadBackupFailure.ValueString()
-		in.ThreadBackupFailure = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadScheduledTaskSuccess) {
-		s := plan.ThreadScheduledTaskSuccess.ValueString()
-		in.ThreadScheduledTaskSuccess = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadScheduledTaskFailure) {
-		s := plan.ThreadScheduledTaskFailure.ValueString()
-		in.ThreadScheduledTaskFailure = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadDockerCleanupSuccess) {
-		s := plan.ThreadDockerCleanupSuccess.ValueString()
-		in.ThreadDockerCleanupSuccess = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadDockerCleanupFailure) {
-		s := plan.ThreadDockerCleanupFailure.ValueString()
-		in.ThreadDockerCleanupFailure = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadServerDiskUsage) {
-		s := plan.ThreadServerDiskUsage.ValueString()
-		in.ThreadServerDiskUsage = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadServerReachable) {
-		s := plan.ThreadServerReachable.ValueString()
-		in.ThreadServerReachable = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadServerUnreachable) {
-		s := plan.ThreadServerUnreachable.ValueString()
-		in.ThreadServerUnreachable = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadServerPatch) {
-		s := plan.ThreadServerPatch.ValueString()
-		in.ThreadServerPatch = &s
-	}
-	if flex.StringValueConfigured(plan.ThreadTraefikOutdated) {
-		s := plan.ThreadTraefikOutdated.ValueString()
-		in.ThreadTraefikOutdated = &s
 	}
 	return in, nil
 }
@@ -277,53 +199,14 @@ func updateInputFromPlan(plan, state model) (client.UpdateTelegramNotificationIn
 	if err := client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel)); err != nil {
 		return in, err
 	}
+	if err := client.ApplyThreadUpdate(&in, plan.DiffThreadUpdate(state.ThreadModel)); err != nil {
+		return in, err
+	}
 	if w := flex.StringIfChanged(plan.Token, state.Token); w != nil {
 		in.Token = w
 	}
 	if w := flex.StringIfChanged(plan.ChatID, state.ChatID); w != nil {
 		in.ChatID = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadDeploymentSuccess, state.ThreadDeploymentSuccess); w != nil {
-		in.ThreadDeploymentSuccess = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadDeploymentFailure, state.ThreadDeploymentFailure); w != nil {
-		in.ThreadDeploymentFailure = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadStatusChange, state.ThreadStatusChange); w != nil {
-		in.ThreadStatusChange = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadBackupSuccess, state.ThreadBackupSuccess); w != nil {
-		in.ThreadBackupSuccess = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadBackupFailure, state.ThreadBackupFailure); w != nil {
-		in.ThreadBackupFailure = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadScheduledTaskSuccess, state.ThreadScheduledTaskSuccess); w != nil {
-		in.ThreadScheduledTaskSuccess = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadScheduledTaskFailure, state.ThreadScheduledTaskFailure); w != nil {
-		in.ThreadScheduledTaskFailure = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadDockerCleanupSuccess, state.ThreadDockerCleanupSuccess); w != nil {
-		in.ThreadDockerCleanupSuccess = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadDockerCleanupFailure, state.ThreadDockerCleanupFailure); w != nil {
-		in.ThreadDockerCleanupFailure = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadServerDiskUsage, state.ThreadServerDiskUsage); w != nil {
-		in.ThreadServerDiskUsage = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadServerReachable, state.ThreadServerReachable); w != nil {
-		in.ThreadServerReachable = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadServerUnreachable, state.ThreadServerUnreachable); w != nil {
-		in.ThreadServerUnreachable = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadServerPatch, state.ThreadServerPatch); w != nil {
-		in.ThreadServerPatch = w
-	}
-	if w := flex.StringIfChanged(plan.ThreadTraefikOutdated, state.ThreadTraefikOutdated); w != nil {
-		in.ThreadTraefikOutdated = w
 	}
 	return in, nil
 }
@@ -334,23 +217,14 @@ func flatten(api *client.TelegramNotificationSettings, m *model) error {
 		return err
 	}
 	m.FlattenEvents(ev)
+	th, err := client.ThreadsFrom(api)
+	if err != nil {
+		return err
+	}
+	m.FlattenThreads(th)
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	flex.SetStringPreserveEmpty(&m.Token, api.Token)
 	flex.SetStringPreserveEmpty(&m.ChatID, api.ChatID)
-	flex.SetStringPreserveEmpty(&m.ThreadDeploymentSuccess, api.ThreadDeploymentSuccess)
-	flex.SetStringPreserveEmpty(&m.ThreadDeploymentFailure, api.ThreadDeploymentFailure)
-	flex.SetStringPreserveEmpty(&m.ThreadStatusChange, api.ThreadStatusChange)
-	flex.SetStringPreserveEmpty(&m.ThreadBackupSuccess, api.ThreadBackupSuccess)
-	flex.SetStringPreserveEmpty(&m.ThreadBackupFailure, api.ThreadBackupFailure)
-	flex.SetStringPreserveEmpty(&m.ThreadScheduledTaskSuccess, api.ThreadScheduledTaskSuccess)
-	flex.SetStringPreserveEmpty(&m.ThreadScheduledTaskFailure, api.ThreadScheduledTaskFailure)
-	flex.SetStringPreserveEmpty(&m.ThreadDockerCleanupSuccess, api.ThreadDockerCleanupSuccess)
-	flex.SetStringPreserveEmpty(&m.ThreadDockerCleanupFailure, api.ThreadDockerCleanupFailure)
-	flex.SetStringPreserveEmpty(&m.ThreadServerDiskUsage, api.ThreadServerDiskUsage)
-	flex.SetStringPreserveEmpty(&m.ThreadServerReachable, api.ThreadServerReachable)
-	flex.SetStringPreserveEmpty(&m.ThreadServerUnreachable, api.ThreadServerUnreachable)
-	flex.SetStringPreserveEmpty(&m.ThreadServerPatch, api.ThreadServerPatch)
-	flex.SetStringPreserveEmpty(&m.ThreadTraefikOutdated, api.ThreadTraefikOutdated)
 	return nil
 }
