@@ -211,3 +211,48 @@ func TestPushoverNotificationResource_CreateAPIError(t *testing.T) {
 		},
 	})
 }
+
+func TestPushoverNotificationResource_ReadAPIError(t *testing.T) {
+	t.Parallel()
+	var getCount int
+	var patchDone bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/pushover", func(w http.ResponseWriter, _ *http.Request) {
+		getCount++
+		// Post-create refresh is get #1 after patch; fail subsequent Reads (step 2).
+		if patchDone && getCount >= 2 {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"pushover_enabled":true,"pushover_user_key":"u","pushover_api_token":"t"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/pushover", func(w http.ResponseWriter, _ *http.Request) {
+		patchDone = true
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"pushover_enabled":true,"pushover_user_key":"u","pushover_api_token":"t"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_pushover", "test", `
+  enabled   = true
+  user_key  = "u"
+  api_token = "t"
+`),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_pushover", "test", `
+  enabled   = true
+  user_key  = "u"
+  api_token = "t"
+`),
+				ExpectError: regexp.MustCompile(`Error reading Pushover notifications`),
+			},
+		},
+	})
+}
