@@ -201,14 +201,14 @@ Ordered by priority (1 = most needed by users).
 
 | Priority | Endpoint | Notes |
 |----------|----------|-------|
-| 2 | `GET /notifications/email` | Notification channel resources (#394) |
-| 2 | `GET /notifications/pushover` | Notification channel resources (#394) |
-| 2 | `GET /notifications/telegram` | Notification channel resources (#394) |
-| 2 | `GET /notifications/webhook` | Notification channel resources (#394) |
-| 2 | `PATCH /notifications/email` | Notification channel resources (#394) |
-| 2 | `PATCH /notifications/pushover` | Notification channel resources (#394) |
-| 2 | `PATCH /notifications/telegram` | Notification channel resources (#394) |
-| 2 | `PATCH /notifications/webhook` | Notification channel resources (#394) |
+| 2 | `GET /notifications/email` | Notification channel resources (#704) |
+| 2 | `GET /notifications/pushover` | Notification channel resources (#704) |
+| 2 | `GET /notifications/telegram` | Notification channel resources (#704) |
+| 2 | `GET /notifications/webhook` | Notification channel resources (#704) |
+| 2 | `PATCH /notifications/email` | Notification channel resources (#704) |
+| 2 | `PATCH /notifications/pushover` | Notification channel resources (#704) |
+| 2 | `PATCH /notifications/telegram` | Notification channel resources (#704) |
+| 2 | `PATCH /notifications/webhook` | Notification channel resources (#704) |
 
 ## Intentionally Skipped
 
