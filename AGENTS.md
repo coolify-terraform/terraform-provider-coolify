@@ -104,7 +104,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - `internal/flex/` - Type conversion helpers between Go and Terraform Framework types
 - `internal/acctest/` - Shared test utilities (provider factories, mock server wrappers, acceptance test helpers)
 - `internal/validate/` - Input validators (UUID format, FQDN URL)
-- `internal/spectest/` - OpenAPI spec compliance tests, API coverage tracking, and contract coverage tests
+- `internal/spectest/` - Contract field/route coverage (`API_COVERAGE.md` uses contract `routes[]` as inventory; OpenAPI is not the route source of truth), plus optional OpenAPI request validation helpers
 - Contract skip taxonomy (`internal/spectest/skip.go`): `internal` (FK/computed), `deferred` (public field + open issue `#N`), `n/a` (wrong surface). Never label public `$allowedFields` as internal. Schema registry Phase A: EnvironmentVariable; Phase B: Application settings + ScheduledTask (`schema_coverage*.go`). Write-path check: application env `allowed_fields` vs client input (`write_coverage_test.go`). Weekly drift issue body: `.github/contract-freshness-issue.md`. `make contract-check` runs the full coverage suite. Extract aliases private `validate*` helpers that own `$allowedFields` onto public callers (e.g. VolumeBackups `upsert` ← `validateUpsertRequest`).
 - `scripts/` - Contract extraction (`extract-contract.py`), OpenAPI generation (`generate-openapi.py`), contract diff (`diff-contracts.sh`)
 - `testdata/contracts/` - Versioned contract JSON files extracted from Coolify source (source of truth for API field definitions)

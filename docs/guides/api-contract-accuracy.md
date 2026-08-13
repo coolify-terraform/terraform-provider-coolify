@@ -9,7 +9,10 @@ description: "Comparison of Coolify OpenAPI spec vs real source code contract."
 This page compares the pinned reusable OpenAPI schemas with the source-derived
 Coolify contract extracted from the real application code.
 
-> The source-derived contract is the field-level source of truth. The pinned OpenAPI spec is useful for reusable public schemas and route inventory, but some contract models only exist as internal implementation details or inline request bodies.
+> The source-derived contract is the source of truth for fields **and** routes
+> (`API_COVERAGE.md` inventories contract `routes[]`). The pinned OpenAPI spec is
+> useful only for reusable public schemas and optional request-shape checks; it is
+> **not** a complete Coolify route inventory.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
