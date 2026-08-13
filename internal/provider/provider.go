@@ -37,8 +37,10 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/health"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/hetzner"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationdiscord"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationemail"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationpushover"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationslack"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationtelegram"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationwebhook"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/privatekey"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/project"
@@ -233,8 +235,10 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		envsbulk.NewResource,             // coolify_envs_bulk
 		githubapp.NewResource,            // coolify_github_app
 		notificationdiscord.NewResource,  // coolify_notification_discord
+		notificationemail.NewResource,    // coolify_notification_email
 		notificationpushover.NewResource, // coolify_notification_pushover
 		notificationslack.NewResource,    // coolify_notification_slack
+		notificationtelegram.NewResource, // coolify_notification_telegram
 		notificationwebhook.NewResource,  // coolify_notification_webhook
 		privatekey.NewResource,           // coolify_private_key
 		project.NewResource,              // coolify_project

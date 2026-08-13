@@ -38,6 +38,10 @@ func TestCoveredEndpoints_NotificationsCoverage(t *testing.T) {
 		"PATCH /notifications/webhook",
 		"GET /notifications/pushover",
 		"PATCH /notifications/pushover",
+		"GET /notifications/email",
+		"PATCH /notifications/email",
+		"GET /notifications/telegram",
+		"PATCH /notifications/telegram",
 	} {
 		s, ok := cov[op]
 		if !ok {
@@ -46,20 +50,6 @@ func TestCoveredEndpoints_NotificationsCoverage(t *testing.T) {
 		}
 		if s.category != "covered" {
 			t.Errorf("%s: want covered, got %s (%s)", op, s.category, s.resource)
-		}
-	}
-	// Remaining channels stay planned until their resources land (#394 follow-up).
-	for _, op := range []string{
-		"GET /notifications/email",
-		"GET /notifications/telegram",
-	} {
-		s, ok := cov[op]
-		if !ok {
-			t.Errorf("missing registry entry %s", op)
-			continue
-		}
-		if s.category != "planned" {
-			t.Errorf("%s: want planned, got %s", op, s.category)
 		}
 	}
 }

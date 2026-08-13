@@ -6,8 +6,8 @@
 **Route inventory**: source-derived contract `testdata/contracts/coolify-v4.json` (`routes[]`)  
 **Field source of truth**: same contract (`models` / endpoint allow lists)  
 **Not inventory**: OpenAPI under `testdata/specs/` (partial upstream path list; do not treat as Coolify API completeness)  
-**Coverage**: 184 covered / 296 registry entries (62.2%)  
-**Planned**: 4 | **Skipped**: 108  
+**Coverage**: 188 covered / 296 registry entries (63.5%)  
+**Planned**: 0 | **Skipped**: 108  
 **Registry size**: 296 (contract routes + allowlisted extras)
 
 ## Covered
@@ -81,8 +81,10 @@
 | `GET /hetzner/server-types` | `data.coolify_hetzner_server_types` | v0.2.0 |
 | `GET /hetzner/ssh-keys` | `data.coolify_hetzner_ssh_keys` | v0.2.0 |
 | `GET /notifications/discord` | `coolify_notification_discord` | v0.1.14 |
+| `GET /notifications/email` | `coolify_notification_email` | v0.1.14 |
 | `GET /notifications/pushover` | `coolify_notification_pushover` | v0.1.14 |
 | `GET /notifications/slack` | `coolify_notification_slack` | v0.1.14 |
+| `GET /notifications/telegram` | `coolify_notification_telegram` | v0.1.14 |
 | `GET /notifications/webhook` | `coolify_notification_webhook` | v0.1.14 |
 | `GET /projects` | `data.coolify_projects` | v0.1.0 |
 | `GET /projects/{uuid}` | `data.coolify_project` | v0.1.0 |
@@ -131,8 +133,10 @@
 | `PATCH /databases/{uuid}/storages` | `coolify_storage` | v0.2.0 |
 | `PATCH /github-apps/{github_app_id}` | `coolify_github_app` | v0.2.0 |
 | `PATCH /notifications/discord` | `coolify_notification_discord` | v0.1.14 |
+| `PATCH /notifications/email` | `coolify_notification_email` | v0.1.14 |
 | `PATCH /notifications/pushover` | `coolify_notification_pushover` | v0.1.14 |
 | `PATCH /notifications/slack` | `coolify_notification_slack` | v0.1.14 |
+| `PATCH /notifications/telegram` | `coolify_notification_telegram` | v0.1.14 |
 | `PATCH /notifications/webhook` | `coolify_notification_webhook` | v0.1.14 |
 | `PATCH /projects/{uuid}` | `coolify_project` | v0.1.0 |
 | `PATCH /s3-storages/{uuid}` | `coolify_s3_storage` | v0.1.13 |
@@ -205,10 +209,6 @@ Ordered by priority (1 = most needed by users).
 
 | Priority | Endpoint | Notes |
 |----------|----------|-------|
-| 2 | `GET /notifications/email` | Notification channel resources (#704) |
-| 2 | `GET /notifications/telegram` | Notification channel resources (#704) |
-| 2 | `PATCH /notifications/email` | Notification channel resources (#704) |
-| 2 | `PATCH /notifications/telegram` | Notification channel resources (#704) |
 
 ## Intentionally Skipped
 

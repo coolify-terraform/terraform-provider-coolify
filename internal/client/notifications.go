@@ -267,3 +267,184 @@ func (c *Client) UpdatePushoverNotifications(ctx context.Context, input UpdatePu
 	}
 	return &r, nil
 }
+
+// EmailNotificationSettings is the current team's email notification config.
+// Requires Coolify >= v4.3.0. Secrets are encrypted/hidden without read:sensitive.
+type EmailNotificationSettings struct {
+	ID     int `json:"id"`
+	TeamID int `json:"team_id"`
+
+	SMTPEnabled      bool   `json:"smtp_enabled"`
+	SMTPFromAddress  string `json:"smtp_from_address,omitempty"`
+	SMTPFromName     string `json:"smtp_from_name,omitempty"`
+	SMTPRecipients   string `json:"smtp_recipients,omitempty"`
+	SMTPHost         string `json:"smtp_host,omitempty"`
+	SMTPPort         *int   `json:"smtp_port,omitempty"`
+	SMTPEncryption   string `json:"smtp_encryption,omitempty"`
+	SMTPUsername     string `json:"smtp_username,omitempty"`
+	SMTPPassword     string `json:"smtp_password,omitempty"`
+	SMTPTimeout      *int   `json:"smtp_timeout,omitempty"`
+	ResendEnabled    bool   `json:"resend_enabled"`
+	ResendAPIKey     string `json:"resend_api_key,omitempty"`
+	UseInstanceEmail bool   `json:"use_instance_email_settings"`
+
+	DeploymentSuccess    bool `json:"deployment_success_email_notifications"`
+	DeploymentFailure    bool `json:"deployment_failure_email_notifications"`
+	StatusChange         bool `json:"status_change_email_notifications"`
+	BackupSuccess        bool `json:"backup_success_email_notifications"`
+	BackupFailure        bool `json:"backup_failure_email_notifications"`
+	ScheduledTaskSuccess bool `json:"scheduled_task_success_email_notifications"`
+	ScheduledTaskFailure bool `json:"scheduled_task_failure_email_notifications"`
+	DockerCleanupSuccess bool `json:"docker_cleanup_success_email_notifications"`
+	DockerCleanupFailure bool `json:"docker_cleanup_failure_email_notifications"`
+	ServerDiskUsage      bool `json:"server_disk_usage_email_notifications"`
+	ServerReachable      bool `json:"server_reachable_email_notifications"`
+	ServerUnreachable    bool `json:"server_unreachable_email_notifications"`
+	ServerPatch          bool `json:"server_patch_email_notifications"`
+	TraefikOutdated      bool `json:"traefik_outdated_email_notifications"`
+}
+
+// UpdateEmailNotificationInput is the PATCH body for email notifications.
+type UpdateEmailNotificationInput struct {
+	SMTPEnabled      *bool   `json:"smtp_enabled,omitempty"`
+	SMTPFromAddress  *string `json:"smtp_from_address,omitempty"`
+	SMTPFromName     *string `json:"smtp_from_name,omitempty"`
+	SMTPRecipients   *string `json:"smtp_recipients,omitempty"`
+	SMTPHost         *string `json:"smtp_host,omitempty"`
+	SMTPPort         *int    `json:"smtp_port,omitempty"`
+	SMTPEncryption   *string `json:"smtp_encryption,omitempty"`
+	SMTPUsername     *string `json:"smtp_username,omitempty"`
+	SMTPPassword     *string `json:"smtp_password,omitempty"`
+	SMTPTimeout      *int    `json:"smtp_timeout,omitempty"`
+	ResendEnabled    *bool   `json:"resend_enabled,omitempty"`
+	ResendAPIKey     *string `json:"resend_api_key,omitempty"`
+	UseInstanceEmail *bool   `json:"use_instance_email_settings,omitempty"`
+
+	DeploymentSuccess    *bool `json:"deployment_success_email_notifications,omitempty"`
+	DeploymentFailure    *bool `json:"deployment_failure_email_notifications,omitempty"`
+	StatusChange         *bool `json:"status_change_email_notifications,omitempty"`
+	BackupSuccess        *bool `json:"backup_success_email_notifications,omitempty"`
+	BackupFailure        *bool `json:"backup_failure_email_notifications,omitempty"`
+	ScheduledTaskSuccess *bool `json:"scheduled_task_success_email_notifications,omitempty"`
+	ScheduledTaskFailure *bool `json:"scheduled_task_failure_email_notifications,omitempty"`
+	DockerCleanupSuccess *bool `json:"docker_cleanup_success_email_notifications,omitempty"`
+	DockerCleanupFailure *bool `json:"docker_cleanup_failure_email_notifications,omitempty"`
+	ServerDiskUsage      *bool `json:"server_disk_usage_email_notifications,omitempty"`
+	ServerReachable      *bool `json:"server_reachable_email_notifications,omitempty"`
+	ServerUnreachable    *bool `json:"server_unreachable_email_notifications,omitempty"`
+	ServerPatch          *bool `json:"server_patch_email_notifications,omitempty"`
+	TraefikOutdated      *bool `json:"traefik_outdated_email_notifications,omitempty"`
+}
+
+// TelegramNotificationSettings is the current team's Telegram notification config.
+// Requires Coolify >= v4.3.0.
+type TelegramNotificationSettings struct {
+	ID      int    `json:"id"`
+	TeamID  int    `json:"team_id"`
+	Enabled bool   `json:"telegram_enabled"`
+	Token   string `json:"telegram_token,omitempty"`
+	ChatID  string `json:"telegram_chat_id,omitempty"`
+
+	DeploymentSuccess    bool `json:"deployment_success_telegram_notifications"`
+	DeploymentFailure    bool `json:"deployment_failure_telegram_notifications"`
+	StatusChange         bool `json:"status_change_telegram_notifications"`
+	BackupSuccess        bool `json:"backup_success_telegram_notifications"`
+	BackupFailure        bool `json:"backup_failure_telegram_notifications"`
+	ScheduledTaskSuccess bool `json:"scheduled_task_success_telegram_notifications"`
+	ScheduledTaskFailure bool `json:"scheduled_task_failure_telegram_notifications"`
+	DockerCleanupSuccess bool `json:"docker_cleanup_success_telegram_notifications"`
+	DockerCleanupFailure bool `json:"docker_cleanup_failure_telegram_notifications"`
+	ServerDiskUsage      bool `json:"server_disk_usage_telegram_notifications"`
+	ServerReachable      bool `json:"server_reachable_telegram_notifications"`
+	ServerUnreachable    bool `json:"server_unreachable_telegram_notifications"`
+	ServerPatch          bool `json:"server_patch_telegram_notifications"`
+	TraefikOutdated      bool `json:"traefik_outdated_telegram_notifications"`
+
+	ThreadDeploymentSuccess    string `json:"telegram_notifications_deployment_success_thread_id,omitempty"`
+	ThreadDeploymentFailure    string `json:"telegram_notifications_deployment_failure_thread_id,omitempty"`
+	ThreadStatusChange         string `json:"telegram_notifications_status_change_thread_id,omitempty"`
+	ThreadBackupSuccess        string `json:"telegram_notifications_backup_success_thread_id,omitempty"`
+	ThreadBackupFailure        string `json:"telegram_notifications_backup_failure_thread_id,omitempty"`
+	ThreadScheduledTaskSuccess string `json:"telegram_notifications_scheduled_task_success_thread_id,omitempty"`
+	ThreadScheduledTaskFailure string `json:"telegram_notifications_scheduled_task_failure_thread_id,omitempty"`
+	ThreadDockerCleanupSuccess string `json:"telegram_notifications_docker_cleanup_success_thread_id,omitempty"`
+	ThreadDockerCleanupFailure string `json:"telegram_notifications_docker_cleanup_failure_thread_id,omitempty"`
+	ThreadServerDiskUsage      string `json:"telegram_notifications_server_disk_usage_thread_id,omitempty"`
+	ThreadServerReachable      string `json:"telegram_notifications_server_reachable_thread_id,omitempty"`
+	ThreadServerUnreachable    string `json:"telegram_notifications_server_unreachable_thread_id,omitempty"`
+	ThreadServerPatch          string `json:"telegram_notifications_server_patch_thread_id,omitempty"`
+	ThreadTraefikOutdated      string `json:"telegram_notifications_traefik_outdated_thread_id,omitempty"`
+}
+
+// UpdateTelegramNotificationInput is the PATCH body for Telegram notifications.
+type UpdateTelegramNotificationInput struct {
+	Enabled *bool   `json:"telegram_enabled,omitempty"`
+	Token   *string `json:"telegram_token,omitempty"`
+	ChatID  *string `json:"telegram_chat_id,omitempty"`
+
+	DeploymentSuccess    *bool `json:"deployment_success_telegram_notifications,omitempty"`
+	DeploymentFailure    *bool `json:"deployment_failure_telegram_notifications,omitempty"`
+	StatusChange         *bool `json:"status_change_telegram_notifications,omitempty"`
+	BackupSuccess        *bool `json:"backup_success_telegram_notifications,omitempty"`
+	BackupFailure        *bool `json:"backup_failure_telegram_notifications,omitempty"`
+	ScheduledTaskSuccess *bool `json:"scheduled_task_success_telegram_notifications,omitempty"`
+	ScheduledTaskFailure *bool `json:"scheduled_task_failure_telegram_notifications,omitempty"`
+	DockerCleanupSuccess *bool `json:"docker_cleanup_success_telegram_notifications,omitempty"`
+	DockerCleanupFailure *bool `json:"docker_cleanup_failure_telegram_notifications,omitempty"`
+	ServerDiskUsage      *bool `json:"server_disk_usage_telegram_notifications,omitempty"`
+	ServerReachable      *bool `json:"server_reachable_telegram_notifications,omitempty"`
+	ServerUnreachable    *bool `json:"server_unreachable_telegram_notifications,omitempty"`
+	ServerPatch          *bool `json:"server_patch_telegram_notifications,omitempty"`
+	TraefikOutdated      *bool `json:"traefik_outdated_telegram_notifications,omitempty"`
+
+	ThreadDeploymentSuccess    *string `json:"telegram_notifications_deployment_success_thread_id,omitempty"`
+	ThreadDeploymentFailure    *string `json:"telegram_notifications_deployment_failure_thread_id,omitempty"`
+	ThreadStatusChange         *string `json:"telegram_notifications_status_change_thread_id,omitempty"`
+	ThreadBackupSuccess        *string `json:"telegram_notifications_backup_success_thread_id,omitempty"`
+	ThreadBackupFailure        *string `json:"telegram_notifications_backup_failure_thread_id,omitempty"`
+	ThreadScheduledTaskSuccess *string `json:"telegram_notifications_scheduled_task_success_thread_id,omitempty"`
+	ThreadScheduledTaskFailure *string `json:"telegram_notifications_scheduled_task_failure_thread_id,omitempty"`
+	ThreadDockerCleanupSuccess *string `json:"telegram_notifications_docker_cleanup_success_thread_id,omitempty"`
+	ThreadDockerCleanupFailure *string `json:"telegram_notifications_docker_cleanup_failure_thread_id,omitempty"`
+	ThreadServerDiskUsage      *string `json:"telegram_notifications_server_disk_usage_thread_id,omitempty"`
+	ThreadServerReachable      *string `json:"telegram_notifications_server_reachable_thread_id,omitempty"`
+	ThreadServerUnreachable    *string `json:"telegram_notifications_server_unreachable_thread_id,omitempty"`
+	ThreadServerPatch          *string `json:"telegram_notifications_server_patch_thread_id,omitempty"`
+	ThreadTraefikOutdated      *string `json:"telegram_notifications_traefik_outdated_thread_id,omitempty"`
+}
+
+// GetEmailNotifications returns the current team's email settings. Coolify >= v4.3.0.
+func (c *Client) GetEmailNotifications(ctx context.Context) (*EmailNotificationSettings, error) {
+	var r EmailNotificationSettings
+	if err := c.do(ctx, http.MethodGet, "/api/v1/notifications/email", nil, &r); err != nil {
+		return nil, fmt.Errorf("getting email notifications: %w", err)
+	}
+	return &r, nil
+}
+
+// UpdateEmailNotifications updates the current team's email settings. Coolify >= v4.3.0.
+func (c *Client) UpdateEmailNotifications(ctx context.Context, input UpdateEmailNotificationInput) (*EmailNotificationSettings, error) {
+	var r EmailNotificationSettings
+	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/email", input, &r); err != nil {
+		return nil, fmt.Errorf("updating email notifications: %w", err)
+	}
+	return &r, nil
+}
+
+// GetTelegramNotifications returns the current team's Telegram settings. Coolify >= v4.3.0.
+func (c *Client) GetTelegramNotifications(ctx context.Context) (*TelegramNotificationSettings, error) {
+	var r TelegramNotificationSettings
+	if err := c.do(ctx, http.MethodGet, "/api/v1/notifications/telegram", nil, &r); err != nil {
+		return nil, fmt.Errorf("getting telegram notifications: %w", err)
+	}
+	return &r, nil
+}
+
+// UpdateTelegramNotifications updates the current team's Telegram settings. Coolify >= v4.3.0.
+func (c *Client) UpdateTelegramNotifications(ctx context.Context, input UpdateTelegramNotificationInput) (*TelegramNotificationSettings, error) {
+	var r TelegramNotificationSettings
+	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/telegram", input, &r); err != nil {
+		return nil, fmt.Errorf("updating telegram notifications: %w", err)
+	}
+	return &r, nil
+}

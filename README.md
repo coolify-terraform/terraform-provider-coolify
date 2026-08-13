@@ -137,7 +137,9 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_s3_storage` | Manage S3-compatible storage for backups (Coolify >= v4.3.0) |
 | `coolify_cloud_token` | Manage cloud provider tokens (Hetzner, DigitalOcean, Vultr) |
 | `coolify_github_app` | Manage GitHub App integrations |
+| `coolify_notification_email` | Team email notification settings (Coolify >= v4.3.0) |
 | `coolify_notification_discord` | Team Discord notification settings (Coolify >= v4.3.0) |
+| `coolify_notification_telegram` | Team Telegram notification settings (Coolify >= v4.3.0) |
 | `coolify_notification_slack` | Team Slack notification settings (Coolify >= v4.3.0) |
 | `coolify_notification_pushover` | Team Pushover notification settings (Coolify >= v4.3.0) |
 | `coolify_notification_webhook` | Team generic webhook notification settings (Coolify >= v4.3.0) |

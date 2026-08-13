@@ -83,3 +83,74 @@ func TestClient_SlackNotifications_GetUpdate(t *testing.T) {
 	assert.True(t, out.Enabled)
 	assert.Equal(t, wh, out.Webhook)
 }
+
+func TestClient_EmailNotifications_GetUpdate(t *testing.T) {
+	t.Parallel()
+	var lastPatch map[string]interface{}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0,
+			"smtp_enabled": true,
+			"smtp_host":    "smtp.example.com",
+			"smtp_port":    587,
+		})
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&lastPatch))
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0,
+			"smtp_enabled": lastPatch["smtp_enabled"],
+			"smtp_port":    lastPatch["smtp_port"],
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := client.New(srv.URL, "tok")
+	ctx := context.Background()
+	got, err := c.GetEmailNotifications(ctx)
+	require.NoError(t, err)
+	assert.True(t, got.SMTPEnabled)
+	require.NotNil(t, got.SMTPPort)
+	assert.Equal(t, 587, *got.SMTPPort)
+	en := false
+	port := 465
+	_, err = c.UpdateEmailNotifications(ctx, client.UpdateEmailNotificationInput{SMTPEnabled: &en, SMTPPort: &port})
+	require.NoError(t, err)
+	assert.Equal(t, false, lastPatch["smtp_enabled"])
+	assert.Equal(t, float64(465), lastPatch["smtp_port"])
+}
+
+func TestClient_TelegramNotifications_GetUpdate(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/telegram", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0,
+			"telegram_enabled": false,
+			"telegram_token":   "tok",
+		})
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/telegram", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": 1, "team_id": 0,
+			"telegram_enabled": body["telegram_enabled"],
+			"telegram_token":   body["telegram_token"],
+		})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := client.New(srv.URL, "tok")
+	ctx := context.Background()
+	got, err := c.GetTelegramNotifications(ctx)
+	require.NoError(t, err)
+	assert.False(t, got.Enabled)
+	en := true
+	tok := "new"
+	out, err := c.UpdateTelegramNotifications(ctx, client.UpdateTelegramNotificationInput{Enabled: &en, Token: &tok})
+	require.NoError(t, err)
+	assert.True(t, out.Enabled)
+	assert.Equal(t, "new", out.Token)
+}
