@@ -19,6 +19,8 @@ func TestDomains_Valid(t *testing.T) {
 		"https://coolify.io/api",
 		"http://192.168.1.1:3000",
 		"https://a.example.com,https://b.example.com",
+		"https://a.example.com,,https://b.example.com", // empty segment skipped
+		"https://a.example.com,",                       // trailing comma
 	}
 	v := validate.Domains()
 	for _, s := range valid {

@@ -279,3 +279,82 @@ func TestDiscordNotificationResource_ReadAPIError(t *testing.T) {
 		},
 	})
 }
+
+func TestDiscordNotificationResource_UpdateAPIError(t *testing.T) {
+	t.Parallel()
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/discord", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"discord_enabled":true,"discord_webhook_url":"https://discord.com/api/webhooks/1/x"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/discord", func(w http.ResponseWriter, _ *http.Request) {
+		patches++
+		if patches == 2 {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"discord_enabled":true,"discord_webhook_url":"https://discord.com/api/webhooks/1/x"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_discord", "test", `
+  enabled     = true
+  webhook_url = "https://discord.com/api/webhooks/1/x"
+`),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_discord", "test", `
+  enabled     = true
+  webhook_url = "https://discord.com/api/webhooks/1/x"
+  deployment_failure = true
+`),
+				ExpectError: regexp.MustCompile(`Error updating Discord notifications`),
+			},
+		},
+	})
+}
+
+func TestDiscordNotificationResource_DestroyAPIError(t *testing.T) {
+	t.Parallel()
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/discord", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"discord_enabled":true,"discord_webhook_url":"https://discord.com/api/webhooks/1/x"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/discord", func(w http.ResponseWriter, _ *http.Request) {
+		patches++
+		// Create succeeds (patch 1); destroy disable fails (patch 2+).
+		if patches == 2 {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"discord_enabled":true,"discord_webhook_url":"https://discord.com/api/webhooks/1/x"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_discord", "test", `
+  enabled     = true
+  webhook_url = "https://discord.com/api/webhooks/1/x"
+`),
+			},
+			{
+				Config:      acctest.ProviderBlockForURL(srv.URL),
+				ExpectError: regexp.MustCompile(`Error disabling Discord notifications on destroy`),
+			},
+		},
+	})
+}
