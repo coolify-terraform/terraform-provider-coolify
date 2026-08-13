@@ -4,14 +4,14 @@ page_title: "coolify_notification_pushover Resource - coolify"
 subcategory: ""
 description: |-
   Manages the current team's Pushover notification settings in Coolify. This is a team-scoped singleton (one configuration per team, selected by the API token). Requires Coolify >= v4.3.0.
-  On destroy, Pushover notifications are disabled (enabled = false); user key and API token are left unchanged. Import with id current.
+  On destroy, Pushover notifications are disabled (enabled = false); credentials are left unchanged. Import with id current.
 ---
 
 # coolify_notification_pushover (Resource)
 
 Manages the current team's Pushover notification settings in Coolify. This is a team-scoped singleton (one configuration per team, selected by the API token). Requires Coolify >= v4.3.0.
 
-On destroy, Pushover notifications are disabled (`enabled = false`); user key and API token are left unchanged. Import with id `current`.
+On destroy, Pushover notifications are disabled (`enabled = false`); credentials are left unchanged. Import with id `current`.
 
 ## Example Usage
 

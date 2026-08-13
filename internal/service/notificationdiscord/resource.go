@@ -2,23 +2,17 @@ package notificationdiscord
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
-	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
-
-// Import ID for the team-scoped singleton (settings belong to the API token's team).
-const importIDCurrent = "current"
 
 var (
 	_ resource.Resource                = (*discordResource)(nil)
@@ -63,74 +57,29 @@ func (r *discordResource) Metadata(_ context.Context, req resource.MetadataReque
 }
 
 func (r *discordResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	eventDesc := func(event string) string {
-		return fmt.Sprintf("Whether to send Discord notifications for %s events.", event)
-	}
-	boolOptComputed := func(desc string) schema.BoolAttribute {
-		return schema.BoolAttribute{
-			MarkdownDescription: desc,
-			Optional:            true,
-			Computed:            true,
-			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.UseStateForUnknown(),
+	attrs := map[string]schema.Attribute{
+		"id":      notificationcommon.IDAttribute(),
+		"enabled": notificationcommon.EnabledAttribute("Discord"),
+		"webhook_url": schema.StringAttribute{
+			MarkdownDescription: "Discord webhook URL. Sensitive; Coolify may omit it on read unless the API token " +
+				"can read sensitive fields (`read:sensitive` or root). Preserve the value in configuration after import. " +
+				"Must pass Coolify's SafeWebhookUrl rule (public http/https; private/loopback hosts rejected).",
+			Optional:  true,
+			Computed:  true,
+			Sensitive: true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
 			},
-		}
+		},
+		"ping_enabled": notificationcommon.BoolOptComputed("Whether Discord @here / role pings are enabled."),
 	}
-
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages the current team's Discord notification settings in Coolify. " +
 			"This is a team-scoped singleton (one configuration per team, selected by the API token). " +
 			"Requires Coolify >= v4.3.0.\n\n" +
 			"On destroy, Discord notifications are disabled (`enabled = false`); the webhook URL is left unchanged. " +
 			"Import with id `current`.",
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				MarkdownDescription: "Resource identifier. Always `current` (team is implied by the API token).",
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "Whether Discord notifications are enabled for the team.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-			},
-			"webhook_url": schema.StringAttribute{
-				MarkdownDescription: "Discord webhook URL. Sensitive; Coolify may omit it on read unless the API token " +
-					"can read sensitive fields (`read:sensitive` or root). Preserve the value in configuration after import. " +
-					"Must pass Coolify's SafeWebhookUrl rule (public http/https; private/loopback hosts rejected).",
-				Optional:  true,
-				Computed:  true,
-				Sensitive: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"ping_enabled": schema.BoolAttribute{
-				MarkdownDescription: "Whether Discord @here / role pings are enabled.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"deployment_success":     boolOptComputed(eventDesc("deployment success")),
-			"deployment_failure":     boolOptComputed(eventDesc("deployment failure")),
-			"status_change":          boolOptComputed(eventDesc("status change")),
-			"backup_success":         boolOptComputed(eventDesc("backup success")),
-			"backup_failure":         boolOptComputed(eventDesc("backup failure")),
-			"scheduled_task_success": boolOptComputed(eventDesc("scheduled task success")),
-			"scheduled_task_failure": boolOptComputed(eventDesc("scheduled task failure")),
-			"docker_cleanup_success": boolOptComputed(eventDesc("Docker cleanup success")),
-			"docker_cleanup_failure": boolOptComputed(eventDesc("Docker cleanup failure")),
-			"server_disk_usage":      boolOptComputed(eventDesc("server disk usage")),
-			"server_reachable":       boolOptComputed(eventDesc("server reachable")),
-			"server_unreachable":     boolOptComputed(eventDesc("server unreachable")),
-			"server_patch":           boolOptComputed(eventDesc("server patch")),
-			"traefik_outdated":       boolOptComputed(eventDesc("Traefik outdated")),
-		},
+		Attributes: notificationcommon.MergeAttrs(attrs, notificationcommon.EventSchemaAttrs("Discord")),
 	}
 }
 
@@ -221,15 +170,7 @@ func (r *discordResource) Delete(ctx context.Context, _ resource.DeleteRequest, 
 }
 
 func (r *discordResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	id := req.ID
-	if id != "" && id != importIDCurrent {
-		resp.Diagnostics.AddError(
-			"Invalid import ID",
-			fmt.Sprintf("coolify_notification_discord is a team singleton; import with id %q (got %q)", importIDCurrent, id),
-		)
-		return
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), importIDCurrent)...)
+	notificationcommon.ImportStateCurrent(ctx, req, resp, "coolify_notification_discord")
 }
 
 func createInputFromPlan(plan model) client.UpdateDiscordNotificationInput {
@@ -284,7 +225,7 @@ func updateInputFromPlan(plan, state model) client.UpdateDiscordNotificationInpu
 }
 
 func flatten(api *client.DiscordNotificationSettings, m *model) {
-	m.ID = types.StringValue(importIDCurrent)
+	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	m.PingEnabled = types.BoolValue(api.PingEnabled)
 	// Preserve webhook from state when API hides encrypted field.

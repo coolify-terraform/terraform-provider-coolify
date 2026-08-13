@@ -1,0 +1,7 @@
+coolify_endpoint = "https://coolify.example.com"
+coolify_token    = "your-api-token"
+
+# Optional: leave defaults (disabled) for safe demos.
+# discord_enabled = false
+# smtp_enabled    = false
+# webhook_enabled = false

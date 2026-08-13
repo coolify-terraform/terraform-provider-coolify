@@ -49,7 +49,7 @@ resource "coolify_notification_webhook" "main" {
 - `server_unreachable` (Boolean) Whether to send Webhook notifications for server unreachable events.
 - `status_change` (Boolean) Whether to send Webhook notifications for status change events.
 - `traefik_outdated` (Boolean) Whether to send Webhook notifications for Traefik outdated events.
-- `webhook_url` (String, Sensitive) Webhook incoming webhook URL. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve the value in configuration after import. Must pass Coolify's SafeWebhookUrl rule (public http/https; private/loopback hosts rejected).
+- `webhook_url` (String, Sensitive) Generic webhook URL. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve the value in configuration after import. Must pass Coolify's SafeWebhookUrl rule (public http/https; private/loopback hosts rejected).
 
 ### Read-Only
 
