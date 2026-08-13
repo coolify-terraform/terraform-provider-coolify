@@ -22,6 +22,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Start Coolify image pull
+        env:
+          COOLIFY_DATA_DIR: /home/runner/coolify-data
+        run: bash scripts/ci-coolify-boot.sh prepare-pull-bg
 
       - uses: ./.github/actions/setup-coolify
 

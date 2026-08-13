@@ -37,8 +37,13 @@ fi
 # names fall through to the general round-robin so application does not also
 # carry scheduledtask+storage+deployment on a 3-wide matrix (PR #729 Test(0)
 # was 10.5m vs ~6m for the other shards).
+#
+# On 4+ shards, application is also added to shard 1. CI compiles complementary
+# test-file slices with -tags=ci_app_a (shard 0) and -tags=ci_app_b (shard 1)
+# so the ~10m application UnitTest package is no longer a single-job floor.
+APP_PKG="github.com/coolify-terraform/terraform-provider-coolify/internal/service/application"
 heavy_pins=(
-  "github.com/coolify-terraform/terraform-provider-coolify/internal/service/application"
+  "$APP_PKG"
   "github.com/coolify-terraform/terraform-provider-coolify/internal/service/service"
   "github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/redis"
   "github.com/coolify-terraform/terraform-provider-coolify/internal/service/scheduledtask"
@@ -82,6 +87,15 @@ for pkg in "${heavy_pins[@]}"; do
   fi
   pin_i=$((pin_i + 1))
 done
+
+# 2b) Split application across shards 0 and 1 when the matrix is wide enough.
+# Shard 0 already has it from the exclusive pin. Shard 1 runs the complementary
+# test files (see ci.yml -tags=ci_app_b) in the same gotestsum as service.
+if (( count >= 4 && shard == 1 )); then
+  if pkg_in_module "$APP_PKG"; then
+    printf '%s\n' "$APP_PKG" >>"$selected_file"
+  fi
+fi
 
 # 2) Remaining packages: stable sorted order, round-robin into shards.
 rest_i=0

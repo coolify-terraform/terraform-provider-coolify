@@ -67,6 +67,9 @@ jobs:
               - 'examples/**/*.tf'
             ci:
               - '.github/workflows/ci.yml'
+              - '.github/actions/**'
+              - 'scripts/ci-unit-packages.sh'
+              - 'scripts/ci-coolify-boot.sh'
               - '.codecov.yml'
               - '.goreleaser.yml'
               - 'GNUmakefile'
@@ -136,8 +139,8 @@ jobs:
       fail-fast: false
       matrix:
         # Four shards: exclusive pin of the four heaviest packages, then
-        # round-robin the rest. Three shards stacked extra heavies onto
-        # application (Test(0) 10.5m vs ~6m).
+        # round-robin the rest. Application UnitTests are compiled twice
+        # (shards 0 and 1) with complementary ci_app_a / ci_app_b tags.
         shard: [0, 1, 2, 3]
     env:
       UNIT_SHARD_COUNT: "4"
@@ -199,15 +202,29 @@ jobs:
           mapfile -t pkgs < <(bash scripts/ci-unit-packages.sh "${{ matrix.shard }}" "${UNIT_SHARD_COUNT}")
           echo "Shard ${{ matrix.shard }}/${UNIT_SHARD_COUNT}: ${#pkgs[@]} packages"
           printf '  %s\n' "${pkgs[@]}"
+          # Complementary application test-file slices. Other packages ignore
+          # these tags. Without a tag (shards 2/3) application is not selected.
+          extra_tags=()
+          case "${{ matrix.shard }}" in
+            0) extra_tags=(-tags=ci_app_a) ;;
+            1) extra_tags=(-tags=ci_app_b) ;;
+          esac
+          if [ "${#extra_tags[@]}" -gt 0 ]; then
+            echo "Application split tags: ${extra_tags[*]}"
+          fi
           # gotestsum --packages wants a space-separated list (not commas).
           pkg_list="${pkgs[*]}"
+          test_args=(-race -cover -coverprofile="coverage/coverage-shard-${{ matrix.shard }}.out" -count=1 -p 4 -parallel=1 -timeout=15m)
+          if [ "${#extra_tags[@]}" -gt 0 ]; then
+            test_args=("${extra_tags[@]}" "${test_args[@]}")
+          fi
           gotestsum \
             --format pkgname \
             --junitfile "test-results/unit-shard-${{ matrix.shard }}.xml" \
             --rerun-fails \
             --rerun-fails-max-failures=5 \
             --packages "$pkg_list" \
-            -- -race -cover -coverprofile="coverage/coverage-shard-${{ matrix.shard }}.out" -count=1 -p 4 -parallel=1 -timeout=15m
+            -- "${test_args[@]}"
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -619,6 +636,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Start Coolify image pull
+        env:
+          COOLIFY_DATA_DIR: /home/runner/coolify-data
+        run: bash scripts/ci-coolify-boot.sh prepare-pull-bg
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -724,6 +745,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Start Coolify image pull
+        env:
+          COOLIFY_DATA_DIR: /home/runner/coolify-data
+        run: bash scripts/ci-coolify-boot.sh prepare-pull-bg
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod

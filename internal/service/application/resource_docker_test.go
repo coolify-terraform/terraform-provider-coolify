@@ -1,3 +1,5 @@
+//go:build !ci_app_a
+
 package application_test
 
 import (
