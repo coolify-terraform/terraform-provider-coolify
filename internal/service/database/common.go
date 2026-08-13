@@ -352,11 +352,10 @@ func NormalizeCommonCreateState(m *CommonModel) {
 	flex.NormalizeUnknownString(&m.Status)
 }
 
+// AddCreateReadBackError is a thin wrapper around flex.AddCreateReadBackError
+// kept for existing database package call sites.
 func AddCreateReadBackError(resp *resource.CreateResponse, label, identifier string, err error) {
-	resp.Diagnostics.AddError(
-		fmt.Sprintf("%s created but refresh failed", label),
-		fmt.Sprintf("Coolify created %s %s, but the provider could not read it back: Could not read %s %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", label, identifier, label, identifier, err),
-	)
+	flex.AddCreateReadBackError(resp, label, identifier, err)
 }
 
 // ImportDatabaseState validates the import ID (simple UUID or compound) and

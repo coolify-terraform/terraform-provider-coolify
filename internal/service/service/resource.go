@@ -330,8 +330,8 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	svc, err := r.client.GetService(ctx, created.UUID)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Service created but refresh failed",
-			fmt.Sprintf("Coolify created service %s, but the provider could not read it back: Could not read service %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, created.UUID, err),
+			flex.CreateReadBackFailedSummary("Service"),
+			flex.CreateReadBackFailedDetail("service", created.UUID, err),
 		)
 		return
 	}

@@ -117,7 +117,10 @@ func (r *cloudTokenResource) Create(ctx context.Context, req resource.CreateRequ
 	// Read back the full cloud token to populate all fields.
 	ct, err := r.client.GetCloudToken(ctx, createdUUID)
 	if err != nil {
-		addCreateReadBackError(resp, createdUUID, err)
+		resp.Diagnostics.AddError(
+			flex.CreateReadBackFailedSummary("Cloud token"),
+			flex.CreateReadBackFailedDetail("cloud token", createdUUID, err),
+		)
 		return
 	}
 
@@ -236,18 +239,6 @@ func (r *cloudTokenResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_cloud_token", "uuid": state.UUID.ValueString()})
-}
-
-func addCreateReadBackError(resp *resource.CreateResponse, uuid string, err error) {
-	resp.Diagnostics.AddError(
-		"Cloud token created but refresh failed",
-		fmt.Sprintf(
-			"Coolify created cloud token %s, but the provider could not read it back: Could not read cloud token %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.",
-			uuid,
-			uuid,
-			err,
-		),
-	)
 }
 
 func (r *cloudTokenResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

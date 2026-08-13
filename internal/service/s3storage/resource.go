@@ -146,7 +146,10 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 	// Read back the full S3 storage to populate all fields.
 	s, err := r.client.GetS3Storage(ctx, createdUUID)
 	if err != nil {
-		addCreateReadBackError(resp, createdUUID, err)
+		resp.Diagnostics.AddError(
+			flex.CreateReadBackFailedSummary("S3 storage"),
+			flex.CreateReadBackFailedDetail("s3 storage", createdUUID, err),
+		)
 		return
 	}
 
@@ -242,18 +245,6 @@ func (r *s3StorageResource) Delete(ctx context.Context, req resource.DeleteReque
 		return
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_s3_storage", "uuid": state.UUID.ValueString()})
-}
-
-func addCreateReadBackError(resp *resource.CreateResponse, uuid string, err error) {
-	resp.Diagnostics.AddError(
-		"S3 storage created but refresh failed",
-		fmt.Sprintf(
-			"Coolify created s3 storage %s, but the provider could not read it back: Could not read s3 storage %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.",
-			uuid,
-			uuid,
-			err,
-		),
-	)
 }
 
 func (r *s3StorageResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

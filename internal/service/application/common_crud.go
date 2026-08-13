@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -45,50 +46,28 @@ func setImportDefaults(ctx context.Context, resp *resource.ImportStateResponse) 
 	set("use_build_secrets", false)
 }
 
-const applicationCreateReadBackFailedSummary = "Application created but refresh failed"
 const deletePollingTimeoutWarningSummary = "Delete is still finishing in Coolify"
-
-func addApplicationCreateReadBackDiagnostic(resp *resource.CreateResponse, detail string) {
-	resp.Diagnostics.AddError(applicationCreateReadBackFailedSummary, detail)
-}
-
-func addApplicationCreateReadBackError(resp *resource.CreateResponse, uuid string, err error) {
-	addApplicationCreateReadBackDiagnostic(
-		resp,
-		fmt.Sprintf(
-			"Coolify created application %s, but the provider could not read it back: "+
-				"Could not read application %s after create: %s. "+
-				"The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.",
-			uuid,
-			uuid,
-			err,
-		),
-	)
-}
-
-func addApplicationCreateReadBackNotFoundError(resp *resource.CreateResponse, uuid string) {
-	addApplicationCreateReadBackDiagnostic(
-		resp,
-		fmt.Sprintf(
-			"Coolify created application %s, but the provider could not read it back because the API returned 404 on the immediate read-back. "+
-				"The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the application becomes readable through the API.",
-			uuid,
-		),
-	)
-}
 
 // readBackAfterCreate reads the newly created application. If the immediate
 // read-back fails, it leaves the partial state intact and records the failure.
+// Summary uses title case "Application"; detail body keeps lowercase "application"
+// to match historical diagnostics.
 func readBackAfterCreate(ctx context.Context, c *client.Client, uuid string, resp *resource.CreateResponse) *client.Application {
 	app, err := c.GetApplication(ctx, uuid)
 	if err == nil {
 		return app
 	}
 	if client.IsNotFound(err) {
-		addApplicationCreateReadBackNotFoundError(resp, uuid)
+		resp.Diagnostics.AddError(
+			flex.CreateReadBackFailedSummary("Application"),
+			flex.CreateReadBackNotFoundDetail("application", uuid),
+		)
 		return nil
 	}
-	addApplicationCreateReadBackError(resp, uuid, err)
+	resp.Diagnostics.AddError(
+		flex.CreateReadBackFailedSummary("Application"),
+		flex.CreateReadBackFailedDetail("application", uuid, err),
+	)
 	return nil
 }
 

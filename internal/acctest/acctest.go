@@ -654,6 +654,10 @@ func isControllerResourceNotFound(msgLower string) bool {
 // acceptance tests. Set COOLIFY_S3_STORAGE_UUID to the UUID of an S3
 // storage registered in Coolify. The test is skipped if not set (or fails when
 // COOLIFY_REQUIRE_TIP_APIS=1; tip bootstrap must create minio-test).
+//
+// Do not POST .../validate against this UUID: Coolify only allows the internal
+// host coolify-minio for system storage uuid "minio". Validating bootstrap
+// minio-test flips is_usable to false and breaks S3 backup acceptance tests.
 func AccTestS3StorageUUID(t *testing.T) string {
 	t.Helper()
 	v := os.Getenv("COOLIFY_S3_STORAGE_UUID")

@@ -69,6 +69,7 @@ func TestAccCoverage_ResourcesHaveCRUDSteps(t *testing.T) {
 		"coolify_api_settings":         true,
 		"coolify_server_validate":      true,
 		"coolify_cloud_token_validate": true,
+		"coolify_s3_storage_validate":  true,
 		"coolify_application_preview":  true,
 		"coolify_backup_execution":     true,
 		"coolify_destination":          true,
@@ -79,6 +80,7 @@ func TestAccCoverage_ResourcesHaveCRUDSteps(t *testing.T) {
 		"coolify_api_settings":         true,
 		"coolify_server_validate":      true,
 		"coolify_cloud_token_validate": true,
+		"coolify_s3_storage_validate":  true,
 		"coolify_application_preview":  true,
 	}
 
