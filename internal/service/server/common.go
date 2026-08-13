@@ -329,7 +329,7 @@ func addLogdrainSettingsAttrs(attrs map[string]schema.Attribute) {
 func addHostProbeVersionAttrs(attrs map[string]schema.Attribute) {
 	attrs["compose_version"] = schema.StringAttribute{
 		MarkdownDescription: "Docker Compose version reported by Coolify for this server (host probe). " +
-			"Read-only; populated by Coolify tip/main (expected in Coolify >= 4.3.2). Empty on older instances.",
+			"Read-only; Populated on Coolify >= v4.3.2 when the host has been probed. Empty on older instances.",
 		Computed: true,
 	}
 	attrs["compose_version_checked_at"] = schema.StringAttribute{
@@ -338,7 +338,7 @@ func addHostProbeVersionAttrs(attrs map[string]schema.Attribute) {
 	}
 	attrs["docker_version"] = schema.StringAttribute{
 		MarkdownDescription: "Docker engine version reported by Coolify for this server (host probe). " +
-			"Read-only; populated by Coolify tip/main (expected in Coolify >= 4.3.2). Empty on older instances.",
+			"Read-only; Populated on Coolify >= v4.3.2 when the host has been probed. Empty on older instances.",
 		Computed: true,
 	}
 	attrs["docker_version_checked_at"] = schema.StringAttribute{
