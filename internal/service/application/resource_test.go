@@ -1,3 +1,5 @@
+//go:build !ci_app_b
+
 package application_test
 
 import (
@@ -1597,18 +1599,6 @@ func TestApplicationResource_PreviewBuildSecretsStopGrace(t *testing.T) {
 
 func testApplicationResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application", "test", attrs)
-}
-
-func decodeRequestBodyMap(t *testing.T, w http.ResponseWriter, r *http.Request) (map[string]interface{}, bool) {
-	t.Helper()
-
-	var requestBody map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-		t.Errorf("decoding %s %s request body: %v", r.Method, r.URL.Path, err)
-		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
-		return nil, false
-	}
-	return requestBody, true
 }
 
 func TestApplicationResource_InvalidPortsExposes(t *testing.T) {

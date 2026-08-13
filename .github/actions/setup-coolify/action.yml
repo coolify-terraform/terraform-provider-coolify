@@ -24,21 +24,22 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Start SSH server with root access
+    - name: Wait for Coolify images (or pull now)
       shell: bash
+      env:
+        COOLIFY_DATA_DIR: ${{ inputs.coolify-data-dir }}
+        COOLIFY_IMAGE_TAG: ${{ inputs.coolify-image-tag }}
       run: |
-        sudo systemctl enable ssh
-        sudo systemctl start ssh
-        ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -q
-        cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
-        chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
-        sudo sed -i 's/^#*PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
-        sudo systemctl restart ssh
-        sudo mkdir -p /root/.ssh
-        sudo cp ~/.ssh/authorized_keys /root/.ssh/authorized_keys
-        sudo chmod 700 /root/.ssh
-        sudo chmod 600 /root/.ssh/authorized_keys
-        ssh -o StrictHostKeyChecking=no root@localhost echo "Root SSH OK"
+        set -euo pipefail
+        # Early job steps may have already run prepare-pull-bg so Go/Terraform
+        # setup overlaps the image pull. If not, do prepare+ssh+pull here.
+        if [ -d /tmp/coolify-pull ]; then
+          bash scripts/ci-coolify-boot.sh wait-pull
+        else
+          bash scripts/ci-coolify-boot.sh prepare
+          bash scripts/ci-coolify-boot.sh ssh
+          bash scripts/ci-coolify-boot.sh pull
+        fi
 
     - name: Start Coolify
       shell: bash
@@ -46,57 +47,8 @@ runs:
         COOLIFY_DATA_DIR: ${{ inputs.coolify-data-dir }}
         COOLIFY_IMAGE_TAG: ${{ inputs.coolify-image-tag }}
       run: |
-        mkdir -p "$COOLIFY_DATA_DIR"/{source,ssh/{keys,mux},applications,databases,backups,services,proxy,webhooks-during-maintenance}
-        mkdir -p "$COOLIFY_DATA_DIR/proxy/dynamic"
-        cd "$COOLIFY_DATA_DIR/source"
-        curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.yml -o docker-compose.yml
-        curl -fsSL https://cdn.coollabs.io/coolify/docker-compose.prod.yml -o docker-compose.prod.yml
-        curl -fsSL https://cdn.coollabs.io/coolify/.env.production -o .env
-        sed -i "s|/data/coolify|$COOLIFY_DATA_DIR|g" docker-compose.yml docker-compose.prod.yml .env
-        sed -i "s|APP_ID=.*|APP_ID=$(openssl rand -hex 16)|g" .env
-        sed -i "s|APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|g" .env
-        sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
-        sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')|g" .env
-        sed -i "s|PUSHER_APP_ID=.*|PUSHER_APP_ID=$(openssl rand -hex 32)|g" .env
-        sed -i "s|PUSHER_APP_KEY=.*|PUSHER_APP_KEY=$(openssl rand -hex 32)|g" .env
-        sed -i "s|PUSHER_APP_SECRET=.*|PUSHER_APP_SECRET=$(openssl rand -hex 32)|g" .env
-        # Pin Coolify image tag (compose uses ${LATEST_IMAGE:-latest}).
-        # edge = v4.x tip with VolumeBackupsController (#10946); not in tag v4.2.0.
-        if grep -qE '^LATEST_IMAGE=' .env; then
-          sed -i "s|^LATEST_IMAGE=.*|LATEST_IMAGE=${COOLIFY_IMAGE_TAG}|" .env
-        else
-          echo "LATEST_IMAGE=${COOLIFY_IMAGE_TAG}" >> .env
-        fi
-        echo "Using Coolify image tag: ${COOLIFY_IMAGE_TAG}"
-        ssh-keygen -t ed25519 -f "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal" -N "" -q
-        cat "$COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub" >> ~/.ssh/authorized_keys
-        sudo sh -c "cat $COOLIFY_DATA_DIR/ssh/keys/id.root@host.docker.internal.pub >> /root/.ssh/authorized_keys"
-        printf 'services:\n  coolify:\n    extra_hosts:\n      - "host.docker.internal:host-gateway"\n' \
-          > docker-compose.override.yml
-        sudo chown -R 9999:9999 "$COOLIFY_DATA_DIR/ssh"
-        docker network create --attachable coolify
-        docker compose --env-file .env \
-          -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.override.yml \
-          up -d --pull always --remove-orphans --force-recreate
-
-    - name: Wait for Coolify to be ready
-      shell: bash
-      env:
-        COOLIFY_DATA_DIR: ${{ inputs.coolify-data-dir }}
-      run: |
-        echo "Waiting for Coolify web interface..."
-        for i in $(seq 1 36); do
-          if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/register 2>/dev/null | grep -qE "200|302"; then
-            echo "Coolify is ready (attempt $i)"
-            break
-          fi
-          if [ "$i" -eq 36 ]; then
-            echo "::error::Coolify not ready after 3 minutes"
-            docker compose -f "$COOLIFY_DATA_DIR/source/docker-compose.yml" logs --tail=50
-            exit 1
-          fi
-          sleep 5
-        done
+        set -euo pipefail
+        bash scripts/ci-coolify-boot.sh up
 
     - name: Cache Playwright browsers
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -106,11 +58,10 @@ runs:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ hashFiles('.github/requirements/playwright.txt') }}
 
-    - name: Bootstrap Coolify test fixtures
+    - name: Install Playwright (overlaps Coolify boot)
       shell: bash
-      env:
-        COOLIFY_ENV_FILE: ${{ inputs.coolify-env-file }}
       run: |
+        set -euo pipefail
         pip install --require-hashes -r .github/requirements/playwright.txt
         if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
           # Browsers cached; still need OS deps (not in the browser cache).
@@ -118,6 +69,21 @@ runs:
         else
           playwright install --with-deps chromium
         fi
+
+    - name: Wait for Coolify to be ready
+      shell: bash
+      env:
+        COOLIFY_DATA_DIR: ${{ inputs.coolify-data-dir }}
+      run: |
+        set -euo pipefail
+        bash scripts/ci-coolify-boot.sh wait-ready
+
+    - name: Bootstrap Coolify test fixtures
+      shell: bash
+      env:
+        COOLIFY_ENV_FILE: ${{ inputs.coolify-env-file }}
+      run: |
+        set -euo pipefail
         ./scripts/setup-coolify-test.sh
 
     - name: Verify Coolify API health
@@ -125,6 +91,7 @@ runs:
       env:
         COOLIFY_ENV_FILE: ${{ inputs.coolify-env-file }}
       run: |
+        set -euo pipefail
         set -a; source "$COOLIFY_ENV_FILE"; set +a
         HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
           -H "Authorization: Bearer $COOLIFY_TOKEN" \

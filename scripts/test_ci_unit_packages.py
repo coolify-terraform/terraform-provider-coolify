@@ -48,6 +48,7 @@ class TestCIUnitPackages(unittest.TestCase):
         self.assertEqual(len(union), len(set(union)), "packages must not overlap shards")
 
     def test_four_shards_partition_all_packages(self) -> None:
+        app = "github.com/coolify-terraform/terraform-provider-coolify/internal/service/application"
         shards = [run_shard(i, 4) for i in range(4)]
         union: list[str] = []
         for s in shards:
@@ -61,8 +62,15 @@ class TestCIUnitPackages(unittest.TestCase):
             text=True,
         ).stdout.splitlines()
         all_pkgs = sorted(p for p in all_pkgs if "/tools" not in p)
-        self.assertEqual(sorted(union), all_pkgs)
-        self.assertEqual(len(union), len(set(union)), "packages must not overlap shards")
+        # Application is intentionally on shards 0 and 1 (complementary
+        # ci_app_a / ci_app_b test-file slices). Other packages stay unique.
+        self.assertIn(app, shards[0])
+        self.assertIn(app, shards[1])
+        self.assertNotIn(app, shards[2])
+        self.assertNotIn(app, shards[3])
+        unique = [p for p in union if p != app]
+        self.assertEqual(len(unique), len(set(unique)), "non-application packages must not overlap shards")
+        self.assertEqual(sorted(set(union)), all_pkgs)
 
     def test_application_not_stacked_with_next_heavies(self) -> None:
         app = "github.com/coolify-terraform/terraform-provider-coolify/internal/service/application"
@@ -89,6 +97,33 @@ class TestCIUnitPackages(unittest.TestCase):
                 if other == want_shard:
                     continue
                 self.assertNotIn(pkg, run_shard(other, 3))
+
+    def test_application_test_files_have_complementary_build_tags(self) -> None:
+        app_dir = ROOT / "internal" / "service" / "application"
+        tagged_a: list[str] = []
+        tagged_b: list[str] = []
+        untagged: list[str] = []
+        for path in sorted(app_dir.glob("*_test.go")):
+            first = path.read_text(encoding="utf-8").splitlines()[0]
+            if first == "//go:build !ci_app_b":
+                tagged_a.append(path.name)
+            elif first == "//go:build !ci_app_a":
+                tagged_b.append(path.name)
+            elif first.startswith("//go:build"):
+                self.fail(f"{path.name} has unexpected build tag: {first}")
+            else:
+                untagged.append(path.name)
+
+        self.assertIn("resource_test.go", tagged_a)
+        self.assertIn("resource_github_app_test.go", tagged_a)
+        self.assertIn("resource_docker_test.go", tagged_b)
+        self.assertIn("resource_dockerfile_test.go", tagged_b)
+        self.assertIn("resource_private_git_test.go", tagged_b)
+        self.assertIn("testing_helpers_test.go", untagged)
+        helper = (app_dir / "testing_helpers_test.go").read_text(encoding="utf-8")
+        self.assertIn("func decodeRequestBodyMap(", helper)
+        self.assertGreater(len(tagged_a), 0)
+        self.assertGreater(len(tagged_b), 0)
 
     def test_bad_args(self) -> None:
         bad = [
