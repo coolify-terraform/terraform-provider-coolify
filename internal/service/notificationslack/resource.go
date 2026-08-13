@@ -80,13 +80,21 @@ func (r *slackResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_notification_slack"})
 
-	updated, err := r.client.UpdateSlackNotifications(ctx, createInputFromPlan(plan))
+	input, err := createInputFromPlan(plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdateSlackNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error configuring Slack notifications", err.Error())
 		return
 	}
 
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -109,7 +117,10 @@ func (r *slackResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	flatten(got, &state)
+	if err := flatten(got, &state); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -127,13 +138,21 @@ func (r *slackResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_notification_slack"})
 
-	updated, err := r.client.UpdateSlackNotifications(ctx, updateInputFromPlan(plan, state))
+	input, err := updateInputFromPlan(plan, state)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdateSlackNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Slack notifications", err.Error())
 		return
 	}
 
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -155,34 +174,41 @@ func (r *slackResource) ImportState(ctx context.Context, req resource.ImportStat
 	notificationcommon.ImportStateCurrent(ctx, req, resp, "coolify_notification_slack")
 }
 
-func createInputFromPlan(plan model) client.UpdateSlackNotificationInput {
+func createInputFromPlan(plan model) (client.UpdateSlackNotificationInput, error) {
 	in := client.UpdateSlackNotificationInput{
 		Enabled: flex.BoolValueOrNull(plan.Enabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.CreateUpdate())
+	if err := client.ApplyEventUpdate(&in, plan.CreateUpdate()); err != nil {
+		return in, err
+	}
 	if flex.StringValueConfigured(plan.WebhookURL) {
 		v := plan.WebhookURL.ValueString()
 		in.Webhook = &v
 	}
-	return in
+	return in, nil
 }
 
-func updateInputFromPlan(plan, state model) client.UpdateSlackNotificationInput {
+func updateInputFromPlan(plan, state model) (client.UpdateSlackNotificationInput, error) {
 	in := client.UpdateSlackNotificationInput{
 		Enabled: flex.BoolIfChanged(plan.Enabled, state.Enabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel))
+	if err := client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel)); err != nil {
+		return in, err
+	}
 	if w := flex.StringIfChanged(plan.WebhookURL, state.WebhookURL); w != nil {
 		in.Webhook = w
 	}
-	return in
+	return in, nil
 }
 
-func flatten(api *client.SlackNotificationSettings, m *model) {
-	if ev, err := client.EventsFrom(api); err == nil {
-		m.FlattenEvents(ev)
+func flatten(api *client.SlackNotificationSettings, m *model) error {
+	ev, err := client.EventsFrom(api)
+	if err != nil {
+		return err
 	}
+	m.FlattenEvents(ev)
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	flex.SetStringPreserveEmpty(&m.WebhookURL, api.Webhook)
+	return nil
 }

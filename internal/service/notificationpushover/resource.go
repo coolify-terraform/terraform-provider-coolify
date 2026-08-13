@@ -90,13 +90,21 @@ func (r *pushoverResource) Create(ctx context.Context, req resource.CreateReques
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_notification_pushover"})
 
-	updated, err := r.client.UpdatePushoverNotifications(ctx, createInputFromPlan(plan))
+	input, err := createInputFromPlan(plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdatePushoverNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error configuring Pushover notifications", err.Error())
 		return
 	}
 
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -119,7 +127,10 @@ func (r *pushoverResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	flatten(got, &state)
+	if err := flatten(got, &state); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -137,13 +148,21 @@ func (r *pushoverResource) Update(ctx context.Context, req resource.UpdateReques
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_notification_pushover"})
 
-	updated, err := r.client.UpdatePushoverNotifications(ctx, updateInputFromPlan(plan, state))
+	input, err := updateInputFromPlan(plan, state)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdatePushoverNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Pushover notifications", err.Error())
 		return
 	}
 
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -165,11 +184,13 @@ func (r *pushoverResource) ImportState(ctx context.Context, req resource.ImportS
 	notificationcommon.ImportStateCurrent(ctx, req, resp, "coolify_notification_pushover")
 }
 
-func createInputFromPlan(plan model) client.UpdatePushoverNotificationInput {
+func createInputFromPlan(plan model) (client.UpdatePushoverNotificationInput, error) {
 	in := client.UpdatePushoverNotificationInput{
 		Enabled: flex.BoolValueOrNull(plan.Enabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.CreateUpdate())
+	if err := client.ApplyEventUpdate(&in, plan.CreateUpdate()); err != nil {
+		return in, err
+	}
 	if flex.StringValueConfigured(plan.UserKey) {
 		v := plan.UserKey.ValueString()
 		in.UserKey = &v
@@ -178,29 +199,34 @@ func createInputFromPlan(plan model) client.UpdatePushoverNotificationInput {
 		v := plan.APIToken.ValueString()
 		in.APIToken = &v
 	}
-	return in
+	return in, nil
 }
 
-func updateInputFromPlan(plan, state model) client.UpdatePushoverNotificationInput {
+func updateInputFromPlan(plan, state model) (client.UpdatePushoverNotificationInput, error) {
 	in := client.UpdatePushoverNotificationInput{
 		Enabled: flex.BoolIfChanged(plan.Enabled, state.Enabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel))
+	if err := client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel)); err != nil {
+		return in, err
+	}
 	if w := flex.StringIfChanged(plan.UserKey, state.UserKey); w != nil {
 		in.UserKey = w
 	}
 	if w := flex.StringIfChanged(plan.APIToken, state.APIToken); w != nil {
 		in.APIToken = w
 	}
-	return in
+	return in, nil
 }
 
-func flatten(api *client.PushoverNotificationSettings, m *model) {
-	if ev, err := client.EventsFrom(api); err == nil {
-		m.FlattenEvents(ev)
+func flatten(api *client.PushoverNotificationSettings, m *model) error {
+	ev, err := client.EventsFrom(api)
+	if err != nil {
+		return err
 	}
+	m.FlattenEvents(ev)
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	flex.SetStringPreserveEmpty(&m.UserKey, api.UserKey)
 	flex.SetStringPreserveEmpty(&m.APIToken, api.APIToken)
+	return nil
 }

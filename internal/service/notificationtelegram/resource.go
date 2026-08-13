@@ -109,12 +109,20 @@ func (r *telegramResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_notification_telegram"})
-	updated, err := r.client.UpdateTelegramNotifications(ctx, createInputFromPlan(plan))
+	input, err := createInputFromPlan(plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdateTelegramNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error configuring Telegram notifications", err.Error())
 		return
 	}
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -134,7 +142,10 @@ func (r *telegramResource) Read(ctx context.Context, req resource.ReadRequest, r
 		resp.Diagnostics.AddError("Error reading Telegram notifications", err.Error())
 		return
 	}
-	flatten(got, &state)
+	if err := flatten(got, &state); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -150,12 +161,20 @@ func (r *telegramResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_notification_telegram"})
-	updated, err := r.client.UpdateTelegramNotifications(ctx, updateInputFromPlan(plan, state))
+	input, err := updateInputFromPlan(plan, state)
+	if err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
+	updated, err := r.client.UpdateTelegramNotifications(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Telegram notifications", err.Error())
 		return
 	}
-	flatten(updated, &plan)
+	if err := flatten(updated, &plan); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -177,11 +196,13 @@ func (r *telegramResource) ImportState(ctx context.Context, req resource.ImportS
 	notificationcommon.ImportStateCurrent(ctx, req, resp, "coolify_notification_telegram")
 }
 
-func createInputFromPlan(plan model) client.UpdateTelegramNotificationInput {
+func createInputFromPlan(plan model) (client.UpdateTelegramNotificationInput, error) {
 	in := client.UpdateTelegramNotificationInput{
 		Enabled: flex.BoolValueOrNull(plan.Enabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.CreateUpdate())
+	if err := client.ApplyEventUpdate(&in, plan.CreateUpdate()); err != nil {
+		return in, err
+	}
 	if flex.StringValueConfigured(plan.Token) {
 		s := plan.Token.ValueString()
 		in.Token = &s
@@ -246,14 +267,16 @@ func createInputFromPlan(plan model) client.UpdateTelegramNotificationInput {
 		s := plan.ThreadTraefikOutdated.ValueString()
 		in.ThreadTraefikOutdated = &s
 	}
-	return in
+	return in, nil
 }
 
-func updateInputFromPlan(plan, state model) client.UpdateTelegramNotificationInput {
+func updateInputFromPlan(plan, state model) (client.UpdateTelegramNotificationInput, error) {
 	in := client.UpdateTelegramNotificationInput{
 		Enabled: flex.BoolIfChanged(plan.Enabled, state.Enabled),
 	}
-	_ = client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel))
+	if err := client.ApplyEventUpdate(&in, plan.DiffUpdate(state.EventModel)); err != nil {
+		return in, err
+	}
 	if w := flex.StringIfChanged(plan.Token, state.Token); w != nil {
 		in.Token = w
 	}
@@ -302,13 +325,15 @@ func updateInputFromPlan(plan, state model) client.UpdateTelegramNotificationInp
 	if w := flex.StringIfChanged(plan.ThreadTraefikOutdated, state.ThreadTraefikOutdated); w != nil {
 		in.ThreadTraefikOutdated = w
 	}
-	return in
+	return in, nil
 }
 
-func flatten(api *client.TelegramNotificationSettings, m *model) {
-	if ev, err := client.EventsFrom(api); err == nil {
-		m.FlattenEvents(ev)
+func flatten(api *client.TelegramNotificationSettings, m *model) error {
+	ev, err := client.EventsFrom(api)
+	if err != nil {
+		return err
 	}
+	m.FlattenEvents(ev)
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.Enabled = types.BoolValue(api.Enabled)
 	flex.SetStringPreserveEmpty(&m.Token, api.Token)
@@ -327,4 +352,5 @@ func flatten(api *client.TelegramNotificationSettings, m *model) {
 	flex.SetStringPreserveEmpty(&m.ThreadServerUnreachable, api.ThreadServerUnreachable)
 	flex.SetStringPreserveEmpty(&m.ThreadServerPatch, api.ThreadServerPatch)
 	flex.SetStringPreserveEmpty(&m.ThreadTraefikOutdated, api.ThreadTraefikOutdated)
+	return nil
 }

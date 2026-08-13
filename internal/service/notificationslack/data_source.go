@@ -58,6 +58,9 @@ func (d *slackDataSource) Read(ctx context.Context, _ datasource.ReadRequest, re
 		return
 	}
 	var state model
-	flatten(got, &state)
+	if err := flatten(got, &state); err != nil {
+		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
