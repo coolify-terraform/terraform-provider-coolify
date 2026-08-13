@@ -40,6 +40,20 @@ func EventDataSourceAttrs(channel string) map[string]schema.Attribute {
 	return attrs
 }
 
+// ThreadDataSourceAttrs returns the 14 Telegram forum thread IDs as computed attributes.
+func ThreadDataSourceAttrs() map[string]schema.Attribute {
+	attrs := make(map[string]schema.Attribute, len(eventNames))
+	for _, e := range eventNames {
+		desc := fmt.Sprintf("Forum thread ID for %s events. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).", e.attr)
+		attrs["thread_"+e.attr] = schema.StringAttribute{
+			MarkdownDescription: desc,
+			Computed:            true,
+			Sensitive:           true,
+		}
+	}
+	return attrs
+}
+
 // MergeDSAttrs returns a new map with base attributes plus overlay (overlay wins).
 func MergeDSAttrs(base map[string]schema.Attribute, overlay map[string]schema.Attribute) map[string]schema.Attribute {
 	out := make(map[string]schema.Attribute, len(base)+len(overlay))

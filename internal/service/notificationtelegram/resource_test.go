@@ -52,22 +52,11 @@ func newMockServer(store *mockTelegram) *httptest.Server {
 			return
 		}
 		allowed := notificationcommon.MergeAllowed(
-			notificationcommon.EventAllowedFields("telegram"),
+			notificationcommon.MergeAllowedMaps(
+				notificationcommon.EventAllowedFields("telegram"),
+				notificationcommon.ThreadAllowedFields("telegram"),
+			),
 			"telegram_enabled", "telegram_token", "telegram_chat_id",
-			"telegram_notifications_deployment_success_thread_id",
-			"telegram_notifications_deployment_failure_thread_id",
-			"telegram_notifications_status_change_thread_id",
-			"telegram_notifications_backup_success_thread_id",
-			"telegram_notifications_backup_failure_thread_id",
-			"telegram_notifications_scheduled_task_success_thread_id",
-			"telegram_notifications_scheduled_task_failure_thread_id",
-			"telegram_notifications_docker_cleanup_success_thread_id",
-			"telegram_notifications_docker_cleanup_failure_thread_id",
-			"telegram_notifications_server_disk_usage_thread_id",
-			"telegram_notifications_server_reachable_thread_id",
-			"telegram_notifications_server_unreachable_thread_id",
-			"telegram_notifications_server_patch_thread_id",
-			"telegram_notifications_traefik_outdated_thread_id",
 		)
 		if notificationcommon.RejectUnknownFields(w, body, allowed) {
 			return

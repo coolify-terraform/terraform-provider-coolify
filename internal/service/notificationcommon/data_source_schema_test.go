@@ -19,6 +19,20 @@ func TestEventDataSourceAttrs_AllFourteen(t *testing.T) {
 	}
 }
 
+func TestThreadDataSourceAttrs_AllFourteen(t *testing.T) {
+	t.Parallel()
+	attrs := notificationcommon.ThreadDataSourceAttrs()
+	require.Len(t, attrs, 14)
+	for _, name := range notificationcommon.ThreadAttributeNames() {
+		a, ok := attrs[name]
+		require.True(t, ok, "missing %s", name)
+		sa, ok := a.(schema.StringAttribute)
+		require.True(t, ok, "%s should be StringAttribute", name)
+		assert.True(t, sa.Computed)
+		assert.True(t, sa.Sensitive)
+	}
+}
+
 func TestMergeDSAttrs(t *testing.T) {
 	t.Parallel()
 	base := notificationcommon.EventDataSourceAttrs("Slack")
