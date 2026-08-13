@@ -47,6 +47,35 @@ class TestCIUnitPackages(unittest.TestCase):
         self.assertEqual(sorted(union), all_pkgs)
         self.assertEqual(len(union), len(set(union)), "packages must not overlap shards")
 
+    def test_four_shards_partition_all_packages(self) -> None:
+        shards = [run_shard(i, 4) for i in range(4)]
+        union: list[str] = []
+        for s in shards:
+            self.assertGreater(len(s), 0, "shard must not be empty")
+            union.extend(s)
+        all_pkgs = subprocess.run(
+            ["go", "list", "./..."],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        all_pkgs = sorted(p for p in all_pkgs if "/tools" not in p)
+        self.assertEqual(sorted(union), all_pkgs)
+        self.assertEqual(len(union), len(set(union)), "packages must not overlap shards")
+
+    def test_application_not_stacked_with_next_heavies(self) -> None:
+        app = "github.com/coolify-terraform/terraform-provider-coolify/internal/service/application"
+        stacked = {
+            # Previously forced onto shard 0 by pinning every 3rd heavy.
+            "github.com/coolify-terraform/terraform-provider-coolify/internal/service/scheduledtask",
+            "github.com/coolify-terraform/terraform-provider-coolify/internal/service/storage",
+        }
+        shard0 = set(run_shard(0, 3))
+        self.assertIn(app, shard0)
+        for pkg in stacked:
+            self.assertNotIn(pkg, shard0, f"{pkg} must not share shard 0 with application")
+
     def test_heavy_packages_land_on_distinct_shards(self) -> None:
         heavy = {
             "github.com/coolify-terraform/terraform-provider-coolify/internal/service/application": 0,

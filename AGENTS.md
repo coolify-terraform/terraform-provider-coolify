@@ -229,7 +229,7 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 ## CI
 
 10 GitHub Actions jobs on push to main and PRs (GitHub-hosted ubuntu-latest):
-Detect Changes, DCO (PR only), Test (3 package shards), Coverage (merge shards),
+Detect Changes, DCO (PR only), Test (4 package shards), Coverage (merge shards),
 Lint (includes Govulncheck + GoReleaser Check),
 Validate (includes HCL fmt + Docs + Trivy + Gitleaks),
 Acceptance Tests, Scenario Tests, Contract Freshness (weekly only), CI (gate).
