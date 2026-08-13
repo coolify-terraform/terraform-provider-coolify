@@ -1,13 +1,37 @@
 package notificationcommon_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func newImportStateResponse(s schema.Schema) *resource.ImportStateResponse {
+	ctx := context.Background()
+	return &resource.ImportStateResponse{
+		State: tfsdk.State{
+			Schema: s,
+			Raw:    tftypes.NewValue(s.Type().TerraformType(ctx), nil),
+		},
+	}
+}
+
+func singletonSchema() schema.Schema {
+	return schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"id": notificationcommon.IDAttribute(),
+		},
+	}
+}
 
 func TestEventAttributeNames_CountAndOrder(t *testing.T) {
 	t.Parallel()
@@ -93,4 +117,33 @@ func TestImportIDError(t *testing.T) {
 	assert.Contains(t, err.Error(), "team singleton")
 	assert.Contains(t, err.Error(), "coolify_notification_slack")
 	assert.Contains(t, err.Error(), "not-current")
+}
+
+func TestImportStateCurrent_SetsID(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	for _, id := range []string{"", "current"} {
+		id := id
+		t.Run("id="+id, func(t *testing.T) {
+			t.Parallel()
+			resp := newImportStateResponse(singletonSchema())
+			notificationcommon.ImportStateCurrent(ctx, resource.ImportStateRequest{ID: id}, resp, "coolify_notification_test")
+			require.False(t, resp.Diagnostics.HasError(), "%v", resp.Diagnostics.Errors())
+			var got types.String
+			diags := resp.State.GetAttribute(ctx, path.Root("id"), &got)
+			require.False(t, diags.HasError())
+			assert.Equal(t, notificationcommon.ImportIDCurrent, got.ValueString())
+		})
+	}
+}
+
+func TestImportStateCurrent_RejectsOtherID(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	resp := newImportStateResponse(singletonSchema())
+	notificationcommon.ImportStateCurrent(ctx, resource.ImportStateRequest{ID: "not-current"}, resp, "coolify_notification_slack")
+	require.True(t, resp.Diagnostics.HasError())
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Summary(), "Invalid import ID")
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "team singleton")
+	assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "coolify_notification_slack")
 }
