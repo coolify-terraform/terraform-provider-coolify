@@ -39,6 +39,10 @@ type serverDataSourceModel struct {
 	ConnectionTimeout                    types.Int64  `tfsdk:"connection_timeout"`
 	ServerDiskUsageNotificationThreshold types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
 	ServerDiskUsageCheckFrequency        types.String `tfsdk:"server_disk_usage_check_frequency"`
+	ComposeVersion                       types.String `tfsdk:"compose_version"`
+	ComposeVersionCheckedAt              types.String `tfsdk:"compose_version_checked_at"`
+	DockerVersion                        types.String `tfsdk:"docker_version"`
+	DockerVersionCheckedAt               types.String `tfsdk:"docker_version_checked_at"`
 }
 
 func serverDataSourceAttributes() map[string]schema.Attribute {
@@ -103,6 +107,24 @@ func serverDataSourceAttributes() map[string]schema.Attribute {
 			MarkdownDescription: "Cron expression for how often disk usage is checked.",
 			Computed:            true,
 		},
+		"compose_version": schema.StringAttribute{
+			MarkdownDescription: "Docker Compose version reported by Coolify for this server (host probe). " +
+				"Populated on Coolify >= v4.3.2 when the host has been probed. Empty on older instances.",
+			Computed: true,
+		},
+		"compose_version_checked_at": schema.StringAttribute{
+			MarkdownDescription: "When Coolify last checked the Compose version on this server.",
+			Computed:            true,
+		},
+		"docker_version": schema.StringAttribute{
+			MarkdownDescription: "Docker engine version reported by Coolify for this server (host probe). " +
+				"Populated on Coolify >= v4.3.2 when the host has been probed. Empty on older instances.",
+			Computed: true,
+		},
+		"docker_version_checked_at": schema.StringAttribute{
+			MarkdownDescription: "When Coolify last checked the Docker version on this server.",
+			Computed:            true,
+		},
 	}
 }
 
@@ -133,6 +155,10 @@ func flattenServerDataSourceModel(srv client.Server) serverDataSourceModel {
 	model.ConnectionTimeout = types.Int64Value(int64(connectionTimeout))
 	model.ServerDiskUsageNotificationThreshold = types.Int64Value(int64(srv.Settings.ServerDiskUsageNotificationThreshold))
 	model.ServerDiskUsageCheckFrequency = flex.StringToFramework(srv.Settings.ServerDiskUsageCheckFrequency)
+	model.ComposeVersion = flex.StringToFramework(srv.Settings.ComposeVersion)
+	model.ComposeVersionCheckedAt = flex.StringToFramework(srv.Settings.ComposeVersionCheckedAt)
+	model.DockerVersion = flex.StringToFramework(srv.Settings.DockerVersion)
+	model.DockerVersionCheckedAt = flex.StringToFramework(srv.Settings.DockerVersionCheckedAt)
 
 	return model
 }

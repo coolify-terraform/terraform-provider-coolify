@@ -27,10 +27,14 @@ data "coolify_server" "example" {
 
 ### Read-Only
 
+- `compose_version` (String) Docker Compose version reported by Coolify for this server (host probe). Populated on Coolify >= v4.3.2 when the host has been probed. Empty on older instances.
+- `compose_version_checked_at` (String) When Coolify last checked the Compose version on this server.
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments.
 - `description` (String) A description of the server.
+- `docker_version` (String) Docker engine version reported by Coolify for this server (host probe). Populated on Coolify >= v4.3.2 when the host has been probed. Empty on older instances.
+- `docker_version_checked_at` (String) When Coolify last checked the Docker version on this server.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `ip` (String) The IP address of the server.
 - `is_build_server` (Boolean) Whether this server is used for building applications.
