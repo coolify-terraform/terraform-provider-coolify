@@ -233,6 +233,7 @@ type UpdatePushoverNotificationInput struct {
 }
 
 // GetWebhookNotifications returns the current team's webhook settings.
+// Requires Coolify >= v4.3.0.
 func (c *Client) GetWebhookNotifications(ctx context.Context) (*WebhookNotificationSettings, error) {
 	var r WebhookNotificationSettings
 	if err := c.do(ctx, http.MethodGet, "/api/v1/notifications/webhook", nil, &r); err != nil {
@@ -242,6 +243,7 @@ func (c *Client) GetWebhookNotifications(ctx context.Context) (*WebhookNotificat
 }
 
 // UpdateWebhookNotifications updates the current team's webhook settings.
+// Requires Coolify >= v4.3.0.
 func (c *Client) UpdateWebhookNotifications(ctx context.Context, input UpdateWebhookNotificationInput) (*WebhookNotificationSettings, error) {
 	var r WebhookNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/webhook", input, &r); err != nil {
@@ -251,6 +253,7 @@ func (c *Client) UpdateWebhookNotifications(ctx context.Context, input UpdateWeb
 }
 
 // GetPushoverNotifications returns the current team's Pushover settings.
+// Requires Coolify >= v4.3.0.
 func (c *Client) GetPushoverNotifications(ctx context.Context) (*PushoverNotificationSettings, error) {
 	var r PushoverNotificationSettings
 	if err := c.do(ctx, http.MethodGet, "/api/v1/notifications/pushover", nil, &r); err != nil {
@@ -260,6 +263,7 @@ func (c *Client) GetPushoverNotifications(ctx context.Context) (*PushoverNotific
 }
 
 // UpdatePushoverNotifications updates the current team's Pushover settings.
+// Requires Coolify >= v4.3.0.
 func (c *Client) UpdatePushoverNotifications(ctx context.Context, input UpdatePushoverNotificationInput) (*PushoverNotificationSettings, error) {
 	var r PushoverNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/pushover", input, &r); err != nil {

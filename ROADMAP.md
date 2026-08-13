@@ -7,24 +7,26 @@ Priorities may shift based on community feedback and upstream Coolify API change
 
 The provider covers the core Coolify resource model:
 
-- 38 managed resources (projects, servers, applications, databases, services,
-  backups, environment variables, deployments, and more)
+- 45 managed resources (projects, servers, applications, databases, services,
+  backups, environment variables, deployments, notification channels, S3 storage,
+  and more)
 - 56 data sources for reading existing infrastructure
 - 17 ACME Corp scenario examples with integration tests
 - Full import support for adopting existing Coolify resources
 - Coolify v4.2 surfaces: destinations, DigitalOcean/Vultr server provisioning
+- Coolify v4.3 surfaces: notification channels, S3 storage, docker/compose version probes
 - Published on both [Terraform Registry](https://registry.terraform.io/providers/coolify-terraform/coolify)
   and [OpenTofu Registry](https://search.opentofu.org/provider/coolify-terraform/coolify)
   ([#414](https://github.com/coolify-terraform/terraform-provider-coolify/issues/414))
 
 ## Near Term
 
-### Notification channel resources
+### ~~Notification channel resources~~ (shipped)
 
-Add resources for managing Coolify notification channels (Slack, Discord, email,
-Telegram, etc.) once the upstream API supports full CRUD.
+Team-scoped notification resources ship for Coolify >= v4.3.0 (provider v0.1.14+):
+email, Discord, Slack, Telegram, Pushover, and generic webhook
 ([#394](https://github.com/coolify-terraform/terraform-provider-coolify/issues/394),
-blocked on upstream)
+[#704](https://github.com/coolify-terraform/terraform-provider-coolify/issues/704)).
 
 ### ~~S3 storage resource~~ (shipped)
 
