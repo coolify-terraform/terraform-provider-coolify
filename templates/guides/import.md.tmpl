@@ -39,6 +39,25 @@ API token can read sensitive data. When `coolify_database_backup` uses
 `save_s3 = true`, set `s3_storage_uuid` to a managed or existing storage UUID
 (for example `coolify_s3_storage.backups.uuid`).
 
+### Team Singleton Resources (Notification Channels)
+
+Notification channel resources are **team-scoped singletons**: one configuration
+per Coolify team (selected by the API token). There is no UUID. Import with the
+literal id `current`:
+
+```bash
+terraform import coolify_notification_discord.main current
+terraform import coolify_notification_slack.main current
+terraform import coolify_notification_email.main current
+terraform import coolify_notification_telegram.main current
+terraform import coolify_notification_webhook.main current
+terraform import coolify_notification_pushover.main current
+```
+
+Requires Coolify >= v4.3.0. On destroy, these resources **disable** the channel
+(`enabled = false` or email SMTP/Resend off); they do not delete Coolify-side
+webhook URLs or secrets. Keep secrets in configuration after import (see table below).
+
 ### Compound Import Format (Recommended for Applications, Databases, and Services)
 
 Applications, databases, and services support an extended compound import format
@@ -140,6 +159,10 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | `coolify_github_app` | `client_secret`, `webhook_secret`, `private_key_uuid` (`client_secret` and `private_key_uuid` are write-only, and `webhook_secret` is not reliably returned after create/import, including provider-generated values when omitted on create) |
 | `coolify_cloud_token` | `token` (write-only, may not be returned by the API) |
 | `coolify_private_key` | `private_key` (requires API token with `root` or `read:sensitive` permission; hidden otherwise) |
+| `coolify_notification_discord`, `coolify_notification_slack`, `coolify_notification_webhook` | `webhook_url` (Coolify may omit unless the token has `read:sensitive` or root; preserve in configuration) |
+| `coolify_notification_telegram` | `token`, `chat_id`, thread id fields (sensitive; may be omitted without `read:sensitive`) |
+| `coolify_notification_pushover` | `user_key`, `api_token` (sensitive; may be omitted without `read:sensitive`) |
+| `coolify_notification_email` | SMTP/Resend passwords and API keys (sensitive; may be omitted without `read:sensitive`) |
 | Database backups | `database_uuid`, `s3_storage_uuid` when `save_s3 = true` |
 
 If these fields are missing, `terraform plan` will either show a diff
