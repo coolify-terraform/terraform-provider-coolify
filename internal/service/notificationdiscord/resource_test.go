@@ -285,7 +285,7 @@ func TestDiscordNotificationResource_CreateAPIError(t *testing.T) {
 		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"discord_enabled":false}`))
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/discord", func(w http.ResponseWriter, _ *http.Request) {
-		http.Error(w, `{"message":"internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
