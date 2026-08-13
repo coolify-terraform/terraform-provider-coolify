@@ -243,3 +243,26 @@ func TestClient_PushoverNotifications_GetUpdate(t *testing.T) {
 	assert.Equal(t, "new-user", lastPatch["pushover_user_key"])
 	assert.Equal(t, "new-token", lastPatch["pushover_api_token"])
 }
+
+func TestNotificationUpdateJSONTags(t *testing.T) {
+	t.Parallel()
+	for _, ch := range []string{"email", "discord", "slack", "telegram", "pushover", "webhook"} {
+		ch := ch
+		t.Run(ch, func(t *testing.T) {
+			t.Parallel()
+			tags := client.NotificationUpdateJSONTags(ch)
+			require.NotEmpty(t, tags, "channel %s should expose update JSON tags", ch)
+			// Every channel uses an enabled-style field (discord_enabled, smtp_enabled, …).
+			hasEnabled := false
+			for k := range tags {
+				if len(k) >= 7 && (k[len(k)-7:] == "enabled" || k == "smtp_enabled" || k == "resend_enabled" || k == "use_instance_email_settings") {
+					hasEnabled = true
+					break
+				}
+			}
+			assert.True(t, hasEnabled, "tags for %s: %v", ch, tags)
+		})
+	}
+	assert.Nil(t, client.NotificationUpdateJSONTags("unknown-channel"))
+	assert.Nil(t, client.NotificationUpdateJSONTags(""))
+}

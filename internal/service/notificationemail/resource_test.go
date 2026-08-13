@@ -301,3 +301,30 @@ func TestEmailNotificationResource_InvalidImport(t *testing.T) {
 		},
 	})
 }
+
+func TestEmailNotificationResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"smtp_enabled":false}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled = true
+  smtp_host    = "smtp.example.com"
+`),
+				ExpectError: regexp.MustCompile(`Error configuring email notifications`),
+			},
+		},
+	})
+}
