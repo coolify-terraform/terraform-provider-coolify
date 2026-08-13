@@ -82,5 +82,6 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
+# Team-scoped singleton: always import as "current".
 terraform import coolify_notification_telegram.main current
 ```
