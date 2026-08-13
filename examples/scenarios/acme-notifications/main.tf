@@ -1,11 +1,15 @@
 # ACME Corp team notification channels
 #
-# Configures Coolify team-scoped notification settings for Discord webhooks
-# and email (SMTP). Channels start disabled so apply does not send real
-# traffic to external endpoints. Use terraform import with id "current" to
-# adopt an existing team configuration.
+# Configures Coolify team-scoped notification settings for Discord, email
+# (SMTP), and a generic webhook. Channels start disabled so apply does not
+# send real traffic to external endpoints. Use terraform import with id
+# "current" to adopt an existing team configuration.
 #
 # Requires Coolify >= v4.3.0.
+#
+# Caution: apply overwrites the API token's team notification settings
+# (including webhook URLs and SMTP fields). Do not point this at a
+# production team with live channels unless that is intentional.
 #
 # Destroy disables the channels (enabled = false / smtp_enabled = false)
 # without deleting Coolify-side webhook URLs or SMTP credentials.
@@ -32,6 +36,7 @@ resource "coolify_notification_discord" "alerts" {
 
   deployment_failure = true
   backup_failure     = true
+  status_change      = var.discord_status_change
   server_disk_usage  = true
   server_unreachable = true
 }

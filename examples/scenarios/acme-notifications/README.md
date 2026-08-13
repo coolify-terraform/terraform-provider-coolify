@@ -4,6 +4,11 @@ Configures Coolify **team-scoped** notification settings for Discord, email
 (SMTP), and a generic webhook. Channels default to **disabled** so
 `terraform apply` does not send real traffic.
 
+> **Caution:** Apply replaces the API token's current team notification
+> settings (webhook URLs, SMTP fields, event flags). Do not run against a
+> production Coolify team that already has live channels unless you intend
+> to overwrite them.
+
 ## Prerequisites
 
 - Coolify **>= v4.3.0** (notification API routes)

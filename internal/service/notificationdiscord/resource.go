@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// Import ID for the team-scoped singleton (settings belong to the API token's team).
 var (
 	_ resource.Resource                = (*discordResource)(nil)
 	_ resource.ResourceWithConfigure   = (*discordResource)(nil)

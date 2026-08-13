@@ -61,7 +61,12 @@ run "update_discord_events" {
   command = apply
 
   variables {
-    discord_enabled = false
+    discord_status_change = true
+  }
+
+  assert {
+    condition     = coolify_notification_discord.alerts.status_change == true
+    error_message = "Discord status_change should become true after update"
   }
 
   assert {

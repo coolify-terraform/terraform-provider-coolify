@@ -89,3 +89,9 @@ variable "webhook_url" {
   sensitive   = true
   default     = "https://example.com/coolify-acme-webhook"
 }
+
+variable "discord_status_change" {
+  description = "Whether Discord status_change notifications are enabled (scenario update step)"
+  type        = bool
+  default     = false
+}

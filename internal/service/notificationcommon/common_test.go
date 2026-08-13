@@ -44,14 +44,44 @@ func TestMergeAttrs_OverlayWins(t *testing.T) {
 	base := map[string]schema.Attribute{
 		"id":      notificationcommon.IDAttribute(),
 		"enabled": notificationcommon.EnabledAttribute("Slack"),
+		// Colliding key: base uses email wording; overlay (EventSchemaAttrs) wins.
+		"deployment_failure": notificationcommon.BoolOptComputed("base description must be replaced"),
 	}
 	overlay := notificationcommon.EventSchemaAttrs("Slack")
 	merged := notificationcommon.MergeAttrs(base, overlay)
 	require.Len(t, merged, 2+14)
-	_, ok := merged["deployment_failure"]
-	assert.True(t, ok)
+	ba, ok := merged["deployment_failure"].(schema.BoolAttribute)
+	require.True(t, ok)
+	assert.Contains(t, ba.MarkdownDescription, "Slack")
+	assert.NotContains(t, ba.MarkdownDescription, "base description")
 	_, ok = merged["id"]
 	assert.True(t, ok)
+}
+
+func TestIDAttribute_ComputedWithPlanModifiers(t *testing.T) {
+	t.Parallel()
+	a := notificationcommon.IDAttribute()
+	assert.True(t, a.Computed)
+	assert.False(t, a.Optional)
+	assert.NotEmpty(t, a.PlanModifiers)
+}
+
+func TestEnabledAttribute_DefaultFalse(t *testing.T) {
+	t.Parallel()
+	a := notificationcommon.EnabledAttribute("Discord")
+	assert.True(t, a.Optional)
+	assert.True(t, a.Computed)
+	assert.NotNil(t, a.Default)
+	assert.Contains(t, a.MarkdownDescription, "Discord")
+}
+
+func TestBoolOptComputed_PlanModifiers(t *testing.T) {
+	t.Parallel()
+	a := notificationcommon.BoolOptComputed("test desc")
+	assert.True(t, a.Optional)
+	assert.True(t, a.Computed)
+	assert.Equal(t, "test desc", a.MarkdownDescription)
+	assert.NotEmpty(t, a.PlanModifiers)
 }
 
 func TestImportIDError(t *testing.T) {
