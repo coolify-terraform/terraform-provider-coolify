@@ -380,3 +380,43 @@ func TestEmailNotificationResource_UpdateAPIError(t *testing.T) {
 		},
 	})
 }
+
+func TestEmailNotificationResource_DestroyAPIError(t *testing.T) {
+	t.Parallel()
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		patches++
+		// Create succeeds (patch 1); destroy disable fails (patch 2+).
+		if patches == 2 {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+			},
+			{
+				Config:      acctest.ProviderBlockForURL(srv.URL),
+				ExpectError: regexp.MustCompile(`Error disabling email notifications on destroy`),
+			},
+		},
+	})
+}
