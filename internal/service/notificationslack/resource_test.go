@@ -1,7 +1,6 @@
 package notificationslack_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,103 +9,54 @@ import (
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 type mockSlack struct {
-	mu                   sync.Mutex
-	Enabled              bool
-	Webhook              string
-	DeploymentSuccess    bool
-	DeploymentFailure    bool
-	StatusChange         bool
-	BackupSuccess        bool
-	BackupFailure        bool
-	ScheduledTaskSuccess bool
-	ScheduledTaskFailure bool
-	DockerCleanupSuccess bool
-	DockerCleanupFailure bool
-	ServerDiskUsage      bool
-	ServerReachable      bool
-	ServerUnreachable    bool
-	ServerPatch          bool
-	TraefikOutdated      bool
+	mu      sync.Mutex
+	Enabled bool
+	Webhook string
+	notificationcommon.EventStore
 }
 
 func (m *mockSlack) snapshot() map[string]interface{} {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return map[string]interface{}{
-		"id":                                         1,
-		"team_id":                                    0,
-		"slack_enabled":                              m.Enabled,
-		"slack_webhook_url":                          m.Webhook,
-		"deployment_success_slack_notifications":     m.DeploymentSuccess,
-		"deployment_failure_slack_notifications":     m.DeploymentFailure,
-		"status_change_slack_notifications":          m.StatusChange,
-		"backup_success_slack_notifications":         m.BackupSuccess,
-		"backup_failure_slack_notifications":         m.BackupFailure,
-		"scheduled_task_success_slack_notifications": m.ScheduledTaskSuccess,
-		"scheduled_task_failure_slack_notifications": m.ScheduledTaskFailure,
-		"docker_cleanup_success_slack_notifications": m.DockerCleanupSuccess,
-		"docker_cleanup_failure_slack_notifications": m.DockerCleanupFailure,
-		"server_disk_usage_slack_notifications":      m.ServerDiskUsage,
-		"server_reachable_slack_notifications":       m.ServerReachable,
-		"server_unreachable_slack_notifications":     m.ServerUnreachable,
-		"server_patch_slack_notifications":           m.ServerPatch,
-		"traefik_outdated_slack_notifications":       m.TraefikOutdated,
+	out := map[string]interface{}{
+		"id":                1,
+		"team_id":           0,
+		"slack_enabled":     m.Enabled,
+		"slack_webhook_url": m.Webhook,
 	}
+	m.PutSnapshot(out, "slack")
+	return out
 }
 
 func newMockServer(store *mockSlack) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/notifications/slack", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(store.snapshot())
+		notificationcommon.WriteJSON(w, store.snapshot())
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/slack", func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"message":"bad json"}`, http.StatusBadRequest)
+		body, ok := notificationcommon.DecodeJSONBody(w, r)
+		if !ok {
 			return
 		}
 		store.mu.Lock()
-		if v, ok := body["slack_enabled"].(bool); ok {
-			store.Enabled = v
-		}
-		if v, ok := body["slack_webhook_url"].(string); ok {
-			store.Webhook = v
-		}
-		setB := func(key string, dst *bool) {
-			if v, ok := body[key].(bool); ok {
-				*dst = v
-			}
-		}
-		setB("deployment_success_slack_notifications", &store.DeploymentSuccess)
-		setB("deployment_failure_slack_notifications", &store.DeploymentFailure)
-		setB("status_change_slack_notifications", &store.StatusChange)
-		setB("backup_success_slack_notifications", &store.BackupSuccess)
-		setB("backup_failure_slack_notifications", &store.BackupFailure)
-		setB("scheduled_task_success_slack_notifications", &store.ScheduledTaskSuccess)
-		setB("scheduled_task_failure_slack_notifications", &store.ScheduledTaskFailure)
-		setB("docker_cleanup_success_slack_notifications", &store.DockerCleanupSuccess)
-		setB("docker_cleanup_failure_slack_notifications", &store.DockerCleanupFailure)
-		setB("server_disk_usage_slack_notifications", &store.ServerDiskUsage)
-		setB("server_reachable_slack_notifications", &store.ServerReachable)
-		setB("server_unreachable_slack_notifications", &store.ServerUnreachable)
-		setB("server_patch_slack_notifications", &store.ServerPatch)
-		setB("traefik_outdated_slack_notifications", &store.TraefikOutdated)
+		notificationcommon.BoolFromBody(body, "slack_enabled", &store.Enabled)
+		notificationcommon.StringFromBody(body, "slack_webhook_url", &store.Webhook)
+		store.ApplyBody("slack", body)
 		store.mu.Unlock()
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(store.snapshot())
+		notificationcommon.WriteJSON(w, store.snapshot())
 	})
 	return httptest.NewServer(acctest.WithVersionEndpoint(mux))
 }
 
 func TestSlackNotificationResource_CreateUpdateImport(t *testing.T) {
 	t.Parallel()
-	store := &mockSlack{DeploymentFailure: true, BackupFailure: true, ServerDiskUsage: true}
+	store := &mockSlack{EventStore: notificationcommon.EventStore{DeploymentFailure: true, BackupFailure: true, ServerDiskUsage: true}}
 	srv := newMockServer(store)
 	defer srv.Close()
 

@@ -10,109 +10,81 @@ import (
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 type mockEmail struct {
-	mu                sync.Mutex
-	SMTPEnabled       bool
-	SMTPHost          string
-	SMTPPort          int
-	SMTPEncryption    string
-	ResendEnabled     bool
-	UseInstanceEmail  bool
-	DeploymentFailure bool
-	BackupFailure     bool
+	mu               sync.Mutex
+	SMTPEnabled      bool
+	SMTPHost         string
+	SMTPPort         int
+	SMTPEncryption   string
+	ResendEnabled    bool
+	UseInstanceEmail bool
+	notificationcommon.EventStore
 }
 
 func (m *mockEmail) snapshot() map[string]interface{} {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	out := map[string]interface{}{
-		"id": 1, "team_id": 0,
-		"smtp_enabled":                           m.SMTPEnabled,
-		"smtp_host":                              m.SMTPHost,
-		"smtp_encryption":                        m.SMTPEncryption,
-		"resend_enabled":                         m.ResendEnabled,
-		"use_instance_email_settings":            m.UseInstanceEmail,
-		"deployment_failure_email_notifications": m.DeploymentFailure,
-		"backup_failure_email_notifications":     m.BackupFailure,
+		"id":                          1,
+		"team_id":                     0,
+		"smtp_enabled":                m.SMTPEnabled,
+		"smtp_host":                   m.SMTPHost,
+		"smtp_encryption":             m.SMTPEncryption,
+		"resend_enabled":              m.ResendEnabled,
+		"use_instance_email_settings": m.UseInstanceEmail,
 	}
 	if m.SMTPPort != 0 {
 		out["smtp_port"] = m.SMTPPort
 	}
+	m.PutSnapshot(out, "email")
 	return out
 }
 
 func newMockServer(store *mockEmail) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(store.snapshot())
+		notificationcommon.WriteJSON(w, store.snapshot())
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"message":"bad json"}`, http.StatusBadRequest)
+		body, ok := notificationcommon.DecodeJSONBody(w, r)
+		if !ok {
 			return
 		}
-		// Reject unknown fields like Coolify.
-		allowed := map[string]bool{
-			"smtp_enabled": true, "smtp_from_address": true, "smtp_from_name": true,
-			"smtp_recipients": true, "smtp_host": true, "smtp_port": true,
-			"smtp_encryption": true, "smtp_username": true, "smtp_password": true,
-			"smtp_timeout": true, "resend_enabled": true, "resend_api_key": true,
-			"use_instance_email_settings":            true,
-			"deployment_success_email_notifications": true, "deployment_failure_email_notifications": true,
-			"status_change_email_notifications": true, "backup_success_email_notifications": true,
-			"backup_failure_email_notifications": true, "scheduled_task_success_email_notifications": true,
-			"scheduled_task_failure_email_notifications": true, "docker_cleanup_success_email_notifications": true,
-			"docker_cleanup_failure_email_notifications": true, "server_disk_usage_email_notifications": true,
-			"server_reachable_email_notifications": true, "server_unreachable_email_notifications": true,
-			"server_patch_email_notifications": true, "traefik_outdated_email_notifications": true,
-		}
-		for k := range body {
-			if !allowed[k] {
-				http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
-				return
-			}
+		allowed := notificationcommon.MergeAllowed(
+			notificationcommon.EventAllowedFields("email"),
+			"smtp_enabled", "smtp_from_address", "smtp_from_name",
+			"smtp_recipients", "smtp_host", "smtp_port",
+			"smtp_encryption", "smtp_username", "smtp_password",
+			"smtp_timeout", "resend_enabled", "resend_api_key",
+			"use_instance_email_settings",
+		)
+		if notificationcommon.RejectUnknownFields(w, body, allowed) {
+			return
 		}
 		store.mu.Lock()
-		if v, ok := body["smtp_enabled"].(bool); ok {
-			store.SMTPEnabled = v
-		}
-		if v, ok := body["smtp_host"].(string); ok {
-			store.SMTPHost = v
-		}
-		if v, ok := body["smtp_encryption"].(string); ok {
-			store.SMTPEncryption = v
-		}
+		notificationcommon.BoolFromBody(body, "smtp_enabled", &store.SMTPEnabled)
+		notificationcommon.StringFromBody(body, "smtp_host", &store.SMTPHost)
+		notificationcommon.StringFromBody(body, "smtp_encryption", &store.SMTPEncryption)
 		if v, ok := body["smtp_port"].(float64); ok {
 			store.SMTPPort = int(v)
 		}
-		if v, ok := body["resend_enabled"].(bool); ok {
-			store.ResendEnabled = v
-		}
-		if v, ok := body["use_instance_email_settings"].(bool); ok {
-			store.UseInstanceEmail = v
-		}
-		if v, ok := body["deployment_failure_email_notifications"].(bool); ok {
-			store.DeploymentFailure = v
-		}
-		if v, ok := body["backup_failure_email_notifications"].(bool); ok {
-			store.BackupFailure = v
-		}
+		notificationcommon.BoolFromBody(body, "resend_enabled", &store.ResendEnabled)
+		notificationcommon.BoolFromBody(body, "use_instance_email_settings", &store.UseInstanceEmail)
+		store.ApplyBody("email", body)
 		store.mu.Unlock()
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(store.snapshot())
+		notificationcommon.WriteJSON(w, store.snapshot())
 	})
 	return httptest.NewServer(acctest.WithVersionEndpoint(mux))
 }
 
 func TestEmailNotificationResource_CreateUpdateImport(t *testing.T) {
 	t.Parallel()
-	store := &mockEmail{DeploymentFailure: true}
+	store := &mockEmail{EventStore: notificationcommon.EventStore{DeploymentFailure: true}}
 	srv := newMockServer(store)
 	defer srv.Close()
 

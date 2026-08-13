@@ -1,7 +1,6 @@
 package notificationtelegram_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,30 +9,30 @@ import (
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 type mockTelegram struct {
-	mu                sync.Mutex
-	Enabled           bool
-	Token             string
-	ChatID            string
-	DeploymentFailure bool
-	BackupFailure     bool
-	ThreadDeployFail  string
-	HideSecrets       bool
+	mu               sync.Mutex
+	Enabled          bool
+	Token            string
+	ChatID           string
+	ThreadDeployFail string
+	HideSecrets      bool
+	notificationcommon.EventStore
 }
 
 func (m *mockTelegram) snapshot() map[string]interface{} {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	out := map[string]interface{}{
-		"id": 1, "team_id": 0,
-		"telegram_enabled":                          m.Enabled,
-		"deployment_failure_telegram_notifications": m.DeploymentFailure,
-		"backup_failure_telegram_notifications":     m.BackupFailure,
+		"id":               1,
+		"team_id":          0,
+		"telegram_enabled": m.Enabled,
 	}
+	m.PutSnapshot(out, "telegram")
 	if !m.HideSecrets {
 		out["telegram_token"] = m.Token
 		out["telegram_chat_id"] = m.ChatID
@@ -45,67 +44,49 @@ func (m *mockTelegram) snapshot() map[string]interface{} {
 func newMockServer(store *mockTelegram) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/notifications/telegram", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(store.snapshot())
+		notificationcommon.WriteJSON(w, store.snapshot())
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/telegram", func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"message":"bad json"}`, http.StatusBadRequest)
+		body, ok := notificationcommon.DecodeJSONBody(w, r)
+		if !ok {
 			return
 		}
-		allowed := map[string]bool{
-			"telegram_enabled": true, "telegram_token": true, "telegram_chat_id": true,
-			"deployment_success_telegram_notifications": true, "deployment_failure_telegram_notifications": true,
-			"status_change_telegram_notifications": true, "backup_success_telegram_notifications": true,
-			"backup_failure_telegram_notifications": true, "scheduled_task_success_telegram_notifications": true,
-			"scheduled_task_failure_telegram_notifications": true, "docker_cleanup_success_telegram_notifications": true,
-			"docker_cleanup_failure_telegram_notifications": true, "server_disk_usage_telegram_notifications": true,
-			"server_reachable_telegram_notifications": true, "server_unreachable_telegram_notifications": true,
-			"server_patch_telegram_notifications": true, "traefik_outdated_telegram_notifications": true,
-			"telegram_notifications_deployment_success_thread_id": true, "telegram_notifications_deployment_failure_thread_id": true,
-			"telegram_notifications_status_change_thread_id": true, "telegram_notifications_backup_success_thread_id": true,
-			"telegram_notifications_backup_failure_thread_id": true, "telegram_notifications_scheduled_task_success_thread_id": true,
-			"telegram_notifications_scheduled_task_failure_thread_id": true, "telegram_notifications_docker_cleanup_success_thread_id": true,
-			"telegram_notifications_docker_cleanup_failure_thread_id": true, "telegram_notifications_server_disk_usage_thread_id": true,
-			"telegram_notifications_server_reachable_thread_id": true, "telegram_notifications_server_unreachable_thread_id": true,
-			"telegram_notifications_server_patch_thread_id": true, "telegram_notifications_traefik_outdated_thread_id": true,
-		}
-		for k := range body {
-			if !allowed[k] {
-				http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
-				return
-			}
+		allowed := notificationcommon.MergeAllowed(
+			notificationcommon.EventAllowedFields("telegram"),
+			"telegram_enabled", "telegram_token", "telegram_chat_id",
+			"telegram_notifications_deployment_success_thread_id",
+			"telegram_notifications_deployment_failure_thread_id",
+			"telegram_notifications_status_change_thread_id",
+			"telegram_notifications_backup_success_thread_id",
+			"telegram_notifications_backup_failure_thread_id",
+			"telegram_notifications_scheduled_task_success_thread_id",
+			"telegram_notifications_scheduled_task_failure_thread_id",
+			"telegram_notifications_docker_cleanup_success_thread_id",
+			"telegram_notifications_docker_cleanup_failure_thread_id",
+			"telegram_notifications_server_disk_usage_thread_id",
+			"telegram_notifications_server_reachable_thread_id",
+			"telegram_notifications_server_unreachable_thread_id",
+			"telegram_notifications_server_patch_thread_id",
+			"telegram_notifications_traefik_outdated_thread_id",
+		)
+		if notificationcommon.RejectUnknownFields(w, body, allowed) {
+			return
 		}
 		store.mu.Lock()
-		if v, ok := body["telegram_enabled"].(bool); ok {
-			store.Enabled = v
-		}
-		if v, ok := body["telegram_token"].(string); ok {
-			store.Token = v
-		}
-		if v, ok := body["telegram_chat_id"].(string); ok {
-			store.ChatID = v
-		}
-		if v, ok := body["deployment_failure_telegram_notifications"].(bool); ok {
-			store.DeploymentFailure = v
-		}
-		if v, ok := body["backup_failure_telegram_notifications"].(bool); ok {
-			store.BackupFailure = v
-		}
-		if v, ok := body["telegram_notifications_deployment_failure_thread_id"].(string); ok {
-			store.ThreadDeployFail = v
-		}
+		notificationcommon.BoolFromBody(body, "telegram_enabled", &store.Enabled)
+		notificationcommon.StringFromBody(body, "telegram_token", &store.Token)
+		notificationcommon.StringFromBody(body, "telegram_chat_id", &store.ChatID)
+		notificationcommon.StringFromBody(body, "telegram_notifications_deployment_failure_thread_id", &store.ThreadDeployFail)
+		store.ApplyBody("telegram", body)
 		store.mu.Unlock()
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(store.snapshot())
+		notificationcommon.WriteJSON(w, store.snapshot())
 	})
 	return httptest.NewServer(acctest.WithVersionEndpoint(mux))
 }
 
 func TestTelegramNotificationResource_CreateUpdateImport(t *testing.T) {
 	t.Parallel()
-	store := &mockTelegram{DeploymentFailure: true}
+	store := &mockTelegram{EventStore: notificationcommon.EventStore{DeploymentFailure: true}}
 	srv := newMockServer(store)
 	defer srv.Close()
 

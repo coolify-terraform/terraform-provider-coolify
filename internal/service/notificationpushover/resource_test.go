@@ -1,7 +1,6 @@
 package notificationpushover_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,70 +9,57 @@ import (
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 type mockPushover struct {
-	mu                sync.Mutex
-	Enabled           bool
-	UserKey           string
-	Token             string
-	DeploymentFailure bool
-	BackupFailure     bool
+	mu      sync.Mutex
+	Enabled bool
+	UserKey string
+	Token   string
+	notificationcommon.EventStore
 }
 
 func (m *mockPushover) snapshot() map[string]interface{} {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return map[string]interface{}{
-		"id": 1, "team_id": 0,
-		"pushover_enabled":                          m.Enabled,
-		"pushover_user_key":                         m.UserKey,
-		"pushover_api_token":                        m.Token,
-		"deployment_failure_pushover_notifications": m.DeploymentFailure,
-		"backup_failure_pushover_notifications":     m.BackupFailure,
+	out := map[string]interface{}{
+		"id":                 1,
+		"team_id":            0,
+		"pushover_enabled":   m.Enabled,
+		"pushover_user_key":  m.UserKey,
+		"pushover_api_token": m.Token,
 	}
+	m.PutSnapshot(out, "pushover")
+	return out
 }
 
 func newMockServer(store *mockPushover) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/notifications/pushover", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(store.snapshot())
+		notificationcommon.WriteJSON(w, store.snapshot())
 	})
 	mux.HandleFunc("PATCH /api/v1/notifications/pushover", func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		body, ok := notificationcommon.DecodeJSONBody(w, r)
+		if !ok {
 			return
 		}
 		store.mu.Lock()
-		if v, ok := body["pushover_enabled"].(bool); ok {
-			store.Enabled = v
-		}
-		if v, ok := body["pushover_user_key"].(string); ok {
-			store.UserKey = v
-		}
-		if v, ok := body["pushover_api_token"].(string); ok {
-			store.Token = v
-		}
-		if v, ok := body["deployment_failure_pushover_notifications"].(bool); ok {
-			store.DeploymentFailure = v
-		}
-		if v, ok := body["backup_failure_pushover_notifications"].(bool); ok {
-			store.BackupFailure = v
-		}
+		notificationcommon.BoolFromBody(body, "pushover_enabled", &store.Enabled)
+		notificationcommon.StringFromBody(body, "pushover_user_key", &store.UserKey)
+		notificationcommon.StringFromBody(body, "pushover_api_token", &store.Token)
+		store.ApplyBody("pushover", body)
 		store.mu.Unlock()
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(store.snapshot())
+		notificationcommon.WriteJSON(w, store.snapshot())
 	})
 	return httptest.NewServer(acctest.WithVersionEndpoint(mux))
 }
 
 func TestPushoverNotificationResource_CreateUpdateImport(t *testing.T) {
 	t.Parallel()
-	store := &mockPushover{DeploymentFailure: true}
+	store := &mockPushover{EventStore: notificationcommon.EventStore{DeploymentFailure: true}}
 	srv := newMockServer(store)
 	defer srv.Close()
 
