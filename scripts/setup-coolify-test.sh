@@ -304,6 +304,9 @@ else
   S3_UUID=$(psql_exec "SELECT uuid FROM s3_storages WHERE name = 'minio-test' LIMIT 1;")
   log "MinIO S3 storage already registered: $S3_UUID"
 fi
+# Do NOT call POST .../s3-storages/{uuid}/validate here. Coolify only trusts
+# internal host coolify-minio for the system storage uuid "minio"; validating
+# minio-test flips is_usable to false and breaks volume/database S3 backup acc.
 
 # --- Step 8: Update GitHub secrets (if --secrets) ---
 
