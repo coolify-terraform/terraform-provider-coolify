@@ -479,10 +479,17 @@ func TestDeploymentResource_WaitForCompletionFailed(t *testing.T) {
 					status = failureStatus
 				}
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]interface{}{
+				body := map[string]interface{}{
 					"deployment_uuid": uuid,
 					"status":          status,
-				})
+				}
+				if status == failureStatus {
+					body["logs"] = []map[string]interface{}{
+						{"output": "cloning repository", "hidden": false},
+						{"output": "nixpacks build failed: no start command", "hidden": false},
+					}
+				}
+				json.NewEncoder(w).Encode(body)
 			})
 
 			srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -506,7 +513,7 @@ resource "coolify_deployment" "test" {
   }
 }
 `, srv.URL, appUUID),
-						ExpectError: regexp.MustCompile(`Deployment failed`),
+						ExpectError: regexp.MustCompile(`nixpacks build failed: no start command`),
 					},
 				},
 			})

@@ -317,38 +317,7 @@ jobs:
           export TF_VAR_coolify_token="$COOLIFY_TOKEN"
           export TF_VAR_server_uuid="$COOLIFY_SERVER_UUID"
 
-          failed=0
-          for dir in examples/scenarios/acme-*/; do
-            scenario=$(basename "$dir")
-            echo "=== Testing $scenario ==="
-
-            case "$scenario" in
-              acme-github-cicd)
-                if [ -z "$TF_VAR_github_app_id" ]; then
-                  echo "SKIP: GitHub App secrets not configured"
-                  echo ""
-                  continue
-                fi
-                ;;
-              acme-hetzner-infra)
-                if [ -z "$TF_VAR_hetzner_api_token" ]; then
-                  echo "SKIP: Hetzner token not configured"
-                  echo ""
-                  continue
-                fi
-                ;;
-            esac
-
-            (
-              cd "$dir"
-              if [ -d "modules" ]; then
-                terraform get
-              fi
-              terraform test -verbose
-            ) || failed=1
-            echo ""
-          done
-          exit $failed
+          bash scripts/run-scenario-tests.sh
 
       - name: Capture Coolify logs on failure
         if: failure()
@@ -360,7 +329,10 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coolify-logs-nightly-scenarios
-          path: /tmp/coolify-logs.txt
+          path: |
+            /tmp/coolify-logs.txt
+            /tmp/scenario-diag/
+          if-no-files-found: ignore
           retention-days: 7
 
   report:
