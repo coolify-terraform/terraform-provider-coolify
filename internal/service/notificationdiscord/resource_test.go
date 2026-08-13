@@ -2,6 +2,7 @@ package notificationdiscord_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -239,6 +240,38 @@ func TestDiscordNotificationResource_InvalidImport(t *testing.T) {
 				ImportState:   true,
 				ImportStateId: "not-current",
 				ExpectError:   regexp.MustCompile(`team singleton|import with id "current"`),
+			},
+		},
+	})
+}
+
+func TestDiscordNotificationResource_DestroyDisables(t *testing.T) {
+	t.Parallel()
+	store := &mockDiscord{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(_ *terraform.State) error {
+			store.mu.Lock()
+			defer store.mu.Unlock()
+			if store.Enabled {
+				return fmt.Errorf("expected discord_enabled false after destroy")
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_discord", "test", `
+  enabled     = true
+  webhook_url = "https://discord.com/api/webhooks/123/abc"
+  deployment_failure = true
+`),
+				Check: resource.TestCheckResourceAttr("coolify_notification_discord.test", "enabled", "true"),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL),
 			},
 		},
 	})

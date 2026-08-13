@@ -2,6 +2,7 @@ package notificationslack_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -180,6 +181,38 @@ func TestSlackNotificationResource_InvalidImport(t *testing.T) {
 				ImportState:   true,
 				ImportStateId: "not-current",
 				ExpectError:   regexp.MustCompile(`team singleton|import with id "current"`),
+			},
+		},
+	})
+}
+
+func TestSlackNotificationResource_DestroyDisables(t *testing.T) {
+	t.Parallel()
+	store := &mockSlack{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(_ *terraform.State) error {
+			store.mu.Lock()
+			defer store.mu.Unlock()
+			if store.Enabled {
+				return fmt.Errorf("expected slack_enabled false after destroy")
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_slack", "test", `
+  enabled     = true
+  webhook_url = "https://example.com/coolify-slack-webhook"
+  deployment_failure = true
+`),
+				Check: resource.TestCheckResourceAttr("coolify_notification_slack.test", "enabled", "true"),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL),
 			},
 		},
 	})
