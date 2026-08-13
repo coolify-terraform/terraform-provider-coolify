@@ -318,7 +318,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (39 total)
+### Resources (41 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -341,6 +341,8 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_application_private_git` | Yes | Yes | Yes | Yes | SSH URL, dummy key |
 | `coolify_application_github_app` | Yes | Yes | Yes | Yes | Requires live `COOLIFY_GITHUB_APP_*` fixture env vars with repository access |
 | `coolify_github_app` | Yes | Yes | N/A | Yes | Uses a Terraform-managed private key fixture; create/update work without repository access |
+| `coolify_notification_discord` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
+| `coolify_notification_slack` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
 | `coolify_server` | Yes | Yes | Yes | Yes | RFC 5737 IP (192.0.2.1), not reachable |
 | `coolify_server_hetzner` | Yes | Yes | Yes | Yes | Needs `COOLIFY_HETZNER_TOKEN` |
 | `coolify_database_clickhouse` | Yes | Yes | Yes | Yes | |
@@ -413,7 +415,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 39/39 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 112
+- **Total acceptance test functions**: 114
 
 ### Testing strategies for edge cases
 

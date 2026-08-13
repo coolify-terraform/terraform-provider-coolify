@@ -6,8 +6,8 @@
 **Route inventory**: source-derived contract `testdata/contracts/coolify-v4.json` (`routes[]`)  
 **Field source of truth**: same contract (`models` / endpoint allow lists)  
 **Not inventory**: OpenAPI under `testdata/specs/` (partial upstream path list; do not treat as Coolify API completeness)  
-**Coverage**: 176 covered / 296 registry entries (59.5%)  
-**Planned**: 12 | **Skipped**: 108  
+**Coverage**: 180 covered / 296 registry entries (60.8%)  
+**Planned**: 8 | **Skipped**: 108  
 **Registry size**: 296 (contract routes + allowlisted extras)
 
 ## Covered
@@ -80,6 +80,8 @@
 | `GET /hetzner/locations` | `data.coolify_hetzner_locations` | v0.2.0 |
 | `GET /hetzner/server-types` | `data.coolify_hetzner_server_types` | v0.2.0 |
 | `GET /hetzner/ssh-keys` | `data.coolify_hetzner_ssh_keys` | v0.2.0 |
+| `GET /notifications/discord` | `coolify_notification_discord` | v0.1.14 |
+| `GET /notifications/slack` | `coolify_notification_slack` | v0.1.14 |
 | `GET /projects` | `data.coolify_projects` | v0.1.0 |
 | `GET /projects/{uuid}` | `data.coolify_project` | v0.1.0 |
 | `GET /projects/{uuid}/environments` | `data.coolify_environments` | v0.2.0 |
@@ -126,6 +128,8 @@
 | `PATCH /databases/{uuid}/envs/bulk` | `client.BulkUpdateEnvVars` | v0.2.0 |
 | `PATCH /databases/{uuid}/storages` | `coolify_storage` | v0.2.0 |
 | `PATCH /github-apps/{github_app_id}` | `coolify_github_app` | v0.2.0 |
+| `PATCH /notifications/discord` | `coolify_notification_discord` | v0.1.14 |
+| `PATCH /notifications/slack` | `coolify_notification_slack` | v0.1.14 |
 | `PATCH /projects/{uuid}` | `coolify_project` | v0.1.0 |
 | `PATCH /s3-storages/{uuid}` | `coolify_s3_storage` | v0.1.13 |
 | `PATCH /security/keys/{uuid}` | `coolify_private_key` | v0.1.0 |
@@ -197,16 +201,12 @@ Ordered by priority (1 = most needed by users).
 
 | Priority | Endpoint | Notes |
 |----------|----------|-------|
-| 2 | `GET /notifications/discord` | Notification channel resources (#394) |
 | 2 | `GET /notifications/email` | Notification channel resources (#394) |
 | 2 | `GET /notifications/pushover` | Notification channel resources (#394) |
-| 2 | `GET /notifications/slack` | Notification channel resources (#394) |
 | 2 | `GET /notifications/telegram` | Notification channel resources (#394) |
 | 2 | `GET /notifications/webhook` | Notification channel resources (#394) |
-| 2 | `PATCH /notifications/discord` | Notification channel resources (#394) |
 | 2 | `PATCH /notifications/email` | Notification channel resources (#394) |
 | 2 | `PATCH /notifications/pushover` | Notification channel resources (#394) |
-| 2 | `PATCH /notifications/slack` | Notification channel resources (#394) |
 | 2 | `PATCH /notifications/telegram` | Notification channel resources (#394) |
 | 2 | `PATCH /notifications/webhook` | Notification channel resources (#394) |
 

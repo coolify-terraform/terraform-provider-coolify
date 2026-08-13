@@ -28,9 +28,9 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 
 | Area | Coverage |
 |---|---|
-| Managed resources | 39 |
-| Data sources | 54 |
-| Tests | 1180+ unit and acceptance tests |
+| Managed resources | 41 |
+| Data sources | 56 |
+| Tests | 1200+ unit and acceptance tests |
 | Scenario examples | 17 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -137,6 +137,8 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_s3_storage` | Manage S3-compatible storage for backups (Coolify >= v4.3.0) |
 | `coolify_cloud_token` | Manage cloud provider tokens (Hetzner, DigitalOcean, Vultr) |
 | `coolify_github_app` | Manage GitHub App integrations |
+| `coolify_notification_discord` | Team Discord notification settings (Coolify >= v4.3.0) |
+| `coolify_notification_slack` | Team Slack notification settings (Coolify >= v4.3.0) |
 | `coolify_envs_bulk` | Manage environment variables as a single atomic set |
 | `coolify_application_preview` | Manage application preview deployments |
 | `coolify_api_settings` | Manage Coolify API and MCP server settings |
@@ -309,7 +311,7 @@ targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
-make test                                       # Run unit tests (1190+ tests, race detector enabled)
+make test                                       # Run unit tests (1200+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
 make testacc                                    # Run acceptance tests with serialized package and in-package execution
