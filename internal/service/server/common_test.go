@@ -32,6 +32,8 @@ func newTestPtrs() (ServerCommonPtrs, *testModel) {
 		DockerCleanupFrequency:      &m.DockerCleanupFrequency, DockerCleanupThreshold: &m.DockerCleanupThreshold,
 		ForceDockerCleanup: &m.ForceDockerCleanup, DeleteUnusedVolumes: &m.DeleteUnusedVolumes,
 		DeleteUnusedNetworks: &m.DeleteUnusedNetworks, GenerateExactLabels: &m.GenerateExactLabels,
+		ComposeVersion: &m.ComposeVersion, ComposeVersionCheckedAt: &m.ComposeVersionCheckedAt,
+		DockerVersion: &m.DockerVersion, DockerVersionCheckedAt: &m.DockerVersionCheckedAt,
 	}, m
 }
 
@@ -58,6 +60,10 @@ type testModel struct {
 	DeleteUnusedVolumes               types.Bool
 	DeleteUnusedNetworks              types.Bool
 	GenerateExactLabels               types.Bool
+	ComposeVersion                    types.String
+	ComposeVersionCheckedAt           types.String
+	DockerVersion                     types.String
+	DockerVersionCheckedAt            types.String
 }
 
 var readOnlyExtendedSettingNames = []string{
@@ -76,6 +82,10 @@ var readOnlyExtendedSettingNames = []string{
 	"delete_unused_volumes",
 	"delete_unused_networks",
 	"generate_exact_labels",
+	"compose_version",
+	"compose_version_checked_at",
+	"docker_version",
+	"docker_version_checked_at",
 }
 
 var expectedWritableServerUpdateKeys = []string{
@@ -811,5 +821,26 @@ func TestHasNonDefaultSettings_NullFields(t *testing.T) {
 	plan := serverResourceModel{}
 	if hasNonDefaultSettings(plan) {
 		t.Error("expected false when all fields are null/zero-value")
+	}
+}
+
+func TestFlattenExtendedSettings_DockerComposeVersions(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	s := &client.ServerSettings{
+		ComposeVersion:          "2.29.1",
+		ComposeVersionCheckedAt: "2026-08-13T12:00:00.000000Z",
+		DockerVersion:           "27.0.3",
+		DockerVersionCheckedAt:  "2026-08-13T12:00:01.000000Z",
+	}
+	flattenExtendedSettings(s, ptrs)
+	if m.ComposeVersion.ValueString() != "2.29.1" {
+		t.Fatalf("compose_version=%q", m.ComposeVersion.ValueString())
+	}
+	if m.DockerVersion.ValueString() != "27.0.3" {
+		t.Fatalf("docker_version=%q", m.DockerVersion.ValueString())
+	}
+	if m.ComposeVersionCheckedAt.IsNull() || m.DockerVersionCheckedAt.IsNull() {
+		t.Fatal("checked_at fields should be set")
 	}
 }

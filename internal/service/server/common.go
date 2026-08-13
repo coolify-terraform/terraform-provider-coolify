@@ -63,6 +63,10 @@ type ServerCommonPtrs struct {
 	IsLogdrainNewrelicEnabled         *types.Bool
 	LogdrainNewrelicBaseURI           *types.String
 	LogdrainNewrelicLicenseKey        *types.String
+	ComposeVersion                    *types.String
+	ComposeVersionCheckedAt           *types.String
+	DockerVersion                     *types.String
+	DockerVersionCheckedAt            *types.String
 }
 
 // CommonServerAttrs returns the schema attributes shared by all server
@@ -310,6 +314,24 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 		Computed:            true,
 		Sensitive:           true,
 	}
+	attrs["compose_version"] = schema.StringAttribute{
+		MarkdownDescription: "Docker Compose version reported by Coolify for this server (host probe). " +
+			"Read-only; populated by Coolify tip/main (expected in Coolify >= 4.3.2). Empty on older instances.",
+		Computed: true,
+	}
+	attrs["compose_version_checked_at"] = schema.StringAttribute{
+		MarkdownDescription: "When Coolify last checked the Compose version on this server. Read-only.",
+		Computed:            true,
+	}
+	attrs["docker_version"] = schema.StringAttribute{
+		MarkdownDescription: "Docker engine version reported by Coolify for this server (host probe). " +
+			"Read-only; populated by Coolify tip/main (expected in Coolify >= 4.3.2). Empty on older instances.",
+		Computed: true,
+	}
+	attrs["docker_version_checked_at"] = schema.StringAttribute{
+		MarkdownDescription: "When Coolify last checked the Docker version on this server. Read-only.",
+		Computed:            true,
+	}
 }
 
 // FlattenServerCommon sets the fields shared by all server resource types
@@ -382,6 +404,10 @@ func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
 	setBoolPtr(f.IsLogdrainNewrelicEnabled, s.IsLogdrainNewrelicEnabled)
 	setStringPtr(f.LogdrainNewrelicBaseURI, s.LogdrainNewrelicBaseURI)
 	setStringPtr(f.LogdrainNewrelicLicenseKey, s.LogdrainNewrelicLicenseKey)
+	setStringPtr(f.ComposeVersion, s.ComposeVersion)
+	setStringPtr(f.ComposeVersionCheckedAt, s.ComposeVersionCheckedAt)
+	setStringPtr(f.DockerVersion, s.DockerVersion)
+	setStringPtr(f.DockerVersionCheckedAt, s.DockerVersionCheckedAt)
 }
 
 func setBoolPtr(dst *types.Bool, v bool) {

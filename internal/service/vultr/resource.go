@@ -100,6 +100,10 @@ type vultrServerResourceModel struct {
 	IsLogdrainNewrelicEnabled         types.Bool   `tfsdk:"is_logdrain_newrelic_enabled"`
 	LogdrainNewrelicBaseURI           types.String `tfsdk:"logdrain_newrelic_base_uri"`
 	LogdrainNewrelicLicenseKey        types.String `tfsdk:"logdrain_newrelic_license_key"`
+	ComposeVersion                    types.String `tfsdk:"compose_version"`
+	ComposeVersionCheckedAt           types.String `tfsdk:"compose_version_checked_at"`
+	DockerVersion                     types.String `tfsdk:"docker_version"`
+	DockerVersionCheckedAt            types.String `tfsdk:"docker_version_checked_at"`
 }
 
 // NewResource returns a new Vultr server resource.
@@ -370,6 +374,8 @@ func (m *vultrServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 		IsLogdrainHighlightEnabled: &m.IsLogdrainHighlightEnabled, LogdrainHighlightProjectID: &m.LogdrainHighlightProjectID,
 		IsLogdrainNewrelicEnabled: &m.IsLogdrainNewrelicEnabled, LogdrainNewrelicBaseURI: &m.LogdrainNewrelicBaseURI,
 		LogdrainNewrelicLicenseKey: &m.LogdrainNewrelicLicenseKey,
+		ComposeVersion:             &m.ComposeVersion, ComposeVersionCheckedAt: &m.ComposeVersionCheckedAt,
+		DockerVersion: &m.DockerVersion, DockerVersionCheckedAt: &m.DockerVersionCheckedAt,
 	}
 }
 
