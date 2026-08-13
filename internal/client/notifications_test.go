@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -265,4 +266,35 @@ func TestNotificationUpdateJSONTags(t *testing.T) {
 	}
 	assert.Nil(t, client.NotificationUpdateJSONTags("unknown-channel"))
 	assert.Nil(t, client.NotificationUpdateJSONTags(""))
+}
+
+func TestNotificationEventJSONTags_CoverSharedEvents(t *testing.T) {
+	t.Parallel()
+	// Short schema names from notificationcommon must appear in each channel's
+	// Update* JSON tags (as <event>_<channel>_notifications or similar).
+	events := []string{
+		"deployment_success", "deployment_failure", "status_change",
+		"backup_success", "backup_failure",
+		"scheduled_task_success", "scheduled_task_failure",
+		"docker_cleanup_success", "docker_cleanup_failure",
+		"server_disk_usage", "server_reachable", "server_unreachable",
+		"server_patch", "traefik_outdated",
+	}
+	for _, ch := range []string{"discord", "slack", "telegram", "pushover", "webhook", "email"} {
+		ch := ch
+		t.Run(ch, func(t *testing.T) {
+			t.Parallel()
+			tags := client.NotificationUpdateJSONTags(ch)
+			require.NotEmpty(t, tags)
+			joined := ""
+			for k := range tags {
+				joined += k + " "
+			}
+			for _, ev := range events {
+				if !strings.Contains(joined, ev) {
+					t.Errorf("channel %s missing event %q in update JSON tags: %v", ch, ev, tags)
+				}
+			}
+		})
+	}
 }
