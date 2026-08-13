@@ -13,7 +13,10 @@ import (
 
 func TestNotificationDataSource_Read(t *testing.T) {
 	t.Parallel()
-	store := &mockTelegram{EventStore: notificationcommon.EventStore{DeploymentFailure: true}}
+	store := &mockTelegram{
+		ThreadDeployFail: "42",
+		EventStore:       notificationcommon.EventStore{DeploymentFailure: true},
+	}
 	srv := newMockServer(store)
 	defer srv.Close()
 
@@ -27,6 +30,7 @@ data "coolify_notification_telegram" "test" {}
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coolify_notification_telegram.test", "id", "current"),
 					resource.TestCheckResourceAttr("data.coolify_notification_telegram.test", "deployment_failure", "true"),
+					resource.TestCheckResourceAttr("data.coolify_notification_telegram.test", "thread_deployment_failure", "42"),
 				),
 			},
 		},

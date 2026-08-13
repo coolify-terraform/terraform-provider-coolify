@@ -8,8 +8,6 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -43,22 +41,11 @@ func (r *telegramResource) Metadata(_ context.Context, req resource.MetadataRequ
 }
 
 func (r *telegramResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	sensStr := func(desc string) schema.StringAttribute {
-		return schema.StringAttribute{
-			MarkdownDescription: desc + " Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.",
-			Optional:            true,
-			Computed:            true,
-			Sensitive:           true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.UseStateForUnknown(),
-			},
-		}
-	}
 	attrs := map[string]schema.Attribute{
 		"id":      notificationcommon.IDAttribute(),
 		"enabled": notificationcommon.EnabledAttribute("Telegram"),
-		"token":   sensStr("Telegram bot token."),
-		"chat_id": sensStr("Telegram chat ID."),
+		"token":   notificationcommon.StringSensitiveOmit("Telegram bot token."),
+		"chat_id": notificationcommon.StringSensitiveOmit("Telegram chat ID."),
 	}
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages the current team's Telegram notification settings in Coolify. " +
@@ -66,10 +53,7 @@ func (r *telegramResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"**Requires Coolify >= v4.3.0** (notification routes are absent on v4.2.x and older; acceptance tests skip when the API is missing).\n\n" +
 			"On destroy, Telegram notifications are disabled (`enabled = false`); token, chat ID, and thread IDs are left unchanged. " +
 			"Import with id `current`.",
-		Attributes: notificationcommon.MergeAttrs(
-			notificationcommon.MergeAttrs(attrs, notificationcommon.EventSchemaAttrs("Telegram")),
-			notificationcommon.ThreadSchemaAttrs("Telegram"),
-		),
+		Attributes: notificationcommon.MergeAttrs(attrs, notificationcommon.EventSchemaAttrs("Telegram"), notificationcommon.ThreadSchemaAttrs("Telegram")),
 	}
 }
 

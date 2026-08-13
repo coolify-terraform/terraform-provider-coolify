@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -268,18 +269,22 @@ func TestNotificationUpdateJSONTags(t *testing.T) {
 	assert.Nil(t, client.NotificationUpdateJSONTags(""))
 }
 
+func TestNotificationThreadJSONTags_CoverTelegramThreads(t *testing.T) {
+	t.Parallel()
+	tags := client.NotificationUpdateJSONTags("telegram")
+	require.NotEmpty(t, tags)
+	for _, ev := range notificationcommon.EventAttributeNames() {
+		key := notificationcommon.ThreadJSONKey("telegram", ev)
+		_, ok := tags[key]
+		assert.True(t, ok, "telegram update input missing thread JSON key %q", key)
+	}
+}
+
 func TestNotificationEventJSONTags_CoverSharedEvents(t *testing.T) {
 	t.Parallel()
 	// Short schema names from notificationcommon must appear in each channel's
 	// Update* JSON tags (as <event>_<channel>_notifications or similar).
-	events := []string{
-		"deployment_success", "deployment_failure", "status_change",
-		"backup_success", "backup_failure",
-		"scheduled_task_success", "scheduled_task_failure",
-		"docker_cleanup_success", "docker_cleanup_failure",
-		"server_disk_usage", "server_reachable", "server_unreachable",
-		"server_patch", "traefik_outdated",
-	}
+	events := notificationcommon.EventAttributeNames()
 	for _, ch := range []string{"discord", "slack", "telegram", "pushover", "webhook", "email"} {
 		ch := ch
 		t.Run(ch, func(t *testing.T) {

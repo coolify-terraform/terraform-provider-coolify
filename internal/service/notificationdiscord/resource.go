@@ -85,7 +85,7 @@ func (r *discordResource) Create(ctx context.Context, req resource.CreateRequest
 
 	input, err := createInputFromPlan(plan)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdateDiscordNotifications(ctx, input)
@@ -95,7 +95,7 @@ func (r *discordResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -121,7 +121,7 @@ func (r *discordResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	if err := flatten(got, &state); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -143,7 +143,7 @@ func (r *discordResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	input, err := updateInputFromPlan(plan, state)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdateDiscordNotifications(ctx, input)
@@ -153,7 +153,7 @@ func (r *discordResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)

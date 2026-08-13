@@ -92,7 +92,7 @@ func (r *pushoverResource) Create(ctx context.Context, req resource.CreateReques
 
 	input, err := createInputFromPlan(plan)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdatePushoverNotifications(ctx, input)
@@ -102,7 +102,7 @@ func (r *pushoverResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -128,7 +128,7 @@ func (r *pushoverResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	if err := flatten(got, &state); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -150,7 +150,7 @@ func (r *pushoverResource) Update(ctx context.Context, req resource.UpdateReques
 
 	input, err := updateInputFromPlan(plan, state)
 	if err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	updated, err := r.client.UpdatePushoverNotifications(ctx, input)
@@ -160,7 +160,7 @@ func (r *pushoverResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	if err := flatten(updated, &plan); err != nil {
-		resp.Diagnostics.AddError("Error mapping notification events", err.Error())
+		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
