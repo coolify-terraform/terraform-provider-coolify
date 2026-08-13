@@ -50,6 +50,12 @@ type ServerSettings struct {
 	IsLogdrainNewrelicEnabled            bool   `json:"is_logdrain_newrelic_enabled"`
 	LogdrainNewrelicBaseURI              string `json:"logdrain_newrelic_base_uri,omitempty"`
 	LogdrainNewrelicLicenseKey           string `json:"logdrain_newrelic_license_key,omitempty"`
+	// Docker/Compose version probes written by Coolify (tip/main; not on public PATCH).
+	// Empty on Coolify < tip that lacks the columns; safe omitempty JSON.
+	ComposeVersion          string `json:"compose_version,omitempty"`
+	ComposeVersionCheckedAt string `json:"compose_version_checked_at,omitempty"`
+	DockerVersion           string `json:"docker_version,omitempty"`
+	DockerVersionCheckedAt  string `json:"docker_version_checked_at,omitempty"`
 }
 
 type Server struct {

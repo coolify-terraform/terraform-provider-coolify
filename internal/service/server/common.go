@@ -63,6 +63,10 @@ type ServerCommonPtrs struct {
 	IsLogdrainNewrelicEnabled         *types.Bool
 	LogdrainNewrelicBaseURI           *types.String
 	LogdrainNewrelicLicenseKey        *types.String
+	ComposeVersion                    *types.String
+	ComposeVersionCheckedAt           *types.String
+	DockerVersion                     *types.String
+	DockerVersionCheckedAt            *types.String
 }
 
 // CommonServerAttrs returns the schema attributes shared by all server
@@ -170,6 +174,12 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 
 // addExtendedSettingsAttrs adds read-only extended server settings returned by the API.
 func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
+	addCoreExtendedSettingsAttrs(attrs)
+	addLogdrainSettingsAttrs(attrs)
+	addHostProbeVersionAttrs(attrs)
+}
+
+func addCoreExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 	attrs["wildcard_domain"] = schema.StringAttribute{
 		MarkdownDescription: "Wildcard domain for applications on this server (e.g., `example.com`).",
 		Computed:            true,
@@ -263,6 +273,9 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 		MarkdownDescription: "Custom Sentinel push URL. Read-only (not on public server PATCH allow-list).",
 		Computed:            true,
 	}
+}
+
+func addLogdrainSettingsAttrs(attrs map[string]schema.Attribute) {
 	attrs["is_logdrain_axiom_enabled"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether Axiom log drain is enabled. Read-only (not on public server PATCH allow-list).",
 		Computed:            true,
@@ -309,6 +322,28 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 		MarkdownDescription: "New Relic license key for log drain. Sensitive; read-only.",
 		Computed:            true,
 		Sensitive:           true,
+	}
+}
+
+// addHostProbeVersionAttrs adds Coolify tip/main host probe fields (expected >= 4.3.2).
+func addHostProbeVersionAttrs(attrs map[string]schema.Attribute) {
+	attrs["compose_version"] = schema.StringAttribute{
+		MarkdownDescription: "Docker Compose version reported by Coolify for this server (host probe). " +
+			"Read-only; populated by Coolify tip/main (expected in Coolify >= 4.3.2). Empty on older instances.",
+		Computed: true,
+	}
+	attrs["compose_version_checked_at"] = schema.StringAttribute{
+		MarkdownDescription: "When Coolify last checked the Compose version on this server. Read-only.",
+		Computed:            true,
+	}
+	attrs["docker_version"] = schema.StringAttribute{
+		MarkdownDescription: "Docker engine version reported by Coolify for this server (host probe). " +
+			"Read-only; populated by Coolify tip/main (expected in Coolify >= 4.3.2). Empty on older instances.",
+		Computed: true,
+	}
+	attrs["docker_version_checked_at"] = schema.StringAttribute{
+		MarkdownDescription: "When Coolify last checked the Docker version on this server. Read-only.",
+		Computed:            true,
 	}
 }
 
@@ -382,6 +417,10 @@ func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
 	setBoolPtr(f.IsLogdrainNewrelicEnabled, s.IsLogdrainNewrelicEnabled)
 	setStringPtr(f.LogdrainNewrelicBaseURI, s.LogdrainNewrelicBaseURI)
 	setStringPtr(f.LogdrainNewrelicLicenseKey, s.LogdrainNewrelicLicenseKey)
+	setStringPtr(f.ComposeVersion, s.ComposeVersion)
+	setStringPtr(f.ComposeVersionCheckedAt, s.ComposeVersionCheckedAt)
+	setStringPtr(f.DockerVersion, s.DockerVersion)
+	setStringPtr(f.DockerVersionCheckedAt, s.DockerVersionCheckedAt)
 }
 
 func setBoolPtr(dst *types.Bool, v bool) {

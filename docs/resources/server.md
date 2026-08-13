@@ -64,11 +64,15 @@ resource "coolify_server" "example" {
 
 ### Read-Only
 
+- `compose_version` (String) Docker Compose version reported by Coolify for this server (host probe). Read-only; populated by Coolify tip/main (expected in Coolify >= 4.3.2). Empty on older instances.
+- `compose_version_checked_at` (String) When Coolify last checked the Compose version on this server. Read-only.
 - `delete_unused_networks` (Boolean) Whether to delete unused Docker networks during cleanup.
 - `delete_unused_volumes` (Boolean) Whether to delete unused Docker volumes during cleanup.
 - `disable_application_image_retention` (Boolean) Whether application image retention is disabled. Read-only (not on public server PATCH allow-list).
 - `docker_cleanup_frequency` (String) Cron expression for Docker cleanup schedule.
 - `docker_cleanup_threshold` (Number) Disk usage percentage threshold for Docker cleanup.
+- `docker_version` (String) Docker engine version reported by Coolify for this server (host probe). Read-only; populated by Coolify tip/main (expected in Coolify >= 4.3.2). Empty on older instances.
+- `docker_version_checked_at` (String) When Coolify last checked the Docker version on this server. Read-only.
 - `force_disabled` (Boolean) Whether the server is force-disabled in Coolify. Read-only (not on public server PATCH allow-list).
 - `force_docker_cleanup` (Boolean) Whether to force Docker cleanup regardless of disk usage.
 - `generate_exact_labels` (Boolean) Whether to generate exact Docker labels (removes extra labels from containers).
