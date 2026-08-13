@@ -12,8 +12,17 @@ default: help
 build: ## Compile the provider
 	GOFIPS140=latest go build -v ./...
 
+# Unit tests:
+# - Packages that fork terraform under resource.UnitTest must use -parallel=1 with
+#   -race (TSAN + fork/exec segfaults otherwise; see commit 39f893d).
+# - Pure packages (client/flex/filter/validate/spectest/acctest) can use higher
+#   in-package parallelism safely; CI shards the suite across runners instead.
+PURE_TEST_PKGS ?= ./internal/client/... ./internal/flex/... ./internal/filter/... ./internal/validate/... ./internal/spectest/... ./internal/acctest/...
+PLUGIN_TEST_PKGS ?= ./internal/provider/... ./internal/service/...
+
 test: ## Run unit tests (race detector, coverage)
-	go test -race -cover -count=1 -p 4 -parallel=1 -timeout=15m ./...
+	go test -race -cover -count=1 -p 8 -parallel=8 -timeout=10m $(PURE_TEST_PKGS)
+	go test -race -cover -count=1 -p 4 -parallel=1 -timeout=15m $(PLUGIN_TEST_PKGS)
 
 testacc: ## Run acceptance tests (needs COOLIFY_ENDPOINT + COOLIFY_TOKEN)
 	TF_ACC=1 go test -race -v -cover -count=1 -timeout=120m -p 1 -parallel=1 -run 'TestAcc' ./...
