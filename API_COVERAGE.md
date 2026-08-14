@@ -11,8 +11,8 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 242 covered / 296 registry entries (81.8%)  
-**Planned**: 0 | **Skipped**: 54  
+**Coverage**: 244 covered / 296 registry entries (82.4%)  
+**Planned**: 0 | **Skipped**: 52  
 **Registry size**: 296 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
@@ -150,17 +150,6 @@ Coolify also has POST enable/disable routes. The provider writes tunnel settings
 | Route |
 |-------|
 | `POST /applications/dockercompose` |
-
-### Hetzner firewalls and networks lists
-
-Coolify can list Hetzner firewalls and networks when provisioning. Those lists are not required to manage `coolify_server_hetzner`.
-
-**Use this instead:** `coolify_server_hetzner` for the server. Manage Hetzner firewalls and networks outside this provider if you need them.
-
-| Route |
-|-------|
-| `GET /hetzner/firewalls` |
-| `GET /hetzner/networks` |
 
 ### Product feedback
 
@@ -803,6 +792,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `GET /health` | v0.2.0 |
 
+### `data.coolify_hetzner_firewalls`
+
+| Route | Since |
+|-------|-------|
+| `GET /hetzner/firewalls` | v0.1.16 |
+
 ### `data.coolify_hetzner_images`
 
 | Route | Since |
@@ -814,6 +809,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | Route | Since |
 |-------|-------|
 | `GET /hetzner/locations` | v0.2.0 |
+
+### `data.coolify_hetzner_networks`
+
+| Route | Since |
+|-------|-------|
+| `GET /hetzner/networks` | v0.1.16 |
 
 ### `data.coolify_hetzner_server_types`
 
@@ -1070,10 +1071,10 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /github-apps/{github_app_id}/repositories/{owner}/{repo}/branches` | covered | `data.coolify_github_app_branches` |
 | `GET /gitlab-apps` | covered | `coolify_gitlab_app` |
 | `GET /health` | covered | `data.coolify_health` |
-| `GET /hetzner/firewalls` | skipped | `hetzner-extra` |
+| `GET /hetzner/firewalls` | covered | `data.coolify_hetzner_firewalls` |
 | `GET /hetzner/images` | covered | `data.coolify_hetzner_images` |
 | `GET /hetzner/locations` | covered | `data.coolify_hetzner_locations` |
-| `GET /hetzner/networks` | skipped | `hetzner-extra` |
+| `GET /hetzner/networks` | covered | `data.coolify_hetzner_networks` |
 | `GET /hetzner/server-types` | covered | `data.coolify_hetzner_server_types` |
 | `GET /hetzner/ssh-keys` | covered | `data.coolify_hetzner_ssh_keys` |
 | `GET /notifications/discord` | covered | `coolify_notification_discord` |

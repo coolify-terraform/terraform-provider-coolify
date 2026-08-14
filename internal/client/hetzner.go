@@ -40,6 +40,19 @@ type HetznerSSHKey struct {
 	Fingerprint string `json:"fingerprint"`
 }
 
+// HetznerFirewall represents an existing Hetzner Cloud firewall.
+type HetznerFirewall struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+// HetznerNetwork represents an existing Hetzner Cloud private network.
+type HetznerNetwork struct {
+	ID      int64  `json:"id"`
+	Name    string `json:"name"`
+	IPRange string `json:"ip_range"`
+}
+
 func hetznerPath(base, cloudProviderTokenUUID string) string {
 	q := url.Values{}
 	q.Set("cloud_provider_token_uuid", cloudProviderTokenUUID)
@@ -80,4 +93,24 @@ func (c *Client) ListHetznerSSHKeys(ctx context.Context, cloudProviderTokenUUID 
 		return nil, fmt.Errorf("listing hetzner ssh keys: %w", err)
 	}
 	return keys, nil
+}
+
+// ListHetznerFirewalls returns existing Hetzner firewalls for the given cloud provider token.
+// Requires Coolify >= v4.2.0.
+func (c *Client) ListHetznerFirewalls(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerFirewall, error) {
+	var firewalls []HetznerFirewall
+	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/firewalls", cloudProviderTokenUUID), nil, &firewalls); err != nil {
+		return nil, fmt.Errorf("listing hetzner firewalls: %w", err)
+	}
+	return firewalls, nil
+}
+
+// ListHetznerNetworks returns existing Hetzner private networks for the given cloud provider token.
+// Requires Coolify >= v4.2.0.
+func (c *Client) ListHetznerNetworks(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerNetwork, error) {
+	var networks []HetznerNetwork
+	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/networks", cloudProviderTokenUUID), nil, &networks); err != nil {
+		return nil, fmt.Errorf("listing hetzner networks: %w", err)
+	}
+	return networks, nil
 }

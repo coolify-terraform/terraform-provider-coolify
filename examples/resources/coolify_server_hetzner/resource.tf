@@ -10,6 +10,8 @@ resource "coolify_server_hetzner" "example" {
   # enable_ipv4       = true
   # enable_ipv6       = true
   # hetzner_ssh_key_ids = "12345,67890"
+  # hetzner_firewall_ids = [38, 39]   # Requires Coolify >= v4.2.0
+  # hetzner_network_ids  = [456]      # Requires Coolify >= v4.2.0
   # instant_validate  = true
 
   # Optional server settings (same as coolify_server):

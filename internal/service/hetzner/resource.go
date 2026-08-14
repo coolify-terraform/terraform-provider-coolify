@@ -10,10 +10,12 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/server"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -45,6 +47,8 @@ type hetznerServerResourceModel struct {
 	Location               types.String `tfsdk:"location"`
 	Image                  types.String `tfsdk:"image"`
 	HetznerSSHKeyIDs       types.String `tfsdk:"hetzner_ssh_key_ids"`
+	HetznerFirewallIDs     types.List   `tfsdk:"hetzner_firewall_ids"`
+	HetznerNetworkIDs      types.List   `tfsdk:"hetzner_network_ids"`
 	CloudInitScript        types.String `tfsdk:"cloud_init_script"`
 	InstantValidate        types.Bool   `tfsdk:"instant_validate"`
 	EnableIPv4             types.Bool   `tfsdk:"enable_ipv4"`
@@ -116,7 +120,7 @@ func (r *hetznerServerResource) Metadata(_ context.Context, req resource.Metadat
 
 func (r *hetznerServerResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Provisions a Hetzner Cloud server and registers it with Coolify.\n\n~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.\n\n~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `cloud_init_script`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state. Set them in your configuration before running `terraform plan` to avoid a forced replacement.",
+		MarkdownDescription: "Provisions a Hetzner Cloud server and registers it with Coolify.\n\n~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.\n\n~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `hetzner_firewall_ids`, `hetzner_network_ids`, `cloud_init_script`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state. Set them in your configuration before running `terraform plan` to avoid a forced replacement.",
 		Attributes:          server.CommonServerAttrs(ctx, hetznerSchemaAttributes()),
 	}
 }
@@ -154,6 +158,20 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			MarkdownDescription: "Comma-separated list of Hetzner SSH key IDs to install on the server. Use `coolify_hetzner_ssh_keys` data source to list available keys. Changing this forces a new resource.",
 			Optional:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+		},
+		"hetzner_firewall_ids": schema.ListAttribute{
+			ElementType: types.Int64Type,
+			MarkdownDescription: "Existing Hetzner firewall IDs to apply when Coolify creates the server. Use `data.coolify_hetzner_firewalls` to list available firewalls. " +
+				"Requires Coolify >= v4.2.0. Changing this forces a new resource.",
+			Optional:      true,
+			PlanModifiers: []planmodifier.List{listplanmodifier.RequiresReplace()},
+		},
+		"hetzner_network_ids": schema.ListAttribute{
+			ElementType: types.Int64Type,
+			MarkdownDescription: "Existing Hetzner private network IDs to attach when Coolify creates the server. Use `data.coolify_hetzner_networks` to list available networks. " +
+				"Requires Coolify >= v4.2.0. Changing this forces a new resource.",
+			Optional:      true,
+			PlanModifiers: []planmodifier.List{listplanmodifier.RequiresReplace()},
 		},
 		"cloud_init_script": schema.StringAttribute{
 			MarkdownDescription: "Cloud-init script to run on server creation. Changing this forces a new resource.",
@@ -216,6 +234,15 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 	}
 	flex.SetIfKnown(&input.HetznerSSHKeyIDs, plan.HetznerSSHKeyIDs)
 	flex.SetIfKnown(&input.CloudInitScript, plan.CloudInitScript)
+	firewallIDs, fwDiags := int64IDsFromList(ctx, plan.HetznerFirewallIDs)
+	resp.Diagnostics.Append(fwDiags...)
+	networkIDs, netDiags := int64IDsFromList(ctx, plan.HetznerNetworkIDs)
+	resp.Diagnostics.Append(netDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	input.HetznerFirewallIDs = firewallIDs
+	input.HetznerNetworkIDs = networkIDs
 
 	created, err := r.client.CreateHetznerServer(ctx, input)
 	if err != nil {
@@ -374,4 +401,15 @@ func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 
 func flattenHetznerServer(srv *client.Server, model *hetznerServerResourceModel) {
 	server.FlattenServerCommon(srv, model.commonPtrs())
+}
+
+// int64IDsFromList copies a Terraform list of integers into a Go slice.
+// Null or unknown lists omit the JSON field on create (empty slice + omitempty).
+func int64IDsFromList(ctx context.Context, list types.List) ([]int64, diag.Diagnostics) {
+	if list.IsNull() || list.IsUnknown() {
+		return nil, nil
+	}
+	var ids []int64
+	diags := list.ElementsAs(ctx, &ids, false)
+	return ids, diags
 }

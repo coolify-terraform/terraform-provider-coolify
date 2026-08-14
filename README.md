@@ -30,7 +30,7 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 | Area | Coverage |
 |---|---|
 | Managed resources | 56 |
-| Data sources | 67 |
+| Data sources | 69 |
 | Tests | 1390+ unit and acceptance tests |
 | Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
@@ -195,7 +195,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_health` | Read Coolify instance health status |
 | `coolify_notification_discord` / `coolify_notification_slack` / `coolify_notification_email` / `coolify_notification_telegram` / `coolify_notification_webhook` / `coolify_notification_pushover` | Read team notification channel settings (Coolify >= v4.3.0) |
 | `coolify_version` | Read the Coolify instance version |
-| `coolify_hetzner_images` / `coolify_hetzner_locations` / `coolify_hetzner_server_types` / `coolify_hetzner_ssh_keys` | Read Hetzner cloud resources |
+| `coolify_hetzner_images` / `coolify_hetzner_locations` / `coolify_hetzner_server_types` / `coolify_hetzner_ssh_keys` / `coolify_hetzner_firewalls` / `coolify_hetzner_networks` | Read Hetzner cloud resources (firewalls and networks require Coolify >= v4.2.0) |
 | `coolify_digitalocean_regions` / `coolify_digitalocean_sizes` / `coolify_digitalocean_images` / `coolify_digitalocean_ssh_keys` | Read DigitalOcean cloud resources (Coolify >= v4.2.0) |
 | `coolify_vultr_regions` / `coolify_vultr_plans` / `coolify_vultr_os` / `coolify_vultr_ssh_keys` | Read Vultr cloud resources (Coolify >= v4.2.0) |
 | `coolify_destination` / `coolify_destinations` | Read Docker network destination(s) (Coolify >= v4.2.0) |

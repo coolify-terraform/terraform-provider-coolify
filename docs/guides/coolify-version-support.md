@@ -78,6 +78,8 @@ teams, and most list/single data sources.
 | `coolify_server_vultr` | Provision Vultr instances into Coolify |
 | `coolify_digitalocean_*` data sources | regions, sizes, images, ssh_keys |
 | `coolify_vultr_*` data sources | regions, plans, os, ssh_keys |
+| `coolify_hetzner_firewalls` / `coolify_hetzner_networks` | List existing Hetzner firewalls and private networks |
+| `hetzner_firewall_ids` / `hetzner_network_ids` on `coolify_server_hetzner` | Attach existing Hetzner firewalls and networks at create time |
 
 `destination_uuid` on app, database, or service create works on Coolify 4.1.0+.
 Managing destinations as `coolify_destination` (and multi-destination servers)

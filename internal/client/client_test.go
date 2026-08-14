@@ -2962,6 +2962,8 @@ func TestClient_CreateHetznerServer(t *testing.T) {
 		assert.Equal(t, "fsn1", body["location"])
 		assert.Equal(t, "ubuntu-22.04", body["image"])
 		assert.Equal(t, "pk-uuid-1", body["private_key_uuid"])
+		assert.Equal(t, []interface{}{float64(38), float64(39)}, body["hetzner_firewall_ids"])
+		assert.Equal(t, []interface{}{float64(456), float64(457)}, body["hetzner_network_ids"])
 		_, hasHetznerToken := body["hetzner_token"]
 		assert.False(t, hasHetznerToken, "should not send old hetzner_token field")
 
@@ -2979,6 +2981,8 @@ func TestClient_CreateHetznerServer(t *testing.T) {
 		Location:               "fsn1",
 		Image:                  "ubuntu-22.04",
 		PrivateKeyUUID:         "pk-uuid-1",
+		HetznerFirewallIDs:     []int64{38, 39},
+		HetznerNetworkIDs:      []int64{456, 457},
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "hz-srv-1", server.UUID)
@@ -3029,6 +3033,31 @@ func TestHetznerCreate_CloudProviderTokenUUID_JSONTag(t *testing.T) {
 	assert.True(t, hasToken, "expected JSON key 'cloud_provider_token_uuid'")
 	_, hasOldToken := raw["hetzner_token"]
 	assert.False(t, hasOldToken, "should not send old 'hetzner_token' field")
+}
+
+func TestHetznerCreate_NetworkAndFirewallIDs_JSONTags(t *testing.T) {
+	t.Parallel()
+	input := CreateHetznerServerInput{
+		HetznerFirewallIDs: []int64{38, 39},
+		HetznerNetworkIDs:  []int64{456},
+	}
+	data, err := json.Marshal(input)
+	require.NoError(t, err)
+
+	var raw map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &raw))
+	assert.Equal(t, []interface{}{float64(38), float64(39)}, raw["hetzner_firewall_ids"])
+	assert.Equal(t, []interface{}{float64(456)}, raw["hetzner_network_ids"])
+
+	empty := CreateHetznerServerInput{}
+	emptyData, err := json.Marshal(empty)
+	require.NoError(t, err)
+	var emptyRaw map[string]interface{}
+	require.NoError(t, json.Unmarshal(emptyData, &emptyRaw))
+	_, hasFirewalls := emptyRaw["hetzner_firewall_ids"]
+	assert.False(t, hasFirewalls, "empty slice must omit hetzner_firewall_ids")
+	_, hasNetworks := emptyRaw["hetzner_network_ids"]
+	assert.False(t, hasNetworks, "empty slice must omit hetzner_network_ids")
 }
 
 // --- Scheduled Tasks ---
@@ -5406,6 +5435,72 @@ func TestClient_ListHetznerSSHKeys(t *testing.T) {
 	require.Len(t, keys, 1)
 	assert.Equal(t, "deploy-key", keys[0].Name)
 	assert.Equal(t, "aa:bb:cc:dd", keys[0].Fingerprint)
+}
+
+func TestClient_ListHetznerFirewalls(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/hetzner/firewalls", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]HetznerFirewall{
+			{ID: 38, Name: "web"},
+			{ID: 39, Name: "db"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	firewalls, err := c.ListHetznerFirewalls(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, firewalls, 2)
+	assert.Equal(t, int64(38), firewalls[0].ID)
+	assert.Equal(t, "web", firewalls[0].Name)
+}
+
+func TestClient_ListHetznerFirewalls_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerFirewalls(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ListHetznerNetworks(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/hetzner/networks", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]HetznerNetwork{
+			{ID: 456, Name: "acme-private", IPRange: "10.0.0.0/16"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	networks, err := c.ListHetznerNetworks(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, networks, 1)
+	assert.Equal(t, int64(456), networks[0].ID)
+	assert.Equal(t, "acme-private", networks[0].Name)
+	assert.Equal(t, "10.0.0.0/16", networks[0].IPRange)
+}
+
+func TestClient_ListHetznerNetworks_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerNetworks(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
 }
 
 // --- Cloudflare Access Headers ---
