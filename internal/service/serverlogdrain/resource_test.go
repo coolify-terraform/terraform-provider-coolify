@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -141,6 +142,31 @@ resource "coolify_server_log_drain" "test" {
   logdrain_axiom_api_key      = "axiom-key"
 }`,
 			Check: resource.TestCheckResourceAttr("coolify_server_log_drain.test", "is_logdrain_axiom_enabled", "true"),
+		}},
+	})
+}
+
+func TestServerLogDrainResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/log-drains") && r.Method == http.MethodPatch {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		http.Error(w, r.URL.Path, http.StatusNotFound)
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_log_drain" "test" {
+  server_uuid                 = "aaaa0001-0001-4000-8000-000000000001"
+  is_logdrain_axiom_enabled   = true
+  logdrain_axiom_dataset_name = "coolify"
+  logdrain_axiom_api_key      = "axiom-key"
+}`,
+			ExpectError: regexp.MustCompile(`Error applying server log drains`),
 		}},
 	})
 }

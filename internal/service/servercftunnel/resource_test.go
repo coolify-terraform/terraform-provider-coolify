@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -127,6 +128,29 @@ resource "coolify_server_cloudflare_tunnel" "test" {
   is_cloudflare_tunnel = true
 }`,
 			Check: resource.TestCheckResourceAttr("coolify_server_cloudflare_tunnel.test", "is_cloudflare_tunnel", "true"),
+		}},
+	})
+}
+
+func TestServerCFTunnelResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/cloudflare-tunnel") && r.Method == http.MethodPatch {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		http.Error(w, r.URL.Path, http.StatusNotFound)
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_cloudflare_tunnel" "test" {
+  server_uuid          = "aaaa0001-0001-4000-8000-000000000001"
+  is_cloudflare_tunnel = true
+}`,
+			ExpectError: regexp.MustCompile(`Error applying Cloudflare tunnel setting`),
 		}},
 	})
 }

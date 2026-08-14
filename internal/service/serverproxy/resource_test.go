@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -138,5 +139,133 @@ resource "coolify_server_proxy" "test" {
 }`,
 			Check: resource.TestCheckResourceAttr("coolify_server_proxy.test", "proxy_type", "caddy"),
 		}},
+	})
+}
+
+func TestServerProxyResource_ConfigurationPUT(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	store := map[string]any{"proxy_type": "traefik", "configuration": ""}
+	var mu sync.Mutex
+	var putCount int
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/proxy/configuration") && r.Method == http.MethodPut:
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("decode proxy config: %v", err)
+			}
+			cfg, _ := body["configuration"].(string)
+			if cfg == "" {
+				t.Errorf("expected non-empty configuration in PUT body, got %v", body)
+			}
+			store["configuration"] = cfg
+			putCount++
+			w.WriteHeader(http.StatusOK)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch:
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			for k, v := range body {
+				store[k] = v
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid   = "` + serverUUID + `"
+  proxy_type    = "traefik"
+  configuration = "http:\n  routers:\n    web: {}"
+}`,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("coolify_server_proxy.test", "configuration", "http:\n  routers:\n    web: {}"),
+				func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if putCount < 1 {
+						return fmt.Errorf("expected PUT /proxy/configuration, got %d calls", putCount)
+					}
+					return nil
+				},
+			),
+		}},
+	})
+}
+
+func TestServerProxyResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		http.Error(w, r.URL.Path, http.StatusNotFound)
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  proxy_type  = "caddy"
+}`,
+			ExpectError: regexp.MustCompile(`Error applying server proxy`),
+		}},
+	})
+}
+
+func TestServerProxyResource_ImportBadUUID(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	store := map[string]any{"proxy_type": "traefik"}
+	var mu sync.Mutex
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch:
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			for k, v := range body {
+				store[k] = v
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid = "` + serverUUID + `"
+  proxy_type  = "traefik"
+}`,
+			},
+			{
+				ResourceName:  "coolify_server_proxy.test",
+				ImportState:   true,
+				ImportStateId: "not-a-uuid",
+				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
 	})
 }
