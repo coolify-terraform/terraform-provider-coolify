@@ -143,8 +143,9 @@ func TestAccSharedEnvResource_EnvironmentCRUD(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{{
-			Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" { name = %q }
 resource "coolify_shared_environment_variable" "test" {
   scope        = "environment"
@@ -154,10 +155,24 @@ resource "coolify_shared_environment_variable" "test" {
   value        = "on"
 }
 `, proj, key),
-			Check: resource.ComposeAggregateTestCheckFunc(
-				resource.TestCheckResourceAttr("coolify_shared_environment_variable.test", "key", key),
-				resource.TestCheckResourceAttr("coolify_shared_environment_variable.test", "scope", "environment"),
-			),
-		}},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_shared_environment_variable.test", "key", key),
+					resource.TestCheckResourceAttr("coolify_shared_environment_variable.test", "scope", "environment"),
+				),
+			},
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" { name = %q }
+resource "coolify_shared_environment_variable" "test" {
+  scope        = "environment"
+  project_uuid = coolify_project.test.uuid
+  environment  = "production"
+  key          = %q
+  value        = "off"
+}
+`, proj, key),
+				Check: resource.TestCheckResourceAttr("coolify_shared_environment_variable.test", "value", "off"),
+			},
+		},
 	})
 }

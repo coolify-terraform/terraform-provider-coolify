@@ -128,7 +128,7 @@ resource "coolify_gitlab_app" "test" {
 }`,
 			Check: resource.ComposeAggregateTestCheckFunc(
 				resource.TestCheckResourceAttrSet("coolify_gitlab_app.test", "uuid"),
-				acctest.CheckResourceDisappears(srv.URL, "coolify_gitlab_app.test", "/api/v1/gitlab-apps/"),
+				acctest.CheckPathDisappears(srv.URL, "/api/v1/gitlab-apps/7"),
 			),
 			ExpectNonEmptyPlan: true,
 		}},

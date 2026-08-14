@@ -76,6 +76,40 @@ data "coolify_application" "test" {
 	})
 }
 
+func TestApplicationDataSource_ConsistentContainerNameDefault(t *testing.T) {
+	t.Parallel()
+	app := client.Application{
+		UUID: "cccc0004-0004-4000-8000-000000000002",
+		Name: "default-consistent-name",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+data "coolify_application" "test" {
+  uuid = "cccc0004-0004-4000-8000-000000000002"
+}
+`, srv.URL),
+			Check: resource.TestCheckResourceAttr("data.coolify_application.test", "is_consistent_container_name_enabled", "false"),
+		}},
+	})
+}
+
 func TestApplicationDataSource_NotFound(t *testing.T) {
 	t.Parallel()
 	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

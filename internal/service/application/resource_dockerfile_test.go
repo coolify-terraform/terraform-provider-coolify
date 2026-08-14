@@ -846,10 +846,8 @@ func TestDockerfileApplicationResource_CreateAPIError(t *testing.T) {
 	})
 }
 
-// TestDockerfileApplicationResource_ConsistentContainerNameEnabled asserts the
-// post-create PATCH sends is_consistent_container_name_enabled=true and that
-// the field is stored after apply. Required for volume-backed apps that hold
-// exclusive file locks (issue #753).
+// Mock must report Coolify >= 4.3.0. The default v4.2.0 endpoint strips this
+// field from the post-create PATCH.
 func TestDockerfileApplicationResource_ConsistentContainerNameEnabled(t *testing.T) {
 	t.Parallel()
 	trueVal := true
