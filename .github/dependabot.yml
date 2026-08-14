@@ -4,6 +4,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    rebase-strategy: auto
     labels:
       - dependencies
     commit-message:
@@ -19,6 +20,7 @@ updates:
     directory: /tools
     schedule:
       interval: weekly
+    rebase-strategy: auto
     labels:
       - dependencies
     commit-message:
@@ -29,6 +31,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    rebase-strategy: auto
     labels:
       - dependencies
     commit-message:
