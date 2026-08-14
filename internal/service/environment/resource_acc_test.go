@@ -13,6 +13,8 @@ func TestAccEnvironmentResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
+	// Description is applied via PATCH /projects/{uuid}/environments/{name}, which landed in Coolify 4.3.0.
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.3.0")
 	name := acctest.RandomWithPrefix("tf-acc-env")
 
 	resource.Test(t, resource.TestCase{
@@ -84,6 +86,49 @@ resource "coolify_environment" "test" {
 	})
 }
 
+// TestAccEnvironmentResource_CreateNameOnly covers create/import on Coolify
+// versions that lack PATCH environment (floor 4.1.2). Description is omitted
+// so Create does not issue a follow-up PATCH.
+func TestAccEnvironmentResource_CreateNameOnly(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	name := acctest.RandomWithPrefix("tf-acc-env-name")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_environment" "test" {
+  project_uuid = coolify_project.test.uuid
+  name         = "staging"
+}
+`, name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_environment.test", "id"),
+					resource.TestCheckResourceAttr("coolify_environment.test", "name", "staging"),
+				),
+			},
+			{
+				ResourceName:            "coolify_environment.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"description"},
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs := s.RootModule().Resources["coolify_environment.test"]
+					return rs.Primary.Attributes["project_uuid"] + ":" + rs.Primary.Attributes["name"], nil
+				},
+			},
+		},
+	})
+}
+
 func TestAccEnvironmentDataSources(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
@@ -103,7 +148,6 @@ resource "coolify_project" "test" {
 resource "coolify_environment" "test" {
   project_uuid = coolify_project.test.uuid
   name         = "ds-test"
-  description  = "data source test"
 }
 
 data "coolify_environment" "test" {

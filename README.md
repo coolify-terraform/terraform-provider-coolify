@@ -145,7 +145,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_server_proxy` | Manage server proxy settings (Coolify >= v4.3.0) |
 | `coolify_server_log_drain` | Manage server log drains (Coolify >= v4.3.0) |
 | `coolify_server_cloudflare_tunnel` | Manage server Cloudflare tunnel (Coolify >= v4.3.0) |
-| `coolify_server_sentinel` | Manage Sentinel host metrics settings (Coolify >= v4.1.1) |
+| `coolify_server_sentinel` | Manage Sentinel host metrics settings (Coolify >= v4.3.0) |
 | `coolify_server_docker_cleanup` | Manage Docker cleanup schedule (Coolify >= v4.3.0) |
 | `coolify_application_destination` | Attach an extra destination to an application (Coolify >= v4.2.0) |
 | `coolify_notification_email` | Team email notification settings (Coolify >= v4.3.0) |

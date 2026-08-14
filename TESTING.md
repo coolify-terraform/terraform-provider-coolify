@@ -391,7 +391,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_proxy` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves remote config |
 | `coolify_server_log_drain` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy disables drains |
 | `coolify_server_cloudflare_tunnel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
-| `coolify_server_sentinel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.1.1 |
+| `coolify_server_sentinel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
 | `coolify_server_docker_cleanup` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves schedule |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 

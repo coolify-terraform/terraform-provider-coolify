@@ -91,6 +91,8 @@ needs Coolify >= 4.2.0; see [Connecting Resources](connecting-resources).
 | `coolify_notification_telegram` | Team Telegram notification settings |
 | `coolify_notification_webhook` | Team generic webhook notification settings |
 | `coolify_notification_pushover` | Team Pushover notification settings |
+| `coolify_server_sentinel` | Sentinel host metrics agent (GET/PATCH `/servers/{uuid}/sentinel`) |
+| `coolify_environment` `description` | Create still works on 4.1.x without description; PATCH description is 4.3.0+ |
 
 Server host version probes (`compose_version`, `docker_version`, and `*_checked_at`)
 on `coolify_server` / cloud server resources and `coolify_server` / `coolify_servers`

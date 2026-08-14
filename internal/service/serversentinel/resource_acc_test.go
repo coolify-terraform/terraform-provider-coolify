@@ -12,7 +12,8 @@ func TestAccServerSentinelResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
-	acctest.AccTestSkipIfCoolifyBelow(t, "4.1.1")
+	// GET/PATCH /servers/{uuid}/sentinel landed in Coolify 4.3.0 (absent from 4.1.2/4.2.0 contracts).
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.3.0")
 	serverUUID := acctest.AccTestServerUUID(t)
 
 	resource.Test(t, resource.TestCase{

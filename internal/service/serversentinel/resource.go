@@ -44,7 +44,7 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 
 func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages Coolify Sentinel (host metrics agent) settings for a server. Available on Coolify >= v4.1.1. Destroy sets is_sentinel_enabled to false.",
+		MarkdownDescription: "Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy sets is_sentinel_enabled to false.",
 		Attributes: map[string]schema.Attribute{
 			"server_uuid":                           schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
 			"is_sentinel_enabled":                   schema.BoolAttribute{Optional: true, Computed: true},
