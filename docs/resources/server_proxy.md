@@ -33,7 +33,7 @@ resource "coolify_server_proxy" "example" {
 - `configuration` (String) Raw proxy configuration written with PUT .../proxy/configuration.
 - `generate_exact_labels` (Boolean)
 - `proxy_type` (String) Proxy type (for example traefik or caddy).
-- `redirect_enabled` (Boolean)
+- `redirect_enabled` (Boolean) Whether HTTP to HTTPS redirect is enabled. Coolify defaults this to `true`. Setting `false` is ignored by Coolify today (`$request->has('redirect_enabled')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.
 - `redirect_url` (String)
 
 ## Import
