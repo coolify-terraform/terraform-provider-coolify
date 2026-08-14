@@ -210,7 +210,14 @@ func (r *gitlabAppResource) Update(ctx context.Context, req resource.UpdateReque
 		input.RedirectURI = &v
 	}
 	secret, token := plan.ClientSecret, plan.WebhookToken
-	got, err := r.client.UpdateGitLabApp(ctx, plan.ID.ValueInt64(), input)
+	id := plan.ID.ValueInt64()
+	if id == 0 {
+		if got, err := r.client.GetGitLabAppByUUID(ctx, plan.UUID.ValueString()); err == nil && got.ID != 0 {
+			id = got.ID
+			plan.ID = types.Int64Value(id)
+		}
+	}
+	got, err := r.client.UpdateGitLabApp(ctx, id, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating GitLab App", err.Error())
 		return

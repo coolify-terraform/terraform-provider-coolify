@@ -96,9 +96,7 @@ func flattenProxy(got *client.ServerProxy, plan *serverProxyModel) {
 		plan.GenerateExactLabels = types.BoolNull()
 	}
 	if got.ProxyType != "" {
-		if plan.ProxyType.IsNull() || plan.ProxyType.IsUnknown() || !strings.EqualFold(plan.ProxyType.ValueString(), got.ProxyType) {
-			plan.ProxyType = types.StringValue(got.ProxyType)
-		}
+		plan.ProxyType = types.StringValue(strings.ToLower(got.ProxyType))
 	}
 	if got.Configuration != "" && !plan.Configuration.IsNull() && !plan.Configuration.IsUnknown() {
 		plan.Configuration = types.StringValue(got.Configuration)
@@ -156,9 +154,7 @@ func (r *serverProxyResource) Read(ctx context.Context, req resource.ReadRequest
 		state.GenerateExactLabels = types.BoolValue(*got.GenerateExactLabels)
 	}
 	if got.ProxyType != "" {
-		if state.ProxyType.IsNull() || state.ProxyType.IsUnknown() || !strings.EqualFold(state.ProxyType.ValueString(), got.ProxyType) {
-			state.ProxyType = types.StringValue(got.ProxyType)
-		}
+		state.ProxyType = types.StringValue(strings.ToLower(got.ProxyType))
 	}
 	if got.Configuration != "" && !state.Configuration.IsNull() {
 		state.Configuration = types.StringValue(got.Configuration)

@@ -97,17 +97,30 @@ func (c *Client) CreateGitLabApp(ctx context.Context, input CreateGitLabAppInput
 	if err != nil {
 		return nil, fmt.Errorf("decoding gitlab app create response: %w", err)
 	}
-	if app.ID == 0 && app.UUID != "" {
-		found, getErr := c.GetGitLabAppByUUID(ctx, app.UUID)
+	if app.ID == 0 {
+		found, getErr := c.resolveGitLabApp(ctx, app.UUID, input.Name)
 		if getErr != nil {
-			return nil, fmt.Errorf("resolving gitlab app %s after create: %w", app.UUID, getErr)
+			return nil, fmt.Errorf("resolving gitlab app after create: %w", getErr)
 		}
 		return found, nil
 	}
-	if app.ID == 0 {
-		return nil, fmt.Errorf("gitlab app create response missing id")
-	}
 	return app, nil
+}
+
+func (c *Client) resolveGitLabApp(ctx context.Context, uuid, name string) (*GitLabApp, error) {
+	apps, err := c.ListGitLabApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for i := range apps {
+		if uuid != "" && apps[i].UUID == uuid && apps[i].ID != 0 {
+			return &apps[i], nil
+		}
+		if name != "" && apps[i].Name == name && apps[i].ID != 0 {
+			return &apps[i], nil
+		}
+	}
+	return nil, fmt.Errorf("gitlab app %q not found after create", name)
 }
 
 func (c *Client) UpdateGitLabApp(ctx context.Context, id int64, input UpdateGitLabAppInput) (*GitLabApp, error) {
