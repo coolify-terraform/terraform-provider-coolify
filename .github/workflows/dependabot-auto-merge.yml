@@ -30,8 +30,14 @@ jobs:
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Approve and enable auto-merge (patch/minor only)
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+      # Actions majors (cache v4->v6, setup-go v5->v6) are Node runtime
+      # bumps, not API breaks. fetch-metadata reports the highest type in
+      # a group, so one action major used to block the whole weekly group.
+      # Keep skipping gomod (and other) majors for human review.
+      - name: Approve and enable auto-merge
+        if: >-
+          steps.metadata.outputs.update-type != 'version-update:semver-major' ||
+          steps.metadata.outputs.package-ecosystem == 'github_actions'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
@@ -39,5 +45,7 @@ jobs:
           gh pr review --approve "$PR_URL"
           gh pr merge --auto --squash "$PR_URL"
       - name: Skip major updates
-        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-major' &&
+          steps.metadata.outputs.package-ecosystem != 'github_actions'
         run: echo "Skipping major version update -- requires manual review"
