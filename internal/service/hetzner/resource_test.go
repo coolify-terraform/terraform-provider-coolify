@@ -358,6 +358,7 @@ resource "coolify_server_hetzner" "test" {
 					"instant_validate",
 					"enable_ipv4",
 					"enable_ipv6",
+					"enable_backups",
 					"private_key_uuid",
 				},
 			},
@@ -479,6 +480,112 @@ resource "coolify_server_hetzner" "test" {
   hetzner_ssh_key_ids       = "12345, 67890"
   hetzner_firewall_ids      = [38, 39]
   hetzner_network_ids       = [456, 457]
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestHetznerServerResource_CreateWithEnableBackups(t *testing.T) {
+	t.Parallel()
+
+	var got client.CreateHetznerServerInput
+	servers := make(map[string]*client.Server)
+	var mu sync.Mutex
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers/hetzner":
+			if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			created := &client.Server{
+				UUID:           "aaaa0001-0001-4000-8000-000000000001",
+				Name:           got.Name,
+				IP:             "203.0.113.42",
+				Port:           22,
+				User:           "root",
+				PrivateKeyUUID: got.PrivateKeyUUID,
+				IsReachable:    true,
+				IsUsable:       true,
+				Settings: &client.ServerSettings{
+					ConcurrentBuilds:                     2,
+					DynamicTimeout:                       3600,
+					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
+					ServerDiskUsageNotificationThreshold: 80,
+					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+				},
+			}
+			servers[created.UUID] = created
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(created)
+
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			s, ok := servers[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			resp := *s
+			resp.PrivateKeyUUID = ""
+			json.NewEncoder(w).Encode(resp)
+
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			delete(servers, uuid)
+			w.WriteHeader(http.StatusOK)
+
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_server_hetzner", "/api/v1/servers/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_hetzner" "test" {
+  name                      = "my-hetzner"
+  cloud_provider_token_uuid = "cccc0001-0001-4000-8000-000000000001"
+  server_type               = "cx22"
+  location                  = "fsn1"
+  image                     = "ubuntu-24.04"
+  private_key_uuid          = "dddd0002-0002-4000-8000-000000000002"
+  enable_backups            = true
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_backups", "true"),
+					func(_ *terraform.State) error {
+						if got.EnableBackups == nil || !*got.EnableBackups {
+							return fmt.Errorf("POST body enable_backups = %v, want true", got.EnableBackups)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_hetzner" "test" {
+  name                      = "my-hetzner"
+  cloud_provider_token_uuid = "cccc0001-0001-4000-8000-000000000001"
+  server_type               = "cx22"
+  location                  = "fsn1"
+  image                     = "ubuntu-24.04"
+  private_key_uuid          = "dddd0002-0002-4000-8000-000000000002"
+  enable_backups            = true
 }`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,

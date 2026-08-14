@@ -9,6 +9,7 @@ resource "coolify_server_hetzner" "example" {
   # Optional Hetzner settings:
   # enable_ipv4       = true
   # enable_ipv6       = true
+  # enable_backups    = true   # Requires Coolify >= v4.2.0; adds ~20% to the Hetzner monthly fee
   # hetzner_ssh_key_ids = "12345,67890"
   # Look up IDs with data.coolify_hetzner_firewalls / data.coolify_hetzner_networks.
   # hetzner_firewall_ids = [38, 39]   # Requires Coolify >= v4.2.0

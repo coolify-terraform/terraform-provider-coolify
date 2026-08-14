@@ -59,6 +59,7 @@ func TestAccHetznerServerResource_CRUD(t *testing.T) {
 					"instant_validate",
 					"enable_ipv4",
 					"enable_ipv6",
+					"enable_backups",
 					"private_key_uuid",
 				},
 			},

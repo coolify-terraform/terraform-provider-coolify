@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -55,6 +56,7 @@ type hetznerServerResourceModel struct {
 	InstantValidate        types.Bool   `tfsdk:"instant_validate"`
 	EnableIPv4             types.Bool   `tfsdk:"enable_ipv4"`
 	EnableIPv6             types.Bool   `tfsdk:"enable_ipv6"`
+	EnableBackups          types.Bool   `tfsdk:"enable_backups"`
 
 	// Shared server fields (updatable).
 	Name                                 types.String `tfsdk:"name"`
@@ -122,7 +124,7 @@ func (r *hetznerServerResource) Metadata(_ context.Context, req resource.Metadat
 
 func (r *hetznerServerResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Provisions a Hetzner Cloud server and registers it with Coolify.\n\n~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.\n\n~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `hetzner_firewall_ids`, `hetzner_network_ids`, `cloud_init_script`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state. Set them in your configuration before running `terraform plan` to avoid a forced replacement.",
+		MarkdownDescription: "Provisions a Hetzner Cloud server and registers it with Coolify.\n\n~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.\n\n~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `hetzner_firewall_ids`, `hetzner_network_ids`, `cloud_init_script`, `enable_backups`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state (`enable_backups` becomes `false`). Set them in your configuration before running `terraform plan` to avoid a forced replacement.",
 		Attributes:          server.CommonServerAttrs(ctx, hetznerSchemaAttributes()),
 	}
 }
@@ -201,6 +203,15 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
 		},
+		"enable_backups": schema.BoolAttribute{
+			MarkdownDescription: "Whether to enable Hetzner Cloud server backups after creation. Adds about 20% to the monthly Hetzner server fee. Requires Coolify >= v4.2.0. Changing this forces a new resource. The Coolify API does not return this field; after import it is `false` in state.",
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers: []planmodifier.Bool{
+				boolplanmodifier.RequiresReplace(),
+				boolplanmodifier.UseStateForUnknown(),
+			},
+		},
 	}
 }
 
@@ -234,6 +245,7 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 		PrivateKeyUUID:         plan.PrivateKeyUUID.ValueString(),
 		EnableIPv4:             flex.BoolValueOrNull(plan.EnableIPv4),
 		EnableIPv6:             flex.BoolValueOrNull(plan.EnableIPv6),
+		EnableBackups:          flex.BoolValueOrNull(plan.EnableBackups),
 		InstantValidate:        flex.BoolValueOrNull(plan.InstantValidate),
 	}
 	if !plan.HetznerSSHKeyIDs.IsNull() && !plan.HetznerSSHKeyIDs.IsUnknown() {
@@ -412,6 +424,10 @@ func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 
 func flattenHetznerServer(srv *client.Server, model *hetznerServerResourceModel) {
 	server.FlattenServerCommon(srv, model.commonPtrs())
+	// enable_backups is create-only; GET never returns it.
+	if model.EnableBackups.IsNull() || model.EnableBackups.IsUnknown() {
+		model.EnableBackups = types.BoolValue(false)
+	}
 }
 
 // int64IDsFromList copies a Terraform list of integers into a Go slice.
