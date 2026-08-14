@@ -5,7 +5,7 @@ subcategory: ""
 description: |-
   Provisions a Hetzner Cloud server and registers it with Coolify.
   ~> Warning: Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.
-  ~> Import note: Hetzner-specific fields (cloud_provider_token_uuid, server_type, location, image, hetzner_ssh_key_ids, hetzner_firewall_ids, hetzner_network_ids, cloud_init_script) are only sent at creation time and are not returned by the Coolify API. After terraform import, these fields will be empty in state. Set them in your configuration before running terraform plan to avoid a forced replacement.
+  ~> Import note: Hetzner-specific fields (cloud_provider_token_uuid, server_type, location, image, hetzner_ssh_key_ids, hetzner_firewall_ids, hetzner_network_ids, cloud_init_script, enable_backups) are only sent at creation time and are not returned by the Coolify API. After terraform import, these fields will be empty in state (enable_backups becomes false). Set them in your configuration before running terraform plan to avoid a forced replacement.
 ---
 
 # coolify_server_hetzner (Resource)
@@ -14,7 +14,7 @@ Provisions a Hetzner Cloud server and registers it with Coolify.
 
 ~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.
 
-~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `hetzner_firewall_ids`, `hetzner_network_ids`, `cloud_init_script`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state. Set them in your configuration before running `terraform plan` to avoid a forced replacement.
+~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `hetzner_firewall_ids`, `hetzner_network_ids`, `cloud_init_script`, `enable_backups`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state (`enable_backups` becomes `false`). Set them in your configuration before running `terraform plan` to avoid a forced replacement.
 
 ## Example Usage
 
@@ -30,6 +30,7 @@ resource "coolify_server_hetzner" "example" {
   # Optional Hetzner settings:
   # enable_ipv4       = true
   # enable_ipv6       = true
+  # enable_backups    = true   # Requires Coolify >= v4.2.0; adds ~20% to the Hetzner monthly fee
   # hetzner_ssh_key_ids = "12345,67890"
   # Look up IDs with data.coolify_hetzner_firewalls / data.coolify_hetzner_networks.
   # hetzner_firewall_ids = [38, 39]   # Requires Coolify >= v4.2.0
@@ -64,6 +65,7 @@ resource "coolify_server_hetzner" "example" {
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
 - `description` (String) A description of the server.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
+- `enable_backups` (Boolean) Whether to enable Hetzner Cloud server backups after creation. Adds about 20% to the monthly Hetzner server fee. Requires Coolify >= v4.2.0. Changing this forces a new resource. The Coolify API does not return this field; after import it is `false` in state.
 - `enable_ipv4` (Boolean) Whether to enable IPv4 on the server.
 - `enable_ipv6` (Boolean) Whether to enable IPv6 on the server.
 - `hetzner_firewall_ids` (List of Number) Existing Hetzner firewall IDs to apply when Coolify creates the server. Use `data.coolify_hetzner_firewalls` to list available firewalls. Requires Coolify >= v4.2.0. Changing this forces a new resource.

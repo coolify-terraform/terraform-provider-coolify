@@ -3064,6 +3064,26 @@ func TestHetznerCreate_NetworkAndFirewallIDs_JSONTags(t *testing.T) {
 	assert.False(t, hasNetworks, "empty slice must omit hetzner_network_ids")
 }
 
+func TestHetznerCreate_EnableBackups_JSONTag(t *testing.T) {
+	t.Parallel()
+	enabled := true
+	input := CreateHetznerServerInput{EnableBackups: &enabled}
+	data, err := json.Marshal(input)
+	require.NoError(t, err)
+
+	var raw map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &raw))
+	assert.Equal(t, true, raw["enable_backups"])
+
+	empty := CreateHetznerServerInput{}
+	emptyData, err := json.Marshal(empty)
+	require.NoError(t, err)
+	var emptyRaw map[string]interface{}
+	require.NoError(t, json.Unmarshal(emptyData, &emptyRaw))
+	_, hasBackups := emptyRaw["enable_backups"]
+	assert.False(t, hasBackups, "nil pointer must omit enable_backups")
+}
+
 // --- Scheduled Tasks ---
 
 func TestClient_ListScheduledTasks(t *testing.T) {
@@ -5865,6 +5885,242 @@ func TestClient_ListDigitalOceanRegions(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, regions, 1)
 	assert.Equal(t, "nyc1", regions[0].Slug)
+}
+
+func TestClient_ListDigitalOceanRegions_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"DigitalOcean cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListDigitalOceanRegions(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ListDigitalOceanSizes(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/digitalocean/sizes", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]DigitalOceanSize{
+			{Slug: "s-1vcpu-1gb", Memory: 1024, VCPUs: 1, Disk: 25, Available: true},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	sizes, err := c.ListDigitalOceanSizes(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, sizes, 1)
+	assert.Equal(t, "s-1vcpu-1gb", sizes[0].Slug)
+	assert.Equal(t, int64(1), sizes[0].VCPUs)
+}
+
+func TestClient_ListDigitalOceanSizes_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"DigitalOcean cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListDigitalOceanSizes(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ListDigitalOceanImages(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/digitalocean/images", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]DigitalOceanImage{
+			{ID: 12, Name: "24.04 x64", Distribution: "Ubuntu", Slug: "ubuntu-24-04-x64", Public: true, Type: "snapshot"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	images, err := c.ListDigitalOceanImages(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, images, 1)
+	assert.Equal(t, int64(12), images[0].ID)
+	assert.Equal(t, "ubuntu-24-04-x64", images[0].Slug)
+}
+
+func TestClient_ListDigitalOceanImages_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"DigitalOcean cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListDigitalOceanImages(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ListDigitalOceanSSHKeys(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/digitalocean/ssh-keys", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]DigitalOceanSSHKey{
+			{ID: 7, Name: "deploy", Fingerprint: "aa:bb:cc"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	keys, err := c.ListDigitalOceanSSHKeys(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, keys, 1)
+	assert.Equal(t, "deploy", keys[0].Name)
+	assert.Equal(t, "aa:bb:cc", keys[0].Fingerprint)
+}
+
+func TestClient_ListDigitalOceanSSHKeys_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"DigitalOcean cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListDigitalOceanSSHKeys(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ListVultrRegions(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/vultr/regions", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]VultrRegion{
+			{ID: "ewr", City: "Newark", Country: "US", Continent: "North America"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	regions, err := c.ListVultrRegions(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, regions, 1)
+	assert.Equal(t, "ewr", regions[0].ID)
+	assert.Equal(t, "Newark", regions[0].City)
+}
+
+func TestClient_ListVultrRegions_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Vultr cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListVultrRegions(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ListVultrPlans(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/vultr/plans", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]VultrPlan{
+			{ID: "vc2-1c-1gb", VCPUCount: 1, RAM: 1024, Disk: 25, Type: "vc2"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	plans, err := c.ListVultrPlans(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, plans, 1)
+	assert.Equal(t, "vc2-1c-1gb", plans[0].ID)
+	assert.Equal(t, int64(1), plans[0].VCPUCount)
+}
+
+func TestClient_ListVultrPlans_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Vultr cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListVultrPlans(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ListVultrOS(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/vultr/os", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]VultrOS{
+			{ID: 1743, Name: "Ubuntu 24.04 LTS x64", Arch: "x64", Family: "ubuntu"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	oses, err := c.ListVultrOS(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, oses, 1)
+	assert.Equal(t, int64(1743), oses[0].ID)
+	assert.Equal(t, "ubuntu", oses[0].Family)
+}
+
+func TestClient_ListVultrOS_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Vultr cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListVultrOS(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
+func TestClient_ListVultrSSHKeys(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/vultr/ssh-keys", r.URL.Path)
+		assert.Equal(t, "tok-uuid-1", r.URL.Query().Get("cloud_provider_token_uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]VultrSSHKey{
+			{ID: "abc", Name: "deploy", DateCreated: "2026-01-01"},
+		})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	keys, err := c.ListVultrSSHKeys(context.Background(), "tok-uuid-1")
+	require.NoError(t, err)
+	require.Len(t, keys, 1)
+	assert.Equal(t, "abc", keys[0].ID)
+	assert.Equal(t, "deploy", keys[0].Name)
+}
+
+func TestClient_ListVultrSSHKeys_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Vultr cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListVultrSSHKeys(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
 }
 
 func TestClient_DestinationCRUD(t *testing.T) {
