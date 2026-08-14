@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -55,8 +56,8 @@ func (d *osDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	items, ok := readFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
-		"coolify_vultr_os", "Error listing Vultr OS", resp, d.client, d.client.ListVultrOS,
+	items, ok := flex.ReadFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
+		"coolify_vultr_os", "Error listing Vultr OS", resp, d.client.ListVultrOS,
 		func(o client.VultrOS, field string) (string, bool) {
 			if field == "id" {
 				return filter.Int64ToString(o.ID), true

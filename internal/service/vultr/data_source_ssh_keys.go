@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -53,8 +54,8 @@ func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	items, ok := readFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
-		"coolify_vultr_ssh_keys", "Error listing Vultr SSH keys", resp, d.client, d.client.ListVultrSSHKeys,
+	items, ok := flex.ReadFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
+		"coolify_vultr_ssh_keys", "Error listing Vultr SSH keys", resp, d.client.ListVultrSSHKeys,
 		func(k client.VultrSSHKey, field string) (string, bool) {
 			if field == "id" {
 				return k.ID, true

@@ -5,6 +5,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -72,9 +73,9 @@ func (d *sizesDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	sizes, ok := readFilteredTokenList(
+	sizes, ok := flex.ReadFilteredTokenList(
 		ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
-		"coolify_digitalocean_sizes", "Error listing DigitalOcean sizes", resp, d.client,
+		"coolify_digitalocean_sizes", "Error listing DigitalOcean sizes", resp,
 		d.client.ListDigitalOceanSizes,
 		func(s client.DigitalOceanSize, field string) (string, bool) {
 			switch field {

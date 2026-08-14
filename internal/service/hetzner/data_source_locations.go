@@ -5,6 +5,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -76,14 +77,13 @@ func (d *locationsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	locations, ok := readFilteredTokenList(
+	locations, ok := flex.ReadFilteredTokenList(
 		ctx,
 		config.CloudProviderTokenUUID.ValueString(),
 		config.Filters,
 		"coolify_hetzner_locations",
 		"Error listing Hetzner locations",
 		resp,
-		d.client,
 		d.client.ListHetznerLocations,
 		func(loc client.HetznerLocation, field string) (string, bool) {
 			switch field {

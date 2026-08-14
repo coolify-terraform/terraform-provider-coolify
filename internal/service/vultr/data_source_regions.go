@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -55,8 +56,8 @@ func (d *regionsDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	items, ok := readFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
-		"coolify_vultr_regions", "Error listing Vultr regions", resp, d.client, d.client.ListVultrRegions,
+	items, ok := flex.ReadFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
+		"coolify_vultr_regions", "Error listing Vultr regions", resp, d.client.ListVultrRegions,
 		func(r client.VultrRegion, field string) (string, bool) {
 			switch field {
 			case "id":

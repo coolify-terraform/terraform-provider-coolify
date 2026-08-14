@@ -1,4 +1,4 @@
-//nolint:dupl // schema and state mapping differ; list/filter logic is in data_source_common.go
+//nolint:dupl // schema and state mapping differ; list/filter logic is in flex.ReadFilteredTokenList
 package hetzner
 
 import (
@@ -6,6 +6,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -73,14 +74,13 @@ func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	keys, ok := readFilteredTokenList(
+	keys, ok := flex.ReadFilteredTokenList(
 		ctx,
 		config.CloudProviderTokenUUID.ValueString(),
 		config.Filters,
 		"coolify_hetzner_ssh_keys",
 		"Error listing Hetzner SSH keys",
 		resp,
-		d.client,
 		d.client.ListHetznerSSHKeys,
 		func(k client.HetznerSSHKey, field string) (string, bool) {
 			switch field {
