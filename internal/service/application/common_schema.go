@@ -689,6 +689,8 @@ func applicationSettingAttrsV43() map[string]schema.Attribute {
 		},
 		"is_consistent_container_name_enabled": schema.BoolAttribute{
 			MarkdownDescription: "Whether Coolify uses a consistent container name for this application. Coolify default is `false`. " +
+				"Set to `true` for apps that keep an exclusive file lock on a persistent volume (SQLite, DuckDB, LMDB, BoltDB). " +
+				"A fixed name makes Docker refuse a second container on the same mounts, so Coolify falls back to stop-then-start instead of a rolling update that would leave the new container unable to open the store while still reporting a successful deploy. " +
 				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
 			Optional:      true,
 			Computed:      true,

@@ -2,6 +2,7 @@ package serverproxy_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestServerProxyResource_CRUD(t *testing.T) {
@@ -90,5 +92,51 @@ resource "coolify_server_proxy" "test" {
 				ImportStateVerifyIdentifierAttribute: "server_uuid",
 			},
 		},
+	})
+}
+
+// Destroy leaves remote proxy configuration in place (no DELETE API).
+func TestServerProxyResource_DestroyLeavesRemote(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	store := map[string]any{"proxy_type": "traefik"}
+	var mu sync.Mutex
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch:
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			for k, v := range body {
+				store[k] = v
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(_ *terraform.State) error {
+			mu.Lock()
+			defer mu.Unlock()
+			if store["proxy_type"] != "caddy" {
+				return fmt.Errorf("destroy must leave remote proxy_type, got %v", store["proxy_type"])
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid = "` + serverUUID + `"
+  proxy_type  = "caddy"
+}`,
+			Check: resource.TestCheckResourceAttr("coolify_server_proxy.test", "proxy_type", "caddy"),
+		}},
 	})
 }

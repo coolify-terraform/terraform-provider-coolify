@@ -26,25 +26,26 @@ type ApplicationDataSource struct {
 
 // ApplicationDataSourceModel maps the data source schema to Go types.
 type ApplicationDataSourceModel struct {
-	UUID                    types.String `tfsdk:"uuid"`
-	Name                    types.String `tfsdk:"name"`
-	Description             types.String `tfsdk:"description"`
-	Domains                 types.String `tfsdk:"domains"`
-	GitRepository           types.String `tfsdk:"git_repository"`
-	GitBranch               types.String `tfsdk:"git_branch"`
-	BuildPack               types.String `tfsdk:"build_pack"`
-	DockerfileLocation      types.String `tfsdk:"dockerfile_location"`
-	InstallCommand          types.String `tfsdk:"install_command"`
-	BuildCommand            types.String `tfsdk:"build_command"`
-	StartCommand            types.String `tfsdk:"start_command"`
-	PortsExposes            types.String `tfsdk:"ports_exposes"`
-	ProjectUUID             types.String `tfsdk:"project_uuid"`
-	ServerUUID              types.String `tfsdk:"server_uuid"`
-	EnvironmentName         types.String `tfsdk:"environment_name"`
-	Status                  types.String `tfsdk:"status"`
-	DockerComposeRaw        types.String `tfsdk:"docker_compose_raw"`
-	DockerRegistryImageName types.String `tfsdk:"docker_registry_image_name"`
-	MaxRestartCount         types.Int64  `tfsdk:"max_restart_count"`
+	UUID                             types.String `tfsdk:"uuid"`
+	Name                             types.String `tfsdk:"name"`
+	Description                      types.String `tfsdk:"description"`
+	Domains                          types.String `tfsdk:"domains"`
+	GitRepository                    types.String `tfsdk:"git_repository"`
+	GitBranch                        types.String `tfsdk:"git_branch"`
+	BuildPack                        types.String `tfsdk:"build_pack"`
+	DockerfileLocation               types.String `tfsdk:"dockerfile_location"`
+	InstallCommand                   types.String `tfsdk:"install_command"`
+	BuildCommand                     types.String `tfsdk:"build_command"`
+	StartCommand                     types.String `tfsdk:"start_command"`
+	PortsExposes                     types.String `tfsdk:"ports_exposes"`
+	ProjectUUID                      types.String `tfsdk:"project_uuid"`
+	ServerUUID                       types.String `tfsdk:"server_uuid"`
+	EnvironmentName                  types.String `tfsdk:"environment_name"`
+	Status                           types.String `tfsdk:"status"`
+	DockerComposeRaw                 types.String `tfsdk:"docker_compose_raw"`
+	DockerRegistryImageName          types.String `tfsdk:"docker_registry_image_name"`
+	MaxRestartCount                  types.Int64  `tfsdk:"max_restart_count"`
+	IsConsistentContainerNameEnabled types.Bool   `tfsdk:"is_consistent_container_name_enabled"`
 }
 
 // NewDataSource returns a new ApplicationDataSource instance.
@@ -138,6 +139,13 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				MarkdownDescription: "The maximum number of container restarts before Coolify stops the application.",
 				Computed:            true,
 			},
+			"is_consistent_container_name_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Whether Coolify uses a consistent container name for this application. Coolify default is `false`. " +
+					"Set to `true` for apps that keep an exclusive file lock on a persistent volume (SQLite, DuckDB, LMDB, BoltDB). " +
+					"A fixed name makes Docker refuse a second container on the same mounts, so Coolify falls back to stop-then-start instead of a rolling update that would leave the new container unable to open the store while still reporting a successful deploy. " +
+					"Requires Coolify >= v4.3.0.",
+				Computed: true,
+			},
 		},
 	}
 }
@@ -180,6 +188,11 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	config.DockerComposeRaw = flex.StringToFramework(app.DockerComposeRaw)
 	config.DockerRegistryImageName = flex.StringToFramework(app.DockerRegistryImageName)
 	config.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
+	if app.IsConsistentContainerNameEnabled != nil {
+		config.IsConsistentContainerNameEnabled = types.BoolValue(*app.IsConsistentContainerNameEnabled)
+	} else {
+		config.IsConsistentContainerNameEnabled = types.BoolValue(false)
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

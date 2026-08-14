@@ -57,6 +57,27 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 	})
 }
 
+func TestAccDockerfileApplicationResource_ConsistentContainerName(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.3.0")
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-consistent")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_dockerfile", "/api/v1/applications/"),
+		Steps: []resource.TestStep{{
+			Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, `is_consistent_container_name_enabled = true`),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttrSet("coolify_application_dockerfile.test", "uuid"),
+				resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "is_consistent_container_name_enabled", "true"),
+			),
+		}},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // TestAccDockerfileApplicationDataSources
 // ---------------------------------------------------------------------------

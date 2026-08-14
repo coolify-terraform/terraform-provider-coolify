@@ -2,6 +2,7 @@ package serverlogdrain_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestServerLogDrainResource_CRUD(t *testing.T) {
@@ -84,5 +86,61 @@ resource "coolify_server_log_drain" "test" {
 				ImportStateVerifyIgnore:              []string{"logdrain_axiom_api_key"},
 			},
 		},
+	})
+}
+
+// Destroy disables all drains remotely (no DELETE API).
+func TestServerLogDrainResource_DestroyDisables(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	store := map[string]any{
+		"is_logdrain_newrelic_enabled": false,
+		"is_logdrain_axiom_enabled":    false,
+		"is_logdrain_custom_enabled":   false,
+	}
+	var mu sync.Mutex
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if !strings.HasSuffix(r.URL.Path, "/log-drains") {
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+			return
+		}
+		switch r.Method {
+		case http.MethodPatch:
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			for k, v := range body {
+				store[k] = v
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		case http.MethodGet:
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(_ *terraform.State) error {
+			mu.Lock()
+			defer mu.Unlock()
+			if store["is_logdrain_axiom_enabled"] == true {
+				return fmt.Errorf("expected Axiom drain disabled after destroy, got %v", store["is_logdrain_axiom_enabled"])
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_log_drain" "test" {
+  server_uuid                 = "` + serverUUID + `"
+  is_logdrain_axiom_enabled   = true
+  logdrain_axiom_dataset_name = "coolify"
+  logdrain_axiom_api_key      = "axiom-key"
+}`,
+			Check: resource.TestCheckResourceAttr("coolify_server_log_drain.test", "is_logdrain_axiom_enabled", "true"),
+		}},
 	})
 }

@@ -33,6 +33,11 @@ resource "coolify_application_dockerfile" "app" {
 
   # Optional fields (uncomment as needed):
   # dockerfile_target_build = "production"  # Target stage for multi-stage Docker builds
+
+  # Required when the app holds an exclusive lock on a persistent volume
+  # (SQLite, DuckDB, LMDB, BoltDB). Without this, Coolify rolling updates
+  # report success while the new container never starts.
+  # is_consistent_container_name_enabled = true
 }
 ```
 
@@ -94,7 +99,7 @@ resource "coolify_application_dockerfile" "app" {
 - `install_command` (String) The command to run during the install phase.
 - `instant_deploy` (Boolean) Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.
 - `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled.
-- `is_consistent_container_name_enabled` (Boolean) Whether Coolify uses a consistent container name for this application. Coolify default is `false`. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
+- `is_consistent_container_name_enabled` (Boolean) Whether Coolify uses a consistent container name for this application. Coolify default is `false`. Set to `true` for apps that keep an exclusive file lock on a persistent volume (SQLite, DuckDB, LMDB, BoltDB). A fixed name makes Docker refuse a second container on the same mounts, so Coolify falls back to stop-then-start instead of a rolling update that would leave the new container unable to open the store while still reporting a successful deploy. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled.
 - `is_env_sorting_enabled` (Boolean) Whether environment variables are sorted. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `is_force_https_enabled` (Boolean) Whether to force HTTPS for the application.

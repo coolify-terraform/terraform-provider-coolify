@@ -18,18 +18,19 @@ import (
 func TestApplicationDataSource_Read(t *testing.T) {
 	t.Parallel()
 	app := client.Application{
-		UUID:                    "cccc0004-0004-4000-8000-000000000001",
-		Name:                    "data-source-app",
-		Description:             "a test app",
-		GitRepository:           "https://github.com/example/repo",
-		GitBranch:               "main",
-		BuildPack:               "nixpacks",
-		PortsExposes:            "8080",
-		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
-		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
-		DockerComposeRaw:        "version: '3'\nservices:\n  web:\n    image: nginx",
-		DockerRegistryImageName: "registry.example.com/app:latest",
-		MaxRestartCount:         func() *int64 { v := int64(10); return &v }(),
+		UUID:                             "cccc0004-0004-4000-8000-000000000001",
+		Name:                             "data-source-app",
+		Description:                      "a test app",
+		GitRepository:                    "https://github.com/example/repo",
+		GitBranch:                        "main",
+		BuildPack:                        "nixpacks",
+		PortsExposes:                     "8080",
+		ProjectUUID:                      "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:                       "bbbb0002-0002-4000-8000-000000000002",
+		DockerComposeRaw:                 "version: '3'\nservices:\n  web:\n    image: nginx",
+		DockerRegistryImageName:          "registry.example.com/app:latest",
+		MaxRestartCount:                  func() *int64 { v := int64(10); return &v }(),
+		IsConsistentContainerNameEnabled: func() *bool { v := true; return &v }(),
 	}
 
 	mux := http.NewServeMux()
@@ -68,9 +69,44 @@ data "coolify_application" "test" {
 					resource.TestCheckResourceAttr("data.coolify_application.test", "docker_compose_raw", "version: '3'\nservices:\n  web:\n    image: nginx"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "docker_registry_image_name", "registry.example.com/app:latest"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "max_restart_count", "10"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "is_consistent_container_name_enabled", "true"),
 				),
 			},
 		},
+	})
+}
+
+func TestApplicationDataSource_ConsistentContainerNameDefault(t *testing.T) {
+	t.Parallel()
+	app := client.Application{
+		UUID: "cccc0004-0004-4000-8000-000000000002",
+		Name: "default-consistent-name",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+data "coolify_application" "test" {
+  uuid = "cccc0004-0004-4000-8000-000000000002"
+}
+`, srv.URL),
+			Check: resource.TestCheckResourceAttr("data.coolify_application.test", "is_consistent_container_name_enabled", "false"),
+		}},
 	})
 }
 
