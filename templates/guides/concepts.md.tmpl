@@ -92,6 +92,8 @@ type. Additional read-only data sources include:
 - `coolify_hetzner_locations`: list available Hetzner Cloud locations
 - `coolify_hetzner_server_types`: list available Hetzner Cloud server types
 - `coolify_hetzner_ssh_keys`: list SSH keys in Hetzner Cloud
+- `coolify_hetzner_firewalls`: list existing Hetzner Cloud firewalls (Coolify >= v4.2.0)
+- `coolify_hetzner_networks`: list existing Hetzner Cloud private networks (Coolify >= v4.2.0)
 
 ## Import
 
