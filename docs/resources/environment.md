@@ -33,7 +33,7 @@ resource "coolify_environment" "example" {
 
 ### Optional
 
-- `description` (String) A description of the environment. Sent on PATCH after create (Coolify create rejects description) and on subsequent updates.
+- `description` (String) A description of the environment. Sent on PATCH after create (Coolify create rejects description) and on subsequent updates. Requires Coolify >= v4.3.0; omit on older instances or create fails with a 404 on the PATCH.
 
 ### Read-Only
 

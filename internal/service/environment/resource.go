@@ -74,7 +74,7 @@ func (r *environmentResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "A description of the environment. Sent on PATCH after create (Coolify create rejects description) and on subsequent updates.",
+				MarkdownDescription: "A description of the environment. Sent on PATCH after create (Coolify create rejects description) and on subsequent updates. Requires Coolify >= v4.3.0; omit on older instances or create fails with a 404 on the PATCH.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{

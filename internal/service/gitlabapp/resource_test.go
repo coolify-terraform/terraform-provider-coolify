@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync"
 	"testing"
 
@@ -131,6 +132,28 @@ resource "coolify_gitlab_app" "test" {
 				acctest.CheckPathDisappears(srv.URL, "/api/v1/gitlab-apps/7"),
 			),
 			ExpectNonEmptyPlan: true,
+		}},
+	})
+}
+
+func TestGitLabAppResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/gitlab-apps", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Validation failed."}`, http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_gitlab_app" "test" {
+  name     = "corp-gitlab"
+  html_url = "https://gitlab.example.com"
+}`,
+			ExpectError: regexp.MustCompile(`Error creating GitLab App`),
 		}},
 	})
 }

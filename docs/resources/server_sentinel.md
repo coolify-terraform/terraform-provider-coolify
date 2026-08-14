@@ -3,12 +3,12 @@
 page_title: "coolify_server_sentinel Resource - coolify"
 subcategory: ""
 description: |-
-  Manages Coolify Sentinel (host metrics agent) settings for a server. Available on Coolify >= v4.1.1. Destroy sets is_sentinel_enabled to false.
+  Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH /servers/{uuid}/sentinel). Destroy sets is_sentinel_enabled to false.
 ---
 
 # coolify_server_sentinel (Resource)
 
-Manages Coolify Sentinel (host metrics agent) settings for a server. Available on Coolify >= v4.1.1. Destroy sets is_sentinel_enabled to false.
+Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy sets is_sentinel_enabled to false.
 
 ## Example Usage
 

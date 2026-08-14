@@ -28,9 +28,9 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 
 | Area | Coverage |
 |---|---|
-| Managed resources | 45 |
-| Data sources | 62 |
-| Tests | 1380+ unit and acceptance tests |
+| Managed resources | 56 |
+| Data sources | 67 |
+| Tests | 1390+ unit and acceptance tests |
 | Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -145,7 +145,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_server_proxy` | Manage server proxy settings (Coolify >= v4.3.0) |
 | `coolify_server_log_drain` | Manage server log drains (Coolify >= v4.3.0) |
 | `coolify_server_cloudflare_tunnel` | Manage server Cloudflare tunnel (Coolify >= v4.3.0) |
-| `coolify_server_sentinel` | Manage Sentinel host metrics settings (Coolify >= v4.1.1) |
+| `coolify_server_sentinel` | Manage Sentinel host metrics settings (Coolify >= v4.3.0) |
 | `coolify_server_docker_cleanup` | Manage Docker cleanup schedule (Coolify >= v4.3.0) |
 | `coolify_application_destination` | Attach an extra destination to an application (Coolify >= v4.2.0) |
 | `coolify_notification_email` | Team email notification settings (Coolify >= v4.3.0) |
@@ -331,7 +331,7 @@ targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
-make test                                       # Run unit tests (1380+ tests, race detector enabled)
+make test                                       # Run unit tests (1390+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
 make testacc                                    # Run acceptance tests with serialized package and in-package execution

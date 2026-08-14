@@ -25,7 +25,7 @@ resource "coolify_shared_environment_variable" "team" {
 
 ### Required
 
-- `key` (String) Variable name. Changing this forces a new resource.
+- `key` (String) Variable name. Letters, digits, underscores, and dots; must start with a letter or underscore. Hyphens are rejected by Coolify. Changing this forces a new resource.
 - `scope` (String) One of `team`, `project`, `environment`, or `server`. Changing this forces a new resource.
 
 ### Optional
