@@ -165,7 +165,7 @@ jobs:
           terraform_version: "1.15.x"
       # Binary release is faster than `go install` (~8s) and cache hits are ~0s.
       - name: Cache gotestsum
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.local/bin/gotestsum
           key: gotestsum-1.13.0-${{ runner.os }}-${{ runner.arch }}
@@ -281,7 +281,7 @@ jobs:
           path: coverage-shards
           merge-multiple: true
       - name: Cache gocover-cobertura
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.local/bin/gocover-cobertura
           key: gocover-cobertura-1.5.0-${{ runner.os }}-${{ runner.arch }}
@@ -312,7 +312,7 @@ jobs:
         if: >-
           always() &&
           (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: actions/upload-code-coverage@1c15be36fc3733ba839b1dd643bd9556e4426dc1 # v1
+        uses: actions/upload-code-coverage@d8e329117199404bba6fc81efe8093dc7c015e34 # v1.4.2
         with:
           file: coverage.xml
           language: Go
@@ -359,7 +359,7 @@ jobs:
         run: go mod verify
       - name: Cache govulncheck
         if: ${{ !cancelled() }}
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.local/bin/govulncheck
           key: govulncheck-1.3.0-${{ runner.os }}-${{ runner.arch }}
@@ -489,7 +489,7 @@ jobs:
           fi
       - name: Cache gitleaks
         if: ${{ !cancelled() }}
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.local/bin/gitleaks
           key: gitleaks-8.30.1-${{ runner.os }}-${{ runner.arch }}
@@ -770,7 +770,7 @@ jobs:
         uses: ./.github/actions/setup-coolify
 
       - name: Cache gotestsum
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.local/bin/gotestsum
           key: gotestsum-1.13.0-${{ runner.os }}-${{ runner.arch }}
