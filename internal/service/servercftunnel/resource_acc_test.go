@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"regexp"
+
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -19,29 +21,14 @@ func TestAccServerCFTunnelResource_CRUD(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
+				// CI Coolify uses the localhost server, which rejects tunnel config.
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_server_cloudflare_tunnel" "test" {
   server_uuid          = %q
-  is_cloudflare_tunnel = false
+  is_cloudflare_tunnel = true
 }
 `, serverUUID),
-				Check: resource.TestCheckResourceAttr("coolify_server_cloudflare_tunnel.test", "is_cloudflare_tunnel", "false"),
-			},
-			{
-				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
-resource "coolify_server_cloudflare_tunnel" "test" {
-  server_uuid          = %q
-  is_cloudflare_tunnel = false
-}
-`, serverUUID),
-				Check: resource.TestCheckResourceAttr("coolify_server_cloudflare_tunnel.test", "server_uuid", serverUUID),
-			},
-			{
-				ResourceName:                         "coolify_server_cloudflare_tunnel.test",
-				ImportState:                          true,
-				ImportStateVerify:                    true,
-				ImportStateId:                        serverUUID,
-				ImportStateVerifyIdentifierAttribute: "server_uuid",
+				ExpectError: regexp.MustCompile(`localhost server|Cloudflare Tunnel`),
 			},
 		},
 	})

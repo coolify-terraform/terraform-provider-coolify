@@ -2,6 +2,7 @@ package sharedenv_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -13,7 +14,7 @@ func TestAccSharedEnvResource_TeamCRUD(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	acctest.AccTestSkipIfCoolifyBelow(t, "4.3.0")
-	key := acctest.RandomWithPrefix("TF_ACC_SHARED")
+	key := strings.ReplaceAll(acctest.RandomWithPrefix("TF_ACC_SHARED"), "-", "_")
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),

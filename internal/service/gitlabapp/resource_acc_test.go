@@ -22,7 +22,7 @@ func TestAccGitLabAppResource_CRUD(t *testing.T) {
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_gitlab_app" "test" {
   name     = %q
-  html_url = "https://gitlab.example.com"
+  html_url = "https://gitlab.com"
 }
 data "coolify_gitlab_app" "by_id" { id = coolify_gitlab_app.test.id }
 data "coolify_gitlab_apps" "all" {}
@@ -37,7 +37,7 @@ data "coolify_gitlab_apps" "all" {}
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_gitlab_app" "test" {
   name     = %q
-  html_url = "https://gitlab.example.com"
+  html_url = "https://gitlab.com"
 }
 `, name+"-upd"),
 				Check: resource.TestCheckResourceAttr("coolify_gitlab_app.test", "name", name+"-upd"),

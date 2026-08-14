@@ -110,7 +110,7 @@ func flatten(s *client.ServerSentinel, m *model) {
 	} else if m.IsSentinelDebugEnabled.IsUnknown() {
 		m.IsSentinelDebugEnabled = types.BoolValue(false)
 	}
-	if s.SentinelToken != "" {
+	if s.SentinelToken != "" && !m.SentinelToken.IsNull() {
 		m.SentinelToken = types.StringValue(s.SentinelToken)
 	}
 	if s.SentinelMetricsRefreshRateSeconds != nil {
@@ -128,7 +128,7 @@ func flatten(s *client.ServerSentinel, m *model) {
 	} else if m.SentinelPushIntervalSeconds.IsUnknown() {
 		m.SentinelPushIntervalSeconds = types.Int64Null()
 	}
-	if s.SentinelCustomURL != "" {
+	if s.SentinelCustomURL != "" && !m.SentinelCustomURL.IsNull() {
 		m.SentinelCustomURL = types.StringValue(s.SentinelCustomURL)
 	}
 }

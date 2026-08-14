@@ -83,12 +83,18 @@ func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel)
 	}
 	if got.RedirectEnabled != nil {
 		plan.RedirectEnabled = types.BoolValue(*got.RedirectEnabled)
+	} else if plan.RedirectEnabled.IsUnknown() {
+		plan.RedirectEnabled = types.BoolNull()
 	}
 	if got.RedirectURL != "" {
 		plan.RedirectURL = types.StringValue(got.RedirectURL)
+	} else if plan.RedirectURL.IsUnknown() {
+		plan.RedirectURL = types.StringNull()
 	}
 	if got.GenerateExactLabels != nil {
 		plan.GenerateExactLabels = types.BoolValue(*got.GenerateExactLabels)
+	} else if plan.GenerateExactLabels.IsUnknown() {
+		plan.GenerateExactLabels = types.BoolNull()
 	}
 	if got.ProxyType != "" {
 		if plan.ProxyType.IsNull() || plan.ProxyType.IsUnknown() || !strings.EqualFold(plan.ProxyType.ValueString(), got.ProxyType) {

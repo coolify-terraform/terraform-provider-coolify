@@ -3,6 +3,7 @@ package cloudinitscript
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -57,7 +58,9 @@ func flatten(s *client.CloudInitScript, m *cloudInitScriptModel) {
 	m.UUID = types.StringValue(s.UUID)
 	m.Name = types.StringValue(s.Name)
 	if s.Script != "" {
-		m.Script = types.StringValue(s.Script)
+		if m.Script.IsNull() || m.Script.IsUnknown() || strings.TrimSpace(s.Script) != strings.TrimSpace(m.Script.ValueString()) {
+			m.Script = types.StringValue(s.Script)
+		}
 	}
 }
 

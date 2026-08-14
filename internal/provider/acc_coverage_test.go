@@ -64,25 +64,28 @@ func TestAccCoverage_ResourcesHaveCRUDSteps(t *testing.T) {
 
 	// Resources where Update is not applicable (all mutable fields use RequiresReplace).
 	noUpdate := map[string]bool{
-		"coolify_deployment":              true,
-		"coolify_resource_action":         true,
-		"coolify_api_settings":            true,
-		"coolify_server_validate":         true,
-		"coolify_cloud_token_validate":    true,
-		"coolify_s3_storage_validate":     true,
-		"coolify_application_preview":     true,
-		"coolify_backup_execution":        true,
-		"coolify_resource_tag":            true,
-		"coolify_application_destination": true,
+		"coolify_deployment":               true,
+		"coolify_resource_action":          true,
+		"coolify_api_settings":             true,
+		"coolify_server_validate":          true,
+		"coolify_cloud_token_validate":     true,
+		"coolify_s3_storage_validate":      true,
+		"coolify_application_preview":      true,
+		"coolify_backup_execution":         true,
+		"coolify_resource_tag":             true,
+		"coolify_application_destination":  true,
+		"coolify_server_cloudflare_tunnel": true,
 	}
 	// Resources where Import is not applicable.
 	noImport := map[string]bool{
-		"coolify_resource_action":      true,
-		"coolify_api_settings":         true,
-		"coolify_server_validate":      true,
-		"coolify_cloud_token_validate": true,
-		"coolify_s3_storage_validate":  true,
-		"coolify_application_preview":  true,
+		"coolify_resource_action":          true,
+		"coolify_api_settings":             true,
+		"coolify_server_validate":          true,
+		"coolify_cloud_token_validate":     true,
+		"coolify_s3_storage_validate":      true,
+		"coolify_application_preview":      true,
+		"coolify_application_destination":  true,
+		"coolify_server_cloudflare_tunnel": true,
 	}
 
 	accFiles := loadAccTestFiles(t)

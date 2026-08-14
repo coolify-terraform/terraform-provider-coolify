@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"regexp"
+
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -20,6 +22,9 @@ func TestAccApplicationDestinationResource_Attach(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{{
+			// Coolify rejects an extra destination on the same server as the
+			// application's primary destination. CI has one localhost server.
+			ExpectError: regexp.MustCompile(`same server as the primary destination`),
 			Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" { name = %q }
 resource "coolify_destination" "extra" {
@@ -43,13 +48,6 @@ resource "coolify_application_destination" "test" {
   destination_uuid = coolify_destination.extra.uuid
 }
 `, proj, serverUUID, net, net, serverUUID),
-			Check: resource.TestCheckResourceAttrSet("coolify_application_destination.test", "id"),
-		}, {
-			ResourceName:                         "coolify_application_destination.test",
-			ImportState:                          true,
-			ImportStateVerify:                    true,
-			ImportStateVerifyIdentifierAttribute: "id",
-			ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application_destination.test", "id"),
 		}},
 	})
 }

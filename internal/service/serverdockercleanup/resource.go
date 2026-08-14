@@ -89,7 +89,9 @@ func toInput(m model) client.ServerDockerCleanup {
 
 func flatten(s *client.ServerDockerCleanup, m *model) {
 	if s.DockerCleanupFrequency != "" {
-		m.DockerCleanupFrequency = types.StringValue(s.DockerCleanupFrequency)
+		if m.DockerCleanupFrequency.IsNull() || m.DockerCleanupFrequency.IsUnknown() || m.DockerCleanupFrequency.ValueString() == "" {
+			m.DockerCleanupFrequency = types.StringValue(s.DockerCleanupFrequency)
+		}
 	}
 	if s.DockerCleanupThreshold != nil {
 		m.DockerCleanupThreshold = types.Int64Value(*s.DockerCleanupThreshold)
