@@ -168,67 +168,68 @@ func (r *gitlabAppResource) Read(ctx context.Context, req resource.ReadRequest, 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *gitlabAppResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan gitlabAppModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
+func knownString(v types.String) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
 	}
+	s := v.ValueString()
+	return &s
+}
+
+func updateInputFromPlan(plan gitlabAppModel) client.UpdateGitLabAppInput {
 	name := plan.Name.ValueString()
 	html := plan.HTMLURL.ValueString()
 	input := client.UpdateGitLabAppInput{Name: &name, HTMLURL: &html}
-	if !plan.APIURL.IsNull() && !plan.APIURL.IsUnknown() {
-		v := plan.APIURL.ValueString()
-		input.APIURL = &v
-	}
-	if !plan.CustomUser.IsNull() && !plan.CustomUser.IsUnknown() {
-		v := plan.CustomUser.ValueString()
-		input.CustomUser = &v
-	}
+	input.APIURL = knownString(plan.APIURL)
+	input.CustomUser = knownString(plan.CustomUser)
+	input.GroupName = knownString(plan.GroupName)
+	input.ClientID = knownString(plan.ClientID)
+	input.ClientSecret = knownString(plan.ClientSecret)
+	input.WebhookToken = knownString(plan.WebhookToken)
+	input.RedirectURI = knownString(plan.RedirectURI)
 	if !plan.CustomPort.IsNull() && !plan.CustomPort.IsUnknown() {
 		v := plan.CustomPort.ValueInt64()
 		input.CustomPort = &v
 	}
-	if !plan.GroupName.IsNull() && !plan.GroupName.IsUnknown() {
-		v := plan.GroupName.ValueString()
-		input.GroupName = &v
-	}
-	if !plan.ClientID.IsNull() && !plan.ClientID.IsUnknown() {
-		v := plan.ClientID.ValueString()
-		input.ClientID = &v
-	}
-	if !plan.ClientSecret.IsNull() && !plan.ClientSecret.IsUnknown() {
-		v := plan.ClientSecret.ValueString()
-		input.ClientSecret = &v
-	}
-	if !plan.WebhookToken.IsNull() && !plan.WebhookToken.IsUnknown() {
-		v := plan.WebhookToken.ValueString()
-		input.WebhookToken = &v
-	}
-	if !plan.RedirectURI.IsNull() && !plan.RedirectURI.IsUnknown() {
-		v := plan.RedirectURI.ValueString()
-		input.RedirectURI = &v
-	}
-	secret, token := plan.ClientSecret, plan.WebhookToken
+	return input
+}
+
+func (r *gitlabAppResource) resolveUpdateID(ctx context.Context, plan *gitlabAppModel) int64 {
 	id := plan.ID.ValueInt64()
-	if id == 0 {
-		if got, err := r.client.GetGitLabAppByUUID(ctx, plan.UUID.ValueString()); err == nil && got.ID != 0 {
-			id = got.ID
-			plan.ID = types.Int64Value(id)
-		}
+	if id != 0 {
+		return id
 	}
-	got, err := r.client.UpdateGitLabApp(ctx, id, input)
-	if err != nil {
-		resp.Diagnostics.AddError("Error updating GitLab App", err.Error())
-		return
+	got, err := r.client.GetGitLabAppByUUID(ctx, plan.UUID.ValueString())
+	if err != nil || got.ID == 0 {
+		return id
 	}
-	flattenGitLab(got, &plan)
+	plan.ID = types.Int64Value(got.ID)
+	return got.ID
+}
+
+func preserveGitLabSecrets(got *client.GitLabApp, plan *gitlabAppModel, secret, token types.String) {
 	if got.ClientSecret == "" {
 		plan.ClientSecret = secret
 	}
 	if got.WebhookToken == "" {
 		plan.WebhookToken = token
 	}
+}
+
+func (r *gitlabAppResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan gitlabAppModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	secret, token := plan.ClientSecret, plan.WebhookToken
+	got, err := r.client.UpdateGitLabApp(ctx, r.resolveUpdateID(ctx, &plan), updateInputFromPlan(plan))
+	if err != nil {
+		resp.Diagnostics.AddError("Error updating GitLab App", err.Error())
+		return
+	}
+	flattenGitLab(got, &plan)
+	preserveGitLabSecrets(got, &plan, secret, token)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
