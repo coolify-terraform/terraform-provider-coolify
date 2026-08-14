@@ -40,6 +40,7 @@ resource "coolify_server_docker_cleanup" "test" {
 				ResourceName:                         "coolify_server_docker_cleanup.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
+				ImportStateVerifyIgnore:              []string{"docker_cleanup_frequency"},
 				ImportStateId:                        serverUUID,
 				ImportStateVerifyIdentifierAttribute: "server_uuid",
 			},

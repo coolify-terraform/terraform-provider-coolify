@@ -89,11 +89,25 @@ func (c *Client) GetGitLabAppByUUID(ctx context.Context, uuid string) (*GitLabAp
 }
 
 func (c *Client) CreateGitLabApp(ctx context.Context, input CreateGitLabAppInput) (*GitLabApp, error) {
-	var r GitLabApp
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/gitlab-apps", input, &r, http.StatusCreated); err != nil {
+	var raw json.RawMessage
+	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/gitlab-apps", input, &raw, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating gitlab app: %w", err)
 	}
-	return &r, nil
+	app, err := decodeGitLabApp(raw)
+	if err != nil {
+		return nil, fmt.Errorf("decoding gitlab app create response: %w", err)
+	}
+	if app.ID == 0 && app.UUID != "" {
+		found, getErr := c.GetGitLabAppByUUID(ctx, app.UUID)
+		if getErr != nil {
+			return nil, fmt.Errorf("resolving gitlab app %s after create: %w", app.UUID, getErr)
+		}
+		return found, nil
+	}
+	if app.ID == 0 {
+		return nil, fmt.Errorf("gitlab app create response missing id")
+	}
+	return app, nil
 }
 
 func (c *Client) UpdateGitLabApp(ctx context.Context, id int64, input UpdateGitLabAppInput) (*GitLabApp, error) {
@@ -122,7 +136,7 @@ func decodeGitLabApp(raw json.RawMessage) (*GitLabApp, error) {
 	if err := json.Unmarshal(raw, &app); err != nil {
 		return nil, err
 	}
-	if app.ID == 0 {
+	if app.ID == 0 && app.UUID == "" {
 		return nil, fmt.Errorf("gitlab app response missing id")
 	}
 	return &app, nil

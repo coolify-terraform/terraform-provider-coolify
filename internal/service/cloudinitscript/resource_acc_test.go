@@ -44,6 +44,7 @@ resource "coolify_cloud_init_script" "test" {
 				ResourceName:                         "coolify_cloud_init_script.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
+				ImportStateVerifyIgnore:              []string{"script"},
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_cloud_init_script.test", "uuid"),
 			},

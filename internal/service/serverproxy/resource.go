@@ -58,8 +58,7 @@ func (r *serverProxyResource) Configure(_ context.Context, req resource.Configur
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
-func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel) error {
-	uuid := plan.ServerUUID.ValueString()
+func proxyUpdateFromPlan(plan serverProxyModel) client.ServerProxyUpdateInput {
 	in := client.ServerProxyUpdateInput{}
 	if !plan.RedirectEnabled.IsNull() && !plan.RedirectEnabled.IsUnknown() {
 		v := plan.RedirectEnabled.ValueBool()
@@ -77,10 +76,10 @@ func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel)
 		v := plan.ProxyType.ValueString()
 		in.ProxyType = &v
 	}
-	got, err := r.client.UpdateServerProxy(ctx, uuid, in)
-	if err != nil {
-		return err
-	}
+	return in
+}
+
+func flattenProxy(got *client.ServerProxy, plan *serverProxyModel) {
 	if got.RedirectEnabled != nil {
 		plan.RedirectEnabled = types.BoolValue(*got.RedirectEnabled)
 	} else if plan.RedirectEnabled.IsUnknown() {
@@ -101,10 +100,20 @@ func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel)
 			plan.ProxyType = types.StringValue(got.ProxyType)
 		}
 	}
+	if got.Configuration != "" && !plan.Configuration.IsNull() && !plan.Configuration.IsUnknown() {
+		plan.Configuration = types.StringValue(got.Configuration)
+	}
+}
+
+func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel) error {
+	uuid := plan.ServerUUID.ValueString()
+	got, err := r.client.UpdateServerProxy(ctx, uuid, proxyUpdateFromPlan(*plan))
+	if err != nil {
+		return err
+	}
+	flattenProxy(got, plan)
 	if !plan.Configuration.IsNull() && !plan.Configuration.IsUnknown() && plan.Configuration.ValueString() != "" {
-		if err := r.client.PutServerProxyConfiguration(ctx, uuid, plan.Configuration.ValueString()); err != nil {
-			return err
-		}
+		return r.client.PutServerProxyConfiguration(ctx, uuid, plan.Configuration.ValueString())
 	}
 	return nil
 }
@@ -151,7 +160,7 @@ func (r *serverProxyResource) Read(ctx context.Context, req resource.ReadRequest
 			state.ProxyType = types.StringValue(got.ProxyType)
 		}
 	}
-	if got.Configuration != "" {
+	if got.Configuration != "" && !state.Configuration.IsNull() {
 		state.Configuration = types.StringValue(got.Configuration)
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
