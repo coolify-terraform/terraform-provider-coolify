@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.15](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.14...v0.1.15) (2026-08-14)
+
+
+### Features
+
+* **application:** consistent container name docs and API parity acc depth ([#756](https://github.com/coolify-terraform/terraform-provider-coolify/issues/756)) ([005cb91](https://github.com/coolify-terraform/terraform-provider-coolify/commit/005cb9129df2e1839d594d8d576229883fed75dd))
+* Coolify API parity for GitLab Apps, tags, shared envs, and server control ([#752](https://github.com/coolify-terraform/terraform-provider-coolify/issues/752)) ([f7bf746](https://github.com/coolify-terraform/terraform-provider-coolify/commit/f7bf7467997d49c273db45d221b1d06a75b89e51))
+* enable Hetzner backups and cover DO/Vultr list clients ([#767](https://github.com/coolify-terraform/terraform-provider-coolify/issues/767)) ([ee666bd](https://github.com/coolify-terraform/terraform-provider-coolify/commit/ee666bdd451da02632b3a690f1fdac5608b8c2c0)), closes [#764](https://github.com/coolify-terraform/terraform-provider-coolify/issues/764) [#765](https://github.com/coolify-terraform/terraform-provider-coolify/issues/765)
+* expose Coolify 4.3.3 tip GET fields ([#758](https://github.com/coolify-terraform/terraform-provider-coolify/issues/758)) ([1427672](https://github.com/coolify-terraform/terraform-provider-coolify/commit/142767269efbdacc511b89a9fee670afcb0e632b)), closes [#719](https://github.com/coolify-terraform/terraform-provider-coolify/issues/719)
+* **hetzner:** attach networks and firewalls on coolify_server_hetzner ([#761](https://github.com/coolify-terraform/terraform-provider-coolify/issues/761)) ([bc1dd32](https://github.com/coolify-terraform/terraform-provider-coolify/commit/bc1dd324f9360c41923babb9d6704c1ee0472f20)), closes [#760](https://github.com/coolify-terraform/terraform-provider-coolify/issues/760)
+
+
+### Bug Fixes
+
+* floor acc skips, shared env key validation, and docs counts ([#757](https://github.com/coolify-terraform/terraform-provider-coolify/issues/757)) ([4455b56](https://github.com/coolify-terraform/terraform-provider-coolify/commit/4455b56b4bfb9c05ff96d983b5ec2cca20d19db8))
+* redact API keys in logs and cover server control-plane ([#769](https://github.com/coolify-terraform/terraform-provider-coolify/issues/769)) ([06fdb83](https://github.com/coolify-terraform/terraform-provider-coolify/commit/06fdb839a0d0cca8edd764556fed97281fde1b6a))
+* send Hetzner SSH key IDs as JSON arrays ([#766](https://github.com/coolify-terraform/terraform-provider-coolify/issues/766)) ([eb7198f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/eb7198f2451fcc2941e7487218df8653bf1ca6ba))
+* stop server proxy acc from setting redirect_enabled false ([#768](https://github.com/coolify-terraform/terraform-provider-coolify/issues/768)) ([c9e743d](https://github.com/coolify-terraform/terraform-provider-coolify/commit/c9e743d1202538c736ba35f22af703033aef501a))
+
 ## [0.1.14](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.13...v0.1.14) (2026-08-13)
 
 
