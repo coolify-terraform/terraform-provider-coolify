@@ -104,6 +104,7 @@ type vultrServerResourceModel struct {
 	ComposeVersionCheckedAt           types.String `tfsdk:"compose_version_checked_at"`
 	DockerVersion                     types.String `tfsdk:"docker_version"`
 	DockerVersionCheckedAt            types.String `tfsdk:"docker_version_checked_at"`
+	BackupCompressionCPUPercentage    types.Int64  `tfsdk:"backup_compression_cpu_percentage"`
 }
 
 // NewResource returns a new Vultr server resource.
@@ -376,6 +377,7 @@ func (m *vultrServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 		LogdrainNewrelicLicenseKey: &m.LogdrainNewrelicLicenseKey,
 		ComposeVersion:             &m.ComposeVersion, ComposeVersionCheckedAt: &m.ComposeVersionCheckedAt,
 		DockerVersion: &m.DockerVersion, DockerVersionCheckedAt: &m.DockerVersionCheckedAt,
+		BackupCompressionCPUPercentage: &m.BackupCompressionCPUPercentage,
 	}
 }
 

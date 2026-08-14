@@ -32,6 +32,8 @@ resource "coolify_project" "example" {
 
 ### Read-Only
 
+- `icon_path` (String) Storage path of the project icon uploaded in the Coolify UI. Read-only; not on Project create/update allow list. Present on GET /projects/{uuid} on Coolify tip/nightly 4.3.3; omitted from the list endpoint and older instances.
+- `icon_storage_type` (String) Icon storage backend (`local` or `s3`). Read-only. Present on GET /projects/{uuid} on Coolify tip/nightly 4.3.3.
 - `uuid` (String) The unique identifier of the project.
 
 ## Import

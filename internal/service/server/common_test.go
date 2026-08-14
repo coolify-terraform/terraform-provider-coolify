@@ -34,6 +34,7 @@ func newTestPtrs() (ServerCommonPtrs, *testModel) {
 		DeleteUnusedNetworks: &m.DeleteUnusedNetworks, GenerateExactLabels: &m.GenerateExactLabels,
 		ComposeVersion: &m.ComposeVersion, ComposeVersionCheckedAt: &m.ComposeVersionCheckedAt,
 		DockerVersion: &m.DockerVersion, DockerVersionCheckedAt: &m.DockerVersionCheckedAt,
+		BackupCompressionCPUPercentage: &m.BackupCompressionCPUPercentage,
 	}, m
 }
 
@@ -64,6 +65,7 @@ type testModel struct {
 	ComposeVersionCheckedAt           types.String
 	DockerVersion                     types.String
 	DockerVersionCheckedAt            types.String
+	BackupCompressionCPUPercentage    types.Int64
 }
 
 var readOnlyExtendedSettingNames = []string{
@@ -86,6 +88,7 @@ var readOnlyExtendedSettingNames = []string{
 	"compose_version_checked_at",
 	"docker_version",
 	"docker_version_checked_at",
+	"backup_compression_cpu_percentage",
 }
 
 var expectedWritableServerUpdateKeys = []string{
@@ -827,11 +830,13 @@ func TestHasNonDefaultSettings_NullFields(t *testing.T) {
 func TestFlattenExtendedSettings_DockerComposeVersions(t *testing.T) {
 	t.Parallel()
 	ptrs, m := newTestPtrs()
+	pct := 40
 	s := &client.ServerSettings{
-		ComposeVersion:          "2.29.1",
-		ComposeVersionCheckedAt: "2026-08-13T12:00:00.000000Z",
-		DockerVersion:           "27.0.3",
-		DockerVersionCheckedAt:  "2026-08-13T12:00:01.000000Z",
+		ComposeVersion:                 "2.29.1",
+		ComposeVersionCheckedAt:        "2026-08-13T12:00:00.000000Z",
+		DockerVersion:                  "27.0.3",
+		DockerVersionCheckedAt:         "2026-08-13T12:00:01.000000Z",
+		BackupCompressionCPUPercentage: &pct,
 	}
 	flattenExtendedSettings(s, ptrs)
 	if m.ComposeVersion.ValueString() != "2.29.1" {
@@ -842,5 +847,17 @@ func TestFlattenExtendedSettings_DockerComposeVersions(t *testing.T) {
 	}
 	if m.ComposeVersionCheckedAt.IsNull() || m.DockerVersionCheckedAt.IsNull() {
 		t.Fatal("checked_at fields should be set")
+	}
+	if m.BackupCompressionCPUPercentage.ValueInt64() != 40 {
+		t.Fatalf("backup_compression_cpu_percentage=%d", m.BackupCompressionCPUPercentage.ValueInt64())
+	}
+}
+
+func TestFlattenExtendedSettings_BackupCompressionAbsent(t *testing.T) {
+	t.Parallel()
+	ptrs, m := newTestPtrs()
+	flattenExtendedSettings(&client.ServerSettings{}, ptrs)
+	if !m.BackupCompressionCPUPercentage.IsNull() {
+		t.Fatalf("expected null backup_compression_cpu_percentage, got %v", m.BackupCompressionCPUPercentage)
 	}
 }

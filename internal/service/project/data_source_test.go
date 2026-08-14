@@ -36,6 +36,8 @@ data "coolify_project" "test" {
 					),
 					resource.TestCheckResourceAttr("data.coolify_project.test", "name", "ds-test-project"),
 					resource.TestCheckResourceAttr("data.coolify_project.test", "description", "data source test"),
+					resource.TestCheckResourceAttr("data.coolify_project.test", "icon_path", "project-icons/test.png"),
+					resource.TestCheckResourceAttr("data.coolify_project.test", "icon_storage_type", "local"),
 				),
 			},
 		},

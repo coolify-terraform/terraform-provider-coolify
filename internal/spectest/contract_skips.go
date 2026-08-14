@@ -124,11 +124,9 @@ var scheduledTaskCoverageSkips = skipMap(
 
 var projectCoverageSkips = skipMap(
 	skipInternal("team_id", "FK"),
-	// Coolify tip (2026-08-13): UI-only project icons via Livewire + ProjectIconStorageService.
-	// Not on Project::$fillable or ProjectController create/update $allowedFields (name, description only).
-	skipInternal("icon_path", "UI-only project icon storage path; no public API write"),
-	skipInternal("icon_storage_type", "UI-only project icon disk (local/s3); no public API write"),
-	skipInternal("icon_s3_storage_id", "UI-only project icon S3 FK; no public API write"),
+	// Icon path/type are computed on coolify_project + coolify_project (GET by UUID).
+	// S3 storage id stays internal (numeric FK; no UUID on the project payload).
+	skipInternal("icon_s3_storage_id", "numeric FK for UI icon S3 backend; no public write"),
 )
 
 var githubAppCoverageSkips = skipMap(
@@ -169,10 +167,8 @@ var serverSettingCoverageSkips = skipMap(
 	skipNA("is_usable", "on Server entity, not Settings"),
 	skipNA("sentinel_metrics_refresh_rate_in_seconds", "old contract name; superseded by sentinel_metrics_refresh_rate_seconds"),
 	skipNA("sentinel_push_interval_in_seconds", "old contract name; superseded by sentinel_push_interval_seconds"),
-	// Coolify tip (2026-08-14): Livewire Server/Advanced + VolumeBackupJob only.
-	// Not on ServersController create/update $allowedFields.
-	skipInternal("backup_compression_cpu_percentage", "UI-only ServerSetting; not on ServersController allow list"),
 	// Remaining settings fields covered on client.ServerSettings + read-only server schema.
+	// backup_compression_cpu_percentage is computed on server resources/data sources.
 )
 
 var environmentCoverageSkips = skipMap(

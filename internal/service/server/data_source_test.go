@@ -15,6 +15,7 @@ import (
 
 func TestServerDataSource(t *testing.T) {
 	t.Parallel()
+	backupPct := 40
 	srv := &client.Server{
 		UUID:          "cccc0002-0002-4000-8000-000000000001",
 		Name:          "data-source-server",
@@ -32,7 +33,8 @@ func TestServerDataSource(t *testing.T) {
 			ConnectionTimeout:                    0,
 			ServerDiskUsageNotificationThreshold: 80,
 			ComposeVersion:                       "2.29.1", DockerVersion: "27.0.3",
-			ServerDiskUsageCheckFrequency: "*/5 * * * *",
+			BackupCompressionCPUPercentage: &backupPct,
+			ServerDiskUsageCheckFrequency:  "*/5 * * * *",
 		},
 	}
 
@@ -76,6 +78,7 @@ data "coolify_server" "test" {
 					resource.TestCheckResourceAttr("data.coolify_server.test", "server_disk_usage_notification_threshold", "80"),
 					resource.TestCheckResourceAttr("data.coolify_server.test", "compose_version", "2.29.1"),
 					resource.TestCheckResourceAttr("data.coolify_server.test", "docker_version", "27.0.3"),
+					resource.TestCheckResourceAttr("data.coolify_server.test", "backup_compression_cpu_percentage", "40"),
 					resource.TestCheckResourceAttr("data.coolify_server.test", "server_disk_usage_check_frequency", "*/5 * * * *"),
 				),
 			},

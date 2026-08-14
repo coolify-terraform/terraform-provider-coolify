@@ -11,6 +11,11 @@ type Project struct {
 	UUID        string `json:"uuid"`
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	// Icon fields are returned on GET /projects/{uuid} via serializeApiResponse
+	// (Coolify tip/nightly 4.3.3). They are not on create/update $allowedFields
+	// and are omitted from GET /projects (list selects id,name,description,uuid).
+	IconPath        string `json:"icon_path,omitempty"`
+	IconStorageType string `json:"icon_storage_type,omitempty"`
 }
 
 type CreateProjectInput struct {

@@ -32,9 +32,11 @@ type projectResource struct {
 
 // projectResourceModel maps the resource schema data.
 type projectResourceModel struct {
-	UUID        types.String `tfsdk:"uuid"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
+	UUID            types.String `tfsdk:"uuid"`
+	Name            types.String `tfsdk:"name"`
+	Description     types.String `tfsdk:"description"`
+	IconPath        types.String `tfsdk:"icon_path"`
+	IconStorageType types.String `tfsdk:"icon_storage_type"`
 }
 
 // NewResource returns a new project resource instance.
@@ -68,6 +70,17 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"icon_path": schema.StringAttribute{
+				MarkdownDescription: "Storage path of the project icon uploaded in the Coolify UI. " +
+					"Read-only; not on Project create/update allow list. Present on GET /projects/{uuid} " +
+					"on Coolify tip/nightly 4.3.3; omitted from the list endpoint and older instances.",
+				Computed: true,
+			},
+			"icon_storage_type": schema.StringAttribute{
+				MarkdownDescription: "Icon storage backend (`local` or `s3`). Read-only. " +
+					"Present on GET /projects/{uuid} on Coolify tip/nightly 4.3.3.",
+				Computed: true,
 			},
 		},
 	}
@@ -148,9 +161,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	state.UUID = types.StringValue(project.UUID)
-	state.Name = types.StringValue(project.Name)
-	state.Description = flex.StringToFramework(project.Description)
+	flattenProject(project, &state)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -181,9 +192,7 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	plan.UUID = types.StringValue(project.UUID)
-	plan.Name = types.StringValue(project.Name)
-	plan.Description = flex.StringToFramework(project.Description)
+	flattenProject(project, &plan)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -231,9 +240,15 @@ func (r *projectResource) readProject(ctx context.Context, uuid string, model *p
 		return diags
 	}
 
-	model.UUID = types.StringValue(project.UUID)
-	model.Name = types.StringValue(project.Name)
-	model.Description = flex.StringToFramework(project.Description)
+	flattenProject(project, model)
 
 	return diags
+}
+
+func flattenProject(p *client.Project, model *projectResourceModel) {
+	model.UUID = types.StringValue(p.UUID)
+	model.Name = types.StringValue(p.Name)
+	model.Description = flex.StringToFramework(p.Description)
+	model.IconPath = flex.StringToFramework(p.IconPath)
+	model.IconStorageType = flex.StringToFramework(p.IconStorageType)
 }
