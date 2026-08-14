@@ -155,6 +155,8 @@ counts-check: ## Verify AGENTS.md, README.md, and TESTING.md resource/data sourc
 	d_actual=$$(sed -n '/func.*DataSources.*\[\]func.*datasource\.DataSource/,/^}/p' internal/provider/provider.go | grep -o 'New[A-Za-z]*' | wc -l | tr -d ' '); \
 	r_doc=$$(grep -Eo '^[0-9]+ resources' AGENTS.md | grep -Eo '^[0-9]+'); \
 	d_doc=$$(grep -Eo '[0-9]+ data sources' AGENTS.md | grep -Eo '^[0-9]+'); \
+	r_readme=$$(grep -E '^\| Managed resources \| [0-9]+' README.md | grep -Eo '[0-9]+'); \
+	d_readme=$$(grep -E '^\| Data sources \| [0-9]+' README.md | grep -Eo '[0-9]+'); \
 	t_actual=$$(grep -r 'func Test' --include='*_test.go' . | wc -l | tr -d ' '); \
 	t_floor=$$(( (t_actual / 10) * 10 )); \
 	t_agents=$$(grep -Eo '[0-9]+\+ tests' AGENTS.md | head -1 | grep -Eo '^[0-9]+'); \
@@ -162,6 +164,8 @@ counts-check: ## Verify AGENTS.md, README.md, and TESTING.md resource/data sourc
 	ok=true; \
 	if [ "$$r_actual" != "$$r_doc" ]; then echo "AGENTS.md says $$r_doc resources but provider.go has $$r_actual"; ok=false; fi; \
 	if [ "$$d_actual" != "$$d_doc" ]; then echo "AGENTS.md says $$d_doc data sources but provider.go has $$d_actual"; ok=false; fi; \
+	if [ -n "$$r_readme" ] && [ "$$r_actual" != "$$r_readme" ]; then echo "README.md says $$r_readme resources but provider.go has $$r_actual"; ok=false; fi; \
+	if [ -n "$$d_readme" ] && [ "$$d_actual" != "$$d_readme" ]; then echo "README.md says $$d_readme data sources but provider.go has $$d_actual"; ok=false; fi; \
 	if [ -n "$$t_agents" ] && [ "$$t_agents" -gt "$$t_floor" ]; then echo "AGENTS.md says $$t_agents+ tests but actual is $$t_actual (floor $$t_floor)"; ok=false; fi; \
 	if [ -n "$$t_readme" ] && [ "$$t_readme" -gt "$$t_floor" ]; then echo "README.md says $$t_readme+ tests but actual is $$t_actual (floor $$t_floor)"; ok=false; fi; \
 	j_actual=$$(sed -n '/^jobs:/,$$p' .github/workflows/ci.yml | grep -cE '^  [a-z][a-z_-]*:' | tr -d ' '); \
