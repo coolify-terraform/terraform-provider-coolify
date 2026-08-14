@@ -2,6 +2,7 @@ package servercftunnel_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestServerCFTunnelResource_CRUD(t *testing.T) {
@@ -74,5 +76,57 @@ resource "coolify_server_cloudflare_tunnel" "test" {
 				ImportStateVerifyIdentifierAttribute: "server_uuid",
 			},
 		},
+	})
+}
+
+// Destroy disables the remote tunnel (no DELETE API).
+func TestServerCFTunnelResource_DestroyDisables(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	enabled := false
+	var mu sync.Mutex
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/cloudflare-tunnel/enable"):
+			enabled = true
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/cloudflare-tunnel/disable"):
+			enabled = false
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPatch && strings.HasSuffix(r.URL.Path, "/cloudflare-tunnel"):
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if v, ok := body["is_cloudflare_tunnel"].(bool); ok {
+				enabled = v
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"is_cloudflare_tunnel": enabled})
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/cloudflare-tunnel"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"is_cloudflare_tunnel": enabled})
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(_ *terraform.State) error {
+			mu.Lock()
+			defer mu.Unlock()
+			if enabled {
+				return fmt.Errorf("expected Cloudflare tunnel disabled after destroy")
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_cloudflare_tunnel" "test" {
+  server_uuid          = "` + serverUUID + `"
+  is_cloudflare_tunnel = true
+}`,
+			Check: resource.TestCheckResourceAttr("coolify_server_cloudflare_tunnel.test", "is_cloudflare_tunnel", "true"),
+		}},
 	})
 }

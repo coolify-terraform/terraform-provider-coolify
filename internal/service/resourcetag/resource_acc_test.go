@@ -50,3 +50,65 @@ resource "coolify_resource_tag" "test" {
 		}},
 	})
 }
+
+func TestAccResourceTag_AttachDatabase(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
+	name := acctest.RandomWithPrefix("tf-acc-rtag-db")
+	serverUUID := acctest.AccTestServerUUID(t)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_postgresql", "/api/v1/databases/"),
+		Steps: []resource.TestStep{{
+			Config: acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, "") + fmt.Sprintf(`
+resource "coolify_tag" "test" { name = %q }
+resource "coolify_resource_tag" "test" {
+  resource_type = "database"
+  resource_uuid = coolify_database_postgresql.test.uuid
+  tag_name      = coolify_tag.test.name
+}
+`, name+"-tag"),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttrSet("coolify_resource_tag.test", "tag_uuid"),
+				resource.TestCheckResourceAttr("coolify_resource_tag.test", "resource_type", "database"),
+			),
+		}},
+	})
+}
+
+func TestAccResourceTag_AttachService(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
+	name := acctest.RandomWithPrefix("tf-acc-rtag-svc")
+	serverUUID := acctest.AccTestServerUUID(t)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_service", "/api/v1/services/"),
+		Steps: []resource.TestStep{{
+			Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" { name = %q }
+resource "coolify_service" "test" {
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %q
+  type         = "uptime-kuma"
+}
+resource "coolify_tag" "test" { name = %q }
+resource "coolify_resource_tag" "test" {
+  resource_type = "service"
+  resource_uuid = coolify_service.test.uuid
+  tag_name      = coolify_tag.test.name
+}
+`, name, serverUUID, name+"-tag"),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttrSet("coolify_resource_tag.test", "tag_uuid"),
+				resource.TestCheckResourceAttr("coolify_resource_tag.test", "resource_type", "service"),
+			),
+		}},
+	})
+}

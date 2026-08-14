@@ -234,6 +234,27 @@ func CheckResourceDisappears(serverURL, resourceAddr, apiPathPrefix string) reso
 	}
 }
 
+// CheckPathDisappears deletes an exact API path out-of-band. Use for resources
+// whose remote identity is not a single uuid attribute (shared envs, attach
+// resources). The next plan must be non-empty.
+func CheckPathDisappears(serverURL, path string) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		req, err := http.NewRequest(http.MethodDelete, serverURL+path, nil)
+		if err != nil {
+			return err
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return err
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode >= 400 {
+			return fmt.Errorf("DELETE %s%s returned status %d", serverURL, path, resp.StatusCode)
+		}
+		return nil
+	}
+}
+
 // CheckDestroy returns a TestCheckFunc that verifies a resource no longer
 // exists via the mock API after the test completes. The apiPathPrefix is the
 // GET endpoint prefix (e.g., "/api/v1/servers/").
@@ -425,6 +446,47 @@ func AccTestServerUUID(t *testing.T) string {
 		t.Skipf("No server fixture available for acceptance tests: %v. Set COOLIFY_SERVER_UUID explicitly, or run 'make acc-preflight' / 'make acc-bootstrap' to validate a local server.", accServerDiscoveryErr)
 	}
 	return accServerDiscoveryUUID
+}
+
+// AccTestSecondServerUUID returns a second Coolify server UUID for extra
+// destination attach tests. Prefers COOLIFY_SECOND_SERVER_UUID when that
+// server is visible and different from AccTestServerUUID. Otherwise picks
+// the first listed server that is not the primary. Skips when only one
+// server is available (same-server extra destinations are 422).
+func AccTestSecondServerUUID(t *testing.T) string {
+	t.Helper()
+	primary := AccTestServerUUID(t)
+	endpoint := os.Getenv("COOLIFY_ENDPOINT")
+	token := os.Getenv("COOLIFY_TOKEN")
+	override := os.Getenv("COOLIFY_SECOND_SERVER_UUID")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	c := client.New(endpoint, token)
+	servers, err := c.ListServers(ctx)
+	if err != nil {
+		t.Skipf("listing servers for extra destination: %v", err)
+	}
+
+	if override != "" {
+		if override == primary {
+			t.Skipf("COOLIFY_SECOND_SERVER_UUID %q is the same as the primary server; extra destination attach requires a second server", override)
+		}
+		for _, s := range servers {
+			if s.UUID == override {
+				return s.UUID
+			}
+		}
+		t.Skipf("COOLIFY_SECOND_SERVER_UUID %q was not returned by the API", override)
+	}
+
+	for _, s := range servers {
+		if s.UUID != "" && s.UUID != primary {
+			return s.UUID
+		}
+	}
+	t.Skip("No second Coolify server available. Set COOLIFY_SECOND_SERVER_UUID or add another server. Same-server extra destinations are 422.")
+	return ""
 }
 
 // AccTestDatabaseConfig returns a Terraform config for an acceptance test of a
