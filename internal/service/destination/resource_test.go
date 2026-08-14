@@ -49,6 +49,25 @@ func newDestinationMock(t *testing.T) *httptest.Server {
 			store[d.UUID] = d
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(d)
+		case r.Method == http.MethodPatch && len(r.URL.Path) > len("/api/v1/destinations/"):
+			uuid := r.URL.Path[len("/api/v1/destinations/"):]
+			d, ok := store[uuid]
+			if !ok {
+				http.Error(w, `{}`, http.StatusNotFound)
+				return
+			}
+			var input client.UpdateDestinationInput
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			if input.Name == "" {
+				t.Errorf("PATCH destination: expected name, got %+v", input)
+				http.Error(w, `{"error":"name required"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			d.Name = input.Name
+			_ = json.NewEncoder(w).Encode(d)
 		case r.Method == http.MethodGet && len(r.URL.Path) > len("/api/v1/destinations/"):
 			uuid := r.URL.Path[len("/api/v1/destinations/"):]
 			d, ok := store[uuid]
@@ -97,6 +116,35 @@ resource "coolify_destination" "test" {
 }`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestDestinationResource_UpdateName(t *testing.T) {
+	t.Parallel()
+	srv := newDestinationMock(t)
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_destination" "test" {
+  server_uuid = "bbbb0001-0001-4000-8000-000000000001"
+  network     = "coolify-net"
+  name        = "my-net"
+}`,
+				Check: resource.TestCheckResourceAttr("coolify_destination.test", "name", "my-net"),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_destination" "test" {
+  server_uuid = "bbbb0001-0001-4000-8000-000000000001"
+  network     = "coolify-net"
+  name        = "renamed-net"
+}`,
+				Check: resource.TestCheckResourceAttr("coolify_destination.test", "name", "renamed-net"),
 			},
 		},
 	})

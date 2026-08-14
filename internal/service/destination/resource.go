@@ -68,10 +68,10 @@ func (r *destinationResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Display name. Defaults to `{server-name}-{network}` when omitted. Changing this forces a new resource.",
+				MarkdownDescription: "Display name. Defaults to `{server-name}-{network}` when omitted. Coolify accepts in-place rename via PATCH.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"type": schema.StringAttribute{
 				MarkdownDescription: "Destination type: `standalone` or `swarm`. Omit to let Coolify match the server's Docker mode. Changing this forces a new resource.",
@@ -156,12 +156,18 @@ func (r *destinationResource) Read(ctx context.Context, req resource.ReadRequest
 }
 
 func (r *destinationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// All fields RequireReplace; Update should not be invoked for normal changes.
 	var plan destinationResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	name := plan.Name.ValueString()
+	updated, err := r.client.UpdateDestination(ctx, plan.UUID.ValueString(), client.UpdateDestinationInput{Name: name})
+	if err != nil {
+		resp.Diagnostics.AddError("Error updating destination", fmt.Sprintf("destination %s: %s", plan.UUID.ValueString(), err))
+		return
+	}
+	flattenDestination(updated, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 

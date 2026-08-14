@@ -1,0 +1,94 @@
+package serverproxy_test
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+)
+
+func TestServerProxyResource_CRUD(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	store := map[string]any{
+		"redirect_enabled":      false,
+		"redirect_url":          "",
+		"generate_exact_labels": false,
+		"proxy_type":            "traefik",
+		"configuration":         "",
+	}
+	var mu sync.Mutex
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/proxy/configuration") && r.Method == http.MethodPut:
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("decode proxy config: %v", err)
+			}
+			if body["configuration"] == nil {
+				t.Errorf("expected configuration in PUT body, got %v", body)
+			}
+			store["configuration"] = body["configuration"]
+			w.WriteHeader(http.StatusOK)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch:
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("decode proxy patch: %v", err)
+			}
+			if body["proxy_type"] == nil {
+				t.Errorf("expected proxy_type in PATCH body, got %v", body)
+			}
+			for k, v := range body {
+				store[k] = v
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid  = "` + serverUUID + `"
+  proxy_type   = "caddy"
+  redirect_url = "https://example.com"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "proxy_type", "caddy"),
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "redirect_url", "https://example.com"),
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid     = "` + serverUUID + `"
+  proxy_type      = "traefik"
+  redirect_url    = "https://example.com"
+  redirect_enabled = true
+}`,
+				Check: resource.TestCheckResourceAttr("coolify_server_proxy.test", "proxy_type", "traefik"),
+			},
+			{
+				ResourceName:                         "coolify_server_proxy.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        serverUUID,
+				ImportStateVerifyIdentifierAttribute: "server_uuid",
+			},
+		},
+	})
+}

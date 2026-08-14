@@ -338,13 +338,13 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (45 total)
+### Resources (56 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
 | `coolify_project` | Yes | Yes | Yes | Yes | |
 | `coolify_private_key` | Yes | Yes | Yes | Yes | |
-| `coolify_environment` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
+| `coolify_environment` | Yes | Yes | Yes | Yes | Name and description PATCHed in place |
 | `coolify_application_dockerfile` | Yes | Yes | Yes | Yes | |
 | `coolify_database_postgresql` | Yes | Yes | Yes | Yes | |
 | `coolify_service` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
@@ -383,8 +383,19 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_s3_storage_validate` | Yes | Yes | N/A | N/A | Trigger resource; creates disposable S3 storage (does not use bootstrap minio-test UUID) |
 | `coolify_server_validate` | Yes | Yes | N/A | N/A | Trigger resource |
 | `coolify_envs_bulk` | Yes | Yes | N/A | N/A | Atomic env var set management |
+| `coolify_gitlab_app` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
+| `coolify_tag` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.2.0 |
+| `coolify_resource_tag` | Unit | Yes | N/A | Yes | Requires Coolify >= v4.2.0 |
+| `coolify_cloud_init_script` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
+| `coolify_shared_environment_variable` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
+| `coolify_server_proxy` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves remote config |
+| `coolify_server_log_drain` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy disables drains |
+| `coolify_server_cloudflare_tunnel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
+| `coolify_server_sentinel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.1.1 |
+| `coolify_server_docker_cleanup` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves schedule |
+| `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
-### Data Sources (62 total)
+### Data Sources (67 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -394,6 +405,11 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_notification_telegram` | Yes | Team singleton; Coolify >= v4.3.0 |
 | `coolify_notification_webhook` | Yes | Team singleton; Coolify >= v4.3.0 |
 | `coolify_notification_pushover` | Yes | Team singleton; Coolify >= v4.3.0 |
+| `coolify_gitlab_app` | Unit | Requires Coolify >= v4.3.0 |
+| `coolify_gitlab_apps` | Unit | Requires Coolify >= v4.3.0 |
+| `coolify_tag` | Unit | Requires Coolify >= v4.2.0 |
+| `coolify_tags` | Unit | Requires Coolify >= v4.2.0 |
+| `coolify_cloud_init_script` | Unit | Requires Coolify >= v4.3.0 |
 | `coolify_version` | Yes | |
 | `coolify_health` | Yes | |
 | `coolify_team` | Yes | |
@@ -445,7 +461,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 45/45 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 124
+- **Total acceptance test functions**: 135
 
 ### Testing strategies for edge cases
 

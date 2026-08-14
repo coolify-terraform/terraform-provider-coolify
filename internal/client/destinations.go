@@ -27,6 +27,11 @@ type CreateDestinationInput struct {
 	Type    string `json:"type,omitempty"` // standalone (default) or swarm
 }
 
+// UpdateDestinationInput renames a destination (Coolify accepts name only).
+type UpdateDestinationInput struct {
+	Name string `json:"name"`
+}
+
 // ListDestinations returns all destinations for the authenticated team.
 func (c *Client) ListDestinations(ctx context.Context) ([]Destination, error) {
 	var r []Destination
@@ -63,6 +68,15 @@ func (c *Client) CreateDestination(ctx context.Context, serverUUID string, input
 	}
 	if r.UUID == "" {
 		return nil, fmt.Errorf("creating destination on server %s: API returned empty UUID", serverUUID)
+	}
+	return &r, nil
+}
+
+// UpdateDestination PATCHes the destination display name.
+func (c *Client) UpdateDestination(ctx context.Context, uuid string, input UpdateDestinationInput) (*Destination, error) {
+	var r Destination
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/destinations/%s", url.PathEscape(uuid)), input, &r); err != nil {
+		return nil, fmt.Errorf("updating destination %s: %w", uuid, err)
 	}
 	return &r, nil
 }

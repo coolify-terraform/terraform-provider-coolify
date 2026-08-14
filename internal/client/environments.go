@@ -18,10 +18,15 @@ type Environment struct {
 }
 
 // CreateEnvironmentInput is the input for creating an environment.
-// Note: Coolify's Create endpoint rejects "description" with 422.
-// Description is a state-only field managed by the provider.
+// Coolify's Create endpoint rejects "description" with 422; send it on PATCH.
 type CreateEnvironmentInput struct {
 	Name string `json:"name"`
+}
+
+// UpdateEnvironmentInput is the input for PATCH /projects/{uuid}/environments/{name}.
+type UpdateEnvironmentInput struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
 }
 
 // ListEnvironments returns all environments for the given project.
@@ -47,6 +52,16 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectUUID string, inpu
 	var r Environment
 	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/projects/%s/environments", url.PathEscape(projectUUID)), input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating environment in project %s: %w", projectUUID, err)
+	}
+	return &r, nil
+}
+
+// UpdateEnvironment PATCHes name and/or description on an existing environment.
+func (c *Client) UpdateEnvironment(ctx context.Context, projectUUID, nameOrUUID string, input UpdateEnvironmentInput) (*Environment, error) {
+	var r Environment
+	path := fmt.Sprintf("/api/v1/projects/%s/environments/%s", url.PathEscape(projectUUID), url.PathEscape(nameOrUUID))
+	if err := c.do(ctx, http.MethodPatch, path, input, &r); err != nil {
+		return nil, fmt.Errorf("updating environment %s in project %s: %w", nameOrUUID, projectUUID, err)
 	}
 	return &r, nil
 }
