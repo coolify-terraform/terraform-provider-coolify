@@ -447,7 +447,8 @@ func redactValue(v interface{}) {
 			lower := strings.ToLower(k)
 			if sensitiveKeys[lower] || strings.Contains(lower, "password") ||
 				strings.Contains(lower, "secret") || strings.Contains(lower, "private_key") ||
-				strings.Contains(lower, "token") {
+				strings.Contains(lower, "token") || strings.Contains(lower, "api_key") ||
+				strings.Contains(lower, "license_key") || strings.Contains(lower, "user_key") {
 				val[k] = "[REDACTED]"
 			} else {
 				redactValue(child)

@@ -5280,6 +5280,24 @@ func TestRedactJSON_Nested(t *testing.T) {
 	assert.Contains(t, got, `"name":"ok"`)
 }
 
+func TestRedactJSON_APIKeysAndLicenses(t *testing.T) {
+	t.Parallel()
+	input := `{
+		"name":"drain",
+		"logdrain_axiom_api_key":"axiom-secret",
+		"logdrain_newrelic_license_key":"nr-license",
+		"resend_api_key":"re_123",
+		"pushover_user_key":"po-user"
+	}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"name":"drain"`)
+	assert.NotContains(t, got, "axiom-secret")
+	assert.NotContains(t, got, "nr-license")
+	assert.NotContains(t, got, "re_123")
+	assert.NotContains(t, got, "po-user")
+	assert.Contains(t, got, `[REDACTED]`)
+}
+
 func TestRedactJSON_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	got := redactJSON([]byte("not json"))
