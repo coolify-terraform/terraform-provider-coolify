@@ -3,6 +3,7 @@ package sharedenv
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -57,10 +58,17 @@ func (r *sharedEnvResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"scope": schema.StringAttribute{Required: true, MarkdownDescription: "One of `team`, `project`, `environment`, or `server`. Changing this forces a new resource.",
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 				Validators:    []validator.String{stringvalidator.OneOf("team", "project", "environment", "server")}},
-			"project_uuid":  schema.StringAttribute{Optional: true, MarkdownDescription: "Required for project and environment scopes.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"environment":   schema.StringAttribute{Optional: true, MarkdownDescription: "Environment name or UUID. Required for environment scope.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"server_uuid":   schema.StringAttribute{Optional: true, MarkdownDescription: "Required for server scope.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"key":           schema.StringAttribute{Required: true, MarkdownDescription: "Variable name. Changing this forces a new resource.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"project_uuid": schema.StringAttribute{Optional: true, MarkdownDescription: "Required for project and environment scopes.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"environment":  schema.StringAttribute{Optional: true, MarkdownDescription: "Environment name or UUID. Required for environment scope.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"server_uuid":  schema.StringAttribute{Optional: true, MarkdownDescription: "Required for server scope.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"key": schema.StringAttribute{
+				Required:            true,
+				MarkdownDescription: "Variable name. Letters, digits, underscores, and dots; must start with a letter or underscore. Hyphens are rejected by Coolify. Changing this forces a new resource.",
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.]*$`), "must be a valid environment variable name (letters, digits, underscores, dots; cannot start with a digit; hyphens are not allowed)"),
+				},
+			},
 			"value":         schema.StringAttribute{Optional: true, Sensitive: true, MarkdownDescription: "Variable value. Preserved when GET omits it."},
 			"is_literal":    schema.BoolAttribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()}},
 			"is_multiline":  schema.BoolAttribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()}},

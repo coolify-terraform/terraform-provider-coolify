@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -272,4 +273,23 @@ resource "coolify_shared_environment_variable" "test" {
 			}
 		})
 	}
+}
+
+func TestSharedEnvResource_RejectsHyphenKey(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NewServeMux()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_shared_environment_variable" "test" {
+  scope = "team"
+  key   = "GLOBAL-FLAG"
+  value = "on"
+}`,
+			ExpectError: regexp.MustCompile(`hyphens are not allowed`),
+		}},
+	})
 }
