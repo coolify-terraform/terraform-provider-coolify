@@ -65,23 +65,15 @@ func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
-func boolPtrKnown(b types.Bool) *bool {
-	if b.IsNull() || b.IsUnknown() {
-		return nil
-	}
-	v := b.ValueBool()
-	return &v
-}
-
 func toInput(m model) client.ServerLogDrains {
 	return client.ServerLogDrains{
-		IsNewRelicEnabled:  boolPtrKnown(m.NewRelicEnabled),
+		IsNewRelicEnabled:  flex.BoolValueOrNull(m.NewRelicEnabled),
 		NewRelicLicenseKey: m.NewRelicLicenseKey.ValueString(),
 		NewRelicBaseURI:    m.NewRelicBaseURI.ValueString(),
-		IsAxiomEnabled:     boolPtrKnown(m.AxiomEnabled),
+		IsAxiomEnabled:     flex.BoolValueOrNull(m.AxiomEnabled),
 		AxiomDatasetName:   m.AxiomDatasetName.ValueString(),
 		AxiomAPIKey:        m.AxiomAPIKey.ValueString(),
-		IsCustomEnabled:    boolPtrKnown(m.CustomEnabled),
+		IsCustomEnabled:    flex.BoolValueOrNull(m.CustomEnabled),
 		CustomConfig:       m.CustomConfig.ValueString(),
 		CustomConfigParser: m.CustomConfigParser.ValueString(),
 	}

@@ -149,21 +149,7 @@ func (r *serverProxyResource) Read(ctx context.Context, req resource.ReadRequest
 		resp.Diagnostics.AddError("Error reading server proxy", fmt.Sprintf("%s: %s", state.ServerUUID.ValueString(), err))
 		return
 	}
-	if got.RedirectEnabled != nil {
-		state.RedirectEnabled = types.BoolValue(*got.RedirectEnabled)
-	}
-	if got.RedirectURL != "" {
-		state.RedirectURL = types.StringValue(got.RedirectURL)
-	}
-	if got.GenerateExactLabels != nil {
-		state.GenerateExactLabels = types.BoolValue(*got.GenerateExactLabels)
-	}
-	if got.ProxyType != "" {
-		state.ProxyType = types.StringValue(strings.ToLower(got.ProxyType))
-	}
-	if got.Configuration != "" && !state.Configuration.IsNull() {
-		state.Configuration = types.StringValue(got.Configuration)
-	}
+	flattenProxy(got, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 

@@ -64,21 +64,13 @@ func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
-func boolPtrKnown(b types.Bool) *bool {
-	if b.IsNull() || b.IsUnknown() {
-		return nil
-	}
-	v := b.ValueBool()
-	return &v
-}
-
 func toInput(m model) client.ServerDockerCleanup {
 	in := client.ServerDockerCleanup{
 		DockerCleanupFrequency:           m.DockerCleanupFrequency.ValueString(),
-		ForceDockerCleanup:               boolPtrKnown(m.ForceDockerCleanup),
-		DeleteUnusedVolumes:              boolPtrKnown(m.DeleteUnusedVolumes),
-		DeleteUnusedNetworks:             boolPtrKnown(m.DeleteUnusedNetworks),
-		DisableApplicationImageRetention: boolPtrKnown(m.DisableApplicationImageRetention),
+		ForceDockerCleanup:               flex.BoolValueOrNull(m.ForceDockerCleanup),
+		DeleteUnusedVolumes:              flex.BoolValueOrNull(m.DeleteUnusedVolumes),
+		DeleteUnusedNetworks:             flex.BoolValueOrNull(m.DeleteUnusedNetworks),
+		DisableApplicationImageRetention: flex.BoolValueOrNull(m.DisableApplicationImageRetention),
 	}
 	if !m.DockerCleanupThreshold.IsNull() && !m.DockerCleanupThreshold.IsUnknown() {
 		v := m.DockerCleanupThreshold.ValueInt64()

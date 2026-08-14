@@ -63,19 +63,11 @@ func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
-func boolPtrKnown(b types.Bool) *bool {
-	if b.IsNull() || b.IsUnknown() {
-		return nil
-	}
-	v := b.ValueBool()
-	return &v
-}
-
 func toInput(m model) client.ServerSentinel {
 	in := client.ServerSentinel{
-		IsSentinelEnabled:      boolPtrKnown(m.IsSentinelEnabled),
-		IsMetricsEnabled:       boolPtrKnown(m.IsMetricsEnabled),
-		IsSentinelDebugEnabled: boolPtrKnown(m.IsSentinelDebugEnabled),
+		IsSentinelEnabled:      flex.BoolValueOrNull(m.IsSentinelEnabled),
+		IsMetricsEnabled:       flex.BoolValueOrNull(m.IsMetricsEnabled),
+		IsSentinelDebugEnabled: flex.BoolValueOrNull(m.IsSentinelDebugEnabled),
 		SentinelToken:          m.SentinelToken.ValueString(),
 		SentinelCustomURL:      m.SentinelCustomURL.ValueString(),
 	}
