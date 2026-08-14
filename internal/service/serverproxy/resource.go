@@ -62,8 +62,8 @@ func (r *serverProxyResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "Whether to generate exact Docker labels (removes extra labels from containers). " +
 					"Setting `false` is ignored by Coolify today (`$request->has('generate_exact_labels')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.",
 			},
-			"proxy_type":            schema.StringAttribute{Optional: true, Computed: true, MarkdownDescription: "Proxy type (for example traefik or caddy)."},
-			"configuration":         schema.StringAttribute{Optional: true, MarkdownDescription: "Raw proxy configuration written with PUT .../proxy/configuration."},
+			"proxy_type":    schema.StringAttribute{Optional: true, Computed: true, MarkdownDescription: "Proxy type (for example traefik or caddy)."},
+			"configuration": schema.StringAttribute{Optional: true, MarkdownDescription: "Raw proxy configuration written with PUT .../proxy/configuration."},
 		},
 	}
 }
