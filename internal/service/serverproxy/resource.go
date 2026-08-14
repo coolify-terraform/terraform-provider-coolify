@@ -51,10 +51,19 @@ func (r *serverProxyResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "Whether HTTP to HTTPS redirect is enabled. Coolify defaults this to `true`. " +
 					"Setting `false` is ignored by Coolify today (`$request->has('redirect_enabled')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.",
 			},
-			"redirect_url":          schema.StringAttribute{Optional: true, Computed: true},
-			"generate_exact_labels": schema.BoolAttribute{Optional: true, Computed: true},
-			"proxy_type":            schema.StringAttribute{Optional: true, Computed: true, MarkdownDescription: "Proxy type (for example traefik or caddy)."},
-			"configuration":         schema.StringAttribute{Optional: true, MarkdownDescription: "Raw proxy configuration written with PUT .../proxy/configuration."},
+			"redirect_url": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "HTTPS redirect target URL. Coolify persists this field (`$request->exists('redirect_url')`). Use a resolvable host; reserved names such as `example.invalid` return 422.",
+			},
+			"generate_exact_labels": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "Whether to generate exact Docker labels (removes extra labels from containers). " +
+					"Setting `false` is ignored by Coolify today (`$request->has('generate_exact_labels')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.",
+			},
+			"proxy_type":    schema.StringAttribute{Optional: true, Computed: true, MarkdownDescription: "Proxy type (for example traefik or caddy)."},
+			"configuration": schema.StringAttribute{Optional: true, MarkdownDescription: "Raw proxy configuration written with PUT .../proxy/configuration."},
 		},
 	}
 }
@@ -149,21 +158,7 @@ func (r *serverProxyResource) Read(ctx context.Context, req resource.ReadRequest
 		resp.Diagnostics.AddError("Error reading server proxy", fmt.Sprintf("%s: %s", state.ServerUUID.ValueString(), err))
 		return
 	}
-	if got.RedirectEnabled != nil {
-		state.RedirectEnabled = types.BoolValue(*got.RedirectEnabled)
-	}
-	if got.RedirectURL != "" {
-		state.RedirectURL = types.StringValue(got.RedirectURL)
-	}
-	if got.GenerateExactLabels != nil {
-		state.GenerateExactLabels = types.BoolValue(*got.GenerateExactLabels)
-	}
-	if got.ProxyType != "" {
-		state.ProxyType = types.StringValue(strings.ToLower(got.ProxyType))
-	}
-	if got.Configuration != "" && !state.Configuration.IsNull() {
-		state.Configuration = types.StringValue(got.Configuration)
-	}
+	flattenProxy(got, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
