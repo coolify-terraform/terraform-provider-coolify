@@ -67,6 +67,7 @@ type ServerCommonPtrs struct {
 	ComposeVersionCheckedAt           *types.String
 	DockerVersion                     *types.String
 	DockerVersionCheckedAt            *types.String
+	BackupCompressionCPUPercentage    *types.Int64
 }
 
 // CommonServerAttrs returns the schema attributes shared by all server
@@ -177,6 +178,7 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 	addCoreExtendedSettingsAttrs(attrs)
 	addLogdrainSettingsAttrs(attrs)
 	addHostProbeVersionAttrs(attrs)
+	addBackupCompressionAttrs(attrs)
 }
 
 func addCoreExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
@@ -347,6 +349,16 @@ func addHostProbeVersionAttrs(attrs map[string]schema.Attribute) {
 	}
 }
 
+// addBackupCompressionAttrs adds the Coolify tip/nightly 4.3.3 volume-backup
+// CPU share. GET settings include it; public server PATCH does not.
+func addBackupCompressionAttrs(attrs map[string]schema.Attribute) {
+	attrs["backup_compression_cpu_percentage"] = schema.Int64Attribute{
+		MarkdownDescription: "CPU percentage Coolify uses when compressing volume backups. " +
+			"Read-only (not on public server PATCH). Present on Coolify tip/nightly 4.3.3; empty on older instances.",
+		Computed: true,
+	}
+}
+
 // FlattenServerCommon sets the fields shared by all server resource types
 // from the API response.
 func FlattenServerCommon(srv *client.Server, f ServerCommonPtrs) {
@@ -421,6 +433,7 @@ func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
 	setStringPtr(f.ComposeVersionCheckedAt, s.ComposeVersionCheckedAt)
 	setStringPtr(f.DockerVersion, s.DockerVersion)
 	setStringPtr(f.DockerVersionCheckedAt, s.DockerVersionCheckedAt)
+	setIntPtr(f.BackupCompressionCPUPercentage, s.BackupCompressionCPUPercentage)
 }
 
 func setBoolPtr(dst *types.Bool, v bool) {
@@ -435,6 +448,17 @@ func setStringPtr(dst *types.String, v string) {
 		return
 	}
 	*dst = flex.StringToFramework(v)
+}
+
+func setIntPtr(dst *types.Int64, v *int) {
+	if dst == nil {
+		return
+	}
+	if v == nil {
+		*dst = types.Int64Null()
+		return
+	}
+	*dst = types.Int64Value(int64(*v))
 }
 
 // HasNonDefaultSettings returns true if any settings field in the plan

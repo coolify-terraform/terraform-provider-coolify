@@ -26,9 +26,11 @@ type projectDataSource struct {
 
 // projectDataSourceModel maps the data source schema data.
 type projectDataSourceModel struct {
-	UUID        types.String `tfsdk:"uuid"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
+	UUID            types.String `tfsdk:"uuid"`
+	Name            types.String `tfsdk:"name"`
+	Description     types.String `tfsdk:"description"`
+	IconPath        types.String `tfsdk:"icon_path"`
+	IconStorageType types.String `tfsdk:"icon_storage_type"`
 }
 
 // NewDataSource returns a new project data source instance.
@@ -57,6 +59,17 @@ func (d *projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				MarkdownDescription: "A description of the project.",
 				Computed:            true,
 			},
+			"icon_path": schema.StringAttribute{
+				MarkdownDescription: "Storage path of the project icon uploaded in the Coolify UI. " +
+					"Read-only. Present on GET /projects/{uuid} on Coolify tip/nightly 4.3.3; " +
+					"omitted from the list endpoint and older instances.",
+				Computed: true,
+			},
+			"icon_storage_type": schema.StringAttribute{
+				MarkdownDescription: "Icon storage backend (`local` or `s3`). Read-only. " +
+					"Present on GET /projects/{uuid} on Coolify tip/nightly 4.3.3.",
+				Computed: true,
+			},
 		},
 	}
 }
@@ -84,6 +97,8 @@ func (d *projectDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	config.UUID = types.StringValue(project.UUID)
 	config.Name = types.StringValue(project.Name)
 	config.Description = flex.StringToFramework(project.Description)
+	config.IconPath = flex.StringToFramework(project.IconPath)
+	config.IconStorageType = flex.StringToFramework(project.IconStorageType)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

@@ -45,6 +45,7 @@ Required:
 
 Read-Only:
 
+- `backup_compression_cpu_percentage` (Number) CPU percentage Coolify uses when compressing volume backups. Read-only. Present on Coolify tip/nightly 4.3.3; empty on older instances.
 - `compose_version` (String) Docker Compose version reported by Coolify for this server (host probe). Populated on Coolify >= v4.3.2 when the host has been probed. Empty on older instances.
 - `compose_version_checked_at` (String) When Coolify last checked the Compose version on this server.
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.

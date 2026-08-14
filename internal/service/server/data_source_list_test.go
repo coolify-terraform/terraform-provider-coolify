@@ -14,6 +14,7 @@ import (
 
 func TestServersDataSource(t *testing.T) {
 	t.Parallel()
+	backupPct := 40
 	servers := []client.Server{
 		{
 			UUID:          "srv-list-uuid-1",
@@ -32,7 +33,8 @@ func TestServersDataSource(t *testing.T) {
 				ConnectionTimeout:                    0,
 				ServerDiskUsageNotificationThreshold: 80,
 				ComposeVersion:                       "2.29.1", DockerVersion: "27.0.3",
-				ServerDiskUsageCheckFrequency: "*/5 * * * *",
+				BackupCompressionCPUPercentage: &backupPct,
+				ServerDiskUsageCheckFrequency:  "*/5 * * * *",
 			},
 		},
 		{
@@ -97,6 +99,7 @@ data "coolify_servers" "test" {}`,
 					resource.TestCheckResourceAttr("data.coolify_servers.test", "servers.0.connection_timeout", "10"),
 					resource.TestCheckResourceAttr("data.coolify_servers.test", "servers.0.server_disk_usage_notification_threshold", "80"),
 					resource.TestCheckResourceAttr("data.coolify_servers.test", "servers.0.server_disk_usage_check_frequency", "*/5 * * * *"),
+					resource.TestCheckResourceAttr("data.coolify_servers.test", "servers.0.backup_compression_cpu_percentage", "40"),
 					resource.TestCheckResourceAttr("data.coolify_servers.test", "servers.1.concurrent_builds", "4"),
 					resource.TestCheckResourceAttr("data.coolify_servers.test", "servers.1.dynamic_timeout", "7200"),
 					resource.TestCheckResourceAttr("data.coolify_servers.test", "servers.1.deployment_queue_limit", "10"),

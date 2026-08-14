@@ -18,9 +18,11 @@ import (
 
 // mockProject stores project data in the mock server.
 type mockProject struct {
-	UUID        string `json:"uuid"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	UUID            string `json:"uuid"`
+	Name            string `json:"name"`
+	Description     string `json:"description"`
+	IconPath        string `json:"icon_path,omitempty"`
+	IconStorageType string `json:"icon_storage_type,omitempty"`
 }
 
 // newMockCoolifyServer creates an httptest.Server that simulates the Coolify API for projects.
@@ -117,9 +119,11 @@ func (s *mockProjectStore) Create(name, description string) *mockProject {
 	defer s.mu.Unlock()
 	s.counter++
 	p := &mockProject{
-		UUID:        fmt.Sprintf("cccc0000-0000-4000-8000-%012d", s.counter),
-		Name:        name,
-		Description: description,
+		UUID:            fmt.Sprintf("cccc0000-0000-4000-8000-%012d", s.counter),
+		Name:            name,
+		Description:     description,
+		IconPath:        "project-icons/test.png",
+		IconStorageType: "local",
 	}
 	s.projects[p.UUID] = p
 	return p
@@ -184,6 +188,8 @@ resource "coolify_project" "test" {
 					resource.TestCheckResourceAttrSet("coolify_project.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_project.test", "name", "my-project"),
 					resource.TestCheckResourceAttr("coolify_project.test", "description", "A test project"),
+					resource.TestCheckResourceAttr("coolify_project.test", "icon_path", "project-icons/test.png"),
+					resource.TestCheckResourceAttr("coolify_project.test", "icon_storage_type", "local"),
 				),
 			},
 			{

@@ -43,6 +43,7 @@ type serverDataSourceModel struct {
 	ComposeVersionCheckedAt              types.String `tfsdk:"compose_version_checked_at"`
 	DockerVersion                        types.String `tfsdk:"docker_version"`
 	DockerVersionCheckedAt               types.String `tfsdk:"docker_version_checked_at"`
+	BackupCompressionCPUPercentage       types.Int64  `tfsdk:"backup_compression_cpu_percentage"`
 }
 
 func serverDataSourceAttributes() map[string]schema.Attribute {
@@ -125,6 +126,11 @@ func serverDataSourceAttributes() map[string]schema.Attribute {
 			MarkdownDescription: "When Coolify last checked the Docker version on this server.",
 			Computed:            true,
 		},
+		"backup_compression_cpu_percentage": schema.Int64Attribute{
+			MarkdownDescription: "CPU percentage Coolify uses when compressing volume backups. " +
+				"Read-only. Present on Coolify tip/nightly 4.3.3; empty on older instances.",
+			Computed: true,
+		},
 	}
 }
 
@@ -159,6 +165,11 @@ func flattenServerDataSourceModel(srv client.Server) serverDataSourceModel {
 	model.ComposeVersionCheckedAt = flex.StringToFramework(srv.Settings.ComposeVersionCheckedAt)
 	model.DockerVersion = flex.StringToFramework(srv.Settings.DockerVersion)
 	model.DockerVersionCheckedAt = flex.StringToFramework(srv.Settings.DockerVersionCheckedAt)
+	if srv.Settings.BackupCompressionCPUPercentage != nil {
+		model.BackupCompressionCPUPercentage = types.Int64Value(int64(*srv.Settings.BackupCompressionCPUPercentage))
+	} else {
+		model.BackupCompressionCPUPercentage = types.Int64Null()
+	}
 
 	return model
 }

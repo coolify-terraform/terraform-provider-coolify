@@ -56,6 +56,9 @@ type ServerSettings struct {
 	ComposeVersionCheckedAt string `json:"compose_version_checked_at,omitempty"`
 	DockerVersion           string `json:"docker_version,omitempty"`
 	DockerVersionCheckedAt  string `json:"docker_version_checked_at,omitempty"`
+	// CPU share for volume-backup compression (Coolify tip/nightly 4.3.3).
+	// Pointer so older GET payloads without the column stay null, not 0.
+	BackupCompressionCPUPercentage *int `json:"backup_compression_cpu_percentage,omitempty"`
 }
 
 type Server struct {

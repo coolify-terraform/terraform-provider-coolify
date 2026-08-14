@@ -99,6 +99,15 @@ on `coolify_server` / cloud server resources and `coolify_server` / `coolify_ser
 data sources are populated on Coolify **≥ 4.3.2** after Coolify probes the host.
 Empty on older instances.
 
+Volume-backup CPU share (`backup_compression_cpu_percentage`) is a computed
+GET-only server setting on Coolify tip/nightly **4.3.3**. It is not on the
+public server PATCH allow list. Empty on older instances.
+
+Project icon attributes (`icon_path`, `icon_storage_type`) are computed on
+`coolify_project` and `data.coolify_project` from GET `/projects/{uuid}` on
+Coolify tip/nightly **4.3.3**. They are not writable and are omitted from
+`GET /projects` (list). Empty on older instances.
+
 ## Application attributes by Coolify version
 
 Application resources share one schema. Attributes that Coolify only accepts
