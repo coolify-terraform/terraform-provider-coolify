@@ -219,7 +219,7 @@ type CreateHetznerServerInput struct {
 	PrivateKeyUUID         string  `json:"private_key_uuid"`
 	EnableIPv4             *bool   `json:"enable_ipv4,omitempty"`
 	EnableIPv6             *bool   `json:"enable_ipv6,omitempty"`
-	HetznerSSHKeyIDs       string  `json:"hetzner_ssh_key_ids,omitempty"`
+	HetznerSSHKeyIDs       []int64 `json:"hetzner_ssh_key_ids,omitempty"`
 	HetznerFirewallIDs     []int64 `json:"hetzner_firewall_ids,omitempty"`
 	HetznerNetworkIDs      []int64 `json:"hetzner_network_ids,omitempty"`
 	CloudInitScript        string  `json:"cloud_init_script,omitempty"`

@@ -22,6 +22,30 @@ func defaultHetznerPlan() hetznerServerResourceModel {
 	}
 }
 
+func TestInt64IDsFromCSV(t *testing.T) {
+	t.Parallel()
+
+	got, err := int64IDsFromCSV("12345, 67890")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 2 || got[0] != 12345 || got[1] != 67890 {
+		t.Fatalf("got %v, want [12345 67890]", got)
+	}
+
+	empty, err := int64IDsFromCSV("  ,  ")
+	if err != nil {
+		t.Fatalf("empty csv error: %v", err)
+	}
+	if len(empty) != 0 {
+		t.Fatalf("empty csv = %v, want empty", empty)
+	}
+
+	if _, err := int64IDsFromCSV("38,abc"); err == nil {
+		t.Fatal("expected error for non-integer token")
+	}
+}
+
 func TestHasNonDefaultCloudProviderSettings_ViaHetznerModel(t *testing.T) {
 	t.Parallel()
 	m := defaultHetznerPlan()

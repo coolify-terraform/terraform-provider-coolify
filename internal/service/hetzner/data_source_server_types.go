@@ -5,6 +5,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -78,14 +79,13 @@ func (d *serverTypesDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	serverTypes, ok := readFilteredTokenList(
+	serverTypes, ok := flex.ReadFilteredTokenList(
 		ctx,
 		config.CloudProviderTokenUUID.ValueString(),
 		config.Filters,
 		"coolify_hetzner_server_types",
 		"Error listing Hetzner server types",
 		resp,
-		d.client,
 		d.client.ListHetznerServerTypes,
 		func(st client.HetznerServerType, field string) (string, bool) {
 			switch field {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -59,8 +60,8 @@ func (d *plansDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	items, ok := readFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
-		"coolify_vultr_plans", "Error listing Vultr plans", resp, d.client, d.client.ListVultrPlans,
+	items, ok := flex.ReadFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
+		"coolify_vultr_plans", "Error listing Vultr plans", resp, d.client.ListVultrPlans,
 		func(p client.VultrPlan, field string) (string, bool) {
 			if field == "id" {
 				return p.ID, true

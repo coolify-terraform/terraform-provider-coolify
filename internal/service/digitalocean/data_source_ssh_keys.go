@@ -5,6 +5,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -66,9 +67,9 @@ func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	keys, ok := readFilteredTokenList(
+	keys, ok := flex.ReadFilteredTokenList(
 		ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
-		"coolify_digitalocean_ssh_keys", "Error listing DigitalOcean SSH keys", resp, d.client,
+		"coolify_digitalocean_ssh_keys", "Error listing DigitalOcean SSH keys", resp,
 		d.client.ListDigitalOceanSSHKeys,
 		func(k client.DigitalOceanSSHKey, field string) (string, bool) {
 			switch field {

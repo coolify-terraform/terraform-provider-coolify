@@ -3038,6 +3038,7 @@ func TestHetznerCreate_CloudProviderTokenUUID_JSONTag(t *testing.T) {
 func TestHetznerCreate_NetworkAndFirewallIDs_JSONTags(t *testing.T) {
 	t.Parallel()
 	input := CreateHetznerServerInput{
+		HetznerSSHKeyIDs:   []int64{12345, 67890},
 		HetznerFirewallIDs: []int64{38, 39},
 		HetznerNetworkIDs:  []int64{456},
 	}
@@ -3046,6 +3047,7 @@ func TestHetznerCreate_NetworkAndFirewallIDs_JSONTags(t *testing.T) {
 
 	var raw map[string]interface{}
 	require.NoError(t, json.Unmarshal(data, &raw))
+	assert.Equal(t, []interface{}{float64(12345), float64(67890)}, raw["hetzner_ssh_key_ids"])
 	assert.Equal(t, []interface{}{float64(38), float64(39)}, raw["hetzner_firewall_ids"])
 	assert.Equal(t, []interface{}{float64(456)}, raw["hetzner_network_ids"])
 
@@ -3054,6 +3056,8 @@ func TestHetznerCreate_NetworkAndFirewallIDs_JSONTags(t *testing.T) {
 	require.NoError(t, err)
 	var emptyRaw map[string]interface{}
 	require.NoError(t, json.Unmarshal(emptyData, &emptyRaw))
+	_, hasSSHKeys := emptyRaw["hetzner_ssh_key_ids"]
+	assert.False(t, hasSSHKeys, "empty slice must omit hetzner_ssh_key_ids")
 	_, hasFirewalls := emptyRaw["hetzner_firewall_ids"]
 	assert.False(t, hasFirewalls, "empty slice must omit hetzner_firewall_ids")
 	_, hasNetworks := emptyRaw["hetzner_network_ids"]
@@ -5376,6 +5380,18 @@ func TestClient_ListHetznerImages(t *testing.T) {
 	assert.Equal(t, "ubuntu-22.04", images[0].Name)
 }
 
+func TestClient_ListHetznerImages_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerImages(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
 func TestClient_ListHetznerLocations(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -5394,6 +5410,18 @@ func TestClient_ListHetznerLocations(t *testing.T) {
 	require.Len(t, locations, 1)
 	assert.Equal(t, "fsn1", locations[0].Name)
 	assert.Equal(t, "DE", locations[0].Country)
+}
+
+func TestClient_ListHetznerLocations_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerLocations(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
 }
 
 func TestClient_ListHetznerServerTypes(t *testing.T) {
@@ -5417,6 +5445,18 @@ func TestClient_ListHetznerServerTypes(t *testing.T) {
 	assert.Equal(t, int64(4), types[0].Memory)
 }
 
+func TestClient_ListHetznerServerTypes_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerServerTypes(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
 func TestClient_ListHetznerSSHKeys(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -5435,6 +5475,18 @@ func TestClient_ListHetznerSSHKeys(t *testing.T) {
 	require.Len(t, keys, 1)
 	assert.Equal(t, "deploy-key", keys[0].Name)
 	assert.Equal(t, "aa:bb:cc:dd", keys[0].Fingerprint)
+}
+
+func TestClient_ListHetznerSSHKeys_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerSSHKeys(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
 }
 
 func TestClient_ListHetznerFirewalls(t *testing.T) {

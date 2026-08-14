@@ -3,6 +3,8 @@ package hetzner
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -155,9 +157,11 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},
 		"hetzner_ssh_key_ids": schema.StringAttribute{
-			MarkdownDescription: "Comma-separated list of Hetzner SSH key IDs to install on the server. Use `coolify_hetzner_ssh_keys` data source to list available keys. Changing this forces a new resource.",
-			Optional:            true,
-			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			MarkdownDescription: "Comma-separated list of additional Hetzner SSH key IDs to install on the server (for example `12345,67890`). " +
+				"Coolify's API expects a JSON integer array; the provider parses this string and sends that array. " +
+				"Use `data.coolify_hetzner_ssh_keys` to list available keys. Changing this forces a new resource.",
+			Optional:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},
 		"hetzner_firewall_ids": schema.ListAttribute{
 			ElementType: types.Int64Type,
@@ -232,7 +236,14 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 		EnableIPv6:             flex.BoolValueOrNull(plan.EnableIPv6),
 		InstantValidate:        flex.BoolValueOrNull(plan.InstantValidate),
 	}
-	flex.SetIfKnown(&input.HetznerSSHKeyIDs, plan.HetznerSSHKeyIDs)
+	if !plan.HetznerSSHKeyIDs.IsNull() && !plan.HetznerSSHKeyIDs.IsUnknown() {
+		sshIDs, err := int64IDsFromCSV(plan.HetznerSSHKeyIDs.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid hetzner_ssh_key_ids", err.Error())
+			return
+		}
+		input.HetznerSSHKeyIDs = sshIDs
+	}
 	flex.SetIfKnown(&input.CloudInitScript, plan.CloudInitScript)
 	firewallIDs, fwDiags := int64IDsFromList(ctx, plan.HetznerFirewallIDs)
 	resp.Diagnostics.Append(fwDiags...)
@@ -412,4 +423,28 @@ func int64IDsFromList(ctx context.Context, list types.List) ([]int64, diag.Diagn
 	var ids []int64
 	diags := list.ElementsAs(ctx, &ids, false)
 	return ids, diags
+}
+
+// int64IDsFromCSV parses a comma-separated list of integers. Coolify's
+// Hetzner create endpoint validates hetzner_ssh_key_ids as nullable|array
+// of integers; the Terraform attribute stays a string for existing HCL.
+func int64IDsFromCSV(s string) ([]int64, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, nil
+	}
+	parts := strings.Split(s, ",")
+	ids := make([]int64, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		n, err := strconv.ParseInt(part, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("%q is not an integer", part)
+		}
+		ids = append(ids, n)
+	}
+	return ids, nil
 }

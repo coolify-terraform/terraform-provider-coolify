@@ -217,6 +217,32 @@ removed the resource from Terraform state.
 - If the resource was intentionally deleted, remove it from your `.tf`
   file and run `terraform apply`
 
+### Hetzner list data source: token not found
+
+```
+Error: Error listing Hetzner networks
+cloud_provider_token_uuid=...: listing hetzner networks: unexpected status 404:
+{"message":"Hetzner cloud provider token not found."}
+```
+
+The same pattern appears for `coolify_hetzner_images`,
+`coolify_hetzner_locations`, `coolify_hetzner_server_types`,
+`coolify_hetzner_ssh_keys`, and `coolify_hetzner_firewalls`.
+
+**Cause:** `cloud_provider_token_uuid` does not match a Hetzner token
+that Coolify can use. Typical cases:
+
+- The UUID is a DigitalOcean or Vultr token, not a Hetzner token
+- The token was deleted in the Coolify UI
+- The token belongs to a different team than the API credential
+
+**Fix:**
+
+1. Read `data.coolify_cloud_tokens` and confirm `cloud_provider = "hetzner"`
+2. Recreate the token with `coolify_cloud_token` if it is gone
+3. Firewalls and networks also require Coolify >= v4.2.0; older instances
+   return 404 for those two routes even with a valid token
+
 ### "Application created but refresh failed"
 
 ```
