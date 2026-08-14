@@ -94,6 +94,8 @@ type. Additional read-only data sources include:
 - `coolify_hetzner_ssh_keys`: list SSH keys in Hetzner Cloud
 - `coolify_hetzner_firewalls`: list existing Hetzner Cloud firewalls (Coolify >= v4.2.0)
 - `coolify_hetzner_networks`: list existing Hetzner Cloud private networks (Coolify >= v4.2.0)
+- `coolify_digitalocean_images` / `coolify_digitalocean_regions` / `coolify_digitalocean_sizes` / `coolify_digitalocean_ssh_keys`: list DigitalOcean catalog items (Coolify >= v4.2.0)
+- `coolify_vultr_os` / `coolify_vultr_plans` / `coolify_vultr_regions` / `coolify_vultr_ssh_keys`: list Vultr catalog items (Coolify >= v4.2.0)
 
 ## Import
 
