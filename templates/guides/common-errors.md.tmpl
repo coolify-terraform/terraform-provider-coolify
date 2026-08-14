@@ -324,6 +324,21 @@ queues, sidecars). See the [Domains and HTTPS](domains-and-https)
 guide. Clearing an existing FQDN with `domains = ""` is blocked by a
 Coolify update-path bug (`$request->has('domains')`); tracked as #647.
 
+### Server proxy `false` flags stay `true`
+
+**Symptom:** `coolify_server_proxy` plan sets `redirect_enabled = false`
+or `generate_exact_labels = false`, apply succeeds, and the next plan
+shows the value still `true`.
+
+**Cause:** Coolify's proxy PATCH uses Laravel `$request->has()` for those
+bools. JSON `false` is treated as absent, so the stored default (`true`)
+stays. `redirect_url` uses `exists()` and does persist.
+
+**Fix:** leave `redirect_enabled` and `generate_exact_labels` unset or
+`true` until Coolify switches those gates to `exists()`. Prove the update
+path with `redirect_url` (use a resolvable host such as
+`https://example.com`; reserved names like `example.invalid` return 422).
+
 ### "forces replacement"
 
 ```

@@ -51,8 +51,17 @@ func (r *serverProxyResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "Whether HTTP to HTTPS redirect is enabled. Coolify defaults this to `true`. " +
 					"Setting `false` is ignored by Coolify today (`$request->has('redirect_enabled')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.",
 			},
-			"redirect_url":          schema.StringAttribute{Optional: true, Computed: true},
-			"generate_exact_labels": schema.BoolAttribute{Optional: true, Computed: true},
+			"redirect_url": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "HTTPS redirect target URL. Coolify persists this field (`$request->exists('redirect_url')`). Use a resolvable host; reserved names such as `example.invalid` return 422.",
+			},
+			"generate_exact_labels": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "Whether to generate exact Docker labels (removes extra labels from containers). " +
+					"Setting `false` is ignored by Coolify today (`$request->has('generate_exact_labels')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.",
+			},
 			"proxy_type":            schema.StringAttribute{Optional: true, Computed: true, MarkdownDescription: "Proxy type (for example traefik or caddy)."},
 			"configuration":         schema.StringAttribute{Optional: true, MarkdownDescription: "Raw proxy configuration written with PUT .../proxy/configuration."},
 		},
