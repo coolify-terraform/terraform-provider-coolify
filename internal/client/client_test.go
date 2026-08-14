@@ -3038,6 +3038,7 @@ func TestHetznerCreate_CloudProviderTokenUUID_JSONTag(t *testing.T) {
 func TestHetznerCreate_NetworkAndFirewallIDs_JSONTags(t *testing.T) {
 	t.Parallel()
 	input := CreateHetznerServerInput{
+		HetznerSSHKeyIDs:   []int64{12345, 67890},
 		HetznerFirewallIDs: []int64{38, 39},
 		HetznerNetworkIDs:  []int64{456},
 	}
@@ -3046,6 +3047,7 @@ func TestHetznerCreate_NetworkAndFirewallIDs_JSONTags(t *testing.T) {
 
 	var raw map[string]interface{}
 	require.NoError(t, json.Unmarshal(data, &raw))
+	assert.Equal(t, []interface{}{float64(12345), float64(67890)}, raw["hetzner_ssh_key_ids"])
 	assert.Equal(t, []interface{}{float64(38), float64(39)}, raw["hetzner_firewall_ids"])
 	assert.Equal(t, []interface{}{float64(456)}, raw["hetzner_network_ids"])
 
@@ -3054,6 +3056,8 @@ func TestHetznerCreate_NetworkAndFirewallIDs_JSONTags(t *testing.T) {
 	require.NoError(t, err)
 	var emptyRaw map[string]interface{}
 	require.NoError(t, json.Unmarshal(emptyData, &emptyRaw))
+	_, hasSSHKeys := emptyRaw["hetzner_ssh_key_ids"]
+	assert.False(t, hasSSHKeys, "empty slice must omit hetzner_ssh_key_ids")
 	_, hasFirewalls := emptyRaw["hetzner_firewall_ids"]
 	assert.False(t, hasFirewalls, "empty slice must omit hetzner_firewall_ids")
 	_, hasNetworks := emptyRaw["hetzner_network_ids"]

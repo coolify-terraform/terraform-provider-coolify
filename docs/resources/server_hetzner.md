@@ -68,7 +68,7 @@ resource "coolify_server_hetzner" "example" {
 - `enable_ipv6` (Boolean) Whether to enable IPv6 on the server.
 - `hetzner_firewall_ids` (List of Number) Existing Hetzner firewall IDs to apply when Coolify creates the server. Use `data.coolify_hetzner_firewalls` to list available firewalls. Requires Coolify >= v4.2.0. Changing this forces a new resource.
 - `hetzner_network_ids` (List of Number) Existing Hetzner private network IDs to attach when Coolify creates the server. Use `data.coolify_hetzner_networks` to list available networks. Requires Coolify >= v4.2.0. Changing this forces a new resource.
-- `hetzner_ssh_key_ids` (String) Comma-separated list of Hetzner SSH key IDs to install on the server. Use `coolify_hetzner_ssh_keys` data source to list available keys. Changing this forces a new resource.
+- `hetzner_ssh_key_ids` (String) Comma-separated list of additional Hetzner SSH key IDs to install on the server (for example `12345,67890`). Coolify's API expects a JSON integer array; the provider parses this string and sends that array. Use `data.coolify_hetzner_ssh_keys` to list available keys. Changing this forces a new resource.
 - `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation.
 - `is_build_server` (Boolean) Whether this server is used for building applications.
 - `port` (Number) The SSH port of the server.

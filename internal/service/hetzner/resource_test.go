@@ -441,10 +441,12 @@ resource "coolify_server_hetzner" "test" {
   location                  = "fsn1"
   image                     = "ubuntu-24.04"
   private_key_uuid          = "dddd0002-0002-4000-8000-000000000002"
+  hetzner_ssh_key_ids       = "12345, 67890"
   hetzner_firewall_ids      = [38, 39]
   hetzner_network_ids       = [456, 457]
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "hetzner_ssh_key_ids", "12345, 67890"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "hetzner_firewall_ids.#", "2"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "hetzner_firewall_ids.0", "38"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "hetzner_firewall_ids.1", "39"),
@@ -452,6 +454,9 @@ resource "coolify_server_hetzner" "test" {
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "hetzner_network_ids.0", "456"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "hetzner_network_ids.1", "457"),
 					func(_ *terraform.State) error {
+						if len(got.HetznerSSHKeyIDs) != 2 || got.HetznerSSHKeyIDs[0] != 12345 || got.HetznerSSHKeyIDs[1] != 67890 {
+							return fmt.Errorf("POST body hetzner_ssh_key_ids = %v, want [12345 67890]", got.HetznerSSHKeyIDs)
+						}
 						if len(got.HetznerFirewallIDs) != 2 || got.HetznerFirewallIDs[0] != 38 || got.HetznerFirewallIDs[1] != 39 {
 							return fmt.Errorf("POST body hetzner_firewall_ids = %v, want [38 39]", got.HetznerFirewallIDs)
 						}
@@ -471,6 +476,7 @@ resource "coolify_server_hetzner" "test" {
   location                  = "fsn1"
   image                     = "ubuntu-24.04"
   private_key_uuid          = "dddd0002-0002-4000-8000-000000000002"
+  hetzner_ssh_key_ids       = "12345, 67890"
   hetzner_firewall_ids      = [38, 39]
   hetzner_network_ids       = [456, 457]
 }`,
@@ -505,6 +511,31 @@ resource "coolify_server_hetzner" "test" {
 				ImportState:   true,
 				ImportStateId: "not-a-uuid",
 				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
+func TestHetznerServerResource_InvalidSSHKeyIDs(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_hetzner" "test" {
+  name                      = "bad-ssh-hetzner"
+  cloud_provider_token_uuid = "cccc0001-0001-4000-8000-000000000001"
+  server_type               = "cx22"
+  location                  = "fsn1"
+  image                     = "ubuntu-24.04"
+  private_key_uuid          = "dddd0002-0002-4000-8000-000000000002"
+  hetzner_ssh_key_ids       = "38,not-an-id"
+}`,
+				ExpectError: regexp.MustCompile(`Invalid hetzner_ssh_key_ids`),
 			},
 		},
 	})
