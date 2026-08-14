@@ -32,16 +32,18 @@ resource "coolify_server_proxy" "test" {
 				// $request->has('redirect_enabled'); Laravel has() is false
 				// for JSON false, so the write is ignored and GET stays true
 				// (default). Same class as empty domains (#647).
+				// redirect_url uses exists() and persists, but SafeExternalUrl
+				// requires a resolvable host (example.invalid 422s).
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_server_proxy" "test" {
   server_uuid  = %q
   proxy_type   = "traefik"
-  redirect_url = "https://example.invalid"
+  redirect_url = "https://example.com"
 }
 `, serverUUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_server_proxy.test", "proxy_type", "traefik"),
-					resource.TestCheckResourceAttr("coolify_server_proxy.test", "redirect_url", "https://example.invalid"),
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "redirect_url", "https://example.com"),
 				),
 			},
 			{
