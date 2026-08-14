@@ -10,15 +10,6 @@ import (
 	"testing"
 )
 
-// coverageStatus tracks a single API endpoint's provider coverage.
-type coverageStatus struct {
-	category string // "covered", "planned", "skipped"
-	resource string // Terraform resource name or skip reason
-	since    string // provider version that added support (covered only)
-	priority int    // 1=high, 2=medium, 3=low (planned only)
-	notes    string // human-readable context
-}
-
 // contractRoutePin is the pin contract whose routes[] define the coverage inventory.
 const contractRoutePin = "coolify-v4.json"
 

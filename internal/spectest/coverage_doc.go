@@ -6,6 +6,15 @@ import (
 	"strings"
 )
 
+// coverageStatus tracks a single API endpoint's provider coverage.
+type coverageStatus struct {
+	category string // "covered", "planned", "skipped"
+	resource string // Terraform resource name, or skip kind id when skipped
+	since    string // provider version that added support (covered only)
+	priority int    // 1=high, 2=medium, 3=low (planned only)
+	notes    string // human-readable context
+}
+
 // Skip class IDs used by skipped() in coveredEndpoints().
 const (
 	skipCloneMove     = "clone-move"
