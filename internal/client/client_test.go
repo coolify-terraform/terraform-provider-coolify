@@ -5376,6 +5376,18 @@ func TestClient_ListHetznerImages(t *testing.T) {
 	assert.Equal(t, "ubuntu-22.04", images[0].Name)
 }
 
+func TestClient_ListHetznerImages_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerImages(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
 func TestClient_ListHetznerLocations(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -5394,6 +5406,18 @@ func TestClient_ListHetznerLocations(t *testing.T) {
 	require.Len(t, locations, 1)
 	assert.Equal(t, "fsn1", locations[0].Name)
 	assert.Equal(t, "DE", locations[0].Country)
+}
+
+func TestClient_ListHetznerLocations_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerLocations(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
 }
 
 func TestClient_ListHetznerServerTypes(t *testing.T) {
@@ -5417,6 +5441,18 @@ func TestClient_ListHetznerServerTypes(t *testing.T) {
 	assert.Equal(t, int64(4), types[0].Memory)
 }
 
+func TestClient_ListHetznerServerTypes_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerServerTypes(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
 func TestClient_ListHetznerSSHKeys(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -5435,6 +5471,18 @@ func TestClient_ListHetznerSSHKeys(t *testing.T) {
 	require.Len(t, keys, 1)
 	assert.Equal(t, "deploy-key", keys[0].Name)
 	assert.Equal(t, "aa:bb:cc:dd", keys[0].Fingerprint)
+}
+
+func TestClient_ListHetznerSSHKeys_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Hetzner cloud provider token not found."}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	_, err := c.ListHetznerSSHKeys(context.Background(), "missing-tok")
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
 }
 
 func TestClient_ListHetznerFirewalls(t *testing.T) {
