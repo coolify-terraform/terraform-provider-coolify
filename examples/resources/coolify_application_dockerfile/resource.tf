@@ -18,4 +18,9 @@ resource "coolify_application_dockerfile" "app" {
 
   # Optional fields (uncomment as needed):
   # dockerfile_target_build = "production"  # Target stage for multi-stage Docker builds
+
+  # Required when the app holds an exclusive lock on a persistent volume
+  # (SQLite, DuckDB, LMDB, BoltDB). Without this, Coolify rolling updates
+  # report success while the new container never starts.
+  # is_consistent_container_name_enabled = true
 }

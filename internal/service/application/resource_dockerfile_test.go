@@ -846,6 +846,97 @@ func TestDockerfileApplicationResource_CreateAPIError(t *testing.T) {
 	})
 }
 
+// TestDockerfileApplicationResource_ConsistentContainerNameEnabled asserts the
+// post-create PATCH sends is_consistent_container_name_enabled=true and that
+// the field is stored after apply. Required for volume-backed apps that hold
+// exclusive file locks (issue #753).
+func TestDockerfileApplicationResource_ConsistentContainerNameEnabled(t *testing.T) {
+	t.Parallel()
+	trueVal := true
+	app := client.Application{
+		UUID:                             "dockerfile-consistent-name",
+		Name:                             "locked-volume-app",
+		DockerfileLocation:               "/Dockerfile",
+		PortsExposes:                     "80",
+		ProjectUUID:                      "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:                       "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName:                  "production",
+		IsConsistentContainerNameEnabled: &trueVal,
+	}
+	var patchBody map[string]any
+	var mu sync.Mutex
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerfile", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		mu.Lock()
+		patchBody = body
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.2"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_dockerfile", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerfileResourceConfig(srv.URL, `
+					name                                 = "locked-volume-app"
+					project_uuid                         = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid                          = "bbbb0001-0001-4000-8000-000000000001"
+					dockerfile_location                  = "/Dockerfile"
+					ports_exposes                        = "80"
+					is_consistent_container_name_enabled = true
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "is_consistent_container_name_enabled", "true"),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						got, ok := patchBody["is_consistent_container_name_enabled"]
+						if !ok {
+							return fmt.Errorf("post-create PATCH missing is_consistent_container_name_enabled: %v", patchBody)
+						}
+						if got != true {
+							return fmt.Errorf("is_consistent_container_name_enabled = %v, want true", got)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func testDockerfileResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application_dockerfile", "test", attrs)
 }
