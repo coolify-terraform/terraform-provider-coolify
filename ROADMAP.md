@@ -7,14 +7,14 @@ Priorities may shift based on community feedback and upstream Coolify API change
 
 The provider covers the core Coolify resource model:
 
-- 45 managed resources (projects, servers, applications, databases, services,
+- 56 managed resources (projects, servers, applications, databases, services,
   backups, environment variables, deployments, notification channels, S3 storage,
-  and more)
-- 62 data sources for reading existing infrastructure
+  GitLab Apps, tags, shared envs, server control-plane, and more)
+- 67 data sources for reading existing infrastructure
 - 18 ACME Corp scenario examples with integration tests
 - Full import support for adopting existing Coolify resources
 - Coolify v4.2 surfaces: destinations, DigitalOcean/Vultr server provisioning
-- Coolify v4.3 surfaces: notification channels, S3 storage, docker/compose version probes
+- Coolify v4.3 surfaces: notification channels, S3 storage, GitLab Apps, shared env vars, cloud-init scripts, server proxy/log-drain/tunnel/sentinel/cleanup
 - Published on both [Terraform Registry](https://registry.terraform.io/providers/coolify-terraform/coolify)
   and [OpenTofu Registry](https://search.opentofu.org/provider/coolify-terraform/coolify)
   ([#414](https://github.com/coolify-terraform/terraform-provider-coolify/issues/414))

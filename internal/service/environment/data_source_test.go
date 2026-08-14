@@ -37,7 +37,7 @@ data "coolify_environment" "test" {
 						"coolify_environment.source", "id",
 					),
 					resource.TestCheckResourceAttr("data.coolify_environment.test", "name", "ds-test-env"),
-					resource.TestCheckResourceAttr("data.coolify_environment.test", "description", ""),
+					resource.TestCheckResourceAttr("data.coolify_environment.test", "description", "data source test"),
 				),
 			},
 		},

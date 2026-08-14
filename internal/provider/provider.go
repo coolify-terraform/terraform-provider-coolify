@@ -13,8 +13,10 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/apisettings"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/application"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/applicationdestination"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/applicationpreview"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/backupexecution"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/cloudinitscript"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/cloudtoken"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/cloudtokenvalidate"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database"
@@ -34,6 +36,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/environmentvariable"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/envsbulk"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/githubapp"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/gitlabapp"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/health"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/hetzner"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationdiscord"
@@ -46,13 +49,21 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/project"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/resourceaction"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/resourcelist"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/resourcetag"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/s3storage"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/s3storagevalidate"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/scheduledtask"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/server"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/servercftunnel"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverdockercleanup"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverlogdrain"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverproxy"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serversentinel"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/servervalidate"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/service"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/sharedenv"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/storage"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/tag"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/team"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/version"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/volumebackup"
@@ -222,38 +233,49 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		postgresql.NewResource,
 		redis.NewResource,
 		// Other resources (sorted alphabetically by type name).
-		apisettings.NewResource,          // coolify_api_settings
-		applicationpreview.NewResource,   // coolify_application_preview
-		backupexecution.NewResource,      // coolify_backup_execution
-		cloudtoken.NewResource,           // coolify_cloud_token
-		cloudtokenvalidate.NewResource,   // coolify_cloud_token_validate
-		backup.NewResource,               // coolify_database_backup
-		deployment.NewResource,           // coolify_deployment
-		destination.NewResource,          // coolify_destination
-		environment.NewResource,          // coolify_environment
-		environmentvariable.NewResource,  // coolify_environment_variable
-		envsbulk.NewResource,             // coolify_envs_bulk
-		githubapp.NewResource,            // coolify_github_app
-		notificationdiscord.NewResource,  // coolify_notification_discord
-		notificationemail.NewResource,    // coolify_notification_email
-		notificationpushover.NewResource, // coolify_notification_pushover
-		notificationslack.NewResource,    // coolify_notification_slack
-		notificationtelegram.NewResource, // coolify_notification_telegram
-		notificationwebhook.NewResource,  // coolify_notification_webhook
-		privatekey.NewResource,           // coolify_private_key
-		project.NewResource,              // coolify_project
-		resourceaction.NewResource,       // coolify_resource_action
-		s3storage.NewResource,            // coolify_s3_storage
-		s3storagevalidate.NewResource,    // coolify_s3_storage_validate
-		scheduledtask.NewResource,        // coolify_scheduled_task
-		server.NewResource,               // coolify_server
-		digitalocean.NewResource,         // coolify_server_digitalocean
-		hetzner.NewResource,              // coolify_server_hetzner
-		vultr.NewResource,                // coolify_server_vultr
-		servervalidate.NewResource,       // coolify_server_validate
-		service.NewResource,              // coolify_service
-		storage.NewResource,              // coolify_storage
-		volumebackup.NewResource,         // coolify_storage_backup
+		apisettings.NewResource,            // coolify_api_settings
+		applicationdestination.NewResource, // coolify_application_destination
+		applicationpreview.NewResource,     // coolify_application_preview
+		backupexecution.NewResource,        // coolify_backup_execution
+		cloudinitscript.NewResource,        // coolify_cloud_init_script
+		cloudtoken.NewResource,             // coolify_cloud_token
+		cloudtokenvalidate.NewResource,     // coolify_cloud_token_validate
+		backup.NewResource,                 // coolify_database_backup
+		deployment.NewResource,             // coolify_deployment
+		destination.NewResource,            // coolify_destination
+		environment.NewResource,            // coolify_environment
+		environmentvariable.NewResource,    // coolify_environment_variable
+		envsbulk.NewResource,               // coolify_envs_bulk
+		githubapp.NewResource,              // coolify_github_app
+		gitlabapp.NewResource,              // coolify_gitlab_app
+		notificationdiscord.NewResource,    // coolify_notification_discord
+		notificationemail.NewResource,      // coolify_notification_email
+		notificationpushover.NewResource,   // coolify_notification_pushover
+		notificationslack.NewResource,      // coolify_notification_slack
+		notificationtelegram.NewResource,   // coolify_notification_telegram
+		notificationwebhook.NewResource,    // coolify_notification_webhook
+		privatekey.NewResource,             // coolify_private_key
+		project.NewResource,                // coolify_project
+		resourceaction.NewResource,         // coolify_resource_action
+		resourcetag.NewResource,            // coolify_resource_tag
+		s3storage.NewResource,              // coolify_s3_storage
+		s3storagevalidate.NewResource,      // coolify_s3_storage_validate
+		scheduledtask.NewResource,          // coolify_scheduled_task
+		server.NewResource,                 // coolify_server
+		servercftunnel.NewResource,         // coolify_server_cloudflare_tunnel
+		digitalocean.NewResource,           // coolify_server_digitalocean
+		serverdockercleanup.NewResource,    // coolify_server_docker_cleanup
+		hetzner.NewResource,                // coolify_server_hetzner
+		serverlogdrain.NewResource,         // coolify_server_log_drain
+		serverproxy.NewResource,            // coolify_server_proxy
+		serversentinel.NewResource,         // coolify_server_sentinel
+		vultr.NewResource,                  // coolify_server_vultr
+		servervalidate.NewResource,         // coolify_server_validate
+		service.NewResource,                // coolify_service
+		sharedenv.NewResource,              // coolify_shared_environment_variable
+		storage.NewResource,                // coolify_storage
+		volumebackup.NewResource,           // coolify_storage_backup
+		tag.NewResource,                    // coolify_tag
 	}
 }
 
@@ -263,6 +285,7 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		application.NewListDataSource,
 		application.NewLogsDataSource,
 		backup.NewExecutionsDataSource,
+		cloudinitscript.NewDataSource,
 		cloudtoken.NewDataSource,
 		cloudtoken.NewListDataSource,
 		database.NewDataSource,
@@ -283,6 +306,8 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		githubapp.NewDataSource,
 		githubapp.NewListDataSource,
 		githubapp.NewReposDataSource,
+		gitlabapp.NewDataSource,
+		gitlabapp.NewListDataSource,
 		health.NewDataSource,
 		hetzner.NewImagesDataSource,
 		hetzner.NewLocationsDataSource,
@@ -313,6 +338,8 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		service.NewListDataSource,
 		storage.NewDataSource,
 		storage.NewListDataSource,
+		tag.NewDataSource,
+		tag.NewListDataSource,
 		team.NewDataSource,
 		team.NewListDataSource,
 		team.NewMembersDataSource,

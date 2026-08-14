@@ -57,7 +57,8 @@ func TestCoveredEndpoints_NotificationsCoverage(t *testing.T) {
 func TestCoveredEndpoints_FalseCoveredGuards(t *testing.T) {
 	t.Parallel()
 	cov := coveredEndpoints()
-	// These Coolify routes exist but the provider does not call them today.
+	// PATCH dest/env were historically uncalled; they are now used by
+	// coolify_destination name updates and coolify_environment PATCH.
 	for _, op := range []string{
 		"PATCH /destinations/{uuid}",
 		"PATCH /projects/{uuid}/environments/{environment_name_or_uuid}",
@@ -67,8 +68,8 @@ func TestCoveredEndpoints_FalseCoveredGuards(t *testing.T) {
 			t.Errorf("missing registry entry %s", op)
 			continue
 		}
-		if s.category == "covered" {
-			t.Errorf("%s must not be covered (no client call path)", op)
+		if s.category != "covered" {
+			t.Errorf("%s: want covered after dest/env PATCH support, got %s", op, s.category)
 		}
 	}
 }

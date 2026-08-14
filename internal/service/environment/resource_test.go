@@ -63,6 +63,23 @@ func (s *mockEnvironmentStore) Get(projectUUID, name string) (*mockEnvironment, 
 	return env, ok
 }
 
+func (s *mockEnvironmentStore) Update(projectUUID, name, newName, description string) (*mockEnvironment, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	k := s.key(projectUUID, name)
+	env, ok := s.envs[k]
+	if !ok {
+		return nil, false
+	}
+	if newName != "" && newName != name {
+		delete(s.envs, k)
+		env.Name = newName
+		s.envs[s.key(projectUUID, newName)] = env
+	}
+	env.Description = description
+	return env, true
+}
+
 func (s *mockEnvironmentStore) Delete(projectUUID, name string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -121,6 +138,27 @@ func newMockEnvironmentServer(auditT ...testing.TB) (*httptest.Server, *mockEnvi
 		projectUUID := r.PathValue("projectUUID")
 		envName := r.PathValue("envName")
 		env, ok := store.Get(projectUUID, envName)
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(env)
+	})
+
+	// PATCH /api/v1/projects/{projectUUID}/environments/{envName}
+	mux.HandleFunc("PATCH /api/v1/projects/{projectUUID}/environments/{envName}", func(w http.ResponseWriter, r *http.Request) {
+		projectUUID := r.PathValue("projectUUID")
+		envName := r.PathValue("envName")
+		var body struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		env, ok := store.Update(projectUUID, envName, body.Name, body.Description)
 		if !ok {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return

@@ -93,6 +93,24 @@ The `coolify_github_app` resource uses the **GitHub App ID** (shown as "App Id" 
 terraform import coolify_github_app.my_app 12345
 ```
 
+GitLab Apps import by Coolify numeric id (or UUID when Coolify returns one):
+
+```bash
+terraform import coolify_gitlab_app.my_app 7
+```
+
+Team tags and cloud-init scripts import by UUID. Server control-plane resources import by server UUID:
+
+```bash
+terraform import coolify_tag.frontend <tag-uuid>
+terraform import coolify_cloud_init_script.bootstrap <script-uuid>
+terraform import coolify_server_proxy.main <server-uuid>
+terraform import coolify_server_log_drain.main <server-uuid>
+terraform import coolify_server_cloudflare_tunnel.main <server-uuid>
+terraform import coolify_server_sentinel.main <server-uuid>
+terraform import coolify_server_docker_cleanup.main <server-uuid>
+```
+
 Resources with composite IDs:
 
 ```bash
@@ -107,6 +125,18 @@ terraform import coolify_environment_variable.pg_pass database:<db-uuid>:<env-uu
 # Scheduled task: type:parent_uuid:task_uuid
 terraform import coolify_scheduled_task.backup application:<app-uuid>:<task-uuid>
 terraform import coolify_scheduled_task.check service:<svc-uuid>:<task-uuid>
+
+# Resource tag: resource_type:resource_uuid:tag_uuid
+terraform import coolify_resource_tag.app application:<app-uuid>:<tag-uuid>
+
+# Extra application destination: application_uuid:destination_uuid
+terraform import coolify_application_destination.extra <app-uuid>:<destination-uuid>
+
+# Shared environment variable: scope:...:env_id
+terraform import coolify_shared_environment_variable.team team:<env-id>
+terraform import coolify_shared_environment_variable.proj project:<project-uuid>:<env-id>
+terraform import coolify_shared_environment_variable.env environment:<project-uuid>:<env-name>:<env-id>
+terraform import coolify_shared_environment_variable.srv server:<server-uuid>:<env-id>
 
 # Persistent storage: type:parent_uuid:storage_uuid
 terraform import coolify_storage.data application:<app-uuid>:<storage-uuid>

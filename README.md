@@ -30,7 +30,7 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 |---|---|
 | Managed resources | 45 |
 | Data sources | 62 |
-| Tests | 1330+ unit and acceptance tests |
+| Tests | 1360+ unit and acceptance tests |
 | Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -137,6 +137,17 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_s3_storage` | Manage S3-compatible storage for backups (Coolify >= v4.3.0) |
 | `coolify_cloud_token` | Manage cloud provider tokens (Hetzner, DigitalOcean, Vultr) |
 | `coolify_github_app` | Manage GitHub App integrations |
+| `coolify_gitlab_app` | Manage GitLab App sources (Coolify >= v4.3.0) |
+| `coolify_tag` | Manage team tags (Coolify >= v4.2.0) |
+| `coolify_resource_tag` | Attach a tag to an application, database, or service (Coolify >= v4.2.0) |
+| `coolify_cloud_init_script` | Manage team cloud-init scripts (Coolify >= v4.3.0) |
+| `coolify_shared_environment_variable` | Manage shared env vars at team, project, environment, or server scope (Coolify >= v4.3.0) |
+| `coolify_server_proxy` | Manage server proxy settings (Coolify >= v4.3.0) |
+| `coolify_server_log_drain` | Manage server log drains (Coolify >= v4.3.0) |
+| `coolify_server_cloudflare_tunnel` | Manage server Cloudflare tunnel (Coolify >= v4.3.0) |
+| `coolify_server_sentinel` | Manage Sentinel host metrics settings (Coolify >= v4.1.1) |
+| `coolify_server_docker_cleanup` | Manage Docker cleanup schedule (Coolify >= v4.3.0) |
+| `coolify_application_destination` | Attach an extra destination to an application (Coolify >= v4.2.0) |
 | `coolify_notification_email` | Team email notification settings (Coolify >= v4.3.0) |
 | `coolify_notification_discord` | Team Discord notification settings (Coolify >= v4.3.0) |
 | `coolify_notification_telegram` | Team Telegram notification settings (Coolify >= v4.3.0) |
@@ -173,6 +184,9 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_s3_storage` / `coolify_s3_storages` | Read / list S3-compatible storage configurations (Coolify >= v4.3.0) |
 | `coolify_cloud_token` / `coolify_cloud_tokens` | Read cloud token(s) |
 | `coolify_github_app` / `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` | Read GitHub App(s), repos, branches |
+| `coolify_gitlab_app` / `coolify_gitlab_apps` | Read GitLab App(s) (Coolify >= v4.3.0) |
+| `coolify_tag` / `coolify_tags` | Read team tag(s) (Coolify >= v4.2.0) |
+| `coolify_cloud_init_script` | Read a cloud-init script (Coolify >= v4.3.0) |
 | `coolify_backup_executions` | List backup execution history |
 | `coolify_resources` | List all resources on a server |
 | `coolify_team` / `coolify_teams` / `coolify_team_members` | Read team(s) and members |
@@ -317,7 +331,7 @@ targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
-make test                                       # Run unit tests (1330+ tests, race detector enabled)
+make test                                       # Run unit tests (1360+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
 make testacc                                    # Run acceptance tests with serialized package and in-package execution

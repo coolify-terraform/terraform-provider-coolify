@@ -28,12 +28,12 @@ resource "coolify_environment" "example" {
 
 ### Required
 
-- `name` (String) The name of the environment. Changing this forces a new resource.
+- `name` (String) The name of the environment. Coolify accepts in-place rename via PATCH.
 - `project_uuid` (String) The UUID of the project this environment belongs to. Changing this forces a new resource.
 
 ### Optional
 
-- `description` (String) A description of the environment. Note: the Coolify API does not support updating this field after creation; changes are stored in Terraform state only.
+- `description` (String) A description of the environment. Sent on PATCH after create (Coolify create rejects description) and on subsequent updates.
 
 ### Read-Only
 

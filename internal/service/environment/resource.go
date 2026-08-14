@@ -70,14 +70,11 @@ func (r *environmentResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the environment. Changing this forces a new resource.",
+				MarkdownDescription: "The name of the environment. Coolify accepts in-place rename via PATCH.",
 				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "A description of the environment. Note: the Coolify API does not support updating this field after creation; changes are stored in Terraform state only.",
+				MarkdownDescription: "A description of the environment. Sent on PATCH after create (Coolify create rejects description) and on subsequent updates.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -139,6 +136,19 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 	}
 	resp.Diagnostics.Append(diags...)
 
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() && plan.Description.ValueString() != "" {
+		desc := plan.Description.ValueString()
+		updated, err := r.client.UpdateEnvironment(ctx, projectUUID, name, client.UpdateEnvironmentInput{Description: &desc})
+		if err != nil {
+			resp.Diagnostics.AddError("Error setting environment description",
+				fmt.Sprintf("environment %s/%s was created but PATCH description failed: %s", projectUUID, name, err))
+			return
+		}
+		if updated.Description != "" {
+			plan.Description = types.StringValue(updated.Description)
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_environment", "name": plan.Name.ValueString()})
 }
@@ -168,9 +178,9 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 
 	state.ID = types.Int64Value(env.ID)
 	state.Name = types.StringValue(env.Name)
-	// Coolify does not store or return description via the API.
-	// Preserve state value; resolve null (e.g. after import) to empty.
-	if state.Description.IsNull() || state.Description.IsUnknown() {
+	if env.Description != "" {
+		state.Description = types.StringValue(env.Description)
+	} else if state.Description.IsNull() || state.Description.IsUnknown() {
 		state.Description = types.StringValue("")
 	}
 
@@ -178,15 +188,43 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 }
 
 func (r *environmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan environmentResourceModel
+	var plan, state environmentResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_environment", "name": plan.Name.ValueString()})
 
-	// The Coolify API has no PATCH endpoint for environments, so we persist
-	// the updated description to state without an API call.
+	input := client.UpdateEnvironmentInput{}
+	name := plan.Name.ValueString()
+	desc := ""
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
+		desc = plan.Description.ValueString()
+	}
+	input.Name = &name
+	input.Description = &desc
+
+	pathName := state.Name.ValueString()
+	updated, err := r.client.UpdateEnvironment(ctx, plan.ProjectUUID.ValueString(), pathName, input)
+	if err != nil {
+		resp.Diagnostics.AddError("Error updating environment",
+			fmt.Sprintf("environment %s/%s: %s", plan.ProjectUUID.ValueString(), pathName, err))
+		return
+	}
+	if updated.ID != 0 {
+		plan.ID = types.Int64Value(updated.ID)
+	} else {
+		plan.ID = state.ID
+	}
+	if updated.Name != "" {
+		plan.Name = types.StringValue(updated.Name)
+	}
+	if updated.Description != "" {
+		plan.Description = types.StringValue(updated.Description)
+	} else if plan.Description.IsNull() || plan.Description.IsUnknown() {
+		plan.Description = types.StringValue("")
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -243,9 +281,9 @@ func (r *environmentResource) readEnvironment(ctx context.Context, projectUUID, 
 
 	model.ID = types.Int64Value(env.ID)
 	model.Name = types.StringValue(env.Name)
-	// Coolify does not store or return description via the API.
-	// Keep the plan/state value; only resolve Unknown to empty.
-	if model.Description.IsUnknown() {
+	if env.Description != "" {
+		model.Description = types.StringValue(env.Description)
+	} else if model.Description.IsUnknown() {
 		model.Description = types.StringValue("")
 	}
 

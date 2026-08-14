@@ -38,6 +38,10 @@ func TestAccDestinationResource_CRUD(t *testing.T) {
 				ExpectNonEmptyPlan: false,
 			},
 			{
+				Config: testAccDestinationConfig(serverUUID, name+"-renamed", network),
+				Check:  resource.TestCheckResourceAttr("coolify_destination.test", "name", name+"-renamed"),
+			},
+			{
 				ResourceName:                         "coolify_destination.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
