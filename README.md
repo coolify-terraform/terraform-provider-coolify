@@ -20,6 +20,7 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 - [Quick Start](docs/guides/quickstart.md) -- deploy your first app in under 5 minutes
 - [Installation](docs/guides/installation.md) -- install and configure the provider
 - [Coolify Version Support](docs/guides/coolify-version-support.md) -- what works on Coolify 4.1, 4.2, and 4.3
+- [API Coverage](API_COVERAGE.md) -- Coolify HTTP routes the provider wraps, and what to use when it does not
 - [Examples](examples/) -- browse per-resource examples
 - [Scenarios](examples/scenarios/) -- see full-stack ACME Corp setups tested against a real Coolify instance
 - [Import Guide](docs/guides/import.md) -- adopt existing resources without rebuilding
@@ -88,6 +89,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 ## Guides
 
 - [Coolify Version Support](docs/guides/coolify-version-support.md) -- what works on Coolify 4.1, 4.2, and 4.3
+- [API Coverage](API_COVERAGE.md) -- Coolify HTTP routes the provider wraps, and what to use when it does not
 - [Core Concepts](docs/guides/concepts.md) -- understand the resource model
 - [Choosing an Application Type](docs/guides/choosing-application-type.md) -- pick the right resource for your deployment method
 - [Connecting Resources](docs/guides/connecting-resources.md) -- wire apps to databases using Coolify's Docker networking
