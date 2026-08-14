@@ -2,6 +2,7 @@ package flex
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -25,7 +26,10 @@ func ReadFilteredTokenList[T any](
 
 	items, err := listFn(ctx, tokenUUID)
 	if err != nil {
-		resp.Diagnostics.AddError(listErrorSummary, err.Error())
+		resp.Diagnostics.AddError(
+			listErrorSummary,
+			fmt.Sprintf("cloud_provider_token_uuid=%s: %s", tokenUUID, err),
+		)
 		return nil, false
 	}
 

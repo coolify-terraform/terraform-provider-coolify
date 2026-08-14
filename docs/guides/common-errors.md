@@ -221,7 +221,7 @@ removed the resource from Terraform state.
 
 ```
 Error: Error listing Hetzner networks
-listing hetzner networks: unexpected status 404:
+cloud_provider_token_uuid=...: listing hetzner networks: unexpected status 404:
 {"message":"Hetzner cloud provider token not found."}
 ```
 

@@ -83,7 +83,7 @@ func TestReadFilteredTokenList_ListError(t *testing.T) {
 	if got := errs[0].Summary(); got != "Error listing test items" {
 		t.Fatalf("summary = %q", got)
 	}
-	if got := errs[0].Detail(); got != "token not found" {
+	if got := errs[0].Detail(); got != "cloud_provider_token_uuid=missing: token not found" {
 		t.Fatalf("detail = %q", got)
 	}
 }
