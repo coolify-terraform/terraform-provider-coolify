@@ -53,6 +53,8 @@ func TestAccHetznerServerResource_CRUD(t *testing.T) {
 					"location",
 					"image",
 					"hetzner_ssh_key_ids",
+					"hetzner_firewall_ids",
+					"hetzner_network_ids",
 					"cloud_init_script",
 					"instant_validate",
 					"enable_ipv4",

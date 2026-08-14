@@ -371,6 +371,10 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "cx11"}}},
 		{"HetznerSSHKeys", "GET", "/api/v1/hetzner/ssh-keys?cloud_provider_token_uuid=tok-1",
 			nil, 200, []map[string]interface{}{{"id": 1, "name": "my-key"}}},
+		{"HetznerFirewalls", "GET", "/api/v1/hetzner/firewalls?cloud_provider_token_uuid=tok-1",
+			nil, 200, []map[string]interface{}{{"id": 38, "name": "web"}}},
+		{"HetznerNetworks", "GET", "/api/v1/hetzner/networks?cloud_provider_token_uuid=tok-1",
+			nil, 200, []map[string]interface{}{{"id": 456, "name": "private", "ip_range": "10.0.0.0/16"}}},
 
 		// Servers (additional)
 		{"CreateHetznerServer", "POST", "/api/v1/servers/hetzner",

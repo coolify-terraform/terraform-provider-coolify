@@ -395,7 +395,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_docker_cleanup` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves schedule |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
-### Data Sources (67 total)
+### Data Sources (69 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -456,12 +456,14 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_hetzner_locations` | Yes | Needs Hetzner token in Coolify |
 | `coolify_hetzner_server_types` | Yes | Needs Hetzner token in Coolify |
 | `coolify_hetzner_ssh_keys` | Yes | Needs Hetzner token in Coolify |
+| `coolify_hetzner_firewalls` | Yes | Needs Hetzner token in Coolify; Coolify >= v4.2.0 |
+| `coolify_hetzner_networks` | Yes | Needs Hetzner token in Coolify; Coolify >= v4.2.0 |
 
 ### Coverage Summary
 
 - **Resources**: 45/45 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 143
+- **Total acceptance test functions**: 145
 
 ### Testing strategies for edge cases
 

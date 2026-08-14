@@ -26,7 +26,6 @@ const (
 	skipEnableDisable = "enable-disable"
 	skipAlias         = "alias"
 	skipDeprecated    = "deprecated"
-	skipHetznerExtra  = "hetzner-extra"
 	skipFeedback      = "not-infra"
 )
 
@@ -110,18 +109,11 @@ var skipKindCatalog = []skipKind{
 		order:   9,
 	},
 	{
-		id:      skipHetznerExtra,
-		title:   "Hetzner firewalls and networks lists",
-		why:     "Coolify can list Hetzner firewalls and networks when provisioning. Those lists are not required to manage `coolify_server_hetzner`.",
-		instead: "`coolify_server_hetzner` for the server. Manage Hetzner firewalls and networks outside this provider if you need them.",
-		order:   10,
-	},
-	{
 		id:      skipFeedback,
 		title:   "Product feedback",
 		why:     "`POST /feedback` is a Coolify product endpoint, not infrastructure.",
 		instead: "Nothing in Terraform. Send feedback through Coolify.",
-		order:   11,
+		order:   10,
 	},
 }
 

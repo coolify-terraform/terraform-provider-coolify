@@ -124,3 +124,53 @@ data "coolify_hetzner_ssh_keys" "test" {
 		},
 	})
 }
+
+func TestAccHetznerFirewallsDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	skipIfNoHetznerToken(t)
+	name := acctest.RandomWithPrefix("tf-acc-hetzner")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig(name) + `
+data "coolify_hetzner_firewalls" "test" {
+  cloud_provider_token_uuid = coolify_cloud_token.hetzner_test.uuid
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.coolify_hetzner_firewalls.test", "firewalls.#"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccHetznerNetworksDataSource(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	skipIfNoHetznerToken(t)
+	name := acctest.RandomWithPrefix("tf-acc-hetzner")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_cloud_token", "/api/v1/cloud-tokens/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + testAccHetznerCloudTokenConfig(name) + `
+data "coolify_hetzner_networks" "test" {
+  cloud_provider_token_uuid = coolify_cloud_token.hetzner_test.uuid
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("data.coolify_hetzner_networks.test", "networks.#"),
+				),
+			},
+		},
+	})
+}
