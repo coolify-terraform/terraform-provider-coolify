@@ -9,6 +9,11 @@ description: |-
 
 This guide answers: **which Coolify version do I need for each resource and field?**
 
+For Coolify HTTP routes the provider does not wrap (clone, rollback, log
+streams, one-shot backup run, nested compose apps), see
+[API Coverage](https://github.com/coolify-terraform/terraform-provider-coolify/blob/main/API_COVERAGE.md)
+on GitHub. That page lists each skip class and **what to use instead**.
+
 The provider hard-requires Coolify **v4.1.0 or later** on every `terraform plan` /
 `terraform apply`. Within that floor, some APIs only exist on newer Coolify
 lines. The provider still configures against older supported instances, but it
