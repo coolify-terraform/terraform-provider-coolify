@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -120,17 +121,36 @@ func flattenProxy(got *client.ServerProxy, plan *serverProxyModel) {
 func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel) error {
 	uuid := plan.ServerUUID.ValueString()
 	input := proxyUpdateFromPlan(*plan)
-	// Coolify update() calls changeProxy() whenever proxy_type is present.
-	// That refresh can drop redirect_url written in the same request.
-	// Send type first, then the remaining settings.
+
+	current, err := r.client.GetServerProxy(ctx, uuid)
+	if err != nil && !client.IsNotFound(err) {
+		return err
+	}
+	if current != nil {
+		flattenProxy(current, plan)
+	}
+
+	wantType := ""
 	if input.ProxyType != nil {
-		typeOnly := client.ServerProxyUpdateInput{ProxyType: input.ProxyType}
-		got, err := r.client.UpdateServerProxy(ctx, uuid, typeOnly)
+		wantType = strings.ToLower(*input.ProxyType)
+	}
+	curType := ""
+	if current != nil {
+		curType = strings.ToLower(current.ProxyType)
+	}
+	// changeProxy() is async and resets redirect_url. Skip a type PATCH
+	// when the value is already current so a later redirect_url write
+	// is not wiped by a no-op type change.
+	typeChanged := input.ProxyType != nil && wantType != curType
+	input.ProxyType = nil
+
+	if typeChanged {
+		typeVal := wantType
+		got, err := r.client.UpdateServerProxy(ctx, uuid, client.ServerProxyUpdateInput{ProxyType: &typeVal})
 		if err != nil {
 			return err
 		}
 		flattenProxy(got, plan)
-		input.ProxyType = nil
 	}
 	if input.RedirectEnabled != nil || input.RedirectURL != nil || input.GenerateExactLabels != nil {
 		got, err := r.client.UpdateServerProxy(ctx, uuid, input)
@@ -139,10 +159,48 @@ func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel)
 		}
 		flattenProxy(got, plan)
 	}
+	if typeChanged && input.RedirectURL != nil && *input.RedirectURL != "" {
+		if err := r.ensureRedirectURL(ctx, uuid, *input.RedirectURL, plan); err != nil {
+			return err
+		}
+	}
 	if !plan.Configuration.IsNull() && !plan.Configuration.IsUnknown() && plan.Configuration.ValueString() != "" {
 		return r.client.PutServerProxyConfiguration(ctx, uuid, plan.Configuration.ValueString())
 	}
 	return nil
+}
+
+// ensureRedirectURL re-applies redirect_url if an async changeProxy()
+// refresh dropped it after a proxy_type PATCH.
+func (r *serverProxyResource) ensureRedirectURL(ctx context.Context, uuid, want string, plan *serverProxyModel) error {
+	deadline := time.Now().Add(8 * time.Second)
+	for {
+		got, err := r.client.GetServerProxy(ctx, uuid)
+		if err != nil {
+			return err
+		}
+		if got.RedirectURL == want {
+			flattenProxy(got, plan)
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("redirect_url %q did not persist after proxy_type change (GET has %q)", want, got.RedirectURL)
+		}
+		url := want
+		got, err = r.client.UpdateServerProxy(ctx, uuid, client.ServerProxyUpdateInput{RedirectURL: &url})
+		if err != nil {
+			return err
+		}
+		flattenProxy(got, plan)
+		if got.RedirectURL == want {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
 }
 
 func (r *serverProxyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
