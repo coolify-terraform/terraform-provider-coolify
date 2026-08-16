@@ -303,6 +303,66 @@ resource "coolify_server_proxy" "test" {
 	})
 }
 
+func TestServerProxyResource_SameTypeSkipsTypePatch(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	store := map[string]any{
+		"redirect_url": "",
+		"proxy_type":   "TRAEFIK",
+	}
+	var mu sync.Mutex
+	var sawTypePatch bool
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch:
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("decode proxy patch: %v", err)
+			}
+			if _, ok := body["proxy_type"]; ok {
+				sawTypePatch = true
+			}
+			for k, v := range body {
+				store[k] = v
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid  = "` + serverUUID + `"
+  proxy_type   = "traefik"
+  redirect_url = "https://example.com"
+}`,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("coolify_server_proxy.test", "redirect_url", "https://example.com"),
+				func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if sawTypePatch {
+						return fmt.Errorf("PATCH sent proxy_type when GET already had traefik")
+					}
+					if store["redirect_url"] != "https://example.com" {
+						return fmt.Errorf("store redirect_url=%v", store["redirect_url"])
+					}
+					return nil
+				},
+			),
+		}},
+	})
+}
+
 func TestServerProxyResource_ImportBadUUID(t *testing.T) {
 	t.Parallel()
 	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
