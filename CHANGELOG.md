@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.16](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.15...v0.1.16) (2026-08-16)
+
+
+### Features
+
+* pin Coolify API contract to v4.3.3 ([#777](https://github.com/coolify-terraform/terraform-provider-coolify/issues/777)) ([ee3bc76](https://github.com/coolify-terraform/terraform-provider-coolify/commit/ee3bc76b3a8b1b81f94f37f86116167b951cc022))
+* pin Coolify API contract to v4.3.5 ([#779](https://github.com/coolify-terraform/terraform-provider-coolify/issues/779)) ([6160fac](https://github.com/coolify-terraform/terraform-provider-coolify/commit/6160face0e3582383c2d32a6bb260cce59958645))
+
+
+### Bug Fixes
+
+* persist server proxy redirect_url when type is unchanged ([#780](https://github.com/coolify-terraform/terraform-provider-coolify/issues/780)) ([ace788e](https://github.com/coolify-terraform/terraform-provider-coolify/commit/ace788e0590dcfbba68ada4b04d9d727d23cb669))
+
 ## [0.1.15](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.14...v0.1.15) (2026-08-14)
 
 
