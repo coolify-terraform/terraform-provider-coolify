@@ -128,7 +128,7 @@ func serverDataSourceAttributes() map[string]schema.Attribute {
 		},
 		"backup_compression_cpu_percentage": schema.Int64Attribute{
 			MarkdownDescription: "CPU percentage Coolify uses when compressing volume backups. " +
-				"Read-only. Present on Coolify tip/nightly 4.3.3; empty on older instances.",
+				"Read-only. Present on Coolify >= v4.3.3; empty on older instances.",
 			Computed: true,
 		},
 	}

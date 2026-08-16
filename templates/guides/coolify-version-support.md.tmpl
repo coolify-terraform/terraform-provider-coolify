@@ -39,8 +39,9 @@ output "coolify_version" {
 | **4.2.x** | 4.2 resources and application settings writes work. 4.3-only attributes still withheld with a plan warning. |
 | **≥ 4.3.0** | Full current surface: volume backup schedules, notification channels, `noindex_domains`, GPU/log-drain application settings, etc. |
 
-Pinned API contract today: Coolify **v4.3.2** (`testdata/contracts/coolify-v4.json`).
-The provider remains usable on 4.1.0+ for the common surface.
+Pinned API contract today: Coolify **v4.3.3** (`testdata/contracts/coolify-v4.json`).
+Coolify 4.3.4 (nightly and source tip when this pin was set) has the same public
+API fields as 4.3.3. The provider remains usable on 4.1.0+ for the common surface.
 
 ## Resources and data sources by Coolify version
 
@@ -107,12 +108,12 @@ data sources are populated on Coolify **≥ 4.3.2** after Coolify probes the hos
 Empty on older instances.
 
 Volume-backup CPU share (`backup_compression_cpu_percentage`) is a computed
-GET-only server setting on Coolify tip/nightly **4.3.3**. It is not on the
+GET-only server setting on Coolify **≥ 4.3.3**. It is not on the
 public server PATCH allow list. Empty on older instances.
 
 Project icon attributes (`icon_path`, `icon_storage_type`) are computed on
 `coolify_project` and `data.coolify_project` from GET `/projects/{uuid}` on
-Coolify tip/nightly **4.3.3**. They are not writable and are omitted from
+Coolify **≥ 4.3.3**. They are not writable and are omitted from
 `GET /projects` (list). Empty on older instances.
 
 ## Application attributes by Coolify version
@@ -185,7 +186,7 @@ PATCH if any disallowed field is present, so the provider strips them.
 | Topic | Guidance |
 |-------|----------|
 | Minimum Coolify for this provider | **4.1.0** |
-| Recommended Coolify for full feature set | **≥ 4.3.0** (matches current pin) |
+| Recommended Coolify for full feature set | **≥ 4.3.3** (matches current pin) |
 | Provider package versions | Current 0.1.x line targets Coolify 4.1+ with soft gates for 4.2/4.3 APIs |
 
 Historical "0.2.x / 0.3.x min Coolify" rows in older docs referred to planned

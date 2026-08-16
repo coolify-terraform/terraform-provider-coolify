@@ -13852,6 +13852,20 @@
                     "description": {
                         "type": "string"
                     },
+                    "icon_path": {
+                        "type": "string",
+                        "description": "Icon path.",
+                        "maxLength": 255
+                    },
+                    "icon_s3_storage_id": {
+                        "type": "integer",
+                        "description": "Icon s3 storage id."
+                    },
+                    "icon_storage_type": {
+                        "type": "string",
+                        "description": "Icon storage type.",
+                        "maxLength": 255
+                    },
                     "id": {
                         "type": "integer"
                     },
@@ -14124,6 +14138,10 @@
             "ServerSetting": {
                 "description": "Server Settings model",
                 "properties": {
+                    "backup_compression_cpu_percentage": {
+                        "type": "string",
+                        "description": "Backup compression cpu percentage."
+                    },
                     "compose_version": {
                         "type": "string",
                         "description": "Compose version.",

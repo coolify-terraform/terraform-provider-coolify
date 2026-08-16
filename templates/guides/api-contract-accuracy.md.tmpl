@@ -13,16 +13,16 @@ Coolify contract extracted from the real application code.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
-Contract version: `v4.3.2` | Extracted from: `coollabsio/coolify@v4.3.2`
+Contract version: `v4.3.3` | Extracted from: `coollabsio/coolify@v4.3.3`
 
 ## Summary
 
 | Metric | Count |
 |--------|------:|
-| Public schema fields compared | 311 |
-| Public schema type matches | 311/311 |
-| Public schema nullable matches | 251/311 |
-| Public schema client JSON mappings | 241/311 |
+| Public schema fields compared | 315 |
+| Public schema type matches | 315/315 |
+| Public schema nullable matches | 252/315 |
+| Public schema client JSON mappings | 245/315 |
 | Reusable public schemas compared | 10 |
 | Contract-only / inline-only models documented | 12 |
 
@@ -234,11 +234,14 @@ Fields: 11 | Type matches: 11/11 | Nullable matches: 10/11 | Client JSON mapping
 
 ## Project
 
-Fields: 4 | Type matches: 4/4 | Nullable matches: 4/4 | Client JSON mappings: 4/4
+Fields: 7 | Type matches: 7/7 | Nullable matches: 4/7 | Client JSON mappings: 6/7
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | description | string | string | yes | reviewed drift | - | mapped |
+| icon_path | string | string | yes | **WRONG** | - | mapped |
+| icon_s3_storage_id | integer | integer | yes | **WRONG** | - | n/a |
+| icon_storage_type | string | string | yes | **WRONG** | - | mapped |
 | name | string | string | yes | yes | - | mapped |
 | uuid | string | string | yes | yes | - | mapped |
 | id | - | integer | - | - | - | mapped |
@@ -294,7 +297,7 @@ Fields: 12 | Type matches: 12/12 | Nullable matches: 10/12 | Client JSON mapping
 
 ## Server
 
-Fields: 30 | Type matches: 30/30 | Nullable matches: 17/30 | Client JSON mappings: 13/30
+Fields: 30 | Type matches: 30/30 | Nullable matches: 17/30 | Client JSON mappings: 14/30
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -325,16 +328,17 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 17/30 | Client JSON mapping
 | vultr_instance_status | string | string | yes | **WRONG** | - | mapped |
 | id | - | integer | - | - | - | mapped |
 | proxy | - | object | - | - | - | n/a |
-| proxy_type | - | string | - | - | - | n/a |
+| proxy_type | - | string | - | - | - | mapped |
 | settings | - |  | - | - | - | mapped |
 | unreachable_notification_sent | - | boolean | - | - | - | n/a |
 
 ## ServerSetting
 
-Fields: 53 | Type matches: 53/53 | Nullable matches: 39/53 | Client JSON mappings: 50/53
+Fields: 54 | Type matches: 54/54 | Nullable matches: 40/54 | Client JSON mappings: 51/54
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| backup_compression_cpu_percentage | string | string | yes | yes | - | mapped |
 | compose_version | string | string | yes | **WRONG** | - | mapped |
 | compose_version_checked_at | string | string | yes | **WRONG** | - | mapped |
 | concurrent_builds | integer | integer | yes | yes | 2 | mapped |
