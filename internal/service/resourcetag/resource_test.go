@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -103,6 +104,29 @@ resource "coolify_resource_tag" "test" {
 				acctest.CheckPathDisappears(srv.URL, "/api/v1/applications/"+appUUID+"/tags/"+tagUUID),
 			),
 			ExpectNonEmptyPlan: true,
+		}},
+	})
+}
+
+func TestResourceTag_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/{uuid}/tags", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed"}`, http.StatusUnprocessableEntity)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_resource_tag" "test" {
+  resource_type = "application"
+  resource_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  tag_name      = "frontend"
+}`,
+			ExpectError: regexp.MustCompile(`Error attaching tag`),
 		}},
 	})
 }
