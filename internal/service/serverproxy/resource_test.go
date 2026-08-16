@@ -46,8 +46,8 @@ func TestServerProxyResource_CRUD(t *testing.T) {
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				t.Errorf("decode proxy patch: %v", err)
 			}
-			if body["proxy_type"] == nil {
-				t.Errorf("expected proxy_type in PATCH body, got %v", body)
+			if len(body) == 0 {
+				t.Errorf("expected PATCH body, got empty")
 			}
 			for k, v := range body {
 				store[k] = v
@@ -223,6 +223,83 @@ resource "coolify_server_proxy" "test" {
 }`,
 			ExpectError: regexp.MustCompile(`Error applying server proxy`),
 		}},
+	})
+}
+
+// Coolify ServerProxyController::update calls changeProxy() whenever
+// proxy_type is present. That refresh can drop redirect_url from the same
+// request. The provider must PATCH type first, then redirect fields.
+func TestServerProxyResource_SplitTypeAndRedirect(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	store := map[string]any{
+		"redirect_url": "",
+		"proxy_type":   "traefik",
+	}
+	var mu sync.Mutex
+	var combinedPatch bool
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch:
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("decode proxy patch: %v", err)
+			}
+			_, hasType := body["proxy_type"]
+			_, hasURL := body["redirect_url"]
+			if hasType && hasURL {
+				combinedPatch = true
+				// Same-request changeProxy() drops the URL (Coolify tip).
+				delete(body, "redirect_url")
+				store["redirect_url"] = ""
+			}
+			for k, v := range body {
+				store[k] = v
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid  = "` + serverUUID + `"
+  proxy_type   = "caddy"
+  redirect_url = "https://example.com"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "redirect_url", "https://example.com"),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if combinedPatch {
+							return fmt.Errorf("PATCH sent proxy_type and redirect_url together")
+						}
+						if store["redirect_url"] != "https://example.com" {
+							return fmt.Errorf("store redirect_url=%v", store["redirect_url"])
+						}
+						return nil
+					},
+				),
+			},
+			{
+				ResourceName:                         "coolify_server_proxy.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        serverUUID,
+				ImportStateVerifyIdentifierAttribute: "server_uuid",
+			},
+		},
 	})
 }
 

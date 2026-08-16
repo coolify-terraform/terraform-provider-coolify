@@ -119,11 +119,26 @@ func flattenProxy(got *client.ServerProxy, plan *serverProxyModel) {
 
 func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel) error {
 	uuid := plan.ServerUUID.ValueString()
-	got, err := r.client.UpdateServerProxy(ctx, uuid, proxyUpdateFromPlan(*plan))
-	if err != nil {
-		return err
+	input := proxyUpdateFromPlan(*plan)
+	// Coolify update() calls changeProxy() whenever proxy_type is present.
+	// That refresh can drop redirect_url written in the same request.
+	// Send type first, then the remaining settings.
+	if input.ProxyType != nil {
+		typeOnly := client.ServerProxyUpdateInput{ProxyType: input.ProxyType}
+		got, err := r.client.UpdateServerProxy(ctx, uuid, typeOnly)
+		if err != nil {
+			return err
+		}
+		flattenProxy(got, plan)
+		input.ProxyType = nil
 	}
-	flattenProxy(got, plan)
+	if input.RedirectEnabled != nil || input.RedirectURL != nil || input.GenerateExactLabels != nil {
+		got, err := r.client.UpdateServerProxy(ctx, uuid, input)
+		if err != nil {
+			return err
+		}
+		flattenProxy(got, plan)
+	}
 	if !plan.Configuration.IsNull() && !plan.Configuration.IsUnknown() && plan.Configuration.ValueString() != "" {
 		return r.client.PutServerProxyConfiguration(ctx, uuid, plan.Configuration.ValueString())
 	}

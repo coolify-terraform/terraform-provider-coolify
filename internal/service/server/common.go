@@ -349,12 +349,12 @@ func addHostProbeVersionAttrs(attrs map[string]schema.Attribute) {
 	}
 }
 
-// addBackupCompressionAttrs adds the Coolify tip/nightly 4.3.3 volume-backup
+// addBackupCompressionAttrs adds the Coolify >= v4.3.3 volume-backup
 // CPU share. GET settings include it; public server PATCH does not.
 func addBackupCompressionAttrs(attrs map[string]schema.Attribute) {
 	attrs["backup_compression_cpu_percentage"] = schema.Int64Attribute{
 		MarkdownDescription: "CPU percentage Coolify uses when compressing volume backups. " +
-			"Read-only (not on public server PATCH). Present on Coolify tip/nightly 4.3.3; empty on older instances.",
+			"Read-only (not on public server PATCH). Present on Coolify >= v4.3.3; empty on older instances.",
 		Computed: true,
 	}
 }

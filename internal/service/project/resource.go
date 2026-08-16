@@ -74,12 +74,12 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"icon_path": schema.StringAttribute{
 				MarkdownDescription: "Storage path of the project icon uploaded in the Coolify UI. " +
 					"Read-only; not on Project create/update allow list. Present on GET /projects/{uuid} " +
-					"on Coolify tip/nightly 4.3.3; omitted from the list endpoint and older instances.",
+					"on Coolify >= v4.3.3; omitted from the list endpoint and older instances.",
 				Computed: true,
 			},
 			"icon_storage_type": schema.StringAttribute{
 				MarkdownDescription: "Icon storage backend (`local` or `s3`). Read-only. " +
-					"Present on GET /projects/{uuid} on Coolify tip/nightly 4.3.3.",
+					"Present on GET /projects/{uuid} on Coolify >= v4.3.3.",
 				Computed: true,
 			},
 		},
