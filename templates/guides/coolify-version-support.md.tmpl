@@ -39,9 +39,10 @@ output "coolify_version" {
 | **4.2.x** | 4.2 resources and application settings writes work. 4.3-only attributes still withheld with a plan warning. |
 | **≥ 4.3.0** | Full current surface: volume backup schedules, notification channels, `noindex_domains`, GPU/log-drain application settings, etc. |
 
-Pinned API contract today: Coolify **v4.3.3** (`testdata/contracts/coolify-v4.json`).
-Coolify 4.3.4 (nightly and source tip when this pin was set) has the same public
-API fields as 4.3.3. The provider remains usable on 4.1.0+ for the common surface.
+Pinned API contract today: Coolify **v4.3.5** (`testdata/contracts/coolify-v4.json`).
+Coolify 4.3.4, 4.3.5, and source tip (when this pin was set) have the same public
+API fields as 4.3.3. Nightly CDN reports 4.3.6 with no `v4.3.6` git tag yet.
+The provider remains usable on 4.1.0+ for the common surface.
 
 ## Resources and data sources by Coolify version
 
@@ -101,6 +102,10 @@ needs Coolify >= 4.2.0; see [Connecting Resources](connecting-resources).
 | `coolify_notification_pushover` | Team Pushover notification settings |
 | `coolify_server_sentinel` | Sentinel host metrics agent (GET/PATCH `/servers/{uuid}/sentinel`) |
 | `coolify_environment` `description` | Create still works on 4.1.x without description; PATCH description is 4.3.0+ |
+
+Coolify 4.3 also added instance SSO (Authentik, Zitadel, Clerk) in the UI.
+Those login providers have no public API routes in the contract, so this
+provider cannot manage them.
 
 Server host version probes (`compose_version`, `docker_version`, and `*_checked_at`)
 on `coolify_server` / cloud server resources and `coolify_server` / `coolify_servers`
@@ -186,7 +191,7 @@ PATCH if any disallowed field is present, so the provider strips them.
 | Topic | Guidance |
 |-------|----------|
 | Minimum Coolify for this provider | **4.1.0** |
-| Recommended Coolify for full feature set | **≥ 4.3.3** (matches current pin) |
+| Recommended Coolify for full feature set | **≥ 4.3.5** (matches current pin) |
 | Provider package versions | Current 0.1.x line targets Coolify 4.1+ with soft gates for 4.2/4.3 APIs |
 
 Historical "0.2.x / 0.3.x min Coolify" rows in older docs referred to planned

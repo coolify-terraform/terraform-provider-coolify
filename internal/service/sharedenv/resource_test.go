@@ -293,3 +293,26 @@ resource "coolify_shared_environment_variable" "test" {
 		}},
 	})
 }
+
+func TestSharedEnvResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/team/envs", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed"}`, http.StatusUnprocessableEntity)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_shared_environment_variable" "test" {
+  scope = "team"
+  key   = "GLOBAL_FLAG"
+  value = "on"
+}`,
+			ExpectError: regexp.MustCompile(`Error creating shared environment variable`),
+		}},
+	})
+}

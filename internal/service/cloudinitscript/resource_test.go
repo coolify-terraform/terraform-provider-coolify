@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -132,6 +133,28 @@ resource "coolify_cloud_init_script" "test" {
 				acctest.CheckResourceDisappears(srv.URL, "coolify_cloud_init_script.test", "/api/v1/cloud-init-scripts/"),
 			),
 			ExpectNonEmptyPlan: true,
+		}},
+	})
+}
+
+func TestCloudInitScriptResource_CreateAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/cloud-init-scripts", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"validation failed"}`, http.StatusUnprocessableEntity)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_cloud_init_script" "test" {
+  name   = "bootstrap"
+  script = "#cloud-config\npackages: [nginx]\n"
+}`,
+			ExpectError: regexp.MustCompile(`Error creating cloud-init script`),
 		}},
 	})
 }
