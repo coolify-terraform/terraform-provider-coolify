@@ -218,11 +218,22 @@ func (m *dockerImageApplicationResourceModel) common() commonAppFields {
 	return m.applicationCommonModel.common()
 }
 
+// dockerImageNameHasEmbeddedTag reports whether s looks like image:tag
+// rather than registry:port/name. Coolify update validation
+// (dockerImageNameRules / DOCKER_IMAGE_NAME_PATTERN) rejects a tag in
+// docker_registry_image_name. Create still accepts image:tag via
+// DockerImageFormat.
+func dockerImageNameHasEmbeddedTag(s string) bool {
+	i := strings.LastIndex(s, ":")
+	return i >= 0 && !strings.Contains(s[i+1:], "/")
+}
+
 // splitDockerImage splits "repo/image:tag" into name and tag. Coolify stores
 // the tag in a separate docker_registry_image_tag field and rejects a tag
 // embedded in docker_registry_image_name when updating an application.
 func splitDockerImage(image string) (string, string) {
-	if i := strings.LastIndex(image, ":"); i >= 0 && !strings.Contains(image[i+1:], "/") {
+	if dockerImageNameHasEmbeddedTag(image) {
+		i := strings.LastIndex(image, ":")
 		return image[:i], image[i+1:]
 	}
 	return image, ""

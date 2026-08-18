@@ -465,6 +465,30 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 - **Data Sources**: 44/44 direct acceptance coverage
 - **Total acceptance test functions**: 146
 
+### Primary-field update coverage
+
+When Coolify uses different validators on create vs update, a description-only
+Update step will not catch a 422 on the primary field. `coolify_application_docker_image`
+is the known split (`DockerImageFormat` on create vs `dockerImageNameRules()` on
+PATCH). `TestAccDockerImageApplicationResource_CRUD` must change `docker_image`
+on update (#786).
+
+Description-only Update steps that remain (no known create/update validator
+split on the primary field):
+
+| Acc test | Update field |
+|----------|----------------|
+| `TestAccApplicationResource_CRUD` | `description` |
+| `TestAccPrivateGitApplicationResource_CRUD` | `description` |
+| `TestAccGitHubAppApplicationResource_CRUD` | `description` |
+| `TestAccDockerfileApplicationResource_CRUD` | `description` |
+| `TestAccDatabase*Resource_CRUD` (8 types) | `description` |
+| `TestAccProjectResource_basic` | `description` |
+| `TestAccEnvironmentResource_CRUD` | `description` |
+
+Do not treat those as sufficient coverage if a new create/update validator
+split is found. Add a primary-field Update step instead.
+
 ### Testing strategies for edge cases
 
 | Category | Strategy |

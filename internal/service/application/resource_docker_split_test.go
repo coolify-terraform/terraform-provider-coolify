@@ -56,3 +56,52 @@ func TestSplitDockerImage(t *testing.T) {
 		})
 	}
 }
+
+// TestSplitDockerImage_UpdateNameHasNoEmbeddedTag fails if splitDockerImage
+// returns a name that still looks tagged. Coolify create accepts image:tag
+// (DockerImageFormat); PATCH name uses dockerImageNameRules. The Update
+// mock in resource_docker_test.go is the HTTP write-path guard.
+func TestSplitDockerImage_UpdateNameHasNoEmbeddedTag(t *testing.T) {
+	t.Parallel()
+	images := []string{
+		"nginx:latest",
+		"nginx:1.25",
+		"ghcr.io/org/app:v1",
+		"nginx",
+		"localhost:5000/nginx",
+		"localhost:5000/nginx:1.25",
+	}
+	for _, image := range images {
+		name, _ := splitDockerImage(image)
+		if dockerImageNameHasEmbeddedTag(name) {
+			t.Errorf("Update would send tagged docker_registry_image_name %q for %q", name, image)
+		}
+	}
+}
+
+func TestDockerImageNameHasEmbeddedTag(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		in   string
+		want bool
+	}{
+		{in: "nginx:latest", want: true},
+		{in: "nginx:1.25", want: true},
+		{in: "ghcr.io/org/app:v1", want: true},
+		{in: "nginx", want: false},
+		{in: "localhost:5000/nginx", want: false},
+		{in: "", want: false},
+	}
+	for _, tt := range tests {
+		name := tt.in
+		if name == "" {
+			name = "empty"
+		}
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if got := dockerImageNameHasEmbeddedTag(tt.in); got != tt.want {
+				t.Errorf("dockerImageNameHasEmbeddedTag(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+		})
+	}
+}
