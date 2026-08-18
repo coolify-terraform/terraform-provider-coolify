@@ -189,16 +189,16 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 			wantTag = "latest"
 		}
 		name, ok := requestBody["docker_registry_image_name"].(string)
-		if !ok {
+		switch {
+		case !ok:
 			t.Errorf("PATCH missing docker_registry_image_name")
-		} else if dockerImageUpdateNameHasTag(name) {
+		case dockerImageUpdateNameHasTag(name):
 			// Coolify update uses dockerImageNameRules(); a tagged name is 422.
 			http.Error(w, `{"message":"The docker_registry_image_name field format is invalid."}`, http.StatusUnprocessableEntity)
 			return
-		} else {
-			if name != wantName {
-				t.Errorf("PATCH docker_registry_image_name = %q, want %q", name, wantName)
-			}
+		case name != wantName:
+			t.Errorf("PATCH docker_registry_image_name = %q, want %q", name, wantName)
+		default:
 			currentApp.DockerRegistryImageName = name
 		}
 		tag, ok := requestBody["docker_registry_image_tag"].(string)
@@ -264,6 +264,146 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "nginx"),
+				),
+			},
+		},
+	})
+}
+
+func TestDockerImageApplicationResource_UpdateKeepsExplicitTag(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	currentApp := client.Application{
+		UUID:                    "docker-explicit-tag-uuid",
+		Name:                    "nginx-proxy",
+		DockerRegistryImageName: "nginx",
+		DockerRegistryImageTag:  "latest",
+		PortsExposes:            "80",
+		ProjectUUID:             "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:              "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:         "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": currentApp.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != currentApp.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	var patchCount atomic.Int32
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != currentApp.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		n := patchCount.Add(1)
+		wantName := "nginx"
+		if n >= 2 {
+			wantName = "redis"
+		}
+		name, ok := requestBody["docker_registry_image_name"].(string)
+		switch {
+		case !ok:
+			t.Errorf("PATCH missing docker_registry_image_name")
+		case dockerImageUpdateNameHasTag(name):
+			http.Error(w, `{"message":"The docker_registry_image_name field format is invalid."}`, http.StatusUnprocessableEntity)
+			return
+		case name != wantName:
+			t.Errorf("PATCH docker_registry_image_name = %q, want %q", name, wantName)
+		default:
+			currentApp.DockerRegistryImageName = name
+		}
+		tag, hasTag := requestBody["docker_registry_image_tag"].(string)
+		switch {
+		case tag == "latest":
+			t.Errorf("PATCH overwrote explicit docker_registry_image_tag with latest")
+		case n == 1 && !hasTag:
+			t.Errorf("PATCH missing docker_registry_image_tag on first update")
+		case hasTag && tag != "1.27-alpine":
+			t.Errorf("PATCH docker_registry_image_tag = %q, want 1.27-alpine", tag)
+		case hasTag:
+			currentApp.DockerRegistryImageTag = tag
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != currentApp.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "nginx-proxy"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "nginx:latest"
+					ports_exposes  = "80"
+				`),
+			},
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name                     = "nginx-proxy"
+					project_uuid             = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid              = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image             = "nginx"
+					docker_registry_image_tag = "1.27-alpine"
+					ports_exposes            = "80"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "nginx"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_registry_image_tag", "1.27-alpine"),
+				),
+			},
+			{
+				// Name-only change; tag is already configured and must stay.
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name                      = "nginx-proxy"
+					project_uuid              = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid               = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image              = "redis"
+					docker_registry_image_tag = "1.27-alpine"
+					ports_exposes             = "80"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "redis"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_registry_image_tag", "1.27-alpine"),
 				),
 			},
 		},

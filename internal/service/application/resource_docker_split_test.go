@@ -1,8 +1,13 @@
 package application
 
 import (
+	"strings"
 	"testing"
 )
+
+// digest64 is a stand-in SHA-256 hex digest (64 chars). Coolify stores
+// image@sha256:<hex> as name "image@sha256" and tag "<hex>" on update.
+var digest64 = strings.Repeat("a", 64)
 
 func TestSplitDockerImage(t *testing.T) {
 	t.Parallel()
@@ -42,6 +47,18 @@ func TestSplitDockerImage(t *testing.T) {
 			wantName: "",
 			wantTag:  "",
 		},
+		{
+			name:     "registry with port and tag",
+			image:    "localhost:5000/nginx:1.25",
+			wantName: "localhost:5000/nginx",
+			wantTag:  "1.25",
+		},
+		{
+			name:     "digest pin",
+			image:    "nginx@sha256:" + digest64,
+			wantName: "nginx@sha256",
+			wantTag:  digest64,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -70,6 +87,7 @@ func TestSplitDockerImage_UpdateNameHasNoEmbeddedTag(t *testing.T) {
 		"nginx",
 		"localhost:5000/nginx",
 		"localhost:5000/nginx:1.25",
+		"nginx@sha256:" + digest64,
 	}
 	for _, image := range images {
 		name, _ := splitDockerImage(image)
