@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -170,6 +171,7 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)
 	})
+	var patchCount atomic.Int32
 	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != currentApp.UUID {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
@@ -181,8 +183,31 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 		if !ok {
 			return
 		}
-		if v, ok := requestBody["docker_registry_image_name"].(string); ok {
-			currentApp.DockerRegistryImageName = v
+		n := patchCount.Add(1)
+		wantName, wantTag := "nginx", "1.25"
+		if n >= 2 {
+			wantTag = "latest"
+		}
+		name, ok := requestBody["docker_registry_image_name"].(string)
+		if !ok {
+			t.Errorf("PATCH missing docker_registry_image_name")
+		} else {
+			if strings.Contains(name, ":") {
+				t.Errorf("PATCH docker_registry_image_name must not contain a tag, got %q", name)
+			}
+			if name != wantName {
+				t.Errorf("PATCH docker_registry_image_name = %q, want %q", name, wantName)
+			}
+			currentApp.DockerRegistryImageName = name
+		}
+		tag, ok := requestBody["docker_registry_image_tag"].(string)
+		switch {
+		case !ok:
+			t.Errorf("PATCH missing docker_registry_image_tag")
+		case tag != wantTag:
+			t.Errorf("PATCH docker_registry_image_tag = %q, want %q", tag, wantTag)
+		default:
+			currentApp.DockerRegistryImageTag = tag
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)
@@ -226,6 +251,18 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "nginx:1.25"),
+				),
+			},
+			{
+				Config: testDockerImageResourceConfig(srv.URL, `
+					name           = "nginx-proxy"
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					docker_image   = "nginx"
+					ports_exposes  = "80"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "nginx"),
 				),
 			},
 		},
