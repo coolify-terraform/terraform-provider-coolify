@@ -1,7 +1,7 @@
 {
-  "version": "v4.3.9",
-  "extracted_from": "coollabsio/coolify@v4.3.9",
-  "extracted_at": "2026-08-18T23:18:56.157959+00:00",
+  "version": "v4.3.8",
+  "extracted_from": "coollabsio/coolify@v4.3.8",
+  "extracted_at": "2026-08-18T23:18:53.249708+00:00",
   "models": {
     "Application": {
       "table": "applications",

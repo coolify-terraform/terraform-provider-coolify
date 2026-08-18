@@ -1,7 +1,7 @@
 {
-  "version": "v4.3.9",
-  "extracted_from": "coollabsio/coolify@v4.3.9",
-  "extracted_at": "2026-08-18T23:18:56.157959+00:00",
+  "version": "v4.3.6",
+  "extracted_from": "coollabsio/coolify@v4.3.6",
+  "extracted_at": "2026-08-18T23:18:47.272321+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -6707,7 +6707,7 @@
           "type": "boolean",
           "nullable": false,
           "default": false,
-          "cast": "boolean",
+          "cast": null,
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"
@@ -7516,8 +7516,7 @@
         "exclude_from_status",
         "is_log_drain_enabled",
         "is_gzip_enabled",
-        "is_stripprefix_enabled",
-        "is_force_https_enabled"
+        "is_stripprefix_enabled"
       ]
     },
     "ServiceDatabasesController::update": {

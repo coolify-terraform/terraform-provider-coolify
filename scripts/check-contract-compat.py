@@ -117,8 +117,11 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "is_terminal_enabled",
     },
     # Service-application noindex (service stack apps; app resource covers standalone apps).
+    # is_force_https_enabled landed on this nested PATCH in Coolify v4.3.8.
+    # Route is skipNestedService; standalone apps already map the field.
     "ServiceApplicationsController::update": {
         "noindex_domains",
+        "is_force_https_enabled",
     },
 }
 
