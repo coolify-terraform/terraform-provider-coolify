@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -182,7 +183,15 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 			return
 		}
 		if v, ok := requestBody["docker_registry_image_name"].(string); ok {
+			// Coolify rejects a tag embedded in the image name on update; the
+			// provider must send the tag in docker_registry_image_tag instead.
+			if strings.Contains(v, ":") {
+				t.Errorf("PATCH docker_registry_image_name must not contain a tag, got %q", v)
+			}
 			currentApp.DockerRegistryImageName = v
+		}
+		if v, ok := requestBody["docker_registry_image_tag"].(string); ok {
+			currentApp.DockerRegistryImageTag = v
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)

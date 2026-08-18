@@ -180,7 +180,13 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 	planFields := plan.common()
 	stateFields := state.common()
 	input := buildUpdateInput(planFields, stateFields)
-	input.DockerRegistryImageName = flex.StringIfChanged(plan.DockerImage, state.DockerImage)
+	if changed := flex.StringIfChanged(plan.DockerImage, state.DockerImage); changed != nil {
+		name, tag := splitDockerImage(plan.DockerImage.ValueString())
+		input.DockerRegistryImageName = &name
+		if tag != "" {
+			input.DockerRegistryImageTag = &tag
+		}
+	}
 
 	dockerImageChanged := plan.DockerImage.ValueString() != state.DockerImage.ValueString()
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
@@ -207,6 +213,16 @@ func (r *dockerImageApplicationResource) ImportState(ctx context.Context, req re
 
 func (m *dockerImageApplicationResourceModel) common() commonAppFields {
 	return m.applicationCommonModel.common()
+}
+
+// splitDockerImage splits "repo/image:tag" into name and tag. Coolify stores
+// the tag in a separate docker_registry_image_tag field and rejects a tag
+// embedded in docker_registry_image_name when updating an application.
+func splitDockerImage(image string) (string, string) {
+	if i := strings.LastIndex(image, ":"); i >= 0 && !strings.Contains(image[i+1:], "/") {
+		return image[:i], image[i+1:]
+	}
+	return image, ""
 }
 
 // flattenDockerImageApplication copies API fields into the Terraform state model.
