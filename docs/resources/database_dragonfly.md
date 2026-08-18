@@ -31,11 +31,11 @@ resource "coolify_database_dragonfly" "example" {
 
 ### Optional
 
-- `custom_docker_run_options` (String) Custom Docker run options passed to the container.
+- `custom_docker_run_options` (String) Custom Docker run options passed to the container. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
 - `description` (String) A description of the database.
 - `destination_uuid` (String) UUID of the Coolify destination (Docker network) on the server. Create-only; changing forces a new resource. Coolify requires this when the server has multiple destinations and ignores a mismatched value when only one destination exists. Supported on database create for all Coolify versions this provider supports (v4.1.0+). When omitted on a multi-destination server, the client may auto-resolve after Coolify returns the multi-destination error (prefers network `coolify`). Manage destinations with `coolify_destination`. Import cannot recover this value (GET does not return destination UUID); re-adding it after import forces replacement unless you set it in state or omit the attribute.
 - `dragonfly_password` (String, Sensitive) The Dragonfly password. If omitted, Coolify auto-generates a value readable from state after creation.
-- `enable_ssl` (Boolean) When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`.
+- `enable_ssl` (Boolean) When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `health_check_enabled` (Boolean) When `true`, enables the Docker health check probe for this database container. Defaults to `true`.
 - `health_check_interval` (Number) Health check interval in seconds. Minimum `1`. Defaults to `15`.
@@ -44,8 +44,8 @@ resource "coolify_database_dragonfly" "example" {
 - `health_check_timeout` (Number) Health check timeout in seconds. Minimum `1`. Defaults to `5`.
 - `image` (String) The Docker image to use.
 - `instant_deploy` (Boolean) Whether to immediately deploy the database after creation. When `true`, Coolify starts the database container right away. When `false` (default), the database is created but not started.
-- `is_include_timestamps` (Boolean) When `true`, includes timestamps in container log output. Defaults to `false`.
-- `is_log_drain_enabled` (Boolean) When `true`, sends container logs to the configured log drain. Defaults to `false`.
+- `is_include_timestamps` (Boolean) When `true`, includes timestamps in container log output. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
+- `is_log_drain_enabled` (Boolean) When `true`, sends container logs to the configured log drain. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
 - `is_public` (Boolean) When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.
 - `limits_cpu_shares` (Number) CPU shares (relative weight).
 - `limits_cpus` (String) CPU limit (e.g., `0.5`, `2`).
@@ -55,7 +55,7 @@ resource "coolify_database_dragonfly" "example" {
 - `limits_memory_swap` (String) Memory swap limit (e.g., `1g`).
 - `limits_memory_swappiness` (Number) Memory swappiness (0-100).
 - `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
-- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`).
+- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`). The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 - `public_port_timeout` (Number) Timeout in seconds for public port allocation.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))

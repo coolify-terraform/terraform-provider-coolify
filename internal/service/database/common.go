@@ -121,6 +121,29 @@ func PopulateBaseCreateInput(base *client.CreateDatabaseBaseInput, m *CommonMode
 	base.IsPublic = flex.BoolValueOrNull(m.IsPublic)
 	base.PublicPort = flex.Int64PtrFromFramework(m.PublicPort)
 	base.InstantDeploy = flex.BoolValueOrNull(m.InstantDeploy)
+	// Coolify create POST accepts limits_* on every supported version.
+	// Send only non-default values so a default create body stays small.
+	if flex.StringPtrNonDefault(&m.LimitsMemory, "0") {
+		flex.SetIfKnown(&base.LimitsMemory, m.LimitsMemory)
+	}
+	if flex.StringPtrNonDefault(&m.LimitsMemorySwap, "0") {
+		flex.SetIfKnown(&base.LimitsMemorySwap, m.LimitsMemorySwap)
+	}
+	if flex.Int64PtrNonDefault(&m.LimitsMemorySwappiness, 60) {
+		base.LimitsMemorySwappiness = flex.Int64PtrFromFramework(m.LimitsMemorySwappiness)
+	}
+	if flex.StringPtrNonDefault(&m.LimitsMemoryReservation, "0") {
+		flex.SetIfKnown(&base.LimitsMemoryReservation, m.LimitsMemoryReservation)
+	}
+	if flex.StringPtrNonDefault(&m.LimitsCPUs, "0") {
+		flex.SetIfKnown(&base.LimitsCPUs, m.LimitsCPUs)
+	}
+	if flex.StringPtrConfigured(&m.LimitsCPUSet) {
+		flex.SetIfKnown(&base.LimitsCPUSet, m.LimitsCPUSet)
+	}
+	if flex.Int64PtrNonDefault(&m.LimitsCPUShares, 1024) {
+		base.LimitsCPUShares = flex.Int64PtrFromFramework(m.LimitsCPUShares)
+	}
 }
 
 // CommonDatabaseAttrs returns the shared schema attributes for all database types.
@@ -161,15 +184,15 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"limits_cpu_shares":         schema.Int64Attribute{MarkdownDescription: "CPU shares (relative weight).", Optional: true, Computed: true, Default: int64default.StaticInt64(1024)},
 		// Container/network settings
 		"ports_mappings": schema.StringAttribute{
-			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`).",
+			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`). The Coolify public API does not accept this field on create or update; set it in the Coolify UI.",
 			Optional:            true,
 			Validators: []validator.String{
 				validate.PortMappings(),
 			},
 		},
-		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container.", Optional: true, Validators: []validator.String{validate.NoShellMetachars()}},
+		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.", Optional: true, Validators: []validator.String{validate.NoShellMetachars()}},
 		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
-		"is_log_drain_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, sends container logs to the configured log drain. Defaults to `false`.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
+		"is_log_drain_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, sends container logs to the configured log drain. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"is_include_timestamps":     IsIncludeTimestampsAttr(),
 		"health_check_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, enables the Docker health check probe for this database container. Defaults to `true`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()}},
 		"health_check_interval":     schema.Int64Attribute{MarkdownDescription: "Health check interval in seconds. Minimum `1`. Defaults to `15`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{int64validator.AtLeast(1)}},
@@ -190,7 +213,7 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 // shared by all database types.
 func IsIncludeTimestampsAttr() schema.BoolAttribute {
 	return schema.BoolAttribute{
-		MarkdownDescription: "When `true`, includes timestamps in container log output. Defaults to `false`.",
+		MarkdownDescription: "When `true`, includes timestamps in container log output. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.",
 		Optional:            true,
 		Computed:            true,
 		Default:             booldefault.StaticBool(false),
@@ -201,7 +224,7 @@ func IsIncludeTimestampsAttr() schema.BoolAttribute {
 // database types except ClickHouse.
 func EnableSSLAttr() schema.BoolAttribute {
 	return schema.BoolAttribute{
-		MarkdownDescription: "When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`.",
+		MarkdownDescription: "When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.",
 		Optional:            true,
 		Computed:            true,
 		Default:             booldefault.StaticBool(false),
@@ -350,6 +373,46 @@ func NormalizeCommonCreateState(m *CommonModel) {
 	flex.NormalizeUnknownBool(&m.IsPublic)
 	flex.NormalizeUnknownInt64(&m.PublicPort)
 	flex.NormalizeUnknownString(&m.Status)
+	NormalizeExtendedCreateUnknowns(m.ExtFields())
+}
+
+// NormalizeExtendedCreateUnknowns resolves computed extended fields that have
+// no prior state on create so a failed post-create PATCH does not taint.
+func NormalizeExtendedCreateUnknowns(f DatabaseExtendedPtrs) {
+	if f.LimitsCPUSet != nil {
+		flex.NormalizeUnknownString(f.LimitsCPUSet)
+	}
+	if f.HealthCheckEnabled != nil {
+		flex.NormalizeUnknownBool(f.HealthCheckEnabled)
+	}
+	if f.HealthCheckInterval != nil {
+		flex.NormalizeUnknownInt64(f.HealthCheckInterval)
+	}
+	if f.HealthCheckTimeout != nil {
+		flex.NormalizeUnknownInt64(f.HealthCheckTimeout)
+	}
+	if f.HealthCheckRetries != nil {
+		flex.NormalizeUnknownInt64(f.HealthCheckRetries)
+	}
+	if f.HealthCheckStartPeriod != nil {
+		flex.NormalizeUnknownInt64(f.HealthCheckStartPeriod)
+	}
+	if f.InternalDBUrl != nil {
+		flex.NormalizeUnknownString(f.InternalDBUrl)
+	}
+	if f.Status != nil {
+		flex.NormalizeUnknownString(f.Status)
+	}
+}
+
+// RecoverCreateAfterExtendedError GETs the database after a failed post-create
+// PATCH, writes flattened state, then records the PATCH error. That keeps a
+// valid state object so Terraform does not taint a database that already exists.
+func RecoverCreateAfterExtendedError(ctx context.Context, c *client.Client, uuid, label string, patchErr error, resp *resource.CreateResponse, flattenAndSet func(*client.Database)) {
+	if db, err := c.GetDatabase(ctx, uuid); err == nil {
+		flattenAndSet(db)
+	}
+	resp.Diagnostics.AddError("Error setting "+label+" extended fields", fmt.Sprintf("%s %s: %s", label, uuid, patchErr))
 }
 
 // AddCreateReadBackError is a thin wrapper around flex.AddCreateReadBackError
@@ -474,24 +537,18 @@ func SetUpdateExtended(input *client.UpdateDatabaseInput, f DatabaseExtendedPtrs
 	flex.SetStrPtr(&input.LimitsMemoryReservation, *f.LimitsMemoryReservation)
 	flex.SetStrPtr(&input.LimitsCPUs, *f.LimitsCPUs)
 	flex.SetStrPtr(&input.LimitsCPUSet, *f.LimitsCPUSet)
-	flex.SetStrPtr(&input.PortsMappings, *f.PortsMappings)
-	flex.SetStrPtr(&input.CustomDockerRunOptions, *f.CustomDockerRunOptions)
 	flex.SetInt64Ptr(&input.LimitsMemorySwappiness, *f.LimitsMemorySwappiness)
 	flex.SetInt64Ptr(&input.LimitsCPUShares, *f.LimitsCPUShares)
 	input.PublicPortTimeout = flex.Int64PtrFromFramework(*f.PublicPortTimeout)
-	flex.SetBoolPtr(&input.IsLogDrainEnabled, *f.IsLogDrainEnabled)
-	flex.SetBoolPtr(&input.IsIncludeTimestamps, *f.IsIncludeTimestamps)
+	// is_log_drain_enabled, is_include_timestamps, enable_ssl, ssl_mode,
+	// ports_mappings, and custom_docker_run_options are not on Coolify
+	// PATCH $allowedFields. Sending them 422s (see #789).
 	flex.SetBoolPtr(&input.HealthCheckEnabled, *f.HealthCheckEnabled)
 	flex.SetInt64Ptr(&input.HealthCheckInterval, *f.HealthCheckInterval)
 	flex.SetInt64Ptr(&input.HealthCheckTimeout, *f.HealthCheckTimeout)
 	flex.SetInt64Ptr(&input.HealthCheckRetries, *f.HealthCheckRetries)
 	flex.SetInt64Ptr(&input.HealthCheckStartPeriod, *f.HealthCheckStartPeriod)
-	if f.EnableSSL != nil {
-		flex.SetBoolPtr(&input.EnableSSL, *f.EnableSSL)
-	}
-	if f.SSLMode != nil {
-		flex.SetStrPtr(&input.SSLMode, *f.SSLMode)
-	}
+	client.SanitizeDatabaseUpdate(input)
 }
 
 // SetUpdateExtendedDiff populates the extended fields in an UpdateDatabaseInput,
@@ -502,24 +559,15 @@ func SetUpdateExtendedDiff(input *client.UpdateDatabaseInput, plan, state Databa
 	input.LimitsMemoryReservation = flex.StringIfChanged(*plan.LimitsMemoryReservation, *state.LimitsMemoryReservation)
 	input.LimitsCPUs = flex.StringIfChanged(*plan.LimitsCPUs, *state.LimitsCPUs)
 	input.LimitsCPUSet = flex.StringIfChanged(*plan.LimitsCPUSet, *state.LimitsCPUSet)
-	input.PortsMappings = flex.StringIfChanged(*plan.PortsMappings, *state.PortsMappings)
-	input.CustomDockerRunOptions = flex.StringIfChanged(*plan.CustomDockerRunOptions, *state.CustomDockerRunOptions)
 	input.LimitsMemorySwappiness = flex.Int64IfChanged(*plan.LimitsMemorySwappiness, *state.LimitsMemorySwappiness)
 	input.LimitsCPUShares = flex.Int64IfChanged(*plan.LimitsCPUShares, *state.LimitsCPUShares)
 	input.PublicPortTimeout = flex.Int64IfChanged(*plan.PublicPortTimeout, *state.PublicPortTimeout)
-	input.IsLogDrainEnabled = flex.BoolIfChanged(*plan.IsLogDrainEnabled, *state.IsLogDrainEnabled)
-	input.IsIncludeTimestamps = flex.BoolIfChanged(*plan.IsIncludeTimestamps, *state.IsIncludeTimestamps)
 	input.HealthCheckEnabled = flex.BoolIfChanged(*plan.HealthCheckEnabled, *state.HealthCheckEnabled)
 	input.HealthCheckInterval = flex.Int64IfChanged(*plan.HealthCheckInterval, *state.HealthCheckInterval)
 	input.HealthCheckTimeout = flex.Int64IfChanged(*plan.HealthCheckTimeout, *state.HealthCheckTimeout)
 	input.HealthCheckRetries = flex.Int64IfChanged(*plan.HealthCheckRetries, *state.HealthCheckRetries)
 	input.HealthCheckStartPeriod = flex.Int64IfChanged(*plan.HealthCheckStartPeriod, *state.HealthCheckStartPeriod)
-	if plan.EnableSSL != nil {
-		input.EnableSSL = flex.BoolIfChanged(*plan.EnableSSL, *state.EnableSSL)
-	}
-	if plan.SSLMode != nil {
-		input.SSLMode = flex.StringIfChanged(*plan.SSLMode, *state.SSLMode)
-	}
+	client.SanitizeDatabaseUpdate(input)
 }
 
 // HasExtendedFields returns true if any extended field is configured (not
@@ -529,17 +577,12 @@ func HasExtendedFields(f DatabaseExtendedPtrs) bool {
 		flex.StringPtrNonDefault(f.LimitsMemoryReservation, "0") || flex.StringPtrNonDefault(f.LimitsCPUs, "0") ||
 		flex.StringPtrConfigured(f.LimitsCPUSet) ||
 		flex.Int64PtrNonDefault(f.LimitsMemorySwappiness, 60) || flex.Int64PtrNonDefault(f.LimitsCPUShares, 1024) ||
-		flex.StringPtrConfigured(f.PortsMappings) || flex.StringPtrConfigured(f.CustomDockerRunOptions) ||
 		flex.Int64PtrConfigured(f.PublicPortTimeout) ||
-		flex.BoolPtrNonDefault(f.IsLogDrainEnabled, false) ||
-		flex.BoolPtrNonDefault(f.IsIncludeTimestamps, false) ||
 		flex.BoolPtrNonDefault(f.HealthCheckEnabled, true) ||
 		flex.Int64PtrNonDefault(f.HealthCheckInterval, 15) ||
 		flex.Int64PtrNonDefault(f.HealthCheckTimeout, 5) ||
 		flex.Int64PtrNonDefault(f.HealthCheckRetries, 5) ||
-		flex.Int64PtrNonDefault(f.HealthCheckStartPeriod, 5) ||
-		(f.EnableSSL != nil && flex.BoolPtrNonDefault(f.EnableSSL, false)) ||
-		(f.SSLMode != nil && flex.StringPtrConfigured(f.SSLMode))
+		flex.Int64PtrNonDefault(f.HealthCheckStartPeriod, 5)
 }
 
 // FlattenDatabaseCommon sets the fields shared by all database resource types.

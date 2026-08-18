@@ -18,25 +18,32 @@ func TestAccPostgresqlDatabaseResource_CRUD(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_postgresql", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
-			// Create and verify
+			// Create and verify, including a PATCH-allow-list extended field.
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, `limits_memory = "256M"`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_database_postgresql.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "name", name),
 					resource.TestCheckResourceAttrSet("coolify_database_postgresql.test", "image"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "limits_memory", "256M"),
 				),
 			},
 			// Idempotency check
 			{
-				Config:             acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, ""),
+				Config:             acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, `limits_memory = "256M"`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Update description
+			// Update description and the memory limit
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, `description = "Updated via acc test"`),
-				Check:  resource.TestCheckResourceAttr("coolify_database_postgresql.test", "description", "Updated via acc test"),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_postgresql", name, serverUUID, `
+  description   = "Updated via acc test"
+  limits_memory = "512M"
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "description", "Updated via acc test"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "limits_memory", "512M"),
+				),
 			},
 			// Import
 			{

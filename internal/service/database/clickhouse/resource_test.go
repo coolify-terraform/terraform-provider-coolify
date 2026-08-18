@@ -44,8 +44,6 @@ resource "coolify_database_clickhouse" "test" {
 					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_public", "false"),
 					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "environment_name", "production"),
 					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "clickhouse_admin_user", "default"),
-					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_include_timestamps", "false"),
 					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "status", "running"),
 				),
 			},
@@ -75,21 +73,19 @@ resource "coolify_database_clickhouse" "test" {
 					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "description", "Updated ClickHouse"),
 				),
 			},
-			// Update logging fields
+			// Update limits (Coolify PATCH allow-list field)
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_database_clickhouse" "test" {
-  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
-  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
-  name                  = "updated-ch"
-  description           = "Updated ClickHouse"
-  is_log_drain_enabled  = true
-  is_include_timestamps = true
+  project_uuid  = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid   = "bbbb0001-0001-4000-8000-000000000001"
+  name          = "updated-ch"
+  description   = "Updated ClickHouse"
+  limits_memory = "512M"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "limits_memory", "512M"),
 				),
 			},
 			// Update health check fields to non-default values
@@ -100,8 +96,6 @@ resource "coolify_database_clickhouse" "test" {
   server_uuid             = "bbbb0001-0001-4000-8000-000000000001"
   name                    = "updated-ch"
   description             = "Updated ClickHouse"
-  is_log_drain_enabled    = true
-  is_include_timestamps   = true
   health_check_enabled    = false
   health_check_interval   = 30
   health_check_timeout    = 10
@@ -129,9 +123,9 @@ resource "coolify_database_clickhouse" "test" {
 	})
 }
 
-func TestClickhouseDatabaseResource_CreateWithTimestamps(t *testing.T) {
+func TestClickhouseDatabaseResource_CreateWithLimitsMemory(t *testing.T) {
 	t.Parallel()
-	srv, _ := dbtest.NewMockServer("clickhouse", "ch-ts-db", "clickhouse/clickhouse-server:latest", map[string]interface{}{
+	srv, state := dbtest.NewMockServer("clickhouse", "ch-ts-db", "clickhouse/clickhouse-server:latest", map[string]interface{}{
 		"clickhouse_admin_user":     "default",
 		"clickhouse_admin_password": "secret123",
 	})
@@ -143,15 +137,27 @@ func TestClickhouseDatabaseResource_CreateWithTimestamps(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_database_clickhouse" "test" {
-  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
-  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
-  is_log_drain_enabled  = true
-  is_include_timestamps = true
+  project_uuid  = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid   = "bbbb0001-0001-4000-8000-000000000001"
+  limits_memory = "512M"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_clickhouse.test", "limits_memory", "512M"),
+					func(_ *terraform.State) error {
+						if v, ok := state.LastCreate["limits_memory"]; !ok || v != "512M" {
+							return fmt.Errorf("create POST limits_memory = %v, want 512M", state.LastCreate["limits_memory"])
+						}
+						for _, k := range []string{"is_log_drain_enabled", "is_include_timestamps", "enable_ssl", "ssl_mode"} {
+							if _, ok := state.LastCreate[k]; ok {
+								return fmt.Errorf("create POST sent unallowed key %s", k)
+							}
+							if _, ok := state.LastPatch[k]; ok {
+								return fmt.Errorf("create PATCH sent unallowed key %s", k)
+							}
+						}
+						return nil
+					},
 				),
 			},
 		},

@@ -39,7 +39,7 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 	resp.Schema = schema.Schema{MarkdownDescription: "Manages a ClickHouse database resource on Coolify.", Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 		"clickhouse_admin_user":     schema.StringAttribute{MarkdownDescription: "The ClickHouse admin user name (maps to `CLICKHOUSE_USER`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"clickhouse_admin_password": schema.StringAttribute{MarkdownDescription: "The ClickHouse admin password (maps to `CLICKHOUSE_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.", Optional: true, Computed: true, Sensitive: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"clickhouse_db":             schema.StringAttribute{MarkdownDescription: "The default ClickHouse database name. If omitted, Coolify uses `default`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+		"clickhouse_db":             schema.StringAttribute{MarkdownDescription: "The default ClickHouse database name. If omitted, Coolify uses `default`. The Coolify public API does not accept this field on create or update.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 	})}
 }
 func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -83,12 +83,14 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	}
 
 	ext := p.ExtFields()
-	if dbcommon.HasExtendedFields(ext) || flex.StringValueConfigured(p.ClickhouseDB) {
+	if dbcommon.HasExtendedFields(ext) {
 		update := client.UpdateDatabaseInput{}
 		dbcommon.SetUpdateExtended(&update, ext)
-		flex.SetStrPtr(&update.ClickhouseDB, p.ClickhouseDB)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
-			resp.Diagnostics.AddError("Error setting ClickHouse database extended fields", fmt.Sprintf("ClickHouse database %s: %s", c.UUID, err))
+			dbcommon.RecoverCreateAfterExtendedError(ctx, r.client, c.UUID, "ClickHouse database", err, resp, func(db *client.Database) {
+				flattenDatabase(db, &p)
+				resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
+			})
 			return
 		}
 	}
@@ -136,7 +138,6 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		PublicPort:              flex.Int64IfChanged(p.PublicPort, s.PublicPort),
 		ClickhouseAdminUser:     flex.StringIfChanged(p.ClickhouseAdminUser, s.ClickhouseAdminUser),
 		ClickhouseAdminPassword: flex.StringIfChanged(p.ClickhouseAdminPassword, s.ClickhouseAdminPassword),
-		ClickhouseDB:            flex.StringIfChanged(p.ClickhouseDB, s.ClickhouseDB),
 	}
 	dbcommon.SetUpdateExtendedDiff(&u, p.ExtFields(), s.ExtFields())
 	db, err := dbcommon.UpdateDatabase(ctx, r.client, s.UUID.ValueString(), u)

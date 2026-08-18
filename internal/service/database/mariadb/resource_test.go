@@ -14,6 +14,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/dbtest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestMariadbDatabaseResource_CreateUpdateImport(t *testing.T) {
@@ -44,9 +45,6 @@ resource "coolify_database_mariadb" "test" {
 					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "mariadb_user", "mariauser"),
 					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "mariadb_database", "mariadb"),
 					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "image", "mariadb:11"),
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "enable_ssl", "false"),
 					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "status", "running"),
 				),
 			},
@@ -76,7 +74,7 @@ resource "coolify_database_mariadb" "test" {
 					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "description", "Updated MariaDB"),
 				),
 			},
-			// Update SSL and log drain fields
+			// Update limits (Coolify PATCH allow-list field)
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_database_mariadb" "test" {
@@ -84,17 +82,11 @@ resource "coolify_database_mariadb" "test" {
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-mariadb"
   description           = "Updated MariaDB"
-  enable_ssl            = true
-  ssl_mode              = "REQUIRED"
-  is_log_drain_enabled  = true
-  is_include_timestamps = true
+  limits_memory         = "512M"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "ssl_mode", "REQUIRED"),
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "limits_memory", "512M"),
 				),
 			},
 			// Update health check fields to non-default values
@@ -105,10 +97,6 @@ resource "coolify_database_mariadb" "test" {
   server_uuid             = "bbbb0001-0001-4000-8000-000000000001"
   name                    = "updated-mariadb"
   description             = "Updated MariaDB"
-  enable_ssl              = true
-  ssl_mode                = "REQUIRED"
-  is_log_drain_enabled    = true
-  is_include_timestamps   = true
   health_check_enabled    = false
   health_check_interval   = 30
   health_check_timeout    = 10
@@ -136,9 +124,9 @@ resource "coolify_database_mariadb" "test" {
 	})
 }
 
-func TestMariadbDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
+func TestMariadbDatabaseResource_CreateWithLimitsMemory(t *testing.T) {
 	t.Parallel()
-	srv, _ := dbtest.NewMockServer("mariadb", "mariadb-ssl-db", "mariadb:11", map[string]interface{}{
+	srv, state := dbtest.NewMockServer("mariadb", "mariadb-ssl-db", "mariadb:11", map[string]interface{}{
 		"mariadb_user":          "mariadbuser",
 		"mariadb_password":      "mariadbpass",
 		"mariadb_database":      "mydb",
@@ -152,17 +140,27 @@ func TestMariadbDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_database_mariadb" "test" {
-  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
-  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
-  enable_ssl            = true
-  ssl_mode              = "REQUIRED"
-  is_include_timestamps = true
+  project_uuid  = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid   = "bbbb0001-0001-4000-8000-000000000001"
+  limits_memory = "512M"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "ssl_mode", "REQUIRED"),
-					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mariadb.test", "limits_memory", "512M"),
+					func(_ *terraform.State) error {
+						if v, ok := state.LastCreate["limits_memory"]; !ok || v != "512M" {
+							return fmt.Errorf("create POST limits_memory = %v, want 512M", state.LastCreate["limits_memory"])
+						}
+						for _, k := range []string{"is_log_drain_enabled", "is_include_timestamps", "enable_ssl", "ssl_mode"} {
+							if _, ok := state.LastCreate[k]; ok {
+								return fmt.Errorf("create POST sent unallowed key %s", k)
+							}
+							if _, ok := state.LastPatch[k]; ok {
+								return fmt.Errorf("create PATCH sent unallowed key %s", k)
+							}
+						}
+						return nil
+					},
 				),
 			},
 		},
@@ -366,7 +364,7 @@ func TestMariadbDatabaseResource_InvalidSSLMode(t *testing.T) {
 resource "coolify_database_mariadb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
-  ssl_mode     = "bogus"
+  ssl_mode     = "not-a-mode"
 }
 `,
 				ExpectError: regexp.MustCompile(`(?s)ssl_mode value must be one of:`),
