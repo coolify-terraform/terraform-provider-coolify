@@ -1,6 +1,9 @@
 resource "coolify_deployment" "web" {
   application_uuid = coolify_application.web.uuid
 
+  # Safe on first apply when the application sets instant_deploy = true;
+  # a deploy already queued for the same commit is adopted.
+
   triggers = {
     deploy_version = "v1.2.3"
   }

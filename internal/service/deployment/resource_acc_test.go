@@ -116,6 +116,60 @@ data "coolify_deployment" "test" {
 // Helpers
 // ---------------------------------------------------------------------------
 
+func TestAccDeploymentResource_InstantDeployAdoptsQueued(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-deploy-id")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_project", "/api/v1/projects/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDeploymentInstantDeployConfig(name, serverUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_deployment.test", "uuid"),
+					resource.TestCheckResourceAttrSet("coolify_deployment.test", "status"),
+				),
+			},
+			{
+				Config:             testAccDeploymentInstantDeployConfig(name, serverUUID),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func testAccDeploymentInstantDeployConfig(name, serverUUID string) string {
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_application_dockerfile" "test" {
+  project_uuid    = coolify_project.test.uuid
+  server_uuid     = %[2]q
+  instant_deploy  = true
+  dockerfile_location = base64encode(<<-DOCKERFILE
+    FROM nginx:alpine
+    EXPOSE 80
+  DOCKERFILE
+  )
+  ports_exposes = "80"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = coolify_application_dockerfile.test.uuid
+  triggers = {
+    version = "1"
+  }
+}
+`, name, serverUUID)
+}
+
 func testAccDeploymentConfig(name, serverUUID string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {

@@ -115,11 +115,24 @@ func (c *Client) GetDeployment(ctx context.Context, uuid string) (*Deployment, e
 	return &r, nil
 }
 func (c *Client) ListApplicationDeployments(ctx context.Context, appUUID string) ([]Deployment, error) {
-	var r []Deployment
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/deployments/applications/%s", url.PathEscape(appUUID)), nil, &r); err != nil {
+	// Coolify GET /deployments/applications/{uuid} returns
+	// {"count":N,"deployments":[...]}. Older mocks and some versions
+	// return a bare array. Accept both.
+	var raw json.RawMessage
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/deployments/applications/%s", url.PathEscape(appUUID)), nil, &raw); err != nil {
 		return nil, fmt.Errorf("listing deployments for application %s: %w", appUUID, err)
 	}
-	return r, nil
+	var r []Deployment
+	if err := json.Unmarshal(raw, &r); err == nil {
+		return r, nil
+	}
+	var wrap struct {
+		Deployments []Deployment `json:"deployments"`
+	}
+	if err := json.Unmarshal(raw, &wrap); err != nil {
+		return nil, fmt.Errorf("listing deployments for application %s: decoding response: %w", appUUID, err)
+	}
+	return wrap.Deployments, nil
 }
 func (c *Client) CancelDeployment(ctx context.Context, uuid string) error {
 	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/api/v1/deployments/%s/cancel", url.PathEscape(uuid)), nil, nil); err != nil {
@@ -134,6 +147,69 @@ func (c *Client) Deploy(ctx context.Context) error {
 		return fmt.Errorf("triggering deploy: %w", err)
 	}
 	return nil
+}
+
+type deployByUUIDResponse struct {
+	Deployments []deployByUUIDItem `json:"deployments"`
+}
+
+type deployByUUIDItem struct {
+	Message        string `json:"message"`
+	ResourceUUID   string `json:"resource_uuid"`
+	DeploymentUUID string `json:"deployment_uuid"`
+}
+
+// DeployApplication POSTs /api/v1/deploy?uuid= to queue a real deploy
+// (not restart_only). When Coolify already has a queued or in-progress
+// deploy for the same commit it may omit deployment_uuid (skip). The
+// returned UUID may also be a never-persisted id; callers must GET it
+// and fall back to LatestApplicationDeploymentUUID on 404 or empty.
+func (c *Client) DeployApplication(ctx context.Context, appUUID string) (*RestartApplicationResponse, error) {
+	q := url.Values{}
+	q.Set("uuid", appUUID)
+	var wrap deployByUUIDResponse
+	if err := c.do(ctx, http.MethodPost, "/api/v1/deploy?"+q.Encode(), nil, &wrap); err != nil {
+		return nil, fmt.Errorf("deploying application %s: %w", appUUID, err)
+	}
+	out := &RestartApplicationResponse{}
+	for _, item := range wrap.Deployments {
+		if item.Message != "" {
+			out.Message = item.Message
+		}
+		if item.DeploymentUUID != "" {
+			out.DeploymentUUID = item.DeploymentUUID
+			return out, nil
+		}
+	}
+	return out, nil
+}
+
+// LatestApplicationDeploymentUUID returns the UUID of a queued or
+// in-progress deployment for the application, or the newest finished
+// one if nothing is in flight. Empty string when the app has none.
+func (c *Client) LatestApplicationDeploymentUUID(ctx context.Context, appUUID string) (string, error) {
+	deps, err := c.ListApplicationDeployments(ctx, appUUID)
+	if err != nil {
+		return "", err
+	}
+	return pickDeploymentUUID(deps), nil
+}
+
+func pickDeploymentUUID(deps []Deployment) string {
+	for _, d := range deps {
+		switch strings.ToLower(d.Status) {
+		case "queued", "in_progress":
+			if d.UUID != "" {
+				return d.UUID
+			}
+		}
+	}
+	for _, d := range deps {
+		if d.UUID != "" {
+			return d.UUID
+		}
+	}
+	return ""
 }
 
 func (c *Client) DeployByTag(ctx context.Context, tag string, input DeployByTagInput) error {
