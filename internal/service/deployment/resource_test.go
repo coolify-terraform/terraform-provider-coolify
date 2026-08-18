@@ -23,13 +23,24 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func requireRestartApplicationUUID(w http.ResponseWriter, r *http.Request, expectedAppUUID string) bool {
-	if r.PathValue("uuid") == expectedAppUUID {
+func requireDeployQueryUUID(w http.ResponseWriter, r *http.Request, expectedAppUUID string) bool {
+	if r.URL.Query().Get("uuid") == expectedAppUUID {
 		return true
 	}
 
-	http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	http.Error(w, `{"message":"No resources found."}`, http.StatusNotFound)
 	return false
+}
+
+func writeDeployQueued(w http.ResponseWriter, appUUID, deploymentUUID string) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"deployments": []map[string]string{{
+			"message":         "Application deployment queued.",
+			"resource_uuid":   appUUID,
+			"deployment_uuid": deploymentUUID,
+		}},
+	})
 }
 
 func TestDeploymentResource_Create(t *testing.T) {
@@ -38,15 +49,11 @@ func TestDeploymentResource_Create(t *testing.T) {
 	appUUID := "cccc0002-0002-4000-8000-000000000002"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		uuid := r.PathValue("uuid")
@@ -112,19 +119,15 @@ func TestDeploymentResource_TriggersForceNew(t *testing.T) {
 	deploymentCount := 0
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
 		mu.Lock()
 		deploymentCount++
 		uuid := fmt.Sprintf("dep-uuid-%d", deploymentCount)
 		mu.Unlock()
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": uuid,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, uuid)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		uuid := r.PathValue("uuid")
@@ -189,15 +192,11 @@ func TestDeploymentResource_Import(t *testing.T) {
 	appUUID := "cccc0001-0001-4000-8000-000000000001"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		uuid := r.PathValue("uuid")
@@ -248,15 +247,11 @@ func TestDeploymentResource_Disappears(t *testing.T) {
 	deleted := false
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
@@ -312,22 +307,26 @@ func TestDeploymentResource_CreateReadBackFailureDefaultsQueued(t *testing.T) {
 	var readBackCalls atomic.Int32
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
+			return
+		}
+		writeDeployQueued(w, appUUID, deploymentUUID)
+	})
+	mux.HandleFunc("GET /api/v1/deployments/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"message":"Application not found"}`, http.StatusNotFound)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		_ = json.NewEncoder(w).Encode(map[string]any{"count": 0, "deployments": []any{}})
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		count := readBackCalls.Add(1)
-		// Fail enough times to exhaust the client's 3 retries during
-		// Create's read-back, exercising the "default to queued" fallback.
+		// Fail resolve GET (4 attempts) plus Create status read-back
+		// (4 more) so the "default to queued" fallback still runs.
 		// Succeed afterward so the post-apply refresh Read works.
-		if count <= 4 {
+		if count <= 8 {
 			http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
 			return
 		}
@@ -384,15 +383,11 @@ func TestDeploymentResource_WaitForCompletion(t *testing.T) {
 	getCount := 0
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
@@ -455,15 +450,11 @@ func TestDeploymentResource_WaitForCompletionFailed(t *testing.T) {
 			getCount := 0
 
 			mux := http.NewServeMux()
-			mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-				if !requireRestartApplicationUUID(w, r, appUUID) {
+			mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+				if !requireDeployQueryUUID(w, r, appUUID) {
 					return
 				}
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]string{
-					"deployment_uuid": deploymentUUID,
-					"message":         "Restart request queued.",
-				})
+				writeDeployQueued(w, appUUID, deploymentUUID)
 			})
 			mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 				mu.Lock()
@@ -527,15 +518,11 @@ func TestDeploymentResource_WaitForCompletionTimeout(t *testing.T) {
 	appUUID := "cccc0005-0005-4000-8000-000000000005"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -578,15 +565,11 @@ func TestDeploymentResource_ImportBadFormat(t *testing.T) {
 	appUUID := "cccc0002-0002-4000-8000-000000000002"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -630,15 +613,11 @@ func TestDeploymentResource_ImportBadUUID(t *testing.T) {
 	appUUID := "cccc0003-0003-4000-8000-000000000003"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -682,15 +661,11 @@ func TestDeploymentResource_ImportBadDeploymentUUID(t *testing.T) {
 	appUUID := "cccc0004-0004-4000-8000-000000000004"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -734,15 +709,11 @@ func TestDeploymentResource_UpdateWaitForCompletion(t *testing.T) {
 	appUUID := "cccc0006-0006-4000-8000-000000000006"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -821,14 +792,25 @@ func TestDeploymentResource_EmptyUUID(t *testing.T) {
 	appUUID := "cccc0007-0007-4000-8000-000000000007"
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": "",
+		json.NewEncoder(w).Encode(map[string]any{
+			"deployments": []map[string]string{{
+				"message":       "Deployment already queued for this commit.",
+				"resource_uuid": appUUID,
+			}},
 		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"message":"Application not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"count": 0, "deployments": []any{}})
 	})
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -890,16 +872,12 @@ func TestDeploymentResource_DestroyNoOp(t *testing.T) {
 	var restartCalls atomic.Int32
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
-		if !requireRestartApplicationUUID(w, r, appUUID) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
 		restartCalls.Add(1)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"deployment_uuid": deploymentUUID,
-			"message":         "Restart request queued.",
-		})
+		writeDeployQueued(w, appUUID, deploymentUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -931,14 +909,218 @@ resource "coolify_deployment" "test" {
 		},
 	})
 	if restartCalls.Load() != 1 {
-		t.Fatalf("expected restart only on create, got %d calls", restartCalls.Load())
+		t.Fatalf("expected deploy only on create, got %d calls", restartCalls.Load())
 	}
+}
+
+func TestDeploymentResource_AdoptsQueuedDeploy(t *testing.T) {
+	t.Parallel()
+	appUUID := "cccc0009-0009-4000-8000-000000000009"
+	existingUUID := "existing-queued-0001-4000-8000-000000000001"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"deployments": []map[string]string{{
+				"message":       "Deployment already queued for this commit.",
+				"resource_uuid": appUUID,
+			}},
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"message":"Application not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"count": 1,
+			"deployments": []map[string]any{{
+				"deployment_uuid": existingUUID,
+				"status":          "in_progress",
+			}},
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != existingUUID {
+			http.Error(w, `{"message":"Deployment not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"deployment_uuid": existingUUID,
+			"status":          "in_progress",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", existingUUID),
+					resource.TestCheckResourceAttr("coolify_deployment.test", "status", "in_progress"),
+				),
+			},
+		},
+	})
+}
+
+func TestDeploymentResource_PhantomDeployUUID(t *testing.T) {
+	t.Parallel()
+	appUUID := "cccc0010-0010-4000-8000-000000000010"
+	phantomUUID := "phantom-never-persisted-0001-4000-8000-0001"
+	existingUUID := "existing-queued-0002-4000-8000-000000000002"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
+			return
+		}
+		writeDeployQueued(w, appUUID, phantomUUID)
+	})
+	mux.HandleFunc("GET /api/v1/deployments/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"message":"Application not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"count": 1,
+			"deployments": []map[string]any{{
+				"deployment_uuid": existingUUID,
+				"status":          "queued",
+			}},
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.PathValue("uuid")
+		if uuid != existingUUID {
+			http.Error(w, `{"message":"Deployment not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"deployment_uuid": uuid,
+			"status":          "queued",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", existingUUID),
+				),
+			},
+		},
+	})
+}
+
+func TestDeploymentResource_TransientGetAdoptsQueued(t *testing.T) {
+	t.Parallel()
+	appUUID := "cccc0011-0011-4000-8000-000000000011"
+	phantomUUID := "phantom-never-persisted-0002-4000-8000-0002"
+	existingUUID := "existing-queued-0003-4000-8000-000000000003"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, r *http.Request) {
+		if !requireDeployQueryUUID(w, r, appUUID) {
+			return
+		}
+		writeDeployQueued(w, appUUID, phantomUUID)
+	})
+	mux.HandleFunc("GET /api/v1/deployments/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"message":"Application not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"count": 1,
+			"deployments": []map[string]any{{
+				"deployment_uuid": existingUUID,
+				"status":          "queued",
+			}},
+		})
+	})
+	mux.HandleFunc("GET /api/v1/deployments/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.PathValue("uuid")
+		if uuid == phantomUUID {
+			http.Error(w, `{"message":"temporary failure"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		if uuid != existingUUID {
+			http.Error(w, `{"message":"Deployment not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"deployment_uuid": uuid,
+			"status":          "queued",
+		})
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_deployment" "test" {
+  application_uuid = %q
+}
+`, srv.URL, appUUID),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_deployment.test", "uuid", existingUUID),
+				),
+			},
+		},
+	})
 }
 
 func TestDeploymentResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/v1/applications/{uuid}/restart", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /api/v1/deploy", func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, `{"message":"validation failed"}`, http.StatusUnprocessableEntity)
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))

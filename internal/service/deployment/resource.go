@@ -58,7 +58,10 @@ func (r *deploymentResource) Metadata(_ context.Context, req resource.MetadataRe
 
 func (r *deploymentResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Triggers a deployment for a Coolify application. Changing the triggers map forces a new deployment.",
+		MarkdownDescription: "Triggers a Coolify application deployment (`POST /api/v1/deploy?uuid=`). " +
+			"Use this to bring up a newly created application in the same apply as the application resource. " +
+			"If Coolify already queued a deploy (`instant_deploy = true`), this resource adopts that deployment UUID instead of failing. " +
+			"Changing the triggers map forces a new deployment.",
 		Attributes: map[string]schema.Attribute{
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
 			"application_uuid": schema.StringAttribute{
@@ -120,22 +123,28 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 	defer cancel()
 
 	appUUID := plan.ApplicationUUID.ValueString()
-	result, err := r.client.RestartApplication(ctx, appUUID)
+	result, err := r.client.DeployApplication(ctx, appUUID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error triggering deployment", fmt.Sprintf("Could not restart application %s: %s", appUUID, err))
+		resp.Diagnostics.AddError("Error triggering deployment", fmt.Sprintf("Could not deploy application %s: %s", appUUID, err))
 		return
 	}
 
-	if result.DeploymentUUID == "" {
+	depUUID, err := resolveDeploymentUUID(ctx, r.client, appUUID, result.DeploymentUUID)
+	if err != nil {
+		resp.Diagnostics.AddError("Error resolving deployment UUID",
+			fmt.Sprintf("Application %s: %s", appUUID, err))
+		return
+	}
+	if depUUID == "" {
 		resp.Diagnostics.AddError("Deployment triggered but no UUID returned",
-			fmt.Sprintf("Application %s restart was accepted but the API did not return a deployment UUID. Check the Coolify UI for the deployment status.", appUUID))
+			fmt.Sprintf("Application %s deploy was accepted but Coolify did not return a deployment UUID and no queued or recent deployment was found. Check the Coolify UI for the deployment status.", appUUID))
 		return
 	}
 
-	plan.UUID = types.StringValue(result.DeploymentUUID)
+	plan.UUID = types.StringValue(depUUID)
 
 	// Read back the deployment status.
-	dep, err := r.client.GetDeployment(ctx, result.DeploymentUUID)
+	dep, err := r.client.GetDeployment(ctx, depUUID)
 	if err != nil {
 		resp.Diagnostics.AddWarning("Could not read deployment status", fmt.Sprintf("Deployment was triggered but status could not be read: %s. Defaulting to 'queued'.", err))
 		plan.Status = types.StringValue("queued")
@@ -148,11 +157,35 @@ func (r *deploymentResource) Create(ctx context.Context, req resource.CreateRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_deployment", "uuid": result.DeploymentUUID})
+	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_deployment", "uuid": depUUID})
 
 	if plan.WaitForCompletion.ValueBool() {
-		r.pollDeployment(ctx, result.DeploymentUUID, &plan, resp)
+		r.pollDeployment(ctx, depUUID, &plan, resp)
 	}
+}
+
+// resolveDeploymentUUID prefers the UUID from POST /deploy when GET
+// confirms it exists. Coolify skip can return a never-persisted id; on
+// GET 404 or any other GET failure, adopt a queued/in-progress (or
+// newest) app deployment when the list has one. Keep the POST UUID only
+// when the list is empty or the list call fails.
+func resolveDeploymentUUID(ctx context.Context, c *client.Client, appUUID, fromAPI string) (string, error) {
+	if fromAPI != "" {
+		if _, err := c.GetDeployment(ctx, fromAPI); err == nil {
+			return fromAPI, nil
+		}
+	}
+	latest, err := c.LatestApplicationDeploymentUUID(ctx, appUUID)
+	if err != nil {
+		if fromAPI != "" {
+			return fromAPI, nil
+		}
+		return "", err
+	}
+	if latest != "" {
+		return latest, nil
+	}
+	return fromAPI, nil
 }
 
 func (r *deploymentResource) pollDeployment(ctx context.Context, uuid string, plan *deploymentResourceModel, resp *resource.CreateResponse) {

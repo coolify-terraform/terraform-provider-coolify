@@ -4700,6 +4700,158 @@ func TestClient_CancelDeployment(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestClient_ListApplicationDeployments_WrappedObject(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/deployments/applications/app-wrap-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"count": 2,
+			"deployments": []Deployment{
+				{UUID: "dep-wrap-1", Status: "finished"},
+				{UUID: "dep-wrap-2", Status: "in_progress"},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	deps, err := c.ListApplicationDeployments(context.Background(), "app-wrap-1")
+	require.NoError(t, err)
+	require.Len(t, deps, 2)
+	assert.Equal(t, "dep-wrap-1", deps[0].UUID)
+	assert.Equal(t, "finished", deps[0].Status)
+	assert.Equal(t, "dep-wrap-2", deps[1].UUID)
+	assert.Equal(t, "in_progress", deps[1].Status)
+}
+
+func TestClient_DeployApplication(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/deploy", r.URL.Path)
+		assert.Equal(t, "app-deploy-1", r.URL.Query().Get("uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"deployments": []map[string]string{{
+				"message":         "Application nginx deployment queued.",
+				"resource_uuid":   "app-deploy-1",
+				"deployment_uuid": "dep-from-deploy",
+			}},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.DeployApplication(context.Background(), "app-deploy-1")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, "dep-from-deploy", got.DeploymentUUID)
+	assert.Equal(t, "Application nginx deployment queued.", got.Message)
+}
+
+func TestClient_DeployApplication_SkipOmitsUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/deploy", r.URL.Path)
+		assert.Equal(t, "app-skip-1", r.URL.Query().Get("uuid"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"deployments": []map[string]string{{
+				"message":       "Deployment already queued for this commit.",
+				"resource_uuid": "app-skip-1",
+			}},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.DeployApplication(context.Background(), "app-skip-1")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Empty(t, got.DeploymentUUID)
+	assert.Equal(t, "Deployment already queued for this commit.", got.Message)
+}
+
+func TestClient_LatestApplicationDeploymentUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/deployments/applications/app-latest-1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"count": 2,
+			"deployments": []Deployment{
+				{UUID: "dep-finished", Status: "finished"},
+				{UUID: "dep-queued", Status: "queued"},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.LatestApplicationDeploymentUUID(context.Background(), "app-latest-1")
+	require.NoError(t, err)
+	assert.Equal(t, "dep-queued", got)
+}
+
+func TestPickDeploymentUUID(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		deps []Deployment
+		want string
+	}{
+		{name: "empty", want: ""},
+		{
+			name: "prefer queued over earlier finished",
+			deps: []Deployment{
+				{UUID: "fin", Status: "finished"},
+				{UUID: "q", Status: "queued"},
+			},
+			want: "q",
+		},
+		{
+			name: "prefer in_progress over finished",
+			deps: []Deployment{
+				{UUID: "fin", Status: "finished"},
+				{UUID: "ip", Status: "in_progress"},
+			},
+			want: "ip",
+		},
+		{
+			name: "status is case insensitive",
+			deps: []Deployment{{UUID: "q", Status: "QUEUED"}},
+			want: "q",
+		},
+		{
+			name: "fallback to first non-empty uuid",
+			deps: []Deployment{
+				{UUID: "", Status: "finished"},
+				{UUID: "first", Status: "finished"},
+				{UUID: "second", Status: "finished"},
+			},
+			want: "first",
+		},
+		{
+			name: "skip in-flight without uuid",
+			deps: []Deployment{
+				{UUID: "", Status: "queued"},
+				{UUID: "fin", Status: "finished"},
+			},
+			want: "fin",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, pickDeploymentUUID(tt.deps))
+		})
+	}
+}
+
 func TestClient_Deploy(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
