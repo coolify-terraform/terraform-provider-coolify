@@ -25,7 +25,7 @@ func TestAccDockerImageApplicationResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: testAccDockerImageAppConfig(name, serverUUID, ""),
+				Config: testAccDockerImageAppConfig(name, serverUUID, "nginx:alpine", ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_application_docker_image.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "name", name),
@@ -35,14 +35,15 @@ func TestAccDockerImageApplicationResource_CRUD(t *testing.T) {
 			},
 			// Idempotency check
 			{
-				Config:             testAccDockerImageAppConfig(name, serverUUID, ""),
+				Config:             testAccDockerImageAppConfig(name, serverUUID, "nginx:alpine", ""),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 2: Update description
+			// Step 2: Update docker_image (create accepts image:tag; PATCH name is name-only)
 			{
-				Config: testAccDockerImageAppConfig(name, serverUUID, `description = "Updated via acc test"`),
+				Config: testAccDockerImageAppConfig(name, serverUUID, "nginx:1.27-alpine", `description = "Updated via acc test"`),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "nginx:1.27-alpine"),
 					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "description", "Updated via acc test"),
 				),
 			},
@@ -65,7 +66,7 @@ func TestAccDockerImageApplicationResource_CRUD(t *testing.T) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-func testAccDockerImageAppConfig(name, serverUUID, extra string) string {
+func testAccDockerImageAppConfig(name, serverUUID, image, extra string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {
   name = %[1]q
@@ -75,11 +76,11 @@ resource "coolify_application_docker_image" "test" {
   project_uuid  = coolify_project.test.uuid
   server_uuid   = %[2]q
   name          = %[1]q
-  docker_image  = "nginx:alpine"
+  docker_image  = %[3]q
   ports_exposes = "80"
-  %[3]s
+  %[4]s
 }
-`, name, serverUUID, extra)
+`, name, serverUUID, image, extra)
 }
 
 // TestAccDockerImageApplicationResource_NoPublicDomain creates an internal app

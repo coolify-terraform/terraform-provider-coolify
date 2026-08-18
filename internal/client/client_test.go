@@ -1394,6 +1394,26 @@ func TestClient_RestartApplication(t *testing.T) {
 	assert.Equal(t, "Restarting", resp.Message)
 }
 
+func TestClient_RestartApplication_SkipOmitsUUID(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-restart-skip/restart", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Deployment already queued for this commit.",
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	resp, err := c.RestartApplication(context.Background(), "app-restart-skip")
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Empty(t, resp.DeploymentUUID)
+	assert.Equal(t, "Deployment already queued for this commit.", resp.Message)
+}
+
 func TestClient_GetApplication(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

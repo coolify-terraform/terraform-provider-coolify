@@ -182,13 +182,18 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 	input := buildUpdateInput(planFields, stateFields)
 	if changed := flex.StringIfChanged(plan.DockerImage, state.DockerImage); changed != nil {
 		name, tag := splitDockerImage(plan.DockerImage.ValueString())
-		// Coolify PATCH is partial. Create/deploy default a missing tag
-		// to latest; omitting the tag field would keep the previous tag.
-		if tag == "" {
-			tag = "latest"
-		}
 		input.DockerRegistryImageName = &name
-		input.DockerRegistryImageTag = &tag
+		// Optional docker_registry_image_tag: leave buildUpdateInput alone
+		// (changed value already set, unchanged stays nil so PATCH keeps it).
+		explicitTag := !plan.DockerRegistryImageTag.IsNull() &&
+			!plan.DockerRegistryImageTag.IsUnknown() &&
+			plan.DockerRegistryImageTag.ValueString() != ""
+		if !explicitTag && input.DockerRegistryImageTag == nil {
+			if tag == "" {
+				tag = "latest"
+			}
+			input.DockerRegistryImageTag = &tag
+		}
 	}
 
 	dockerImageChanged := plan.DockerImage.ValueString() != state.DockerImage.ValueString()
@@ -218,11 +223,22 @@ func (m *dockerImageApplicationResourceModel) common() commonAppFields {
 	return m.applicationCommonModel.common()
 }
 
+// dockerImageNameHasEmbeddedTag reports whether s looks like image:tag
+// rather than registry:port/name. Coolify update validation
+// (dockerImageNameRules / DOCKER_IMAGE_NAME_PATTERN) rejects a tag in
+// docker_registry_image_name. Create still accepts image:tag via
+// DockerImageFormat.
+func dockerImageNameHasEmbeddedTag(s string) bool {
+	i := strings.LastIndex(s, ":")
+	return i >= 0 && !strings.Contains(s[i+1:], "/")
+}
+
 // splitDockerImage splits "repo/image:tag" into name and tag. Coolify stores
 // the tag in a separate docker_registry_image_tag field and rejects a tag
 // embedded in docker_registry_image_name when updating an application.
 func splitDockerImage(image string) (string, string) {
-	if i := strings.LastIndex(image, ":"); i >= 0 && !strings.Contains(image[i+1:], "/") {
+	if dockerImageNameHasEmbeddedTag(image) {
+		i := strings.LastIndex(image, ":")
 		return image[:i], image[i+1:]
 	}
 	return image, ""

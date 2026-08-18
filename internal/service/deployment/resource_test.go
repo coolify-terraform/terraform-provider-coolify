@@ -43,6 +43,19 @@ func writeDeployQueued(w http.ResponseWriter, appUUID, deploymentUUID string) {
 	})
 }
 
+// writeDeploySkipped returns Coolify's skip body: HTTP 200 with no
+// deployment_uuid. queue_application_deployment returns skipped when the
+// same commit is already queued or in_progress.
+func writeDeploySkipped(w http.ResponseWriter, appUUID string) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"deployments": []map[string]string{{
+			"message":       "Deployment already queued for this commit.",
+			"resource_uuid": appUUID,
+		}},
+	})
+}
+
 func TestDeploymentResource_Create(t *testing.T) {
 	t.Parallel()
 	deploymentUUID := "aaaa0001-0001-4000-8000-000000000001"
@@ -796,13 +809,7 @@ func TestDeploymentResource_EmptyUUID(t *testing.T) {
 		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
-			"deployments": []map[string]string{{
-				"message":       "Deployment already queued for this commit.",
-				"resource_uuid": appUUID,
-			}},
-		})
+		writeDeploySkipped(w, appUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != appUUID {
@@ -923,13 +930,7 @@ func TestDeploymentResource_AdoptsQueuedDeploy(t *testing.T) {
 		if !requireDeployQueryUUID(w, r, appUUID) {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
-			"deployments": []map[string]string{{
-				"message":       "Deployment already queued for this commit.",
-				"resource_uuid": appUUID,
-			}},
-		})
+		writeDeploySkipped(w, appUUID)
 	})
 	mux.HandleFunc("GET /api/v1/deployments/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != appUUID {
