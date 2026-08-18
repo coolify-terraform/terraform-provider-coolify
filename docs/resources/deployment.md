@@ -3,18 +3,21 @@
 page_title: "coolify_deployment Resource - coolify"
 subcategory: ""
 description: |-
-  Triggers a deployment for a Coolify application. Changing the triggers map forces a new deployment.
+  Triggers a Coolify application deployment (POST /api/v1/deploy?uuid=). Use this to bring up a newly created application in the same apply as the application resource. If Coolify already queued a deploy (instant_deploy = true), this resource adopts that deployment UUID instead of failing. Changing the triggers map forces a new deployment.
 ---
 
 # coolify_deployment (Resource)
 
-Triggers a deployment for a Coolify application. Changing the triggers map forces a new deployment.
+Triggers a Coolify application deployment (`POST /api/v1/deploy?uuid=`). Use this to bring up a newly created application in the same apply as the application resource. If Coolify already queued a deploy (`instant_deploy = true`), this resource adopts that deployment UUID instead of failing. Changing the triggers map forces a new deployment.
 
 ## Example Usage
 
 ```terraform
 resource "coolify_deployment" "web" {
   application_uuid = coolify_application.web.uuid
+
+  # Safe on first apply when the application sets instant_deploy = true;
+  # a deploy already queued for the same commit is adopted.
 
   triggers = {
     deploy_version = "v1.2.3"
