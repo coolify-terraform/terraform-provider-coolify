@@ -182,10 +182,13 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 	input := buildUpdateInput(planFields, stateFields)
 	if changed := flex.StringIfChanged(plan.DockerImage, state.DockerImage); changed != nil {
 		name, tag := splitDockerImage(plan.DockerImage.ValueString())
-		input.DockerRegistryImageName = &name
-		if tag != "" {
-			input.DockerRegistryImageTag = &tag
+		// Coolify PATCH is partial. Create/deploy default a missing tag
+		// to latest; omitting the tag field would keep the previous tag.
+		if tag == "" {
+			tag = "latest"
 		}
+		input.DockerRegistryImageName = &name
+		input.DockerRegistryImageTag = &tag
 	}
 
 	dockerImageChanged := plan.DockerImage.ValueString() != state.DockerImage.ValueString()
