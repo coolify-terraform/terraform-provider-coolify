@@ -201,11 +201,12 @@ func TestDockerImageApplicationResource_Update(t *testing.T) {
 			currentApp.DockerRegistryImageName = name
 		}
 		tag, ok := requestBody["docker_registry_image_tag"].(string)
-		if !ok {
+		switch {
+		case !ok:
 			t.Errorf("PATCH missing docker_registry_image_tag")
-		} else if tag != wantTag {
+		case tag != wantTag:
 			t.Errorf("PATCH docker_registry_image_tag = %q, want %q", tag, wantTag)
-		} else {
+		default:
 			currentApp.DockerRegistryImageTag = tag
 		}
 		w.Header().Set("Content-Type", "application/json")
