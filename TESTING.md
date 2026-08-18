@@ -468,10 +468,14 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 ### Primary-field update coverage
 
 When Coolify uses different validators on create vs update, a description-only
-Update step will not catch a 422 on the primary field. `coolify_application_docker_image`
-is the known split (`DockerImageFormat` on create vs `dockerImageNameRules()` on
-PATCH). `TestAccDockerImageApplicationResource_CRUD` must change `docker_image`
-on update (#786).
+Update step will not catch a 422 on the primary field.
+
+Known splits:
+
+| Resource | Create vs update | Acc coverage |
+|----------|------------------|--------------|
+| `coolify_application_docker_image` | `DockerImageFormat` on create vs `dockerImageNameRules()` on PATCH | `TestAccDockerImageApplicationResource_CRUD` must change `docker_image` (#786) |
+| All 8 `coolify_database_*` | Create POST accepts `limits_*`. Post-create PATCH sends remaining allow-list fields only. Coolify PATCH `$allowedFields` rejects `is_log_drain_enabled`, `is_include_timestamps`, `enable_ssl`, and other UI-only keys. | `TestAccPostgresqlDatabaseResource_CRUD` must set and update `limits_memory` (#789). Shared mock PATCH must 422 extra keys. |
 
 Description-only Update steps that remain (no known create/update validator
 split on the primary field):
@@ -482,12 +486,13 @@ split on the primary field):
 | `TestAccPrivateGitApplicationResource_CRUD` | `description` |
 | `TestAccGitHubAppApplicationResource_CRUD` | `description` |
 | `TestAccDockerfileApplicationResource_CRUD` | `description` |
-| `TestAccDatabase*Resource_CRUD` (8 types) | `description` |
+| `TestAccDatabase*Resource_CRUD` except postgresql | `description` (postgresql updates `limits_memory`; sibling engines share `SetUpdateExtended`) |
 | `TestAccProjectResource_basic` | `description` |
 | `TestAccEnvironmentResource_CRUD` | `description` |
 
 Do not treat those as sufficient coverage if a new create/update validator
-split is found. Add a primary-field Update step instead.
+split is found. Add a primary-field Update step instead. Mocks must reject
+keys the real Coolify controller would 422.
 
 ### Testing strategies for edge cases
 

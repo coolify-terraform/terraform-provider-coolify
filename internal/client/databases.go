@@ -91,6 +91,14 @@ type CreateDatabaseBaseInput struct {
 	IsPublic        *bool  `json:"is_public,omitempty"`
 	PublicPort      *int64 `json:"public_port,omitempty"`
 	InstantDeploy   *bool  `json:"instant_deploy,omitempty"`
+	// Limits are accepted on create POST for every supported Coolify version.
+	LimitsMemory            string `json:"limits_memory,omitempty"`
+	LimitsMemorySwap        string `json:"limits_memory_swap,omitempty"`
+	LimitsMemorySwappiness  *int64 `json:"limits_memory_swappiness,omitempty"`
+	LimitsMemoryReservation string `json:"limits_memory_reservation,omitempty"`
+	LimitsCPUs              string `json:"limits_cpus,omitempty"`
+	LimitsCPUSet            string `json:"limits_cpuset,omitempty"`
+	LimitsCPUShares         *int64 `json:"limits_cpu_shares,omitempty"`
 }
 
 type CreatePostgresqlInput struct {
@@ -244,7 +252,38 @@ func (c *Client) CreateDatabase(ctx context.Context, dbType string, input any) (
 	}
 	return &d, nil
 }
+
+// DatabaseUpdateDisallowedJSONKeys are on standalone models (Livewire/UI)
+// but are not in DatabasesController create or update $allowedFields.
+// Sending any of them 422s with "This field is not allowed."
+var DatabaseUpdateDisallowedJSONKeys = []string{
+	"is_log_drain_enabled",
+	"is_include_timestamps",
+	"enable_ssl",
+	"ssl_mode",
+	"ports_mappings",
+	"custom_docker_run_options",
+	"init_scripts",
+	"clickhouse_db",
+}
+
+// SanitizeDatabaseUpdate clears fields Coolify PATCH/create reject.
+func SanitizeDatabaseUpdate(input *UpdateDatabaseInput) {
+	if input == nil {
+		return
+	}
+	input.IsLogDrainEnabled = nil
+	input.IsIncludeTimestamps = nil
+	input.EnableSSL = nil
+	input.SSLMode = nil
+	input.PortsMappings = nil
+	input.CustomDockerRunOptions = nil
+	input.InitScripts = nil
+	input.ClickhouseDB = nil
+}
+
 func (c *Client) UpdateDatabase(ctx context.Context, uuid string, input UpdateDatabaseInput) (*Database, error) {
+	SanitizeDatabaseUpdate(&input)
 	var d Database
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s", url.PathEscape(uuid)), input, &d); err != nil {
 		return nil, fmt.Errorf("updating database %s: %w", uuid, err)

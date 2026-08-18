@@ -108,7 +108,10 @@ func (r *mysqlDatabaseResource) Create(ctx context.Context, req resource.CreateR
 		dbcommon.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.MysqlConf, plan.MysqlConf)
 		if _, err := r.client.UpdateDatabase(ctx, created.UUID, update); err != nil {
-			resp.Diagnostics.AddError("Error setting MySQL database extended fields", fmt.Sprintf("MySQL database %s: %s", created.UUID, err))
+			dbcommon.RecoverCreateAfterExtendedError(ctx, r.client, created.UUID, "MySQL database", err, resp, func(db *client.Database) {
+				flattenDatabase(db, &plan)
+				resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+			})
 			return
 		}
 	}

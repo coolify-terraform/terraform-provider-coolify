@@ -21,6 +21,53 @@ type MockState struct {
 	Image       string
 	ExtraFields map[string]interface{}
 	Deleted     bool
+	LastCreate  map[string]interface{}
+	LastPatch   map[string]interface{}
+}
+
+// databaseUpdateAllowed is Coolify DatabasesController::update_by_uuid
+// $allowedFields plus health_check_* (merged on Coolify >= v4.1.2).
+var databaseUpdateAllowed = map[string]struct{}{
+	"name": {}, "description": {}, "image": {},
+	"public_port": {}, "public_port_timeout": {}, "is_public": {},
+	"instant_deploy": {},
+	"limits_memory":  {}, "limits_memory_swap": {}, "limits_memory_swappiness": {},
+	"limits_memory_reservation": {}, "limits_cpus": {}, "limits_cpuset": {},
+	"limits_cpu_shares": {},
+	"postgres_user":     {}, "postgres_password": {}, "postgres_db": {},
+	"postgres_initdb_args": {}, "postgres_host_auth_method": {}, "postgres_conf": {},
+	"clickhouse_admin_user": {}, "clickhouse_admin_password": {},
+	"dragonfly_password": {},
+	"redis_password":     {}, "redis_conf": {},
+	"keydb_password": {}, "keydb_conf": {},
+	"mariadb_conf": {}, "mariadb_root_password": {}, "mariadb_user": {},
+	"mariadb_password": {}, "mariadb_database": {},
+	"mongo_conf": {}, "mongo_initdb_root_username": {}, "mongo_initdb_root_password": {},
+	"mongo_initdb_database": {},
+	"mysql_root_password":   {}, "mysql_password": {}, "mysql_user": {},
+	"mysql_database": {}, "mysql_conf": {},
+	"health_check_enabled": {}, "health_check_interval": {},
+	"health_check_timeout": {}, "health_check_retries": {},
+	"health_check_start_period": {},
+}
+
+func rejectUnallowedUpdate(w http.ResponseWriter, body map[string]interface{}) bool {
+	errors := map[string]string{}
+	for k := range body {
+		if _, ok := databaseUpdateAllowed[k]; !ok {
+			errors[k] = "This field is not allowed."
+		}
+	}
+	if len(errors) == 0 {
+		return false
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Validation failed.",
+		"errors":  errors,
+	})
+	return true
 }
 
 // buildResponse returns the JSON-serializable map for a GET response.
@@ -62,8 +109,11 @@ func (s *MockState) applyPatch(body map[string]interface{}) {
 	if v, ok := body["image"].(string); ok {
 		s.Image = v
 	}
-	for k := range s.ExtraFields {
-		if v, ok := body[k]; ok {
+	for k, v := range body {
+		switch k {
+		case "name", "description", "image", "project_uuid", "server_uuid", "environment_name", "destination_uuid", "instant_deploy":
+			continue
+		default:
 			s.ExtraFields[k] = v
 		}
 	}
@@ -72,6 +122,20 @@ func (s *MockState) applyPatch(body map[string]interface{}) {
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+func (s *MockState) handlePatch(w http.ResponseWriter, r *http.Request) {
+	var body map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	s.LastPatch = body
+	if rejectUnallowedUpdate(w, body) {
+		return
+	}
+	s.applyPatch(body)
+	writeJSON(w, http.StatusOK, map[string]string{"message": "updated"})
 }
 
 // validateCreateBody decodes the POST body and checks that all required fields
@@ -132,6 +196,7 @@ func NewMockServer(dbType, name, image string, extraFields map[string]interface{
 			if !ok {
 				return
 			}
+			state.LastCreate = body
 			state.applyPatch(body)
 			writeJSON(w, http.StatusCreated, map[string]string{"uuid": state.UUID})
 
@@ -143,13 +208,7 @@ func NewMockServer(dbType, name, image string, extraFields map[string]interface{
 			writeJSON(w, http.StatusOK, state.buildResponse())
 
 		case r.Method == http.MethodPatch && r.URL.Path == dbPath:
-			var body map[string]interface{}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
-				return
-			}
-			state.applyPatch(body)
-			writeJSON(w, http.StatusOK, map[string]string{"message": "updated"})
+			state.handlePatch(w, r)
 
 		case r.Method == http.MethodDelete && r.URL.Path == dbPath:
 			state.Deleted = true

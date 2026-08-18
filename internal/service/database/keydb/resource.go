@@ -86,7 +86,10 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		flex.SetStrPtr(&update.KeydbPassword, p.KeydbPassword)
 		flex.SetStrPtr(&update.KeydbConf, p.KeydbConf)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
-			resp.Diagnostics.AddError("Error setting KeyDB database extended fields", fmt.Sprintf("KeyDB database %s: %s", c.UUID, err))
+			dbcommon.RecoverCreateAfterExtendedError(ctx, r.client, c.UUID, "KeyDB database", err, resp, func(db *client.Database) {
+				flattenDatabase(db, &p)
+				resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
+			})
 			return
 		}
 	}

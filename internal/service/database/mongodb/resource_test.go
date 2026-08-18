@@ -14,6 +14,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/dbtest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestMongodbDatabaseResource_CreateUpdateImport(t *testing.T) {
@@ -43,9 +44,6 @@ resource "coolify_database_mongodb" "test" {
 					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "mongo_initdb_root_username", "root"),
 					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "mongo_initdb_database", "admin"),
 					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "image", "mongo:7"),
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "enable_ssl", "false"),
 					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "status", "running"),
 				),
 			},
@@ -75,7 +73,7 @@ resource "coolify_database_mongodb" "test" {
 					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "description", "Updated MongoDB"),
 				),
 			},
-			// Update SSL and log drain fields
+			// Update limits (Coolify PATCH allow-list field)
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_database_mongodb" "test" {
@@ -83,17 +81,11 @@ resource "coolify_database_mongodb" "test" {
   server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
   name                  = "updated-mongo"
   description           = "Updated MongoDB"
-  enable_ssl            = true
-  ssl_mode              = "require"
-  is_log_drain_enabled  = true
-  is_include_timestamps = true
+  limits_memory         = "512M"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "ssl_mode", "require"),
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "limits_memory", "512M"),
 				),
 			},
 			// Update health check fields to non-default values
@@ -104,10 +96,6 @@ resource "coolify_database_mongodb" "test" {
   server_uuid             = "bbbb0001-0001-4000-8000-000000000001"
   name                    = "updated-mongo"
   description             = "Updated MongoDB"
-  enable_ssl              = true
-  ssl_mode                = "require"
-  is_log_drain_enabled    = true
-  is_include_timestamps   = true
   health_check_enabled    = false
   health_check_interval   = 30
   health_check_timeout    = 10
@@ -135,9 +123,9 @@ resource "coolify_database_mongodb" "test" {
 	})
 }
 
-func TestMongodbDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
+func TestMongodbDatabaseResource_CreateWithLimitsMemory(t *testing.T) {
 	t.Parallel()
-	srv, _ := dbtest.NewMockServer("mongodb", "mongo-ssl-db", "mongo:7", map[string]interface{}{
+	srv, state := dbtest.NewMockServer("mongodb", "mongo-ssl-db", "mongo:7", map[string]interface{}{
 		"mongo_initdb_root_username": "admin",
 		"mongo_initdb_root_password": "secret",
 		"mongo_initdb_database":      "mydb",
@@ -150,17 +138,27 @@ func TestMongodbDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_database_mongodb" "test" {
-  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
-  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
-  enable_ssl            = true
-  ssl_mode              = "require"
-  is_include_timestamps = true
+  project_uuid  = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid   = "bbbb0001-0001-4000-8000-000000000001"
+  limits_memory = "512M"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "ssl_mode", "require"),
-					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "limits_memory", "512M"),
+					func(_ *terraform.State) error {
+						if v, ok := state.LastCreate["limits_memory"]; !ok || v != "512M" {
+							return fmt.Errorf("create POST limits_memory = %v, want 512M", state.LastCreate["limits_memory"])
+						}
+						for _, k := range []string{"is_log_drain_enabled", "is_include_timestamps", "enable_ssl", "ssl_mode"} {
+							if _, ok := state.LastCreate[k]; ok {
+								return fmt.Errorf("create POST sent unallowed key %s", k)
+							}
+							if _, ok := state.LastPatch[k]; ok {
+								return fmt.Errorf("create PATCH sent unallowed key %s", k)
+							}
+						}
+						return nil
+					},
 				),
 			},
 		},
@@ -362,7 +360,7 @@ func TestMongodbDatabaseResource_InvalidSSLMode(t *testing.T) {
 resource "coolify_database_mongodb" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
-  ssl_mode     = "bogus"
+  ssl_mode     = "not-a-mode"
 }
 `,
 				ExpectError: regexp.MustCompile(`value must be one of`),

@@ -85,7 +85,10 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		dbcommon.SetUpdateExtended(&update, ext)
 		flex.SetStrPtr(&update.RedisConf, p.RedisConf)
 		if _, err := r.client.UpdateDatabase(ctx, c.UUID, update); err != nil {
-			resp.Diagnostics.AddError("Error setting Redis database extended fields", fmt.Sprintf("Redis database %s: %s", c.UUID, err))
+			dbcommon.RecoverCreateAfterExtendedError(ctx, r.client, c.UUID, "Redis database", err, resp, func(db *client.Database) {
+				flattenDatabase(db, &p)
+				resp.Diagnostics.Append(resp.State.Set(ctx, &p)...)
+			})
 			return
 		}
 	}

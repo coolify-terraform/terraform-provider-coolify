@@ -923,6 +923,35 @@ func TestClient_UpdateDatabase(t *testing.T) {
 	assert.Equal(t, "renamed-db", db.Name)
 }
 
+func TestClient_UpdateDatabase_StripsDisallowedKeys(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var raw map[string]interface{}
+		require.NoError(t, json.Unmarshal(body, &raw))
+		for _, k := range DatabaseUpdateDisallowedJSONKeys {
+			_, ok := raw[k]
+			assert.False(t, ok, "PATCH body must not contain %s", k)
+		}
+		require.Contains(t, raw, "limits_memory")
+		assert.Equal(t, "512M", raw["limits_memory"])
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Database{UUID: "db-san", Name: "sanitized"})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	mem := "512M"
+	en := true
+	_, err := c.UpdateDatabase(context.Background(), "db-san", UpdateDatabaseInput{
+		LimitsMemory:      &mem,
+		IsLogDrainEnabled: &en,
+		EnableSSL:         &en,
+	})
+	require.NoError(t, err)
+}
+
 func TestClient_DeleteDatabase(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

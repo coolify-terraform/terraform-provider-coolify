@@ -72,7 +72,7 @@ func (r *postgresqlDatabaseResource) Schema(ctx context.Context, _ resource.Sche
 				Optional:            true,
 			},
 			"init_scripts": schema.StringAttribute{
-				MarkdownDescription: "Initialization scripts as a JSON array.",
+				MarkdownDescription: "Initialization scripts as a JSON array. The Coolify public API does not accept this field on create or update.",
 				Optional:            true,
 			},
 			"enable_ssl": dbcommon.EnableSSLAttr(),
@@ -139,9 +139,11 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 		flex.SetStrPtr(&update.PostgresConf, plan.PostgresConf)
 		flex.SetStrPtr(&update.PostgresInitdbArgs, plan.PostgresInitdbArgs)
 		flex.SetStrPtr(&update.PostgresHostAuthMethod, plan.PostgresHostAuthMethod)
-		flex.SetStrPtr(&update.InitScripts, plan.InitScripts)
 		if _, err := r.client.UpdateDatabase(ctx, created.UUID, update); err != nil {
-			resp.Diagnostics.AddError("Error setting PostgreSQL database extended fields", fmt.Sprintf("PostgreSQL database %s: %s", created.UUID, err))
+			dbcommon.RecoverCreateAfterExtendedError(ctx, r.client, created.UUID, "PostgreSQL database", err, resp, func(db *client.Database) {
+				flattenDatabase(db, &plan)
+				resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+			})
 			return
 		}
 	}
@@ -195,7 +197,6 @@ func (r *postgresqlDatabaseResource) Update(ctx context.Context, req resource.Up
 		PostgresConf:           flex.StringIfChanged(plan.PostgresConf, state.PostgresConf),
 		PostgresInitdbArgs:     flex.StringIfChanged(plan.PostgresInitdbArgs, state.PostgresInitdbArgs),
 		PostgresHostAuthMethod: flex.StringIfChanged(plan.PostgresHostAuthMethod, state.PostgresHostAuthMethod),
-		InitScripts:            flex.StringIfChanged(plan.InitScripts, state.InitScripts),
 	}
 	dbcommon.SetUpdateExtendedDiff(&input, plan.ExtFields().WithSSL(&plan.EnableSSL, &plan.SSLMode), state.ExtFields().WithSSL(&state.EnableSSL, &state.SSLMode))
 	db, err := dbcommon.UpdateDatabase(ctx, r.client, uuid, input)

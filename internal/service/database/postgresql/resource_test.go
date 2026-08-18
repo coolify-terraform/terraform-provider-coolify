@@ -46,9 +46,6 @@ resource "coolify_database_postgresql" "test" {
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "image", "postgres:16"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "environment_name", "production"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_public", "false"),
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_log_drain_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_include_timestamps", "false"),
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "enable_ssl", "false"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "status", "running"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "limits_cpu_shares", "1024"),
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "instant_deploy", "false"),
@@ -86,25 +83,19 @@ resource "coolify_database_postgresql" "test" {
 					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "description", "Updated description"),
 				),
 			},
-			// Update SSL and log drain fields
+			// Update limits (Coolify PATCH allow-list field)
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_database_postgresql" "test" {
-  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
-  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
-  name                  = "updated-pg-db"
-  description           = "Updated description"
-  enable_ssl            = true
-  ssl_mode              = "require"
-  is_log_drain_enabled  = true
-  is_include_timestamps = true
+  project_uuid  = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid   = "bbbb0001-0001-4000-8000-000000000001"
+  name          = "updated-pg-db"
+  description   = "Updated description"
+  limits_memory = "512M"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "ssl_mode", "require"),
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_log_drain_enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "limits_memory", "512M"),
 				),
 			},
 			// Update health check fields to non-default values
@@ -115,10 +106,6 @@ resource "coolify_database_postgresql" "test" {
   server_uuid             = "bbbb0001-0001-4000-8000-000000000001"
   name                    = "updated-pg-db"
   description             = "Updated description"
-  enable_ssl              = true
-  ssl_mode                = "require"
-  is_log_drain_enabled    = true
-  is_include_timestamps   = true
   health_check_enabled    = false
   health_check_interval   = 30
   health_check_timeout    = 10
@@ -286,32 +273,43 @@ resource "coolify_database_postgresql" "test" {
 	})
 }
 
-func TestPostgresqlDatabaseResource_CreateWithSSLEnabled(t *testing.T) {
+func TestPostgresqlDatabaseResource_CreateWithLimitsMemory(t *testing.T) {
 	t.Parallel()
-	srv, _ := dbtest.NewMockServer("postgresql", "pg-ssl-db", "postgres:16", map[string]interface{}{
+	srv, state := dbtest.NewMockServer("postgresql", "pg-limits-db", "postgres:16", map[string]interface{}{
 		"postgres_user":     "postgres",
 		"postgres_password": "secret123",
-		"postgres_db":       "ssldb",
+		"postgres_db":       "limitsdb",
 	})
 	defer srv.Close()
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_database_postgresql", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_database_postgresql" "test" {
-  project_uuid          = "aaaa0001-0001-4000-8000-000000000001"
-  server_uuid           = "bbbb0001-0001-4000-8000-000000000001"
-  enable_ssl            = true
-  ssl_mode              = "require"
-  is_include_timestamps = true
+  project_uuid  = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid   = "bbbb0001-0001-4000-8000-000000000001"
+  limits_memory = "512M"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "enable_ssl", "true"),
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "ssl_mode", "require"),
-					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "is_include_timestamps", "true"),
+					resource.TestCheckResourceAttr("coolify_database_postgresql.test", "limits_memory", "512M"),
+					func(_ *terraform.State) error {
+						if v, ok := state.LastCreate["limits_memory"]; !ok || v != "512M" {
+							return fmt.Errorf("create POST limits_memory = %v, want 512M", state.LastCreate["limits_memory"])
+						}
+						for _, k := range []string{"is_log_drain_enabled", "is_include_timestamps", "enable_ssl", "ssl_mode"} {
+							if _, ok := state.LastCreate[k]; ok {
+								return fmt.Errorf("create POST sent unallowed key %s", k)
+							}
+							if _, ok := state.LastPatch[k]; ok {
+								return fmt.Errorf("create PATCH sent unallowed key %s", k)
+							}
+						}
+						return nil
+					},
 				),
 			},
 		},
@@ -727,7 +725,7 @@ func TestPostgresqlDatabaseResource_InvalidSSLMode(t *testing.T) {
 resource "coolify_database_postgresql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
-  ssl_mode     = "bogus"
+  ssl_mode     = "not-a-mode"
 }
 `,
 				ExpectError: regexp.MustCompile(`value must be one of`),

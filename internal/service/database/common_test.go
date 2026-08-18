@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +20,71 @@ func strPtr(v string) *types.String { s := types.StringValue(v); return &s }
 func int64Ptr(v int64) *types.Int64 { i := types.Int64Value(v); return &i }
 
 func boolPtr(v bool) *types.Bool { b := types.BoolValue(v); return &b }
+
+func TestSetUpdateExtended_OmitsDisallowedKeys(t *testing.T) {
+	t.Parallel()
+	input := client.UpdateDatabaseInput{}
+	f := DatabaseExtendedPtrs{
+		LimitsMemory:            strPtr("512M"),
+		LimitsMemorySwap:        strPtr("0"),
+		LimitsMemoryReservation: strPtr("0"),
+		LimitsCPUs:              strPtr("0"),
+		LimitsCPUSet:            strPtr(""),
+		LimitsMemorySwappiness:  int64Ptr(60),
+		LimitsCPUShares:         int64Ptr(1024),
+		PortsMappings:           strPtr("5432:5432"),
+		CustomDockerRunOptions:  strPtr("--shm-size=1g"),
+		PublicPortTimeout:       int64Ptr(30),
+		IsLogDrainEnabled:       boolPtr(false),
+		IsIncludeTimestamps:     boolPtr(false),
+		HealthCheckEnabled:      boolPtr(true),
+		HealthCheckInterval:     int64Ptr(15),
+		HealthCheckTimeout:      int64Ptr(5),
+		HealthCheckRetries:      int64Ptr(5),
+		HealthCheckStartPeriod:  int64Ptr(5),
+		EnableSSL:               boolPtr(false),
+		SSLMode:                 strPtr("require"),
+	}
+	SetUpdateExtended(&input, f)
+	raw, err := json.Marshal(input)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var body map[string]interface{}
+	if err := json.Unmarshal(raw, &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body["limits_memory"] != "512M" {
+		t.Fatalf("limits_memory = %v, want 512M", body["limits_memory"])
+	}
+	for _, k := range client.DatabaseUpdateDisallowedJSONKeys {
+		if _, ok := body[k]; ok {
+			t.Errorf("PATCH body contains disallowed key %s", k)
+		}
+	}
+}
+
+func TestPopulateBaseCreateInput_LimitsMemory(t *testing.T) {
+	t.Parallel()
+	m := CommonModel{
+		ServerUUID:      types.StringValue("bbbb0001-0001-4000-8000-000000000001"),
+		ProjectUUID:     types.StringValue("aaaa0001-0001-4000-8000-000000000001"),
+		EnvironmentName: types.StringValue("production"),
+		LimitsMemory:    types.StringValue("512M"),
+	}
+	var base client.CreateDatabaseBaseInput
+	PopulateBaseCreateInput(&base, &m)
+	if base.LimitsMemory != "512M" {
+		t.Fatalf("LimitsMemory = %q, want 512M", base.LimitsMemory)
+	}
+
+	m.LimitsMemory = types.StringValue("0")
+	base = client.CreateDatabaseBaseInput{}
+	PopulateBaseCreateInput(&base, &m)
+	if base.LimitsMemory != "" {
+		t.Fatalf("default LimitsMemory = %q, want empty", base.LimitsMemory)
+	}
+}
 
 func TestHasExtendedFields_AllDefaults(t *testing.T) {
 	t.Parallel()
@@ -69,13 +135,7 @@ func TestHasExtendedFields_EachField(t *testing.T) {
 		{"LimitsCPUSet", func(f *DatabaseExtendedPtrs) { f.LimitsCPUSet = strPtr("0-3") }},
 		{"LimitsMemorySwappiness", func(f *DatabaseExtendedPtrs) { f.LimitsMemorySwappiness = int64Ptr(10) }},
 		{"LimitsCPUShares", func(f *DatabaseExtendedPtrs) { f.LimitsCPUShares = int64Ptr(512) }},
-		{"PortsMappings", func(f *DatabaseExtendedPtrs) { f.PortsMappings = strPtr("5432:5432") }},
-		{"CustomDockerRunOptions", func(f *DatabaseExtendedPtrs) { f.CustomDockerRunOptions = strPtr("--shm-size=1g") }},
 		{"PublicPortTimeout", func(f *DatabaseExtendedPtrs) { f.PublicPortTimeout = int64Ptr(30) }},
-		{"IsLogDrainEnabled", func(f *DatabaseExtendedPtrs) { f.IsLogDrainEnabled = boolPtr(true) }},
-		{"IsIncludeTimestamps", func(f *DatabaseExtendedPtrs) { f.IsIncludeTimestamps = boolPtr(true) }},
-		{"EnableSSL", func(f *DatabaseExtendedPtrs) { f.EnableSSL = boolPtr(true) }},
-		{"SSLMode", func(f *DatabaseExtendedPtrs) { f.SSLMode = strPtr("require") }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
