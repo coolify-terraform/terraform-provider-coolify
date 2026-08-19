@@ -20,12 +20,13 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-ghapp-app")
 	privateKeyName := acctest.RandomWithPrefix("tf-acc-ghapp-app-key")
 	updatedDescription := "Updated github app application"
-	createConfig := testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName, fixture, "")
+	createConfig := testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName, fixture, "3000", "")
 	updatedConfig := testAccGitHubAppApplicationConfig(
 		name,
 		serverUUID,
 		privateKeyName,
 		fixture,
+		"8080",
 		fmt.Sprintf(`description = %q`, updatedDescription),
 	)
 
@@ -48,10 +49,13 @@ func TestAccGitHubAppApplicationResource_CRUD(t *testing.T) {
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 3: Update description
+			// Step 3: Update exposed ports (primary field) and description
 			{
 				Config: updatedConfig,
-				Check:  resource.TestCheckResourceAttr("coolify_application_github_app.test", "description", updatedDescription),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "description", updatedDescription),
+					resource.TestCheckResourceAttr("coolify_application_github_app.test", "ports_exposes", "8080"),
+				),
 			},
 			// Step 4: Idempotency check
 			{
@@ -146,7 +150,7 @@ func accTestGitHubAppApplicationFixture(t *testing.T) gitHubAppApplicationFixtur
 	}
 }
 
-func testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName string, fixture gitHubAppApplicationFixture, extra string) string {
+func testAccGitHubAppApplicationConfig(name, serverUUID, privateKeyName string, fixture gitHubAppApplicationFixture, ports, extra string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {
   name = %[1]q
@@ -174,8 +178,8 @@ resource "coolify_application_github_app" "test" {
   git_repository  = %[9]q
   git_branch      = %[10]q
   build_pack      = "nixpacks"
-  ports_exposes   = "3000"
+  ports_exposes   = %[12]q
   %[11]s
 }
-`, name, serverUUID, privateKeyName, fixture.PrivateKey, fixture.AppID, fixture.InstallationID, fixture.ClientID, fixture.ClientSecret, fixture.GitRepository, fixture.GitBranch, extra)
+`, name, serverUUID, privateKeyName, fixture.PrivateKey, fixture.AppID, fixture.InstallationID, fixture.ClientID, fixture.ClientSecret, fixture.GitRepository, fixture.GitBranch, extra, ports)
 }

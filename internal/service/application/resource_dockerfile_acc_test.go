@@ -24,24 +24,29 @@ func TestAccDockerfileApplicationResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, ""),
+				Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, `health_check_path = "/health"`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_application_dockerfile.test", "uuid"),
 					resource.TestCheckResourceAttrSet("coolify_application_dockerfile.test", "dockerfile_location"),
 					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "ports_exposes", "80"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "health_check_path", "/health"),
 				),
 			},
 			// Idempotency check
 			{
-				Config:             acctest.AccTestDockerfileAppConfig(name, serverUUID, ""),
+				Config:             acctest.AccTestDockerfileAppConfig(name, serverUUID, `health_check_path = "/health"`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 2: Update description
+			// Step 2: Update health check path (PATCH-allow-listed) and description
 			{
-				Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, `description = "Updated via acc test"`),
+				Config: acctest.AccTestDockerfileAppConfig(name, serverUUID, `
+  description       = "Updated via acc test"
+  health_check_path = "/ready"
+`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "description", "Updated via acc test"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "health_check_path", "/ready"),
 				),
 			},
 			// Step 3: Import

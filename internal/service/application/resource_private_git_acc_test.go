@@ -22,7 +22,7 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: testAccPrivateGitAppConfig(name, serverUUID, privKey, ""),
+				Config: testAccPrivateGitAppConfig(name, serverUUID, privKey, "3000", ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_application_private_git.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_application_private_git.test", "git_repository", "git@github.com:coollabsio/coolify-examples.git"),
@@ -32,14 +32,17 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 			},
 			// Idempotency check
 			{
-				Config:             testAccPrivateGitAppConfig(name, serverUUID, privKey, ""),
+				Config:             testAccPrivateGitAppConfig(name, serverUUID, privKey, "3000", ""),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 2: Update description
+			// Step 2: Update exposed ports (primary field) and description
 			{
-				Config: testAccPrivateGitAppConfig(name, serverUUID, privKey, `description = "Updated private git app"`),
-				Check:  resource.TestCheckResourceAttr("coolify_application_private_git.test", "description", "Updated private git app"),
+				Config: testAccPrivateGitAppConfig(name, serverUUID, privKey, "8080", `description = "Updated private git app"`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "description", "Updated private git app"),
+					resource.TestCheckResourceAttr("coolify_application_private_git.test", "ports_exposes", "8080"),
+				),
 			},
 			// Step 3: Import by UUID
 			{
@@ -54,7 +57,7 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 	})
 }
 
-func testAccPrivateGitAppConfig(name, serverUUID, privKey, extra string) string {
+func testAccPrivateGitAppConfig(name, serverUUID, privKey, ports, extra string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {
   name = %[1]q
@@ -71,8 +74,8 @@ resource "coolify_application_private_git" "test" {
   private_key_uuid = coolify_private_key.test.uuid
   git_repository   = "git@github.com:coollabsio/coolify-examples.git"
   build_pack       = "nixpacks"
-  ports_exposes    = "3000"
+  ports_exposes    = %[5]q
   %[4]s
 }
-`, name, serverUUID, privKey, extra)
+`, name, serverUUID, privKey, extra, ports)
 }

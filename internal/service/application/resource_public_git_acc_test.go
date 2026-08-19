@@ -20,7 +20,7 @@ func TestAccApplicationResource_CRUD(t *testing.T) {
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_application", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublicGitAppConfig(name, serverUUID, ""),
+				Config: testAccPublicGitAppConfig(name, serverUUID, "3000", ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_application.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_application.test", "build_pack", "nixpacks"),
@@ -29,13 +29,16 @@ func TestAccApplicationResource_CRUD(t *testing.T) {
 			},
 			// Idempotency check
 			{
-				Config:             testAccPublicGitAppConfig(name, serverUUID, ""),
+				Config:             testAccPublicGitAppConfig(name, serverUUID, "3000", ""),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			{
-				Config: testAccPublicGitAppConfig(name, serverUUID, `description = "Updated public git app"`),
-				Check:  resource.TestCheckResourceAttr("coolify_application.test", "description", "Updated public git app"),
+				Config: testAccPublicGitAppConfig(name, serverUUID, "8080", `description = "Updated public git app"`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "description", "Updated public git app"),
+					resource.TestCheckResourceAttr("coolify_application.test", "ports_exposes", "8080"),
+				),
 			},
 			{
 				ResourceName:                         "coolify_application.test",
@@ -61,7 +64,7 @@ func TestAccApplicationResource_Disappears(t *testing.T) {
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_application", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublicGitAppConfig(name, serverUUID, ""),
+				Config: testAccPublicGitAppConfig(name, serverUUID, "3000", ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_application.test", "uuid"),
 					acctest.AccCheckResourceDisappears("coolify_application.test", "/api/v1/applications/"),
@@ -84,7 +87,7 @@ func TestAccApplicationDataSource(t *testing.T) {
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_application", "/api/v1/applications/"),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccPublicGitAppConfig(name, serverUUID, "") + `
+				Config: testAccPublicGitAppConfig(name, serverUUID, "3000", "") + `
 data "coolify_application" "test" {
   uuid = coolify_application.test.uuid
 }
@@ -99,7 +102,7 @@ data "coolify_application" "test" {
 	})
 }
 
-func testAccPublicGitAppConfig(name, serverUUID, extra string) string {
+func testAccPublicGitAppConfig(name, serverUUID, ports, extra string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {
   name = %[1]q
@@ -112,8 +115,8 @@ resource "coolify_application" "test" {
   git_repository = "https://github.com/coollabsio/coolify-examples"
   git_branch     = "main"
   build_pack     = "nixpacks"
-  ports_exposes  = "3000"
+  ports_exposes  = %[4]q
   %[3]s
 }
-`, name, serverUUID, extra)
+`, name, serverUUID, extra, ports)
 }
