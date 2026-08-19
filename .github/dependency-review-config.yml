@@ -1,0 +1,25 @@
+# License allowlist for actions/dependency-review-action.
+# Anything not listed fails the PR. Stricter than the old deny list
+# (AGPL-3.0, GPL-3.0 only). Compound SPDX expressions (A AND B) work
+# since DRA 4.7.1 if the constituents are listed.
+#
+# Do not add CC-BY-SA here to silence golang.org/x/text. That module is
+# BSD-3-Clause; GitHub/ClearlyDefined sometimes attach CLDR data licenses.
+# If DRA false-fails a known-good module, add a PURL exception below
+# instead of widening the allowlist.
+fail-on-severity: high
+allow-licenses:
+  - 0BSD
+  - Apache-2.0
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - BlueOak-1.0.0
+  - CC0-1.0
+  - CC-BY-4.0
+  - ISC
+  - MIT
+  - MIT-0
+  - MPL-2.0
+  - Unlicense
+# allow-dependencies-licenses:
+#   - pkg:golang/golang.org/x/text@*
