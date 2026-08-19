@@ -112,7 +112,10 @@ with sync_playwright() as p:
     page.locator('input[name="password"]').fill(pwd)
     page.locator('input[name="password_confirmation"]').fill(pwd)
     page.locator('button:has-text("Create Account")').first.click()
-    page.wait_for_url(lambda url: "register" not in url, timeout=60000)
+    page.wait_for_function(
+        "() => !window.location.pathname.includes('register')",
+        timeout=60000,
+    )
 
     print("Registration successful")
     browser.close()
