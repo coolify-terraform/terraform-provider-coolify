@@ -62,3 +62,30 @@ resource "coolify_notification_email" "test" {
 		},
 	})
 }
+
+// TestAccEmailNotificationResource_SMTPEhloDomain writes smtp_ehlo_domain
+// (Coolify tip after #11398; skipped on tag v4.3.9 and older).
+func TestAccEmailNotificationResource_SMTPEhloDomain(t *testing.T) {
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.AccTestSkipIfNoNotificationAPI(t)
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.3.10")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ConfigProviderBlock() + `
+resource "coolify_notification_email" "test" {
+  smtp_enabled               = false
+  resend_enabled             = false
+  use_instance_email_settings = false
+  smtp_ehlo_domain           = "mail.example.com"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_notification_email.test", "smtp_ehlo_domain", "mail.example.com"),
+				),
+			},
+		},
+	})
+}

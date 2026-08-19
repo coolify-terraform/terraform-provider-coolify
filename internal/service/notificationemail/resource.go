@@ -2,12 +2,15 @@ package notificationemail
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationcommon"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -42,6 +45,7 @@ type model struct {
 	SMTPUsername     types.String `tfsdk:"smtp_username"`
 	SMTPPassword     types.String `tfsdk:"smtp_password"`
 	SMTPTimeout      types.Int64  `tfsdk:"smtp_timeout"`
+	SMTPEhloDomain   types.String `tfsdk:"smtp_ehlo_domain"`
 	ResendEnabled    types.Bool   `tfsdk:"resend_enabled"`
 	ResendAPIKey     types.String `tfsdk:"resend_api_key"`
 	UseInstanceEmail types.Bool   `tfsdk:"use_instance_email_settings"`
@@ -106,6 +110,21 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				int64planmodifier.UseStateForUnknown(),
 			},
 		},
+		"smtp_ehlo_domain": schema.StringAttribute{
+			MarkdownDescription: "Hostname sent with SMTP EHLO. Set a valid hostname, or omit to use Coolify's default. " +
+				"Coolify v4.x after [coollabsio/coolify#11398](https://github.com/coollabsio/coolify/pull/11398) " +
+				"(tip/nightly `4.3.10` and `4.4-rc.1`); not in tag `v4.3.9`. " +
+				"On older instances the provider keeps the value in state and does not send it.",
+			Optional: true,
+			Computed: true,
+			Validators: []validator.String{
+				stringvalidator.LengthAtMost(253),
+				validate.Hostname(),
+			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
 		"resend_enabled": schema.BoolAttribute{
 			MarkdownDescription: "Whether Resend delivery is enabled.",
 			Optional:            true,
@@ -152,6 +171,7 @@ func (r *emailResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.AddError("Error configuring email notifications", err.Error())
 		return
 	}
+	warnUnsupportedSMTPEhloDomain(r.client, plan, &resp.Diagnostics)
 	if err := flatten(updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
@@ -204,6 +224,7 @@ func (r *emailResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		resp.Diagnostics.AddError("Error updating email notifications", err.Error())
 		return
 	}
+	warnUnsupportedSMTPEhloDomain(r.client, plan, &resp.Diagnostics)
 	if err := flatten(updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
@@ -253,6 +274,7 @@ func createInputFromPlan(plan model) (client.UpdateEmailNotificationInput, error
 	setStr(plan.SMTPEncryption, &in.SMTPEncryption)
 	setStr(plan.SMTPUsername, &in.SMTPUsername)
 	setStr(plan.SMTPPassword, &in.SMTPPassword)
+	setStr(plan.SMTPEhloDomain, &in.SMTPEhloDomain)
 	setStr(plan.ResendAPIKey, &in.ResendAPIKey)
 	if !plan.SMTPPort.IsNull() && !plan.SMTPPort.IsUnknown() {
 		v := int(plan.SMTPPort.ValueInt64())
@@ -295,6 +317,9 @@ func updateInputFromPlan(plan, state model) (client.UpdateEmailNotificationInput
 	if w := flex.StringIfChanged(plan.SMTPPassword, state.SMTPPassword); w != nil {
 		in.SMTPPassword = w
 	}
+	if w := flex.StringIfChanged(plan.SMTPEhloDomain, state.SMTPEhloDomain); w != nil {
+		in.SMTPEhloDomain = w
+	}
 	if w := flex.StringIfChanged(plan.ResendAPIKey, state.ResendAPIKey); w != nil {
 		in.ResendAPIKey = w
 	}
@@ -323,6 +348,11 @@ func flatten(api *client.EmailNotificationSettings, m *model) error {
 	}
 	flex.SetStringPreserveEmpty(&m.SMTPUsername, api.SMTPUsername)
 	flex.SetStringPreserveEmpty(&m.SMTPPassword, api.SMTPPassword)
+	ehlo := ""
+	if api.SMTPEhloDomain != nil {
+		ehlo = *api.SMTPEhloDomain
+	}
+	flex.SetStringPreserveEmpty(&m.SMTPEhloDomain, ehlo)
 	flex.SetStringPreserveEmpty(&m.ResendAPIKey, api.ResendAPIKey)
 	if api.SMTPPort != nil {
 		m.SMTPPort = types.Int64Value(int64(*api.SMTPPort))
@@ -335,4 +365,26 @@ func flatten(api *client.EmailNotificationSettings, m *model) error {
 		m.SMTPTimeout = types.Int64Null()
 	}
 	return nil
+}
+
+func warnUnsupportedSMTPEhloDomain(c *client.Client, plan model, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsSMTPEhloDomain() {
+		return
+	}
+	if plan.SMTPEhloDomain.IsNull() || plan.SMTPEhloDomain.IsUnknown() || plan.SMTPEhloDomain.ValueString() == "" {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write smtp_ehlo_domain",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept smtp_ehlo_domain (added in Coolify v4.x after #11398; not in tag v4.3.9). "+
+				"The provider will keep the value in Terraform state but will not send it to the Coolify API. "+
+				"Upgrade to a nightly/tip 4.3.10 or later build, or remove smtp_ehlo_domain from configuration.",
+			ver,
+		),
+	)
 }

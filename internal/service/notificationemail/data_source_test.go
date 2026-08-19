@@ -13,7 +13,7 @@ import (
 
 func TestNotificationDataSource_Read(t *testing.T) {
 	t.Parallel()
-	store := &mockEmail{SMTPEnabled: true, EventStore: notificationcommon.EventStore{BackupFailure: true}}
+	store := &mockEmail{SMTPEnabled: true, SMTPEhloDomain: "mail.example.com", EventStore: notificationcommon.EventStore{BackupFailure: true}}
 	srv := newMockServer(store)
 	defer srv.Close()
 
@@ -27,6 +27,7 @@ data "coolify_notification_email" "test" {}
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coolify_notification_email.test", "id", "current"),
 					resource.TestCheckResourceAttr("data.coolify_notification_email.test", "smtp_enabled", "true"),
+					resource.TestCheckResourceAttr("data.coolify_notification_email.test", "smtp_ehlo_domain", "mail.example.com"),
 					resource.TestCheckResourceAttr("data.coolify_notification_email.test", "backup_failure", "true"),
 				),
 			},
