@@ -510,6 +510,36 @@ class FooController {
         self.assertEqual(result["store"], ["a"])
         self.assertEqual(result["update"], ["b", "c"])
 
+    def test_union_reassigned_allowed_fields_in_same_method(self):
+        # DatabasesController::update_by_uuid assigns a combined list, then
+        # overwrites $allowedFields inside each engine switch arm.
+        php = """<?php
+class DatabasesController {
+    public function update_by_uuid(Request $request) {
+        $allowedFields = ['name', 'description', 'postgres_user', 'mysql_user'];
+        switch ($database->type()) {
+            case 'standalone-postgresql':
+                $allowedFields = ['name', 'description', 'postgres_user'];
+                break;
+            case 'standalone-mysql':
+                $allowedFields = ['name', 'description', 'mysql_user', 'health_check_enabled'];
+                break;
+        }
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(
+            result["update_by_uuid"],
+            [
+                "name",
+                "description",
+                "postgres_user",
+                "mysql_user",
+                "health_check_enabled",
+            ],
+        )
+
     def test_array_merge(self):
         php = """<?php
 class FooController {
