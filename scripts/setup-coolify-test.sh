@@ -63,55 +63,58 @@ USER_COUNT=$(psql_exec "SELECT count(*) FROM users;")
 if [[ "$USER_COUNT" == "0" ]]; then
   log "Registering admin user via Playwright (required for Laravel bootstrap)"
 
-  # Ensure playwright is available
-  PW_VENV="/tmp/pw-venv"
-  if [[ ! -f "$PW_VENV/bin/python3" ]]; then
-    if ! command -v python3 >/dev/null 2>&1; then
-      echo "ERROR: python3 is required the first time this script bootstraps a Coolify user. Install Python 3.9+ with venv support and re-run." >&2
-      exit 1
+  # Prefer Playwright already installed by setup-coolify (CI). A second
+  # silent Chromium install has no timeout and hid the 45m hang on #795.
+  PW_PYTHON=""
+  if python3 -c "from playwright.sync_api import sync_playwright" 2>/dev/null; then
+    PW_PYTHON="python3"
+  else
+    PW_VENV="/tmp/pw-venv"
+    if [[ ! -f "$PW_VENV/bin/python3" ]]; then
+      if ! command -v python3 >/dev/null 2>&1; then
+        echo "ERROR: python3 is required the first time this script bootstraps a Coolify user. Install Python 3.9+ with venv support and re-run." >&2
+        exit 1
+      fi
+      if ! python3 -c "import venv" >/dev/null 2>&1; then
+        echo "ERROR: python3 venv support is required the first time this script bootstraps a Coolify user. Install python3-venv and re-run." >&2
+        exit 1
+      fi
+      python3 -m venv "$PW_VENV"
     fi
-    if ! python3 -c "import venv" >/dev/null 2>&1; then
-      echo "ERROR: python3 venv support is required the first time this script bootstraps a Coolify user. Install python3-venv and re-run." >&2
-      exit 1
+    if ! "$PW_VENV/bin/python3" -c "from playwright.sync_api import sync_playwright" 2>/dev/null; then
+      "$PW_VENV/bin/pip" install -q playwright
+      if command -v timeout >/dev/null 2>&1; then
+        timeout --foreground 180 "$PW_VENV/bin/playwright" install chromium
+      else
+        "$PW_VENV/bin/playwright" install chromium
+      fi
     fi
-    python3 -m venv "$PW_VENV"
-  fi
-  if ! "$PW_VENV/bin/python3" -c "import playwright" 2>/dev/null; then
-    "$PW_VENV/bin/pip" install -q playwright
-    "$PW_VENV/bin/playwright" install chromium 2>/dev/null
+    PW_PYTHON="$PW_VENV/bin/python3"
   fi
 
-  "$PW_VENV/bin/python3" << 'PYEOF'
-import secrets, time, sys
+  "$PW_PYTHON" << 'PYEOF'
+import secrets, signal, sys
 from playwright.sync_api import sync_playwright
+
+signal.alarm(180)
 
 pwd = "Sc" + secrets.token_urlsafe(20) + "!1"
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     page = browser.new_page()
+    page.set_default_timeout(30000)
     page.goto("http://localhost:8000/register", timeout=30000)
-    page.wait_for_load_state("networkidle")
-    time.sleep(2)
-
+    # Do not wait for networkidle: Coolify keeps websockets/polling open.
+    page.locator('input[name="name"]').wait_for(state="visible", timeout=30000)
     page.locator('input[name="name"]').fill("admin")
     page.locator('input[name="email"]').fill("admin@acme.test")
     page.locator('input[name="password"]').fill(pwd)
     page.locator('input[name="password_confirmation"]').fill(pwd)
-    time.sleep(1)
-
     page.locator('button:has-text("Create Account")').first.click()
-    time.sleep(8)
-    page.wait_for_load_state("networkidle")
+    page.wait_for_url(lambda url: "register" not in url, timeout=60000)
 
-    if "register" not in page.url:
-        print("Registration successful")
-    else:
-        errors = page.locator('.text-red-500').all()
-        for e in errors:
-            print(f"Error: {e.text_content().strip()}", file=sys.stderr)
-        sys.exit(1)
-
+    print("Registration successful")
     browser.close()
 PYEOF
 else

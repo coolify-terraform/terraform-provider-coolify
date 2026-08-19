@@ -51,6 +51,11 @@ class TestCICoolifyBoot(unittest.TestCase):
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("FAIL: Coolify not ready", proc.stdout)
 
+    def test_compose_up_has_a_timeout_cap(self) -> None:
+        src = SCRIPT.read_text()
+        self.assertIn("run_limited 180", src)
+        self.assertIn("timeout --foreground", src)
+
 
 if __name__ == "__main__":
     unittest.main()

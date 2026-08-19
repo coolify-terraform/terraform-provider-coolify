@@ -42,6 +42,17 @@ compose() {
     "$@"
 }
 
+# GNU timeout on Linux CI; no-op on macOS unless coreutils is installed.
+run_limited() {
+  local secs="$1"
+  shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout --foreground "$secs" "$@"
+  else
+    "$@"
+  fi
+}
+
 step_prepare() {
   log "PLAN: write Coolify compose files under $SOURCE_DIR (tag=${COOLIFY_IMAGE_TAG})"
   log "DO: create data directories"
@@ -182,8 +193,12 @@ step_wait_pull() {
 step_up() {
   log "PLAN: start Coolify stack from already-pulled images"
   cd "$SOURCE_DIR"
-  log "DO: docker compose up -d --remove-orphans"
-  compose up -d --remove-orphans
+  log "DO: docker compose up -d --remove-orphans (180s cap)"
+  # Unbounded compose up hung Setup Coolify for 45m on #795 while Acc
+  # on the same run finished in 2m. Fail instead of eating the job timeout.
+  run_limited 180 docker compose --env-file .env \
+    -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.override.yml \
+    up -d --remove-orphans
   log "OK: compose up returned"
 }
 
