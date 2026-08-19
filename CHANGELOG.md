@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.17](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.16...v0.1.17) (2026-08-19)
+
+
+### Features
+
+* pin Coolify API contract to v4.3.9 ([#792](https://github.com/coolify-terraform/terraform-provider-coolify/issues/792)) ([9e906d6](https://github.com/coolify-terraform/terraform-provider-coolify/commit/9e906d665b79d8ecf1067549fcf645033ff5498c)), closes [#776](https://github.com/coolify-terraform/terraform-provider-coolify/issues/776)
+
+
+### Bug Fixes
+
+* **application:** keep explicit docker image tag on update ([#788](https://github.com/coolify-terraform/terraform-provider-coolify/issues/788)) ([4043caf](https://github.com/coolify-terraform/terraform-provider-coolify/commit/4043cafba6219805f72fd5fbf201a743263f8cac))
+* **application:** split docker image into name and tag on update ([#784](https://github.com/coolify-terraform/terraform-provider-coolify/issues/784)) ([7dd47f7](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7dd47f704fb80b6da3c8d308c14d3ad66de4ff0a))
+* **database:** omit Coolify-rejected fields from create PATCH ([#790](https://github.com/coolify-terraform/terraform-provider-coolify/issues/790)) ([2a0b5a6](https://github.com/coolify-terraform/terraform-provider-coolify/commit/2a0b5a6a32a5178a3c3f1b88bc0de5c4ccd96d83)), closes [#789](https://github.com/coolify-terraform/terraform-provider-coolify/issues/789)
+* **deployment:** deploy on first apply instead of restart ([#785](https://github.com/coolify-terraform/terraform-provider-coolify/issues/785)) ([fd0208f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/fd0208fdf3af968afaececcbabe807ee225a8a4a))
+* union Coolify allowlists and cover service PATCH ([#795](https://github.com/coolify-terraform/terraform-provider-coolify/issues/795)) ([2d01c95](https://github.com/coolify-terraform/terraform-provider-coolify/commit/2d01c95952fedc95dbda592c76e165d782efc4cb))
+
 ## [0.1.16](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.15...v0.1.16) (2026-08-16)
 
 
