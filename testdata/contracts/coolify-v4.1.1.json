@@ -1,7 +1,7 @@
 {
   "version": "v4.1.1",
   "extracted_from": "coollabsio/coolify@v4.1.1",
-  "extracted_at": "2026-06-24T21:25:18.214512+00:00",
+  "extracted_at": "2026-08-19T04:30:03.872774+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -6390,6 +6390,28 @@
         "limits_cpus",
         "limits_cpuset",
         "limits_cpu_shares",
+        "postgres_user",
+        "postgres_password",
+        "postgres_db",
+        "postgres_initdb_args",
+        "postgres_host_auth_method",
+        "postgres_conf",
+        "clickhouse_admin_user",
+        "clickhouse_admin_password",
+        "dragonfly_password",
+        "redis_password",
+        "redis_conf",
+        "keydb_password",
+        "keydb_conf",
+        "mariadb_conf",
+        "mariadb_root_password",
+        "mariadb_user",
+        "mariadb_password",
+        "mariadb_database",
+        "mongo_conf",
+        "mongo_initdb_root_username",
+        "mongo_initdb_root_password",
+        "mongo_initdb_database",
         "mysql_root_password",
         "mysql_password",
         "mysql_user",
@@ -6418,10 +6440,33 @@
         "limits_cpus",
         "limits_cpuset",
         "limits_cpu_shares",
+        "postgres_user",
+        "postgres_password",
+        "postgres_db",
+        "postgres_initdb_args",
+        "postgres_host_auth_method",
+        "postgres_conf",
+        "clickhouse_admin_user",
+        "clickhouse_admin_password",
+        "dragonfly_password",
+        "redis_password",
+        "redis_conf",
+        "keydb_password",
+        "keydb_conf",
+        "mariadb_conf",
+        "mariadb_root_password",
+        "mariadb_user",
+        "mariadb_password",
+        "mariadb_database",
         "mongo_conf",
         "mongo_initdb_root_username",
         "mongo_initdb_root_password",
-        "mongo_initdb_database"
+        "mongo_initdb_database",
+        "mysql_root_password",
+        "mysql_password",
+        "mysql_user",
+        "mysql_database",
+        "mysql_conf"
       ]
     },
     "GithubController::create_github_app": {
@@ -6551,6 +6596,7 @@
     },
     "ServicesController::create_service": {
       "allowed_fields": [
+        "type",
         "name",
         "description",
         "project_uuid",
@@ -6560,10 +6606,10 @@
         "destination_uuid",
         "instant_deploy",
         "docker_compose_raw",
-        "connect_to_docker_network",
         "urls",
         "force_domain_override",
-        "is_container_label_escape_enabled"
+        "is_container_label_escape_enabled",
+        "connect_to_docker_network"
       ]
     },
     "ServicesController::update_by_uuid": {
