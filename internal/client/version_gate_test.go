@@ -176,6 +176,34 @@ func TestSupportsApplicationSettingsV43(t *testing.T) {
 	}
 }
 
+func TestSupportsSMTPEhloDomain(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.3.9", false},
+		{"v4.3.9", false},
+		{"4.3.10", true},
+		{"v4.3.10", true},
+		{"4.4.0", true},
+		{"4.4-rc.1", true}, // unparseable minor; IsVersionAtLeast fail-opens
+		{"", true},
+		{"not-a-version", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsSMTPEhloDomain(); got != tt.want {
+			t.Errorf("SupportsSMTPEhloDomain(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsSMTPEhloDomain() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
 func TestHasOnlyApplicationSettings(t *testing.T) {
 	t.Parallel()
 

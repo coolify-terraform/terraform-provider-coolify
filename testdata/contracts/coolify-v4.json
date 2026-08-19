@@ -2,6 +2,7 @@
   "version": "v4.3.9",
   "extracted_from": "coollabsio/coolify@v4.3.9",
   "extracted_at": "2026-08-19T04:28:35.696795+00:00",
+  "notes": "Pin is tag v4.3.9 plus NotificationsController::update_email smtp_ehlo_domain from Coolify tip after coollabsio/coolify#11398 (not in tag v4.3.9; nightly 4.3.10 and 4.4-rc.1).",
   "models": {
     "Application": {
       "table": "applications",
@@ -7273,6 +7274,7 @@
         "smtp_username",
         "smtp_password",
         "smtp_timeout",
+        "smtp_ehlo_domain",
         "resend_enabled",
         "resend_api_key",
         "use_instance_email_settings",

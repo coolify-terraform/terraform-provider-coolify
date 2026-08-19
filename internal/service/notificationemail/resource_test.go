@@ -20,6 +20,7 @@ type mockEmail struct {
 	SMTPHost         string
 	SMTPPort         int
 	SMTPEncryption   string
+	SMTPEhloDomain   string
 	ResendEnabled    bool
 	UseInstanceEmail bool
 	notificationcommon.EventStore
@@ -34,6 +35,7 @@ func (m *mockEmail) snapshot() map[string]interface{} {
 		"smtp_enabled":                m.SMTPEnabled,
 		"smtp_host":                   m.SMTPHost,
 		"smtp_encryption":             m.SMTPEncryption,
+		"smtp_ehlo_domain":            m.SMTPEhloDomain,
 		"resend_enabled":              m.ResendEnabled,
 		"use_instance_email_settings": m.UseInstanceEmail,
 	}
@@ -45,6 +47,10 @@ func (m *mockEmail) snapshot() map[string]interface{} {
 }
 
 func newMockServer(store *mockEmail) *httptest.Server {
+	return newMockServerVersion(store, "")
+}
+
+func newMockServerVersion(store *mockEmail, version string) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
 		notificationcommon.WriteJSON(w, store.snapshot())
@@ -59,7 +65,7 @@ func newMockServer(store *mockEmail) *httptest.Server {
 			"smtp_enabled", "smtp_from_address", "smtp_from_name",
 			"smtp_recipients", "smtp_host", "smtp_port",
 			"smtp_encryption", "smtp_username", "smtp_password",
-			"smtp_timeout", "resend_enabled", "resend_api_key",
+			"smtp_timeout", "smtp_ehlo_domain", "resend_enabled", "resend_api_key",
 			"use_instance_email_settings",
 		)
 		if notificationcommon.RejectUnknownFields(w, body, allowed) {
@@ -68,6 +74,7 @@ func newMockServer(store *mockEmail) *httptest.Server {
 		store.mu.Lock()
 		notificationcommon.BoolFromBody(body, "smtp_enabled", &store.SMTPEnabled)
 		notificationcommon.StringFromBody(body, "smtp_host", &store.SMTPHost)
+		notificationcommon.StringFromBody(body, "smtp_ehlo_domain", &store.SMTPEhloDomain)
 		notificationcommon.StringFromBody(body, "smtp_encryption", &store.SMTPEncryption)
 		if v, ok := body["smtp_port"].(float64); ok {
 			store.SMTPPort = int(v)
@@ -78,7 +85,10 @@ func newMockServer(store *mockEmail) *httptest.Server {
 		store.mu.Unlock()
 		notificationcommon.WriteJSON(w, store.snapshot())
 	})
-	return httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	if version == "" {
+		return httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	}
+	return httptest.NewServer(acctest.WithVersionEndpointVersion(mux, version))
 }
 
 func TestEmailNotificationResource_CreateUpdateImport(t *testing.T) {
@@ -498,6 +508,98 @@ func TestEmailNotificationResource_DestroyNotFound(t *testing.T) {
 			},
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL),
+			},
+		},
+	})
+}
+
+func TestEmailNotificationResource_SMTPEhloDomain(t *testing.T) {
+	t.Parallel()
+	store := &mockEmail{}
+	srv := newMockServerVersion(store, "v4.3.10")
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled     = true
+  smtp_host        = "smtp.example.com"
+  smtp_ehlo_domain = "mail.example.com"
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_notification_email.test", "smtp_ehlo_domain", "mail.example.com"),
+					func(_ *terraform.State) error {
+						store.mu.Lock()
+						defer store.mu.Unlock()
+						if store.SMTPEhloDomain != "mail.example.com" {
+							t.Fatalf("expected PATCH smtp_ehlo_domain=mail.example.com, store=%q", store.SMTPEhloDomain)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled     = true
+  smtp_host        = "smtp.example.com"
+  smtp_ehlo_domain = "ehlo.example.org"
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_notification_email.test", "smtp_ehlo_domain", "ehlo.example.org"),
+				),
+			},
+		},
+	})
+}
+
+func TestEmailNotificationResource_SMTPEhloDomainWithheldOnOldCoolify(t *testing.T) {
+	t.Parallel()
+	store := &mockEmail{}
+	srv := newMockServer(store) // default mock version is v4.2.0-test
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled     = true
+  smtp_host        = "smtp.example.com"
+  smtp_ehlo_domain = "mail.example.com"
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_notification_email.test", "smtp_ehlo_domain", "mail.example.com"),
+					func(_ *terraform.State) error {
+						store.mu.Lock()
+						defer store.mu.Unlock()
+						if store.SMTPEhloDomain != "" {
+							return fmt.Errorf("expected smtp_ehlo_domain withheld on old Coolify, store=%q", store.SMTPEhloDomain)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestEmailNotificationResource_InvalidEhloDomain(t *testing.T) {
+	t.Parallel()
+	store := &mockEmail{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled     = true
+  smtp_ehlo_domain = "not a hostname"
+`),
+				ExpectError: regexp.MustCompile(`hostname|Invalid hostname`),
 			},
 		},
 	})

@@ -125,6 +125,64 @@ func TestClient_EmailNotifications_GetUpdate(t *testing.T) {
 	assert.Equal(t, float64(465), lastPatch["smtp_port"])
 }
 
+func TestClient_GetEmailNotifications_NullEhloDomain(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":1,"team_id":0,"smtp_enabled":false,"smtp_ehlo_domain":null}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := client.New(srv.URL, "tok")
+	got, err := c.GetEmailNotifications(context.Background())
+	require.NoError(t, err)
+	assert.Nil(t, got.SMTPEhloDomain)
+}
+
+func TestClient_EmailNotifications_SMTPEhloDomainVersionGate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		version string
+		wantKey bool
+	}{
+		{"4.3.9 withholds", "4.3.9", false},
+		{"4.3.10 sends", "4.3.10", true},
+		{"4.4-rc.1 sends", "4.4-rc.1", true},
+		{"empty version sends", "", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var lastPatch map[string]interface{}
+			mux := http.NewServeMux()
+			mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, r *http.Request) {
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&lastPatch))
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"id": 1, "team_id": 0, "smtp_enabled": true,
+					"smtp_ehlo_domain": lastPatch["smtp_ehlo_domain"],
+				})
+			})
+			srv := httptest.NewServer(mux)
+			defer srv.Close()
+			c := client.New(srv.URL, "tok")
+			c.CoolifyVersion = tt.version
+			ehlo := "mail.example.com"
+			_, err := c.UpdateEmailNotifications(context.Background(), client.UpdateEmailNotificationInput{
+				SMTPEhloDomain: &ehlo,
+			})
+			require.NoError(t, err)
+			_, sent := lastPatch["smtp_ehlo_domain"]
+			if sent != tt.wantKey {
+				t.Errorf("Coolify %q: smtp_ehlo_domain sent=%v, want %v (body=%v)",
+					tt.version, sent, tt.wantKey, lastPatch)
+			}
+		})
+	}
+}
+
 func TestClient_TelegramNotifications_GetUpdate(t *testing.T) {
 	t.Parallel()
 	var lastPatch map[string]interface{}

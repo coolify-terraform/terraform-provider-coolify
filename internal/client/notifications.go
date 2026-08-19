@@ -278,19 +278,23 @@ type EmailNotificationSettings struct {
 	ID     int `json:"id"`
 	TeamID int `json:"team_id"`
 
-	SMTPEnabled      bool   `json:"smtp_enabled"`
-	SMTPFromAddress  string `json:"smtp_from_address,omitempty"`
-	SMTPFromName     string `json:"smtp_from_name,omitempty"`
-	SMTPRecipients   string `json:"smtp_recipients,omitempty"`
-	SMTPHost         string `json:"smtp_host,omitempty"`
-	SMTPPort         *int   `json:"smtp_port,omitempty"`
-	SMTPEncryption   string `json:"smtp_encryption,omitempty"`
-	SMTPUsername     string `json:"smtp_username,omitempty"`
-	SMTPPassword     string `json:"smtp_password,omitempty"`
-	SMTPTimeout      *int   `json:"smtp_timeout,omitempty"`
-	ResendEnabled    bool   `json:"resend_enabled"`
-	ResendAPIKey     string `json:"resend_api_key,omitempty"`
-	UseInstanceEmail bool   `json:"use_instance_email_settings"`
+	SMTPEnabled     bool   `json:"smtp_enabled"`
+	SMTPFromAddress string `json:"smtp_from_address,omitempty"`
+	SMTPFromName    string `json:"smtp_from_name,omitempty"`
+	SMTPRecipients  string `json:"smtp_recipients,omitempty"`
+	SMTPHost        string `json:"smtp_host,omitempty"`
+	SMTPPort        *int   `json:"smtp_port,omitempty"`
+	SMTPEncryption  string `json:"smtp_encryption,omitempty"`
+	SMTPUsername    string `json:"smtp_username,omitempty"`
+	SMTPPassword    string `json:"smtp_password,omitempty"`
+	SMTPTimeout     *int   `json:"smtp_timeout,omitempty"`
+	// SMTPEhloDomain is the hostname sent with SMTP EHLO. Coolify v4.x after
+	// #11398 (tip/nightly 4.3.10, 4.4-rc.1); not in tag v4.3.9.
+	// Pointer so GET JSON null (unset column) decodes.
+	SMTPEhloDomain   *string `json:"smtp_ehlo_domain,omitempty"`
+	ResendEnabled    bool    `json:"resend_enabled"`
+	ResendAPIKey     string  `json:"resend_api_key,omitempty"`
+	UseInstanceEmail bool    `json:"use_instance_email_settings"`
 
 	DeploymentSuccess    bool `json:"deployment_success_email_notifications"`
 	DeploymentFailure    bool `json:"deployment_failure_email_notifications"`
@@ -320,6 +324,7 @@ type UpdateEmailNotificationInput struct {
 	SMTPUsername     *string `json:"smtp_username,omitempty"`
 	SMTPPassword     *string `json:"smtp_password,omitempty"`
 	SMTPTimeout      *int    `json:"smtp_timeout,omitempty"`
+	SMTPEhloDomain   *string `json:"smtp_ehlo_domain,omitempty"`
 	ResendEnabled    *bool   `json:"resend_enabled,omitempty"`
 	ResendAPIKey     *string `json:"resend_api_key,omitempty"`
 	UseInstanceEmail *bool   `json:"use_instance_email_settings,omitempty"`
@@ -428,6 +433,9 @@ func (c *Client) GetEmailNotifications(ctx context.Context) (*EmailNotificationS
 
 // UpdateEmailNotifications updates the current team's email settings. Coolify >= v4.3.0.
 func (c *Client) UpdateEmailNotifications(ctx context.Context, input UpdateEmailNotificationInput) (*EmailNotificationSettings, error) {
+	if !c.SupportsSMTPEhloDomain() {
+		input.SMTPEhloDomain = nil
+	}
 	var r EmailNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/email", input, &r); err != nil {
 		return nil, fmt.Errorf("updating email notifications: %w", err)
