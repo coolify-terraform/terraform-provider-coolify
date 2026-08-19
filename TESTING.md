@@ -51,6 +51,14 @@ if Acceptance Tests on the same SHA are green; inspect the job artifact
 (`scenario-diag/` plus compose logs) and the `coolify_deployment`
 error, which now includes the last Coolify deployment log lines.
 
+The 18 scenarios themselves take about 3.5 minutes. A 16-45 minute
+Scenario Tests job is Setup Coolify (image pull plus Playwright
+register), not `terraform test`. Do not shard the Scenario job to
+speed that up: each shard would boot its own Coolify and make the
+three-way pull contention with Acceptance Tests worse. Setup now
+fails at 180s for `compose up`, 180s for register, and 300s for the
+bootstrap script instead of sitting until the 45 minute job timeout.
+
 ## Acceptance Tests
 
 Acceptance tests run against a real Coolify instance. They exercise the

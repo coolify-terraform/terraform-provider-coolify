@@ -84,7 +84,13 @@ runs:
         COOLIFY_ENV_FILE: ${{ inputs.coolify-env-file }}
       run: |
         set -euo pipefail
-        ./scripts/setup-coolify-test.sh
+        # Hard cap so a hung Playwright register cannot eat the 45m job
+        # timeout (seen on #795: Setup Coolify 44.6m, terraform test never ran).
+        if command -v timeout >/dev/null 2>&1; then
+          timeout --foreground 300 ./scripts/setup-coolify-test.sh
+        else
+          ./scripts/setup-coolify-test.sh
+        fi
 
     - name: Verify Coolify API health
       shell: bash
