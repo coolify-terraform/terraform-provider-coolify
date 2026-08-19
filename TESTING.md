@@ -475,18 +475,15 @@ Known splits:
 | Resource | Create vs update | Acc coverage |
 |----------|------------------|--------------|
 | `coolify_application_docker_image` | `DockerImageFormat` on create vs `dockerImageNameRules()` on PATCH | `TestAccDockerImageApplicationResource_CRUD` must change `docker_image` (#786) |
-| All 8 `coolify_database_*` | Create POST accepts `limits_*`. Post-create PATCH sends remaining allow-list fields only. Coolify PATCH `$allowedFields` rejects `is_log_drain_enabled`, `is_include_timestamps`, `enable_ssl`, and other UI-only keys. | `TestAccPostgresqlDatabaseResource_CRUD` must set and update `limits_memory` (#789). Shared mock PATCH must 422 extra keys. |
+| All 8 `coolify_database_*` | Create POST accepts `limits_*`. Post-create PATCH sends remaining allow-list fields only. Coolify PATCH `$allowedFields` rejects `is_log_drain_enabled`, `is_include_timestamps`, `enable_ssl`, and other UI-only keys. | Every `TestAcc*DatabaseResource_CRUD` must set and update `limits_memory`. Shared mock PATCH must 422 extra keys. Guard: `TestDatabaseCRUDFiles_SetLimitsMemory`. |
+| `coolify_application` (public git), `coolify_application_private_git`, `coolify_application_github_app` | PATCH accepts `ports_exposes`; description-only Update never proves that write path | Acc CRUD must change `ports_exposes` (3000 to 8080). Guard: `TestApplicationCRUDFiles_UpdatePrimaryField`. |
+| `coolify_application_dockerfile` | Coolify may override `ports_exposes`; health check path is on PATCH `$allowedFields` | Acc CRUD must set and update `health_check_path`. Same guard as above. |
 
 Description-only Update steps that remain (no known create/update validator
 split on the primary field):
 
 | Acc test | Update field |
 |----------|----------------|
-| `TestAccApplicationResource_CRUD` | `description` |
-| `TestAccPrivateGitApplicationResource_CRUD` | `description` |
-| `TestAccGitHubAppApplicationResource_CRUD` | `description` |
-| `TestAccDockerfileApplicationResource_CRUD` | `description` |
-| `TestAccDatabase*Resource_CRUD` except postgresql | `description` (postgresql updates `limits_memory`; sibling engines share `SetUpdateExtended`) |
 | `TestAccProjectResource_basic` | `description` |
 | `TestAccEnvironmentResource_CRUD` | `description` |
 

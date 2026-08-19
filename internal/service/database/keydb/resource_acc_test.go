@@ -51,23 +51,30 @@ func TestAccKeydbDatabaseResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_database_keydb", name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_keydb", name, serverUUID, `limits_memory = "256M"`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_database_keydb.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_database_keydb.test", "name", name),
 					resource.TestCheckResourceAttrSet("coolify_database_keydb.test", "image"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "limits_memory", "256M"),
 				),
 			},
 			// Idempotency check
 			{
-				Config:             acctest.AccTestDatabaseConfig("coolify_database_keydb", name, serverUUID, ""),
+				Config:             acctest.AccTestDatabaseConfig("coolify_database_keydb", name, serverUUID, `limits_memory = "256M"`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 2: Update description
+			// Step 2: Update description and the memory limit
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_database_keydb", name, serverUUID, `description = "Updated via acc test"`),
-				Check:  resource.TestCheckResourceAttr("coolify_database_keydb.test", "description", "Updated via acc test"),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_keydb", name, serverUUID, `
+  description   = "Updated via acc test"
+  limits_memory = "512M"
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "description", "Updated via acc test"),
+					resource.TestCheckResourceAttr("coolify_database_keydb.test", "limits_memory", "512M"),
+				),
 			},
 			// Step 3: Import by UUID
 			{

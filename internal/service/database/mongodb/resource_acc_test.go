@@ -50,22 +50,29 @@ func TestAccMongodbDatabaseResource_CRUD(t *testing.T) {
 		CheckDestroy:             acctest.AccCheckDestroy("coolify_database_mongodb", "/api/v1/databases/"),
 		Steps: []resource.TestStep{
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, `limits_memory = "256M"`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_database_mongodb.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "name", name),
 					resource.TestCheckResourceAttrSet("coolify_database_mongodb.test", "image"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "limits_memory", "256M"),
 				),
 			},
 			// Idempotency check
 			{
-				Config:             acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, ""),
+				Config:             acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, `limits_memory = "256M"`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, `description = "Updated via acc test"`),
-				Check:  resource.TestCheckResourceAttr("coolify_database_mongodb.test", "description", "Updated via acc test"),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mongodb", name, serverUUID, `
+  description   = "Updated via acc test"
+  limits_memory = "512M"
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "description", "Updated via acc test"),
+					resource.TestCheckResourceAttr("coolify_database_mongodb.test", "limits_memory", "512M"),
+				),
 			},
 			{
 				ResourceName:                         "coolify_database_mongodb.test",

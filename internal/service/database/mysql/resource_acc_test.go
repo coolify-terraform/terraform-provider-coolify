@@ -51,25 +51,30 @@ func TestAccMysqlDatabaseResource_CRUD(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: Create
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_database_mysql", name, serverUUID, ""),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mysql", name, serverUUID, `limits_memory = "256M"`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_database_mysql.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_database_mysql.test", "name", name),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "limits_memory", "256M"),
 				),
 			},
 			// Idempotency check
 			{
-				Config:             acctest.AccTestDatabaseConfig("coolify_database_mysql", name, serverUUID, ""),
+				Config:             acctest.AccTestDatabaseConfig("coolify_database_mysql", name, serverUUID, `limits_memory = "256M"`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 2: Update description
+			// Step 2: Update description and the memory limit
 			{
-				Config: acctest.AccTestDatabaseConfig("coolify_database_mysql", name, serverUUID, `description = "updated mysql"`),
+				Config: acctest.AccTestDatabaseConfig("coolify_database_mysql", name, serverUUID, `
+  description   = "updated mysql"
+  limits_memory = "512M"
+`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_database_mysql.test", "uuid"),
 					resource.TestCheckResourceAttr("coolify_database_mysql.test", "name", name),
 					resource.TestCheckResourceAttr("coolify_database_mysql.test", "description", "updated mysql"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "limits_memory", "512M"),
 				),
 			},
 			// Step 3: Import by UUID
