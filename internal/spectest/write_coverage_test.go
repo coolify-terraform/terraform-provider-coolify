@@ -143,6 +143,68 @@ var notificationWriteChannels = []struct {
 	{"webhook", "NotificationsController::update_webhook"},
 }
 
+// TestWriteCoverage_ServiceUpdateNoExtraKeys fails if UpdateServiceInput
+// would send a JSON key Coolify PATCH rejects. Extra-key 422 is the #789
+// class (database UI bools). destination_uuid is create-only and must stay
+// off this struct.
+func TestWriteCoverage_ServiceUpdateNoExtraKeys(t *testing.T) {
+	t.Parallel()
+	c := loadContract(t)
+	ep, ok := c.Endpoints["ServicesController::update_by_uuid"]
+	if !ok {
+		t.Fatal("ServicesController::update_by_uuid not in contract")
+	}
+	if len(ep.AllowedFields) == 0 {
+		t.Fatal("ServicesController::update_by_uuid has empty allowed_fields")
+	}
+	allow := map[string]struct{}{}
+	for _, f := range ep.AllowedFields {
+		allow[f] = struct{}{}
+	}
+	tags := client.UpdateServiceJSONTags()
+	if len(tags) == 0 {
+		t.Fatal("UpdateServiceJSONTags returned empty set")
+	}
+	var extra []string
+	for field := range tags {
+		if _, ok := allow[field]; !ok {
+			extra = append(extra, field)
+		}
+	}
+	sort.Strings(extra)
+	if len(extra) > 0 {
+		t.Errorf("UpdateServiceInput JSON keys not on ServicesController::update_by_uuid allowed_fields:\n  %s",
+			strings.Join(extra, "\n  "))
+	}
+}
+
+// TestWriteCoverage_DatabaseDisallowedNotOnAllowList fails if a key we
+// strip before PATCH appears on the extracted update allow list. That
+// would mean Coolify started accepting it, or the strip list is stale.
+func TestWriteCoverage_DatabaseDisallowedNotOnAllowList(t *testing.T) {
+	t.Parallel()
+	c := loadContract(t)
+	ep, ok := c.Endpoints["DatabasesController::update_by_uuid"]
+	if !ok {
+		t.Fatal("DatabasesController::update_by_uuid not in contract")
+	}
+	allow := map[string]struct{}{}
+	for _, f := range ep.AllowedFields {
+		allow[f] = struct{}{}
+	}
+	var leaked []string
+	for _, field := range client.DatabaseUpdateDisallowedJSONKeys {
+		if _, ok := allow[field]; ok {
+			leaked = append(leaked, field)
+		}
+	}
+	sort.Strings(leaked)
+	if len(leaked) > 0 {
+		t.Errorf("DatabaseUpdateDisallowedJSONKeys still listed on update allowed_fields (stop stripping or fix extract):\n  %s",
+			strings.Join(leaked, "\n  "))
+	}
+}
+
 // TestWriteCoverage_NotificationUpdates ensures channelConfig write fields
 // appear on client Update*NotificationInput JSON tags.
 func TestWriteCoverage_NotificationUpdates(t *testing.T) {
