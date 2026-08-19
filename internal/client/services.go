@@ -103,6 +103,12 @@ type UpdateServiceInput struct {
 	ForceDomainOverride           *bool        `json:"force_domain_override,omitempty"`
 }
 
+// UpdateServiceJSONTags returns JSON keys on UpdateServiceInput.
+// Used by spectest write coverage against ServicesController::update_by_uuid.
+func UpdateServiceJSONTags() map[string]struct{} {
+	return jsonTagsFromValue(UpdateServiceInput{})
+}
+
 func (c *Client) UpdateService(ctx context.Context, uuid string, input UpdateServiceInput) (*Service, error) {
 	var s Service
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/services/%s", url.PathEscape(uuid)), input, &s); err != nil {

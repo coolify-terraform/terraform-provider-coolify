@@ -478,6 +478,7 @@ Known splits:
 | All 8 `coolify_database_*` | Create POST accepts `limits_*`. Post-create PATCH sends remaining allow-list fields only. Coolify PATCH `$allowedFields` rejects `is_log_drain_enabled`, `is_include_timestamps`, `enable_ssl`, and other UI-only keys. | Every `TestAcc*DatabaseResource_CRUD` must set and update `limits_memory`. Shared mock PATCH must 422 extra keys. Guard: `TestDatabaseCRUDFiles_SetLimitsMemory`. |
 | `coolify_application` (public git), `coolify_application_private_git`, `coolify_application_github_app` | PATCH accepts `ports_exposes`; description-only Update never proves that write path | Acc CRUD must change `ports_exposes` (3000 to 8080). Guard: `TestApplicationCRUDFiles_UpdatePrimaryField`. |
 | `coolify_application_dockerfile` | Coolify may override `ports_exposes`; health check path is on PATCH `$allowedFields` | Acc CRUD must set and update `health_check_path`. Same guard as above. |
+| `coolify_service` | Create POST accepts `type` plus compose fields. PATCH `$allowedFields` is name/description/compose/network/urls only. Extra keys 422. | `TestAccServiceResource_CreateImport` must change `name`. Guard: `TestServiceCRUDFiles_UpdatePrimaryField`. Write-path: `TestWriteCoverage_ServiceUpdateNoExtraKeys`. |
 
 Description-only Update steps that remain (no known create/update validator
 split on the primary field):

@@ -403,7 +403,17 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
         preceding = content[:match.start()]
         method_matches = re.findall(r"function\s+(\w+)\s*\(", preceding)
         method = method_matches[-1] if method_matches else "unknown"
-        result[method] = fields
+        # Union every assignment in the same method. DatabasesController
+        # update_by_uuid starts with a combined list, then replaces
+        # $allowedFields per engine. Last-write-wins dropped postgres_*
+        # when a later mysql/health assignment ran.
+        if method in result:
+            existing = result[method]
+            for f in fields:
+                if f not in existing:
+                    existing.append(f)
+        else:
+            result[method] = fields
 
     # Second pass: pick up array_merge($allowedFields, [...]) calls that
     # append additional fields within the same method.

@@ -61,9 +61,12 @@ Eight database engines are supported:
 
 All database resources share a common schema: placement (`project_uuid`,
 `server_uuid`, `environment_name`), networking (`image`, `is_public`,
-`public_port`), resource limits (`limits_memory`, `limits_cpus`, etc.),
-logging (`is_log_drain_enabled`, `is_include_timestamps`), and SSL/TLS
-(`enable_ssl`, `ssl_mode` where applicable).
+`public_port`), and resource limits (`limits_memory`, `limits_cpus`,
+and related fields). Coolify's public API does not accept log drain or
+SSL fields (`is_log_drain_enabled`, `is_include_timestamps`,
+`enable_ssl`, `ssl_mode`) on create or update; set those in the Coolify
+UI. The provider keeps them in state when you import or when Coolify
+returns them on read.
 
 ### Operations
 
