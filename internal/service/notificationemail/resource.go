@@ -71,10 +71,21 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
 		},
-		"smtp_from_address": notificationcommon.StringSensitiveOmit("SMTP From address."),
-		"smtp_from_name":    notificationcommon.StringSensitiveOmit("SMTP From display name."),
-		"smtp_recipients":   notificationcommon.StringSensitiveOmit("Comma-separated recipient addresses."),
-		"smtp_host":         notificationcommon.StringSensitiveOmit("SMTP host."),
+		"smtp_from_address": schema.StringAttribute{
+			MarkdownDescription: "SMTP From address." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address.",
+			Optional:            true,
+			Computed:            true,
+			Sensitive:           true,
+			Validators: []validator.String{
+				validate.Email(),
+			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+		"smtp_from_name":  notificationcommon.StringSensitiveOmit("SMTP From display name."),
+		"smtp_recipients": notificationcommon.StringSensitiveOmit("Comma-separated recipient addresses."),
+		"smtp_host":       notificationcommon.StringSensitiveOmit("SMTP host."),
 		"smtp_port": schema.Int64Attribute{
 			MarkdownDescription: "SMTP port (1-65535).",
 			Optional:            true,
@@ -328,6 +339,9 @@ func updateInputFromPlan(plan, state model) (client.UpdateEmailNotificationInput
 }
 
 func flatten(api *client.EmailNotificationSettings, m *model) error {
+	if api == nil || m == nil {
+		return fmt.Errorf("mapping notification settings: empty API response")
+	}
 	ev, err := client.EventsFrom(api)
 	if err != nil {
 		return err

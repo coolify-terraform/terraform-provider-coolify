@@ -585,6 +585,26 @@ func TestEmailNotificationResource_SMTPEhloDomainWithheldOnOldCoolify(t *testing
 	})
 }
 
+func TestEmailNotificationResource_InvalidFromAddress(t *testing.T) {
+	t.Parallel()
+	store := &mockEmail{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_notification_email", "test", `
+  smtp_enabled      = true
+  smtp_from_address = "not-an-email"
+`),
+				ExpectError: regexp.MustCompile(`Invalid email address`),
+			},
+		},
+	})
+}
+
 func TestEmailNotificationResource_InvalidEhloDomain(t *testing.T) {
 	t.Parallel()
 	store := &mockEmail{}

@@ -44,7 +44,7 @@ resource "coolify_instance_email_settings" "main" {
 - `smtp_ehlo_domain` (String) Hostname sent with SMTP EHLO. Set a valid hostname, or omit to use Coolify's default. Requires Coolify >= v4.3.10 ([coollabsio/coolify#11398](https://github.com/coollabsio/coolify/pull/11398)).
 - `smtp_enabled` (Boolean) Whether instance SMTP delivery is enabled.
 - `smtp_encryption` (String) SMTP encryption. One of `starttls`, `tls`, or `none`.
-- `smtp_from_address` (String, Sensitive) SMTP From address. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
+- `smtp_from_address` (String, Sensitive) SMTP From address. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import. Must be a valid email address.
 - `smtp_from_name` (String, Sensitive) SMTP From display name. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `smtp_host` (String, Sensitive) SMTP host. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `smtp_password` (String, Sensitive) SMTP password. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.

@@ -245,19 +245,24 @@ func TestWriteCoverage_NotificationUpdates(t *testing.T) {
 // aligned with UpdateInstanceEmailInput (Coolify v4.3.10+).
 func TestWriteCoverage_InstanceEmailUpdate(t *testing.T) {
 	t.Parallel()
-	want := []string{
-		"smtp_enabled", "smtp_from_address", "smtp_from_name", "smtp_host",
-		"smtp_port", "smtp_encryption", "smtp_username", "smtp_password",
-		"smtp_timeout", "smtp_ehlo_domain", "resend_enabled", "resend_api_key",
+	c := loadContract(t)
+	ep, ok := c.Endpoints["InstanceEmailSettingsController::update"]
+	if !ok {
+		t.Fatal("InstanceEmailSettingsController::update not found in contract")
+	}
+	if len(ep.AllowedFields) == 0 {
+		t.Fatal("InstanceEmailSettingsController::update has empty allowed_fields")
 	}
 	tags := client.InstanceEmailUpdateJSONTags()
 	var missing []string
-	for _, field := range want {
+	for _, field := range ep.AllowedFields {
 		if _, ok := tags[field]; !ok {
 			missing = append(missing, field)
 		}
 	}
+	sort.Strings(missing)
 	if len(missing) > 0 {
-		t.Errorf("UpdateInstanceEmailInput missing JSON tags:\n  %s", strings.Join(missing, "\n  "))
+		t.Errorf("InstanceEmailSettingsController::update allowed_fields missing from UpdateInstanceEmailInput:\n  %s",
+			strings.Join(missing, "\n  "))
 	}
 }
