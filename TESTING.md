@@ -51,13 +51,25 @@ if Acceptance Tests on the same SHA are green; inspect the job artifact
 (`scenario-diag/` plus compose logs) and the `coolify_deployment`
 error, which now includes the last Coolify deployment log lines.
 
-The 18 scenarios themselves take about 3.5 minutes. A 16-45 minute
-Scenario Tests job is Setup Coolify (image pull plus Playwright
-register), not `terraform test`. Do not shard the Scenario job to
-speed that up: each shard would boot its own Coolify and make the
-three-way pull contention with Acceptance Tests worse. Setup now
-fails at 180s for `compose up`, 180s for register, and 300s for the
-bootstrap script instead of sitting until the 45 minute job timeout.
+CI runs three Scenario Tests suites in parallel (each boots its own
+Coolify only when that suite will actually run):
+
+| Suite | Dirs | Why it is separate |
+|-------|------|--------------------|
+| `core` | 16 `acme-*` except the two below | API and config applies; a few minutes after setup |
+| `github-cicd` | `acme-github-cicd` | Real deploy with `wait_for_completion` (up to 15m). Skips Coolify boot if GitHub App secrets are empty |
+| `hetzner` | `acme-hetzner-infra` | Two real Hetzner CX22 servers. Skips Coolify boot if `COOLIFY_HETZNER_TOKEN` is empty |
+
+Do not even-split the 18 dirs across many runners. Each extra suite is
+another Coolify image pull next to the two Acceptance Test boots.
+Setup still fails at 180s for `compose up`, 180s for register, and
+300s for the bootstrap script. Local default is `SCENARIO_SUITE=all`
+(every dir, one process):
+
+```bash
+bash scripts/run-scenario-tests.sh --suite core
+bash scripts/run-scenario-tests.sh --list --suite all
+```
 
 ## Acceptance Tests
 

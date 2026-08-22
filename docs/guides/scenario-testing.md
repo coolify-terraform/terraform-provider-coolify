@@ -274,15 +274,19 @@ terraform test -verbose
 
 # Run all scenarios (retries acme-github-cicd once if Coolify deploy status is failed)
 bash scripts/run-scenario-tests.sh
+
+# Same suites as CI (core / github-cicd / hetzner)
+bash scripts/run-scenario-tests.sh --suite core
 ```
 
-CI uses the same script. A single Coolify deploy `failed` on
-`acme-github-cicd` is retried once; if it still fails, Coolify
-deployment JSON (including logs when the API token can read them)
-is written to `/tmp/scenario-diag/` and uploaded with the job
-artifact. Acceptance Tests remain the product-code gate; inspect
-those before treating a lone scenario deploy failure as a provider
-regression.
+CI uses the same script on three parallel runners so a 15-minute
+GitHub deploy wait does not block the other 16 scenarios. A single
+Coolify deploy `failed` on `acme-github-cicd` is retried once; if it
+still fails, Coolify deployment JSON (including logs when the API
+token can read them) is written to `/tmp/scenario-diag/` and uploaded
+with the job artifact. Acceptance Tests remain the product-code gate;
+inspect those before treating a lone scenario deploy failure as a
+provider regression.
 
 ## Coming Back Later
 

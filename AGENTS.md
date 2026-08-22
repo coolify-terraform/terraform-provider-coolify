@@ -232,9 +232,11 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 Detect Changes, DCO (PR only), Test (4 package shards), Coverage (merge shards),
 Lint (includes Govulncheck + GoReleaser Check),
 Validate (includes HCL fmt + Docs + Trivy + Gitleaks),
-Acceptance Tests (2 shards), Scenario Tests, Contract Freshness (weekly only), CI (gate).
+Acceptance Tests (2 shards), Scenario Tests (3 suites), Contract Freshness (weekly only), CI (gate).
 Acceptance Tests boot two Coolify instances and split TestAcc packages across them.
-Scenario Tests bootstrap Coolify and run `terraform test` against it.
+Scenario Tests run `core`, `github-cicd`, and `hetzner` in parallel. Each suite
+boots Coolify only when that suite will run (github/hetzner skip the boot when
+the matching secret is empty).
 A separate Dependabot Auto-Merge workflow auto-merges minor/patch PRs.
 An Issue Triage workflow auto-labels new issues (`needs-triage` or `ready`).
 Format check (gofmt) is included in the Lint job via golangci-lint.
