@@ -13,13 +13,16 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "run-scenario-tests.sh"
 
 
-def run_script(*args: str) -> subprocess.CompletedProcess[str]:
+def run_script(*args: str, env_updates: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    if env_updates:
+        env.update(env_updates)
     return subprocess.run(
         ["bash", str(SCRIPT), *args],
         cwd=ROOT,
         capture_output=True,
         text=True,
-        env=os.environ.copy(),
+        env=env,
     )
 
 
@@ -78,3 +81,26 @@ class TestRunScenarioTests(unittest.TestCase):
         self.assertEqual(core | gh | hz, all_names)
         self.assertEqual(len(core & gh), 0)
         self.assertEqual(len(core & hz), 0)
+
+    def test_list_default_is_all(self) -> None:
+        proc = run_script("--list", env_updates={"SCENARIO_SUITE": ""})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(len(names_from_list(proc)), 18)
+
+    def test_list_suite_from_env(self) -> None:
+        proc = run_script("--list", env_updates={"SCENARIO_SUITE": "core"})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        names = names_from_list(proc)
+        self.assertEqual(len(names), 16)
+        self.assertNotIn("acme-github-cicd", names)
+        self.assertNotIn("acme-hetzner-infra", names)
+
+    def test_flag_overrides_env_suite(self) -> None:
+        proc = run_script(
+            "--list",
+            "--suite",
+            "hetzner",
+            env_updates={"SCENARIO_SUITE": "core"},
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(names_from_list(proc), ["acme-hetzner-infra"])

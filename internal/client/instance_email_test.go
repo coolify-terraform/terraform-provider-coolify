@@ -106,6 +106,25 @@ func TestClient_GetInstanceEmailSettings_APIError(t *testing.T) {
 	assert.False(t, client.IsNotFound(err))
 }
 
+func TestClient_UpdateInstanceEmailSettings_NotFound(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"Not found."}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.10"))
+	defer srv.Close()
+
+	c := client.New(srv.URL, "test-token")
+	c.CoolifyVersion = "4.3.10"
+	en := true
+	_, err := c.UpdateInstanceEmailSettings(context.Background(), client.UpdateInstanceEmailInput{SMTPEnabled: &en})
+	require.Error(t, err)
+	assert.True(t, client.IsNotFound(err))
+	assert.Contains(t, err.Error(), "updating instance email settings")
+}
+
 func TestClient_UpdateInstanceEmailSettings_APIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()

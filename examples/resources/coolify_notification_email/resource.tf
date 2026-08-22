@@ -1,6 +1,8 @@
 # Team email notification settings (Coolify >= v4.3.0).
 # Import: terraform import coolify_notification_email.main current
 resource "coolify_notification_email" "main" {
+  # To inherit instance-wide SMTP instead, set use_instance_email_settings = true
+  # (coolify_instance_email_settings) and omit the smtp_* credentials below.
   smtp_enabled      = true
   smtp_host         = "smtp.example.com"
   smtp_port         = 587

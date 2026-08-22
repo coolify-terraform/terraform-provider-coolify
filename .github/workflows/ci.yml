@@ -71,6 +71,7 @@ jobs:
               - 'scripts/ci-unit-packages.sh'
               - 'scripts/ci-acc-packages.sh'
               - 'scripts/ci-coolify-boot.sh'
+              - 'scripts/ci-scenario-suite-need.sh'
               - '.codecov.yml'
               - '.goreleaser.yml'
               - 'GNUmakefile'
@@ -647,30 +648,7 @@ jobs:
         env:
           GITHUB_APP_ID: ${{ secrets.COOLIFY_GITHUB_APP_APP_ID }}
           HETZNER_TOKEN: ${{ secrets.COOLIFY_HETZNER_TOKEN }}
-        run: |
-          case "${{ matrix.suite }}" in
-            core)
-              echo "run=true" >> "$GITHUB_OUTPUT"
-              ;;
-            github-cicd)
-              if [ -n "$GITHUB_APP_ID" ]; then
-                echo "run=true" >> "$GITHUB_OUTPUT"
-              else
-                echo "run=false" >> "$GITHUB_OUTPUT"
-              fi
-              ;;
-            hetzner)
-              if [ -n "$HETZNER_TOKEN" ]; then
-                echo "run=true" >> "$GITHUB_OUTPUT"
-              else
-                echo "run=false" >> "$GITHUB_OUTPUT"
-              fi
-              ;;
-            *)
-              echo "::error::unknown suite ${{ matrix.suite }}"
-              exit 1
-              ;;
-          esac
+        run: bash scripts/ci-scenario-suite-need.sh "${{ matrix.suite }}" >> "$GITHUB_OUTPUT"
       - name: Skip suite (secrets not configured)
         if: steps.need.outputs.run != 'true'
         run: |

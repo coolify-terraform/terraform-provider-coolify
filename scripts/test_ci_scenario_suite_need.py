@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Unit tests for scripts/ci-scenario-suite-need.sh."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = ROOT / "scripts" / "ci-scenario-suite-need.sh"
+
+
+def run_need(suite: str, env_updates: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env.pop("GITHUB_APP_ID", None)
+    env.pop("HETZNER_TOKEN", None)
+    if env_updates:
+        env.update(env_updates)
+    return subprocess.run(
+        ["bash", str(SCRIPT), suite],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+
+class TestCIScenarioSuiteNeed(unittest.TestCase):
+    def test_missing_suite_exits_2(self) -> None:
+        proc = run_need("")
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("usage", proc.stderr)
+
+    def test_unknown_suite_exits_1(self) -> None:
+        proc = run_need("nope")
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("unknown suite", proc.stderr)
+
+    def test_core_always_runs(self) -> None:
+        proc = run_need("core")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "run=true")
+
+    def test_all_always_runs(self) -> None:
+        proc = run_need("all")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "run=true")
+
+    def test_github_cicd_skips_without_secret(self) -> None:
+        proc = run_need("github-cicd")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "run=false")
+
+    def test_github_cicd_runs_with_secret(self) -> None:
+        proc = run_need("github-cicd", {"GITHUB_APP_ID": "123"})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "run=true")
+
+    def test_hetzner_skips_without_secret(self) -> None:
+        proc = run_need("hetzner")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "run=false")
+
+    def test_hetzner_runs_with_secret(self) -> None:
+        proc = run_need("hetzner", {"HETZNER_TOKEN": "tok"})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "run=true")
+
+
+if __name__ == "__main__":
+    unittest.main()
