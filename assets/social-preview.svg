@@ -105,17 +105,17 @@
   <rect x="545" y="395" width="215" height="50" rx="25" fill="#2D1F4E"/>
   <text x="652" y="428" text-anchor="middle"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="24" font-weight="600" fill="#C4A5E8">56 Resources</text>
+        font-size="24" font-weight="600" fill="#C4A5E8">57 Resources</text>
 
   <rect x="775" y="395" width="245" height="50" rx="25" fill="#2D1F4E"/>
   <text x="897" y="428" text-anchor="middle"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="24" font-weight="600" fill="#C4A5E8">69 Data Sources</text>
+        font-size="24" font-weight="600" fill="#C4A5E8">70 Data Sources</text>
 
   <rect x="545" y="460" width="195" height="50" rx="25" fill="#2D1F4E"/>
   <text x="642" y="493" text-anchor="middle"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="24" font-weight="600" fill="#C4A5E8">1450+ Tests</text>
+        font-size="24" font-weight="600" fill="#C4A5E8">1500+ Tests</text>
 
   <rect x="755" y="460" width="275" height="50" rx="25" fill="#2D1F4E"/>
   <text x="892" y="493" text-anchor="middle"
