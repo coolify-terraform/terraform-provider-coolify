@@ -31,7 +31,7 @@ resource "coolify_notification_email" "main" {
   smtp_recipients   = "ops@example.com"
   smtp_username     = "smtp-user"
   smtp_password     = "change-me-in-production"
-  # smtp_ehlo_domain needs Coolify tip/nightly 4.3.10 (or 4.4-rc.1); not in tag v4.3.9
+  # smtp_ehlo_domain needs Coolify >= v4.3.10
   # smtp_ehlo_domain = "mail.example.com"
 
   deployment_failure = true
@@ -60,7 +60,7 @@ resource "coolify_notification_email" "main" {
 - `server_patch` (Boolean) Whether to send email notifications for server patch events.
 - `server_reachable` (Boolean) Whether to send email notifications for server reachable events.
 - `server_unreachable` (Boolean) Whether to send email notifications for server unreachable events.
-- `smtp_ehlo_domain` (String) Hostname sent with SMTP EHLO. Set a valid hostname, or omit to use Coolify's default. Coolify v4.x after [coollabsio/coolify#11398](https://github.com/coollabsio/coolify/pull/11398) (tip/nightly `4.3.10` and `4.4-rc.1`); not in tag `v4.3.9`. On older instances the provider keeps the value in state and does not send it.
+- `smtp_ehlo_domain` (String) Hostname sent with SMTP EHLO. Set a valid hostname, or omit to use Coolify's default. Requires Coolify >= v4.3.10 ([coollabsio/coolify#11398](https://github.com/coollabsio/coolify/pull/11398)). On older instances the provider keeps the value in state and does not send it.
 - `smtp_enabled` (Boolean) Whether SMTP delivery is enabled.
 - `smtp_encryption` (String) SMTP encryption. One of `starttls`, `tls`, or `none`.
 - `smtp_from_address` (String, Sensitive) SMTP From address. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.

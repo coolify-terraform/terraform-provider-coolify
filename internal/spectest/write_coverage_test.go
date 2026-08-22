@@ -240,3 +240,24 @@ func TestWriteCoverage_NotificationUpdates(t *testing.T) {
 		})
 	}
 }
+
+// TestWriteCoverage_InstanceEmailUpdate keeps PATCH /settings/email keys
+// aligned with UpdateInstanceEmailInput (Coolify v4.3.10+).
+func TestWriteCoverage_InstanceEmailUpdate(t *testing.T) {
+	t.Parallel()
+	want := []string{
+		"smtp_enabled", "smtp_from_address", "smtp_from_name", "smtp_host",
+		"smtp_port", "smtp_encryption", "smtp_username", "smtp_password",
+		"smtp_timeout", "smtp_ehlo_domain", "resend_enabled", "resend_api_key",
+	}
+	tags := client.InstanceEmailUpdateJSONTags()
+	var missing []string
+	for _, field := range want {
+		if _, ok := tags[field]; !ok {
+			missing = append(missing, field)
+		}
+	}
+	if len(missing) > 0 {
+		t.Errorf("UpdateInstanceEmailInput missing JSON tags:\n  %s", strings.Join(missing, "\n  "))
+	}
+}

@@ -288,9 +288,8 @@ type EmailNotificationSettings struct {
 	SMTPUsername    string `json:"smtp_username,omitempty"`
 	SMTPPassword    string `json:"smtp_password,omitempty"`
 	SMTPTimeout     *int   `json:"smtp_timeout,omitempty"`
-	// SMTPEhloDomain is the hostname sent with SMTP EHLO. Coolify v4.x after
-	// #11398 (tip/nightly 4.3.10, 4.4-rc.1); not in tag v4.3.9.
-	// Pointer so GET JSON null (unset column) decodes.
+	// SMTPEhloDomain is the hostname sent with SMTP EHLO. Coolify >= v4.3.10
+	// (coollabsio/coolify#11398). Pointer so GET JSON null (unset column) decodes.
 	SMTPEhloDomain   *string `json:"smtp_ehlo_domain,omitempty"`
 	ResendEnabled    bool    `json:"resend_enabled"`
 	ResendAPIKey     string  `json:"resend_api_key,omitempty"`

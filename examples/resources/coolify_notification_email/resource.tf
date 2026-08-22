@@ -10,7 +10,7 @@ resource "coolify_notification_email" "main" {
   smtp_recipients   = "ops@example.com"
   smtp_username     = "smtp-user"
   smtp_password     = "change-me-in-production"
-  # smtp_ehlo_domain needs Coolify tip/nightly 4.3.10 (or 4.4-rc.1); not in tag v4.3.9
+  # smtp_ehlo_domain needs Coolify >= v4.3.10
   # smtp_ehlo_domain = "mail.example.com"
 
   deployment_failure = true
