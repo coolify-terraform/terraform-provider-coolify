@@ -29,7 +29,16 @@ def run_need(suite: str, env_updates: dict[str, str] | None = None) -> subproces
 
 class TestCIScenarioSuiteNeed(unittest.TestCase):
     def test_missing_suite_exits_2(self) -> None:
-        proc = run_need("")
+        env = os.environ.copy()
+        env.pop("GITHUB_APP_ID", None)
+        env.pop("HETZNER_TOKEN", None)
+        proc = subprocess.run(
+            ["bash", str(SCRIPT)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
         self.assertEqual(proc.returncode, 2)
         self.assertIn("usage", proc.stderr)
 

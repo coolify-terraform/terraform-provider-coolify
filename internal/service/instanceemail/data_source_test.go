@@ -57,7 +57,7 @@ func TestInstanceEmailSettingsDataSource_ReadAPIError(t *testing.T) {
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_instance_email_settings" "test" {}
 `,
-				ExpectError: regexp.MustCompile(`Error reading instance email settings`),
+				ExpectError: regexp.MustCompile(`(?is)Error reading instance email settings.*Validation failed`),
 			},
 		},
 	})
@@ -79,7 +79,7 @@ func TestInstanceEmailSettingsDataSource_ReadNotFound(t *testing.T) {
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 data "coolify_instance_email_settings" "test" {}
 `,
-				ExpectError: regexp.MustCompile(`Error reading instance email settings`),
+				ExpectError: regexp.MustCompile(`(?is)Error reading instance email settings.*not found`),
 			},
 		},
 	})

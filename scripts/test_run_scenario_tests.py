@@ -85,7 +85,10 @@ class TestRunScenarioTests(unittest.TestCase):
     def test_list_default_is_all(self) -> None:
         proc = run_script("--list", env_updates={"SCENARIO_SUITE": ""})
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertEqual(len(names_from_list(proc)), 18)
+        names = names_from_list(proc)
+        self.assertEqual(len(names), 18)
+        self.assertIn("acme-github-cicd", names)
+        self.assertIn("acme-hetzner-infra", names)
 
     def test_list_suite_from_env(self) -> None:
         proc = run_script("--list", env_updates={"SCENARIO_SUITE": "core"})
