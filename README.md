@@ -368,7 +368,8 @@ and project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 ### CI Pipeline
 
 9 jobs in the CI workflow: Detect Changes, DCO (PR only), Test, Lint,
-Validate (includes examples, docs, Trivy, Gitleaks), Scenario Tests,
+Validate (includes examples, docs, Trivy, Gitleaks), Scenario Tests
+(core, github-cicd, and hetzner suites),
 Acceptance Tests, Contract Freshness (weekly), and a CI gate job.
 
 ## Troubleshooting

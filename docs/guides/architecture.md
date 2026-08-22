@@ -111,7 +111,7 @@ preserves the value from Terraform state rather than overwriting it.
 │  - .tftest.hcl files in examples/scen.   │
 │  - Multi-resource integration tests      │
 │  - Real Coolify instance                 │
-│  - 18 ACME Corp scenarios                │
+│  - 18 ACME Corp scenarios (3 CI suites)  │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
@@ -149,6 +149,6 @@ The CI pipeline runs 9 jobs on every push and PR:
 | Lint | golangci-lint (20 linters) + Govulncheck + GoReleaser check |
 | Validate | HCL formatting + tfplugindocs + Trivy + Gitleaks |
 | Acceptance Tests | Full suite against a bootstrapped Coolify instance |
-| Scenario Tests | `terraform test` against a real Coolify instance |
+| Scenario Tests | `terraform test` in 3 suites (core, github-cicd, hetzner) |
 | Contract Freshness | Weekly check that the contract matches upstream |
 | CI | Gate job that requires all other jobs to pass |

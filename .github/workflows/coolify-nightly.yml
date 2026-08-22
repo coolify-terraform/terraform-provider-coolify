@@ -250,7 +250,11 @@ jobs:
         needs.prepare.outputs.profile == 'custom'
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [core, github-cicd, hetzner]
     env:
       COOLIFY_DATA_DIR: /home/runner/coolify-data
     steps:
@@ -262,21 +266,58 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Decide whether this suite needs Coolify
+        id: need
+        env:
+          GITHUB_APP_ID: ${{ secrets.COOLIFY_GITHUB_APP_APP_ID }}
+          HETZNER_TOKEN: ${{ secrets.COOLIFY_HETZNER_TOKEN }}
+        run: |
+          case "${{ matrix.suite }}" in
+            core)
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              ;;
+            github-cicd)
+              if [ -n "$GITHUB_APP_ID" ]; then
+                echo "run=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "run=false" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            hetzner)
+              if [ -n "$HETZNER_TOKEN" ]; then
+                echo "run=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "run=false" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            *)
+              echo "::error::unknown suite ${{ matrix.suite }}"
+              exit 1
+              ;;
+          esac
+      - name: Skip suite (secrets not configured)
+        if: steps.need.outputs.run != 'true'
+        run: |
+          echo "SKIP suite ${{ matrix.suite }} (matching secret empty, no Coolify boot)"
       - name: Start Coolify image pull
+        if: steps.need.outputs.run == 'true'
         env:
           COOLIFY_DATA_DIR: /home/runner/coolify-data
           COOLIFY_IMAGE_TAG: edge
         run: bash scripts/ci-coolify-boot.sh prepare-pull-bg
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.need.outputs.run == 'true'
         with:
           go-version-file: go.mod
           cache: true
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        if: steps.need.outputs.run == 'true'
         with:
           terraform_wrapper: false
           terraform_version: "1.15.x"
 
       - name: Build and install provider locally
+        if: steps.need.outputs.run == 'true'
         run: |
           GOFIPS140=latest go build -o terraform-provider-coolify .
           PLUGIN_DIR="$HOME/.terraform.d/plugins/coolify-terraform/coolify/0.0.0-dev/$(go env GOOS)_$(go env GOARCH)"
@@ -292,11 +333,13 @@ jobs:
           EOF
 
       - name: Setup Coolify (edge)
+        if: steps.need.outputs.run == 'true'
         uses: ./.github/actions/setup-coolify
         with:
           coolify-image-tag: edge
 
       - name: Generate deploy key for scenarios
+        if: steps.need.outputs.run == 'true'
         run: |
           rm -f /tmp/scenario-deploy-key /tmp/scenario-deploy-key.pub
           ssh-keygen -t rsa -b 2048 -f /tmp/scenario-deploy-key -N "" -q
@@ -311,7 +354,9 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Run scenario tests
+        if: steps.need.outputs.run == 'true'
         env:
+          SCENARIO_SUITE: ${{ matrix.suite }}
           TF_VAR_github_app_private_key: ${{ secrets.COOLIFY_GITHUB_APP_PRIVATE_KEY }}
           TF_VAR_github_app_id: ${{ secrets.COOLIFY_GITHUB_APP_APP_ID }}
           TF_VAR_github_app_installation_id: ${{ secrets.COOLIFY_GITHUB_APP_INSTALLATION_ID }}
@@ -327,18 +372,18 @@ jobs:
           export TF_VAR_coolify_token="$COOLIFY_TOKEN"
           export TF_VAR_server_uuid="$COOLIFY_SERVER_UUID"
 
-          bash scripts/run-scenario-tests.sh
+          bash scripts/run-scenario-tests.sh --suite "${{ matrix.suite }}"
 
       - name: Capture Coolify logs on failure
-        if: failure()
+        if: failure() && steps.need.outputs.run == 'true'
         run: |
           docker compose -f "$COOLIFY_DATA_DIR/source/docker-compose.yml" \
             logs --timestamps > /tmp/coolify-logs.txt 2>&1 || true
       - name: Upload Coolify logs
-        if: failure()
+        if: failure() && steps.need.outputs.run == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: coolify-logs-nightly-scenarios
+          name: coolify-logs-nightly-scenarios-${{ matrix.suite }}
           path: |
             /tmp/coolify-logs.txt
             /tmp/scenario-diag/

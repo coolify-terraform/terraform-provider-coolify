@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Run terraform test for each examples/scenarios/acme-* directory.
+# Run terraform test for selected examples/scenarios/acme-* directories.
+# Suites (SCENARIO_SUITE or --suite):
+#   all          every acme-* dir (local default)
+#   core         all except acme-github-cicd and acme-hetzner-infra
+#   github-cicd  acme-github-cicd only
+#   hetzner      acme-hetzner-infra only
 # Retries acme-github-cicd once (Coolify deploy status "failed" flake, #728).
 # On any failure, dumps Coolify deployment JSON when endpoint/token are set.
 set -u
@@ -7,8 +12,90 @@ set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIAG_DIR="${SCENARIO_DIAG_DIR:-/tmp/scenario-diag}"
 RETRY_SCENARIO="${SCENARIO_RETRY:-acme-github-cicd}"
+SUITE="${SCENARIO_SUITE:-all}"
+LIST_ONLY=0
 
-echo "PLAN: terraform test each examples/scenarios/acme-* (retry ${RETRY_SCENARIO} once on failure)"
+usage() {
+  echo "usage: $0 [--list] [--suite all|core|github-cicd|hetzner]" >&2
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --list)
+      LIST_ONLY=1
+      shift
+      ;;
+    --suite)
+      if [[ $# -lt 2 ]]; then
+        usage
+        exit 2
+      fi
+      SUITE="$2"
+      shift 2
+      ;;
+    --suite=*)
+      SUITE="${1#--suite=}"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "FAIL: unknown argument: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+list_scenario_dirs() {
+  suite="$1"
+  case "$suite" in
+    all|core|github-cicd|hetzner) ;;
+    *)
+      echo "FAIL: unknown suite '$suite' (want all, core, github-cicd, hetzner)" >&2
+      return 2
+      ;;
+  esac
+  for dir in "${ROOT}"/examples/scenarios/acme-*/; do
+    [ -d "$dir" ] || continue
+    scenario="$(basename "$dir")"
+    case "$suite" in
+      all) echo "$dir" ;;
+      core)
+        case "$scenario" in
+          acme-github-cicd|acme-hetzner-infra) ;;
+          *) echo "$dir" ;;
+        esac
+        ;;
+      github-cicd)
+        if [ "$scenario" = "acme-github-cicd" ]; then
+          echo "$dir"
+        fi
+        ;;
+      hetzner)
+        if [ "$scenario" = "acme-hetzner-infra" ]; then
+          echo "$dir"
+        fi
+        ;;
+    esac
+  done
+}
+
+if [ "$LIST_ONLY" -eq 1 ]; then
+  list_scenario_dirs "$SUITE" || exit $?
+  exit 0
+fi
+
+SCENARIO_LIST="$(list_scenario_dirs "$SUITE")" || exit $?
+if [ -z "$SCENARIO_LIST" ]; then
+  echo "FAIL: suite '$SUITE' selected zero scenario directories" >&2
+  exit 2
+fi
+SCENARIO_COUNT="$(printf '%s\n' "$SCENARIO_LIST" | grep -c .)"
+
+echo "PLAN: terraform test suite=${SUITE} (${SCENARIO_COUNT} dir(s); retry ${RETRY_SCENARIO} once on failure)"
 
 dump_diag() {
   endpoint="${COOLIFY_ENDPOINT:-${TF_VAR_coolify_endpoint:-}}"
@@ -38,7 +125,7 @@ run_one() {
 }
 
 failed=0
-for dir in "${ROOT}"/examples/scenarios/acme-*/; do
+while IFS= read -r dir; do
   [ -d "$dir" ] || continue
   scenario="$(basename "$dir")"
   echo "=== Testing ${scenario} ==="
@@ -79,13 +166,13 @@ for dir in "${ROOT}"/examples/scenarios/acme-*/; do
     fi
   fi
   echo ""
-done
+done <<< "$SCENARIO_LIST"
 
 if [ "$failed" -eq 0 ]; then
-  echo "DONE: all scenario tests passed"
+  echo "DONE: all scenario tests passed (suite=${SUITE})"
   echo "NEXT: none"
   exit 0
 fi
-echo "DONE: one or more scenario tests failed (diag: ${DIAG_DIR})"
+echo "DONE: one or more scenario tests failed (suite=${SUITE}; diag: ${DIAG_DIR})"
 echo "NEXT: inspect terraform test output and ${DIAG_DIR}"
 exit 1
