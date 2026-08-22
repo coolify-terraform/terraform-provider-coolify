@@ -16,6 +16,10 @@ def run_need(suite: str, env_updates: dict[str, str] | None = None) -> subproces
     env = os.environ.copy()
     env.pop("GITHUB_APP_ID", None)
     env.pop("HETZNER_TOKEN", None)
+    env.pop("COOLIFY_GITHUB_APP_APP_ID", None)
+    env.pop("COOLIFY_HETZNER_TOKEN", None)
+    env.pop("TF_VAR_github_app_id", None)
+    env.pop("TF_VAR_hetzner_api_token", None)
     if env_updates:
         env.update(env_updates)
     return subprocess.run(
@@ -32,6 +36,10 @@ class TestCIScenarioSuiteNeed(unittest.TestCase):
         env = os.environ.copy()
         env.pop("GITHUB_APP_ID", None)
         env.pop("HETZNER_TOKEN", None)
+        env.pop("COOLIFY_GITHUB_APP_APP_ID", None)
+        env.pop("COOLIFY_HETZNER_TOKEN", None)
+        env.pop("TF_VAR_github_app_id", None)
+        env.pop("TF_VAR_hetzner_api_token", None)
         proc = subprocess.run(
             ["bash", str(SCRIPT)],
             cwd=ROOT,
@@ -74,6 +82,16 @@ class TestCIScenarioSuiteNeed(unittest.TestCase):
 
     def test_hetzner_runs_with_secret(self) -> None:
         proc = run_need("hetzner", {"HETZNER_TOKEN": "tok"})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "run=true")
+
+    def test_github_cicd_accepts_coolify_env_name(self) -> None:
+        proc = run_need("github-cicd", {"COOLIFY_GITHUB_APP_APP_ID": "123"})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "run=true")
+
+    def test_hetzner_accepts_tf_var_name(self) -> None:
+        proc = run_need("hetzner", {"TF_VAR_hetzner_api_token": "tok"})
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(proc.stdout.strip(), "run=true")
 
