@@ -462,6 +462,17 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
         for f in fields:
             if f not in existing:
                 existing.append(f)
+
+    # InstanceEmailSettingsController (v4.3.10+) has no $allowedFields.
+    # The public write/read list is private const FIELDS, used via Arr::only
+    # in serialize() and filled from customApiValidator() on update().
+    if "FIELDS" in constants and "self::FIELDS" in content:
+        for method in ("update", "show"):
+            if re.search(rf"function\s+{method}\s*\(", content):
+                existing = result.setdefault(method, [])
+                for f in constants["FIELDS"]:
+                    if f not in existing:
+                        existing.append(f)
     return result
 
 

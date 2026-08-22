@@ -646,6 +646,35 @@ private function channelConfig(string $channel): array {
         rules = ec.extract_channel_config_rules(php)
         self.assertEqual(rules["webhook"], ["webhook_enabled", "webhook_url"])
 
+    def test_const_fields_without_allowed_fields(self):
+        # InstanceEmailSettingsController lists SMTP/Resend keys in
+        # private const FIELDS and never assigns $allowedFields.
+        php = """<?php
+class InstanceEmailSettingsController {
+    private const FIELDS = [
+        'smtp_enabled', 'smtp_from_address', 'smtp_host', 'resend_enabled',
+    ];
+
+    public function show(): JsonResponse {
+        return response()->json(Arr::only($settings->toArray(), self::FIELDS));
+    }
+
+    public function update(Request $request): JsonResponse {
+        $settings->fill($validator->validated());
+        return response()->json(Arr::only($settings->toArray(), self::FIELDS));
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        want = [
+            "smtp_enabled",
+            "smtp_from_address",
+            "smtp_host",
+            "resend_enabled",
+        ]
+        self.assertEqual(result["update"], want)
+        self.assertEqual(result["show"], want)
+
     def test_self_const_spread_expanded(self):
         # ApplicationsController (v4.2+) ends $allowedFields with
         # ...self::APPLICATION_SETTING_FIELDS. Without expansion the contract

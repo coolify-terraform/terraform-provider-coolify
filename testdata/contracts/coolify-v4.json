@@ -7698,6 +7698,38 @@
         "cloud_init_script",
         "instant_validate"
       ]
+    },
+    "InstanceEmailSettingsController::show": {
+      "allowed_fields": [
+        "smtp_enabled",
+        "smtp_from_address",
+        "smtp_from_name",
+        "smtp_host",
+        "smtp_port",
+        "smtp_encryption",
+        "smtp_username",
+        "smtp_password",
+        "smtp_timeout",
+        "smtp_ehlo_domain",
+        "resend_enabled",
+        "resend_api_key"
+      ]
+    },
+    "InstanceEmailSettingsController::update": {
+      "allowed_fields": [
+        "smtp_enabled",
+        "smtp_from_address",
+        "smtp_from_name",
+        "smtp_host",
+        "smtp_port",
+        "smtp_encryption",
+        "smtp_username",
+        "smtp_password",
+        "smtp_timeout",
+        "smtp_ehlo_domain",
+        "resend_enabled",
+        "resend_api_key"
+      ]
     }
   },
   "enums": {
