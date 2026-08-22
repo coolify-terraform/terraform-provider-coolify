@@ -88,6 +88,28 @@ for pkg in "${heavy_pins[@]}"; do
   pin_i=$((pin_i + 1))
 done
 
+# 1c) Remaining heavies stay off shard 0 so a new light package (round-robin
+# insert) cannot push scheduledtask/storage back onto application.
+extra_i=0
+for pkg in "${heavy_pins[@]}"; do
+  if ! pkg_in_module "$pkg"; then
+    continue
+  fi
+  if grep -Fxq "$pkg" "$assigned_file" 2>/dev/null; then
+    continue
+  fi
+  if (( count >= 2 )); then
+    target=$((1 + extra_i % (count - 1)))
+  else
+    target=0
+  fi
+  extra_i=$((extra_i + 1))
+  printf '%s\n' "$pkg" >>"$assigned_file"
+  if (( target == shard )); then
+    printf '%s\n' "$pkg" >>"$selected_file"
+  fi
+done
+
 # 2b) Split application across shards 0 and 1 when the matrix is wide enough.
 # Shard 0 already has it from the exclusive pin. Shard 1 runs the complementary
 # test files (see ci.yml -tags=ci_app_b) in the same gotestsum as service.
