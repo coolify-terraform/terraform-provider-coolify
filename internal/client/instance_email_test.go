@@ -89,6 +89,23 @@ func TestClient_GetInstanceEmailSettings_NotFound(t *testing.T) {
 	assert.True(t, client.IsNotFound(err))
 }
 
+func TestClient_GetInstanceEmailSettings_APIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = w.Write([]byte(`{"message":"Validation failed."}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	c := client.New(srv.URL, "test-token")
+	_, err := c.GetInstanceEmailSettings(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "getting instance email settings")
+	assert.False(t, client.IsNotFound(err))
+}
+
 func TestClient_UpdateInstanceEmailSettings_APIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()

@@ -234,6 +234,157 @@ func TestInstanceEmailSettingsResource_ReadNotFound(t *testing.T) {
 	})
 }
 
+func TestInstanceEmailSettingsResource_ReadAPIError(t *testing.T) {
+	t.Parallel()
+	var getCount int
+	var patchDone bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		getCount++
+		if patchDone && getCount >= 2 {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		patchDone = true
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.10"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+				ExpectError: regexp.MustCompile(`Error reading instance email settings`),
+			},
+		},
+	})
+}
+
+func TestInstanceEmailSettingsResource_UpdateAPIError(t *testing.T) {
+	t.Parallel()
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		patches++
+		if patches == 2 {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.10"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.updated.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+				ExpectError: regexp.MustCompile(`Error updating instance email settings`),
+			},
+		},
+	})
+}
+
+func TestInstanceEmailSettingsResource_DestroyAPIError(t *testing.T) {
+	t.Parallel()
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		patches++
+		if patches == 2 {
+			http.Error(w, `{"message":"Validation failed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.10"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+			},
+			{
+				Config:      acctest.ProviderBlockForURL(srv.URL),
+				ExpectError: regexp.MustCompile(`Error disabling instance email settings on destroy`),
+			},
+		},
+	})
+}
+
+func TestInstanceEmailSettingsResource_CreateUnsupportedVersion(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.9"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled = true
+`),
+				ExpectError: regexp.MustCompile(`Coolify version cannot manage instance email settings`),
+			},
+		},
+	})
+}
+
 func TestInstanceEmailSettingsResource_DestroyNotFound(t *testing.T) {
 	t.Parallel()
 	var patches int
