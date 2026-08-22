@@ -63,6 +63,28 @@ data "coolify_instance_email_settings" "test" {}
 	})
 }
 
+func TestInstanceEmailSettingsDataSource_ReadNotFound(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.10"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_instance_email_settings" "test" {}
+`,
+				ExpectError: regexp.MustCompile(`Error reading instance email settings`),
+			},
+		},
+	})
+}
+
 func TestInstanceEmailSettingsDataSource_ReadUnsupportedVersion(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
