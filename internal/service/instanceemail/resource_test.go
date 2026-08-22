@@ -154,3 +154,120 @@ func TestInstanceEmailSettingsResource_CreateAPIError(t *testing.T) {
 		},
 	})
 }
+
+func TestInstanceEmailSettingsResource_DestroyDisables(t *testing.T) {
+	t.Parallel()
+	store := &mockInstanceEmail{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(_ *terraform.State) error {
+			store.mu.Lock()
+			defer store.mu.Unlock()
+			if store.SMTPEnabled || store.ResendEnabled {
+				return fmt.Errorf("expected smtp and resend false after destroy: smtp=%v resend=%v",
+					store.SMTPEnabled, store.ResendEnabled)
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled   = true
+  resend_enabled = true
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "smtp_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "resend_enabled", "true"),
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL),
+			},
+		},
+	})
+}
+
+func TestInstanceEmailSettingsResource_ReadNotFound(t *testing.T) {
+	t.Parallel()
+	var gone bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		if gone {
+			http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.10"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+			},
+			{
+				PreConfig: func() { gone = true },
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestInstanceEmailSettingsResource_DestroyNotFound(t *testing.T) {
+	t.Parallel()
+	var patches int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	mux.HandleFunc("PATCH /api/v1/settings/email", func(w http.ResponseWriter, _ *http.Request) {
+		patches++
+		if patches >= 2 {
+			http.Error(w, `{"message":"Not found."}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"smtp_enabled":true,"smtp_host":"smtp.example.com","smtp_port":587,"smtp_encryption":"starttls"}`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.10"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled    = true
+  smtp_host       = "smtp.example.com"
+  smtp_port       = 587
+  smtp_encryption = "starttls"
+`),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL),
+			},
+		},
+	})
+}
