@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.18](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.17...v0.1.18) (2026-08-22)
+
+
+### Features
+
+* add instance email settings data source ([#804](https://github.com/coolify-terraform/terraform-provider-coolify/issues/804)) ([4632a5a](https://github.com/coolify-terraform/terraform-provider-coolify/commit/4632a5a407a36372acad904b082ad2152b0d3bd1))
+* **notification:** add smtp_ehlo_domain to email notifications ([#800](https://github.com/coolify-terraform/terraform-provider-coolify/issues/800)) ([f49d954](https://github.com/coolify-terraform/terraform-provider-coolify/commit/f49d954f238e46fdd98855f86b602f89a9a3e74e))
+* pin Coolify v4.3.10 and add instance email settings ([#802](https://github.com/coolify-terraform/terraform-provider-coolify/issues/802)) ([6346ad7](https://github.com/coolify-terraform/terraform-provider-coolify/commit/6346ad7f02520dacc94f972fb3ed8864101fc946))
+
+
+### Bug Fixes
+
+* validate SMTP from-address and extract instance email FIELDS ([#805](https://github.com/coolify-terraform/terraform-provider-coolify/issues/805)) ([23768ac](https://github.com/coolify-terraform/terraform-provider-coolify/commit/23768ac5182dc8ae168b0eeb78ad594b357b31dd))
+
 ## [0.1.17](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.16...v0.1.17) (2026-08-19)
 
 
