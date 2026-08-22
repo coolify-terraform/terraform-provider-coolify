@@ -17,7 +17,7 @@ This provider is a complete rewrite using the Terraform Plugin Framework
 (not the older SDK v2). It offers:
 
 - **57 resources** vs. ~10 in the community provider
-- **69 data sources** with filtering support
+- **70 data sources** with filtering support
 - **1180+ tests** (unit + acceptance + scenario)
 - Database backup management, scheduled tasks, storage volumes,
   cloud tokens, GitHub App sources, and resource actions (start/stop/restart)

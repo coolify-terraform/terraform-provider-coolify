@@ -317,6 +317,7 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		hetzner.NewNetworksDataSource,
 		hetzner.NewServerTypesDataSource,
 		hetzner.NewSSHKeysDataSource,
+		instanceemail.NewDataSource,
 		notificationdiscord.NewDataSource,
 		notificationemail.NewDataSource,
 		notificationpushover.NewDataSource,

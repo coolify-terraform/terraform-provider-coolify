@@ -101,7 +101,7 @@ needs Coolify >= 4.2.0; see [Connecting Resources](connecting-resources).
 | `coolify_notification_discord` | Team Discord notification settings |
 | `coolify_notification_slack` | Team Slack notification settings |
 | `coolify_notification_email` | Team email (SMTP/Resend) notification settings |
-| `coolify_instance_email_settings` | Instance-wide SMTP/Resend (`GET`/`PATCH /settings/email`). **Requires Coolify >= v4.3.10** and a root-team token. |
+| `coolify_instance_email_settings` | Instance-wide SMTP/Resend resource and data source (`GET`/`PATCH /settings/email`). **Requires Coolify >= v4.3.10** and a root-team token. |
 | `coolify_notification_telegram` | Team Telegram notification settings |
 | `coolify_notification_webhook` | Team generic webhook notification settings |
 | `coolify_notification_pushover` | Team Pushover notification settings |

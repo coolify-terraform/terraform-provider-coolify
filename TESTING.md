@@ -404,13 +404,14 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_docker_cleanup` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves schedule |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
-### Data Sources (69 total)
+### Data Sources (70 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
 | `coolify_notification_discord` | Yes | Team singleton; Coolify >= v4.3.0 |
 | `coolify_notification_slack` | Yes | Team singleton; Coolify >= v4.3.0 |
 | `coolify_notification_email` | Yes | Team singleton; Coolify >= v4.3.0 |
+| `coolify_instance_email_settings` | Yes | Instance singleton; Coolify >= v4.3.10; root-team token |
 | `coolify_notification_telegram` | Yes | Team singleton; Coolify >= v4.3.0 |
 | `coolify_notification_webhook` | Yes | Team singleton; Coolify >= v4.3.0 |
 | `coolify_notification_pushover` | Yes | Team singleton; Coolify >= v4.3.0 |
@@ -472,7 +473,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 45/45 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 148
+- **Total acceptance test functions**: 149
 
 ### Primary-field update coverage
 

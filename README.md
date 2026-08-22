@@ -30,8 +30,8 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 | Area | Coverage |
 |---|---|
 | Managed resources | 57 |
-| Data sources | 69 |
-| Tests | 1500+ unit and acceptance tests |
+| Data sources | 70 |
+| Tests | 1510+ unit and acceptance tests |
 | Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -195,6 +195,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_team` / `coolify_teams` / `coolify_team_members` | Read team(s) and members |
 | `coolify_health` | Read Coolify instance health status |
 | `coolify_notification_discord` / `coolify_notification_slack` / `coolify_notification_email` / `coolify_notification_telegram` / `coolify_notification_webhook` / `coolify_notification_pushover` | Read team notification channel settings (Coolify >= v4.3.0) |
+| `coolify_instance_email_settings` | Read instance-wide SMTP/Resend settings (Coolify >= v4.3.10; root-team token) |
 | `coolify_version` | Read the Coolify instance version |
 | `coolify_hetzner_images` / `coolify_hetzner_locations` / `coolify_hetzner_server_types` / `coolify_hetzner_ssh_keys` / `coolify_hetzner_firewalls` / `coolify_hetzner_networks` | Read Hetzner cloud resources (firewalls and networks require Coolify >= v4.2.0) |
 | `coolify_digitalocean_regions` / `coolify_digitalocean_sizes` / `coolify_digitalocean_images` / `coolify_digitalocean_ssh_keys` | Read DigitalOcean cloud resources (Coolify >= v4.2.0) |
@@ -334,7 +335,7 @@ targets from [GNUmakefile](GNUmakefile).
 
 ```bash
 make build                                      # Compile the provider
-make test                                       # Run unit tests (1500+ tests, race detector enabled)
+make test                                       # Run unit tests (1510+ tests, race detector enabled)
 make test-pkg PKG=./internal/service/project/   # Run one package with repo-standard unit-test flags
 make testacc-pkg PKG=./internal/service/project/ # Run one package with serialized repo-standard acceptance-test flags
 make testacc                                    # Run acceptance tests with serialized package and in-package execution
