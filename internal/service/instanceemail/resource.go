@@ -71,9 +71,20 @@ func (r *instanceEmailResource) Schema(_ context.Context, _ resource.SchemaReque
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
-			"smtp_from_address": notificationcommon.StringSensitiveOmit("SMTP From address."),
-			"smtp_from_name":    notificationcommon.StringSensitiveOmit("SMTP From display name."),
-			"smtp_host":         notificationcommon.StringSensitiveOmit("SMTP host."),
+			"smtp_from_address": schema.StringAttribute{
+				MarkdownDescription: "SMTP From address." + notificationcommon.SensitiveOmitSuffix + " Must be a valid email address.",
+				Optional:            true,
+				Computed:            true,
+				Sensitive:           true,
+				Validators: []validator.String{
+					validate.Email(),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"smtp_from_name": notificationcommon.StringSensitiveOmit("SMTP From display name."),
+			"smtp_host":      notificationcommon.StringSensitiveOmit("SMTP host."),
 			"smtp_port": schema.Int64Attribute{
 				MarkdownDescription: "SMTP port (1-65535).",
 				Optional:            true,
@@ -286,6 +297,9 @@ func updateInputFromPlan(plan, state model) client.UpdateInstanceEmailInput {
 }
 
 func flatten(api *client.InstanceEmailSettings, m *model) {
+	if api == nil || m == nil {
+		return
+	}
 	m.ID = types.StringValue(notificationcommon.ImportIDCurrent)
 	m.SMTPEnabled = types.BoolValue(api.SMTPEnabled)
 	m.ResendEnabled = types.BoolValue(api.ResendEnabled)

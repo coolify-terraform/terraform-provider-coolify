@@ -132,6 +132,26 @@ func TestInstanceEmailSettingsResource_CreateUpdateImport(t *testing.T) {
 	})
 }
 
+func TestInstanceEmailSettingsResource_InvalidFromAddress(t *testing.T) {
+	t.Parallel()
+	store := &mockInstanceEmail{}
+	srv := newMockServer(store)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_instance_email_settings", "test", `
+  smtp_enabled      = true
+  smtp_from_address = "not-an-email"
+`),
+				ExpectError: regexp.MustCompile(`Invalid email address`),
+			},
+		},
+	})
+}
+
 func TestInstanceEmailSettingsResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
