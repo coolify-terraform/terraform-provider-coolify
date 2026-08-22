@@ -40,7 +40,7 @@ output "notifications" {
 - `server_patch` (Boolean) Whether email notifications are sent for server patch events.
 - `server_reachable` (Boolean) Whether email notifications are sent for server reachable events.
 - `server_unreachable` (Boolean) Whether email notifications are sent for server unreachable events.
-- `smtp_ehlo_domain` (String) Hostname sent with SMTP EHLO. Coolify v4.x after #11398 (tip/nightly 4.3.10); not in tag v4.3.9.
+- `smtp_ehlo_domain` (String) Hostname sent with SMTP EHLO. Requires Coolify >= v4.3.10.
 - `smtp_enabled` (Boolean) Whether SMTP delivery is enabled.
 - `smtp_encryption` (String) SMTP encryption (`starttls`, `tls`, or `none`).
 - `smtp_from_address` (String, Sensitive) SMTP From address. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).

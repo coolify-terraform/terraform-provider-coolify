@@ -11,9 +11,9 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 244 covered / 296 registry entries (82.4%)  
+**Coverage**: 246 covered / 298 registry entries (82.6%)  
 **Planned**: 0 | **Skipped**: 52  
-**Registry size**: 296 (contract routes + allowlisted extras)
+**Registry size**: 298 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
 
@@ -410,6 +410,13 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | `GET /gitlab-apps` | v0.1.15 |
 | `PATCH /gitlab-apps/{gitlab_app_id}` | v0.1.15 |
 | `POST /gitlab-apps` | v0.1.15 |
+
+### `coolify_instance_email_settings`
+
+| Route | Since |
+|-------|-------|
+| `GET /settings/email` | v0.1.18 |
+| `PATCH /settings/email` | v0.1.18 |
 
 ### `coolify_notification_discord`
 
@@ -1128,6 +1135,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /services/{uuid}/stop` | covered | `coolify_resource_action` |
 | `GET /services/{uuid}/storages` | covered | `data.coolify_storages` |
 | `GET /services/{uuid}/tags` | covered | `coolify_tag + coolify_resource_tag` |
+| `GET /settings/email` | covered | `coolify_instance_email_settings` |
 | `GET /tags` | covered | `coolify_tag + coolify_resource_tag` |
 | `GET /team` | skipped | `alias` |
 | `GET /team/envs` | covered | `coolify_shared_environment_variable` |
@@ -1183,6 +1191,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `PATCH /services/{uuid}/envs/bulk` | covered | `client.BulkUpdateEnvVars` |
 | `PATCH /services/{uuid}/scheduled-tasks/{task_uuid}` | covered | `coolify_scheduled_task` |
 | `PATCH /services/{uuid}/storages` | covered | `coolify_storage` |
+| `PATCH /settings/email` | covered | `coolify_instance_email_settings` |
 | `PATCH /tags/{uuid}` | covered | `coolify_tag + coolify_resource_tag` |
 | `PATCH /team/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
 | `POST /applications/dockercompose` | skipped | `deprecated` |

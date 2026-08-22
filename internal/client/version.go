@@ -98,8 +98,8 @@ func (c *Client) SupportsApplicationSettingsV43() bool {
 // smtp_ehlo_domain on GET/PATCH /notifications/email.
 //
 // The field landed on branch v4.x in coollabsio/coolify#11398 after tag
-// v4.3.9. Tip and nightly report 4.3.10; there is no v4.3.10 git tag yet.
-// 4.4-rc.1 includes the same field. Sending the key to v4.3.9 extra-key 422s.
+// v4.3.9 and is in git tag v4.3.10 (and 4.4-rc.1). Sending the key to
+// v4.3.9 extra-key 422s.
 const minSMTPEhloDomainVersion = "4.3.10"
 
 // SupportsSMTPEhloDomain reports whether the connected instance accepts

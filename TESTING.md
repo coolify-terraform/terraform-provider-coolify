@@ -346,7 +346,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (56 total)
+### Resources (57 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -371,6 +371,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_github_app` | Yes | Yes | N/A | Yes | Uses a Terraform-managed private key fixture; create/update work without repository access |
 | `coolify_notification_discord` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
 | `coolify_notification_email` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
+| `coolify_instance_email_settings` | Yes | Yes | Yes | Yes | Instance singleton; requires Coolify >= v4.3.10 and a root-team token |
 | `coolify_notification_telegram` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
 | `coolify_notification_slack` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
 | `coolify_notification_pushover` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
@@ -471,7 +472,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 - **Resources**: 45/45 direct acceptance coverage
 - **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 147
+- **Total acceptance test functions**: 148
 
 ### Primary-field update coverage
 

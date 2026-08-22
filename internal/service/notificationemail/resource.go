@@ -112,8 +112,7 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 		},
 		"smtp_ehlo_domain": schema.StringAttribute{
 			MarkdownDescription: "Hostname sent with SMTP EHLO. Set a valid hostname, or omit to use Coolify's default. " +
-				"Coolify v4.x after [coollabsio/coolify#11398](https://github.com/coollabsio/coolify/pull/11398) " +
-				"(tip/nightly `4.3.10` and `4.4-rc.1`); not in tag `v4.3.9`. " +
+				"Requires Coolify >= v4.3.10 ([coollabsio/coolify#11398](https://github.com/coollabsio/coolify/pull/11398)). " +
 				"On older instances the provider keeps the value in state and does not send it.",
 			Optional: true,
 			Computed: true,
@@ -381,9 +380,9 @@ func warnUnsupportedSMTPEhloDomain(c *client.Client, plan model, diags *diag.Dia
 	diags.AddWarning(
 		"Coolify version cannot write smtp_ehlo_domain",
 		fmt.Sprintf(
-			"This Coolify instance (%s) does not accept smtp_ehlo_domain (added in Coolify v4.x after #11398; not in tag v4.3.9). "+
+			"This Coolify instance (%s) does not accept smtp_ehlo_domain (added in Coolify v4.3.10 after #11398). "+
 				"The provider will keep the value in Terraform state but will not send it to the Coolify API. "+
-				"Upgrade to a nightly/tip 4.3.10 or later build, or remove smtp_ehlo_domain from configuration.",
+				"Upgrade to Coolify v4.3.10 or later, or remove smtp_ehlo_domain from configuration.",
 			ver,
 		),
 	)

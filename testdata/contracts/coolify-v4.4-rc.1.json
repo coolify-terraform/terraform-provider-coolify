@@ -1,7 +1,7 @@
 {
-  "version": "v4.3.10",
-  "extracted_from": "coollabsio/coolify@v4.3.10",
-  "extracted_at": "2026-08-22T15:58:40.522671+00:00",
+  "version": "v4.4-rc.1",
+  "extracted_from": "coollabsio/coolify@v4.4-rc.1",
+  "extracted_at": "2026-08-22T15:56:13.871893+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -10458,6 +10458,5 @@
         "api.ability:read"
       ]
     }
-  ],
-  "notes": "Pin is tag v4.3.10. Includes smtp_ehlo_domain on NotificationsController::update_email (coollabsio/coolify#11398) and InstanceEmailSettingsController GET/PATCH /settings/email."
+  ]
 }

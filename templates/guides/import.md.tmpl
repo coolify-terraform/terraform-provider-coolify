@@ -52,9 +52,11 @@ terraform import coolify_notification_email.main current
 terraform import coolify_notification_telegram.main current
 terraform import coolify_notification_webhook.main current
 terraform import coolify_notification_pushover.main current
+terraform import coolify_instance_email_settings.main current
 ```
 
-Requires Coolify >= v4.3.0. On destroy, these resources **disable** the channel
+Notification channels require Coolify >= v4.3.0. `coolify_instance_email_settings`
+requires Coolify >= v4.3.10 and a root-team token. On destroy, these resources **disable** the channel
 (`enabled = false` or email SMTP/Resend off); they do not delete Coolify-side
 webhook URLs or secrets. Keep secrets in configuration after import (see table below).
 
@@ -193,6 +195,7 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | `coolify_notification_telegram` | `token`, `chat_id`, thread id fields (sensitive; may be omitted without `read:sensitive`) |
 | `coolify_notification_pushover` | `user_key`, `api_token` (sensitive; may be omitted without `read:sensitive`) |
 | `coolify_notification_email` | SMTP/Resend passwords and API keys (sensitive; may be omitted without `read:sensitive`) |
+| `coolify_instance_email_settings` | SMTP/Resend passwords and API keys (sensitive; may be omitted without `read:sensitive`) |
 | Database backups | `database_uuid`, `s3_storage_uuid` when `save_s3 = true` |
 
 If these fields are missing, `terraform plan` will either show a diff
