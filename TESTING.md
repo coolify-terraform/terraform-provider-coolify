@@ -58,7 +58,7 @@ Coolify only when that suite will actually run):
 |-------|------|--------------------|
 | `core` | 16 `acme-*` except the two below | API and config applies; a few minutes after setup |
 | `github-cicd` | `acme-github-cicd` | Real deploy with `wait_for_completion` (up to 15m). Skips Coolify boot if GitHub App secrets are empty |
-| `hetzner` | `acme-hetzner-infra` | Two real Hetzner CX22 servers. Skips Coolify boot if `COOLIFY_HETZNER_TOKEN` is empty |
+| `hetzner` | `acme-hetzner-infra` | Two real Hetzner CX22 servers. Skips Coolify boot if Hetzner token is empty |
 
 Do not even-split the 18 dirs across many runners. Each extra suite is
 another Coolify image pull next to the two Acceptance Test boots.
@@ -70,6 +70,11 @@ Setup still fails at 180s for `compose up`, 180s for register, and
 bash scripts/run-scenario-tests.sh --suite core
 bash scripts/run-scenario-tests.sh --list --suite all
 ```
+
+CI uses `scripts/ci-scenario-suite-need.sh` to skip Coolify boot when the
+suite secret is empty. It accepts `GITHUB_APP_ID` /
+`COOLIFY_GITHUB_APP_APP_ID` / `TF_VAR_github_app_id` and `HETZNER_TOKEN` /
+`COOLIFY_HETZNER_TOKEN` / `TF_VAR_hetzner_api_token`.
 
 ## Acceptance Tests
 
