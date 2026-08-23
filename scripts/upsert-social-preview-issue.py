@@ -8,6 +8,8 @@ matched nothing and every release opened a duplicate.
 
 This script lists open issues by title and by the social-preview label,
 keeps the oldest as canonical, updates its body, and closes extras.
+If none are open, it reopens the oldest closed issue with that title
+instead of creating a new number.
 """
 
 from __future__ import annotations
@@ -54,13 +56,23 @@ def collect_candidates(
     return sorted(seen.values(), key=lambda i: int(i["number"]))
 
 
-def plan_upsert(candidates: list[dict[str, Any]]) -> dict[str, Any]:
+def plan_upsert(
+    candidates: list[dict[str, Any]],
+    closed: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     ordered = sorted(candidates, key=lambda i: int(i["number"]))
-    if not ordered:
-        return {"action": "create", "canonical": None, "close": []}
-    canonical = int(ordered[0]["number"])
-    extras = [int(i["number"]) for i in ordered[1:]]
-    return {"action": "update", "canonical": canonical, "close": extras}
+    if ordered:
+        canonical = int(ordered[0]["number"])
+        extras = [int(i["number"]) for i in ordered[1:]]
+        return {"action": "update", "canonical": canonical, "close": extras}
+    closed_ordered = sorted(closed or [], key=lambda i: int(i["number"]))
+    if closed_ordered:
+        return {
+            "action": "reopen",
+            "canonical": int(closed_ordered[0]["number"]),
+            "close": [],
+        }
+    return {"action": "create", "canonical": None, "close": []}
 
 
 def upsert(
@@ -103,7 +115,42 @@ def upsert(
             ]
         )
     )
-    plan = plan_upsert(collect_candidates(by_title, by_label))
+    closed = parse_issues(
+        gh(
+            [
+                "issue",
+                "list",
+                "--state",
+                "closed",
+                "--search",
+                f'in:title "{title}"',
+                "--json",
+                "number,title",
+                "--limit",
+                "50",
+            ]
+        )
+    )
+    closed = [i for i in closed if i.get("title") == title]
+    plan = plan_upsert(collect_candidates(by_title, by_label), closed)
+
+    if plan["action"] == "reopen":
+        canonical = plan["canonical"]
+        gh(["issue", "reopen", str(canonical)])
+        gh(["issue", "edit", str(canonical), "--body", body])
+        gh(
+            [
+                "issue",
+                "edit",
+                str(canonical),
+                "--add-label",
+                f"{label},{READY_LABEL}",
+                "--remove-label",
+                TRIAGE_LABEL,
+            ]
+        )
+        print(f"reopened #{canonical}")
+        return plan
 
     if plan["action"] == "create":
         out = gh(
