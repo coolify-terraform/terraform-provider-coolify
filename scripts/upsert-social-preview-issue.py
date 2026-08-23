@@ -8,6 +8,8 @@ matched nothing and every release opened a duplicate.
 
 This script lists open issues by title and by the social-preview label,
 keeps the oldest as canonical, updates its body, and closes extras.
+If none are open, it reopens the oldest closed issue with that title
+instead of creating a new number.
 """
 
 from __future__ import annotations

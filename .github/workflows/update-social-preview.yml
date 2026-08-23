@@ -162,6 +162,9 @@ jobs:
           python3 scripts/upload-social-preview.py
           ```
 
+          The script waits for `PUT /upload/repository-images/` 200. Stay on
+          Settings until it prints `OK:`. A new `og:image` URL is not enough.
+
           > **Skill reference:** `~/.grok/skills/github-web-admin/SKILL.md`
           > (section "Automating social preview updates in CI")
 
@@ -171,11 +174,12 @@ jobs:
           2. Scroll to **Social preview**
           3. Click **Edit** > **Upload an image...**
           4. Select `assets/social-preview.png` from your local checkout (after `git pull`)
-          5. Done
+          5. Wait until the preview box shows the image after a reload (not only the local file picker preview)
 
           ### Verify
 
-          Share the repo URL in a Discord/Slack DM to yourself. The preview card should show the updated stats.
+          `curl -sI` the `og:image` URL. Success is HTTP 200 and `content-type: image/`.
+          Then share the repo URL in a Discord/Slack DM. The card should show the new stats.
 
           ISSUE_BODY
           )
