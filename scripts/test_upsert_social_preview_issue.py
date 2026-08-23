@@ -21,6 +21,13 @@ class TestPlanUpsert(unittest.TestCase):
         plan = usp.plan_upsert([])
         self.assertEqual(plan, {"action": "create", "canonical": None, "close": []})
 
+    def test_closed_only_reopens_oldest(self) -> None:
+        plan = usp.plan_upsert(
+            [],
+            [{"number": 812, "title": usp.ISSUE_TITLE}, {"number": 774, "title": usp.ISSUE_TITLE}],
+        )
+        self.assertEqual(plan, {"action": "reopen", "canonical": 774, "close": []})
+
     def test_one_updates(self) -> None:
         plan = usp.plan_upsert([{"number": 774, "title": usp.ISSUE_TITLE}])
         self.assertEqual(plan, {"action": "update", "canonical": 774, "close": []})
@@ -113,6 +120,25 @@ class TestUpsert(unittest.TestCase):
         plan = usp.upsert("body", gh=gh)
         self.assertEqual(plan["canonical"], 774)
         self.assertEqual(plan["close"], [])
+
+    def test_reopens_closed_singleton(self) -> None:
+        calls: list[list[str]] = []
+
+        def gh(args: list[str]) -> str:
+            calls.append(args)
+            if args[:2] == ["issue", "list"] and "--state" in args:
+                idx = args.index("--state")
+                if args[idx + 1] == "closed":
+                    return json.dumps([{"number": 774, "title": usp.ISSUE_TITLE}])
+            if args[:2] == ["issue", "list"]:
+                return "[]"
+            return ""
+
+        plan = usp.upsert("body after next stats change", gh=gh)
+        self.assertEqual(plan["action"], "reopen")
+        self.assertEqual(plan["canonical"], 774)
+        self.assertTrue(any(c[:3] == ["issue", "reopen", "774"] for c in calls))
+        self.assertFalse(any(c[:2] == ["issue", "create"] for c in calls))
 
 
 if __name__ == "__main__":
