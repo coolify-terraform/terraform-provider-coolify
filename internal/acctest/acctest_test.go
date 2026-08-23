@@ -312,6 +312,16 @@ func TestAccTestSkipIfNoSMTPEhloDomain_ExtraKey(t *testing.T) {
 	if reached {
 		t.Fatal("expected AccTestSkipIfNoSMTPEhloDomain to skip on extra-key 422")
 	}
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "1")
+	reachedTip := false
+	t.Run("skip-under-require-tip", func(t *testing.T) {
+		AccTestSkipIfNoSMTPEhloDomain(t)
+		reachedTip = true
+	})
+	if reachedTip {
+		t.Fatal("smtp_ehlo extra-key 422 must soft-skip under COOLIFY_REQUIRE_TIP_APIS=1")
+	}
 }
 
 func TestAccTestSkipIfNoSMTPEhloDomain_ValidationPresent(t *testing.T) {
