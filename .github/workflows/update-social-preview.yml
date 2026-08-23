@@ -141,12 +141,6 @@ jobs:
           DATASOURCES: ${{ steps.stats.outputs.datasources }}
           TESTS: ${{ steps.stats.outputs.tests }}
         run: |
-          # Close any previous reminder issue
-          gh issue list --label social-preview --state open --json number --jq '.[].number' \
-            | while read -r num; do
-                gh issue close "$num" --comment "Superseded by new release."
-              done
-
           BODY=$(cat <<'ISSUE_BODY'
           ## Upload social preview image
 
@@ -189,7 +183,6 @@ jobs:
           BODY="${BODY}
           **Current stats:** ${RESOURCES} resources, ${DATASOURCES} data sources, ${TESTS} tests"
 
-          gh issue create \
-            --title "Upload social preview image" \
-            --label social-preview \
-            --body "$BODY"
+          BODY_FILE=$(mktemp)
+          printf '%s\n' "$BODY" > "$BODY_FILE"
+          python3 scripts/upsert-social-preview-issue.py --body-file "$BODY_FILE"
