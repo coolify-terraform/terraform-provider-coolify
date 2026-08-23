@@ -827,6 +827,89 @@ func AccTestSkipIfNoNotificationAPI(t *testing.T) {
 	}
 }
 
+// smtpEhloDomainProbeValue is not a valid hostname, so Coolify
+// ValidHostname 422s when smtp_ehlo_domain is on the allow list.
+// Extra-key 422 ("This field is not allowed.") means the field is
+// absent. Using an invalid value avoids mutating the team singleton.
+const smtpEhloDomainProbeValue = "not a hostname"
+
+// isExtraKeyNotAllowed reports whether a 422 body is Coolify rejecting
+// an unknown JSON key (not a field-level validation error).
+func isExtraKeyNotAllowed(msgLower string) bool {
+	return strings.Contains(msgLower, "this field is not allowed") ||
+		strings.Contains(msgLower, "field is not allowed")
+}
+
+// coolifyAcceptsSMTPEhloDomain extra-key PATCHes smtp_ehlo_domain on
+// /notifications/email. ok is true when Coolify treated the key as
+// allowed (validation 422 or 2xx). Do not use AccTestSkipIfCoolifyBelow
+// for this field: CI edge reports 4.3.0 while already shipping #11398.
+func coolifyAcceptsSMTPEhloDomain(t *testing.T) (ok bool, detail string) {
+	t.Helper()
+	TestAccPreCheck(t)
+
+	endpoint := strings.TrimRight(os.Getenv("COOLIFY_ENDPOINT"), "/")
+	token := os.Getenv("COOLIFY_TOKEN")
+	path := endpoint + "/api/v1/notifications/email"
+	body := `{"smtp_ehlo_domain":"` + smtpEhloDomainProbeValue + `"}`
+	req, err := http.NewRequest(http.MethodPatch, path, strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("building smtp_ehlo_domain probe request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, fmt.Sprintf("smtp_ehlo_domain extra-key probe failed (cannot reach Coolify): %v", err)
+	}
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	_ = resp.Body.Close()
+	msg := strings.ToLower(string(raw))
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated, http.StatusUnauthorized, http.StatusForbidden:
+		return true, ""
+	case http.StatusUnprocessableEntity:
+		if isExtraKeyNotAllowed(msg) {
+			return false, fmt.Sprintf("Coolify extra-key 422s smtp_ehlo_domain (need tip after coollabsio/coolify#11398). Body: %s",
+				truncateForSkip(string(raw), 200))
+		}
+		// Validation 422 (invalid hostname) means the field is allowed.
+		return true, ""
+	case http.StatusNotFound, http.StatusMethodNotAllowed:
+		return false, fmt.Sprintf("Coolify has no email notification PATCH (HTTP %d). Body: %s",
+			resp.StatusCode, truncateForSkip(string(raw), 200))
+	default:
+		if resp.StatusCode >= 500 {
+			return false, fmt.Sprintf("smtp_ehlo_domain extra-key probe returned HTTP %d: %s",
+				resp.StatusCode, truncateForSkip(string(raw), 200))
+		}
+		// Other 4xx still means a handler ran and did not extra-key reject.
+		return true, ""
+	}
+}
+
+// AccTestSkipIfNoSMTPEhloDomain skips when PATCH extra-key 422s
+// smtp_ehlo_domain (Coolify before #11398). When COOLIFY_REQUIRE_TIP_APIS=1
+// a missing field fails instead of skips.
+func AccTestSkipIfNoSMTPEhloDomain(t *testing.T) {
+	t.Helper()
+	ok, detail := coolifyAcceptsSMTPEhloDomain(t)
+	if !ok {
+		accTestMissingFeature(t, "%s", detail)
+	}
+}
+
+// AccTestSMTPEhloDomainAccepted reports whether extra-key PATCH accepts
+// smtp_ehlo_domain. It does not skip or fail.
+func AccTestSMTPEhloDomainAccepted(t *testing.T) bool {
+	t.Helper()
+	ok, _ := coolifyAcceptsSMTPEhloDomain(t)
+	return ok
+}
+
 // AccTestSkipIfCoolifyBelow skips (or fails with COOLIFY_REQUIRE_TIP_APIS=1)
 // when the connected Coolify version is older than min (e.g. "4.3.0").
 func AccTestSkipIfCoolifyBelow(t *testing.T, min string) {

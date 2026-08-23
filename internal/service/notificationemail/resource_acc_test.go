@@ -1,12 +1,9 @@
 package notificationemail_test
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -67,22 +64,12 @@ resource "coolify_notification_email" "test" {
 }
 
 // TestAccEmailNotificationResource_SMTPEhloDomain writes smtp_ehlo_domain
-// (Coolify tip after #11398). Soft-skip when the instance version string is
-// below 4.3.10. Do not use AccTestSkipIfCoolifyBelow: CI edge often reports
-// 4.3.0 and COOLIFY_REQUIRE_TIP_APIS=1 would fail a 4.3.10 floor.
+// (Coolify tip after #11398). Extra-key PATCH probe, not version string:
+// CI edge often reports 4.3.0 while already accepting the field.
 func TestAccEmailNotificationResource_SMTPEhloDomain(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.AccTestSkipIfNoNotificationAPI(t)
-	c := acctest.AccTestClient(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	ver, err := c.GetVersion(ctx)
-	if err != nil {
-		t.Fatalf("reading Coolify version: %v", err)
-	}
-	if !client.IsVersionAtLeast(ver, "4.3.10") {
-		t.Skipf("smtp_ehlo_domain needs Coolify >= 4.3.10 (instance reports %s)", ver)
-	}
+	acctest.AccTestSkipIfNoSMTPEhloDomain(t)
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),

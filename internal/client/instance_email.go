@@ -66,8 +66,13 @@ func (c *Client) UpdateInstanceEmailSettings(ctx context.Context, input UpdateIn
 
 // SupportsInstanceEmailSettings reports whether GET/PATCH /settings/email exists.
 // The route landed in Coolify v4.3.10. Empty CoolifyVersion reports true.
+// A 4.3.0 version string also reports true (CI edge version lie; same as
+// SupportsSMTPEhloDomain). Acc tests still GET-probe the route.
 func (c *Client) SupportsInstanceEmailSettings() bool {
 	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minSMTPEhloDomainVersion)
