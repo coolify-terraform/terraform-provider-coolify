@@ -185,6 +185,8 @@ func TestSupportsSMTPEhloDomain(t *testing.T) {
 	}{
 		{"4.3.9", false},
 		{"v4.3.9", false},
+		{"4.3.0", true}, // CI edge version lie
+		{"v4.3.0-edge", true},
 		{"4.3.10", true},
 		{"v4.3.10", true},
 		{"4.4.0", true},

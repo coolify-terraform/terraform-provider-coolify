@@ -1,16 +1,13 @@
 package instanceemail_test
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
-	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -51,59 +48,54 @@ func accSkipIfNoInstanceEmailAPI(t *testing.T) {
 
 // TestAccInstanceEmailSettingsResource exercises GET/PATCH /settings/email.
 // Soft-skip when the route is missing. Do not use AccTestSkipIfCoolifyBelow(4.3.10):
-// CI edge often reports 4.3.0 and COOLIFY_REQUIRE_TIP_APIS=1 would fail that floor.
+// CI edge often reports 4.3.0. smtp_ehlo_domain is extra-key probed, not
+// version-gated.
 func TestAccInstanceEmailSettingsResource(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	accSkipIfNoInstanceEmailAPI(t)
-	c := acctest.AccTestClient(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	ver, err := c.GetVersion(ctx)
-	if err != nil {
-		t.Fatalf("reading Coolify version: %v", err)
-	}
-	if !client.IsVersionAtLeast(ver, "4.3.10") {
-		t.Skipf("Coolify %s is below 4.3.10; instance email settings not on this version string", ver)
-	}
 
-	resource.Test(t, resource.TestCase{
-		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{
-			{
-				Config: acctest.ConfigProviderBlock() + `
+	steps := []resource.TestStep{
+		{
+			Config: acctest.ConfigProviderBlock() + `
 resource "coolify_instance_email_settings" "test" {
   smtp_enabled    = false
   resend_enabled  = false
 }
 `,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "id", "current"),
-					resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "smtp_enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "resend_enabled", "false"),
-				),
-			},
-			{
-				Config: acctest.ConfigProviderBlock() + `
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "id", "current"),
+				resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "smtp_enabled", "false"),
+				resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "resend_enabled", "false"),
+			),
+		},
+	}
+	if acctest.AccTestSMTPEhloDomainAccepted(t) {
+		steps = append(steps, resource.TestStep{
+			Config: acctest.ConfigProviderBlock() + `
 resource "coolify_instance_email_settings" "test" {
   smtp_enabled     = false
   resend_enabled   = false
   smtp_ehlo_domain = "mail.example.com"
 }
 `,
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "smtp_ehlo_domain", "mail.example.com"),
-				),
-			},
-			{
-				ResourceName:      "coolify_instance_email_settings.test",
-				ImportState:       true,
-				ImportStateId:     "current",
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"smtp_from_address", "smtp_from_name", "smtp_host",
-					"smtp_username", "smtp_password", "resend_api_key",
-				},
-			},
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("coolify_instance_email_settings.test", "smtp_ehlo_domain", "mail.example.com"),
+			),
+		})
+	}
+	steps = append(steps, resource.TestStep{
+		ResourceName:      "coolify_instance_email_settings.test",
+		ImportState:       true,
+		ImportStateId:     "current",
+		ImportStateVerify: true,
+		ImportStateVerifyIgnore: []string{
+			"smtp_from_address", "smtp_from_name", "smtp_host",
+			"smtp_username", "smtp_password", "resend_api_key",
 		},
+	})
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps:                    steps,
 	})
 }

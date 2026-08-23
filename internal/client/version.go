@@ -102,12 +102,30 @@ func (c *Client) SupportsApplicationSettingsV43() bool {
 // v4.3.9 extra-key 422s.
 const minSMTPEhloDomainVersion = "4.3.10"
 
+// versionStringLagsTip reports GET /api/v1/version values that Coolify
+// :edge has used while already shipping later tip APIs.
+//
+// CI edge has reported "4.3.0" after tag v4.3.10 fields such as
+// smtp_ehlo_domain landed. Treat that string as "maybe tip" so the
+// provider sends the field. A real 4.3.0 install extra-key 422s if the
+// user sets a tip-only attribute.
+func versionStringLagsTip(ver string) bool {
+	v := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(ver)), "v")
+	return strings.HasPrefix(v, "4.3.0")
+}
+
 // SupportsSMTPEhloDomain reports whether the connected instance accepts
 // smtp_ehlo_domain on email notification GET/PATCH.
 //
 // Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
+// A 4.3.0 version string also reports true: CI edge lies with that
+// string while shipping later tip fields. Acc tests must still extra-key
+// probe before writing so a real 4.3.0 extra-key 422 is skipped.
 func (c *Client) SupportsSMTPEhloDomain() bool {
 	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minSMTPEhloDomainVersion)

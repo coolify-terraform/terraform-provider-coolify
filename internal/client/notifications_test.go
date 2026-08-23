@@ -149,6 +149,7 @@ func TestClient_EmailNotifications_SMTPEhloDomainVersionGate(t *testing.T) {
 		wantKey bool
 	}{
 		{"4.3.9 withholds", "4.3.9", false},
+		{"4.3.0 sends (CI edge version lie)", "4.3.0", true},
 		{"4.3.10 sends", "4.3.10", true},
 		{"4.4-rc.1 sends", "4.4-rc.1", true},
 		{"empty version sends", "", true},

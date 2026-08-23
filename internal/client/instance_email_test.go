@@ -165,6 +165,8 @@ func TestClient_SupportsInstanceEmailSettings(t *testing.T) {
 		want bool
 	}{
 		{"", true},
+		{"4.3.0", true},
+		{"v4.3.0-edge", true},
 		{"4.3.9", false},
 		{"v4.3.9", false},
 		{"4.3.10", true},
