@@ -519,6 +519,28 @@ Do not treat those as sufficient coverage if a new create/update validator
 split is found. Add a primary-field Update step instead. Mocks must reject
 keys the real Coolify controller would 422.
 
+### Writable list flatten vs GET order
+
+A Terraform `List` / `ListNested` on a resource is order-sensitive. If flatten
+copies Coolify GET order and the API relation is unordered, apply fails with
+"inconsistent result after apply" (#818).
+
+Mocks that rebuild GET from the last POST body in the same order hide this.
+A single-element list also hides it. Acc that never sets the list hides it.
+
+Guard: `TestResourceListAttributes_HaveOrderPolicy`. Inventory:
+
+| Attribute | Coolify GET | Policy |
+|-----------|-------------|--------|
+| `coolify_service.urls` | `applications` hasMany, no `orderBy` | Match by name; keep HCL order. Acc: `TestAccServiceResource_URLsOrder`. |
+| `noindex_domains` (application family) | JSON array; write unique/normalize; usually keeps write order | Keep HCL order when the URL set matches (case-insensitive). |
+| `docker_compose_domains` | Object map vs write array (string attr, not a list) | Semantic normalize + sort by service name (#652). |
+| `coolify_envs_bulk.variables` | Env list | Terraform `Map`; order is not in state. |
+| `hetzner_firewall_ids` / `hetzner_network_ids` | Not returned on GET | Create-only; flatten does not overwrite. |
+
+When adding a resource list, add a flatten test whose mock GET returns a
+different order than HCL (or document why GET cannot reorder it).
+
 ### Testing strategies for edge cases
 
 | Category | Strategy |

@@ -707,6 +707,7 @@ func applicationSettingAttrsV43() map[string]schema.Attribute {
 			ElementType: types.StringType,
 			MarkdownDescription: "Subset of application domain URLs served with an `X-Robots-Tag: noindex, nofollow` response header " +
 				"(keeps them out of search engines). Entries that are not among the application domains are ignored by Coolify. " +
+				"Read-back keeps this list's configured order when Coolify returns the same URLs (possibly reordered or with different host casing). " +
 				"Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
 			Optional:      true,
 			Computed:      true,
