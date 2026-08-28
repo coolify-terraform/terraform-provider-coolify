@@ -76,6 +76,45 @@ data "coolify_application" "test" {
 	})
 }
 
+func TestApplicationDataSource_NoindexDomains(t *testing.T) {
+	t.Parallel()
+	app := client.Application{
+		UUID:           "cccc0004-0004-4000-8000-000000000003",
+		Name:           "noindex-ds-app",
+		NoindexDomains: []string{"https://alpha.example.com", "https://zebra.example.com"},
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+data "coolify_application" "test" {
+  uuid = "cccc0004-0004-4000-8000-000000000003"
+}
+`, srv.URL),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("data.coolify_application.test", "noindex_domains.#", "2"),
+				resource.TestCheckResourceAttr("data.coolify_application.test", "noindex_domains.0", "https://alpha.example.com"),
+				resource.TestCheckResourceAttr("data.coolify_application.test", "noindex_domains.1", "https://zebra.example.com"),
+			),
+		}},
+	})
+}
+
 func TestApplicationDataSource_ConsistentContainerNameDefault(t *testing.T) {
 	t.Parallel()
 	app := client.Application{

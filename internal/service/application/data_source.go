@@ -46,6 +46,7 @@ type ApplicationDataSourceModel struct {
 	DockerRegistryImageName          types.String `tfsdk:"docker_registry_image_name"`
 	MaxRestartCount                  types.Int64  `tfsdk:"max_restart_count"`
 	IsConsistentContainerNameEnabled types.Bool   `tfsdk:"is_consistent_container_name_enabled"`
+	NoindexDomains                   types.List   `tfsdk:"noindex_domains"`
 }
 
 // NewDataSource returns a new ApplicationDataSource instance.
@@ -146,6 +147,13 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 					"Requires Coolify >= v4.3.0.",
 				Computed: true,
 			},
+			"noindex_domains": schema.ListAttribute{
+				ElementType: types.StringType,
+				MarkdownDescription: "Subset of application domain URLs served with an `X-Robots-Tag: noindex, nofollow` response header " +
+					"(keeps them out of search engines). Entries that are not among the application domains are ignored by Coolify. " +
+					"Requires Coolify >= v4.3.0. Omitted or empty on GET from older Coolify instances.",
+				Computed: true,
+			},
 		},
 	}
 }
@@ -193,6 +201,8 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	} else {
 		config.IsConsistentContainerNameEnabled = types.BoolValue(false)
 	}
+	config.NoindexDomains = types.ListNull(types.StringType)
+	flattenNoindexDomains(app.NoindexDomains, &config.NoindexDomains)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

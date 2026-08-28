@@ -37,16 +37,17 @@ output "coolify_version" {
 | **&lt; 4.1.0** | Configure fails. Upgrade Coolify. |
 | **4.1.x** | Core resources work. Version-gated 4.2/4.3 attributes stay in state if set, but are **not sent** on write (plan warning). |
 | **4.2.x** | 4.2 resources and application settings writes work. 4.3-only attributes still withheld with a plan warning. |
-| **≥ 4.3.0** | Full current surface: volume backup schedules, notification channels, `noindex_domains`, GPU/log-drain application settings, etc. |
+| **≥ 4.3.0** | 4.3 application settings, `noindex_domains`, notification channels, S3, volume backup schedules, GPU/log-drain, etc. |
+| **≥ 4.3.10** | Instance email settings and `smtp_ehlo_domain` on team email notifications. Recommended for the full feature set. |
 
-Pinned API contract today: Coolify **v4.3.10** (`testdata/contracts/coolify-v4.json`).
+Pinned API contract today: Coolify **v4.3.14** (`testdata/contracts/coolify-v4.json`).
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
 That route stays `nested-service` (use `coolify_service` for the stack).
 v4.3.10 adds instance-wide SMTP settings (`GET`/`PATCH /settings/email`) and
-`smtp_ehlo_domain` on team email notifications. Source tip and `v4.4-rc.1`
-match the 4.3.10 public API. The provider remains usable on 4.1.0+ for the
-common surface.
+`smtp_ehlo_domain` on team email notifications. Tags v4.3.11 through v4.3.14
+and `v4.4-rc.1` match that public API (0 write-path drift). The provider
+remains usable on 4.1.0+ for the common surface.
 
 ## Resources and data sources by Coolify version
 
@@ -196,7 +197,7 @@ PATCH if any disallowed field is present, so the provider strips them.
 | Topic | Guidance |
 |-------|----------|
 | Minimum Coolify for this provider | **4.1.0** |
-| Recommended Coolify for full feature set | **≥ 4.3.10** (matches current pin) |
+| Recommended Coolify for full feature set | **≥ 4.3.10** |
 | Provider package versions | Current 0.1.x line targets Coolify 4.1+ with soft gates for 4.2/4.3 APIs |
 
 Historical "0.2.x / 0.3.x min Coolify" rows in older docs referred to planned

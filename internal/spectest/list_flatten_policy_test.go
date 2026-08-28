@@ -73,4 +73,36 @@ func TestResourceListAttributes_HaveOrderPolicy(t *testing.T) {
 			t.Errorf("resourceListPolicy has stale key %s (attribute moved or renamed)", key)
 		}
 	}
+
+	declared := collectTestFuncNames(absRoot)
+	for key, policy := range resourceListPolicy {
+		if !looksLikeTestFunc.MatchString(policy) {
+			continue
+		}
+		if !declared[policy] {
+			t.Errorf("resourceListPolicy[%s] names %s but that test function is missing from *_test.go", key, policy)
+		}
+	}
+}
+
+var looksLikeTestFunc = regexp.MustCompile(`^Test[A-Za-z0-9_]+$`)
+
+var testFuncDecl = regexp.MustCompile(`(?m)^func (Test[A-Za-z0-9_]+)\(`)
+
+func collectTestFuncNames(serviceRoot string) map[string]bool {
+	names := map[string]bool{}
+	_ = filepath.Walk(serviceRoot, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() || !strings.HasSuffix(path, "_test.go") {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		for _, m := range testFuncDecl.FindAllSubmatch(data, -1) {
+			names[string(m[1])] = true
+		}
+		return nil
+	})
+	return names
 }

@@ -303,6 +303,10 @@ value the API returned on Read. Common triggers:
   a URL prefix, base64-encoded content)
 - **Default mismatch:** the provider's schema default differs from
   Coolify's actual default
+- **List reorder on `urls` / `noindex_domains`:** Coolify GET may return
+  these lists in a different order than HCL. The provider keeps the HCL
+  order when the set of values matches. If you still see this on an
+  older provider, upgrade, or reorder HCL to match GET as a workaround.
 
 **Fix:**
 1. Upgrade to a `root` API token (fixes most sensitive field issues)
@@ -310,6 +314,8 @@ value the API returned on Read. Common triggers:
    [API Behaviors](/#coolify-api-behaviors) in the docs index)
 3. If the field is a password you set, the token permissions are the
    most likely cause
+4. On `urls` or `noindex_domains`, upgrade the provider (it keeps HCL
+   order) or temporarily match HCL to the GET order
 
 ### Unexpected public domain (`sslip.io` or wildcard FQDN)
 

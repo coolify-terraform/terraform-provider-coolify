@@ -23,11 +23,24 @@ resource "coolify_service" "custom" {
   project_uuid = coolify_project.example.uuid
   server_uuid  = coolify_server.example.uuid
 
-  docker_compose_raw = file("docker-compose.yml")
+  docker_compose_raw = <<-EOT
+    services:
+      alpha:
+        image: nginx
+      zebra:
+        image: nginx
+  EOT
 
-  # Assign domains to service containers
-  urls = [{
-    name = "web"
-    url  = "https://app.example.com"
-  }]
+  # urls order is independent of compose order. Coolify GET may return
+  # applications alphabetically; the provider keeps this HCL order.
+  urls = [
+    {
+      name = "zebra"
+      url  = "https://zebra.example.com"
+    },
+    {
+      name = "alpha"
+      url  = "https://alpha.example.com"
+    },
+  ]
 }
