@@ -54,16 +54,14 @@ func TestFlattenNoindexDomains_ImportUsesAPIOrder(t *testing.T) {
 	}
 }
 
-func TestFlattenNoindexDomains_EmptyAPIClearsConfigured(t *testing.T) {
+func TestFlattenNoindexDomains_EmptyAPIPreservesConfigured(t *testing.T) {
 	t.Parallel()
 	configured := types.ListValueMust(types.StringType, []attr.Value{
-		types.StringValue("https://gone.example.com"),
+		types.StringValue("https://zebra.example.com"),
 	})
 	flattenNoindexDomains(nil, &configured)
-	if configured.IsNull() {
-		t.Fatal("configured empty API should be empty list, not null")
-	}
-	if got := stringListFromTypes(configured); len(got) != 0 {
-		t.Fatalf("got %v, want empty list", got)
+	got := stringListFromTypes(configured)
+	if len(got) != 1 || got[0] != "https://zebra.example.com" {
+		t.Fatalf("got %v, want configured zebra URL", got)
 	}
 }

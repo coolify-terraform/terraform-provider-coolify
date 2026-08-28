@@ -675,8 +675,8 @@ func flattenNoindexDomains(api []string, dst *types.List) {
 			*dst = types.ListNull(types.StringType)
 			return
 		}
-		// Configured (including empty list): reflect empty API as empty list.
-		*dst = types.ListValueMust(types.StringType, []attr.Value{})
+		// Configured (including empty list): keep current. Coolify < 4.3
+		// omits noindex_domains on GET; writing [] would fight the write gate.
 		return
 	}
 	if dst.IsNull() || dst.IsUnknown() {

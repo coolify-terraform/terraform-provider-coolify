@@ -2749,6 +2749,92 @@ func TestApplicationResource_NoindexPreservesConfigOrder(t *testing.T) {
 	})
 }
 
+func TestApplicationResource_NoindexKeptOnV42(t *testing.T) {
+	t.Parallel()
+	app := client.Application{
+		UUID:            "noindex-v42-uuid",
+		Name:            "noindex-v42-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "80",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName: "production",
+		Domains:         "https://zebra.example.com",
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	cfg := testApplicationResourceConfig(srv.URL, `
+					name             = "noindex-v42-app"
+					project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+					git_repository   = "https://github.com/example/repo"
+					build_pack       = "nixpacks"
+					ports_exposes    = "80"
+					domains          = "https://zebra.example.com"
+					noindex_domains  = ["https://zebra.example.com"]
+				`)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "uuid", app.UUID),
+					resource.TestCheckResourceAttr("coolify_application.test", "noindex_domains.#", "1"),
+					resource.TestCheckResourceAttr("coolify_application.test", "noindex_domains.0", "https://zebra.example.com"),
+				),
+			},
+			{
+				Config:             cfg,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 // TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset ensures we do
 // not send destination_uuid:null/"" which would change Coolify behavior.
 func TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
