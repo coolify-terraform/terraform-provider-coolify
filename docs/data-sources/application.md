@@ -45,6 +45,7 @@ data "coolify_application" "example" {
 - `is_consistent_container_name_enabled` (Boolean) Whether Coolify uses a consistent container name for this application. Coolify default is `false`. Set to `true` for apps that keep an exclusive file lock on a persistent volume (SQLite, DuckDB, LMDB, BoltDB). A fixed name makes Docker refuse a second container on the same mounts, so Coolify falls back to stop-then-start instead of a rolling update that would leave the new container unable to open the store while still reporting a successful deploy. Requires Coolify >= v4.3.0.
 - `max_restart_count` (Number) The maximum number of container restarts before Coolify stops the application.
 - `name` (String) The name of the application.
+- `noindex_domains` (List of String) Subset of application domain URLs served with an `X-Robots-Tag: noindex, nofollow` response header (keeps them out of search engines). Entries that are not among the application domains are ignored by Coolify. Requires Coolify >= v4.3.0. Omitted or empty on GET from older Coolify instances.
 - `ports_exposes` (String) The exposed ports.
 - `project_uuid` (String) The UUID of the project the application belongs to.
 - `server_uuid` (String) The UUID of the server the application is deployed on.
