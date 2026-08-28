@@ -988,14 +988,19 @@ func TestServiceResource_WithURLs(t *testing.T) {
 				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
-			// Return applications with fqdn to simulate the read-back.
-			apps := []map[string]interface{}{}
+			// Coolify GET applications is unordered (#818). Do not echo POST order.
+			apps := make([]map[string]interface{}, 0, len(lastURLs))
 			for _, u := range lastURLs {
 				apps = append(apps, map[string]interface{}{
 					"name": u["name"],
 					"fqdn": u["url"],
 				})
 			}
+			sort.Slice(apps, func(i, j int) bool {
+				ni, _ := apps[i]["name"].(string)
+				nj, _ := apps[j]["name"].(string)
+				return ni < nj
+			})
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":             svcUUID,
 				"name":             "plausible-svc",
@@ -1043,17 +1048,19 @@ resource "coolify_service" "test" {
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   type         = "plausible"
 
-  urls = [{
-    name = "web"
-    url  = "https://app.example.com"
-  }]
+  urls = [
+    { name = "zebra", url = "https://zebra.example.com" },
+    { name = "alpha", url = "https://alpha.example.com" },
+  ]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_service.test", "uuid", svcUUID),
-					resource.TestCheckResourceAttr("coolify_service.test", "urls.#", "1"),
-					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.name", "web"),
-					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.url", "https://app.example.com"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.#", "2"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.name", "zebra"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.url", "https://zebra.example.com"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.1.name", "alpha"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.1.url", "https://alpha.example.com"),
 				),
 			},
 			// Idempotency
@@ -1064,10 +1071,10 @@ resource "coolify_service" "test" {
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
   type         = "plausible"
 
-  urls = [{
-    name = "web"
-    url  = "https://app.example.com"
-  }]
+  urls = [
+    { name = "zebra", url = "https://zebra.example.com" },
+    { name = "alpha", url = "https://alpha.example.com" },
+  ]
 }
 `,
 				PlanOnly:           true,

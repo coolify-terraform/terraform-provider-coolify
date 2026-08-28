@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -669,16 +670,44 @@ func flattenNoindexDomains(api []string, dst *types.List) {
 	if dst == nil {
 		return
 	}
-	if len(api) > 0 {
-		*dst = stringListValue(api)
+	if len(api) == 0 {
+		if dst.IsNull() || dst.IsUnknown() {
+			*dst = types.ListNull(types.StringType)
+			return
+		}
+		// Configured (including empty list): reflect empty API as empty list.
+		*dst = types.ListValueMust(types.StringType, []attr.Value{})
 		return
 	}
 	if dst.IsNull() || dst.IsUnknown() {
-		*dst = types.ListNull(types.StringType)
+		*dst = stringListValue(api)
 		return
 	}
-	// Configured (including empty list): reflect empty API as empty list.
-	*dst = types.ListValueMust(types.StringType, []attr.Value{})
+	// Coolify stores a JSON array and may unique/normalize URLs. Keep the
+	// configured list order (and original casing) when the set matches.
+	if stringListEquivalent(stringListFromTypes(*dst), api) {
+		return
+	}
+	*dst = stringListValue(api)
+}
+
+func stringListEquivalent(configured, api []string) bool {
+	if len(configured) != len(api) {
+		return false
+	}
+	counts := make(map[string]int, len(api))
+	for _, s := range api {
+		counts[strings.ToLower(s)]++
+	}
+	for _, s := range configured {
+		k := strings.ToLower(s)
+		n := counts[k]
+		if n == 0 {
+			return false
+		}
+		counts[k] = n - 1
+	}
+	return true
 }
 
 func stringListValue(items []string) types.List {
