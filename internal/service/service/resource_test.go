@@ -1077,6 +1077,105 @@ resource "coolify_service" "test" {
 	})
 }
 
+// TestServiceResource_URLsPreservesConfigOrder is the #818 regression:
+// Coolify GET returns applications in a different order than HCL urls.
+func TestServiceResource_URLsPreservesConfigOrder(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	svcUUID := "svc-urls-order-001"
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			var body map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			urls, ok := body["urls"].([]interface{})
+			if !ok || len(urls) != 2 {
+				t.Errorf("POST urls = %#v, want 2 entries", body["urls"])
+			} else {
+				first, _ := urls[0].(map[string]interface{})
+				if first["name"] != "zebra" {
+					t.Errorf("POST urls[0].name = %v, want zebra", first["name"])
+				}
+			}
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"uuid": svcUUID})
+
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", svcUUID):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			// Alphabetical / insertion order, opposite of the HCL list.
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":             svcUUID,
+				"name":             "torrents",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name": "production",
+				"applications": []map[string]interface{}{
+					{"name": "alpha", "fqdn": "https://alpha.example.com"},
+					{"name": "zebra", "fqdn": "https://zebra.example.com"},
+				},
+			})
+
+		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/services/"):
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]interface{}{"uuid": svcUUID})
+
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", svcUUID):
+			deleted = true
+			w.WriteHeader(http.StatusOK)
+
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	cfg := acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service" "test" {
+  project_uuid       = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid        = "bbbb0001-0001-4000-8000-000000000001"
+  docker_compose_raw = "services:\n  alpha:\n    image: nginx\n  zebra:\n    image: nginx\n"
+
+  urls = [
+    { name = "zebra", url = "https://zebra.example.com" },
+    { name = "alpha", url = "https://alpha.example.com" },
+  ]
+}
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_service.test", "uuid", svcUUID),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.#", "2"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.name", "zebra"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.url", "https://zebra.example.com"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.1.name", "alpha"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.1.url", "https://alpha.example.com"),
+				),
+			},
+			{
+				Config:             cfg,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 // ---------------------------------------------------------------------------
 // TestServiceResource_CreateAPIError
 // ---------------------------------------------------------------------------

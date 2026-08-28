@@ -74,6 +74,67 @@ resource "coolify_service" "test" {
 `, projectName, serverUUID, serviceName, description)
 }
 
+func TestAccServiceResource_URLsOrder(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-svc-urls")
+	suffix := acctest.RandomWithPrefix("tf")
+	zebraURL := fmt.Sprintf("https://zebra-%s.example.com", suffix)
+	alphaURL := fmt.Sprintf("https://alpha-%s.example.com", suffix)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_service", "/api/v1/services/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccServiceURLsOrderConfig(name, serverUUID, zebraURL, alphaURL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coolify_service.test", "uuid"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.#", "2"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.name", "zebra"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.0.url", zebraURL),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.1.name", "alpha"),
+					resource.TestCheckResourceAttr("coolify_service.test", "urls.1.url", alphaURL),
+				),
+			},
+			{
+				Config:             testAccServiceURLsOrderConfig(name, serverUUID, zebraURL, alphaURL),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func testAccServiceURLsOrderConfig(projectName, serverUUID, zebraURL, alphaURL string) string {
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_service" "test" {
+  name               = %[1]q
+  project_uuid       = coolify_project.test.uuid
+  server_uuid        = %[2]q
+  instant_deploy     = false
+  docker_compose_raw = <<-EOT
+services:
+  alpha:
+    image: nginx:alpine
+  zebra:
+    image: nginx:alpine
+EOT
+
+  urls = [
+    { name = "zebra", url = %[3]q },
+    { name = "alpha", url = %[4]q },
+  ]
+}
+`, projectName, serverUUID, zebraURL, alphaURL)
+}
+
 func TestAccServiceDataSources(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)

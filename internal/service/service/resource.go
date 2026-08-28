@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -195,7 +197,8 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 			},
 			"urls": schema.ListNestedAttribute{
 				MarkdownDescription: "Domain URL mappings for service containers. Each entry maps a compose service name to one or more comma-separated URLs (e.g., `https://app.example.com`). " +
-					"Read-back reconstructs mappings from the service's application FQDNs.",
+					"Read-back matches Coolify application FQDNs by container name and keeps this list's configured order. " +
+					"Coolify GET may return applications in a different order (typically compose or database insertion order).",
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -532,6 +535,9 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 // auto-assigns FQDNs to catalog services, so the API may return application
 // FQDNs even when the user didn't set urls. Without this guard, the flatten
 // causes "inconsistent result after apply" (plan had null, state has values).
+//
+// Coolify GET loads applications as an unordered hasMany, so API list order
+// can differ from HCL. Match by container name and keep the configured order.
 func flattenServiceURLs(apps []client.ServiceApplication, current []serviceURLModel) []serviceURLModel {
 	if current == nil {
 		// User didn't configure urls; don't populate from API.
@@ -540,20 +546,53 @@ func flattenServiceURLs(apps []client.ServiceApplication, current []serviceURLMo
 	if len(apps) == 0 {
 		return current
 	}
-	var urls []serviceURLModel
+	byName := make(map[string]client.ServiceApplication, len(apps))
 	for _, app := range apps {
-		if app.FQDN != "" {
-			urls = append(urls, serviceURLModel{
-				Name: types.StringValue(app.Name),
-				URL:  types.StringValue(app.FQDN),
-			})
+		if app.Name == "" {
+			continue
 		}
+		byName[app.Name] = app
 	}
-	if len(urls) > 0 {
-		return urls
+	out := make([]serviceURLModel, 0, len(current))
+	for _, cfg := range current {
+		app, ok := byName[cfg.Name.ValueString()]
+		if !ok || app.FQDN == "" {
+			out = append(out, cfg)
+			continue
+		}
+		url := types.StringValue(app.FQDN)
+		if serviceURLEquivalent(cfg.URL.ValueString(), app.FQDN) {
+			url = cfg.URL
+		}
+		out = append(out, serviceURLModel{
+			Name: cfg.Name,
+			URL:  url,
+		})
 	}
-	// User had URLs configured but API shows none now (cleared externally).
-	return nil
+	return out
+}
+
+// serviceURLEquivalent treats comma-separated FQDN lists as the same when they
+// contain the same URLs after trim and case fold, regardless of list order.
+func serviceURLEquivalent(configured, api string) bool {
+	if configured == api || strings.EqualFold(configured, api) {
+		return true
+	}
+	return serviceURLTokenKey(configured) == serviceURLTokenKey(api)
+}
+
+func serviceURLTokenKey(s string) string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		out = append(out, strings.ToLower(p))
+	}
+	sort.Strings(out)
+	return strings.Join(out, ",")
 }
 
 // expandServiceURLs converts the Terraform model to the client input format.
