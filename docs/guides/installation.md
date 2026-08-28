@@ -82,7 +82,7 @@ before using the provider.
 | | Coolify |
 |--|---------|
 | **Minimum (hard floor)** | **v4.1.0** |
-| **Recommended for full features** | **≥ v4.3.0** |
+| **Recommended for full features** | **≥ v4.3.14** |
 
 The API surface changed significantly between v4.0.0 and v4.1.0, so v4.1.0
 is the minimum. Destinations and DO/Vultr provisioning need **≥ v4.2.0**.

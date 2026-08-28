@@ -2648,6 +2648,107 @@ func TestApplicationResource_CreateSendsDestinationUUID(t *testing.T) {
 	})
 }
 
+// TestApplicationResource_NoindexPreservesConfigOrder is the #818/#820
+// regression: Coolify GET may return noindex_domains in a different order
+// than HCL. GET must not echo POST/PATCH body order.
+func TestApplicationResource_NoindexPreservesConfigOrder(t *testing.T) {
+	t.Parallel()
+	app := client.Application{
+		UUID:            "noindex-order-uuid",
+		Name:            "noindex-order-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "80",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName: "production",
+		Domains:         "https://zebra.example.com,https://alpha.example.com",
+		// Opposite of HCL (zebra, alpha). Never updated from POST/PATCH.
+		NoindexDomains: []string{"https://alpha.example.com", "https://zebra.example.com"},
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if raw, ok := body["noindex_domains"].([]interface{}); ok {
+			if len(raw) != 2 {
+				t.Errorf("PATCH noindex_domains = %#v, want 2 entries", body["noindex_domains"])
+			} else if first, _ := raw[0].(string); first != "https://zebra.example.com" {
+				t.Errorf("PATCH noindex_domains[0] = %v, want zebra (HCL order)", first)
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		// Fixed GET order (alpha, zebra). Do not echo write-body order.
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.2"))
+	defer srv.Close()
+
+	cfg := testApplicationResourceConfig(srv.URL, `
+					name             = "noindex-order-app"
+					project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+					git_repository   = "https://github.com/example/repo"
+					build_pack       = "nixpacks"
+					ports_exposes    = "80"
+					domains          = "https://zebra.example.com,https://alpha.example.com"
+					noindex_domains  = ["https://zebra.example.com", "https://alpha.example.com"]
+				`)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "uuid", app.UUID),
+					resource.TestCheckResourceAttr("coolify_application.test", "noindex_domains.#", "2"),
+					resource.TestCheckResourceAttr("coolify_application.test", "noindex_domains.0", "https://zebra.example.com"),
+					resource.TestCheckResourceAttr("coolify_application.test", "noindex_domains.1", "https://alpha.example.com"),
+				),
+			},
+			{
+				Config:             cfg,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 // TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset ensures we do
 // not send destination_uuid:null/"" which would change Coolify behavior.
 func TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
