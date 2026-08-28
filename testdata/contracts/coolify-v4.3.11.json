@@ -1,7 +1,7 @@
 {
-  "version": "v4.3.14",
-  "extracted_from": "coollabsio/coolify@v4.3.14",
-  "extracted_at": "2026-08-28T22:21:11.044106+00:00",
+  "version": "v4.3.11",
+  "extracted_from": "coollabsio/coolify@v4.3.11",
+  "extracted_at": "2026-08-28T22:21:02.502776+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -10490,6 +10490,5 @@
         "api.ability:read"
       ]
     }
-  ],
-  "notes": "Pin is tag v4.3.14. Public API matches v4.3.10 through v4.3.14 and v4.4-rc.1 (0 write-path and route drift). Includes smtp_ehlo_domain on NotificationsController::update_email (coollabsio/coolify#11398) and InstanceEmailSettingsController GET/PATCH /settings/email."
+  ]
 }
