@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.19](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.18...v0.1.19) (2026-08-29)
+
+
+### Features
+
+* pin Coolify v4.3.14 and prove list-order flatten ([#821](https://github.com/coolify-terraform/terraform-provider-coolify/issues/821)) ([2ec35d3](https://github.com/coolify-terraform/terraform-provider-coolify/commit/2ec35d3eab3f7a40728de9eee494425b6f830588))
+
+
+### Bug Fixes
+
+* **application:** keep noindex_domains configured order ([#820](https://github.com/coolify-terraform/terraform-provider-coolify/issues/820)) ([114f480](https://github.com/coolify-terraform/terraform-provider-coolify/commit/114f480d5340df15ed798134770631b391472569)), closes [#818](https://github.com/coolify-terraform/terraform-provider-coolify/issues/818)
+* **ci:** upsert one social preview reminder issue ([#816](https://github.com/coolify-terraform/terraform-provider-coolify/issues/816)) ([a8dedc5](https://github.com/coolify-terraform/terraform-provider-coolify/commit/a8dedc595c4966a160e15301475ce6a71cc694f8)), closes [#774](https://github.com/coolify-terraform/terraform-provider-coolify/issues/774)
+* extra-key probe smtp_ehlo_domain on CI edge ([#814](https://github.com/coolify-terraform/terraform-provider-coolify/issues/814)) ([3bcdf6b](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3bcdf6b164ac1076865c52b31f7648834790eb7e))
+* **service:** preserve configured urls order on read-back ([#819](https://github.com/coolify-terraform/terraform-provider-coolify/issues/819)) ([d2c3b30](https://github.com/coolify-terraform/terraform-provider-coolify/commit/d2c3b300746c8ec637702be1acfdbcfeba5bcd49)), closes [#818](https://github.com/coolify-terraform/terraform-provider-coolify/issues/818)
+* wait for social preview confirm before leaving Settings ([#817](https://github.com/coolify-terraform/terraform-provider-coolify/issues/817)) ([864c709](https://github.com/coolify-terraform/terraform-provider-coolify/commit/864c709ec554c83802ed7617548fdce748e8c000))
+
 ## [0.1.18](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.17...v0.1.18) (2026-08-22)
 
 
