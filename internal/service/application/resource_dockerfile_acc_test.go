@@ -170,9 +170,10 @@ data "coolify_application_logs" "test" {
 }
 
 // TestAccDockerfileApplicationResource_V43Settings exercises Coolify >= v4.3.0
-// application write fields (is_log_drain_enabled, noindex_domains) against a
-// real instance. On tip-edge CI (COOLIFY_REQUIRE_TIP_APIS=1) the version probe
-// fails the run if Coolify is older than 4.3.0; elsewhere it skips.
+// application write fields (is_log_drain_enabled, noindex_domains,
+// max_restart_count) against a real instance. On tip-edge CI
+// (COOLIFY_REQUIRE_TIP_APIS=1) the version probe fails the run if Coolify
+// is older than 4.3.0; elsewhere it skips.
 func TestAccDockerfileApplicationResource_V43Settings(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
@@ -186,6 +187,7 @@ func TestAccDockerfileApplicationResource_V43Settings(t *testing.T) {
   domains              = "http://acc-v43.example.com"
   is_log_drain_enabled = true
   noindex_domains      = ["http://acc-v43.example.com"]
+  max_restart_count    = 3
 `
 
 	resource.Test(t, resource.TestCase{
@@ -199,6 +201,7 @@ func TestAccDockerfileApplicationResource_V43Settings(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "is_log_drain_enabled", "true"),
 					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "noindex_domains.#", "1"),
 					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "noindex_domains.0", "http://acc-v43.example.com"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "max_restart_count", "3"),
 				),
 			},
 			{
