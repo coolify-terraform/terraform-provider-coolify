@@ -170,6 +170,7 @@ from a given version are **version-gated on write**:
 | `is_consistent_container_name_enabled` | `is_consistent_container_name_enabled` |
 | `custom_internal_name` | `custom_internal_name` |
 | `noindex_domains` | `noindex_domains` (list of domain URLs) |
+| `max_restart_count` | `max_restart_count` |
 
 ### Matrix (application write gates)
 

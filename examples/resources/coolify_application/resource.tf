@@ -22,4 +22,5 @@ resource "coolify_application" "example" {
   # is_preview_deployments_enabled = false            # Enable PR preview deployments
   # use_build_secrets              = false            # Expose Coolify secrets during build
   # stop_grace_period              = 30               # Seconds to wait for graceful container stop
+  # max_restart_count = 3  # Coolify >= v4.3.0; API default 10
 }
