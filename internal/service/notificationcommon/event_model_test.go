@@ -27,14 +27,17 @@ func TestEventModel_AlignsWithEventAttributeNames(t *testing.T) {
 func TestEventModel_CreateUpdateAndFlatten(t *testing.T) {
 	t.Parallel()
 	plan := notificationcommon.EventModel{
-		DeploymentFailure: types.BoolValue(true),
-		ServerDiskUsage:   types.BoolValue(false),
+		DeploymentFailure:   types.BoolValue(true),
+		ServerDiskUsage:     types.BoolValue(false),
+		RestartLimitReached: types.BoolValue(true),
 	}
 	ev := plan.CreateUpdate()
 	require.NotNil(t, ev.DeploymentFailure)
 	assert.True(t, *ev.DeploymentFailure)
 	require.NotNil(t, ev.ServerDiskUsage)
 	assert.False(t, *ev.ServerDiskUsage)
+	require.NotNil(t, ev.RestartLimitReached)
+	assert.True(t, *ev.RestartLimitReached)
 	assert.Nil(t, ev.DeploymentSuccess)
 
 	var in client.UpdateDiscordNotificationInput
@@ -43,29 +46,35 @@ func TestEventModel_CreateUpdateAndFlatten(t *testing.T) {
 	assert.True(t, *in.DeploymentFailure)
 
 	src, err := client.EventsFrom(&client.DiscordNotificationSettings{
-		DeploymentFailure: true,
-		BackupFailure:     true,
+		DeploymentFailure:   true,
+		BackupFailure:       true,
+		RestartLimitReached: true,
 	})
 	require.NoError(t, err)
 	var got notificationcommon.EventModel
 	got.FlattenEvents(src)
 	assert.True(t, got.DeploymentFailure.ValueBool())
 	assert.True(t, got.BackupFailure.ValueBool())
+	assert.True(t, got.RestartLimitReached.ValueBool())
 	assert.False(t, got.DeploymentSuccess.ValueBool())
 }
 
 func TestEventModel_DiffUpdate(t *testing.T) {
 	t.Parallel()
 	plan := notificationcommon.EventModel{
-		DeploymentFailure: types.BoolValue(true),
-		BackupFailure:     types.BoolValue(false),
+		DeploymentFailure:   types.BoolValue(true),
+		BackupFailure:       types.BoolValue(false),
+		RestartLimitReached: types.BoolValue(true),
 	}
 	state := notificationcommon.EventModel{
-		DeploymentFailure: types.BoolValue(true),
-		BackupFailure:     types.BoolValue(true),
+		DeploymentFailure:   types.BoolValue(true),
+		BackupFailure:       types.BoolValue(true),
+		RestartLimitReached: types.BoolValue(false),
 	}
 	ev := plan.DiffUpdate(state)
 	assert.Nil(t, ev.DeploymentFailure)
 	require.NotNil(t, ev.BackupFailure)
 	assert.False(t, *ev.BackupFailure)
+	require.NotNil(t, ev.RestartLimitReached)
+	assert.True(t, *ev.RestartLimitReached)
 }

@@ -1597,6 +1597,141 @@ func TestApplicationResource_PreviewBuildSecretsStopGrace(t *testing.T) {
 	})
 }
 
+func TestApplicationResource_MaxRestartCount(t *testing.T) {
+	t.Parallel()
+
+	trueVal := true
+	maxRestart := int64(10)
+	currentApp := client.Application{
+		UUID:                "aaaa0010-0010-4010-8010-000000000010",
+		Name:                "restart-limit-app",
+		GitRepository:       "https://github.com/org/repo",
+		GitBranch:           "main",
+		BuildPack:           "nixpacks",
+		PortsExposes:        "3000",
+		ProjectUUID:         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+		ServerUUID:          "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+		EnvironmentName:     "production",
+		IsAutoDeployEnabled: &trueVal,
+		MaxRestartCount:     &maxRestart,
+	}
+	mu := sync.Mutex{}
+	deleted := false
+	var lastPATCH map[string]interface{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPATCH = body
+		if v, ok := body["max_restart_count"].(float64); ok {
+			n := int64(v)
+			currentApp.MaxRestartCount = &n
+		}
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.2"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid     = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+					server_uuid      = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+					environment_name = "production"
+					git_repository   = "https://github.com/org/repo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					name             = "restart-limit-app"
+					max_restart_count = 3
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "max_restart_count", "3"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH["max_restart_count"] != float64(3) {
+							return fmt.Errorf("create PATCH max_restart_count = %v, want 3", lastPATCH["max_restart_count"])
+						}
+						return nil
+					}),
+				),
+			},
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid     = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+					server_uuid      = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+					environment_name = "production"
+					git_repository   = "https://github.com/org/repo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					name             = "restart-limit-app"
+					max_restart_count = 7
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "max_restart_count", "7"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH["max_restart_count"] != float64(7) {
+							return fmt.Errorf("update PATCH max_restart_count = %v, want 7", lastPATCH["max_restart_count"])
+						}
+						return nil
+					}),
+				),
+			},
+			{
+				ResourceName:  "coolify_application.test",
+				ImportState:   true,
+				ImportStateId: "aaaa0010-0010-4010-8010-000000000010",
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					if len(s) != 1 {
+						return fmt.Errorf("expected 1 instance, got %d", len(s))
+					}
+					if s[0].Attributes["max_restart_count"] != "7" {
+						return fmt.Errorf("imported max_restart_count = %q, want 7", s[0].Attributes["max_restart_count"])
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func testApplicationResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application", "test", attrs)
 }

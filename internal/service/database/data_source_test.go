@@ -49,6 +49,8 @@ func TestDatabaseDataSource(t *testing.T) {
 				"health_check_timeout":      5,
 				"health_check_retries":      5,
 				"health_check_start_period": 5,
+				"max_restart_count":         3,
+				"restart_limit_reached":     true,
 			})
 			return
 		}
@@ -90,6 +92,8 @@ data "coolify_database" "test" {
 					resource.TestCheckResourceAttr("data.coolify_database.test", "health_check_timeout", "5"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "health_check_retries", "5"),
 					resource.TestCheckResourceAttr("data.coolify_database.test", "health_check_start_period", "5"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "max_restart_count", "3"),
+					resource.TestCheckResourceAttr("data.coolify_database.test", "restart_limit_reached", "true"),
 				),
 			},
 		},

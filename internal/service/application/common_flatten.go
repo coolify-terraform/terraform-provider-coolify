@@ -577,6 +577,7 @@ func buildPostCreatePatch(f commonAppFields) client.UpdateApplicationInput {
 	flex.SetBoolPtr(&input.UseBuildSecrets, safeBool(f.UseBuildSecrets))
 	flex.SetInt64Ptr(&input.StopGracePeriod, safeInt(f.StopGracePeriod))
 	setApplicationSettingPostCreate(&input, f, safeBool, safeInt)
+	flex.SetInt64Ptr(&input.MaxRestartCount, safeInt(f.MaxRestartCount))
 	flex.SetBoolPtr(&input.ForceDomainOverride, safeBool(f.ForceDomainOverride))
 	return input
 }
