@@ -53,3 +53,18 @@ func TestApplicationCRUDFiles_UpdatePrimaryField(t *testing.T) {
 		})
 	}
 }
+
+// TestDockerfileAccV43Settings_MaxRestartCount fails if the dockerfile
+// Coolify >= 4.3 extra drops max_restart_count. A dropped post-create
+// PATCH would then hide behind GET default 10.
+func TestDockerfileAccV43Settings_MaxRestartCount(t *testing.T) {
+	t.Parallel()
+	const path = "resource_dockerfile_acc_test.go"
+	b, err := os.ReadFile(path) //nolint:gosec // test fixture path
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	if !strings.Contains(string(b), "max_restart_count") {
+		t.Errorf("%s V43 settings extra must set max_restart_count", path)
+	}
+}
