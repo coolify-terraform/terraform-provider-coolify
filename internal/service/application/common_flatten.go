@@ -213,23 +213,7 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 		}
 	}
 	flattenApplicationSettingFields(app, f)
-	if f.MaxRestartCount != nil {
-		*f.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
-	}
-	if f.RestartLimitReached != nil {
-		if app.RestartLimitReached != nil {
-			*f.RestartLimitReached = types.BoolValue(*app.RestartLimitReached)
-		} else {
-			*f.RestartLimitReached = types.BoolNull()
-		}
-	}
-	if f.ContainerPresent != nil {
-		if app.ContainerPresent != nil {
-			*f.ContainerPresent = types.BoolValue(*app.ContainerPresent)
-		} else {
-			*f.ContainerPresent = types.BoolNull()
-		}
-	}
+	flattenRestartLimitFields(app, f)
 	// instant_deploy is create-only and never returned by the API.
 	// Preserve state value when set; default to false otherwise (import).
 	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {
@@ -643,6 +627,28 @@ func setBoolDefault(dst *types.Bool, v *bool, def bool) {
 		*dst = types.BoolValue(*v)
 	} else if dst.IsNull() || dst.IsUnknown() {
 		*dst = types.BoolValue(def)
+	}
+}
+
+// flattenRestartLimitFields maps GET-only restart-limit status plus the
+// writable max_restart_count. Extracted so flattenExtendedDefaults stays
+// under the gocognit limit.
+func flattenRestartLimitFields(app *client.Application, f commonAppFields) {
+	if f.MaxRestartCount != nil {
+		*f.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
+	}
+	setBoolOrNull(f.RestartLimitReached, app.RestartLimitReached)
+	setBoolOrNull(f.ContainerPresent, app.ContainerPresent)
+}
+
+func setBoolOrNull(dst *types.Bool, v *bool) {
+	if dst == nil {
+		return
+	}
+	if v != nil {
+		*dst = types.BoolValue(*v)
+	} else {
+		*dst = types.BoolNull()
 	}
 }
 
