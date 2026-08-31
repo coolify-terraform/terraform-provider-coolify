@@ -83,6 +83,7 @@ func TestConfiguredVersionGatedWriteAttrs(t *testing.T) {
 		t.Parallel()
 		tb := types.BoolValue(true)
 		ts := types.StringValue("x")
+		ti := types.Int64Value(10)
 		configuredList := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("https://a.example.com")})
 		f := commonAppFields{
 			IsLogDrainEnabled:                &tb,
@@ -94,6 +95,7 @@ func TestConfiguredVersionGatedWriteAttrs(t *testing.T) {
 			IsConsistentContainerNameEnabled: &tb,
 			CustomInternalName:               &ts,
 			NoindexDomains:                   &configuredList,
+			MaxRestartCount:                  &ti,
 		}
 		got := configuredVersionGatedV43WriteAttrs(f)
 		want := append([]string(nil), client.ApplicationSettingsV43WriteJSONKeys...)

@@ -63,6 +63,7 @@ var ApplicationSettingsV43WriteJSONKeys = []string{
 	"is_consistent_container_name_enabled",
 	"custom_internal_name",
 	"noindex_domains",
+	"max_restart_count",
 }
 
 // SupportsApplicationSettings reports whether the connected instance accepts
@@ -84,7 +85,7 @@ func (c *Client) SupportsApplicationSettings() bool {
 
 // SupportsApplicationSettingsV43 reports whether the connected instance accepts
 // Coolify >= v4.3.0 application write fields (log drain, GPU settings,
-// consistent container name, custom_internal_name, noindex_domains).
+// consistent container name, custom_internal_name, noindex_domains, max_restart_count).
 //
 // Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
 func (c *Client) SupportsApplicationSettingsV43() bool {

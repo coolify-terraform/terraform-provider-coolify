@@ -116,6 +116,7 @@ resource "coolify_application_private_git" "api" {
 - `manual_webhook_secret_gitea` (String, Sensitive) Manual webhook secret for Gitea. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
 - `manual_webhook_secret_github` (String, Sensitive) Manual webhook secret for GitHub. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
 - `manual_webhook_secret_gitlab` (String, Sensitive) Manual webhook secret for GitLab. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
+- `max_restart_count` (Number) The maximum number of container restarts before Coolify stops the application. Writable on Coolify >= v4.3.0 (create and update allow list). On Coolify 4.1.x and 4.2.x the field is GET-only (set it in the Coolify UI). Coolify defaults to `10`. Do not set a provider Default (import on older versions would send the key and 422).
 - `name` (String) The name of the application.
 - `noindex_domains` (List of String) Subset of application domain URLs served with an `X-Robots-Tag: noindex, nofollow` response header (keeps them out of search engines). Entries that are not among the application domains are ignored by Coolify. Read-back keeps this list's configured order when Coolify returns the same URLs (possibly reordered or with different host casing). Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:80` or `8080:80,8443:443`).
@@ -136,8 +137,9 @@ resource "coolify_application_private_git" "api" {
 
 ### Read-Only
 
-- `max_restart_count` (Number) The maximum number of container restarts before Coolify stops the application. Set via the Coolify UI (not yet exposed on the API for writes). Defaults to `10`.
+- `container_present` (Boolean) Whether Coolify last observed the application container on the server. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.
+- `restart_limit_reached` (Boolean) Whether Coolify has stopped the application because `restart_count` reached `max_restart_count`. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `status` (String) The current status of the application (e.g., running, stopped, exited). Read-only.
 - `uuid` (String) The unique identifier of the application.
 

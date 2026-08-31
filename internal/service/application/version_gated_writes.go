@@ -76,6 +76,11 @@ func configuredVersionGatedV43WriteAttrs(f commonAppFields) []string {
 			names = append(names, name)
 		}
 	}
+	appendInt := func(name string, v *types.Int64) {
+		if v != nil && !v.IsNull() && !v.IsUnknown() {
+			names = append(names, name)
+		}
+	}
 
 	appendBool("is_log_drain_enabled", f.IsLogDrainEnabled)
 	appendBool("is_gpu_enabled", f.IsGpuEnabled)
@@ -86,6 +91,7 @@ func configuredVersionGatedV43WriteAttrs(f commonAppFields) []string {
 	appendBool("is_consistent_container_name_enabled", f.IsConsistentContainerNameEnabled)
 	appendStr("custom_internal_name", f.CustomInternalName)
 	appendList("noindex_domains", f.NoindexDomains)
+	appendInt("max_restart_count", f.MaxRestartCount)
 
 	sort.Strings(names)
 	return names

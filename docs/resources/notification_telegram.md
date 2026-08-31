@@ -46,6 +46,7 @@ resource "coolify_notification_telegram" "main" {
 - `docker_cleanup_failure` (Boolean) Whether to send Telegram notifications for Docker cleanup failure events.
 - `docker_cleanup_success` (Boolean) Whether to send Telegram notifications for Docker cleanup success events.
 - `enabled` (Boolean) Whether Telegram notifications are enabled for the team.
+- `restart_limit_reached` (Boolean) Whether to send Telegram notifications for restart limit reached events. Coolify tip after 2026-08-31 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
 - `scheduled_task_failure` (Boolean) Whether to send Telegram notifications for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether to send Telegram notifications for scheduled task success events.
 - `server_disk_usage` (Boolean) Whether to send Telegram notifications for server disk usage events.
@@ -59,6 +60,7 @@ resource "coolify_notification_telegram" "main" {
 - `thread_deployment_success` (String, Sensitive) Telegram forum thread ID for deployment_success events. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `thread_docker_cleanup_failure` (String, Sensitive) Telegram forum thread ID for docker_cleanup_failure events. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `thread_docker_cleanup_success` (String, Sensitive) Telegram forum thread ID for docker_cleanup_success events. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
+- `thread_restart_limit_reached` (String, Sensitive) Telegram forum thread ID for restart_limit_reached events. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `thread_scheduled_task_failure` (String, Sensitive) Telegram forum thread ID for scheduled_task_failure events. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `thread_scheduled_task_success` (String, Sensitive) Telegram forum thread ID for scheduled_task_success events. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `thread_server_disk_usage` (String, Sensitive) Telegram forum thread ID for server_disk_usage events. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.

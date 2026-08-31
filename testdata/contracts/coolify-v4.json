@@ -97,7 +97,9 @@
         "source_id",
         "source_type",
         "repository_project_id",
-        "private_key_id"
+        "private_key_id",
+        "restart_limit_reached",
+        "container_present"
       ],
       "guarded": [],
       "hidden": [
@@ -999,6 +1001,24 @@
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "or_clear"
+        },
+        "container_present": {
+          "type": "boolean",
+          "nullable": true,
+          "default": null,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "restart_limit_reached": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
         }
       },
       "settings_fields": {
@@ -2903,6 +2923,24 @@
           "fillable": true,
           "flatten_hint": "unconditional",
           "max_length": 255
+        },
+        "max_restart_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "restart_limit_reached": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
         }
       }
     },
@@ -3341,6 +3379,24 @@
           "fillable": true,
           "flatten_hint": "unconditional",
           "max_length": 255
+        },
+        "max_restart_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "restart_limit_reached": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
         }
       }
     },
@@ -3753,6 +3809,24 @@
           "fillable": true,
           "flatten_hint": "unconditional",
           "max_length": 255
+        },
+        "max_restart_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "restart_limit_reached": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
         }
       }
     },
@@ -4178,6 +4252,24 @@
           "fillable": true,
           "flatten_hint": "unconditional",
           "max_length": 255
+        },
+        "max_restart_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "restart_limit_reached": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
         }
       }
     },
@@ -4557,6 +4649,24 @@
           "fillable": true,
           "flatten_hint": "unconditional",
           "max_length": 255
+        },
+        "max_restart_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "restart_limit_reached": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
         }
       }
     },
@@ -4948,6 +5058,24 @@
           "fillable": true,
           "flatten_hint": "unconditional",
           "max_length": 255
+        },
+        "max_restart_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "restart_limit_reached": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
         }
       }
     },
@@ -5336,6 +5464,24 @@
           "fillable": true,
           "flatten_hint": "unconditional",
           "max_length": 255
+        },
+        "max_restart_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "restart_limit_reached": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
         }
       }
     },
@@ -5715,6 +5861,24 @@
           "fillable": true,
           "flatten_hint": "unconditional",
           "max_length": 255
+        },
+        "max_restart_count": {
+          "type": "integer",
+          "nullable": false,
+          "default": 10,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
+        },
+        "restart_limit_reached": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": null,
+          "sensitive": false,
+          "fillable": false,
+          "flatten_hint": "unconditional"
         }
       }
     },
@@ -7322,7 +7486,8 @@
         "server_reachable_email_notifications",
         "server_unreachable_email_notifications",
         "server_patch_email_notifications",
-        "traefik_outdated_email_notifications"
+        "traefik_outdated_email_notifications",
+        "restart_limit_reached_email_notifications"
       ]
     },
     "NotificationsController::update_discord": {
@@ -7343,7 +7508,8 @@
         "server_unreachable_discord_notifications",
         "server_patch_discord_notifications",
         "traefik_outdated_discord_notifications",
-        "discord_ping_enabled"
+        "discord_ping_enabled",
+        "restart_limit_reached_discord_notifications"
       ]
     },
     "NotificationsController::update_slack": {
@@ -7363,7 +7529,8 @@
         "server_reachable_slack_notifications",
         "server_unreachable_slack_notifications",
         "server_patch_slack_notifications",
-        "traefik_outdated_slack_notifications"
+        "traefik_outdated_slack_notifications",
+        "restart_limit_reached_slack_notifications"
       ]
     },
     "NotificationsController::update_telegram": {
@@ -7398,7 +7565,9 @@
         "telegram_notifications_server_reachable_thread_id",
         "telegram_notifications_server_unreachable_thread_id",
         "telegram_notifications_server_patch_thread_id",
-        "telegram_notifications_traefik_outdated_thread_id"
+        "telegram_notifications_traefik_outdated_thread_id",
+        "restart_limit_reached_telegram_notifications",
+        "telegram_notifications_restart_limit_reached_thread_id"
       ]
     },
     "NotificationsController::update_pushover": {
@@ -7419,7 +7588,8 @@
         "server_reachable_pushover_notifications",
         "server_unreachable_pushover_notifications",
         "server_patch_pushover_notifications",
-        "traefik_outdated_pushover_notifications"
+        "traefik_outdated_pushover_notifications",
+        "restart_limit_reached_pushover_notifications"
       ]
     },
     "NotificationsController::update_webhook": {
@@ -7439,7 +7609,8 @@
         "server_reachable_webhook_notifications",
         "server_unreachable_webhook_notifications",
         "server_patch_webhook_notifications",
-        "traefik_outdated_webhook_notifications"
+        "traefik_outdated_webhook_notifications",
+        "restart_limit_reached_webhook_notifications"
       ]
     },
     "ProjectController::create_project": {
@@ -10491,5 +10662,5 @@
       ]
     }
   ],
-  "notes": "Pin is tag v4.3.14. Public API matches v4.3.10 through v4.3.14 and v4.4-rc.1 (0 write-path and route drift). Includes smtp_ehlo_domain on NotificationsController::update_email (coollabsio/coolify#11398) and InstanceEmailSettingsController GET/PATCH /settings/email."
+  "notes": "Pin is tag v4.3.14 plus Coolify tip restart-limit fields extracted 2026-08-31 (container_present, restart_limit_reached on Application; max_restart_count and restart_limit_reached on standalone databases; restart_limit_reached_* notification events and Telegram thread id). Those fields are not in git tag v4.3.14 or v4.4-rc.1. Public API otherwise matches v4.3.10 through v4.3.14 and v4.4-rc.1."
 }

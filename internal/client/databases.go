@@ -62,6 +62,11 @@ type Database struct {
 	PublicPortTimeout      *int64 `json:"public_port_timeout,omitempty"`
 	Status                 string `json:"status,omitempty"`
 	InternalDBUrl          string `json:"internal_db_url,omitempty"`
+	// MaxRestartCount and RestartLimitReached are GET-only on standalone
+	// databases (not on DatabasesController $allowedFields). Coolify tip
+	// after 2026-08-31. Pointers so omitted JSON stays null.
+	MaxRestartCount     *int64 `json:"max_restart_count,omitempty"`
+	RestartLimitReached *bool  `json:"restart_limit_reached,omitempty"`
 	// Type-specific configs
 	PostgresConf           string          `json:"postgres_conf,omitempty"`
 	PostgresInitdbArgs     string          `json:"postgres_initdb_args,omitempty"`

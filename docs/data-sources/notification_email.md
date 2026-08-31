@@ -34,6 +34,7 @@ output "notifications" {
 - `id` (String) Identifier. Always `current` (team is implied by the API token).
 - `resend_api_key` (String, Sensitive) Resend API key. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `resend_enabled` (Boolean) Whether Resend delivery is enabled.
+- `restart_limit_reached` (Boolean) Whether email notifications are sent for restart limit reached events. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `scheduled_task_failure` (Boolean) Whether email notifications are sent for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether email notifications are sent for scheduled task success events.
 - `server_disk_usage` (Boolean) Whether email notifications are sent for server disk usage events.

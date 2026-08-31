@@ -370,9 +370,18 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"max_restart_count": schema.Int64Attribute{
-			MarkdownDescription: "The maximum number of container restarts before Coolify stops the application. Set via the Coolify UI (not yet exposed on the API for writes). Defaults to `10`.",
+			MarkdownDescription: "The maximum number of container restarts before Coolify stops the application. Writable on Coolify >= v4.3.0 (create and update allow list). On Coolify 4.1.x and 4.2.x the field is GET-only (set it in the Coolify UI). Coolify defaults to `10`. Do not set a provider Default (import on older versions would send the key and 422).",
+			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+		},
+		"restart_limit_reached": schema.BoolAttribute{
+			MarkdownDescription: "Whether Coolify has stopped the application because `restart_count` reached `max_restart_count`. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+			Computed:            true,
+		},
+		"container_present": schema.BoolAttribute{
+			MarkdownDescription: "Whether Coolify last observed the application container on the server. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+			Computed:            true,
 		},
 		"pre_deployment_command": schema.StringAttribute{
 			MarkdownDescription: "Command to run before deployment.",

@@ -137,6 +137,10 @@ type Application struct {
 	// (Coolify >= v4.3.0). JSON array on the wire; empty means none.
 	NoindexDomains  []string `json:"noindex_domains,omitempty"`
 	MaxRestartCount *int64   `json:"max_restart_count,omitempty"`
+	// RestartLimitReached and ContainerPresent are runtime status flags
+	// (Coolify tip after 2026-08-31). Pointers so omitted JSON stays null.
+	RestartLimitReached *bool `json:"restart_limit_reached,omitempty"`
+	ContainerPresent    *bool `json:"container_present,omitempty"`
 	// Nested settings blob from GET responses (promoted after decode).
 	Settings *ApplicationSettings `json:"settings,omitempty"`
 }
@@ -392,6 +396,8 @@ type UpdateApplicationInput struct {
 	// NoindexDomains is a JSON array on the wire. Use a non-nil empty slice to
 	// clear when the attribute is configured empty (Coolify >= v4.3.0).
 	NoindexDomains *[]string `json:"noindex_domains,omitempty"`
+	// MaxRestartCount is writable on Coolify >= v4.3.0 (create/update allow list).
+	MaxRestartCount *int64 `json:"max_restart_count,omitempty"`
 }
 
 func (c *Client) ListApplications(ctx context.Context) ([]Application, error) {
@@ -543,6 +549,7 @@ func (i *UpdateApplicationInput) clearApplicationSettingsV43() {
 	i.IsConsistentContainerNameEnabled = nil
 	i.CustomInternalName = nil
 	i.NoindexDomains = nil
+	i.MaxRestartCount = nil
 }
 
 // HasOnlyApplicationSettings reports whether the payload would be empty once

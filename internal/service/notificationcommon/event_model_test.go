@@ -14,7 +14,7 @@ import (
 func TestEventModel_AlignsWithEventAttributeNames(t *testing.T) {
 	t.Parallel()
 	names := notificationcommon.EventAttributeNames()
-	require.Len(t, names, 14)
+	require.Len(t, names, 15)
 
 	typ := reflect.TypeOf(notificationcommon.EventModel{})
 	require.Equal(t, len(names), typ.NumField())

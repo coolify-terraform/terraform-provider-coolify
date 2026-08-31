@@ -213,9 +213,22 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 		}
 	}
 	flattenApplicationSettingFields(app, f)
-	// max_restart_count is Computed-only (not writable via API).
 	if f.MaxRestartCount != nil {
 		*f.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
+	}
+	if f.RestartLimitReached != nil {
+		if app.RestartLimitReached != nil {
+			*f.RestartLimitReached = types.BoolValue(*app.RestartLimitReached)
+		} else {
+			*f.RestartLimitReached = types.BoolNull()
+		}
+	}
+	if f.ContainerPresent != nil {
+		if app.ContainerPresent != nil {
+			*f.ContainerPresent = types.BoolValue(*app.ContainerPresent)
+		} else {
+			*f.ContainerPresent = types.BoolNull()
+		}
 	}
 	// instant_deploy is create-only and never returned by the API.
 	// Preserve state value when set; default to false otherwise (import).
@@ -381,6 +394,9 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	if plan.DockerComposeCustomStartCommand != nil && state.DockerComposeCustomStartCommand != nil {
 		input.DockerComposeCustomStartCommand = strDiff(*plan.DockerComposeCustomStartCommand, *state.DockerComposeCustomStartCommand)
 	}
+	if plan.MaxRestartCount != nil && state.MaxRestartCount != nil {
+		input.MaxRestartCount = flex.Int64IfChanged(*plan.MaxRestartCount, *state.MaxRestartCount)
+	}
 }
 
 // hasNonDefaultAppExtendedFields returns true if any field that the Create POST
@@ -474,7 +490,8 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
 		flex.StringPtrNonDefault(f.Redirect, defaultRedirect) ||
-		flex.StringPtrNonDefault(f.StaticImage, defaultStaticImage)
+		flex.StringPtrNonDefault(f.StaticImage, defaultStaticImage) ||
+		flex.Int64PtrNonDefault(f.MaxRestartCount, 10)
 }
 
 // listPtrConfigured reports whether a List pointer is set (non-null, non-unknown).

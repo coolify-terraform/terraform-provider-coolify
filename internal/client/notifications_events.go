@@ -5,13 +5,14 @@ import (
 	"reflect"
 )
 
-// NotificationEvents is the 14 shared Coolify notification event flags
+// NotificationEvents is the 15 shared Coolify notification event flags
 // (channel-agnostic). Field names must match the exported event fields on
 // every *NotificationSettings and Update*NotificationInput struct.
 type NotificationEvents struct {
 	DeploymentSuccess    bool
 	DeploymentFailure    bool
 	StatusChange         bool
+	RestartLimitReached  bool
 	BackupSuccess        bool
 	BackupFailure        bool
 	ScheduledTaskSuccess bool
@@ -30,6 +31,7 @@ type NotificationEventUpdate struct {
 	DeploymentSuccess    *bool
 	DeploymentFailure    *bool
 	StatusChange         *bool
+	RestartLimitReached  *bool
 	BackupSuccess        *bool
 	BackupFailure        *bool
 	ScheduledTaskSuccess *bool

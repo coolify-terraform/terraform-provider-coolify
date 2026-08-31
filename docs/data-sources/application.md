@@ -33,6 +33,7 @@ data "coolify_application" "example" {
 
 - `build_command` (String) The build command.
 - `build_pack` (String) The build pack type used by the application.
+- `container_present` (Boolean) Whether Coolify last observed the application container on the server. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `description` (String) The description of the application.
 - `docker_compose_raw` (String, Sensitive) The raw Docker Compose content.
 - `docker_registry_image_name` (String) The Docker registry image name.
@@ -48,6 +49,7 @@ data "coolify_application" "example" {
 - `noindex_domains` (List of String) Subset of application domain URLs served with an `X-Robots-Tag: noindex, nofollow` response header (keeps them out of search engines). Entries that are not among the application domains are ignored by Coolify. Requires Coolify >= v4.3.0. Omitted or empty on GET from older Coolify instances.
 - `ports_exposes` (String) The exposed ports.
 - `project_uuid` (String) The UUID of the project the application belongs to.
+- `restart_limit_reached` (Boolean) Whether Coolify has stopped the application because restart_count reached max_restart_count. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `server_uuid` (String) The UUID of the server the application is deployed on.
 - `start_command` (String) The start command.
 - `status` (String) The current status of the application (e.g., running, stopped, exited).

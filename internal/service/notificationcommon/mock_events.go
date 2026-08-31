@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// EventStore holds the 14 shared Coolify notification event flags used by
+// EventStore holds the 15 shared Coolify notification event flags used by
 // httptest mock servers in unit tests. Embed it in channel-specific mocks.
 //
 // JSON keys follow Coolify's pattern: <event>_<channel>_notifications
@@ -14,6 +14,7 @@ type EventStore struct {
 	DeploymentSuccess    bool
 	DeploymentFailure    bool
 	StatusChange         bool
+	RestartLimitReached  bool
 	BackupSuccess        bool
 	BackupFailure        bool
 	ScheduledTaskSuccess bool
@@ -52,6 +53,7 @@ func (e *EventStore) fieldPtrs() []struct {
 		{"deployment_success", &e.DeploymentSuccess},
 		{"deployment_failure", &e.DeploymentFailure},
 		{"status_change", &e.StatusChange},
+		{"restart_limit_reached", &e.RestartLimitReached},
 		{"backup_success", &e.BackupSuccess},
 		{"backup_failure", &e.BackupFailure},
 		{"scheduled_task_success", &e.ScheduledTaskSuccess},
@@ -66,7 +68,7 @@ func (e *EventStore) fieldPtrs() []struct {
 	}
 }
 
-// PutSnapshot writes all 14 event flags into out under Coolify JSON keys for channel.
+// PutSnapshot writes all 15 event flags into out under Coolify JSON keys for channel.
 func (e *EventStore) PutSnapshot(out map[string]interface{}, channel string) {
 	for _, f := range e.fieldPtrs() {
 		out[EventJSONKey(channel, f.attr)] = *f.ptr
@@ -82,7 +84,7 @@ func (e *EventStore) ApplyBody(channel string, body map[string]interface{}) {
 	}
 }
 
-// EventAllowedFields returns a map with all 14 event JSON keys set to true for
+// EventAllowedFields returns a map with all 15 event JSON keys set to true for
 // Coolify-style unknown-field rejection in mock PATCH handlers.
 func EventAllowedFields(channel string) map[string]bool {
 	out := make(map[string]bool, len(eventNames))
@@ -92,7 +94,7 @@ func EventAllowedFields(channel string) map[string]bool {
 	return out
 }
 
-// ThreadAllowedFields returns a map with all 14 Telegram thread-id JSON keys.
+// ThreadAllowedFields returns a map with all 15 Telegram thread-id JSON keys.
 func ThreadAllowedFields(channel string) map[string]bool {
 	out := make(map[string]bool, len(eventNames))
 	for _, e := range eventNames {

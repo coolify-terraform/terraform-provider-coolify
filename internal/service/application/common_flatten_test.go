@@ -315,6 +315,86 @@ func TestBuildUpdateInput_SingleFieldChanged(t *testing.T) {
 	}
 }
 
+func TestBuildUpdateInput_MaxRestartCountChanged(t *testing.T) {
+	t.Parallel()
+	planN := types.Int64Value(3)
+	stateN := types.Int64Value(10)
+	name := types.StringValue("app")
+	desc := types.StringValue("d")
+	plan := commonAppFields{Name: &name, Description: &desc, MaxRestartCount: &planN}
+	state := commonAppFields{Name: &name, Description: &desc, MaxRestartCount: &stateN}
+	// Fill required core pointers so buildCoreUpdateFields does not panic.
+	empty := types.StringValue("")
+	zero := types.StringValue("0")
+	swap := types.Int64Value(60)
+	shares := types.Int64Value(1024)
+	hcInt := types.Int64Value(5)
+	hcEnabled := types.BoolValue(false)
+	autoD := types.BoolValue(true)
+	for _, f := range []*commonAppFields{&plan, &state} {
+		f.Domains = &empty
+		f.LimitsMemory = &zero
+		f.LimitsMemorySwap = &zero
+		f.LimitsMemoryReservation = &zero
+		f.LimitsCPUs = &zero
+		f.LimitsCPUSet = &empty
+		f.LimitsMemorySwappiness = &swap
+		f.LimitsCPUShares = &shares
+		f.HealthCheckEnabled = &hcEnabled
+		f.HealthCheckPath = &empty
+		f.HealthCheckPort = &empty
+		f.HealthCheckInterval = &hcInt
+		f.HealthCheckTimeout = &hcInt
+		f.HealthCheckRetries = &hcInt
+		f.HealthCheckStartPeriod = &hcInt
+		f.HealthCheckCommand = &empty
+		f.HealthCheckHost = &empty
+		f.HealthCheckMethod = &empty
+		f.HealthCheckResponseText = &empty
+		f.HealthCheckReturnCode = &shares
+		f.HealthCheckScheme = &empty
+		f.HealthCheckType = &empty
+		f.IsAutoDeployEnabled = &autoD
+		f.BaseDirectory = &empty
+		f.PublishDirectory = &empty
+		f.DockerRegistryImageTag = &empty
+		f.DockerComposeDomains = &empty
+		f.GitCommitSha = &empty
+		f.WatchPaths = &empty
+		f.CustomDockerRunOptions = &empty
+		f.CustomLabels = &empty
+		f.CustomNetworkAliases = &empty
+		f.CustomNginxConfiguration = &empty
+		f.PortsMappings = &empty
+		redir := types.StringValue("both")
+		si := types.StringValue("nginx:alpine")
+		f.Redirect = &redir
+		f.StaticImage = &si
+		f.HTTPBasicAuthUsername = &empty
+		f.HTTPBasicAuthPassword = &empty
+		f.PreDeploymentCommand = &empty
+		f.PreDeploymentCommandContainer = &empty
+		f.PostDeploymentCommand = &empty
+		f.PostDeploymentCommandContainer = &empty
+		f.ManualWebhookSecretBitbucket = &empty
+		f.ManualWebhookSecretGitea = &empty
+		f.ManualWebhookSecretGitHub = &empty
+		f.ManualWebhookSecretGitLab = &empty
+		f.IsStatic = &hcEnabled
+		f.IsSPA = &hcEnabled
+		f.IsForceHTTPSEnabled = &autoD
+		f.IsHTTPBasicAuthEnabled = &hcEnabled
+		f.ConnectToDockerNetwork = &hcEnabled
+		f.IsContainerLabelEscapeEnabled = &autoD
+		f.IsPreserveRepositoryEnabled = &hcEnabled
+		f.UseBuildServer = &hcEnabled
+	}
+	input := buildUpdateInput(plan, state)
+	if input.MaxRestartCount == nil || *input.MaxRestartCount != 3 {
+		t.Fatalf("MaxRestartCount = %v, want 3", input.MaxRestartCount)
+	}
+}
+
 func TestBuildUpdateInput_NilSafeOptionalPtrs(t *testing.T) {
 	t.Parallel()
 	// GitRepository nil in both sides should not panic and produce nil in output.

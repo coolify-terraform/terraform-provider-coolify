@@ -45,6 +45,8 @@ type ApplicationDataSourceModel struct {
 	DockerComposeRaw                 types.String `tfsdk:"docker_compose_raw"`
 	DockerRegistryImageName          types.String `tfsdk:"docker_registry_image_name"`
 	MaxRestartCount                  types.Int64  `tfsdk:"max_restart_count"`
+	RestartLimitReached              types.Bool   `tfsdk:"restart_limit_reached"`
+	ContainerPresent                 types.Bool   `tfsdk:"container_present"`
 	IsConsistentContainerNameEnabled types.Bool   `tfsdk:"is_consistent_container_name_enabled"`
 	NoindexDomains                   types.List   `tfsdk:"noindex_domains"`
 }
@@ -140,6 +142,14 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				MarkdownDescription: "The maximum number of container restarts before Coolify stops the application.",
 				Computed:            true,
 			},
+			"restart_limit_reached": schema.BoolAttribute{
+				MarkdownDescription: "Whether Coolify has stopped the application because restart_count reached max_restart_count. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+				Computed:            true,
+			},
+			"container_present": schema.BoolAttribute{
+				MarkdownDescription: "Whether Coolify last observed the application container on the server. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+				Computed:            true,
+			},
 			"is_consistent_container_name_enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether Coolify uses a consistent container name for this application. Coolify default is `false`. " +
 					"Set to `true` for apps that keep an exclusive file lock on a persistent volume (SQLite, DuckDB, LMDB, BoltDB). " +
@@ -196,6 +206,16 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	config.DockerComposeRaw = flex.StringToFramework(app.DockerComposeRaw)
 	config.DockerRegistryImageName = flex.StringToFramework(app.DockerRegistryImageName)
 	config.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
+	if app.RestartLimitReached != nil {
+		config.RestartLimitReached = types.BoolValue(*app.RestartLimitReached)
+	} else {
+		config.RestartLimitReached = types.BoolNull()
+	}
+	if app.ContainerPresent != nil {
+		config.ContainerPresent = types.BoolValue(*app.ContainerPresent)
+	} else {
+		config.ContainerPresent = types.BoolNull()
+	}
 	if app.IsConsistentContainerNameEnabled != nil {
 		config.IsConsistentContainerNameEnabled = types.BoolValue(*app.IsConsistentContainerNameEnabled)
 	} else {
