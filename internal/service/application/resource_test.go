@@ -1732,6 +1732,87 @@ func TestApplicationResource_MaxRestartCount(t *testing.T) {
 	})
 }
 
+func TestApplicationResource_MaxRestartCount_V42Withheld(t *testing.T) {
+	t.Parallel()
+
+	trueVal := true
+	maxRestart := int64(10)
+	currentApp := client.Application{
+		UUID:                "aaaa0011-0011-4011-8011-000000000011",
+		Name:                "restart-limit-v42-app",
+		GitRepository:       "https://github.com/org/repo",
+		GitBranch:           "main",
+		BuildPack:           "nixpacks",
+		PortsExposes:        "3000",
+		ProjectUUID:         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+		ServerUUID:          "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+		EnvironmentName:     "production",
+		IsAutoDeployEnabled: &trueVal,
+		MaxRestartCount:     &maxRestart,
+	}
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.2.0"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid     = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+					server_uuid      = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+					environment_name = "production"
+					git_repository   = "https://github.com/org/repo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					name             = "restart-limit-v42-app"
+					max_restart_count = 3
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_application.test", "max_restart_count", "3"),
+			},
+		},
+	})
+}
+
 func testApplicationResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application", "test", attrs)
 }

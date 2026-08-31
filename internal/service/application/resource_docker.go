@@ -146,7 +146,7 @@ func (r *dockerImageApplicationResource) Create(ctx context.Context, req resourc
 		return
 	}
 
-	flattenDockerImageApplication(app, &plan)
+	flattenDockerImageApplication(app, &plan, r.client)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application_docker_image", "uuid": created.UUID})
 }
@@ -158,7 +158,7 @@ func (r *dockerImageApplicationResource) Read(ctx context.Context, req resource.
 		return
 	}
 	readApplication(ctx, r.client, "coolify_application_docker_image", state.UUID.ValueString(), resp, func(app *client.Application) {
-		flattenDockerImageApplication(app, &state)
+		flattenDockerImageApplication(app, &state, r.client)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	})
 }
@@ -198,7 +198,7 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 
 	dockerImageChanged := plan.DockerImage.ValueString() != state.DockerImage.ValueString()
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
-		flattenDockerImageApplication(app, &plan)
+		flattenDockerImageApplication(app, &plan, r.client)
 	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields, dockerImageChanged)
 	if resp.Diagnostics.HasError() {
 		return
@@ -245,8 +245,10 @@ func splitDockerImage(image string) (string, string) {
 }
 
 // flattenDockerImageApplication copies API fields into the Terraform state model.
-func flattenDockerImageApplication(app *client.Application, state *dockerImageApplicationResourceModel) {
-	flattenApplicationCommon(app, state.common())
+func flattenDockerImageApplication(app *client.Application, state *dockerImageApplicationResourceModel, c *client.Client) {
+	f := state.common()
+	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	flattenApplicationCommon(app, f)
 	// Coolify may strip the tag from Docker image names (e.g.
 	// "redis:7-alpine" becomes "redis"). Preserve the user's original value
 	// if the API value matches the image name without the tag.

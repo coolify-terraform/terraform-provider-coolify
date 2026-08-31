@@ -632,10 +632,13 @@ func setBoolDefault(dst *types.Bool, v *bool, def bool) {
 // under the gocognit limit.
 func flattenRestartLimitFields(app *client.Application, f commonAppFields) {
 	if f.MaxRestartCount != nil {
-		if app.MaxRestartCount != nil {
-			*f.MaxRestartCount = types.Int64Value(*app.MaxRestartCount)
-		} else if f.MaxRestartCount.IsNull() || f.MaxRestartCount.IsUnknown() {
-			*f.MaxRestartCount = types.Int64Null()
+		preserve := f.PreserveConfiguredMaxRestart && !f.MaxRestartCount.IsNull() && !f.MaxRestartCount.IsUnknown()
+		if !preserve {
+			if app.MaxRestartCount != nil {
+				*f.MaxRestartCount = types.Int64Value(*app.MaxRestartCount)
+			} else if f.MaxRestartCount.IsNull() || f.MaxRestartCount.IsUnknown() {
+				*f.MaxRestartCount = types.Int64Null()
+			}
 		}
 	}
 	setBoolOrNull(f.RestartLimitReached, app.RestartLimitReached)

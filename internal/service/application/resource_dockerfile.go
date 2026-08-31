@@ -181,7 +181,7 @@ func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	flattenDockerfileApplication(app, &plan)
+	flattenDockerfileApplication(app, &plan, r.client)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application_dockerfile", "uuid": created.UUID})
 }
@@ -193,7 +193,7 @@ func (r *dockerfileApplicationResource) Read(ctx context.Context, req resource.R
 		return
 	}
 	readApplication(ctx, r.client, "coolify_application_dockerfile", state.UUID.ValueString(), resp, func(app *client.Application) {
-		flattenDockerfileApplication(app, &state)
+		flattenDockerfileApplication(app, &state, r.client)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	})
 }
@@ -216,7 +216,7 @@ func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource
 	stateFields := state.common()
 	input := buildUpdateInput(planFields, stateFields)
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
-		flattenDockerfileApplication(app, &plan)
+		flattenDockerfileApplication(app, &plan, r.client)
 	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields)
 	if resp.Diagnostics.HasError() {
 		return
@@ -248,13 +248,15 @@ func (m *dockerfileApplicationResourceModel) common() commonAppFields {
 	return c
 }
 
-func flattenDockerfileApplication(app *client.Application, state *dockerfileApplicationResourceModel) {
+func flattenDockerfileApplication(app *client.Application, state *dockerfileApplicationResourceModel, c *client.Client) {
 	// Save the user's dockerfile_location before the common flatten,
 	// which may overwrite it with a stale value from the API's
 	// dockerfile_location field. For dockerfile apps, the content
 	// lives in the API's "dockerfile" field, not "dockerfile_location".
 	savedDockerfileLocation := state.DockerfileLocation
-	flattenApplicationCommon(app, state.common())
+	f := state.common()
+	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	flattenApplicationCommon(app, f)
 	// Preserve the user's value if it was set (normal CRUD flow).
 	// On import, savedDockerfileLocation is null, so let the common
 	// flatten's result stand (populated from app.DockerfileLocation).

@@ -136,7 +136,7 @@ func (r *applicationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	flattenApplication(app, &plan)
+	flattenApplication(app, &plan, r.client)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application", "uuid": created.UUID})
 }
@@ -148,7 +148,7 @@ func (r *applicationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 	readApplication(ctx, r.client, "coolify_application", state.UUID.ValueString(), resp, func(app *client.Application) {
-		flattenApplication(app, &state)
+		flattenApplication(app, &state, r.client)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	})
 }
@@ -171,7 +171,7 @@ func (r *applicationResource) Update(ctx context.Context, req resource.UpdateReq
 	stateFields := state.common()
 	input := buildUpdateInput(planFields, stateFields)
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
-		flattenApplication(app, &plan)
+		flattenApplication(app, &plan, r.client)
 	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields)
 	if resp.Diagnostics.HasError() {
 		return
@@ -202,6 +202,8 @@ func (m *applicationResourceModel) common() commonAppFields {
 	return c
 }
 
-func flattenApplication(app *client.Application, state *applicationResourceModel) {
-	flattenApplicationCommon(app, state.common())
+func flattenApplication(app *client.Application, state *applicationResourceModel, c *client.Client) {
+	f := state.common()
+	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	flattenApplicationCommon(app, f)
 }

@@ -370,7 +370,7 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"max_restart_count": schema.Int64Attribute{
-			MarkdownDescription: "The maximum number of container restarts before Coolify stops the application. Requires Coolify >= v4.3.0. Coolify defaults to `10`. On Coolify < v4.3.0 the provider omits the key on write and emits a plan warning (it does not 422). Import or GET that omits the field leaves the attribute null; there is no provider Default of `10`.",
+			MarkdownDescription: "The maximum number of container restarts before Coolify stops the application. Requires Coolify >= v4.3.0. Coolify defaults to `10`. On Coolify < v4.3.0 the provider omits the key on write and emits a plan warning (it does not 422). Coolify 4.1 and 4.2 still return `10` from GET (the database default); a configured value stays in state. Import or GET that omits the field leaves the attribute null; there is no provider Default of `10`.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},

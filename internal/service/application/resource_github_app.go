@@ -141,7 +141,7 @@ func (r *gitHubAppApplicationResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	flattenGitHubAppApplication(app, &plan)
+	flattenGitHubAppApplication(app, &plan, r.client)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application_github_app", "uuid": created.UUID})
 }
@@ -153,7 +153,7 @@ func (r *gitHubAppApplicationResource) Read(ctx context.Context, req resource.Re
 		return
 	}
 	readApplication(ctx, r.client, "coolify_application_github_app", state.UUID.ValueString(), resp, func(app *client.Application) {
-		flattenGitHubAppApplication(app, &state)
+		flattenGitHubAppApplication(app, &state, r.client)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	})
 }
@@ -178,7 +178,7 @@ func (r *gitHubAppApplicationResource) Update(ctx context.Context, req resource.
 	input.GitHubAppUUID = flex.StringIfChanged(plan.GitHubAppUUID, state.GitHubAppUUID)
 	githubAppChanged := plan.GitHubAppUUID.ValueString() != state.GitHubAppUUID.ValueString()
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
-		flattenGitHubAppApplication(app, &plan)
+		flattenGitHubAppApplication(app, &plan, r.client)
 	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields, githubAppChanged)
 	if resp.Diagnostics.HasError() {
 		return
@@ -209,8 +209,10 @@ func (m *gitHubAppApplicationResourceModel) common() commonAppFields {
 	return c
 }
 
-func flattenGitHubAppApplication(app *client.Application, state *gitHubAppApplicationResourceModel) {
-	flattenApplicationCommon(app, state.common())
+func flattenGitHubAppApplication(app *client.Application, state *gitHubAppApplicationResourceModel, c *client.Client) {
+	f := state.common()
+	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	flattenApplicationCommon(app, f)
 	if app.GitHubAppUUID != "" {
 		state.GitHubAppUUID = types.StringValue(app.GitHubAppUUID)
 	}

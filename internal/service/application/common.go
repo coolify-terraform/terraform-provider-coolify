@@ -176,6 +176,7 @@ type commonAppFields struct {
 	MaxRestartCount                  *types.Int64
 	RestartLimitReached              *types.Bool
 	ContainerPresent                 *types.Bool
+	PreserveConfiguredMaxRestart     bool
 }
 
 // applicationCommonModel holds the fields shared by all application resource
