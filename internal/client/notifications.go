@@ -19,6 +19,7 @@ type DiscordNotificationSettings struct {
 	DeploymentSuccess    bool `json:"deployment_success_discord_notifications"`
 	DeploymentFailure    bool `json:"deployment_failure_discord_notifications"`
 	StatusChange         bool `json:"status_change_discord_notifications"`
+	RestartLimitReached  bool `json:"restart_limit_reached_discord_notifications"`
 	BackupSuccess        bool `json:"backup_success_discord_notifications"`
 	BackupFailure        bool `json:"backup_failure_discord_notifications"`
 	ScheduledTaskSuccess bool `json:"scheduled_task_success_discord_notifications"`
@@ -42,6 +43,7 @@ type UpdateDiscordNotificationInput struct {
 	DeploymentSuccess    *bool `json:"deployment_success_discord_notifications,omitempty"`
 	DeploymentFailure    *bool `json:"deployment_failure_discord_notifications,omitempty"`
 	StatusChange         *bool `json:"status_change_discord_notifications,omitempty"`
+	RestartLimitReached  *bool `json:"restart_limit_reached_discord_notifications,omitempty"`
 	BackupSuccess        *bool `json:"backup_success_discord_notifications,omitempty"`
 	BackupFailure        *bool `json:"backup_failure_discord_notifications,omitempty"`
 	ScheduledTaskSuccess *bool `json:"scheduled_task_success_discord_notifications,omitempty"`
@@ -66,6 +68,7 @@ type SlackNotificationSettings struct {
 	DeploymentSuccess    bool `json:"deployment_success_slack_notifications"`
 	DeploymentFailure    bool `json:"deployment_failure_slack_notifications"`
 	StatusChange         bool `json:"status_change_slack_notifications"`
+	RestartLimitReached  bool `json:"restart_limit_reached_slack_notifications"`
 	BackupSuccess        bool `json:"backup_success_slack_notifications"`
 	BackupFailure        bool `json:"backup_failure_slack_notifications"`
 	ScheduledTaskSuccess bool `json:"scheduled_task_success_slack_notifications"`
@@ -87,6 +90,7 @@ type UpdateSlackNotificationInput struct {
 	DeploymentSuccess    *bool `json:"deployment_success_slack_notifications,omitempty"`
 	DeploymentFailure    *bool `json:"deployment_failure_slack_notifications,omitempty"`
 	StatusChange         *bool `json:"status_change_slack_notifications,omitempty"`
+	RestartLimitReached  *bool `json:"restart_limit_reached_slack_notifications,omitempty"`
 	BackupSuccess        *bool `json:"backup_success_slack_notifications,omitempty"`
 	BackupFailure        *bool `json:"backup_failure_slack_notifications,omitempty"`
 	ScheduledTaskSuccess *bool `json:"scheduled_task_success_slack_notifications,omitempty"`
@@ -151,6 +155,7 @@ type WebhookNotificationSettings struct {
 	DeploymentSuccess    bool `json:"deployment_success_webhook_notifications"`
 	DeploymentFailure    bool `json:"deployment_failure_webhook_notifications"`
 	StatusChange         bool `json:"status_change_webhook_notifications"`
+	RestartLimitReached  bool `json:"restart_limit_reached_webhook_notifications"`
 	BackupSuccess        bool `json:"backup_success_webhook_notifications"`
 	BackupFailure        bool `json:"backup_failure_webhook_notifications"`
 	ScheduledTaskSuccess bool `json:"scheduled_task_success_webhook_notifications"`
@@ -172,6 +177,7 @@ type UpdateWebhookNotificationInput struct {
 	DeploymentSuccess    *bool `json:"deployment_success_webhook_notifications,omitempty"`
 	DeploymentFailure    *bool `json:"deployment_failure_webhook_notifications,omitempty"`
 	StatusChange         *bool `json:"status_change_webhook_notifications,omitempty"`
+	RestartLimitReached  *bool `json:"restart_limit_reached_webhook_notifications,omitempty"`
 	BackupSuccess        *bool `json:"backup_success_webhook_notifications,omitempty"`
 	BackupFailure        *bool `json:"backup_failure_webhook_notifications,omitempty"`
 	ScheduledTaskSuccess *bool `json:"scheduled_task_success_webhook_notifications,omitempty"`
@@ -197,6 +203,7 @@ type PushoverNotificationSettings struct {
 	DeploymentSuccess    bool `json:"deployment_success_pushover_notifications"`
 	DeploymentFailure    bool `json:"deployment_failure_pushover_notifications"`
 	StatusChange         bool `json:"status_change_pushover_notifications"`
+	RestartLimitReached  bool `json:"restart_limit_reached_pushover_notifications"`
 	BackupSuccess        bool `json:"backup_success_pushover_notifications"`
 	BackupFailure        bool `json:"backup_failure_pushover_notifications"`
 	ScheduledTaskSuccess bool `json:"scheduled_task_success_pushover_notifications"`
@@ -219,6 +226,7 @@ type UpdatePushoverNotificationInput struct {
 	DeploymentSuccess    *bool `json:"deployment_success_pushover_notifications,omitempty"`
 	DeploymentFailure    *bool `json:"deployment_failure_pushover_notifications,omitempty"`
 	StatusChange         *bool `json:"status_change_pushover_notifications,omitempty"`
+	RestartLimitReached  *bool `json:"restart_limit_reached_pushover_notifications,omitempty"`
 	BackupSuccess        *bool `json:"backup_success_pushover_notifications,omitempty"`
 	BackupFailure        *bool `json:"backup_failure_pushover_notifications,omitempty"`
 	ScheduledTaskSuccess *bool `json:"scheduled_task_success_pushover_notifications,omitempty"`
@@ -298,6 +306,7 @@ type EmailNotificationSettings struct {
 	DeploymentSuccess    bool `json:"deployment_success_email_notifications"`
 	DeploymentFailure    bool `json:"deployment_failure_email_notifications"`
 	StatusChange         bool `json:"status_change_email_notifications"`
+	RestartLimitReached  bool `json:"restart_limit_reached_email_notifications"`
 	BackupSuccess        bool `json:"backup_success_email_notifications"`
 	BackupFailure        bool `json:"backup_failure_email_notifications"`
 	ScheduledTaskSuccess bool `json:"scheduled_task_success_email_notifications"`
@@ -331,6 +340,7 @@ type UpdateEmailNotificationInput struct {
 	DeploymentSuccess    *bool `json:"deployment_success_email_notifications,omitempty"`
 	DeploymentFailure    *bool `json:"deployment_failure_email_notifications,omitempty"`
 	StatusChange         *bool `json:"status_change_email_notifications,omitempty"`
+	RestartLimitReached  *bool `json:"restart_limit_reached_email_notifications,omitempty"`
 	BackupSuccess        *bool `json:"backup_success_email_notifications,omitempty"`
 	BackupFailure        *bool `json:"backup_failure_email_notifications,omitempty"`
 	ScheduledTaskSuccess *bool `json:"scheduled_task_success_email_notifications,omitempty"`
@@ -356,6 +366,7 @@ type TelegramNotificationSettings struct {
 	DeploymentSuccess    bool `json:"deployment_success_telegram_notifications"`
 	DeploymentFailure    bool `json:"deployment_failure_telegram_notifications"`
 	StatusChange         bool `json:"status_change_telegram_notifications"`
+	RestartLimitReached  bool `json:"restart_limit_reached_telegram_notifications"`
 	BackupSuccess        bool `json:"backup_success_telegram_notifications"`
 	BackupFailure        bool `json:"backup_failure_telegram_notifications"`
 	ScheduledTaskSuccess bool `json:"scheduled_task_success_telegram_notifications"`
@@ -371,6 +382,7 @@ type TelegramNotificationSettings struct {
 	ThreadDeploymentSuccess    string `json:"telegram_notifications_deployment_success_thread_id,omitempty"`
 	ThreadDeploymentFailure    string `json:"telegram_notifications_deployment_failure_thread_id,omitempty"`
 	ThreadStatusChange         string `json:"telegram_notifications_status_change_thread_id,omitempty"`
+	ThreadRestartLimitReached  string `json:"telegram_notifications_restart_limit_reached_thread_id,omitempty"`
 	ThreadBackupSuccess        string `json:"telegram_notifications_backup_success_thread_id,omitempty"`
 	ThreadBackupFailure        string `json:"telegram_notifications_backup_failure_thread_id,omitempty"`
 	ThreadScheduledTaskSuccess string `json:"telegram_notifications_scheduled_task_success_thread_id,omitempty"`
@@ -393,6 +405,7 @@ type UpdateTelegramNotificationInput struct {
 	DeploymentSuccess    *bool `json:"deployment_success_telegram_notifications,omitempty"`
 	DeploymentFailure    *bool `json:"deployment_failure_telegram_notifications,omitempty"`
 	StatusChange         *bool `json:"status_change_telegram_notifications,omitempty"`
+	RestartLimitReached  *bool `json:"restart_limit_reached_telegram_notifications,omitempty"`
 	BackupSuccess        *bool `json:"backup_success_telegram_notifications,omitempty"`
 	BackupFailure        *bool `json:"backup_failure_telegram_notifications,omitempty"`
 	ScheduledTaskSuccess *bool `json:"scheduled_task_success_telegram_notifications,omitempty"`
@@ -408,6 +421,7 @@ type UpdateTelegramNotificationInput struct {
 	ThreadDeploymentSuccess    *string `json:"telegram_notifications_deployment_success_thread_id,omitempty"`
 	ThreadDeploymentFailure    *string `json:"telegram_notifications_deployment_failure_thread_id,omitempty"`
 	ThreadStatusChange         *string `json:"telegram_notifications_status_change_thread_id,omitempty"`
+	ThreadRestartLimitReached  *string `json:"telegram_notifications_restart_limit_reached_thread_id,omitempty"`
 	ThreadBackupSuccess        *string `json:"telegram_notifications_backup_success_thread_id,omitempty"`
 	ThreadBackupFailure        *string `json:"telegram_notifications_backup_failure_thread_id,omitempty"`
 	ThreadScheduledTaskSuccess *string `json:"telegram_notifications_scheduled_task_success_thread_id,omitempty"`

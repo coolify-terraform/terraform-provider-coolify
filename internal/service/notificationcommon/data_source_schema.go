@@ -30,17 +30,20 @@ func BoolComputed(desc string) schema.BoolAttribute {
 	}
 }
 
-// EventDataSourceAttrs returns the 14 shared event bools as computed attributes.
+// EventDataSourceAttrs returns the 15 shared event bools as computed attributes.
 func EventDataSourceAttrs(channel string) map[string]schema.Attribute {
 	attrs := make(map[string]schema.Attribute, len(eventNames))
 	for _, e := range eventNames {
 		desc := fmt.Sprintf("Whether %s notifications are sent for %s events.", channel, e.label)
+		if e.attr == "restart_limit_reached" {
+			desc += " Coolify tip after 2026-08-31 (not in tag v4.3.14)."
+		}
 		attrs[e.attr] = BoolComputed(desc)
 	}
 	return attrs
 }
 
-// ThreadDataSourceAttrs returns the 14 Telegram forum thread IDs as computed attributes.
+// ThreadDataSourceAttrs returns the 15 Telegram forum thread IDs as computed attributes.
 func ThreadDataSourceAttrs() map[string]schema.Attribute {
 	attrs := make(map[string]schema.Attribute, len(eventNames))
 	for _, e := range eventNames {

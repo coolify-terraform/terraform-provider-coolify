@@ -45,6 +45,8 @@ type databaseDataSourceModel struct {
 	SSLMode                types.String `tfsdk:"ssl_mode"`
 	Status                 types.String `tfsdk:"status"`
 	InternalDBUrl          types.String `tfsdk:"internal_db_url"`
+	MaxRestartCount        types.Int64  `tfsdk:"max_restart_count"`
+	RestartLimitReached    types.Bool   `tfsdk:"restart_limit_reached"`
 }
 
 func NewDataSource() datasource.DataSource {
@@ -140,6 +142,14 @@ func (d *databaseDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				MarkdownDescription: "The current status of the database (e.g., running, exited).",
 				Computed:            true,
 			},
+			"max_restart_count": schema.Int64Attribute{
+				MarkdownDescription: "Maximum container restarts before Coolify stops the database. GET-only. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+				Computed:            true,
+			},
+			"restart_limit_reached": schema.BoolAttribute{
+				MarkdownDescription: "Whether Coolify has stopped the database because restart_count reached max_restart_count. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+				Computed:            true,
+			},
 			"internal_db_url": schema.StringAttribute{
 				MarkdownDescription: "Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.",
 				Computed:            true,
@@ -191,6 +201,12 @@ func (d *databaseDataSource) Read(ctx context.Context, req datasource.ReadReques
 	config.SSLMode = flex.StringToFramework(db.SSLMode)
 	config.Status = flex.StringToFramework(db.Status)
 	config.InternalDBUrl = flex.StringToFramework(db.InternalDBUrl)
+	config.MaxRestartCount = flex.Int64PtrToFramework(db.MaxRestartCount)
+	if db.RestartLimitReached != nil {
+		config.RestartLimitReached = types.BoolValue(*db.RestartLimitReached)
+	} else {
+		config.RestartLimitReached = types.BoolNull()
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

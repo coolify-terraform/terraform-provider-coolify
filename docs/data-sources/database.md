@@ -40,9 +40,11 @@ data "coolify_database" "example" {
 - `is_include_timestamps` (Boolean) Whether timestamps are included in log output.
 - `is_log_drain_enabled` (Boolean) Whether log drain is enabled for this database.
 - `is_public` (Boolean) Whether the database is publicly accessible.
+- `max_restart_count` (Number) Maximum container restarts before Coolify stops the database. GET-only. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `name` (String) The name of the database.
 - `project_uuid` (String) The UUID of the project this database belongs to.
 - `public_port` (Number) The public port for the database, if publicly accessible.
+- `restart_limit_reached` (Boolean) Whether Coolify has stopped the database because restart_count reached max_restart_count. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `server_uuid` (String) The UUID of the server the database is deployed on.
 - `ssl_mode` (String) The SSL connection mode (e.g., `require`, `verify-full`). Empty when SSL is not enabled or not supported by the database type.
 - `status` (String) The current status of the database (e.g., running, exited).

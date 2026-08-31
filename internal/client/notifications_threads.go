@@ -1,12 +1,13 @@
 package client
 
-// NotificationThreads is the 14 Telegram forum thread IDs (channel-specific).
+// NotificationThreads is the 15 Telegram forum thread IDs (channel-specific).
 // Field names must match the Thread* fields on TelegramNotificationSettings
 // and UpdateTelegramNotificationInput.
 type NotificationThreads struct {
 	ThreadDeploymentSuccess    string
 	ThreadDeploymentFailure    string
 	ThreadStatusChange         string
+	ThreadRestartLimitReached  string
 	ThreadBackupSuccess        string
 	ThreadBackupFailure        string
 	ThreadScheduledTaskSuccess string
@@ -25,6 +26,7 @@ type NotificationThreadUpdate struct {
 	ThreadDeploymentSuccess    *string
 	ThreadDeploymentFailure    *string
 	ThreadStatusChange         *string
+	ThreadRestartLimitReached  *string
 	ThreadBackupSuccess        *string
 	ThreadBackupFailure        *string
 	ThreadScheduledTaskSuccess *string

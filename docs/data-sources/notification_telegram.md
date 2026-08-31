@@ -34,6 +34,7 @@ output "notifications" {
 - `docker_cleanup_success` (Boolean) Whether Telegram notifications are sent for Docker cleanup success events.
 - `enabled` (Boolean) Whether Telegram notifications are enabled for the team.
 - `id` (String) Identifier. Always `current` (team is implied by the API token).
+- `restart_limit_reached` (Boolean) Whether Telegram notifications are sent for restart limit reached events. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `scheduled_task_failure` (Boolean) Whether Telegram notifications are sent for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether Telegram notifications are sent for scheduled task success events.
 - `server_disk_usage` (Boolean) Whether Telegram notifications are sent for server disk usage events.
@@ -47,6 +48,7 @@ output "notifications" {
 - `thread_deployment_success` (String, Sensitive) Forum thread ID for deployment_success events. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `thread_docker_cleanup_failure` (String, Sensitive) Forum thread ID for docker_cleanup_failure events. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `thread_docker_cleanup_success` (String, Sensitive) Forum thread ID for docker_cleanup_success events. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
+- `thread_restart_limit_reached` (String, Sensitive) Forum thread ID for restart_limit_reached events. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `thread_scheduled_task_failure` (String, Sensitive) Forum thread ID for scheduled_task_failure events. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `thread_scheduled_task_success` (String, Sensitive) Forum thread ID for scheduled_task_success events. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).
 - `thread_server_disk_usage` (String, Sensitive) Forum thread ID for server_disk_usage events. Coolify may omit this unless the API token can read sensitive fields (`read:sensitive` or root).

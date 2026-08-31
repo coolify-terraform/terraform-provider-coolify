@@ -37,7 +37,7 @@ func singletonSchema() schema.Schema {
 func TestEventAttributeNames_CountAndOrder(t *testing.T) {
 	t.Parallel()
 	names := notificationcommon.EventAttributeNames()
-	require.Len(t, names, 14)
+	require.Len(t, names, 15)
 	assert.Equal(t, "deployment_success", names[0])
 	assert.Equal(t, "traefik_outdated", names[len(names)-1])
 	seen := map[string]struct{}{}
@@ -61,7 +61,7 @@ func TestThreadAttributeNames_PrefixAndOrder(t *testing.T) {
 func TestThreadSchemaAttrs_HasAllThreadsAndChannelInDesc(t *testing.T) {
 	t.Parallel()
 	attrs := notificationcommon.ThreadSchemaAttrs("Telegram")
-	require.Len(t, attrs, 14)
+	require.Len(t, attrs, 15)
 	for _, name := range notificationcommon.ThreadAttributeNames() {
 		a, ok := attrs[name]
 		require.True(t, ok, "missing attr %s", name)
@@ -78,7 +78,7 @@ func TestThreadSchemaAttrs_HasAllThreadsAndChannelInDesc(t *testing.T) {
 func TestEventSchemaAttrs_HasAllEventsAndChannelInDesc(t *testing.T) {
 	t.Parallel()
 	attrs := notificationcommon.EventSchemaAttrs("Discord")
-	require.Len(t, attrs, 14)
+	require.Len(t, attrs, 15)
 	for _, name := range notificationcommon.EventAttributeNames() {
 		a, ok := attrs[name]
 		require.True(t, ok, "missing attr %s", name)
@@ -101,7 +101,7 @@ func TestMergeAttrs_OverlayWins(t *testing.T) {
 	}
 	overlay := notificationcommon.EventSchemaAttrs("Slack")
 	merged := notificationcommon.MergeAttrs(base, overlay)
-	require.Len(t, merged, 2+14)
+	require.Len(t, merged, 2+15)
 	ba, ok := merged["deployment_failure"].(schema.BoolAttribute)
 	require.True(t, ok)
 	assert.Contains(t, ba.MarkdownDescription, "Slack")

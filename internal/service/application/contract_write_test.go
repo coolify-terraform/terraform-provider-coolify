@@ -101,6 +101,7 @@ func TestContractAllowList_IncludesApplicationSettingFields(t *testing.T) {
 		"is_consistent_container_name_enabled",
 		"custom_internal_name",
 		"noindex_domains",
+		"max_restart_count",
 	}
 	var missing []string
 	for _, f := range required {

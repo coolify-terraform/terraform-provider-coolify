@@ -59,6 +59,8 @@ type CommonModel struct {
 	Status                  types.String `tfsdk:"status"`
 	InternalDBUrl           types.String `tfsdk:"internal_db_url"`
 	InstantDeploy           types.Bool   `tfsdk:"instant_deploy"`
+	MaxRestartCount         types.Int64  `tfsdk:"max_restart_count"`
+	RestartLimitReached     types.Bool   `tfsdk:"restart_limit_reached"`
 }
 
 // DatabaseCommonPtrs groups pointers to the core database model fields
@@ -94,6 +96,8 @@ func (m *CommonModel) ExtFields() DatabaseExtendedPtrs {
 		Status:                  &m.Status,
 		InternalDBUrl:           &m.InternalDBUrl,
 		InstantDeploy:           &m.InstantDeploy,
+		MaxRestartCount:         &m.MaxRestartCount,
+		RestartLimitReached:     &m.RestartLimitReached,
 	}
 }
 
@@ -200,8 +204,16 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"health_check_retries":      schema.Int64Attribute{MarkdownDescription: "Number of consecutive health check failures before the container is considered unhealthy. Minimum `1`. Defaults to `5`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{int64validator.AtLeast(1)}},
 		"health_check_start_period": schema.Int64Attribute{MarkdownDescription: "Grace period in seconds before health checks start counting failures after container start. Minimum `0`. Defaults to `5`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{int64validator.AtLeast(0)}},
 		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g., `running`, `exited`).", Computed: true},
-		"internal_db_url":           schema.StringAttribute{MarkdownDescription: "Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.", Computed: true, Sensitive: true},
-		"instant_deploy":            schema.BoolAttribute{MarkdownDescription: "Whether to immediately deploy the database after creation. When `true`, Coolify starts the database container right away. When `false` (default), the database is created but not started.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
+		"max_restart_count": schema.Int64Attribute{
+			MarkdownDescription: "Maximum container restarts before Coolify stops the database. GET-only (not on DatabasesController create or update allow lists; set the limit in the Coolify UI). Coolify tip after 2026-08-31 (not in tag v4.3.14). Defaults to `10` when the column exists.",
+			Computed:            true,
+		},
+		"restart_limit_reached": schema.BoolAttribute{
+			MarkdownDescription: "Whether Coolify has stopped the database because restart_count reached max_restart_count. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+			Computed:            true,
+		},
+		"internal_db_url": schema.StringAttribute{MarkdownDescription: "Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.", Computed: true, Sensitive: true},
+		"instant_deploy":  schema.BoolAttribute{MarkdownDescription: "Whether to immediately deploy the database after creation. When `true`, Coolify starts the database container right away. When `false` (default), the database is created but not started.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 	}
 	for k, v := range extra {
 		attrs[k] = v
@@ -467,6 +479,8 @@ type DatabaseExtendedPtrs struct {
 	Status                  *types.String
 	InternalDBUrl           *types.String
 	InstantDeploy           *types.Bool
+	MaxRestartCount         *types.Int64
+	RestartLimitReached     *types.Bool
 }
 
 // WithSSL returns a copy of the DatabaseExtendedPtrs with EnableSSL and SSLMode
@@ -527,6 +541,16 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	// Preserve state value when set; default to false otherwise (import).
 	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {
 		*f.InstantDeploy = types.BoolValue(false)
+	}
+	if f.MaxRestartCount != nil {
+		*f.MaxRestartCount = flex.Int64PtrToFramework(db.MaxRestartCount)
+	}
+	if f.RestartLimitReached != nil {
+		if db.RestartLimitReached != nil {
+			*f.RestartLimitReached = types.BoolValue(*db.RestartLimitReached)
+		} else {
+			*f.RestartLimitReached = types.BoolNull()
+		}
 	}
 }
 

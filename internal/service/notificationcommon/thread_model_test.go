@@ -14,7 +14,7 @@ import (
 func TestThreadModel_AlignsWithThreadAttributeNames(t *testing.T) {
 	t.Parallel()
 	names := notificationcommon.ThreadAttributeNames()
-	require.Len(t, names, 14)
+	require.Len(t, names, 15)
 
 	typ := reflect.TypeOf(notificationcommon.ThreadModel{})
 	require.Equal(t, len(names), typ.NumField())

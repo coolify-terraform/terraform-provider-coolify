@@ -9,20 +9,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEventDataSourceAttrs_AllFourteen(t *testing.T) {
+func TestEventDataSourceAttrs_AllEvents(t *testing.T) {
 	t.Parallel()
 	attrs := notificationcommon.EventDataSourceAttrs("Discord")
-	require.Len(t, attrs, 14)
+	require.Len(t, attrs, 15)
 	for _, name := range notificationcommon.EventAttributeNames() {
 		_, ok := attrs[name]
 		assert.True(t, ok, "missing %s", name)
 	}
 }
 
-func TestThreadDataSourceAttrs_AllFourteen(t *testing.T) {
+func TestThreadDataSourceAttrs_AllThreads(t *testing.T) {
 	t.Parallel()
 	attrs := notificationcommon.ThreadDataSourceAttrs()
-	require.Len(t, attrs, 14)
+	require.Len(t, attrs, 15)
 	for _, name := range notificationcommon.ThreadAttributeNames() {
 		a, ok := attrs[name]
 		require.True(t, ok, "missing %s", name)

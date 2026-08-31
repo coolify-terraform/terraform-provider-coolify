@@ -29,6 +29,7 @@ var eventNames = []struct {
 	{"deployment_success", "deployment success"},
 	{"deployment_failure", "deployment failure"},
 	{"status_change", "status change"},
+	{"restart_limit_reached", "restart limit reached"},
 	{"backup_success", "backup success"},
 	{"backup_failure", "backup failure"},
 	{"scheduled_task_success", "scheduled task success"},
@@ -42,7 +43,7 @@ var eventNames = []struct {
 	{"traefik_outdated", "Traefik outdated"},
 }
 
-// EventAttributeNames returns the 14 shared event attribute names in stable order.
+// EventAttributeNames returns the 15 shared event attribute names in stable order.
 func EventAttributeNames() []string {
 	out := make([]string, len(eventNames))
 	for i, e := range eventNames {
@@ -96,12 +97,15 @@ func BoolOptComputed(desc string) schema.BoolAttribute {
 	}
 }
 
-// EventSchemaAttrs returns the 14 shared event bool attributes for a channel.
+// EventSchemaAttrs returns the 15 shared event bool attributes for a channel.
 // channel is the display name used in Markdown descriptions (e.g. "Discord", "email").
 func EventSchemaAttrs(channel string) map[string]schema.Attribute {
 	attrs := make(map[string]schema.Attribute, len(eventNames))
 	for _, e := range eventNames {
 		desc := fmt.Sprintf("Whether to send %s notifications for %s events.", channel, e.label)
+		if e.attr == "restart_limit_reached" {
+			desc += " Coolify tip after 2026-08-31 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422."
+		}
 		attrs[e.attr] = BoolOptComputed(desc)
 	}
 	return attrs

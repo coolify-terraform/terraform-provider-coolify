@@ -34,6 +34,7 @@ output "notifications" {
 - `enabled` (Boolean) Whether Discord notifications are enabled for the team.
 - `id` (String) Identifier. Always `current` (team is implied by the API token).
 - `ping_enabled` (Boolean) Whether Discord @here / role pings are enabled.
+- `restart_limit_reached` (Boolean) Whether Discord notifications are sent for restart limit reached events. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `scheduled_task_failure` (Boolean) Whether Discord notifications are sent for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether Discord notifications are sent for scheduled task success events.
 - `server_disk_usage` (Boolean) Whether Discord notifications are sent for server disk usage events.

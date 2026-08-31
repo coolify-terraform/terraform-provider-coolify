@@ -43,6 +43,7 @@ func fullSettingsInput() UpdateApplicationInput {
 		IsConsistentContainerNameEnabled: &b,
 		CustomInternalName:               &name,
 		NoindexDomains:                   &noindex,
+		MaxRestartCount:                  &n,
 	}
 }
 

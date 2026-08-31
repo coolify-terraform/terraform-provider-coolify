@@ -213,10 +213,7 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 		}
 	}
 	flattenApplicationSettingFields(app, f)
-	// max_restart_count is Computed-only (not writable via API).
-	if f.MaxRestartCount != nil {
-		*f.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
-	}
+	flattenRestartLimitFields(app, f)
 	// instant_deploy is create-only and never returned by the API.
 	// Preserve state value when set; default to false otherwise (import).
 	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {
@@ -381,6 +378,9 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	if plan.DockerComposeCustomStartCommand != nil && state.DockerComposeCustomStartCommand != nil {
 		input.DockerComposeCustomStartCommand = strDiff(*plan.DockerComposeCustomStartCommand, *state.DockerComposeCustomStartCommand)
 	}
+	if plan.MaxRestartCount != nil && state.MaxRestartCount != nil {
+		input.MaxRestartCount = flex.Int64IfChanged(*plan.MaxRestartCount, *state.MaxRestartCount)
+	}
 }
 
 // hasNonDefaultAppExtendedFields returns true if any field that the Create POST
@@ -474,7 +474,8 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
 		flex.StringPtrNonDefault(f.Redirect, defaultRedirect) ||
-		flex.StringPtrNonDefault(f.StaticImage, defaultStaticImage)
+		flex.StringPtrNonDefault(f.StaticImage, defaultStaticImage) ||
+		flex.Int64PtrNonDefault(f.MaxRestartCount, 10)
 }
 
 // listPtrConfigured reports whether a List pointer is set (non-null, non-unknown).
@@ -626,6 +627,28 @@ func setBoolDefault(dst *types.Bool, v *bool, def bool) {
 		*dst = types.BoolValue(*v)
 	} else if dst.IsNull() || dst.IsUnknown() {
 		*dst = types.BoolValue(def)
+	}
+}
+
+// flattenRestartLimitFields maps GET-only restart-limit status plus the
+// writable max_restart_count. Extracted so flattenExtendedDefaults stays
+// under the gocognit limit.
+func flattenRestartLimitFields(app *client.Application, f commonAppFields) {
+	if f.MaxRestartCount != nil {
+		*f.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
+	}
+	setBoolOrNull(f.RestartLimitReached, app.RestartLimitReached)
+	setBoolOrNull(f.ContainerPresent, app.ContainerPresent)
+}
+
+func setBoolOrNull(dst *types.Bool, v *bool) {
+	if dst == nil {
+		return
+	}
+	if v != nil {
+		*dst = types.BoolValue(*v)
+	} else {
+		*dst = types.BoolNull()
 	}
 }
 
