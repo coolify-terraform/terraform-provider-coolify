@@ -666,6 +666,15 @@ func TestFlattenRestartLimitFields(t *testing.T) {
 	})
 }
 
+func TestFlattenRestartLimitFields_PreservesConfiguredMaxRestartCount(t *testing.T) {
+	t.Parallel()
+	dest := types.Int64Value(3)
+	flattenRestartLimitFields(&client.Application{}, commonAppFields{MaxRestartCount: &dest})
+	if dest.IsNull() || dest.ValueInt64() != 3 {
+		t.Errorf("MaxRestartCount = %v, want 3 (preserve configured when API omits)", dest)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // #357: flattenApplicationCommon
 // ---------------------------------------------------------------------------

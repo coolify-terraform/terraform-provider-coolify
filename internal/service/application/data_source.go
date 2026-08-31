@@ -205,17 +205,11 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	config.Status = flex.StringToFramework(app.Status)
 	config.DockerComposeRaw = flex.StringToFramework(app.DockerComposeRaw)
 	config.DockerRegistryImageName = flex.StringToFramework(app.DockerRegistryImageName)
-	config.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
-	if app.RestartLimitReached != nil {
-		config.RestartLimitReached = types.BoolValue(*app.RestartLimitReached)
-	} else {
-		config.RestartLimitReached = types.BoolNull()
-	}
-	if app.ContainerPresent != nil {
-		config.ContainerPresent = types.BoolValue(*app.ContainerPresent)
-	} else {
-		config.ContainerPresent = types.BoolNull()
-	}
+	flattenRestartLimitFields(app, commonAppFields{
+		MaxRestartCount:     &config.MaxRestartCount,
+		RestartLimitReached: &config.RestartLimitReached,
+		ContainerPresent:    &config.ContainerPresent,
+	})
 	if app.IsConsistentContainerNameEnabled != nil {
 		config.IsConsistentContainerNameEnabled = types.BoolValue(*app.IsConsistentContainerNameEnabled)
 	} else {

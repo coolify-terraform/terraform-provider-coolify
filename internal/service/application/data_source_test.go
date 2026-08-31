@@ -30,6 +30,8 @@ func TestApplicationDataSource_Read(t *testing.T) {
 		DockerComposeRaw:                 "version: '3'\nservices:\n  web:\n    image: nginx",
 		DockerRegistryImageName:          "registry.example.com/app:latest",
 		MaxRestartCount:                  func() *int64 { v := int64(10); return &v }(),
+		RestartLimitReached:              func() *bool { v := false; return &v }(),
+		ContainerPresent:                 func() *bool { v := true; return &v }(),
 		IsConsistentContainerNameEnabled: func() *bool { v := true; return &v }(),
 	}
 
@@ -69,6 +71,8 @@ data "coolify_application" "test" {
 					resource.TestCheckResourceAttr("data.coolify_application.test", "docker_compose_raw", "version: '3'\nservices:\n  web:\n    image: nginx"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "docker_registry_image_name", "registry.example.com/app:latest"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "max_restart_count", "10"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "restart_limit_reached", "false"),
+					resource.TestCheckResourceAttr("data.coolify_application.test", "container_present", "true"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "is_consistent_container_name_enabled", "true"),
 				),
 			},
