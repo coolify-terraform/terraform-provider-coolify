@@ -1752,6 +1752,7 @@ func TestApplicationResource_MaxRestartCount_V42Withheld(t *testing.T) {
 	}
 	mu := sync.Mutex{}
 	deleted := false
+	var lastPATCH map[string]interface{}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
@@ -1778,7 +1779,8 @@ func TestApplicationResource_MaxRestartCount_V42Withheld(t *testing.T) {
 		var body map[string]interface{}
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		mu.Lock()
-		defer mu.Unlock()
+		lastPATCH = body
+		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(currentApp)
 	})
@@ -1807,7 +1809,20 @@ func TestApplicationResource_MaxRestartCount_V42Withheld(t *testing.T) {
 					name             = "restart-limit-v42-app"
 					max_restart_count = 3
 				`),
-				Check: resource.TestCheckResourceAttr("coolify_application.test", "max_restart_count", "3"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "max_restart_count", "3"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH == nil {
+							return nil
+						}
+						if _, ok := lastPATCH["max_restart_count"]; ok {
+							return fmt.Errorf("create PATCH included max_restart_count = %v, want withheld on Coolify 4.2", lastPATCH["max_restart_count"])
+						}
+						return nil
+					}),
+				),
 			},
 		},
 	})

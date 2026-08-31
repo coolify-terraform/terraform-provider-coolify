@@ -705,7 +705,7 @@ func TestFlattenRestartLimitFields(t *testing.T) {
 	})
 }
 
-func TestFlattenRestartLimitFields_PreservesConfiguredMaxRestartCount(t *testing.T) {
+func TestFlattenRestartLimitFields_OmitsAPIKeepsKnownDest(t *testing.T) {
 	t.Parallel()
 	dest := types.Int64Value(3)
 	flattenRestartLimitFields(&client.Application{}, commonAppFields{MaxRestartCount: &dest})
