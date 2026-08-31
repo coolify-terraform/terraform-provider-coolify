@@ -126,7 +126,11 @@ both gates:
 - Coolify **v4.1.x**: 4.2 settings (gzip, git LFS, preview deploys, build
   secrets, and related fields)
 - Coolify **v4.2.x**: 4.3 settings (log drain, GPU, `custom_internal_name`,
-  `noindex_domains`, and related fields)
+  `noindex_domains`, `max_restart_count`, and related fields)
+
+Notification `restart_limit_reached` on older Coolify is a real extra-key
+422 (not version-gated). Omit that attribute unless your instance accepts
+it (Coolify tip after 2026-08-31).
 
 **Fix:** upgrade Coolify to the version named in the warning (**v4.2.0** or
 **v4.3.0** as listed), or remove those attributes from configuration. The

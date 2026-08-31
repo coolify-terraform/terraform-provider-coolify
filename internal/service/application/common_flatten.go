@@ -378,9 +378,6 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	if plan.DockerComposeCustomStartCommand != nil && state.DockerComposeCustomStartCommand != nil {
 		input.DockerComposeCustomStartCommand = strDiff(*plan.DockerComposeCustomStartCommand, *state.DockerComposeCustomStartCommand)
 	}
-	if plan.MaxRestartCount != nil && state.MaxRestartCount != nil {
-		input.MaxRestartCount = flex.Int64IfChanged(*plan.MaxRestartCount, *state.MaxRestartCount)
-	}
 }
 
 // hasNonDefaultAppExtendedFields returns true if any field that the Create POST
@@ -635,7 +632,14 @@ func setBoolDefault(dst *types.Bool, v *bool, def bool) {
 // under the gocognit limit.
 func flattenRestartLimitFields(app *client.Application, f commonAppFields) {
 	if f.MaxRestartCount != nil {
-		*f.MaxRestartCount = flex.Int64PtrToFramework(app.MaxRestartCount)
+		preserve := f.PreserveConfiguredMaxRestart && !f.MaxRestartCount.IsNull() && !f.MaxRestartCount.IsUnknown()
+		if !preserve {
+			if app.MaxRestartCount != nil {
+				*f.MaxRestartCount = types.Int64Value(*app.MaxRestartCount)
+			} else if f.MaxRestartCount.IsNull() || f.MaxRestartCount.IsUnknown() {
+				*f.MaxRestartCount = types.Int64Null()
+			}
+		}
 	}
 	setBoolOrNull(f.RestartLimitReached, app.RestartLimitReached)
 	setBoolOrNull(f.ContainerPresent, app.ContainerPresent)
@@ -782,6 +786,9 @@ func addApplicationSettingUpdateFields(plan, state commonAppFields, input *clien
 	if plan.DockerImagesToKeep != nil && state.DockerImagesToKeep != nil {
 		input.DockerImagesToKeep = flex.Int64IfChanged(*plan.DockerImagesToKeep, *state.DockerImagesToKeep)
 	}
+	if plan.MaxRestartCount != nil && state.MaxRestartCount != nil {
+		input.MaxRestartCount = flex.Int64IfChanged(*plan.MaxRestartCount, *state.MaxRestartCount)
+	}
 	setBoolDiff(&input.IsLogDrainEnabled, plan.IsLogDrainEnabled, state.IsLogDrainEnabled)
 	setBoolDiff(&input.IsGpuEnabled, plan.IsGpuEnabled, state.IsGpuEnabled)
 	setStrDiff(&input.GpuDriver, plan.GpuDriver, state.GpuDriver)
@@ -811,6 +818,7 @@ func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f com
 	flex.SetBoolPtr(&input.IsEnvSortingEnabled, safeBool(f.IsEnvSortingEnabled))
 	flex.SetBoolPtr(&input.IsPrDeploymentsPublicEnabled, safeBool(f.IsPrDeploymentsPublicEnabled))
 	flex.SetInt64Ptr(&input.DockerImagesToKeep, safeInt(f.DockerImagesToKeep))
+	flex.SetInt64Ptr(&input.MaxRestartCount, safeInt(f.MaxRestartCount))
 	flex.SetBoolPtr(&input.IsGzipEnabled, safeBool(f.IsGzipEnabled))
 	flex.SetBoolPtr(&input.IsStripprefixEnabled, safeBool(f.IsStripprefixEnabled))
 	flex.SetBoolPtr(&input.IsRawComposeDeploymentEnabled, safeBool(f.IsRawComposeDeploymentEnabled))

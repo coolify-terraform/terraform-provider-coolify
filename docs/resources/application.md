@@ -49,6 +49,7 @@ resource "coolify_application" "example" {
   # is_preview_deployments_enabled = false            # Enable PR preview deployments
   # use_build_secrets              = false            # Expose Coolify secrets during build
   # stop_grace_period              = 30               # Seconds to wait for graceful container stop
+  # max_restart_count = 3  # Coolify >= v4.3.0; API default 10
 }
 ```
 
@@ -141,7 +142,7 @@ resource "coolify_application" "example" {
 - `manual_webhook_secret_gitea` (String, Sensitive) Manual webhook secret for Gitea. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
 - `manual_webhook_secret_github` (String, Sensitive) Manual webhook secret for GitHub. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
 - `manual_webhook_secret_gitlab` (String, Sensitive) Manual webhook secret for GitLab. Coolify auto-generates a value when omitted on create. GET returns the value only for tokens with root or `read:sensitive` permission; otherwise the provider preserves the configured state value.
-- `max_restart_count` (Number) The maximum number of container restarts before Coolify stops the application. Writable on Coolify >= v4.3.0 (create and update allow list). On Coolify 4.1.x and 4.2.x the field is GET-only (set it in the Coolify UI). Coolify defaults to `10`. Do not set a provider Default (import on older versions would send the key and 422).
+- `max_restart_count` (Number) The maximum number of container restarts before Coolify stops the application. Requires Coolify >= v4.3.0. Coolify defaults to `10`. On Coolify < v4.3.0 the provider omits the key on write and emits a plan warning (it does not 422). Coolify 4.1 and 4.2 still return `10` from GET (the database default); a configured value stays in state. Import or GET that omits the field leaves the attribute null; there is no provider Default of `10`.
 - `name` (String) The name of the application.
 - `noindex_domains` (List of String) Subset of application domain URLs served with an `X-Robots-Tag: noindex, nofollow` response header (keeps them out of search engines). Entries that are not among the application domains are ignored by Coolify. Read-back keeps this list's configured order when Coolify returns the same URLs (possibly reordered or with different host casing). Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:80` or `8080:80,8443:443`).

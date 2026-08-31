@@ -528,6 +528,19 @@ func TestBuildPostCreatePatch_SetField(t *testing.T) {
 	}
 }
 
+func TestBuildPostCreatePatch_MaxRestartCount(t *testing.T) {
+	t.Parallel()
+	n := types.Int64Value(3)
+	f := commonAppFields{MaxRestartCount: &n}
+	input := buildPostCreatePatch(f)
+	if input.MaxRestartCount == nil {
+		t.Fatal("expected MaxRestartCount non-nil")
+	}
+	if *input.MaxRestartCount != 3 {
+		t.Errorf("expected MaxRestartCount=3, got %d", *input.MaxRestartCount)
+	}
+}
+
 func TestBuildPostCreatePatch_NullField(t *testing.T) {
 	t.Parallel()
 	null := types.StringNull()
@@ -558,6 +571,146 @@ func TestBuildPostCreatePatch_WebhookSecrets(t *testing.T) {
 	}
 	if *input.ManualWebhookSecretGitHub != "my-gh-secret" {
 		t.Errorf("got %q", *input.ManualWebhookSecretGitHub)
+	}
+}
+
+func TestFlattenRestartLimitFields(t *testing.T) {
+	t.Parallel()
+
+	t.Run("MaxRestartCount nil API", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Int64
+		flattenRestartLimitFields(&client.Application{}, commonAppFields{MaxRestartCount: &dest})
+		if !dest.IsNull() {
+			t.Errorf("MaxRestartCount = %v, want null", dest)
+		}
+	})
+
+	t.Run("MaxRestartCount 3", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Int64
+		n := int64(3)
+		flattenRestartLimitFields(&client.Application{MaxRestartCount: &n}, commonAppFields{MaxRestartCount: &dest})
+		if dest.IsNull() || dest.ValueInt64() != 3 {
+			t.Errorf("MaxRestartCount = %v, want 3", dest)
+		}
+	})
+
+	t.Run("RestartLimitReached nil", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Bool
+		flattenRestartLimitFields(&client.Application{}, commonAppFields{RestartLimitReached: &dest})
+		if !dest.IsNull() {
+			t.Errorf("RestartLimitReached = %v, want null (not false)", dest)
+		}
+	})
+
+	t.Run("RestartLimitReached true", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Bool
+		v := true
+		flattenRestartLimitFields(&client.Application{RestartLimitReached: &v}, commonAppFields{RestartLimitReached: &dest})
+		if dest.IsNull() || !dest.ValueBool() {
+			t.Errorf("RestartLimitReached = %v, want true", dest)
+		}
+	})
+
+	t.Run("RestartLimitReached false", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Bool
+		v := false
+		flattenRestartLimitFields(&client.Application{RestartLimitReached: &v}, commonAppFields{RestartLimitReached: &dest})
+		if dest.IsNull() || dest.ValueBool() {
+			t.Errorf("RestartLimitReached = %v, want false", dest)
+		}
+	})
+
+	t.Run("ContainerPresent nil", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Bool
+		flattenRestartLimitFields(&client.Application{}, commonAppFields{ContainerPresent: &dest})
+		if !dest.IsNull() {
+			t.Errorf("ContainerPresent = %v, want null (not false)", dest)
+		}
+	})
+
+	t.Run("ContainerPresent true", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Bool
+		v := true
+		flattenRestartLimitFields(&client.Application{ContainerPresent: &v}, commonAppFields{ContainerPresent: &dest})
+		if dest.IsNull() || !dest.ValueBool() {
+			t.Errorf("ContainerPresent = %v, want true", dest)
+		}
+	})
+
+	t.Run("ContainerPresent false", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Bool
+		v := false
+		flattenRestartLimitFields(&client.Application{ContainerPresent: &v}, commonAppFields{ContainerPresent: &dest})
+		if dest.IsNull() || dest.ValueBool() {
+			t.Errorf("ContainerPresent = %v, want false", dest)
+		}
+	})
+
+	t.Run("dest pointers nil", func(t *testing.T) {
+		t.Parallel()
+		n := int64(3)
+		yes, no := true, false
+		flattenRestartLimitFields(&client.Application{
+			MaxRestartCount:     &n,
+			RestartLimitReached: &yes,
+			ContainerPresent:    &no,
+		}, commonAppFields{})
+	})
+
+	t.Run("preserve configured when API is 10", func(t *testing.T) {
+		t.Parallel()
+		dest := types.Int64Value(3)
+		n := int64(10)
+		flattenRestartLimitFields(&client.Application{MaxRestartCount: &n}, commonAppFields{
+			MaxRestartCount:              &dest,
+			PreserveConfiguredMaxRestart: true,
+		})
+		if dest.IsNull() || dest.IsUnknown() || dest.ValueInt64() != 3 {
+			t.Errorf("MaxRestartCount = %v, want 3 (preserve configured when API is 10)", dest)
+		}
+	})
+
+	t.Run("overwrite from API when not preserve", func(t *testing.T) {
+		t.Parallel()
+		dest := types.Int64Value(3)
+		n := int64(10)
+		flattenRestartLimitFields(&client.Application{MaxRestartCount: &n}, commonAppFields{
+			MaxRestartCount:              &dest,
+			PreserveConfiguredMaxRestart: false,
+		})
+		if dest.IsNull() || dest.IsUnknown() || dest.ValueInt64() != 10 {
+			t.Errorf("MaxRestartCount = %v, want 10 (API wins when preserve is false)", dest)
+		}
+	})
+
+	t.Run("unknown dest takes API 10", func(t *testing.T) {
+		t.Parallel()
+		dest := types.Int64Unknown()
+		n := int64(10)
+		flattenRestartLimitFields(&client.Application{MaxRestartCount: &n}, commonAppFields{
+			MaxRestartCount:              &dest,
+			PreserveConfiguredMaxRestart: true,
+		})
+		if dest.IsNull() || dest.IsUnknown() || dest.ValueInt64() != 10 {
+			t.Errorf("MaxRestartCount = %v, want 10 (unknown dest takes API)", dest)
+		}
+	})
+}
+
+func TestFlattenRestartLimitFields_PreservesConfiguredMaxRestartCount(t *testing.T) {
+	t.Parallel()
+	dest := types.Int64Value(3)
+	flattenRestartLimitFields(&client.Application{}, commonAppFields{MaxRestartCount: &dest})
+	if dest.IsNull() || dest.ValueInt64() != 3 {
+		t.Errorf("MaxRestartCount = %v, want 3 (preserve configured when API omits)", dest)
 	}
 }
 

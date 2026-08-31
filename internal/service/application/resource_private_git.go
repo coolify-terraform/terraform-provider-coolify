@@ -146,7 +146,7 @@ func (r *privateGitApplicationResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	flattenPrivateGitApplication(app, &plan)
+	flattenPrivateGitApplication(app, &plan, r.client)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_application_private_git", "uuid": created.UUID})
 }
@@ -158,7 +158,7 @@ func (r *privateGitApplicationResource) Read(ctx context.Context, req resource.R
 		return
 	}
 	readApplication(ctx, r.client, "coolify_application_private_git", state.UUID.ValueString(), resp, func(app *client.Application) {
-		flattenPrivateGitApplication(app, &state)
+		flattenPrivateGitApplication(app, &state, r.client)
 		resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 	})
 }
@@ -181,7 +181,7 @@ func (r *privateGitApplicationResource) Update(ctx context.Context, req resource
 	stateFields := state.common()
 	input := buildUpdateInput(planFields, stateFields)
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
-		flattenPrivateGitApplication(app, &plan)
+		flattenPrivateGitApplication(app, &plan, r.client)
 	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields)
 	if resp.Diagnostics.HasError() {
 		return
@@ -212,8 +212,10 @@ func (m *privateGitApplicationResourceModel) common() commonAppFields {
 	return c
 }
 
-func flattenPrivateGitApplication(app *client.Application, state *privateGitApplicationResourceModel) {
-	flattenApplicationCommon(app, state.common())
+func flattenPrivateGitApplication(app *client.Application, state *privateGitApplicationResourceModel, c *client.Client) {
+	f := state.common()
+	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	flattenApplicationCommon(app, f)
 	if app.PrivateKeyUUID != "" {
 		state.PrivateKeyUUID = types.StringValue(app.PrivateKeyUUID)
 	}
