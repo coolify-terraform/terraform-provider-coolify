@@ -646,16 +646,16 @@ func flattenRestartLimitFields(app *client.Application, f commonAppFields) {
 	setBoolOrNull(f.ContainerPresent, app.ContainerPresent)
 }
 
-func flattenDomainPortOverrides(src *map[string]int64, dest *types.Map) {
+func flattenDomainPortOverrides(src map[string]int64, dest *types.Map) {
 	if dest == nil {
 		return
 	}
-	if src == nil || *src == nil {
+	if src == nil {
 		*dest = types.MapNull(types.Int64Type)
 		return
 	}
-	elems := make(map[string]attr.Value, len(*src))
-	for k, v := range *src {
+	elems := make(map[string]attr.Value, len(src))
+	for k, v := range src {
 		elems[k] = types.Int64Value(v)
 	}
 	m, diags := types.MapValue(types.Int64Type, elems)

@@ -1830,9 +1830,9 @@ func TestApplicationResource_MaxRestartCount_V42Withheld(t *testing.T) {
 
 func TestApplicationResource_DomainPortOverrides(t *testing.T) {
 	t.Parallel()
-	overrides := map[string]int64{"https://app.example.com": 3000}
+	overrides := client.DomainPortOverridesMap{"https://app.example.com": 3000}
 	app := client.Application{
-		UUID:                "domain-port-app-uuid",
+		UUID:                "aaaa0012-0012-4012-8012-000000000012",
 		Name:                "domain-port-app",
 		GitRepository:       "https://github.com/example/repo",
 		GitBranch:           "main",
@@ -1841,7 +1841,7 @@ func TestApplicationResource_DomainPortOverrides(t *testing.T) {
 		ProjectUUID:         "aaaa0002-0002-4000-8000-000000000002",
 		ServerUUID:          "bbbb0002-0002-4000-8000-000000000002",
 		EnvironmentName:     "production",
-		DomainPortOverrides: &overrides,
+		DomainPortOverrides: overrides,
 	}
 
 	mu := sync.Mutex{}
@@ -1886,6 +1886,11 @@ func TestApplicationResource_DomainPortOverrides(t *testing.T) {
 			http.Error(w, `{"error":"This field is not allowed."}`, http.StatusUnprocessableEntity)
 			return
 		}
+		mu.Lock()
+		if v, ok := body["name"].(string); ok {
+			app.Name = v
+		}
+		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
@@ -1910,12 +1915,45 @@ func TestApplicationResource_DomainPortOverrides(t *testing.T) {
 					git_repository = "https://github.com/example/repo"
 					build_pack     = "nixpacks"
 					ports_exposes  = "3000"
+					name           = "domain-port-app"
 				`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coolify_application.test", "uuid", "domain-port-app-uuid"),
+					resource.TestCheckResourceAttr("coolify_application.test", "uuid", "aaaa0012-0012-4012-8012-000000000012"),
 					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.%", "1"),
 					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.https://app.example.com", "3000"),
 				),
+			},
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+					name           = "domain-port-app-renamed"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "name", "domain-port-app-renamed"),
+					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.%", "1"),
+					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.https://app.example.com", "3000"),
+				),
+			},
+			{
+				ResourceName:  "coolify_application.test",
+				ImportState:   true,
+				ImportStateId: "aaaa0012-0012-4012-8012-000000000012",
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					if len(s) != 1 {
+						return fmt.Errorf("expected 1 instance, got %d", len(s))
+					}
+					if s[0].Attributes["domain_port_overrides.%"] != "1" {
+						return fmt.Errorf("imported domain_port_overrides.%% = %q, want 1", s[0].Attributes["domain_port_overrides.%"])
+					}
+					if s[0].Attributes["domain_port_overrides.https://app.example.com"] != "3000" {
+						return fmt.Errorf("imported domain_port_overrides.https://app.example.com = %q, want 3000", s[0].Attributes["domain_port_overrides.https://app.example.com"])
+					}
+					return nil
+				},
 			},
 		},
 	})

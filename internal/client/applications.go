@@ -142,11 +142,37 @@ type Application struct {
 	RestartLimitReached *bool `json:"restart_limit_reached,omitempty"`
 	ContainerPresent    *bool `json:"container_present,omitempty"`
 	// DomainPortOverrides is GET-only (Coolify tip after the Sep 2026
-	// applications column). Pointer so omitted/null JSON stays nil, not {}.
-	// Not on ApplicationsController create/update $allowedFields.
-	DomainPortOverrides *map[string]int64 `json:"domain_port_overrides,omitempty"`
+	// applications column). Omitted, null, and Laravel empty-array [] are
+	// nil; {} is an empty map. Not on ApplicationsController create/update
+	// $allowedFields.
+	DomainPortOverrides DomainPortOverridesMap `json:"domain_port_overrides,omitempty"`
 	// Nested settings blob from GET responses (promoted after decode).
 	Settings *ApplicationSettings `json:"settings,omitempty"`
+}
+
+// DomainPortOverridesMap is a GET-only FQDN-to-port map. Laravel's array
+// cast JSON-encodes an empty PHP array as []; treat that as omitted.
+type DomainPortOverridesMap map[string]int64
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (m *DomainPortOverridesMap) UnmarshalJSON(b []byte) error {
+	return unmarshalDomainPortOverridesJSON(b, m)
+}
+
+func unmarshalDomainPortOverridesJSON(b []byte, dest *DomainPortOverridesMap) error {
+	if dest == nil {
+		return fmt.Errorf("domain_port_overrides: nil destination")
+	}
+	if string(b) == "null" || string(b) == "[]" {
+		*dest = nil
+		return nil
+	}
+	var obj map[string]int64
+	if err := json.Unmarshal(b, &obj); err != nil {
+		return err
+	}
+	*dest = obj
+	return nil
 }
 
 // FlexibleJSONString unmarshals a JSON string or any other JSON value (object,

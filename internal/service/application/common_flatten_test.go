@@ -724,7 +724,7 @@ func TestFlattenDomainPortOverrides(t *testing.T) {
 			"https://app.example.com": 3000,
 			"https://api.example.com": 8080,
 		}
-		flattenDomainPortOverrides(&overrides, &dest)
+		flattenDomainPortOverrides(overrides, &dest)
 		if dest.IsNull() || dest.IsUnknown() {
 			t.Fatalf("DomainPortOverrides = %v, want map", dest)
 		}
@@ -754,7 +754,7 @@ func TestFlattenDomainPortOverrides(t *testing.T) {
 	t.Run("nil map pointer stays null", func(t *testing.T) {
 		t.Parallel()
 		var dest types.Map
-		var empty *map[string]int64
+		var empty map[string]int64
 		flattenDomainPortOverrides(empty, &dest)
 		if !dest.IsNull() {
 			t.Errorf("DomainPortOverrides = %v, want null", dest)
@@ -765,7 +765,7 @@ func TestFlattenDomainPortOverrides(t *testing.T) {
 		t.Parallel()
 		var dest types.Map
 		overrides := map[string]int64{}
-		flattenDomainPortOverrides(&overrides, &dest)
+		flattenDomainPortOverrides(overrides, &dest)
 		if dest.IsNull() || dest.IsUnknown() {
 			t.Fatalf("DomainPortOverrides = %v, want empty map", dest)
 		}
@@ -777,7 +777,7 @@ func TestFlattenDomainPortOverrides(t *testing.T) {
 	t.Run("dest pointer nil", func(t *testing.T) {
 		t.Parallel()
 		overrides := map[string]int64{"https://app.example.com": 3000}
-		flattenDomainPortOverrides(&overrides, nil)
+		flattenDomainPortOverrides(overrides, nil)
 	})
 }
 
@@ -791,6 +791,42 @@ func newDefaultFields() (commonAppFields, *applicationCommonModel) {
 	m := &applicationCommonModel{}
 	f := m.common()
 	return f, m
+}
+
+func TestFlattenApplicationCommon_DomainPortOverrides(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GET map present", func(t *testing.T) {
+		t.Parallel()
+		f, _ := newDefaultFields()
+		app := &client.Application{
+			UUID:                "uuid-1",
+			Name:                "app",
+			DomainPortOverrides: client.DomainPortOverridesMap{"https://app.example.com": 3000},
+		}
+		flattenApplicationCommon(app, f)
+		if f.DomainPortOverrides == nil || f.DomainPortOverrides.IsNull() || f.DomainPortOverrides.IsUnknown() {
+			t.Fatalf("DomainPortOverrides = %v, want map", f.DomainPortOverrides)
+		}
+		elems := f.DomainPortOverrides.Elements()
+		got, ok := elems["https://app.example.com"].(types.Int64)
+		if !ok || got.IsNull() || got.ValueInt64() != 3000 {
+			t.Errorf("https://app.example.com = %v, want 3000", elems["https://app.example.com"])
+		}
+	})
+
+	t.Run("omitted stays null", func(t *testing.T) {
+		t.Parallel()
+		f, _ := newDefaultFields()
+		app := &client.Application{
+			UUID: "uuid-1",
+			Name: "app",
+		}
+		flattenApplicationCommon(app, f)
+		if f.DomainPortOverrides == nil || !f.DomainPortOverrides.IsNull() {
+			t.Errorf("DomainPortOverrides = %v, want null", f.DomainPortOverrides)
+		}
+	})
 }
 
 func TestFlattenApplicationCommon_BasicFields(t *testing.T) {

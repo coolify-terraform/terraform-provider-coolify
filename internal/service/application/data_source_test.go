@@ -83,11 +83,11 @@ data "coolify_application" "test" {
 
 func TestApplicationDataSource_DomainPortOverrides(t *testing.T) {
 	t.Parallel()
-	overrides := map[string]int64{"https://app.example.com": 3000}
+	overrides := client.DomainPortOverridesMap{"https://app.example.com": 3000}
 	app := client.Application{
 		UUID:                "cccc0004-0004-4000-8000-000000000004",
 		Name:                "domain-port-ds-app",
-		DomainPortOverrides: &overrides,
+		DomainPortOverrides: overrides,
 	}
 
 	mux := http.NewServeMux()

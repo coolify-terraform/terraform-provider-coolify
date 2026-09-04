@@ -22,8 +22,8 @@ func TestApplication_DomainPortOverridesJSON(t *testing.T) {
 	var app client.Application
 	require.NoError(t, json.Unmarshal(raw, &app))
 	require.NotNil(t, app.DomainPortOverrides)
-	assert.Equal(t, int64(3000), (*app.DomainPortOverrides)["https://app.example.com"])
-	assert.Equal(t, int64(8080), (*app.DomainPortOverrides)["https://api.example.com"])
+	assert.Equal(t, int64(3000), app.DomainPortOverrides["https://app.example.com"])
+	assert.Equal(t, int64(8080), app.DomainPortOverrides["https://api.example.com"])
 }
 
 func TestApplication_DomainPortOverridesJSONAbsent(t *testing.T) {
@@ -38,4 +38,19 @@ func TestApplication_DomainPortOverridesJSONNull(t *testing.T) {
 	var app client.Application
 	require.NoError(t, json.Unmarshal([]byte(`{"uuid":"app-1","name":"web","domain_port_overrides":null}`), &app))
 	assert.Nil(t, app.DomainPortOverrides)
+}
+
+func TestApplication_DomainPortOverridesJSONEmptyArray(t *testing.T) {
+	t.Parallel()
+	var app client.Application
+	require.NoError(t, json.Unmarshal([]byte(`{"uuid":"app-1","name":"web","domain_port_overrides":[]}`), &app))
+	assert.Nil(t, app.DomainPortOverrides)
+}
+
+func TestApplication_DomainPortOverridesJSONEmptyObject(t *testing.T) {
+	t.Parallel()
+	var app client.Application
+	require.NoError(t, json.Unmarshal([]byte(`{"uuid":"app-1","name":"web","domain_port_overrides":{}}`), &app))
+	require.NotNil(t, app.DomainPortOverrides)
+	assert.Empty(t, app.DomainPortOverrides)
 }
