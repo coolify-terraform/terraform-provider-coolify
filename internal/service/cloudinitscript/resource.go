@@ -44,8 +44,12 @@ func (r *cloudInitScriptResource) Schema(_ context.Context, _ resource.SchemaReq
 				Computed: true, MarkdownDescription: "Script UUID.",
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
-			"name":   schema.StringAttribute{Required: true, MarkdownDescription: "Script name."},
-			"script": schema.StringAttribute{Required: true, MarkdownDescription: "Cloud-init YAML. Coolify validates it as YAML."},
+			"name": schema.StringAttribute{Required: true, MarkdownDescription: "Script name."},
+			"script": schema.StringAttribute{
+				Required:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Cloud-init YAML. Coolify validates it as YAML.",
+			},
 		},
 	}
 }

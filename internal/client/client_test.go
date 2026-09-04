@@ -2426,32 +2426,37 @@ func TestExtractAPIMessage(t *testing.T) {
 		{
 			name:  "json without message field",
 			input: []byte(`{"error":"not found","code":404}`),
-			want:  `[raw API response] {"error":"not found","code":404}`,
+			want:  "API error response omitted",
 		},
 		{
 			name:  "non-json body",
 			input: []byte("plain text error"),
-			want:  "[raw API response] plain text error",
+			want:  "API error response omitted",
 		},
 		{
 			name:  "empty body",
 			input: []byte(""),
-			want:  "[raw API response] ",
+			want:  "API error response omitted",
 		},
 		{
-			name:  "json with empty message falls back to raw",
+			name:  "json with empty message omits body",
 			input: []byte(`{"message":""}`),
-			want:  `[raw API response] {"message":""}`,
+			want:  "API error response omitted",
 		},
 		{
-			name:  "long body is truncated",
+			name:  "long body is omitted not dumped",
 			input: []byte(strings.Repeat("x", 300)),
-			want:  "[raw API response] " + strings.Repeat("x", 200) + "... (truncated)",
+			want:  "API error response omitted",
 		},
 		{
 			name:  "json with message and errors",
 			input: []byte(`{"message":"Validation failed","errors":{"name":["required"]}}`),
 			want:  `Validation failed name: ["required"]`,
+		},
+		{
+			name:  "errors password field is redacted",
+			input: []byte(`{"message":"Validation failed","errors":{"password":["hunter2"]}}`),
+			want:  `Validation failed password: [REDACTED]`,
 		},
 	}
 	for _, tt := range tests {
@@ -2461,6 +2466,20 @@ func TestExtractAPIMessage(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestExtractAPIMessage_DoesNotDumpRawBody(t *testing.T) {
+	t.Parallel()
+	html := []byte(`<html><body>token=super-secret-token</body></html>`)
+	got := extractAPIMessage(html)
+	assert.NotContains(t, got, "super-secret-token")
+	assert.NotContains(t, got, "<html>")
+	assert.NotContains(t, got, "[raw API response]")
+
+	rawJSON := []byte(`{"error":"not found","token":"leak-me"}`)
+	gotJSON := extractAPIMessage(rawJSON)
+	assert.NotContains(t, gotJSON, "leak-me")
+	assert.NotContains(t, gotJSON, "[raw API response]")
 }
 
 // --- doText error paths ---
@@ -2477,7 +2496,8 @@ func TestClient_GetVersion_Non2xx(t *testing.T) {
 	_, err := c.GetVersion(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "403")
-	assert.Contains(t, err.Error(), "forbidden")
+	assert.Contains(t, err.Error(), "API error response omitted")
+	assert.NotContains(t, err.Error(), "forbidden")
 }
 
 func TestClient_GetVersion_JSONQuoted(t *testing.T) {
@@ -5503,6 +5523,36 @@ func TestRedactJSON_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	got := redactJSON([]byte("not json"))
 	assert.Equal(t, "[non-JSON body omitted]", got)
+}
+
+func TestRedactJSON_ScriptAndWebhookURL(t *testing.T) {
+	t.Parallel()
+	input := `{"name":"hook","script":"#cloud-config\npassword: hunter2","webhook_url":"https://hooks.example/abc"}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"name":"hook"`)
+	assert.Contains(t, got, `[REDACTED]`)
+	assert.NotContains(t, got, "hunter2")
+	assert.NotContains(t, got, "#cloud-config")
+	assert.NotContains(t, got, "hooks.example")
+}
+
+func TestRedactJSON_S3KeyWithSecret(t *testing.T) {
+	t.Parallel()
+	input := `{"name":"backups","key":"AKIAIOSFODNN7EXAMPLE","secret":"wJalrXUtnFEMI/K7MDENG"}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"name":"backups"`)
+	assert.NotContains(t, got, "AKIAIOSFODNN7EXAMPLE")
+	assert.NotContains(t, got, "wJalrXUtnFEMI/K7MDENG")
+	assert.Contains(t, got, `[REDACTED]`)
+}
+
+func TestRedactJSON_EnvKeyValueDoesNotRedactKeyName(t *testing.T) {
+	t.Parallel()
+	input := `{"key":"DB_PASS","value":"s3cret-env"}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"key":"DB_PASS"`)
+	assert.NotContains(t, got, "s3cret-env")
+	assert.Contains(t, got, `[REDACTED]`)
 }
 
 func TestClient_CreateDatabase_EmptyUUID(t *testing.T) {

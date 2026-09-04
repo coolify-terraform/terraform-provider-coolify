@@ -59,8 +59,9 @@ func (d *applicationLogsDataSource) Schema(_ context.Context, _ datasource.Schem
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"line": schema.StringAttribute{
-							MarkdownDescription: "The log line content.",
+							MarkdownDescription: "The log line content. Sensitive because logs can contain secrets.",
 							Computed:            true,
+							Sensitive:           true,
 						},
 						"timestamp": schema.StringAttribute{
 							MarkdownDescription: "The timestamp of the log line.",

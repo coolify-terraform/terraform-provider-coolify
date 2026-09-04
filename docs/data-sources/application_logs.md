@@ -51,5 +51,5 @@ Required:
 
 Read-Only:
 
-- `line` (String) The log line content.
+- `line` (String, Sensitive) The log line content. Sensitive because logs can contain secrets.
 - `timestamp` (String) The timestamp of the log line.

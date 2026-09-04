@@ -422,6 +422,8 @@ var sensitiveKeys = map[string]bool{
 	"value":              true, // env var payloads use {"key":"DB_PASS","value":"secret"}
 	"docker_compose_raw": true, "docker_compose": true,
 	"cloud_init_script": true, "dockerfile": true,
+	"script":      true, // cloud-init YAML bodies
+	"webhook_url": true,
 }
 
 // redactJSON replaces sensitive field values with [REDACTED] in a JSON byte
@@ -440,15 +442,42 @@ func redactJSON(data []byte) string {
 	return truncateString(string(out), 500)
 }
 
+func isSensitiveField(name string) bool {
+	lower := strings.ToLower(name)
+	if sensitiveKeys[lower] {
+		return true
+	}
+	return strings.Contains(lower, "password") ||
+		strings.Contains(lower, "secret") ||
+		strings.Contains(lower, "private_key") ||
+		strings.Contains(lower, "token") ||
+		strings.Contains(lower, "api_key") ||
+		strings.Contains(lower, "license_key") ||
+		strings.Contains(lower, "user_key")
+}
+
+// mapHasKeyAndSecret reports whether m looks like an S3 credential object
+// (both "key" and "secret", case-insensitive). Lone "key" fields are env-var
+// names and must not be redacted.
+func mapHasKeyAndSecret(m map[string]interface{}) bool {
+	hasKey, hasSecret := false, false
+	for k := range m {
+		switch strings.ToLower(k) {
+		case "key":
+			hasKey = true
+		case "secret":
+			hasSecret = true
+		}
+	}
+	return hasKey && hasSecret
+}
+
 func redactValue(v interface{}) {
 	switch val := v.(type) {
 	case map[string]interface{}:
+		redactAccessKey := mapHasKeyAndSecret(val)
 		for k, child := range val {
-			lower := strings.ToLower(k)
-			if sensitiveKeys[lower] || strings.Contains(lower, "password") ||
-				strings.Contains(lower, "secret") || strings.Contains(lower, "private_key") ||
-				strings.Contains(lower, "token") || strings.Contains(lower, "api_key") ||
-				strings.Contains(lower, "license_key") || strings.Contains(lower, "user_key") {
+			if isSensitiveField(k) || (redactAccessKey && strings.EqualFold(k, "key")) {
 				val[k] = "[REDACTED]"
 			} else {
 				redactValue(child)
@@ -486,8 +515,9 @@ func validateParentType(pt string) error {
 }
 
 // extractAPIMessage attempts to parse a JSON error response from the Coolify
-// API and return the human-readable "message" field. Falls back to the raw
-// body if parsing fails or no message field is present.
+// API and return the human-readable "message" field. Raw response bodies are
+// never appended (they may contain secrets or HTML). When an "errors" map is
+// present, values for sensitive field names are redacted.
 func extractAPIMessage(body []byte) string {
 	var parsed struct {
 		Message string                     `json:"message"`
@@ -497,22 +527,17 @@ func extractAPIMessage(body []byte) string {
 		if len(parsed.Errors) > 0 {
 			parts := make([]string, 0, len(parsed.Errors))
 			for field, detail := range parsed.Errors {
-				parts = append(parts, field+": "+string(detail))
+				if isSensitiveField(field) {
+					parts = append(parts, field+": [REDACTED]")
+				} else {
+					parts = append(parts, field+": "+string(detail))
+				}
 			}
 			return parsed.Message + " " + strings.Join(parts, "; ")
 		}
 		return parsed.Message
 	}
-	s := strings.Map(func(r rune) rune {
-		if r < 32 && r != '\n' {
-			return -1
-		}
-		return r
-	}, string(body))
-	if len(s) > 200 {
-		s = s[:200] + "... (truncated)"
-	}
-	return "[raw API response] " + s
+	return "API error response omitted"
 }
 
 // RetryDelete retries a delete operation with backoff when the error is

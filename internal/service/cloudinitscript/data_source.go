@@ -26,9 +26,13 @@ func (d *cloudInitDS) Schema(_ context.Context, _ datasource.SchemaRequest, resp
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Reads a Coolify cloud-init script by UUID. Requires Coolify >= v4.3.0.",
 		Attributes: map[string]schema.Attribute{
-			"uuid":   schema.StringAttribute{Required: true, MarkdownDescription: "Script UUID."},
-			"name":   schema.StringAttribute{Computed: true, MarkdownDescription: "Script name."},
-			"script": schema.StringAttribute{Computed: true, MarkdownDescription: "Script body when the token can read it."},
+			"uuid": schema.StringAttribute{Required: true, MarkdownDescription: "Script UUID."},
+			"name": schema.StringAttribute{Computed: true, MarkdownDescription: "Script name."},
+			"script": schema.StringAttribute{
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Script body when the token can read it.",
+			},
 		},
 	}
 }
