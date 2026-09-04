@@ -2927,6 +2927,7 @@ func TestApplicationResource_CreateSendsDestinationUUID(t *testing.T) {
 		srvUUID  = "bbbb0002-0002-4000-8000-000000000002"
 	)
 	var gotBody map[string]interface{}
+	var deleted bool
 	app := client.Application{
 		UUID:            appUUID,
 		Name:            "dest-app",
@@ -2950,10 +2951,15 @@ func TestApplicationResource_CreateSendsDestinationUUID(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		deleted = true
 		w.WriteHeader(http.StatusNoContent)
 	})
 	// Extended fields may trigger a post-create PATCH; ignore body.
@@ -3203,6 +3209,7 @@ func TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
 	t.Parallel()
 	const appUUID = "no-dest-app-uuid"
 	var gotBody map[string]interface{}
+	var deleted bool
 	app := client.Application{
 		UUID: appUUID, Name: "no-dest", GitRepository: "https://github.com/example/repo",
 		GitBranch: "main", BuildPack: "nixpacks", PortsExposes: "3000",
@@ -3221,10 +3228,15 @@ func TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		deleted = true
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {

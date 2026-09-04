@@ -68,6 +68,9 @@ func (c *Client) GetService(ctx context.Context, uuid string) (*Service, error) 
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/services/%s", url.PathEscape(uuid)), nil, &s); err != nil {
 		return nil, fmt.Errorf("getting service %s: %w", uuid, err)
 	}
+	if s.UUID == "" {
+		return nil, fmt.Errorf("getting service %s: API returned empty resource", uuid)
+	}
 	return &s, nil
 }
 func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*Service, error) {

@@ -46,6 +46,7 @@ type Client struct {
 type listCache struct {
 	mu      sync.Mutex
 	entries map[string]listCacheEntry
+	gens    map[string]uint64
 }
 
 type listCacheEntry struct {
@@ -71,20 +72,41 @@ func (lc *listCache) get(path string) []byte {
 	return e.data
 }
 
-// set stores response bytes in the cache with a TTL.
-func (lc *listCache) set(path string, data []byte) {
+// generation returns the current generation for path. set only stores
+// when the observed generation still matches.
+func (lc *listCache) generation(path string) uint64 {
 	lc.mu.Lock()
 	defer lc.mu.Unlock()
+	if lc.gens == nil {
+		return 0
+	}
+	return lc.gens[path]
+}
+
+// set stores response bytes in the cache with a TTL. If gen does not
+// match the current generation, the write is ignored so a stale in-flight
+// GET cannot refill the cache after invalidate.
+func (lc *listCache) set(path string, data []byte, gen uint64) {
+	lc.mu.Lock()
+	defer lc.mu.Unlock()
+	if lc.gens != nil && lc.gens[path] != gen {
+		return
+	}
 	if lc.entries == nil {
 		lc.entries = make(map[string]listCacheEntry)
 	}
 	lc.entries[path] = listCacheEntry{data: data, expires: time.Now().Add(listCacheTTL)}
 }
 
-// invalidate removes a cache entry (called after mutating operations).
+// invalidate removes a cache entry (called after mutating operations)
+// and bumps the path generation so in-flight GETs cannot set stale data.
 func (lc *listCache) invalidate(path string) {
 	lc.mu.Lock()
 	defer lc.mu.Unlock()
+	if lc.gens == nil {
+		lc.gens = make(map[string]uint64)
+	}
+	lc.gens[path]++
 	delete(lc.entries, path)
 }
 
@@ -116,23 +138,7 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 	if cfg.MaxWait > 0 {
 		rc.RetryWaitMax = cfg.MaxWait
 	}
-	rc.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
-		if err != nil {
-			return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
-		}
-		if resp.StatusCode == http.StatusTooManyRequests {
-			return true, nil
-		}
-		if resp.StatusCode >= 500 {
-			switch resp.Request.Method {
-			case http.MethodGet, http.MethodPatch:
-				return true, nil
-			default:
-				return false, nil
-			}
-		}
-		return false, nil
-	}
+	rc.CheckRetry = shouldRetry
 	rc.Logger = retryablehttp.LeveledLogger(&retryLogger{})
 
 	// Configure custom TLS before StandardClient() so the retry transport
@@ -203,6 +209,7 @@ func (c *Client) GetHealth(ctx context.Context) (string, error) {
 // doText performs a GET request and returns the response body as a trimmed
 // string. Handles both plain text and JSON-encoded string responses.
 func (c *Client) doText(ctx context.Context, path string) (string, error) {
+	ctx = withRequestMethod(ctx, http.MethodGet)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
 		return "", fmt.Errorf("creating request for %s: %w", path, err)
@@ -268,6 +275,50 @@ func (c *Client) DisableMCP(ctx context.Context) error {
 	return nil
 }
 
+// requestMethodKey stores the HTTP method on the request context so
+// CheckRetry can classify transport errors when resp is nil (timeouts).
+type requestMethodKey struct{}
+
+func withRequestMethod(ctx context.Context, method string) context.Context {
+	return context.WithValue(ctx, requestMethodKey{}, method)
+}
+
+func requestMethodFromContext(ctx context.Context, resp *http.Response) string {
+	if m, ok := ctx.Value(requestMethodKey{}).(string); ok && m != "" {
+		return m
+	}
+	if resp != nil && resp.Request != nil {
+		return resp.Request.Method
+	}
+	return ""
+}
+
+// shouldRetry is the retryablehttp CheckRetry policy.
+// 429 retries every method. Transport errors and 5xx retry GET and PATCH
+// only; POST/PUT/DELETE must not retry on timeout (duplicate creates).
+func shouldRetry(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	if err != nil {
+		switch requestMethodFromContext(ctx, resp) {
+		case http.MethodGet, http.MethodPatch:
+			return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+		default:
+			return false, nil
+		}
+	}
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return true, nil
+	}
+	if resp.StatusCode >= 500 {
+		switch resp.Request.Method {
+		case http.MethodGet, http.MethodPatch:
+			return true, nil
+		default:
+			return false, nil
+		}
+	}
+	return false, nil
+}
+
 // NotFoundError is returned when the API responds with 404.
 type NotFoundError struct {
 	Message string
@@ -299,8 +350,12 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 		// Evict corrupted or type-mismatched entry and fall through to fresh fetch.
 		c.listCache.invalidate(path)
 	}
+	// Snapshot generation after the miss (and any corrupt-entry invalidate)
+	// so a later Create/Update invalidate makes this GET's set a no-op.
+	gen := c.listCache.generation(path)
 	// Make the real API call and capture raw bytes.
 	tflog.Trace(ctx, "API request", map[string]interface{}{"method": "GET", "path": path})
+	ctx = withRequestMethod(ctx, http.MethodGet)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
 		return fmt.Errorf("creating request for GET %s: %w", path, err)
@@ -337,7 +392,7 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 			return fmt.Errorf("decoding response: %w", err)
 		}
 	}
-	c.listCache.set(path, respBody)
+	c.listCache.set(path, respBody, gen)
 	return nil
 }
 
@@ -361,6 +416,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		})
 	}
 
+	ctx = withRequestMethod(ctx, method)
 	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, reqBody)
 	if err != nil {
 		return fmt.Errorf("creating request for %s %s: %w", method, path, err)
@@ -592,14 +648,12 @@ func toMap(keysAndValues []interface{}) map[string]interface{} {
 	return m
 }
 
-// PollUntilDeleted polls a get function with exponential backoff (500ms to 5s),
-// returning true when the resource is confirmed gone (NotFound) or false if the
-// poll timed out or the context was cancelled. It respects the parent context's
-// deadline (e.g., Terraform operation timeout) if set, otherwise falls back to a
-// 2-minute deadline. The first GET runs immediately; later probes wait. getFn
-// receives pollCtx so the deadline cancels in-flight GETs. Use after an async
-// delete to wait for Coolify to finish tearing down containers.
-func PollUntilDeleted(ctx context.Context, getFn func(context.Context) error) bool {
+// PollUntilDeleted polls a get function with exponential backoff (500ms to 5s).
+// It returns gone=true when the resource is confirmed NotFound. A poll-context
+// deadline with the resource still present returns gone=false and that
+// deadline error. The first GET runs immediately; later probes wait. getFn
+// receives pollCtx so the deadline cancels in-flight GETs.
+func PollUntilDeleted(ctx context.Context, getFn func(context.Context) error) (bool, error) {
 	pollCtx := ctx
 	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
 		var cancel context.CancelFunc
@@ -610,12 +664,16 @@ func PollUntilDeleted(ctx context.Context, getFn func(context.Context) error) bo
 	delay := 500 * time.Millisecond
 	const maxDelay = 5 * time.Second
 	for {
-		if IsNotFound(getFn(pollCtx)) {
-			return true
+		err := getFn(pollCtx)
+		if IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
 		}
 		select {
 		case <-pollCtx.Done():
-			return false
+			return false, pollCtx.Err()
 		case <-time.After(delay):
 		}
 		delay *= 2

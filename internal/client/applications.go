@@ -471,6 +471,9 @@ func (c *Client) GetApplication(ctx context.Context, uuid string) (*Application,
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), nil, &a); err != nil {
 		return nil, fmt.Errorf("getting application %s: %w", uuid, err)
 	}
+	if a.UUID == "" {
+		return nil, fmt.Errorf("getting application %s: API returned empty resource", uuid)
+	}
 	a.PromoteSettings()
 	return &a, nil
 }

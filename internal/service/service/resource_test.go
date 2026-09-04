@@ -20,6 +20,7 @@ import (
 	servicepkg "github.com/coolify-terraform/terraform-provider-coolify/internal/service/service"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -405,21 +406,134 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	resp := &fwresource.DeleteResponse{State: state}
 	res.Delete(ctx, fwresource.DeleteRequest{State: state}, resp)
 
-	if resp.Diagnostics.HasError() {
-		t.Fatalf("unexpected errors: %v", resp.Diagnostics.Errors())
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected delete error when resource is still present after polling")
 	}
-	if resp.Diagnostics.WarningsCount() != 1 {
-		t.Fatalf("expected 1 warning, got %d", resp.Diagnostics.WarningsCount())
+	if resp.Diagnostics.WarningsCount() != 0 {
+		t.Fatalf("expected no warnings, got %d", resp.Diagnostics.WarningsCount())
 	}
-	warning := resp.Diagnostics.Warnings()[0]
-	if warning.Summary() != "Delete is still finishing in Coolify" {
-		t.Fatalf("warning summary = %q, want %q", warning.Summary(), "Delete is still finishing in Coolify")
+	got := resp.Diagnostics.Errors()[0]
+	if got.Summary() != "Error deleting resource" {
+		t.Fatalf("error summary = %q, want %q", got.Summary(), "Error deleting resource")
 	}
-	if !strings.Contains(warning.Detail(), uuid) {
-		t.Fatalf("warning detail %q does not mention uuid %s", warning.Detail(), uuid)
+	if !strings.Contains(got.Detail(), uuid) {
+		t.Fatalf("error detail %q does not mention uuid %s", got.Detail(), uuid)
 	}
-	if !strings.Contains(warning.Detail(), "may still exist temporarily") {
-		t.Fatalf("warning detail %q does not explain the temporary remote state", warning.Detail())
+	if !strings.Contains(got.Detail(), "keep it in state") {
+		t.Fatalf("error detail %q does not say Terraform will keep state", got.Detail())
+	}
+}
+
+func TestDeleteService_ErrorsWhenGetReturnsEmptyBody(t *testing.T) {
+	t.Parallel()
+
+	const uuid = "svc-delete-empty-body-uuid"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", uuid):
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"message":"deleted"}`))
+		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", uuid):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/version":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"version":"test"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := client.New(srv.URL, "test-token")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	res := servicepkg.NewResource()
+	cfgRes, ok := res.(fwresource.ResourceWithConfigure)
+	if !ok {
+		t.Fatal("service resource does not implement ResourceWithConfigure")
+	}
+	var cfgResp fwresource.ConfigureResponse
+	cfgRes.Configure(ctx, fwresource.ConfigureRequest{ProviderData: c}, &cfgResp)
+	if cfgResp.Diagnostics.HasError() {
+		t.Fatalf("unexpected configure errors: %v", cfgResp.Diagnostics.Errors())
+	}
+
+	var schemaResp fwresource.SchemaResponse
+	res.Schema(ctx, fwresource.SchemaRequest{}, &schemaResp)
+	if schemaResp.Diagnostics.HasError() {
+		t.Fatalf("unexpected schema errors: %v", schemaResp.Diagnostics.Errors())
+	}
+
+	state := tfsdk.State{Schema: schemaResp.Schema}
+	setDiags := state.Set(ctx, struct {
+		Timeouts                      timeouts.Value    `tfsdk:"timeouts"`
+		UUID                          types.String      `tfsdk:"uuid"`
+		Name                          types.String      `tfsdk:"name"`
+		Description                   types.String      `tfsdk:"description"`
+		ProjectUUID                   types.String      `tfsdk:"project_uuid"`
+		ServerUUID                    types.String      `tfsdk:"server_uuid"`
+		DestinationUUID               types.String      `tfsdk:"destination_uuid"`
+		EnvironmentName               types.String      `tfsdk:"environment_name"`
+		Type                          types.String      `tfsdk:"type"`
+		Status                        types.String      `tfsdk:"status"`
+		DockerCompose                 types.String      `tfsdk:"docker_compose"`
+		DockerComposeRaw              types.String      `tfsdk:"docker_compose_raw"`
+		ConnectToNetwork              types.Bool        `tfsdk:"connect_to_docker_network"`
+		IsContainerLabelEscapeEnabled types.Bool        `tfsdk:"is_container_label_escape_enabled"`
+		ConfigHash                    types.String      `tfsdk:"config_hash"`
+		InstantDeploy                 types.Bool        `tfsdk:"instant_deploy"`
+		URLs                          []serviceURLEntry `tfsdk:"urls"`
+		ForceDomainOverride           types.Bool        `tfsdk:"force_domain_override"`
+	}{
+		Timeouts: timeouts.Value{Object: types.ObjectNull(map[string]attr.Type{
+			"create": types.StringType,
+			"delete": types.StringType,
+		})},
+		UUID:                          types.StringValue(uuid),
+		Name:                          types.StringNull(),
+		Description:                   types.StringNull(),
+		ProjectUUID:                   types.StringNull(),
+		ServerUUID:                    types.StringNull(),
+		DestinationUUID:               types.StringNull(),
+		EnvironmentName:               types.StringNull(),
+		Type:                          types.StringNull(),
+		Status:                        types.StringNull(),
+		DockerCompose:                 types.StringNull(),
+		DockerComposeRaw:              types.StringNull(),
+		ConnectToNetwork:              types.BoolNull(),
+		IsContainerLabelEscapeEnabled: types.BoolNull(),
+		ConfigHash:                    types.StringNull(),
+		InstantDeploy:                 types.BoolNull(),
+		URLs:                          nil,
+		ForceDomainOverride:           types.BoolNull(),
+	})
+	if setDiags.HasError() {
+		t.Fatalf("unexpected state set errors: %v", setDiags.Errors())
+	}
+
+	resp := &fwresource.DeleteResponse{State: state}
+	start := time.Now()
+	res.Delete(ctx, fwresource.DeleteRequest{State: state}, resp)
+	elapsed := time.Since(start)
+
+	if !resp.Diagnostics.HasError() {
+		t.Fatalf("expected delete error when GET after DELETE returns empty JSON, got warnings=%v", resp.Diagnostics.Warnings())
+	}
+	if elapsed > time.Second {
+		t.Fatalf("delete polling should fail on empty GET immediately, took %s", elapsed)
+	}
+	if resp.State.Raw.IsNull() {
+		t.Fatal("expected Terraform state to remain after delete poll error")
+	}
+	var remainingUUID types.String
+	getDiags := resp.State.GetAttribute(ctx, path.Root("uuid"), &remainingUUID)
+	if getDiags.HasError() {
+		t.Fatalf("reading remaining uuid: %v", getDiags.Errors())
+	}
+	if remainingUUID.ValueString() != uuid {
+		t.Fatalf("state uuid = %q, want %q (Terraform must keep state)", remainingUUID.ValueString(), uuid)
 	}
 }
 
@@ -1268,6 +1382,10 @@ func TestServiceResource_CreateSendsDestinationUUID(t *testing.T) {
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			if state.deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":             state.uuid,
 				"name":             state.name,
@@ -1277,6 +1395,7 @@ func TestServiceResource_CreateSendsDestinationUUID(t *testing.T) {
 				"type":             "plausible",
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 		case r.Method == http.MethodPost && (strings.HasSuffix(r.URL.Path, "/start") || strings.HasSuffix(r.URL.Path, "/stop")):
 			w.WriteHeader(http.StatusOK)
@@ -1352,6 +1471,10 @@ func TestServiceResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			if state.deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid": state.uuid, "name": state.name, "type": "plausible",
 				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
@@ -1359,6 +1482,7 @@ func TestServiceResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
 				"environment_name": "production",
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 		case r.Method == http.MethodPost && (strings.HasSuffix(r.URL.Path, "/start") || strings.HasSuffix(r.URL.Path, "/stop")):
 			w.WriteHeader(http.StatusOK)

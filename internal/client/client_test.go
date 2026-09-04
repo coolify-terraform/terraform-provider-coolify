@@ -17,6 +17,44 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestShouldRetry_TransportErrorByMethod(t *testing.T) {
+	t.Parallel()
+	timeoutErr := fmt.Errorf("net/http: request canceled (Client.Timeout exceeded while awaiting headers)")
+
+	cases := []struct {
+		method string
+		want   bool
+	}{
+		{http.MethodGet, true},
+		{http.MethodPatch, true},
+		{http.MethodPost, false},
+		{http.MethodPut, false},
+		{http.MethodDelete, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.method, func(t *testing.T) {
+			t.Parallel()
+			ctx := withRequestMethod(context.Background(), tc.method)
+			retry, err := shouldRetry(ctx, nil, timeoutErr)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, retry, "timeout retry for %s", tc.method)
+		})
+	}
+}
+
+func TestShouldRetry_429RetriesAllMethods(t *testing.T) {
+	t.Parallel()
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
+		resp := &http.Response{
+			StatusCode: http.StatusTooManyRequests,
+			Request:    &http.Request{Method: method},
+		}
+		retry, err := shouldRetry(context.Background(), resp, nil)
+		require.NoError(t, err)
+		assert.True(t, retry, "429 must retry %s", method)
+	}
+}
+
 func TestClient_RetryOn429(t *testing.T) {
 	t.Parallel()
 	var attempts int32
@@ -862,6 +900,22 @@ func TestClient_GetDatabase(t *testing.T) {
 	assert.Equal(t, "appdb", db.PostgresDB)
 }
 
+func TestClient_GetDatabase_EmptyUUIDIsError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	db, err := c.GetDatabase(context.Background(), "db-empty")
+	require.Error(t, err)
+	assert.Nil(t, db)
+	assert.Contains(t, err.Error(), "empty")
+	assert.False(t, IsNotFound(err))
+}
+
 func TestClient_CreateDatabase_Mysql(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1171,6 +1225,22 @@ func TestClient_GetService(t *testing.T) {
 	assert.Equal(t, "srv-1", svc.ServerUUID)
 	assert.Equal(t, "proj-1", svc.ProjectUUID)
 	assert.Equal(t, "production", svc.EnvironmentName)
+}
+
+func TestClient_GetService_EmptyUUIDIsError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	svc, err := c.GetService(context.Background(), "svc-empty")
+	require.Error(t, err)
+	assert.Nil(t, svc)
+	assert.Contains(t, err.Error(), "empty")
+	assert.False(t, IsNotFound(err))
 }
 
 func TestClient_CreateService(t *testing.T) {
@@ -1488,6 +1558,22 @@ func TestClient_GetApplication(t *testing.T) {
 	assert.Equal(t, "srv-1", app.ServerUUID)
 	assert.Equal(t, "proj-1", app.ProjectUUID)
 	assert.Equal(t, "running", app.Status)
+}
+
+func TestClient_GetApplication_EmptyUUIDIsError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.GetApplication(context.Background(), "app-empty")
+	require.Error(t, err)
+	assert.Nil(t, app)
+	assert.Contains(t, err.Error(), "empty")
+	assert.False(t, IsNotFound(err))
 }
 
 func TestClient_UpdateApplication(t *testing.T) {
@@ -2737,20 +2823,22 @@ func TestPollUntilDeleted_ImmediateNotFound(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	result := PollUntilDeleted(ctx, func(context.Context) error {
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
 		return &NotFoundError{Message: "gone"}
 	})
-	assert.True(t, result, "expected true when resource is immediately gone")
+	assert.NoError(t, err)
+	assert.True(t, gone, "expected true when resource is immediately gone")
 }
 
 func TestPollUntilDeleted_CancelledContext(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
-	result := PollUntilDeleted(ctx, func(context.Context) error {
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
 		return nil // resource still exists
 	})
-	assert.False(t, result, "expected false when context is cancelled")
+	assert.Error(t, err)
+	assert.False(t, gone, "expected false when context is cancelled")
 }
 
 func TestPollUntilDeleted_DeadlineRespected(t *testing.T) {
@@ -2760,11 +2848,12 @@ func TestPollUntilDeleted_DeadlineRespected(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	start := time.Now()
-	result := PollUntilDeleted(ctx, func(context.Context) error {
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
 		return nil // resource still exists
 	})
 	elapsed := time.Since(start)
-	assert.False(t, result, "expected false when deadline expires before poll")
+	assert.Error(t, err)
+	assert.False(t, gone, "expected false when deadline expires before poll")
 	assert.Less(t, elapsed, 1*time.Second, "should respect short deadline, not wait 2 minutes")
 }
 
@@ -2774,25 +2863,45 @@ func TestPollUntilDeleted_ProbesImmediately(t *testing.T) {
 	defer cancel()
 	start := time.Now()
 	var firstProbe time.Duration
-	result := PollUntilDeleted(ctx, func(context.Context) error {
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
 		if firstProbe == 0 {
 			firstProbe = time.Since(start)
 		}
 		return &NotFoundError{Message: "gone"}
 	})
-	assert.True(t, result, "expected true when resource is immediately gone")
+	assert.NoError(t, err)
+	assert.True(t, gone, "expected true when resource is immediately gone")
 	assert.Less(t, firstProbe, 100*time.Millisecond, "first GET should run immediately, not after 500ms sleep")
 }
 
 func TestPollUntilDeleted_GetFnReceivesDeadline(t *testing.T) {
 	t.Parallel()
 	var sawDeadline bool
-	result := PollUntilDeleted(context.Background(), func(pollCtx context.Context) error {
+	gone, err := PollUntilDeleted(context.Background(), func(pollCtx context.Context) error {
 		_, sawDeadline = pollCtx.Deadline()
 		return &NotFoundError{Message: "gone"}
 	})
-	assert.True(t, result, "expected true when resource is immediately gone")
+	assert.NoError(t, err)
+	assert.True(t, gone, "expected true when resource is immediately gone")
 	assert.True(t, sawDeadline, "getFn must receive pollCtx with the 2-minute fallback deadline")
+}
+
+func TestPollUntilDeleted_NonNotFoundErrorStopsImmediately(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var calls int
+	start := time.Now()
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
+		calls++
+		return fmt.Errorf("html")
+	})
+	elapsed := time.Since(start)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "html")
+	assert.False(t, gone)
+	assert.Equal(t, 1, calls, "must not keep polling after a non-404 GET error")
+	assert.Less(t, elapsed, 500*time.Millisecond, "must return the GET error, not wait for the poll deadline")
 }
 
 // --- validateParentType ---
@@ -5429,6 +5538,52 @@ func TestCachedList_ConcurrentAccess(t *testing.T) {
 	// Only the warmup call should have hit the server.
 	assert.Equal(t, int32(1), calls.Load(),
 		"all concurrent reads should use cache; expected 1 server call total")
+}
+
+func TestCachedList_StaleInFlightGetDoesNotRefillAfterInvalidate(t *testing.T) {
+	t.Parallel()
+	releaseFirst := make(chan struct{})
+	firstStarted := make(chan struct{})
+	var calls atomic.Int32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		if n == 1 {
+			close(firstStarted)
+			<-releaseFirst
+			_ = json.NewEncoder(w).Encode([]Project{{UUID: "p1", Name: "stale"}})
+			return
+		}
+		_ = json.NewEncoder(w).Encode([]Project{{UUID: "p1", Name: "fresh"}})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	path := "/api/v1/projects"
+
+	errCh := make(chan error, 1)
+	go func() {
+		var r []Project
+		errCh <- c.doCachedList(context.Background(), path, &r)
+	}()
+	<-firstStarted
+
+	c.listCache.invalidate(path)
+
+	var r2 []Project
+	require.NoError(t, c.doCachedList(context.Background(), path, &r2))
+	require.Len(t, r2, 1)
+	assert.Equal(t, "fresh", r2[0].Name)
+
+	close(releaseFirst)
+	require.NoError(t, <-errCh)
+
+	var r3 []Project
+	require.NoError(t, c.doCachedList(context.Background(), path, &r3))
+	require.Len(t, r3, 1)
+	assert.Equal(t, "fresh", r3[0].Name, "stale in-flight GET must not refill cache after invalidate")
+	assert.Equal(t, int32(2), calls.Load(), "third list should hit the fresh cache entry")
 }
 
 func TestClient_ListGitLabApps_CachesWithinTTL(t *testing.T) {

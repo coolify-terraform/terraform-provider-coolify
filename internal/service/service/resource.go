@@ -414,17 +414,18 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-const deletePollingTimeoutWarningSummary = "Delete is still finishing in Coolify"
+const deletePollingErrorSummary = "Error deleting resource"
 
-func addDeletePollingTimeoutWarning(resp *resource.DeleteResponse, resourceType, uuid string) {
-	resp.Diagnostics.AddWarning(
-		deletePollingTimeoutWarningSummary,
-		fmt.Sprintf(
-			"Coolify accepted deletion of %s %s, but the resource was still returned by the API when the provider stopped polling. Terraform removed it from state, but the remote resource may still exist temporarily. Wait a moment before retrying dependent operations if they still report it.",
-			resourceType,
-			uuid,
-		),
+func addDeletePollingError(resp *resource.DeleteResponse, resourceType, uuid string, err error) {
+	detail := fmt.Sprintf(
+		"Coolify accepted deletion of %s %s, but the resource was still returned by the API when the provider stopped polling. Terraform will keep it in state.",
+		resourceType,
+		uuid,
 	)
+	if err != nil {
+		detail = fmt.Sprintf("%s Delete polling failed: %s", detail, err)
+	}
+	resp.Diagnostics.AddError(deletePollingErrorSummary, detail)
 }
 
 func deleteService(ctx context.Context, c *client.Client, resourceType, uuid string, t timeouts.Value, resp *resource.DeleteResponse) {
@@ -445,9 +446,10 @@ func deleteService(ctx context.Context, c *client.Client, resourceType, uuid str
 		resp.Diagnostics.AddError("Error deleting service", fmt.Sprintf("service %s: %s", uuid, err))
 		return
 	}
-	if !client.PollUntilDeleted(ctx, func(ctx context.Context) error { _, err := c.GetService(ctx, uuid); return err }) {
-		tflog.Warn(ctx, "resource may still exist after polling timeout", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
-		addDeletePollingTimeoutWarning(resp, resourceType, uuid)
+	gone, err := client.PollUntilDeleted(ctx, func(ctx context.Context) error { _, err := c.GetService(ctx, uuid); return err })
+	if err != nil || !gone {
+		addDeletePollingError(resp, resourceType, uuid, err)
+		return
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 }

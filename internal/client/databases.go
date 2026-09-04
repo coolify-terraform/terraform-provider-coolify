@@ -231,6 +231,9 @@ func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error
 	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/databases/%s", url.PathEscape(uuid)), nil, &d); err != nil {
 		return nil, fmt.Errorf("getting database %s: %w", uuid, err)
 	}
+	if d.UUID == "" {
+		return nil, fmt.Errorf("getting database %s: API returned empty resource", uuid)
+	}
 	return &d, nil
 }
 
