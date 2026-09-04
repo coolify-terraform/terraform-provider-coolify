@@ -86,6 +86,7 @@ lint: check-golangci-lint-version ## Run golangci-lint + go mod tidy check (CI-p
 fmt: ## Format code (gofmt + go mod tidy)
 	gofmt -s -w .
 	go mod tidy
+	cd tools && go mod tidy
 
 docs: check-tfplugindocs ## Regenerate documentation via tfplugindocs
 	go generate ./...
@@ -232,6 +233,7 @@ goreleaser-check: check-goreleaser-version ## Validate .goreleaser.yml with CI-c
 
 vulncheck: ## Run govulncheck for known vulnerabilities
 	go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
+	cd tools && go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
 
 tools: ## Install all required development tools
 	@mkdir -p "$(BIN_DIR)"

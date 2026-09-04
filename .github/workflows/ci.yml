@@ -357,10 +357,14 @@ jobs:
           version: v2.12.2
       - name: Check go mod tidy
         if: ${{ !cancelled() }}
-        run: go mod tidy && git diff --exit-code go.mod go.sum
+        run: |
+          go mod tidy && git diff --exit-code go.mod go.sum
+          (cd tools && go mod tidy && git diff --exit-code go.mod go.sum)
       - name: Verify module checksums
         if: ${{ !cancelled() }}
-        run: go mod verify
+        run: |
+          go mod verify
+          (cd tools && go mod verify)
       - name: Cache govulncheck
         if: ${{ !cancelled() }}
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -378,6 +382,7 @@ jobs:
             GOBIN="$BIN_DIR" go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
           fi
           "$BIN_DIR/govulncheck" ./...
+          (cd tools && "$BIN_DIR/govulncheck" ./...)
       # goreleaser-action downloads the binary from GitHub releases; CDN
       # flakes (socket hang up) should not fail the whole Lint job. Real
       # .goreleaser.yml breakage still surfaces on the release workflow.
@@ -457,6 +462,9 @@ jobs:
       - name: Verify AGENTS.md counts
         if: ${{ !cancelled() }}
         run: make counts-check
+      - name: Check contract compatibility
+        if: ${{ !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+        run: make contract-compat
       - name: Install actionlint
         if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
