@@ -164,6 +164,7 @@ resource "coolify_application" "example" {
 ### Read-Only
 
 - `container_present` (Boolean) Whether Coolify last observed the application container on the server. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).
+- `domain_port_overrides` (Map of Number) Read-only map of canonical domain URL to container port from GET (`{"https://app.example.com": 3000}`). Coolify tip after the Sep 2026 applications column (not in tag v4.3.14). Not accepted on create or update.
 - `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.
 - `restart_limit_reached` (Boolean) Whether Coolify has stopped the application because `restart_count` reached `max_restart_count`. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `status` (String) The current status of the application (e.g., running, stopped, exited). Read-only.

@@ -152,6 +152,7 @@ resource "coolify_application_dockerfile" "app" {
 
 - `build_pack` (String) The build pack type. Read-only, set by the API.
 - `container_present` (Boolean) Whether Coolify last observed the application container on the server. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).
+- `domain_port_overrides` (Map of Number) Read-only map of canonical domain URL to container port from GET (`{"https://app.example.com": 3000}`). Coolify tip after the Sep 2026 applications column (not in tag v4.3.14). Not accepted on create or update.
 - `git_branch` (String) The Git branch. Read-only, set by the API.
 - `git_repository` (String) The Git repository URL. Read-only, set by the API.
 - `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.

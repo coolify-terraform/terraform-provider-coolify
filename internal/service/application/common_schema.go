@@ -383,6 +383,13 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			MarkdownDescription: "Whether Coolify last observed the application container on the server. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
 			Computed:            true,
 		},
+		"domain_port_overrides": schema.MapAttribute{
+			ElementType: types.Int64Type,
+			MarkdownDescription: "Read-only map of canonical domain URL to container port from GET " +
+				"(`{\"https://app.example.com\": 3000}`). Coolify tip after the Sep 2026 applications column " +
+				"(not in tag v4.3.14). Not accepted on create or update.",
+			Computed: true,
+		},
 		"pre_deployment_command": schema.StringAttribute{
 			MarkdownDescription: "Command to run before deployment.",
 			Optional:            true,

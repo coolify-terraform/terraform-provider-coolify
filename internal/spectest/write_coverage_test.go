@@ -1,6 +1,7 @@
 package spectest
 
 import (
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -264,5 +265,29 @@ func TestWriteCoverage_InstanceEmailUpdate(t *testing.T) {
 	if len(missing) > 0 {
 		t.Errorf("InstanceEmailSettingsController::update allowed_fields missing from UpdateInstanceEmailInput:\n  %s",
 			strings.Join(missing, "\n  "))
+	}
+}
+
+// TestWriteCoverage_ApplicationDomainPortOverridesNotOnWriteInputs fails if
+// create or update application payloads grow a domain_port_overrides JSON tag.
+// Coolify ApplicationsController create/update extra-key 422 that field
+// (preview endpoints mention it; Livewire writes it). GET-only on the provider.
+func TestWriteCoverage_ApplicationDomainPortOverridesNotOnWriteInputs(t *testing.T) {
+	t.Parallel()
+	const forbidden = "domain_port_overrides"
+
+	byType := client.CreateAppInputJSONTagsByType()
+	if len(byType) == 0 {
+		t.Fatal("CreateAppInputJSONTagsByType returned empty set")
+	}
+	for typeName, tags := range byType {
+		if _, ok := tags[forbidden]; ok {
+			t.Errorf("%s must not include %s (GET-only; ApplicationsController extra-key 422)", typeName, forbidden)
+		}
+	}
+
+	updateTags := jsonTagsFromStruct(reflect.TypeOf(client.UpdateApplicationInput{}))
+	if _, ok := updateTags[forbidden]; ok {
+		t.Errorf("UpdateApplicationInput must not include %s (GET-only; ApplicationsController extra-key 422)", forbidden)
 	}
 }

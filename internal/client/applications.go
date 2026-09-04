@@ -141,6 +141,10 @@ type Application struct {
 	// (Coolify tip after 2026-08-31). Pointers so omitted JSON stays null.
 	RestartLimitReached *bool `json:"restart_limit_reached,omitempty"`
 	ContainerPresent    *bool `json:"container_present,omitempty"`
+	// DomainPortOverrides is GET-only (Coolify tip after the Sep 2026
+	// applications column). Pointer so omitted/null JSON stays nil, not {}.
+	// Not on ApplicationsController create/update $allowedFields.
+	DomainPortOverrides *map[string]int64 `json:"domain_port_overrides,omitempty"`
 	// Nested settings blob from GET responses (promoted after decode).
 	Settings *ApplicationSettings `json:"settings,omitempty"`
 }

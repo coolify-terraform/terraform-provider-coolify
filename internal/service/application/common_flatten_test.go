@@ -714,6 +714,73 @@ func TestFlattenRestartLimitFields_OmitsAPIKeepsKnownDest(t *testing.T) {
 	}
 }
 
+func TestFlattenDomainPortOverrides(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GET map populates Terraform map", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Map
+		overrides := map[string]int64{
+			"https://app.example.com": 3000,
+			"https://api.example.com": 8080,
+		}
+		flattenDomainPortOverrides(&overrides, &dest)
+		if dest.IsNull() || dest.IsUnknown() {
+			t.Fatalf("DomainPortOverrides = %v, want map", dest)
+		}
+		elems := dest.Elements()
+		if len(elems) != 2 {
+			t.Fatalf("DomainPortOverrides len = %d, want 2", len(elems))
+		}
+		gotApp, ok := elems["https://app.example.com"].(types.Int64)
+		if !ok || gotApp.IsNull() || gotApp.ValueInt64() != 3000 {
+			t.Errorf("https://app.example.com = %v, want 3000", elems["https://app.example.com"])
+		}
+		gotAPI, ok := elems["https://api.example.com"].(types.Int64)
+		if !ok || gotAPI.IsNull() || gotAPI.ValueInt64() != 8080 {
+			t.Errorf("https://api.example.com = %v, want 8080", elems["https://api.example.com"])
+		}
+	})
+
+	t.Run("missing stays null", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Map
+		flattenDomainPortOverrides(nil, &dest)
+		if !dest.IsNull() {
+			t.Errorf("DomainPortOverrides = %v, want null", dest)
+		}
+	})
+
+	t.Run("nil map pointer stays null", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Map
+		var empty *map[string]int64
+		flattenDomainPortOverrides(empty, &dest)
+		if !dest.IsNull() {
+			t.Errorf("DomainPortOverrides = %v, want null", dest)
+		}
+	})
+
+	t.Run("empty map is empty not null", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Map
+		overrides := map[string]int64{}
+		flattenDomainPortOverrides(&overrides, &dest)
+		if dest.IsNull() || dest.IsUnknown() {
+			t.Fatalf("DomainPortOverrides = %v, want empty map", dest)
+		}
+		if len(dest.Elements()) != 0 {
+			t.Errorf("DomainPortOverrides len = %d, want 0", len(dest.Elements()))
+		}
+	})
+
+	t.Run("dest pointer nil", func(t *testing.T) {
+		t.Parallel()
+		overrides := map[string]int64{"https://app.example.com": 3000}
+		flattenDomainPortOverrides(&overrides, nil)
+	})
+}
+
 // ---------------------------------------------------------------------------
 // #357: flattenApplicationCommon
 // ---------------------------------------------------------------------------

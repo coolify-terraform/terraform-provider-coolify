@@ -1828,6 +1828,99 @@ func TestApplicationResource_MaxRestartCount_V42Withheld(t *testing.T) {
 	})
 }
 
+func TestApplicationResource_DomainPortOverrides(t *testing.T) {
+	t.Parallel()
+	overrides := map[string]int64{"https://app.example.com": 3000}
+	app := client.Application{
+		UUID:                "domain-port-app-uuid",
+		Name:                "domain-port-app",
+		GitRepository:       "https://github.com/example/repo",
+		GitBranch:           "main",
+		BuildPack:           "nixpacks",
+		PortsExposes:        "3000",
+		ProjectUUID:         "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:          "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:     "production",
+		DomainPortOverrides: &overrides,
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, exists := body["domain_port_overrides"]; exists {
+			t.Error("POST create must not send domain_port_overrides")
+			http.Error(w, `{"error":"This field is not allowed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, exists := body["domain_port_overrides"]; exists {
+			t.Error("PATCH update must not send domain_port_overrides")
+			http.Error(w, `{"error":"This field is not allowed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "uuid", "domain-port-app-uuid"),
+					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.%", "1"),
+					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.https://app.example.com", "3000"),
+				),
+			},
+		},
+	})
+}
+
 func testApplicationResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application", "test", attrs)
 }

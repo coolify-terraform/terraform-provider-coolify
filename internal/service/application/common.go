@@ -176,6 +176,7 @@ type commonAppFields struct {
 	MaxRestartCount                  *types.Int64
 	RestartLimitReached              *types.Bool
 	ContainerPresent                 *types.Bool
+	DomainPortOverrides              *types.Map
 	PreserveConfiguredMaxRestart     bool
 }
 
@@ -282,6 +283,7 @@ type applicationCommonModel struct {
 	MaxRestartCount                  types.Int64    `tfsdk:"max_restart_count"`
 	RestartLimitReached              types.Bool     `tfsdk:"restart_limit_reached"`
 	ContainerPresent                 types.Bool     `tfsdk:"container_present"`
+	DomainPortOverrides              types.Map      `tfsdk:"domain_port_overrides"`
 	Timeouts                         timeouts.Value `tfsdk:"timeouts"`
 }
 
@@ -342,6 +344,7 @@ func (m *applicationCommonModel) common() commonAppFields {
 		MaxRestartCount:     &m.MaxRestartCount,
 		RestartLimitReached: &m.RestartLimitReached,
 		ContainerPresent:    &m.ContainerPresent,
+		DomainPortOverrides: &m.DomainPortOverrides,
 	}
 }
 

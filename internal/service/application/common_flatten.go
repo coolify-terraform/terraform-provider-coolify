@@ -214,6 +214,7 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	}
 	flattenApplicationSettingFields(app, f)
 	flattenRestartLimitFields(app, f)
+	flattenDomainPortOverrides(app.DomainPortOverrides, f.DomainPortOverrides)
 	// instant_deploy is create-only and never returned by the API.
 	// Preserve state value when set; default to false otherwise (import).
 	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {
@@ -643,6 +644,26 @@ func flattenRestartLimitFields(app *client.Application, f commonAppFields) {
 	}
 	setBoolOrNull(f.RestartLimitReached, app.RestartLimitReached)
 	setBoolOrNull(f.ContainerPresent, app.ContainerPresent)
+}
+
+func flattenDomainPortOverrides(src *map[string]int64, dest *types.Map) {
+	if dest == nil {
+		return
+	}
+	if src == nil || *src == nil {
+		*dest = types.MapNull(types.Int64Type)
+		return
+	}
+	elems := make(map[string]attr.Value, len(*src))
+	for k, v := range *src {
+		elems[k] = types.Int64Value(v)
+	}
+	m, diags := types.MapValue(types.Int64Type, elems)
+	if diags.HasError() {
+		*dest = types.MapNull(types.Int64Type)
+		return
+	}
+	*dest = m
 }
 
 func setBoolOrNull(dst *types.Bool, v *bool) {
