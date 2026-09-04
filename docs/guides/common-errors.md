@@ -290,6 +290,18 @@ will have finished deleting by then.
 
 ## Terraform-Specific Errors
 
+### Can't configure a value for a computed attribute
+
+```
+Error: Can't configure a value for "domain_port_overrides"
+```
+
+**Cause:** setting a computed GET-only attribute such as
+`domain_port_overrides` in a resource block.
+
+**Fix:** remove it from the resource configuration. Read it from the
+resource or `data.coolify_application` instead.
+
 ### "Provider produced inconsistent result after apply"
 
 ```

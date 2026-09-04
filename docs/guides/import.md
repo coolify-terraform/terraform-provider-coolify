@@ -164,6 +164,8 @@ application is in a different environment, set `environment_name` in your `.tf` 
 **before** running `terraform plan`, otherwise Terraform will propose replacing the resource.
 This applies to all 5 application types: `coolify_application`, `coolify_application_docker_image`,
 `coolify_application_dockerfile`, `coolify_application_github_app`, and `coolify_application_private_git`.
+After import on Coolify tip, `domain_port_overrides` may appear in state;
+on older GET it is null. Leave it out of `.tf`.
 
 ## Known Limitations
 
