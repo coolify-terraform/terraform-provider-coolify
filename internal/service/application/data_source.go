@@ -152,11 +152,9 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Computed:            true,
 			},
 			"domain_port_overrides": schema.MapAttribute{
-				ElementType: types.Int64Type,
-				MarkdownDescription: "Read-only map of canonical domain URL to container port from GET " +
-					"(`{\"https://app.example.com\": 3000}`). Coolify tip after the Sep 2026 applications column " +
-					"(not in tag v4.3.14). Not accepted on create or update.",
-				Computed: true,
+				ElementType:         types.Int64Type,
+				MarkdownDescription: domainPortOverridesDescription,
+				Computed:            true,
 			},
 			"is_consistent_container_name_enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether Coolify uses a consistent container name for this application. Coolify default is `false`. " +

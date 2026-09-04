@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -163,9 +164,21 @@ func unmarshalDomainPortOverridesJSON(b []byte, dest *DomainPortOverridesMap) er
 	if dest == nil {
 		return fmt.Errorf("domain_port_overrides: nil destination")
 	}
-	if string(b) == "null" || string(b) == "[]" {
+	b = bytes.TrimSpace(b)
+	if string(b) == "null" {
 		*dest = nil
 		return nil
+	}
+	if len(b) > 0 && b[0] == '[' {
+		var arr []json.RawMessage
+		if err := json.Unmarshal(b, &arr); err != nil {
+			return fmt.Errorf("domain_port_overrides: %w", err)
+		}
+		if len(arr) == 0 {
+			*dest = nil
+			return nil
+		}
+		return fmt.Errorf("domain_port_overrides: expected object map, got non-empty JSON array")
 	}
 	var obj map[string]int64
 	if err := json.Unmarshal(b, &obj); err != nil {

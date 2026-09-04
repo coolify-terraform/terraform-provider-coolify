@@ -384,11 +384,9 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Computed:            true,
 		},
 		"domain_port_overrides": schema.MapAttribute{
-			ElementType: types.Int64Type,
-			MarkdownDescription: "Read-only map of canonical domain URL to container port from GET " +
-				"(`{\"https://app.example.com\": 3000}`). Coolify tip after the Sep 2026 applications column " +
-				"(not in tag v4.3.14). Not accepted on create or update.",
-			Computed: true,
+			ElementType:         types.Int64Type,
+			MarkdownDescription: domainPortOverridesDescription,
+			Computed:            true,
 		},
 		"pre_deployment_command": schema.StringAttribute{
 			MarkdownDescription: "Command to run before deployment.",

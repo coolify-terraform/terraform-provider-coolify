@@ -47,6 +47,18 @@ func TestApplication_DomainPortOverridesJSONEmptyArray(t *testing.T) {
 	assert.Nil(t, app.DomainPortOverrides)
 }
 
+func TestApplication_DomainPortOverridesJSONEmptyArrayWhitespace(t *testing.T) {
+	t.Parallel()
+	for _, raw := range []string{
+		`{"uuid":"app-1","name":"web","domain_port_overrides":[ ]}`,
+		"{\"uuid\":\"app-1\",\"name\":\"web\",\"domain_port_overrides\":[\n]}",
+	} {
+		var app client.Application
+		require.NoError(t, json.Unmarshal([]byte(raw), &app), raw)
+		assert.Nil(t, app.DomainPortOverrides, raw)
+	}
+}
+
 func TestApplication_DomainPortOverridesJSONEmptyObject(t *testing.T) {
 	t.Parallel()
 	var app client.Application

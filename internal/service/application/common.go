@@ -40,6 +40,12 @@ const dockerComposeDomainsDescription = "Domain mappings for Docker Compose serv
 	"wait until the deployment succeeds; (2) add `docker_compose_domains` and apply again. " +
 	"Alternatively use `coolify_service` with inline `docker_compose_raw` when the compose file can live in Terraform."
 
+// domainPortOverridesDescription is the shared schema docs for
+// domain_port_overrides on application resources and data sources.
+const domainPortOverridesDescription = "Read-only map of canonical domain URL to container port from GET " +
+	"(`{\"https://app.example.com\": 3000}`). Coolify tip after the Sep 2026 applications column " +
+	"(not in tag v4.3.14). Not accepted on create or update."
+
 // annotateDockerComposeDomainsError appends operator guidance when Coolify
 // rejects docker_compose_domains because compose raw is not loaded yet.
 func annotateDockerComposeDomainsError(err error) string {
