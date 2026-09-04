@@ -204,9 +204,12 @@ If these fields are missing, `terraform plan` will either show a diff
 or propose replacing the resource. Set them in your config to match
 your actual Coolify setup.
 
-For `coolify_application_github_app`, import also cannot reconstruct
-`github_app_uuid` from the API. Keep that field in your configuration
-before the first `terraform plan`, or expect a post-import diff.
+For `coolify_application_github_app`, import cannot reconstruct
+`github_app_uuid` from the API (GET omits it). After import, set
+`github_app_uuid` in your `.tf` file to the real GitHub App UUID
+before the first apply. A plan that fills a null imported UUID
+destroys and recreates the application. Do not apply that replace
+to "fix" a missing UUID.
 
 Additionally, Coolify normalizes some input values:
 

@@ -124,6 +124,7 @@ Some fields force resource replacement when changed. These are marked with
 
 - `project_uuid`, `server_uuid`, `environment_name` on all
   application and database resources
+- `github_app_uuid` on `coolify_application_github_app`
 
 Plan output will show `# forces replacement` for these fields.
 
