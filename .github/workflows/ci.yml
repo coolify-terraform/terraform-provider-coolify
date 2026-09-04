@@ -52,6 +52,9 @@ jobs:
               - '**/*.go'
               - 'go.mod'
               - 'go.sum'
+              - 'tools/go.mod'
+              - 'tools/go.sum'
+              - 'tools/**/*.go'
               - '.golangci.yml'
               - 'testdata/**'
             docs:

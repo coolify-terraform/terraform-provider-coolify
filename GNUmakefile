@@ -81,6 +81,7 @@ testacc-pkg: check-pkg ## Run acceptance tests for one package with serialized e
 lint: check-golangci-lint-version ## Run golangci-lint + go mod tidy check (CI-pinned golangci-lint)
 	golangci-lint run ./...
 	@go mod tidy && git diff --exit-code go.mod go.sum || (echo "go mod tidy produced changes"; exit 1)
+	@cd tools && go mod tidy && git diff --exit-code go.mod go.sum || (echo "go mod tidy produced changes"; exit 1)
 
 fmt: ## Format code (gofmt + go mod tidy)
 	gofmt -s -w .
