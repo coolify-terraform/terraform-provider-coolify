@@ -103,7 +103,7 @@ func gitAppCommandAttrs() map[string]schema.Attribute {
 // existing health checks, auto-deploy).
 func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
+		"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true, Delete: true}),
 		"uuid": schema.StringAttribute{
 			MarkdownDescription: "The unique identifier of the application.",
 			Computed:            true,

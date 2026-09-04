@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -2736,7 +2737,7 @@ func TestPollUntilDeleted_ImmediateNotFound(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	result := PollUntilDeleted(ctx, func() error {
+	result := PollUntilDeleted(ctx, func(context.Context) error {
 		return &NotFoundError{Message: "gone"}
 	})
 	assert.True(t, result, "expected true when resource is immediately gone")
@@ -2746,7 +2747,7 @@ func TestPollUntilDeleted_CancelledContext(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
-	result := PollUntilDeleted(ctx, func() error {
+	result := PollUntilDeleted(ctx, func(context.Context) error {
 		return nil // resource still exists
 	})
 	assert.False(t, result, "expected false when context is cancelled")
@@ -2754,17 +2755,44 @@ func TestPollUntilDeleted_CancelledContext(t *testing.T) {
 
 func TestPollUntilDeleted_DeadlineRespected(t *testing.T) {
 	t.Parallel()
-	// Short deadline (200ms) is shorter than the initial 500ms poll delay,
-	// so the function should return false before ever calling getFn.
+	// Resource still exists on the immediate probe; the 200ms deadline then
+	// expires during the first backoff sleep.
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	start := time.Now()
-	result := PollUntilDeleted(ctx, func() error {
+	result := PollUntilDeleted(ctx, func(context.Context) error {
 		return nil // resource still exists
 	})
 	elapsed := time.Since(start)
 	assert.False(t, result, "expected false when deadline expires before poll")
 	assert.Less(t, elapsed, 1*time.Second, "should respect short deadline, not wait 2 minutes")
+}
+
+func TestPollUntilDeleted_ProbesImmediately(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	start := time.Now()
+	var firstProbe time.Duration
+	result := PollUntilDeleted(ctx, func(context.Context) error {
+		if firstProbe == 0 {
+			firstProbe = time.Since(start)
+		}
+		return &NotFoundError{Message: "gone"}
+	})
+	assert.True(t, result, "expected true when resource is immediately gone")
+	assert.Less(t, firstProbe, 100*time.Millisecond, "first GET should run immediately, not after 500ms sleep")
+}
+
+func TestPollUntilDeleted_GetFnReceivesDeadline(t *testing.T) {
+	t.Parallel()
+	var sawDeadline bool
+	result := PollUntilDeleted(context.Background(), func(pollCtx context.Context) error {
+		_, sawDeadline = pollCtx.Deadline()
+		return &NotFoundError{Message: "gone"}
+	})
+	assert.True(t, result, "expected true when resource is immediately gone")
+	assert.True(t, sawDeadline, "getFn must receive pollCtx with the 2-minute fallback deadline")
 }
 
 // --- validateParentType ---
@@ -5401,6 +5429,168 @@ func TestCachedList_ConcurrentAccess(t *testing.T) {
 	// Only the warmup call should have hit the server.
 	assert.Equal(t, int32(1), calls.Load(),
 		"all concurrent reads should use cache; expected 1 server call total")
+}
+
+func TestClient_ListGitLabApps_CachesWithinTTL(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/gitlab-apps", r.URL.Path)
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitLabApp{
+			{ID: 1, UUID: "gl-1", Name: "GitLab App"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	first, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	assert.Equal(t, "GitLab App", first[0].Name)
+
+	second, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	assert.Equal(t, "GitLab App", second[0].Name)
+
+	assert.Equal(t, int32(1), calls.Load(), "expected exactly 1 HTTP call within 5s TTL")
+}
+
+func TestClient_ListGitLabApps_InvalidateOnWrite(t *testing.T) {
+	t.Parallel()
+	var listCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/gitlab-apps":
+			n := listCalls.Add(1)
+			json.NewEncoder(w).Encode([]GitLabApp{
+				{ID: 1, UUID: "gl-1", Name: fmt.Sprintf("App-%d", n)},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/gitlab-apps":
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(GitLabApp{ID: 2, UUID: "gl-2", Name: "Created"})
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v1/gitlab-apps/1":
+			json.NewEncoder(w).Encode(GitLabApp{ID: 1, UUID: "gl-1", Name: "Updated"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/gitlab-apps/1":
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, int32(1), listCalls.Load())
+
+	_, err = c.CreateGitLabApp(context.Background(), CreateGitLabAppInput{Name: "Created", HTMLURL: "https://gitlab.example"})
+	require.NoError(t, err)
+	created, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, created, 1)
+	assert.Equal(t, "App-2", created[0].Name, "create should invalidate the list cache")
+	assert.Equal(t, int32(2), listCalls.Load())
+
+	_, err = c.UpdateGitLabApp(context.Background(), 1, UpdateGitLabAppInput{})
+	require.NoError(t, err)
+	updated, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, updated, 1)
+	assert.Equal(t, "App-3", updated[0].Name, "update should invalidate the list cache")
+	assert.Equal(t, int32(3), listCalls.Load())
+
+	require.NoError(t, c.DeleteGitLabApp(context.Background(), 1))
+	deleted, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, deleted, 1)
+	assert.Equal(t, "App-4", deleted[0].Name, "delete should invalidate the list cache")
+	assert.Equal(t, int32(4), listCalls.Load())
+}
+
+func TestClient_ListSharedEnvs_CachesWithinTTL(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/team/envs", r.URL.Path)
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]SharedEnvironmentVariable{
+			{ID: 1, UUID: "env-1", Key: "FOO", Value: "bar"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	first, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	assert.Equal(t, "FOO", first[0].Key)
+
+	second, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	assert.Equal(t, "FOO", second[0].Key)
+
+	assert.Equal(t, int32(1), calls.Load(), "expected exactly 1 HTTP call within 5s TTL")
+}
+
+func TestClient_ListSharedEnvs_InvalidateOnWrite(t *testing.T) {
+	t.Parallel()
+	var listCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/team/envs":
+			n := listCalls.Add(1)
+			json.NewEncoder(w).Encode([]SharedEnvironmentVariable{
+				{ID: 1, UUID: "env-1", Key: fmt.Sprintf("KEY-%d", n)},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/team/envs":
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(SharedEnvironmentVariable{ID: 2, UUID: "env-2", Key: "CREATED"})
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v1/team/envs/1":
+			json.NewEncoder(w).Encode(SharedEnvironmentVariable{ID: 1, UUID: "env-1", Key: "UPDATED"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/team/envs/1":
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	assert.Equal(t, int32(1), listCalls.Load())
+
+	_, err = c.CreateSharedEnv(context.Background(), "team", "", "", "", SharedEnvInput{Key: "CREATED", Value: "v"})
+	require.NoError(t, err)
+	created, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, created, 1)
+	assert.Equal(t, "KEY-2", created[0].Key, "create should invalidate the list cache")
+	assert.Equal(t, int32(2), listCalls.Load())
+
+	_, err = c.UpdateSharedEnv(context.Background(), "team", "", "", "", "1", SharedEnvInput{Value: "v2"})
+	require.NoError(t, err)
+	updated, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, updated, 1)
+	assert.Equal(t, "KEY-3", updated[0].Key, "update should invalidate the list cache")
+	assert.Equal(t, int32(3), listCalls.Load())
+
+	require.NoError(t, c.DeleteSharedEnv(context.Background(), "team", "", "", "", "1"))
+	deleted, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, deleted, 1)
+	assert.Equal(t, "KEY-4", deleted[0].Key, "delete should invalidate the list cache")
+	assert.Equal(t, int32(4), listCalls.Load())
 }
 
 // --- TLS / CA Cert ---

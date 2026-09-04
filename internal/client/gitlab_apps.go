@@ -56,7 +56,7 @@ type UpdateGitLabAppInput struct {
 
 func (c *Client) ListGitLabApps(ctx context.Context) ([]GitLabApp, error) {
 	var r []GitLabApp
-	if err := c.do(ctx, http.MethodGet, "/api/v1/gitlab-apps", nil, &r); err != nil {
+	if err := c.doCachedList(ctx, "/api/v1/gitlab-apps", &r); err != nil {
 		return nil, fmt.Errorf("listing gitlab apps: %w", err)
 	}
 	return r, nil
@@ -93,6 +93,7 @@ func (c *Client) CreateGitLabApp(ctx context.Context, input CreateGitLabAppInput
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/gitlab-apps", input, &raw, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating gitlab app: %w", err)
 	}
+	c.listCache.invalidate("/api/v1/gitlab-apps")
 	app, err := decodeGitLabApp(raw)
 	if err != nil {
 		return nil, fmt.Errorf("decoding gitlab app create response: %w", err)
@@ -129,6 +130,7 @@ func (c *Client) UpdateGitLabApp(ctx context.Context, id int64, input UpdateGitL
 	if err := c.do(ctx, http.MethodPatch, path, input, &raw); err != nil {
 		return nil, fmt.Errorf("updating gitlab app %d: %w", id, err)
 	}
+	c.listCache.invalidate("/api/v1/gitlab-apps")
 	app, err := decodeGitLabApp(raw)
 	if err != nil {
 		return nil, fmt.Errorf("decoding gitlab app %d update response: %w", id, err)
@@ -160,5 +162,6 @@ func (c *Client) DeleteGitLabApp(ctx context.Context, id int64) error {
 	if err := c.do(ctx, http.MethodDelete, path, nil, nil); err != nil {
 		return fmt.Errorf("deleting gitlab app %d: %w", id, err)
 	}
+	c.listCache.invalidate("/api/v1/gitlab-apps")
 	return nil
 }

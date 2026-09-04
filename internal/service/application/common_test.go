@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -317,7 +318,7 @@ func TestDeleteApplication_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	defer cancel()
 	resp := &resource.DeleteResponse{}
 
-	deleteApplication(ctx, c, "coolify_application", uuid, resp)
+	deleteApplication(ctx, c, "coolify_application", uuid, timeouts.Value{}, resp)
 
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("unexpected errors: %v", resp.Diagnostics.Errors())

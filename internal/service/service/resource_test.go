@@ -376,7 +376,10 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 		URLs                          []serviceURLEntry `tfsdk:"urls"`
 		ForceDomainOverride           types.Bool        `tfsdk:"force_domain_override"`
 	}{
-		Timeouts:                      timeouts.Value{Object: types.ObjectNull(map[string]attr.Type{"create": types.StringType})},
+		Timeouts: timeouts.Value{Object: types.ObjectNull(map[string]attr.Type{
+			"create": types.StringType,
+			"delete": types.StringType,
+		})},
 		UUID:                          types.StringValue(uuid),
 		Name:                          types.StringNull(),
 		Description:                   types.StringNull(),

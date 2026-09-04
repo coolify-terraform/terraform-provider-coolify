@@ -214,7 +214,7 @@ func (r *postgresqlDatabaseResource) Delete(ctx context.Context, req resource.De
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_postgresql", state.UUID.ValueString(), resp)
+	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_postgresql", state.UUID.ValueString(), state.Timeouts, resp)
 }
 
 func (r *postgresqlDatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

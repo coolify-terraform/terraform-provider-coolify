@@ -3,10 +3,12 @@ package application
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -164,8 +166,17 @@ func deleteApplication(
 	c *client.Client,
 	resourceType string,
 	uuid string,
+	t timeouts.Value,
 	resp *resource.DeleteResponse,
 ) {
+	deleteTimeout, diags := t.Delete(ctx, 2*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, deleteTimeout)
+	defer cancel()
+
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 	if err := c.DeleteApplication(ctx, uuid); err != nil {
 		if client.IsNotFound(err) {
@@ -174,7 +185,7 @@ func deleteApplication(
 		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
-	if !client.PollUntilDeleted(ctx, func() error { _, err := c.GetApplication(ctx, uuid); return err }) {
+	if !client.PollUntilDeleted(ctx, func(ctx context.Context) error { _, err := c.GetApplication(ctx, uuid); return err }) {
 		tflog.Warn(ctx, "resource may still exist after polling timeout", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 		addDeletePollingTimeoutWarning(resp, resourceType, uuid)
 	}

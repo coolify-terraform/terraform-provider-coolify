@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -202,7 +203,7 @@ func TestDeleteDatabase_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	defer cancel()
 	resp := &resource.DeleteResponse{}
 
-	err := DeleteDatabase(ctx, c, "coolify_database_postgresql", uuid, resp)
+	err := DeleteDatabase(ctx, c, "coolify_database_postgresql", uuid, timeouts.Value{}, resp)
 	if err != nil {
 		t.Fatalf("unexpected delete error: %v", err)
 	}

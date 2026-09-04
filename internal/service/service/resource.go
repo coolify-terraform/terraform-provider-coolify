@@ -75,7 +75,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a service resource on Coolify. A service can be created from the Coolify catalog (using `type`) or from a custom Docker Compose file (using `docker_compose_raw`). These two fields are mutually exclusive.",
 		Attributes: map[string]schema.Attribute{
-			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true, Delete: true}),
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the service.",
 				Computed:            true,
@@ -427,7 +427,15 @@ func addDeletePollingTimeoutWarning(resp *resource.DeleteResponse, resourceType,
 	)
 }
 
-func deleteService(ctx context.Context, c *client.Client, resourceType, uuid string, resp *resource.DeleteResponse) {
+func deleteService(ctx context.Context, c *client.Client, resourceType, uuid string, t timeouts.Value, resp *resource.DeleteResponse) {
+	deleteTimeout, diags := t.Delete(ctx, 2*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, deleteTimeout)
+	defer cancel()
+
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 
 	if err := c.DeleteService(ctx, uuid); err != nil {
@@ -437,7 +445,7 @@ func deleteService(ctx context.Context, c *client.Client, resourceType, uuid str
 		resp.Diagnostics.AddError("Error deleting service", fmt.Sprintf("service %s: %s", uuid, err))
 		return
 	}
-	if !client.PollUntilDeleted(ctx, func() error { _, err := c.GetService(ctx, uuid); return err }) {
+	if !client.PollUntilDeleted(ctx, func(ctx context.Context) error { _, err := c.GetService(ctx, uuid); return err }) {
 		tflog.Warn(ctx, "resource may still exist after polling timeout", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 		addDeletePollingTimeoutWarning(resp, resourceType, uuid)
 	}
@@ -451,7 +459,7 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	deleteService(ctx, r.client, "coolify_service", state.UUID.ValueString(), resp)
+	deleteService(ctx, r.client, "coolify_service", state.UUID.ValueString(), state.Timeouts, resp)
 }
 
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

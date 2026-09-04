@@ -58,7 +58,7 @@ func (c *Client) ListSharedEnvs(ctx context.Context, scope, projectUUID, environ
 		return nil, err
 	}
 	var r []SharedEnvironmentVariable
-	if err := c.do(ctx, http.MethodGet, base, nil, &r); err != nil {
+	if err := c.doCachedList(ctx, base, &r); err != nil {
 		return nil, fmt.Errorf("listing shared envs (%s): %w", scope, err)
 	}
 	return r, nil
@@ -73,6 +73,7 @@ func (c *Client) CreateSharedEnv(ctx context.Context, scope, projectUUID, enviro
 	if err := c.doWithStatus(ctx, http.MethodPost, base, input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating shared env %s: %w", input.Key, err)
 	}
+	c.listCache.invalidate(base)
 	return &r, nil
 }
 
@@ -85,6 +86,7 @@ func (c *Client) UpdateSharedEnv(ctx context.Context, scope, projectUUID, enviro
 	if err := c.do(ctx, http.MethodPatch, base+"/"+url.PathEscape(envID), input, &r); err != nil {
 		return nil, fmt.Errorf("updating shared env %s: %w", envID, err)
 	}
+	c.listCache.invalidate(base)
 	return &r, nil
 }
 
@@ -96,5 +98,6 @@ func (c *Client) DeleteSharedEnv(ctx context.Context, scope, projectUUID, enviro
 	if err := c.do(ctx, http.MethodDelete, base+"/"+url.PathEscape(envID), nil, nil); err != nil {
 		return fmt.Errorf("deleting shared env %s: %w", envID, err)
 	}
+	c.listCache.invalidate(base)
 	return nil
 }

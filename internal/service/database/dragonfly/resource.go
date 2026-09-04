@@ -146,7 +146,7 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_dragonfly", s.UUID.ValueString(), resp)
+	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_dragonfly", s.UUID.ValueString(), s.Timeouts, resp)
 }
 func (r *res) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	dbcommon.ImportDatabaseState(ctx, r.client, req, resp)

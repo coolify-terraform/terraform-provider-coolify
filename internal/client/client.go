@@ -596,9 +596,10 @@ func toMap(keysAndValues []interface{}) map[string]interface{} {
 // returning true when the resource is confirmed gone (NotFound) or false if the
 // poll timed out or the context was cancelled. It respects the parent context's
 // deadline (e.g., Terraform operation timeout) if set, otherwise falls back to a
-// 2-minute deadline. Use after an async delete to wait for Coolify to finish
-// tearing down containers.
-func PollUntilDeleted(ctx context.Context, getFn func() error) bool {
+// 2-minute deadline. The first GET runs immediately; later probes wait. getFn
+// receives pollCtx so the deadline cancels in-flight GETs. Use after an async
+// delete to wait for Coolify to finish tearing down containers.
+func PollUntilDeleted(ctx context.Context, getFn func(context.Context) error) bool {
 	pollCtx := ctx
 	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
 		var cancel context.CancelFunc
@@ -609,13 +610,13 @@ func PollUntilDeleted(ctx context.Context, getFn func() error) bool {
 	delay := 500 * time.Millisecond
 	const maxDelay = 5 * time.Second
 	for {
+		if IsNotFound(getFn(pollCtx)) {
+			return true
+		}
 		select {
 		case <-pollCtx.Done():
 			return false
 		case <-time.After(delay):
-		}
-		if IsNotFound(getFn()) {
-			return true
 		}
 		delay *= 2
 		if delay > maxDelay {
