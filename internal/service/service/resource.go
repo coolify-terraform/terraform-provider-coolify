@@ -301,6 +301,8 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	flex.SetIfKnown(&input.Description, plan.Description)
 	flex.SetIfKnown(&input.DestinationUUID, plan.DestinationUUID)
 	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
+	input.ConnectToNetwork = flex.BoolValueOrNull(plan.ConnectToNetwork)
+	input.IsContainerLabelEscapeEnabled = flex.BoolValueOrNull(plan.IsContainerLabelEscapeEnabled)
 	input.URLs = expandServiceURLs(plan.URLs)
 	input.ForceDomainOverride = flex.BoolValueOrNull(plan.ForceDomainOverride)
 	created, err := r.client.CreateService(ctx, input)

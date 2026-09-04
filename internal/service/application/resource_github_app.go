@@ -10,6 +10,8 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -51,8 +53,9 @@ func (r *gitHubAppApplicationResource) Schema(ctx context.Context, _ resource.Sc
 		MarkdownDescription: "Manages a Coolify application deployed via a GitHub App integration. Coolify verifies repository access during create, so the referenced GitHub App must have installation access to the target repository.",
 		Attributes: gitAppAttrs(ctx, "The Git repository URL (for example `https://github.com/org/repo` or `org/repo`). Coolify checks repository access during create.", map[string]schema.Attribute{
 			"github_app_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`.",
+				MarkdownDescription: "The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`. Changing this forces a new resource because Coolify accepts `github_app_uuid` on create only.",
 				Required:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 				Validators:          []validator.String{validate.UUID()},
 			},
 		}),
@@ -175,11 +178,9 @@ func (r *gitHubAppApplicationResource) Update(ctx context.Context, req resource.
 	planFields := plan.common()
 	stateFields := state.common()
 	input := buildUpdateInput(planFields, stateFields)
-	input.GitHubAppUUID = flex.StringIfChanged(plan.GitHubAppUUID, state.GitHubAppUUID)
-	githubAppChanged := plan.GitHubAppUUID.ValueString() != state.GitHubAppUUID.ValueString()
 	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
 		flattenGitHubAppApplication(app, &plan, r.client)
-	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields, githubAppChanged)
+	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields, false)
 	if resp.Diagnostics.HasError() {
 		return
 	}

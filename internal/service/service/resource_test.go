@@ -584,6 +584,7 @@ func TestServiceResource_UpdateBoolFields(t *testing.T) {
 	t.Parallel()
 	mu := sync.Mutex{}
 	labelEscape := false
+	connectToNetwork := true
 	deleted := false
 
 	svcResponse := func() map[string]interface{} {
@@ -594,6 +595,7 @@ func TestServiceResource_UpdateBoolFields(t *testing.T) {
 			"project_uuid":                      "aaaa0001-0001-4000-8000-000000000001",
 			"server_uuid":                       "bbbb0001-0001-4000-8000-000000000001",
 			"environment_name":                  "production",
+			"connect_to_docker_network":         connectToNetwork,
 			"is_container_label_escape_enabled": labelEscape,
 		}
 	}
@@ -605,6 +607,25 @@ func TestServiceResource_UpdateBoolFields(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			var body map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			connect, ok := body["connect_to_docker_network"].(bool)
+			if !ok || !connect {
+				t.Errorf("POST /api/v1/services missing connect_to_docker_network=true: %v", body)
+			}
+			escape, ok := body["is_container_label_escape_enabled"].(bool)
+			if !ok || escape {
+				t.Errorf("POST /api/v1/services missing is_container_label_escape_enabled=false: %v", body)
+			}
+			if ok {
+				labelEscape = escape
+			}
+			if v, ok := body["connect_to_docker_network"].(bool); ok {
+				connectToNetwork = v
+			}
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]string{"uuid": "svc-bool-uuid-1"})
 
@@ -616,6 +637,9 @@ func TestServiceResource_UpdateBoolFields(t *testing.T) {
 			}
 			if v, ok := body["is_container_label_escape_enabled"].(bool); ok {
 				labelEscape = v
+			}
+			if v, ok := body["connect_to_docker_network"].(bool); ok {
+				connectToNetwork = v
 			}
 			json.NewEncoder(w).Encode(svcResponse())
 
@@ -643,6 +667,7 @@ resource "coolify_service" "test" {
   project_uuid                       = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid                        = "bbbb0001-0001-4000-8000-000000000001"
   type                               = "plausible"
+  connect_to_docker_network          = true
   is_container_label_escape_enabled  = %t
 }
 `, escape)
@@ -655,6 +680,7 @@ resource "coolify_service" "test" {
 				Config: configFn(false),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-bool-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_service.test", "connect_to_docker_network", "true"),
 					resource.TestCheckResourceAttr("coolify_service.test", "is_container_label_escape_enabled", "false"),
 				),
 			},
@@ -662,6 +688,7 @@ resource "coolify_service" "test" {
 				Config: configFn(true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_service.test", "uuid", "svc-bool-uuid-1"),
+					resource.TestCheckResourceAttr("coolify_service.test", "connect_to_docker_network", "true"),
 					resource.TestCheckResourceAttr("coolify_service.test", "is_container_label_escape_enabled", "true"),
 				),
 			},

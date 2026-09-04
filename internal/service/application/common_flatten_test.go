@@ -528,6 +528,19 @@ func TestBuildPostCreatePatch_SetField(t *testing.T) {
 	}
 }
 
+func TestBuildPostCreatePatch_DockerfileTargetBuild(t *testing.T) {
+	t.Parallel()
+	target := types.StringValue("production")
+	f := commonAppFields{DockerfileTargetBuild: &target}
+	input := buildPostCreatePatch(f)
+	if input.DockerfileTargetBuild == nil {
+		t.Fatal("expected DockerfileTargetBuild non-nil")
+	}
+	if *input.DockerfileTargetBuild != "production" {
+		t.Errorf("expected DockerfileTargetBuild=%q, got %q", "production", *input.DockerfileTargetBuild)
+	}
+}
+
 func TestBuildPostCreatePatch_MaxRestartCount(t *testing.T) {
 	t.Parallel()
 	n := types.Int64Value(3)

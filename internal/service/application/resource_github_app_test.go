@@ -16,6 +16,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/spectest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 // ---------------------------------------------------------------------------
@@ -207,8 +208,10 @@ func TestGitHubAppApplicationResource_Update(t *testing.T) {
 		if v, ok := requestBody["start_command"].(string); ok {
 			app.StartCommand = v
 		}
-		if v, ok := requestBody["github_app_uuid"].(string); ok {
-			app.GitHubAppUUID = v
+		if _, has := requestBody["github_app_uuid"]; has {
+			t.Error("PATCH must not send github_app_uuid (create-only; Coolify 422s it)")
+			http.Error(w, `{"error":"github_app_uuid is not allowed"}`, http.StatusUnprocessableEntity)
+			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
@@ -614,8 +617,13 @@ func TestGitHubAppApplicationResource_RedeployOnUpdate(t *testing.T) {
 		if !ok {
 			return
 		}
-		if v, ok := requestBody["github_app_uuid"].(string); ok {
-			app.GitHubAppUUID = v
+		if _, has := requestBody["github_app_uuid"]; has {
+			t.Error("PATCH must not send github_app_uuid (create-only; Coolify 422s it)")
+			http.Error(w, `{"error":"github_app_uuid is not allowed"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		if v, ok := requestBody["ports_exposes"].(string); ok {
+			app.PortsExposes = v
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
@@ -668,20 +676,135 @@ func TestGitHubAppApplicationResource_RedeployOnUpdate(t *testing.T) {
 					name               = "my-ghapp"
 					project_uuid       = "aaaa0001-0001-4000-8000-000000000001"
 					server_uuid        = "bbbb0001-0001-4000-8000-000000000001"
-					github_app_uuid    = "dddd0001-0001-4000-8000-000000000001"
+					github_app_uuid    = "cccc0001-0001-4000-8000-000000000001"
 					git_repository     = "github.com/myorg/myrepo"
 					git_branch         = "main"
 					build_pack         = "nixpacks"
-					ports_exposes      = "3000"
+					ports_exposes      = "8080"
 					redeploy_on_update = true
 				`),
-				Check: resource.TestCheckResourceAttr("coolify_application_github_app.test", "github_app_uuid", "dddd0001-0001-4000-8000-000000000001"),
+				Check: resource.TestCheckResourceAttr("coolify_application_github_app.test", "ports_exposes", "8080"),
 			},
 		},
 	})
 	if !restartCalled.Load() {
-		t.Error("expected restart to be called when github_app_uuid changed with redeploy_on_update=true")
+		t.Error("expected restart to be called when ports_exposes changed with redeploy_on_update=true")
 	}
+}
+
+// TestGitHubAppApplicationResource_GitHubAppUUIDRequiresReplace proves that
+// changing github_app_uuid plans replace (create-only on Coolify) and that
+// Update never PATCHes the field.
+func TestGitHubAppApplicationResource_GitHubAppUUIDRequiresReplace(t *testing.T) {
+	t.Parallel()
+	mu := sync.Mutex{}
+	deleted := false
+	app := client.Application{
+		UUID:            "ghapp-replace-uuid",
+		Name:            "my-ghapp",
+		GitRepository:   "github.com/myorg/myrepo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName: "production",
+		GitHubAppUUID:   "cccc0001-0001-4000-8000-000000000001",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/private-github-app", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		mu.Lock()
+		if v, ok := body["github_app_uuid"].(string); ok {
+			app.GitHubAppUUID = v
+		}
+		deleted = false
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, has := requestBody["github_app_uuid"]; has {
+			t.Error("PATCH must not send github_app_uuid (create-only; Coolify 422s it)")
+			http.Error(w, `{"error":"github_app_uuid is not allowed"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testGitHubAppResourceConfig(srv.URL, `
+					name             = "my-ghapp"
+					project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+					github_app_uuid  = "cccc0001-0001-4000-8000-000000000001"
+					git_repository   = "github.com/myorg/myrepo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_application_github_app.test", "github_app_uuid", "cccc0001-0001-4000-8000-000000000001"),
+			},
+			{
+				Config: testGitHubAppResourceConfig(srv.URL, `
+					name             = "my-ghapp"
+					project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+					github_app_uuid  = "dddd0001-0001-4000-8000-000000000001"
+					git_repository   = "github.com/myorg/myrepo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+				`),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_application_github_app.test", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.TestCheckResourceAttr("coolify_application_github_app.test", "github_app_uuid", "dddd0001-0001-4000-8000-000000000001"),
+			},
+		},
+	})
 }
 
 // ---------------------------------------------------------------------------

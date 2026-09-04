@@ -935,6 +935,101 @@ func TestDockerfileApplicationResource_ConsistentContainerNameEnabled(t *testing
 	})
 }
 
+func TestDockerfileApplicationResource_DockerfileTargetBuildPostCreate(t *testing.T) {
+	t.Parallel()
+	app := client.Application{
+		UUID:               "dockerfile-target-build",
+		Name:               "multi-stage-app",
+		DockerfileLocation: "/Dockerfile",
+		PortsExposes:       "80",
+		ProjectUUID:        "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:         "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName:    "production",
+	}
+	var patchBody map[string]any
+	var mu sync.Mutex
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/dockerfile", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, has := body["dockerfile_target_build"]; has {
+			t.Error("POST /api/v1/applications/dockerfile must not send dockerfile_target_build")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		mu.Lock()
+		patchBody = body
+		if v, ok := body["dockerfile_target_build"].(string); ok {
+			app.DockerfileTargetBuild = v
+		}
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application_dockerfile", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testDockerfileResourceConfig(srv.URL, `
+					name                    = "multi-stage-app"
+					project_uuid            = "aaaa0001-0001-4000-8000-000000000001"
+					server_uuid             = "bbbb0001-0001-4000-8000-000000000001"
+					dockerfile_location     = "/Dockerfile"
+					ports_exposes           = "80"
+					dockerfile_target_build = "production"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "dockerfile_target_build", "production"),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						got, ok := patchBody["dockerfile_target_build"]
+						if !ok {
+							return fmt.Errorf("post-create PATCH missing dockerfile_target_build: %v", patchBody)
+						}
+						if got != "production" {
+							return fmt.Errorf("dockerfile_target_build = %v, want production", got)
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func testDockerfileResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application_dockerfile", "test", attrs)
 }

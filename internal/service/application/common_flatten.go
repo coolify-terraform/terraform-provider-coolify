@@ -412,6 +412,7 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.BoolPtrNonDefault(f.IsAutoDeployEnabled, true) ||
 		// Build/deploy
 		flex.StringPtrNonDefault(f.BaseDirectory, "") ||
+		flex.StringPtrNonDefault(f.DockerfileTargetBuild, "") ||
 		flex.StringPtrNonDefault(f.PublishDirectory, "") ||
 		flex.StringPtrNonDefault(f.DockerRegistryImageTag, "") ||
 		flex.StringPtrNonDefault(f.DockerComposeDomains, "") ||
@@ -531,6 +532,7 @@ func buildPostCreatePatch(f commonAppFields) client.UpdateApplicationInput {
 	flex.SetBoolPtr(&input.IsAutoDeployEnabled, safeBool(f.IsAutoDeployEnabled))
 	// Build/deploy
 	flex.SetStrPtr(&input.BaseDirectory, safeStr(f.BaseDirectory))
+	flex.SetStrPtr(&input.DockerfileTargetBuild, safeStr(f.DockerfileTargetBuild))
 	flex.SetStrPtr(&input.PublishDirectory, safeStr(f.PublishDirectory))
 	flex.SetStrPtr(&input.DockerRegistryImageTag, safeStr(f.DockerRegistryImageTag))
 	if f.DockerComposeDomains != nil && !f.DockerComposeDomains.IsNull() && !f.DockerComposeDomains.IsUnknown() {

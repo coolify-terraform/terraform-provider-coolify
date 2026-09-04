@@ -44,14 +44,16 @@ type CreateServiceInput struct {
 	// DestinationUUID is create-only on Coolify (ServicesController create
 	// $allowedFields; not on update). omitempty keeps single-destination
 	// and older installs unchanged when unset.
-	DestinationUUID     string       `json:"destination_uuid,omitempty"`
-	ProjectUUID         string       `json:"project_uuid"`
-	EnvironmentName     string       `json:"environment_name"`
-	EnvironmentUUID     string       `json:"environment_uuid,omitempty"`
-	InstantDeploy       *bool        `json:"instant_deploy,omitempty"`
-	DockerComposeRaw    *string      `json:"docker_compose_raw,omitempty"`
-	URLs                []ServiceURL `json:"urls,omitempty"`
-	ForceDomainOverride *bool        `json:"force_domain_override,omitempty"`
+	DestinationUUID               string       `json:"destination_uuid,omitempty"`
+	ProjectUUID                   string       `json:"project_uuid"`
+	EnvironmentName               string       `json:"environment_name"`
+	EnvironmentUUID               string       `json:"environment_uuid,omitempty"`
+	InstantDeploy                 *bool        `json:"instant_deploy,omitempty"`
+	DockerComposeRaw              *string      `json:"docker_compose_raw,omitempty"`
+	URLs                          []ServiceURL `json:"urls,omitempty"`
+	ForceDomainOverride           *bool        `json:"force_domain_override,omitempty"`
+	ConnectToNetwork              *bool        `json:"connect_to_docker_network,omitempty"`
+	IsContainerLabelEscapeEnabled *bool        `json:"is_container_label_escape_enabled,omitempty"`
 }
 
 func (c *Client) ListServices(ctx context.Context) ([]Service, error) {
@@ -101,6 +103,12 @@ type UpdateServiceInput struct {
 	InstantDeploy                 *bool        `json:"instant_deploy,omitempty"`
 	URLs                          []ServiceURL `json:"urls,omitempty"`
 	ForceDomainOverride           *bool        `json:"force_domain_override,omitempty"`
+}
+
+// CreateServiceJSONTags returns JSON keys on CreateServiceInput.
+// Used by spectest write coverage against ServicesController::create_service.
+func CreateServiceJSONTags() map[string]struct{} {
+	return jsonTagsFromValue(CreateServiceInput{})
 }
 
 // UpdateServiceJSONTags returns JSON keys on UpdateServiceInput.

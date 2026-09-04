@@ -35,7 +35,7 @@ resource "coolify_application_github_app" "app" {
 
 - `build_pack` (String) The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`, `railpack`.
 - `git_repository` (String) The Git repository URL (for example `https://github.com/org/repo` or `org/repo`). Coolify checks repository access during create.
-- `github_app_uuid` (String) The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`.
+- `github_app_uuid` (String) The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`. Changing this forces a new resource because Coolify accepts `github_app_uuid` on create only.
 - `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g., `3000` or `3000,8080`).
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing this forces a new resource.
