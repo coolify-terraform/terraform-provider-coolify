@@ -2,8 +2,9 @@ resource "coolify_application" "example" {
   name           = "my-web-app"
   project_uuid   = coolify_project.example.uuid
   server_uuid    = coolify_server.example.uuid
-  git_repository = "https://github.com/example/app"
-  git_branch     = "main"
+  git_repository = "https://github.com/coollabsio/coolify-examples"
+  git_branch     = "v4.x"
+  base_directory = "/nodejs"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
   domains        = "https://app.example.com"
@@ -11,7 +12,6 @@ resource "coolify_application" "example" {
   # Optional fields (uncomment as needed):
   # destination_uuid         = coolify_destination.app_net.uuid  # create-only; required when the server has multiple Docker networks
   # redirect                 = "both"                # WWW redirect: "www", "non-www", or "both" (default: "both")
-  # base_directory           = "/app"                 # Base directory for the application source code (default: "/")
   # watch_paths              = "/src:/lib"            # Paths to watch for changes (triggers auto-deploy)
   # is_static                = false                  # Whether the application is a static site
   # is_force_https_enabled   = true                   # Whether to force HTTPS (default: true)

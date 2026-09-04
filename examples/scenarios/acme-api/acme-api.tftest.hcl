@@ -32,17 +32,17 @@ run "create_and_verify" {
     error_message = "API app name mismatch: got ${coolify_application_dockerfile.api.name}"
   }
   assert {
-    condition     = coolify_application_dockerfile.api.ports_exposes == "3000"
+    condition     = coolify_application_dockerfile.api.ports_exposes == "80"
     error_message = "API ports_exposes mismatch: got ${coolify_application_dockerfile.api.ports_exposes}"
   }
   assert {
     condition     = coolify_application_docker_image.worker.name == "acme-orders-worker"
     error_message = "Worker app name mismatch: got ${coolify_application_docker_image.worker.name}"
   }
-  # Quirk #2: Coolify strips :latest tag. Provider must preserve original.
+  # Quirk #2: Coolify strips image tags. Provider must preserve the original tag.
   assert {
-    condition     = coolify_application_docker_image.worker.docker_image == "alpine:latest"
-    error_message = "Docker image :latest not preserved: got ${coolify_application_docker_image.worker.docker_image}"
+    condition     = coolify_application_docker_image.worker.docker_image == "nginx:alpine"
+    error_message = "Docker image tag not preserved: got ${coolify_application_docker_image.worker.docker_image}"
   }
 
   # --- Environment Variables ---

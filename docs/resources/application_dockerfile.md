@@ -21,14 +21,10 @@ resource "coolify_application_dockerfile" "app" {
   project_uuid        = coolify_project.example.uuid
   server_uuid         = coolify_server.example.uuid
   dockerfile_location = <<-DOCKERFILE
-    FROM node:20-alpine
-    WORKDIR /app
-    COPY . .
-    RUN npm install --production
-    EXPOSE 3000
-    CMD ["node", "server.js"]
+    FROM nginx:alpine
+    EXPOSE 80
   DOCKERFILE
-  ports_exposes       = "3000"
+  ports_exposes       = "80"
   domains             = "https://app.example.com"
 
   # Optional fields (uncomment as needed):

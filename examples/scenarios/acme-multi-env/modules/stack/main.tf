@@ -27,6 +27,7 @@ resource "coolify_application" "app" {
   server_uuid    = var.server_uuid
   git_repository = var.git_repo
   git_branch     = var.git_branch
+  base_directory = var.base_directory
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
 }

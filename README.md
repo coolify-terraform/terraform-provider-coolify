@@ -67,8 +67,9 @@ resource "coolify_application" "api" {
   name           = "acme-api"
   project_uuid   = coolify_project.example.uuid
   server_uuid    = "your-server-uuid"
-  git_repository = "https://github.com/example/acme-api"
-  git_branch     = "main"
+  git_repository = "https://github.com/coollabsio/coolify-examples"
+  git_branch     = "v4.x"
+  base_directory = "/nodejs"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
   domains        = "https://api.example.com"
@@ -286,8 +287,9 @@ resource "coolify_application" "web" {
   name           = "my-web-app"
   project_uuid   = coolify_project.example.uuid
   server_uuid    = "your-server-uuid"
-  git_repository = "https://github.com/example/app"
-  git_branch     = "main"
+  git_repository = "https://github.com/coollabsio/coolify-examples"
+  git_branch     = "v4.x"
+  base_directory = "/nodejs"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
   domains = "https://app.example.com"

@@ -95,10 +95,11 @@ resource "coolify_application" "api" {
   project_uuid     = coolify_project.ecommerce.uuid
   server_uuid      = var.server_uuid
   environment_name = "production"
-  git_repository   = "https://github.com/example/ecommerce-api"
-  git_branch       = "main"
+  git_repository   = "https://github.com/coollabsio/coolify-examples"
+  git_branch       = "v4.x"
+  base_directory   = "/nodejs"
   build_pack       = "nixpacks"
-  ports_exposes    = "8080"
+  ports_exposes    = "3000"
   domains          = var.domain != "" ? "https://${var.domain}" : null
 }
 
@@ -142,7 +143,7 @@ resource "coolify_environment_variable" "worker_redis_url" {
 resource "coolify_environment_variable" "worker_api_url" {
   application_uuid = coolify_application_docker_image.worker.uuid
   key              = "API_URL"
-  value            = var.domain != "" ? "https://${var.domain}" : "http://${coolify_application.api.name}:8080"
+  value            = var.domain != "" ? "https://${var.domain}" : "http://${coolify_application.api.name}:3000"
 }
 
 # --- Outputs ---

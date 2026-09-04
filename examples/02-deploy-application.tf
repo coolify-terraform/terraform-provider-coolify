@@ -1,7 +1,8 @@
 # 02 - Deploy Application: deploy a web app from a public Git repo
 #
 # Creates a project and deploys a Nixpacks-built application.
-# Coolify builds the app from source and exposes it on port 3000.
+# instant_deploy = true queues the build; the default is false.
+# Coolify builds the Node example from source and exposes it on port 3000.
 #
 # Prerequisites:
 #   - Coolify with at least one registered server
@@ -38,9 +39,11 @@ resource "coolify_application" "web" {
   project_uuid   = coolify_project.app.uuid
   server_uuid    = var.server_uuid
   git_repository = "https://github.com/coollabsio/coolify-examples"
-  git_branch     = "main"
+  git_branch     = "v4.x"
+  base_directory = "/nodejs"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
+  instant_deploy = true
 
   timeouts = {
     create = "15m"

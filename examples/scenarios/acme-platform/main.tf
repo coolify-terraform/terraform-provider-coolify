@@ -56,7 +56,8 @@ resource "coolify_application" "api" {
   project_uuid   = coolify_project.platform.uuid
   server_uuid    = var.server_uuid
   git_repository = "https://github.com/coollabsio/coolify-examples"
-  git_branch     = "main"
+  git_branch     = "v4.x"
+  base_directory = "/nodejs"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
 }

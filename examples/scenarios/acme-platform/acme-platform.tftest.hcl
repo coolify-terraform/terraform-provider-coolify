@@ -50,6 +50,14 @@ run "create_and_verify" {
     condition     = coolify_application.api.git_repository == "https://github.com/coollabsio/coolify-examples"
     error_message = "Git repository URL was normalized: got ${coolify_application.api.git_repository}"
   }
+  assert {
+    condition     = coolify_application.api.git_branch == "v4.x"
+    error_message = "Git branch mismatch: got ${coolify_application.api.git_branch}"
+  }
+  assert {
+    condition     = coolify_application.api.base_directory == "/nodejs"
+    error_message = "Base directory mismatch: got ${coolify_application.api.base_directory}"
+  }
 
   # --- Storage ---
   assert {

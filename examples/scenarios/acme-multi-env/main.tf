@@ -18,7 +18,8 @@ module "dev" {
   server_uuid         = var.server_uuid
   db_name             = "acme_dev"
   git_repo            = "https://github.com/coollabsio/coolify-examples"
-  git_branch          = "main"
+  git_branch          = "v4.x"
+  base_directory      = "/nodejs"
 }
 
 module "staging" {
@@ -28,5 +29,6 @@ module "staging" {
   server_uuid         = var.server_uuid
   db_name             = "acme_staging"
   git_repo            = "https://github.com/coollabsio/coolify-examples"
-  git_branch          = "main"
+  git_branch          = "v4.x"
+  base_directory      = "/nodejs"
 }

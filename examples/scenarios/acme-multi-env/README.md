@@ -41,7 +41,7 @@ Two module calls (`dev` + `staging`) means **8 resources total**.
 │             │ DATABASE_URL       │  │             │ DATABASE_URL       │
 │  ┌──────────▼─────────────────┐  │  │  ┌──────────▼─────────────────┐  │
 │  │   coolify_application      │  │  │  │   coolify_application      │  │
-│  │   branch: main             │  │  │  │   branch: main             │  │
+│  │   branch: v4.x             │  │  │  │   branch: v4.x             │  │
 │  └────────────────────────────┘  │  │  └────────────────────────────┘  │
 └──────────────────────────────────┘  └──────────────────────────────────┘
 ```
