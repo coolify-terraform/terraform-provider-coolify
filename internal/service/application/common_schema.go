@@ -356,6 +356,19 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
 		},
+	}
+	for k, v := range extendedRuntimeAttrs() {
+		attrs[k] = v
+	}
+	for k, v := range applicationSettingAttrs() {
+		attrs[k] = v
+	}
+	return attrs
+}
+
+// extendedRuntimeAttrs returns create-only, computed runtime, and deploy-command fields.
+func extendedRuntimeAttrs() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
 		"autogenerate_domain": schema.BoolAttribute{
 			MarkdownDescription: "Create-only. When `true` (Coolify default) and `domains` is empty, Coolify generates a public FQDN " +
 				"(`https://{uuid}.{wildcard}` or `http://{uuid}.{server-ip}.sslip.io`). Set `false` for internal apps that must not get a Traefik host. " +
@@ -405,10 +418,6 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Optional:            true,
 		},
 	}
-	for k, v := range applicationSettingAttrs() {
-		attrs[k] = v
-	}
-	return attrs
 }
 
 // extendedHealthCheckAttrs returns schema attributes for extended health check settings.

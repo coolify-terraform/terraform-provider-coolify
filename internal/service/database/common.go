@@ -427,6 +427,12 @@ func NormalizeExtendedCreateUnknowns(f DatabaseExtendedPtrs) {
 	if f.Status != nil {
 		flex.NormalizeUnknownString(f.Status)
 	}
+	if f.MaxRestartCount != nil {
+		flex.NormalizeUnknownInt64(f.MaxRestartCount)
+	}
+	if f.RestartLimitReached != nil {
+		flex.NormalizeUnknownBool(f.RestartLimitReached)
+	}
 }
 
 // RecoverCreateAfterExtendedError GETs the database after a failed post-create

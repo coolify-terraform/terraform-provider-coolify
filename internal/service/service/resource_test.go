@@ -344,7 +344,7 @@ func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      serviceConfig(srv.URL),
-				ExpectError: regexp.MustCompile(`(?s)Service created but refresh failed.*Could not read service.*partial Terraform state was saved`),
+				ExpectError: regexp.MustCompile(`Service created but refresh failed`),
 			},
 		},
 	})

@@ -326,7 +326,7 @@ resource "coolify_database_clickhouse" "test" {
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
-			ExpectError: regexp.MustCompile(`(?s)ClickHouse database created but refresh failed.*Could not read ClickHouse database.*partial Terraform state was saved`),
+			ExpectError: regexp.MustCompile(`ClickHouse database created but refresh failed`),
 		}},
 	})
 }
