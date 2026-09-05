@@ -5319,6 +5319,24 @@ func TestClient_UpdatePreviewDeployment(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestClient_UpdatePreviewDeployment_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-prev-1/previews/42", r.URL.Path)
+		http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	domains := "https://pr.example.com"
+	err := c.UpdatePreviewDeployment(context.Background(), "app-prev-1", 42, UpdatePreviewInput{
+		Domains: &domains,
+	})
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
+}
+
 // --- Client Enable/Disable API ---
 
 func TestClient_EnableAPI(t *testing.T) {

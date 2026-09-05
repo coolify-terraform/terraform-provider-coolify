@@ -123,13 +123,15 @@ func (r *applicationPreviewResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	if err := r.patchPreviewDomains(ctx, plan); err != nil {
-		resp.Diagnostics.AddError(
-			"Error updating preview domains",
-			fmt.Sprintf("Could not set preview domains for application %s PR %d: %s",
-				plan.ApplicationUUID.ValueString(), plan.PullRequestID.ValueInt64(), err),
-		)
-		return
+	if plan.hasDomainWrite() {
+		if err := r.patchPreviewDomains(ctx, plan); err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating preview domains",
+				fmt.Sprintf("Could not set preview domains for application %s PR %d: %s",
+					plan.ApplicationUUID.ValueString(), plan.PullRequestID.ValueInt64(), err),
+			)
+			return
+		}
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
