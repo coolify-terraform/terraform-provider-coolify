@@ -202,7 +202,6 @@ func TestUpdateInput_OnlySendsAllowedFields(t *testing.T) {
 	// preview_url_template is on the v4.3.0 update allow list (and already sent
 	// when changed via shared update builders).
 	knownGaps := map[string]string{
-		"dockerfile":         "create-only field; editing a Dockerfile in place has no allowed update route",
 		"docker_compose_raw": "create-only field, and only for the deprecated inline-compose endpoint",
 	}
 	var unexpected []string

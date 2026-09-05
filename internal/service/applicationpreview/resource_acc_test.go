@@ -41,7 +41,7 @@ func TestAccApplicationPreview_DomainsMissingPreview(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccApplicationPreviewConfigWithDomains(name, serverUUID, "https://pr.example.com"),
-				ExpectError: regexp.MustCompile(`Preview not found|Error updating preview domains`),
+				ExpectError: regexp.MustCompile(`Preview not found|Error updating preview domains|Coolify has no preview`),
 			},
 		},
 	})

@@ -16,6 +16,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -216,6 +217,121 @@ func TestPublicApplicationResource_CreateSendsDockerfile(t *testing.T) {
 						return nil
 					},
 				),
+			},
+		},
+	})
+}
+
+// TestPublicApplicationResource_DockerfileRequiresReplace proves git-backed
+// dockerfile is create-only: changing it plans replace, and Update never
+// PATCHes the field (Coolify extra-key 422s it).
+func TestPublicApplicationResource_DockerfileRequiresReplace(t *testing.T) {
+	t.Parallel()
+	const (
+		appUUID  = "public-df-replace-uuid"
+		projUUID = "aaaa0002-0002-4000-8000-000000000002"
+		srvUUID  = "bbbb0002-0002-4000-8000-000000000002"
+		dfCreate = "FROM alpine:3.19\nCMD [\"sleep\",\"infinity\"]\n"
+		dfUpdate = "FROM alpine:3.20\nCMD [\"sleep\",\"infinity\"]\n"
+	)
+	mu := sync.Mutex{}
+	deleted := false
+	app := client.Application{
+		UUID:            appUUID,
+		Name:            "df-replace-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "dockerfile",
+		PortsExposes:    "80",
+		ProjectUUID:     projUUID,
+		ServerUUID:      srvUUID,
+		EnvironmentName: "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		mu.Lock()
+		deleted = false
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		requestBody, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, has := requestBody["dockerfile"]; has {
+			t.Error("PATCH must not send dockerfile (create-only; Coolify 422s it)")
+			http.Error(w, `{"error":"This field is not allowed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, fmt.Sprintf(`
+					project_uuid   = %q
+					server_uuid    = %q
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "dockerfile"
+					ports_exposes  = "80"
+					name           = "df-replace-app"
+					dockerfile     = %q
+				`, projUUID, srvUUID, dfCreate)),
+				Check: resource.TestCheckResourceAttr("coolify_application.test", "dockerfile", dfCreate),
+			},
+			{
+				Config: testApplicationResourceConfig(srv.URL, fmt.Sprintf(`
+					project_uuid   = %q
+					server_uuid    = %q
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "dockerfile"
+					ports_exposes  = "80"
+					name           = "df-replace-app"
+					dockerfile     = %q
+				`, projUUID, srvUUID, dfUpdate)),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_application.test", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.TestCheckResourceAttr("coolify_application.test", "dockerfile", dfUpdate),
 			},
 		},
 	})
@@ -662,7 +778,7 @@ func TestApplicationResource_Import(t *testing.T) {
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateVerifyIgnore:              []string{"environment_name"},
+				ImportStateVerifyIgnore:              []string{"environment_name", "dockerfile"},
 			},
 		},
 	})

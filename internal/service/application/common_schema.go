@@ -267,9 +267,10 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Optional:            true,
 		},
 		"dockerfile": schema.StringAttribute{
-			MarkdownDescription: "Inline Dockerfile content (base64 encoded). For `coolify_application_dockerfile` resources, use `dockerfile_location` instead; this field is only used by Git-backed application types that embed a Dockerfile inline.",
+			MarkdownDescription: "Inline Dockerfile content (base64 encoded). For `coolify_application_dockerfile` resources, use `dockerfile_location` instead; this field is only used by Git-backed application types that embed a Dockerfile inline. Create-only for git-backed apps: sent on Create POST. Coolify rejects it on PATCH (`This field is not allowed`). Changing it after apply replaces the application. GET often hides it (sensitive). After import, re-supply it in HCL or omit it (empty state is expected).",
 			Optional:            true,
 			Sensitive:           true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},
 		"docker_registry_image_tag": schema.StringAttribute{
 			MarkdownDescription: "The Docker registry image tag.",

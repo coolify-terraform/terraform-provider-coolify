@@ -337,7 +337,7 @@ func TestPrivateGitApplicationResource_Import(t *testing.T) {
 				ImportStateId:                        "aaaa0001-0001-4000-8000-000000000001",
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateVerifyIgnore:              []string{"environment_name", "private_key_uuid"},
+				ImportStateVerifyIgnore:              []string{"environment_name", "private_key_uuid", "dockerfile"},
 			},
 		},
 	})

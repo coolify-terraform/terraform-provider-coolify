@@ -527,7 +527,7 @@ func TestApplicationPreviewResource_CreatePatch404(t *testing.T) {
 					pull_request_id  = 24
 					domains          = "https://pr.example.com"
 				`),
-				ExpectError: regexp.MustCompile(`Error updating preview domains`),
+				ExpectError: regexp.MustCompile(`Error updating preview domains[\s\S]*Coolify has no preview`),
 			},
 		},
 	})
@@ -560,7 +560,7 @@ func TestApplicationPreviewResource_CreatePatch409(t *testing.T) {
 					pull_request_id  = 25
 					domains          = "https://pr.example.com"
 				`),
-				ExpectError: regexp.MustCompile(`Error updating preview domains`),
+				ExpectError: regexp.MustCompile(`Error updating preview domains[\s\S]*force_domain_override`),
 			},
 		},
 	})

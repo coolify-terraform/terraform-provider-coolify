@@ -395,6 +395,20 @@ func TestBuildUpdateInput_MaxRestartCountChanged(t *testing.T) {
 	}
 }
 
+func TestBuildUpdateInput_OmitsDockerfile(t *testing.T) {
+	t.Parallel()
+	plan := fillCommonAppFields(t, "plan-df", 1, true)
+	state := fillCommonAppFields(t, "state-df", 2, false)
+	planDF := types.StringValue("FROM alpine")
+	stateDF := types.StringValue("FROM nginx")
+	plan.Dockerfile = &planDF
+	state.Dockerfile = &stateDF
+	input := buildUpdateInput(plan, state)
+	if input.Dockerfile != nil {
+		t.Errorf("expected Dockerfile omitted from PATCH, got %q", *input.Dockerfile)
+	}
+}
+
 func TestBuildUpdateInput_NilSafeOptionalPtrs(t *testing.T) {
 	t.Parallel()
 	// GitRepository nil in both sides should not panic and produce nil in output.

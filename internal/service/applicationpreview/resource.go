@@ -3,6 +3,7 @@ package applicationpreview
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -50,7 +51,7 @@ func (r *applicationPreviewResource) Metadata(_ context.Context, req resource.Me
 
 func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages the lifecycle of a PR preview deployment for a Coolify application. Create is state-only unless you set preview domains; on destroy, it deletes the preview deployment via the Coolify API. There is no GET for a single preview, so domain attributes are preserved from state.",
+		MarkdownDescription: "Tracks a Coolify PR preview so terraform destroy can delete it, and optionally PATCHes domains when that preview already exists. This resource does **not** create the PR preview; Coolify creates it (webhook or UI). There is no GET for a single preview, so domain attributes are preserved from state. Apply returns 404 if Coolify has no preview for the pull request yet.",
 		Attributes: map[string]schema.Attribute{
 			"application_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the application that owns the preview.",
@@ -64,7 +65,7 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.RequiresReplace()},
 			},
 			"domains": schema.StringAttribute{
-				MarkdownDescription: "Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). " + previewDomainUpdateFloor + " Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
+				MarkdownDescription: "Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
 				Optional:            true,
 				Validators: []validator.String{
 					validate.Domains(),
@@ -72,7 +73,7 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				},
 			},
 			"docker_compose_domains": schema.StringAttribute{
-				MarkdownDescription: "JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. " + previewDomainUpdateFloor + " Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
+				MarkdownDescription: "JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
 				Optional:            true,
 				Validators: []validator.String{
 					validate.DockerComposeDomains(),
@@ -110,11 +111,7 @@ func (r *applicationPreviewResource) Create(ctx context.Context, req resource.Cr
 	// PATCHes domains when Coolify >= v4.3.15.
 	if plan.hasDomainWrite() {
 		if err := r.patchPreviewDomains(ctx, plan); err != nil {
-			resp.Diagnostics.AddError(
-				"Error updating preview domains",
-				fmt.Sprintf("Could not set preview domains for application %s PR %d: %s",
-					plan.ApplicationUUID.ValueString(), plan.PullRequestID.ValueInt64(), err),
-			)
+			resp.Diagnostics.AddError(previewDomainError(plan, err))
 			return
 		}
 	}
@@ -135,11 +132,7 @@ func (r *applicationPreviewResource) Update(ctx context.Context, req resource.Up
 
 	if plan.hasDomainWrite() {
 		if err := r.patchPreviewDomains(ctx, plan); err != nil {
-			resp.Diagnostics.AddError(
-				"Error updating preview domains",
-				fmt.Sprintf("Could not set preview domains for application %s PR %d: %s",
-					plan.ApplicationUUID.ValueString(), plan.PullRequestID.ValueInt64(), err),
-			)
+			resp.Diagnostics.AddError(previewDomainError(plan, err))
 			return
 		}
 	}
@@ -209,4 +202,43 @@ func (r *applicationPreviewResource) patchPreviewDomains(ctx context.Context, pl
 	}
 
 	return r.client.UpdatePreviewDeployment(ctx, plan.ApplicationUUID.ValueString(), plan.PullRequestID.ValueInt64(), input)
+}
+
+func previewDomainError(plan applicationPreviewModel, err error) (string, string) {
+	return "Error updating preview domains",
+		fmt.Sprintf("Could not set preview domains for application %s PR %d: %s",
+			plan.ApplicationUUID.ValueString(), plan.PullRequestID.ValueInt64(),
+			annotatePreviewDomainError(err))
+}
+
+func annotatePreviewDomainError(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	switch {
+	case previewLooksMissing(err):
+		return msg + ". Coolify has no preview for this PR yet. Open the PR or trigger a preview deploy, then re-apply."
+	case previewLooksConflict(err):
+		return msg + ". set force_domain_override = true if you intend to take over the domain."
+	default:
+		return msg
+	}
+}
+
+func previewLooksMissing(err error) bool {
+	if client.IsNotFound(err) {
+		return true
+	}
+	lower := strings.ToLower(err.Error())
+	return strings.Contains(lower, "preview not found") || strings.Contains(lower, "status 404")
+}
+
+func previewLooksConflict(err error) bool {
+	var apiErr *client.APIStatusError
+	if errors.As(err, &apiErr) && apiErr.Status == 409 {
+		return true
+	}
+	lower := strings.ToLower(err.Error())
+	return strings.Contains(lower, "status 409") || strings.Contains(lower, "conflict")
 }
