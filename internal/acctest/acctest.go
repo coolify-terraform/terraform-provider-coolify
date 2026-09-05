@@ -915,9 +915,11 @@ func AccTestSMTPEhloDomainAccepted(t *testing.T) bool {
 
 // AccTestSkipIfNoPreviewDomainUpdate skips when PATCH
 // /applications/{uuid}/previews/{pr} is an unmatched route (plain
-// "Not found." or empty). Soft-skip even when COOLIFY_REQUIRE_TIP_APIS=1:
-// CI edge reports 4.3.0 and older images lack the route. Controller 404
-// (preview or application not found), 422, or 409 means the route exists.
+// "Not found." or empty). Soft-skip unmatched 404/405 even when
+// COOLIFY_REQUIRE_TIP_APIS=1: CI edge reports 4.3.0 and older images
+// lack the route. Transport errors and HTTP 5xx use accTestMissingFeature
+// (hard fail under REQUIRE_TIP_APIS). Controller 404 (preview or
+// application not found), 422, or 409 means the route exists.
 func AccTestSkipIfNoPreviewDomainUpdate(t *testing.T) {
 	t.Helper()
 	TestAccPreCheck(t)
@@ -935,7 +937,7 @@ func AccTestSkipIfNoPreviewDomainUpdate(t *testing.T) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Skipf("preview domain PATCH probe failed (cannot reach Coolify): %v", err)
+		accTestMissingFeature(t, "preview domain PATCH probe failed (cannot reach Coolify): %v", err)
 		return
 	}
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
@@ -960,7 +962,7 @@ func AccTestSkipIfNoPreviewDomainUpdate(t *testing.T) {
 		return
 	default:
 		if resp.StatusCode >= 500 {
-			t.Skipf("preview domain PATCH probe returned HTTP %d: %s",
+			accTestMissingFeature(t, "preview domain PATCH probe returned HTTP %d (server error): %s",
 				resp.StatusCode, truncateForSkip(string(raw), 200))
 		}
 	}

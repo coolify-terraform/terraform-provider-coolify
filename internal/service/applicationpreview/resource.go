@@ -75,6 +75,7 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				MarkdownDescription: "JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. " + previewDomainUpdateFloor + " Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
 				Optional:            true,
 				Validators: []validator.String{
+					validate.DockerComposeDomains(),
 					stringvalidator.ConflictsWith(path.MatchRoot("domains")),
 				},
 			},

@@ -471,6 +471,35 @@ func TestApplicationPreviewResource_CreateInvalidDockerComposeDomains(t *testing
 	})
 }
 
+func TestApplicationPreviewResource_CreateDockerComposeDomainsNonObjectRejected(t *testing.T) {
+	t.Parallel()
+	var patchCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440059/previews/26", func(w http.ResponseWriter, _ *http.Request) {
+		patchCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.15"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid       = "550e8400-e29b-41d4-a716-446655440059"
+					pull_request_id        = 26
+					docker_compose_domains = "[1]"
+				`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains must be a\s+JSON array`),
+			},
+		},
+	})
+	if got := patchCount.Load(); got != 0 {
+		t.Fatalf("PATCH count = %d, want 0 (non-object array rejected at plan)", got)
+	}
+}
+
 func TestApplicationPreviewResource_CreatePatch404(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
