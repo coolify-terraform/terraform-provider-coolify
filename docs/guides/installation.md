@@ -82,14 +82,15 @@ before using the provider.
 | | Coolify |
 |--|---------|
 | **Minimum (hard floor)** | **v4.1.0** |
-| **Recommended for full features** | **≥ v4.3.10** |
+| **Recommended for full features** | **≥ v4.3.15** |
 
 The API surface changed significantly between v4.0.0 and v4.1.0, so v4.1.0
 is the minimum. Destinations and DO/Vultr provisioning need **≥ v4.2.0**.
 Volume backup schedules, `noindex_domains`, notifications, and S3 need
 **≥ v4.3.0**. Instance email settings and `smtp_ehlo_domain` need
-**≥ v4.3.10**. The pinned API contract is Coolify **v4.3.17** (extract
-provenance), not a new feature floor.
+**≥ v4.3.10**. Preview domain PATCH, GET `domain_port_overrides`, and
+restart-limit fields need **≥ v4.3.15**. The pinned API contract is
+Coolify **v4.3.17** (extract provenance), not a new feature floor.
 
 For a full resource and attribute matrix (what works on 4.1 vs 4.2 vs 4.3,
 and how version gates behave), see

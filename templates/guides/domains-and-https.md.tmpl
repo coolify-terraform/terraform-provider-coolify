@@ -140,6 +140,13 @@ domains with `domains` (regular apps) or `docker_compose_domains` (compose
 apps). There is no GET for a single preview, so Terraform keeps the
 configured value in state.
 
+Write `docker_compose_domains` as a JSON array of objects (the same shape
+as application resources). Do not send the GET object map:
+
+```hcl
+docker_compose_domains = jsonencode([{ name = "web", domain = "https://pr.example.com" }])
+```
+
 ## Auto-generated Domains
 
 On **create**, Coolify defaults `autogenerate_domain` to `true`. If you

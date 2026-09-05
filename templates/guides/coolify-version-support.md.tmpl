@@ -38,7 +38,8 @@ output "coolify_version" {
 | **4.1.x** | Core resources work. Version-gated 4.2/4.3 attributes stay in state if set, but are **not sent** on write (plan warning). |
 | **4.2.x** | 4.2 resources and application settings writes work. 4.3-only attributes still withheld with a plan warning. |
 | **≥ 4.3.0** | 4.3 application settings, `noindex_domains`, notification channels, S3, volume backup schedules, GPU/log-drain, etc. |
-| **≥ 4.3.10** | Instance email settings and `smtp_ehlo_domain` on team email notifications. Recommended for the full feature set. |
+| **≥ 4.3.10** | Instance email settings and `smtp_ehlo_domain` on team email notifications (email/SMTP floor). |
+| **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. Recommended for the full feature set. |
 
 Pinned API contract today: Coolify **v4.3.17** (`testdata/contracts/coolify-v4.json`).
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
@@ -64,7 +65,7 @@ teams, and most list/single data sources.
 | `coolify_project`, `coolify_environment` | |
 | `coolify_server`, `coolify_server_hetzner` | Hetzner provision path (`coolify_server_validate` needs 4.2+) |
 | `coolify_application*` (public, docker image, dockerfile, private git, github app) | Some **attributes** need 4.2/4.3 (see below) |
-| `coolify_application_preview` | |
+| `coolify_application_preview` | Domain attributes (`domains`, `docker_compose_domains`, `force_domain_override`) need Coolify >= v4.3.15 (hard apply error on older) |
 | Eight database engines + `coolify_database_backup`, `coolify_backup_execution` | Core CRUD works on 4.1+. Some optional settings exist only on newer Coolify lines; omit attributes you do not need so plans stay empty on older instances. |
 | `coolify_service`, `coolify_storage` | |
 | `coolify_environment_variable`, `coolify_envs_bulk` | |
@@ -209,7 +210,7 @@ PATCH if any disallowed field is present, so the provider strips them.
 | Topic | Guidance |
 |-------|----------|
 | Minimum Coolify for this provider | **4.1.0** |
-| Recommended Coolify for full feature set | **≥ 4.3.10** |
+| Recommended Coolify for full feature set | **≥ 4.3.15** |
 | Provider package versions | Current 0.1.x line targets Coolify 4.1+ with soft gates for 4.2/4.3 APIs |
 
 Historical "0.2.x / 0.3.x min Coolify" rows in older docs referred to planned
