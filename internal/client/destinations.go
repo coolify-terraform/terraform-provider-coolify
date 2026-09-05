@@ -138,3 +138,32 @@ func isMissingDestinationUUID(err error) bool {
 	return strings.Contains(apiErr.Message, "destination_uuid") &&
 		strings.Contains(apiErr.Message, "multiple destinations")
 }
+
+// createWithDestinationRetry POSTs input. On 400 missing destination_uuid
+// with multiple destinations, it resolves a destination, calls setDest, and
+// POSTs again. wrap prefixes errors (e.g. "creating public application").
+// setDest must mutate the same input value that is POSTed on retry.
+func (c *Client) createWithDestinationRetry(
+	ctx context.Context,
+	path string,
+	input any,
+	serverUUID, destUUID string,
+	setDest func(string),
+	result any,
+	wrap string,
+) error {
+	if err := c.doWithStatus(ctx, http.MethodPost, path, input, result, http.StatusCreated); err != nil {
+		if !isMissingDestinationUUID(err) {
+			return fmt.Errorf("%s: %w", wrap, err)
+		}
+		dest, rerr := c.ResolveDestinationUUID(ctx, serverUUID, destUUID)
+		if rerr != nil || dest == "" {
+			return fmt.Errorf("%s: %w", wrap, err)
+		}
+		setDest(dest)
+		if err := c.doWithStatus(ctx, http.MethodPost, path, input, result, http.StatusCreated); err != nil {
+			return fmt.Errorf("%s: %w", wrap, err)
+		}
+	}
+	return nil
+}

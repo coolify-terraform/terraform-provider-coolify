@@ -73,28 +73,28 @@ func (c *Client) GetService(ctx context.Context, uuid string) (*Service, error) 
 	}
 	return &s, nil
 }
-func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*Service, error) {
+func (c *Client) createServiceWithDestRetry(ctx context.Context, input *CreateServiceInput) (*Service, error) {
 	var s Service
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/services", input, &s, http.StatusCreated); err != nil {
-		// Same multi-destination gate as applications/databases
-		// (ServicesController::create_service). Retry with a resolved
-		// destination_uuid when Coolify returns that 400.
-		if !isMissingDestinationUUID(err) {
-			return nil, fmt.Errorf("creating service: %w", err)
-		}
-		dest, rerr := c.ResolveDestinationUUID(ctx, input.ServerUUID, input.DestinationUUID)
-		if rerr != nil || dest == "" {
-			return nil, fmt.Errorf("creating service: %w", err)
-		}
-		input.DestinationUUID = dest
-		if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/services", input, &s, http.StatusCreated); err != nil {
-			return nil, fmt.Errorf("creating service: %w", err)
-		}
+	if err := c.createWithDestinationRetry(
+		ctx,
+		"/api/v1/services",
+		input,
+		input.ServerUUID,
+		input.DestinationUUID,
+		func(dest string) { input.DestinationUUID = dest },
+		&s,
+		"creating service",
+	); err != nil {
+		return nil, err
 	}
 	if s.UUID == "" {
 		return nil, fmt.Errorf("creating service: API returned empty UUID")
 	}
 	return &s, nil
+}
+
+func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*Service, error) {
+	return c.createServiceWithDestRetry(ctx, &input)
 }
 
 type UpdateServiceInput struct {
