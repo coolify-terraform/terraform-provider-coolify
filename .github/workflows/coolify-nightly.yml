@@ -250,11 +250,19 @@ jobs:
         needs.prepare.outputs.profile == 'custom'
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Same suite timeouts as ci.yml: github-cicd needs 35m for deploy
+    # plus one retry. core/hetzner stay at 25m.
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       fail-fast: false
       matrix:
-        suite: [core, github-cicd, hetzner]
+        include:
+          - suite: core
+            timeout: 25
+          - suite: github-cicd
+            timeout: 35
+          - suite: hetzner
+            timeout: 25
     env:
       COOLIFY_DATA_DIR: /home/runner/coolify-data
     steps:
