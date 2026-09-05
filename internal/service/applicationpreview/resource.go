@@ -111,8 +111,13 @@ func (r *applicationPreviewResource) Create(ctx context.Context, req resource.Cr
 	// deployment is created by Coolify (webhook or UI); this resource
 	// tracks it so terraform destroy can clean it up, and optionally
 	// PATCHes domains when Coolify >= v4.3.15.
-	if plan.hasDomainWrite() {
-		if err := r.patchPreviewDomains(ctx, plan); err != nil {
+	input, ok, err := plan.previewDomainInput()
+	if err != nil {
+		resp.Diagnostics.AddError(previewDomainError(plan, err))
+		return
+	}
+	if ok {
+		if err := r.patchPreviewDomains(ctx, plan, input); err != nil {
 			resp.Diagnostics.AddError(previewDomainError(plan, err))
 			return
 		}
@@ -132,8 +137,13 @@ func (r *applicationPreviewResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	if plan.hasDomainWrite() {
-		if err := r.patchPreviewDomains(ctx, plan); err != nil {
+	input, ok, err := plan.previewDomainInput()
+	if err != nil {
+		resp.Diagnostics.AddError(previewDomainError(plan, err))
+		return
+	}
+	if ok {
+		if err := r.patchPreviewDomains(ctx, plan, input); err != nil {
 			resp.Diagnostics.AddError(previewDomainError(plan, err))
 			return
 		}
@@ -177,50 +187,42 @@ func hasNonEmptyDomainSegment(raw string) bool {
 	return false
 }
 
-func (m applicationPreviewModel) hasDomainWrite() bool {
-	if !m.Domains.IsNull() && !m.Domains.IsUnknown() && hasNonEmptyDomainSegment(m.Domains.ValueString()) {
-		return true
-	}
-	if m.DockerComposeDomains.IsNull() || m.DockerComposeDomains.IsUnknown() {
-		return false
-	}
-	raw := strings.TrimSpace(m.DockerComposeDomains.ValueString())
-	if raw == "" {
-		return false
-	}
-	// "[]" is valid JSON (empty array) but Coolify 422s it on empty compose.
-	var items []json.RawMessage
-	if err := json.Unmarshal([]byte(raw), &items); err == nil && len(items) == 0 {
-		return false
-	}
-	return true
-}
-
-func (r *applicationPreviewResource) patchPreviewDomains(ctx context.Context, plan applicationPreviewModel) error {
-	if r.client == nil || !r.client.SupportsPreviewDomainUpdate() {
-		return fmt.Errorf("preview domain updates require Coolify >= v4.3.15")
-	}
-
+func (m applicationPreviewModel) previewDomainInput() (client.UpdatePreviewInput, bool, error) {
 	input := client.UpdatePreviewInput{}
-	if !plan.Domains.IsNull() && !plan.Domains.IsUnknown() {
-		v := strings.TrimSpace(plan.Domains.ValueString())
+	ok := false
+
+	if !m.Domains.IsNull() && !m.Domains.IsUnknown() && hasNonEmptyDomainSegment(m.Domains.ValueString()) {
+		v := strings.TrimSpace(m.Domains.ValueString())
 		input.Domains = &v
+		ok = true
 	}
-	if !plan.DockerComposeDomains.IsNull() && !plan.DockerComposeDomains.IsUnknown() {
-		raw := strings.TrimSpace(plan.DockerComposeDomains.ValueString())
+
+	if !m.DockerComposeDomains.IsNull() && !m.DockerComposeDomains.IsUnknown() {
+		raw := strings.TrimSpace(m.DockerComposeDomains.ValueString())
 		if raw != "" {
 			var items []json.RawMessage
 			if err := json.Unmarshal([]byte(raw), &items); err != nil {
-				return fmt.Errorf("docker_compose_domains must be a JSON array: %w", err)
+				return client.UpdatePreviewInput{}, false, fmt.Errorf("docker_compose_domains must be a JSON array: %w", err)
 			}
-			input.DockerComposeDomains = json.RawMessage(raw)
+			if len(items) > 0 {
+				input.DockerComposeDomains = json.RawMessage(raw)
+				ok = true
+			}
 		}
 	}
-	if !plan.ForceDomainOverride.IsNull() && !plan.ForceDomainOverride.IsUnknown() && plan.ForceDomainOverride.ValueBool() {
+
+	if ok && !m.ForceDomainOverride.IsNull() && !m.ForceDomainOverride.IsUnknown() && m.ForceDomainOverride.ValueBool() {
 		v := true
 		input.ForceDomainOverride = &v
 	}
 
+	return input, ok, nil
+}
+
+func (r *applicationPreviewResource) patchPreviewDomains(ctx context.Context, plan applicationPreviewModel, input client.UpdatePreviewInput) error {
+	if r.client == nil || !r.client.SupportsPreviewDomainUpdate() {
+		return fmt.Errorf("preview domain updates require Coolify >= v4.3.15")
+	}
 	return r.client.UpdatePreviewDeployment(ctx, plan.ApplicationUUID.ValueString(), plan.PullRequestID.ValueInt64(), input)
 }
 
