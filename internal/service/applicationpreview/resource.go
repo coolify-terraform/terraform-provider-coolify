@@ -170,10 +170,19 @@ func (m applicationPreviewModel) hasDomainWrite() bool {
 	if !m.Domains.IsNull() && !m.Domains.IsUnknown() && m.Domains.ValueString() != "" {
 		return true
 	}
-	if !m.DockerComposeDomains.IsNull() && !m.DockerComposeDomains.IsUnknown() && strings.TrimSpace(m.DockerComposeDomains.ValueString()) != "" {
-		return true
+	if m.DockerComposeDomains.IsNull() || m.DockerComposeDomains.IsUnknown() {
+		return false
 	}
-	return false
+	raw := strings.TrimSpace(m.DockerComposeDomains.ValueString())
+	if raw == "" {
+		return false
+	}
+	// "[]" is valid JSON (empty array) but Coolify 422s it on empty compose.
+	var items []json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &items); err == nil && len(items) == 0 {
+		return false
+	}
+	return true
 }
 
 func (r *applicationPreviewResource) patchPreviewDomains(ctx context.Context, plan applicationPreviewModel) error {

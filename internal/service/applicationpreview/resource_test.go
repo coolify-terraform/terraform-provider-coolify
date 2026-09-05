@@ -316,6 +316,40 @@ func TestApplicationPreviewResource_CreateEmptyComposeSkipsPatch(t *testing.T) {
 	}
 }
 
+func TestApplicationPreviewResource_CreateEmptyComposeArraySkipsPatch(t *testing.T) {
+	t.Parallel()
+	var patchCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440060/previews/27", func(w http.ResponseWriter, _ *http.Request) {
+		patchCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/550e8400-e29b-41d4-a716-446655440060/previews/27", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.15"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid       = "550e8400-e29b-41d4-a716-446655440060"
+					pull_request_id        = 27
+					docker_compose_domains = "[]"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_preview.test", "docker_compose_domains", "[]"),
+				),
+			},
+		},
+	})
+	if got := patchCount.Load(); got != 0 {
+		t.Fatalf("PATCH count = %d, want 0 (empty compose array is not a domain write)", got)
+	}
+}
+
 func TestApplicationPreviewResource_CreateDomainsAndComposeConflict(t *testing.T) {
 	t.Parallel()
 	var patchCount atomic.Int32

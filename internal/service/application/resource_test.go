@@ -152,6 +152,8 @@ func TestPublicApplicationResource_CreateSendsDockerfile(t *testing.T) {
 		ProjectUUID:     projUUID,
 		ServerUUID:      srvUUID,
 		EnvironmentName: "production",
+		// GET with read:sensitive returns the stored base64, not the raw HCL.
+		Dockerfile: wantDockerfile,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
@@ -250,11 +252,16 @@ func TestPublicApplicationResource_DockerfileRequiresReplace(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
 			return
 		}
 		mu.Lock()
 		deleted = false
+		if df, ok := body["dockerfile"].(string); ok {
+			// Coolify stores the EnsureBase64 payload and returns it on GET.
+			app.Dockerfile = df
+		}
 		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
