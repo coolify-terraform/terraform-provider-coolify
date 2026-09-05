@@ -74,9 +74,49 @@ data "coolify_application" "test" {
 					resource.TestCheckResourceAttr("data.coolify_application.test", "restart_limit_reached", "false"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "container_present", "true"),
 					resource.TestCheckResourceAttr("data.coolify_application.test", "is_consistent_container_name_enabled", "true"),
+					resource.TestCheckNoResourceAttr("data.coolify_application.test", "domain_port_overrides.%"),
 				),
 			},
 		},
+	})
+}
+
+func TestApplicationDataSource_DomainPortOverrides(t *testing.T) {
+	t.Parallel()
+	overrides := client.DomainPortOverridesMap{"https://app.example.com": 3000}
+	app := client.Application{
+		UUID:                "cccc0004-0004-4000-8000-000000000004",
+		Name:                "domain-port-ds-app",
+		DomainPortOverrides: overrides,
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+data "coolify_application" "test" {
+  uuid = "cccc0004-0004-4000-8000-000000000004"
+}
+`, srv.URL),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("data.coolify_application.test", "domain_port_overrides.%", "1"),
+				resource.TestCheckResourceAttr("data.coolify_application.test", "domain_port_overrides.https://app.example.com", "3000"),
+			),
+		}},
 	})
 }
 

@@ -76,9 +76,13 @@ func (d *taskExecutionsDataSource) Schema(_ context.Context, _ datasource.Schema
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"uuid":       schema.StringAttribute{MarkdownDescription: "The UUID of the execution.", Computed: true},
-						"status":     schema.StringAttribute{MarkdownDescription: "The status of the execution.", Computed: true},
-						"message":    schema.StringAttribute{MarkdownDescription: "The output message of the execution.", Computed: true},
+						"uuid":   schema.StringAttribute{MarkdownDescription: "The UUID of the execution.", Computed: true},
+						"status": schema.StringAttribute{MarkdownDescription: "The status of the execution.", Computed: true},
+						"message": schema.StringAttribute{
+							MarkdownDescription: "The output message of the execution. Sensitive because messages can contain secrets.",
+							Computed:            true,
+							Sensitive:           true,
+						},
 						"created_at": schema.StringAttribute{MarkdownDescription: "The creation timestamp.", Computed: true},
 					},
 				},

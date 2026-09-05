@@ -29,7 +29,7 @@ resource "coolify_cloud_init_script" "bootstrap" {
 ### Required
 
 - `name` (String) Script name.
-- `script` (String) Cloud-init YAML. Coolify validates it as YAML.
+- `script` (String, Sensitive) Cloud-init YAML. Coolify validates it as YAML.
 
 ### Read-Only
 

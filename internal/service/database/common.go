@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -153,7 +154,7 @@ func PopulateBaseCreateInput(base *client.CreateDatabaseBaseInput, m *CommonMode
 // CommonDatabaseAttrs returns the shared schema attributes for all database types.
 func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute) map[string]schema.Attribute {
 	attrs := map[string]schema.Attribute{
-		"timeouts":     timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
+		"timeouts":     timeouts.Attributes(ctx, timeouts.Opts{Create: true, Delete: true}),
 		"uuid":         schema.StringAttribute{MarkdownDescription: "The UUID of the database.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"name":         schema.StringAttribute{MarkdownDescription: "The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"description":  schema.StringAttribute{MarkdownDescription: "A description of the database.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
@@ -311,29 +312,39 @@ func UpdateDatabase(ctx context.Context, c *client.Client, uuid string, input cl
 
 // DeleteDatabase removes a database by UUID, silently succeeding if already
 // gone.
-const deletePollingTimeoutWarningSummary = "Delete is still finishing in Coolify"
+const deletePollingErrorSummary = "Error deleting resource"
 
-func addDeletePollingTimeoutWarning(resp *resource.DeleteResponse, resourceType, uuid string) {
-	resp.Diagnostics.AddWarning(
-		deletePollingTimeoutWarningSummary,
-		fmt.Sprintf(
-			"Coolify accepted deletion of %s %s, but the resource was still returned by the API when the provider stopped polling. Terraform removed it from state, but the remote resource may still exist temporarily. Wait a moment before retrying dependent operations if they still report it.",
-			resourceType,
-			uuid,
-		),
+func addDeletePollingError(resp *resource.DeleteResponse, resourceType, uuid string, err error) {
+	detail := fmt.Sprintf(
+		"Coolify accepted deletion of %s %s, but the resource was still returned by the API when the provider stopped polling. Terraform will keep it in state.",
+		resourceType,
+		uuid,
 	)
+	if err != nil {
+		detail = fmt.Sprintf("%s Delete polling failed: %s", detail, err)
+	}
+	resp.Diagnostics.AddError(deletePollingErrorSummary, detail)
 }
 
-func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid string, resp *resource.DeleteResponse) error {
+func DeleteDatabase(ctx context.Context, c *client.Client, resourceType, uuid string, t timeouts.Value, resp *resource.DeleteResponse) error {
+	deleteTimeout, diags := t.Delete(ctx, 2*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, deleteTimeout)
+	defer cancel()
+
 	if err := c.DeleteDatabase(ctx, uuid); err != nil {
 		if client.IsNotFound(err) {
 			return nil
 		}
 		return err
 	}
-	if !client.PollUntilDeleted(ctx, func() error { _, err := c.GetDatabase(ctx, uuid); return err }) {
-		tflog.Warn(ctx, "resource may still exist after polling timeout", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
-		addDeletePollingTimeoutWarning(resp, resourceType, uuid)
+	gone, err := client.PollUntilDeleted(ctx, func(ctx context.Context) error { _, err := c.GetDatabase(ctx, uuid); return err })
+	if err != nil || !gone {
+		addDeletePollingError(resp, resourceType, uuid, err)
+		return nil
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 	return nil
@@ -369,10 +380,11 @@ func DeleteDatabaseState(
 	c *client.Client,
 	resourceType string,
 	uuid string,
+	t timeouts.Value,
 	resp *resource.DeleteResponse,
 ) {
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
-	if err := DeleteDatabase(ctx, c, resourceType, uuid, resp); err != nil {
+	if err := DeleteDatabase(ctx, c, resourceType, uuid, t, resp); err != nil {
 		resp.Diagnostics.AddError(fmt.Sprintf("Error deleting %s", resourceType), fmt.Sprintf("%s %s: %s", resourceType, uuid, err))
 	}
 }
@@ -415,6 +427,12 @@ func NormalizeExtendedCreateUnknowns(f DatabaseExtendedPtrs) {
 	if f.Status != nil {
 		flex.NormalizeUnknownString(f.Status)
 	}
+	if f.MaxRestartCount != nil {
+		flex.NormalizeUnknownInt64(f.MaxRestartCount)
+	}
+	if f.RestartLimitReached != nil {
+		flex.NormalizeUnknownBool(f.RestartLimitReached)
+	}
 }
 
 // RecoverCreateAfterExtendedError GETs the database after a failed post-create
@@ -430,6 +448,10 @@ func RecoverCreateAfterExtendedError(ctx context.Context, c *client.Client, uuid
 // AddCreateReadBackError is a thin wrapper around flex.AddCreateReadBackError
 // kept for existing database package call sites.
 func AddCreateReadBackError(resp *resource.CreateResponse, label, identifier string, err error) {
+	if client.IsNotFound(err) {
+		flex.AddCreateReadBackNotFoundError(resp, label, identifier)
+		return
+	}
 	flex.AddCreateReadBackError(resp, label, identifier, err)
 }
 
@@ -450,6 +472,8 @@ func ImportDatabaseState(ctx context.Context, c *client.Client, req resource.Imp
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parsed.ProjectUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parsed.ServerUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parsed.EnvironmentName)...)
+	} else {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 }

@@ -15,6 +15,10 @@ import (
 // If this test fails, add the new attribute here and add a flatten test that
 // returns the API list in a different order than HCL (or document why GET
 // cannot reorder it).
+//
+// Map attributes are keyed (including application domain_port_overrides).
+// Terraform map state does not depend on GET key order, so they are not
+// listed here.
 var resourceListPolicy = map[string]string{
 	"internal/service/service/resource.go:urls":                     "TestFlattenServiceURLs_PreservesConfigOrder",
 	"internal/service/application/common_schema.go:noindex_domains": "TestFlattenNoindexDomains_PreservesConfigOrder",

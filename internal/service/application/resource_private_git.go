@@ -195,7 +195,7 @@ func (r *privateGitApplicationResource) Delete(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	deleteApplication(ctx, r.client, "coolify_application_private_git", state.UUID.ValueString(), resp)
+	deleteApplication(ctx, r.client, "coolify_application_private_git", state.UUID.ValueString(), state.Timeouts, resp)
 }
 
 func (r *privateGitApplicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

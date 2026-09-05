@@ -3,10 +3,12 @@ package application
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -46,7 +48,7 @@ func setImportDefaults(ctx context.Context, resp *resource.ImportStateResponse) 
 	set("use_build_secrets", false)
 }
 
-const deletePollingTimeoutWarningSummary = "Delete is still finishing in Coolify"
+const deletePollingErrorSummary = "Error deleting resource"
 
 // readBackAfterCreate reads the newly created application. If the immediate
 // read-back fails, it leaves the partial state intact and records the failure.
@@ -143,29 +145,40 @@ func readApplication(
 	flatten(app)
 }
 
+func addDeletePollingError(resp *resource.DeleteResponse, resourceType, uuid string, err error) {
+	detail := fmt.Sprintf(
+		"Coolify accepted deletion of %s %s, but the resource was still returned by the API when the provider stopped polling. Terraform will keep it in state.",
+		resourceType,
+		uuid,
+	)
+	if err != nil {
+		detail = fmt.Sprintf("%s Delete polling failed: %s", detail, err)
+	}
+	resp.Diagnostics.AddError(deletePollingErrorSummary, detail)
+}
+
 // deleteApplication deletes an application by UUID and polls until the
 // resource is fully removed. Coolify processes application deletions
 // asynchronously via DeleteResourceJob; without polling, downstream
 // resources (e.g. project) fail to delete because the app still exists.
 // A 404 is treated as already-deleted and does not produce an error.
-func addDeletePollingTimeoutWarning(resp *resource.DeleteResponse, resourceType, uuid string) {
-	resp.Diagnostics.AddWarning(
-		deletePollingTimeoutWarningSummary,
-		fmt.Sprintf(
-			"Coolify accepted deletion of %s %s, but the resource was still returned by the API when the provider stopped polling. Terraform removed it from state, but the remote resource may still exist temporarily. Wait a moment before retrying dependent operations if they still report it.",
-			resourceType,
-			uuid,
-		),
-	)
-}
-
+// Poll errors and a still-present resource keep Terraform state.
 func deleteApplication(
 	ctx context.Context,
 	c *client.Client,
 	resourceType string,
 	uuid string,
+	t timeouts.Value,
 	resp *resource.DeleteResponse,
 ) {
+	deleteTimeout, diags := t.Delete(ctx, 2*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, deleteTimeout)
+	defer cancel()
+
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 	if err := c.DeleteApplication(ctx, uuid); err != nil {
 		if client.IsNotFound(err) {
@@ -174,9 +187,10 @@ func deleteApplication(
 		resp.Diagnostics.AddError("Error deleting application", fmt.Sprintf("application %s: %s", uuid, err))
 		return
 	}
-	if !client.PollUntilDeleted(ctx, func() error { _, err := c.GetApplication(ctx, uuid); return err }) {
-		tflog.Warn(ctx, "resource may still exist after polling timeout", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
-		addDeletePollingTimeoutWarning(resp, resourceType, uuid)
+	gone, err := client.PollUntilDeleted(ctx, func(ctx context.Context) error { _, err := c.GetApplication(ctx, uuid); return err })
+	if err != nil || !gone {
+		addDeletePollingError(resp, resourceType, uuid, err)
+		return
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 }

@@ -127,6 +127,10 @@ Project icon attributes (`icon_path`, `icon_storage_type`) are computed on
 Coolify **≥ 4.3.3**. They are not writable and are omitted from
 `GET /projects` (list). Empty on older instances.
 
+`domain_port_overrides` is computed on application resources and
+`data.coolify_application` on Coolify tip. It is null on v4.3.14 and
+earlier. It is not on `data.coolify_applications` and is not writable.
+
 ## Application attributes by Coolify version
 
 Application resources share one schema. Attributes that Coolify only accepts

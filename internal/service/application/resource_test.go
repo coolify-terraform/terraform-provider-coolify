@@ -1828,6 +1828,137 @@ func TestApplicationResource_MaxRestartCount_V42Withheld(t *testing.T) {
 	})
 }
 
+func TestApplicationResource_DomainPortOverrides(t *testing.T) {
+	t.Parallel()
+	overrides := client.DomainPortOverridesMap{"https://app.example.com": 3000}
+	app := client.Application{
+		UUID:                "aaaa0012-0012-4012-8012-000000000012",
+		Name:                "domain-port-app",
+		GitRepository:       "https://github.com/example/repo",
+		GitBranch:           "main",
+		BuildPack:           "nixpacks",
+		PortsExposes:        "3000",
+		ProjectUUID:         "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:          "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName:     "production",
+		DomainPortOverrides: overrides,
+	}
+
+	mu := sync.Mutex{}
+	deleted := false
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, exists := body["domain_port_overrides"]; exists {
+			t.Error("POST create must not send domain_port_overrides")
+			http.Error(w, `{"error":"This field is not allowed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != app.UUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, exists := body["domain_port_overrides"]; exists {
+			t.Error("PATCH update must not send domain_port_overrides")
+			http.Error(w, `{"error":"This field is not allowed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		mu.Lock()
+		if v, ok := body["name"].(string); ok {
+			app.Name = v
+		}
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+					name           = "domain-port-app"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "uuid", "aaaa0012-0012-4012-8012-000000000012"),
+					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.%", "1"),
+					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.https://app.example.com", "3000"),
+				),
+			},
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "nixpacks"
+					ports_exposes  = "3000"
+					name           = "domain-port-app-renamed"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "name", "domain-port-app-renamed"),
+					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.%", "1"),
+					resource.TestCheckResourceAttr("coolify_application.test", "domain_port_overrides.https://app.example.com", "3000"),
+				),
+			},
+			{
+				ResourceName:  "coolify_application.test",
+				ImportState:   true,
+				ImportStateId: "aaaa0012-0012-4012-8012-000000000012",
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					if len(s) != 1 {
+						return fmt.Errorf("expected 1 instance, got %d", len(s))
+					}
+					if s[0].Attributes["domain_port_overrides.%"] != "1" {
+						return fmt.Errorf("imported domain_port_overrides.%% = %q, want 1", s[0].Attributes["domain_port_overrides.%"])
+					}
+					if s[0].Attributes["domain_port_overrides.https://app.example.com"] != "3000" {
+						return fmt.Errorf("imported domain_port_overrides.https://app.example.com = %q, want 3000", s[0].Attributes["domain_port_overrides.https://app.example.com"])
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func testApplicationResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_application", "test", attrs)
 }
@@ -2796,6 +2927,7 @@ func TestApplicationResource_CreateSendsDestinationUUID(t *testing.T) {
 		srvUUID  = "bbbb0002-0002-4000-8000-000000000002"
 	)
 	var gotBody map[string]interface{}
+	var deleted bool
 	app := client.Application{
 		UUID:            appUUID,
 		Name:            "dest-app",
@@ -2819,10 +2951,15 @@ func TestApplicationResource_CreateSendsDestinationUUID(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		deleted = true
 		w.WriteHeader(http.StatusNoContent)
 	})
 	// Extended fields may trigger a post-create PATCH; ignore body.
@@ -3072,6 +3209,7 @@ func TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
 	t.Parallel()
 	const appUUID = "no-dest-app-uuid"
 	var gotBody map[string]interface{}
+	var deleted bool
 	app := client.Application{
 		UUID: appUUID, Name: "no-dest", GitRepository: "https://github.com/example/repo",
 		GitBranch: "main", BuildPack: "nixpacks", PortsExposes: "3000",
@@ -3090,10 +3228,15 @@ func TestApplicationResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(app)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		deleted = true
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {

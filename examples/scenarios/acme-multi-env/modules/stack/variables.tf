@@ -33,5 +33,11 @@ variable "git_repo" {
 variable "git_branch" {
   description = "Git branch to deploy"
   type        = string
-  default     = "main"
+  default     = "v4.x"
+}
+
+variable "base_directory" {
+  description = "Base directory in the Git repository"
+  type        = string
+  default     = "/nodejs"
 }

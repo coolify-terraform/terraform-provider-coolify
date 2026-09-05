@@ -81,10 +81,12 @@ testacc-pkg: check-pkg ## Run acceptance tests for one package with serialized e
 lint: check-golangci-lint-version ## Run golangci-lint + go mod tidy check (CI-pinned golangci-lint)
 	golangci-lint run ./...
 	@go mod tidy && git diff --exit-code go.mod go.sum || (echo "go mod tidy produced changes"; exit 1)
+	@cd tools && go mod tidy && git diff --exit-code go.mod go.sum || (echo "go mod tidy produced changes"; exit 1)
 
 fmt: ## Format code (gofmt + go mod tidy)
 	gofmt -s -w .
 	go mod tidy
+	cd tools && go mod tidy
 
 docs: check-tfplugindocs ## Regenerate documentation via tfplugindocs
 	go generate ./...
@@ -231,6 +233,11 @@ goreleaser-check: check-goreleaser-version ## Validate .goreleaser.yml with CI-c
 
 vulncheck: ## Run govulncheck for known vulnerabilities
 	go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
+	@if pkgs="$$(cd tools && go list ./... 2>/dev/null)" && [ -n "$$pkgs" ]; then \
+		cd tools && go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...; \
+	else \
+		echo "Skipping tools/ govulncheck (no packages)"; \
+	fi
 
 tools: ## Install all required development tools
 	@mkdir -p "$(BIN_DIR)"

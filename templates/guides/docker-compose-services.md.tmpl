@@ -143,8 +143,9 @@ resource "coolify_application" "compose_app" {
   server_uuid      = var.server_uuid
   environment_name = "production"
 
-  git_repository = "https://github.com/example/my-compose-repo"
-  git_branch     = "main"
+  git_repository = "https://github.com/coollabsio/coolify-examples"
+  git_branch     = "v4.x"
+  base_directory = "/docker-compose"
   build_pack     = "dockercompose"
   ports_exposes  = "3000"
   instant_deploy = true

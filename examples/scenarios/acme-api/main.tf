@@ -57,14 +57,10 @@ resource "coolify_application_dockerfile" "api" {
   server_uuid         = var.server_uuid
   environment_name    = "production"
   dockerfile_location = <<-DOCKERFILE
-    FROM node:20-alpine
-    WORKDIR /app
-    COPY . .
-    RUN npm install --production
-    EXPOSE 3000
-    CMD ["node", "server.js"]
+    FROM nginx:alpine
+    EXPOSE 80
   DOCKERFILE
-  ports_exposes       = "3000"
+  ports_exposes       = "80"
 }
 
 resource "coolify_application_docker_image" "worker" {
@@ -72,8 +68,8 @@ resource "coolify_application_docker_image" "worker" {
   project_uuid     = coolify_project.acme.uuid
   server_uuid      = var.server_uuid
   environment_name = "production"
-  docker_image     = "alpine:latest"
-  ports_exposes    = "8080"
+  docker_image     = "nginx:alpine"
+  ports_exposes    = "80"
 }
 
 # --- Environment Variables ---

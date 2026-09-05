@@ -47,6 +47,7 @@ type ApplicationDataSourceModel struct {
 	MaxRestartCount                  types.Int64  `tfsdk:"max_restart_count"`
 	RestartLimitReached              types.Bool   `tfsdk:"restart_limit_reached"`
 	ContainerPresent                 types.Bool   `tfsdk:"container_present"`
+	DomainPortOverrides              types.Map    `tfsdk:"domain_port_overrides"`
 	IsConsistentContainerNameEnabled types.Bool   `tfsdk:"is_consistent_container_name_enabled"`
 	NoindexDomains                   types.List   `tfsdk:"noindex_domains"`
 }
@@ -150,6 +151,11 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				MarkdownDescription: "Whether Coolify last observed the application container on the server. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
 				Computed:            true,
 			},
+			"domain_port_overrides": schema.MapAttribute{
+				ElementType:         types.Int64Type,
+				MarkdownDescription: domainPortOverridesDescription,
+				Computed:            true,
+			},
 			"is_consistent_container_name_enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether Coolify uses a consistent container name for this application. Coolify default is `false`. " +
 					"Set to `true` for apps that keep an exclusive file lock on a persistent volume (SQLite, DuckDB, LMDB, BoltDB). " +
@@ -210,6 +216,7 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 		RestartLimitReached: &config.RestartLimitReached,
 		ContainerPresent:    &config.ContainerPresent,
 	})
+	flattenDomainPortOverrides(app.DomainPortOverrides, &config.DomainPortOverrides)
 	if app.IsConsistentContainerNameEnabled != nil {
 		config.IsConsistentContainerNameEnabled = types.BoolValue(*app.IsConsistentContainerNameEnabled)
 	} else {

@@ -5,9 +5,11 @@ backend as microservices.
 
 ## The Story
 
-ACME Corp's e-commerce platform needs an order processing backend. The REST
-API handles incoming orders, a background worker processes payments and sends
-notifications. PostgreSQL stores orders, Redis handles job queues and caching.
+ACME Corp's e-commerce platform needs an order processing backend. This
+scenario models a REST API plus a background worker, with PostgreSQL for
+orders and Redis for job queues and caching. The API and worker use
+self-contained nginx images so the stack stays running without a git
+build context.
 
 All services are deployed to a single Coolify server, connected via internal
 Docker networking, and managed entirely through Terraform.
@@ -36,7 +38,7 @@ Docker networking, and managed entirely through Terraform.
                          │                                             │
     HTTP requests ──────►│  ┌──────────────────┐                       │
                          │  │   API (Dockerfile)│──┐                   │
-                         │  │   :3000           │  │                   │
+                         │  │   :80             │  │                   │
                          │  └──────────────────┘  │                   │
                          │           │             │                   │
                          │      env vars          env vars             │
@@ -51,7 +53,7 @@ Docker networking, and managed entirely through Terraform.
                          │           │             │                   │
                          │  ┌──────────────────┐  │                   │
                          │  │ Worker (Docker   │──┘                   │
-                         │  │  Image) :8080    │                       │
+                         │  │  Image) :80      │                       │
                          │  └──────────────────┘                       │
                          │                                             │
                          │  ┌──────────────────┐  ┌────────────────┐  │
@@ -100,11 +102,14 @@ server_uuid      = "your-server-uuid"
 1. **Project**: a `coolify_project` groups all resources under "acme-orders".
 2. **Databases**: PostgreSQL stores order data; Redis provides job queues and
    caching. Both are internal-only (not publicly exposed).
-3. **API application**: built from a Dockerfile (`coolify_application_dockerfile`).
-   Environment variables inject the database and Redis connection strings.
-4. **Worker application**: deployed from a pre-built Docker image
-   (`coolify_application_docker_image`). Shares the same database and Redis
-   connections so it can pick up jobs enqueued by the API.
+3. **API application**: an inline Dockerfile (`coolify_application_dockerfile`)
+   that runs `nginx:alpine`. Environment variables inject the database and
+   Redis connection strings. There is no git context; nginx is a stand-in
+   that listens so the resource stays up.
+4. **Worker application**: `nginx:alpine` via
+   `coolify_application_docker_image`. Shares the same database and Redis
+   connection strings. nginx is a stand-in worker container that stays
+   running so networking can be verified.
 5. **Scheduled task**: a `coolify_scheduled_task` runs a nightly cleanup
    command inside the API container.
 6. **Backup**: a `coolify_database_backup` schedules daily local backups of

@@ -35,7 +35,7 @@ resource "coolify_application_github_app" "app" {
 
 - `build_pack` (String) The build pack type. Valid values: `nixpacks`, `dockerfile`, `dockercompose`, `static`, `railpack`.
 - `git_repository` (String) The Git repository URL (for example `https://github.com/org/repo` or `org/repo`). Coolify checks repository access during create.
-- `github_app_uuid` (String) The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`.
+- `github_app_uuid` (String) The UUID of the GitHub App used for repository access. The app installation must be able to read the repository configured in `git_repository`. Changing this forces a new resource because Coolify accepts `github_app_uuid` on create only.
 - `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g., `3000` or `3000,8080`).
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing this forces a new resource.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing this forces a new resource.
@@ -127,7 +127,7 @@ resource "coolify_application_github_app" "app" {
 - `pre_deployment_command` (String) Command to run before deployment.
 - `pre_deployment_command_container` (String) Container to run the pre-deployment command in.
 - `publish_directory` (String) The directory to publish for static sites.
-- `redeploy_on_update` (Boolean) When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`, `github_app_uuid`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.
+- `redeploy_on_update` (Boolean) When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`, and `github_app_uuid` on `coolify_application_github_app`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.
 - `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
 - `start_command` (String) The command to run to start the application.
 - `static_image` (String) The Docker image to use for serving static sites.
@@ -140,6 +140,7 @@ resource "coolify_application_github_app" "app" {
 ### Read-Only
 
 - `container_present` (Boolean) Whether Coolify last observed the application container on the server. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).
+- `domain_port_overrides` (Map of Number) Read-only map of canonical domain URL to container port from GET (`{"https://app.example.com": 3000}`). Coolify tip after the Sep 2026 applications column (not in tag v4.3.14). Not accepted on create or update.
 - `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.
 - `restart_limit_reached` (Boolean) Whether Coolify has stopped the application because `restart_count` reached `max_restart_count`. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).
 - `status` (String) The current status of the application (e.g., running, stopped, exited). Read-only.
@@ -151,6 +152,7 @@ resource "coolify_application_github_app" "app" {
 Optional:
 
 - `create` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
+- `delete` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours). Setting a timeout for a Delete operation is only applicable if changes are saved into state before the destroy operation occurs.
 
 ## Import
 

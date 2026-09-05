@@ -10,6 +10,7 @@
         "description",
         "fqdn",
         "noindex_domains",
+        "domain_port_overrides",
         "git_repository",
         "git_branch",
         "git_commit_sha",
@@ -779,6 +780,15 @@
           "flatten_hint": "unconditional"
         },
         "noindex_domains": {
+          "type": "json",
+          "nullable": true,
+          "default": null,
+          "cast": "array",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "domain_port_overrides": {
           "type": "json",
           "nullable": true,
           "default": null,
@@ -10662,5 +10672,5 @@
       ]
     }
   ],
-  "notes": "Pin is tag v4.3.14 plus Coolify tip restart-limit fields extracted 2026-08-31 (container_present, restart_limit_reached on Application; max_restart_count and restart_limit_reached on standalone databases; restart_limit_reached_* notification events and Telegram thread id). Those fields are not in git tag v4.3.14 or v4.4-rc.1. Public API otherwise matches v4.3.10 through v4.3.14 and v4.4-rc.1."
+  "notes": "Pin is tag v4.3.14 plus Coolify tip restart-limit fields extracted 2026-08-31 (container_present, restart_limit_reached on Application; max_restart_count and restart_limit_reached on standalone databases; restart_limit_reached_* notification events and Telegram thread id) and GET-only Application.domain_port_overrides (Sep 2026 applications column). Those fields are not in git tag v4.3.14 or v4.4-rc.1. Public API otherwise matches v4.3.10 through v4.3.14 and v4.4-rc.1."
 }

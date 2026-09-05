@@ -50,8 +50,9 @@ resource "coolify_application" "app" {
   project_uuid     = coolify_project.this.uuid
   server_uuid      = var.server_uuid
   environment_name = var.environment
-  git_repository   = "https://github.com/example/app"
+  git_repository   = "https://github.com/coollabsio/coolify-examples"
   git_branch       = var.git_branch
+  base_directory   = "/nodejs"
   build_pack       = "nixpacks"
   ports_exposes    = "3000"
   domains          = "https://${var.domain}"

@@ -103,7 +103,7 @@ func gitAppCommandAttrs() map[string]schema.Attribute {
 // existing health checks, auto-deploy).
 func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 	return map[string]schema.Attribute{
-		"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
+		"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true, Delete: true}),
 		"uuid": schema.StringAttribute{
 			MarkdownDescription: "The unique identifier of the application.",
 			Computed:            true,
@@ -247,7 +247,7 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(true),
 		},
 		"redeploy_on_update": schema.BoolAttribute{
-			MarkdownDescription: "When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`, `github_app_uuid`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.",
+			MarkdownDescription: "When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`, and `github_app_uuid` on `coolify_application_github_app`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
@@ -356,6 +356,19 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
 		},
+	}
+	for k, v := range extendedRuntimeAttrs() {
+		attrs[k] = v
+	}
+	for k, v := range applicationSettingAttrs() {
+		attrs[k] = v
+	}
+	return attrs
+}
+
+// extendedRuntimeAttrs returns create-only, computed runtime, and deploy-command fields.
+func extendedRuntimeAttrs() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
 		"autogenerate_domain": schema.BoolAttribute{
 			MarkdownDescription: "Create-only. When `true` (Coolify default) and `domains` is empty, Coolify generates a public FQDN " +
 				"(`https://{uuid}.{wildcard}` or `http://{uuid}.{server-ip}.sslip.io`). Set `false` for internal apps that must not get a Traefik host. " +
@@ -383,6 +396,11 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			MarkdownDescription: "Whether Coolify last observed the application container on the server. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
 			Computed:            true,
 		},
+		"domain_port_overrides": schema.MapAttribute{
+			ElementType:         types.Int64Type,
+			MarkdownDescription: domainPortOverridesDescription,
+			Computed:            true,
+		},
 		"pre_deployment_command": schema.StringAttribute{
 			MarkdownDescription: "Command to run before deployment.",
 			Optional:            true,
@@ -400,10 +418,6 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Optional:            true,
 		},
 	}
-	for k, v := range applicationSettingAttrs() {
-		attrs[k] = v
-	}
-	return attrs
 }
 
 // extendedHealthCheckAttrs returns schema attributes for extended health check settings.

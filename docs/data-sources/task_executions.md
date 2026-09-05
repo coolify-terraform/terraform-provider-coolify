@@ -66,6 +66,6 @@ Required:
 Read-Only:
 
 - `created_at` (String) The creation timestamp.
-- `message` (String) The output message of the execution.
+- `message` (String, Sensitive) The output message of the execution. Sensitive because messages can contain secrets.
 - `status` (String) The status of the execution.
 - `uuid` (String) The UUID of the execution.

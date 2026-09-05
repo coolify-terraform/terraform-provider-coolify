@@ -21,14 +21,10 @@ resource "coolify_application_dockerfile" "app" {
   project_uuid        = coolify_project.example.uuid
   server_uuid         = coolify_server.example.uuid
   dockerfile_location = <<-DOCKERFILE
-    FROM node:20-alpine
-    WORKDIR /app
-    COPY . .
-    RUN npm install --production
-    EXPOSE 3000
-    CMD ["node", "server.js"]
+    FROM nginx:alpine
+    EXPOSE 80
   DOCKERFILE
-  ports_exposes       = "3000"
+  ports_exposes       = "80"
   domains             = "https://app.example.com"
 
   # Optional fields (uncomment as needed):
@@ -138,7 +134,7 @@ resource "coolify_application_dockerfile" "app" {
 - `pre_deployment_command` (String) Command to run before deployment.
 - `pre_deployment_command_container` (String) Container to run the pre-deployment command in.
 - `publish_directory` (String) The directory to publish for static sites.
-- `redeploy_on_update` (Boolean) When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`, `github_app_uuid`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.
+- `redeploy_on_update` (Boolean) When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`, and `github_app_uuid` on `coolify_application_github_app`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.
 - `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
 - `start_command` (String) The command to run to start the application.
 - `static_image` (String) The Docker image to use for serving static sites.
@@ -152,6 +148,7 @@ resource "coolify_application_dockerfile" "app" {
 
 - `build_pack` (String) The build pack type. Read-only, set by the API.
 - `container_present` (Boolean) Whether Coolify last observed the application container on the server. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).
+- `domain_port_overrides` (Map of Number) Read-only map of canonical domain URL to container port from GET (`{"https://app.example.com": 3000}`). Coolify tip after the Sep 2026 applications column (not in tag v4.3.14). Not accepted on create or update.
 - `git_branch` (String) The Git branch. Read-only, set by the API.
 - `git_repository` (String) The Git repository URL. Read-only, set by the API.
 - `preview_url_template` (String) The URL template for preview deployments. Read-only until Coolify supports setting it on create or update.
@@ -165,6 +162,7 @@ resource "coolify_application_dockerfile" "app" {
 Optional:
 
 - `create` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours).
+- `delete` (String) A string that can be [parsed as a duration](https://pkg.go.dev/time#ParseDuration) consisting of numbers and unit suffixes, such as "30s" or "2h45m". Valid time units are "s" (seconds), "m" (minutes), "h" (hours). Setting a timeout for a Delete operation is only applicable if changes are saved into state before the destroy operation occurs.
 
 ## Import
 

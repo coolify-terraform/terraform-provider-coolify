@@ -164,6 +164,8 @@ application is in a different environment, set `environment_name` in your `.tf` 
 **before** running `terraform plan`, otherwise Terraform will propose replacing the resource.
 This applies to all 5 application types: `coolify_application`, `coolify_application_docker_image`,
 `coolify_application_dockerfile`, `coolify_application_github_app`, and `coolify_application_private_git`.
+After import on Coolify tip, `domain_port_overrides` may appear in state;
+on older GET it is null. Leave it out of `.tf`.
 
 ## Known Limitations
 
@@ -202,9 +204,12 @@ If these fields are missing, `terraform plan` will either show a diff
 or propose replacing the resource. Set them in your config to match
 your actual Coolify setup.
 
-For `coolify_application_github_app`, import also cannot reconstruct
-`github_app_uuid` from the API. Keep that field in your configuration
-before the first `terraform plan`, or expect a post-import diff.
+For `coolify_application_github_app`, import cannot reconstruct
+`github_app_uuid` from the API (GET omits it). After import, set
+`github_app_uuid` in your `.tf` file to the real GitHub App UUID
+before the first apply. A plan that fills a null imported UUID
+destroys and recreates the application. Do not apply that replace
+to "fix" a missing UUID.
 
 Additionally, Coolify normalizes some input values:
 

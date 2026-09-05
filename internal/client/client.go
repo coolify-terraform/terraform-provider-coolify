@@ -46,6 +46,7 @@ type Client struct {
 type listCache struct {
 	mu      sync.Mutex
 	entries map[string]listCacheEntry
+	gens    map[string]uint64
 }
 
 type listCacheEntry struct {
@@ -71,20 +72,41 @@ func (lc *listCache) get(path string) []byte {
 	return e.data
 }
 
-// set stores response bytes in the cache with a TTL.
-func (lc *listCache) set(path string, data []byte) {
+// generation returns the current generation for path. set only stores
+// when the observed generation still matches.
+func (lc *listCache) generation(path string) uint64 {
 	lc.mu.Lock()
 	defer lc.mu.Unlock()
+	if lc.gens == nil {
+		return 0
+	}
+	return lc.gens[path]
+}
+
+// set stores response bytes in the cache with a TTL. If gen does not
+// match the current generation, the write is ignored so a stale in-flight
+// GET cannot refill the cache after invalidate.
+func (lc *listCache) set(path string, data []byte, gen uint64) {
+	lc.mu.Lock()
+	defer lc.mu.Unlock()
+	if lc.gens != nil && lc.gens[path] != gen {
+		return
+	}
 	if lc.entries == nil {
 		lc.entries = make(map[string]listCacheEntry)
 	}
 	lc.entries[path] = listCacheEntry{data: data, expires: time.Now().Add(listCacheTTL)}
 }
 
-// invalidate removes a cache entry (called after mutating operations).
+// invalidate removes a cache entry (called after mutating operations)
+// and bumps the path generation so in-flight GETs cannot set stale data.
 func (lc *listCache) invalidate(path string) {
 	lc.mu.Lock()
 	defer lc.mu.Unlock()
+	if lc.gens == nil {
+		lc.gens = make(map[string]uint64)
+	}
+	lc.gens[path]++
 	delete(lc.entries, path)
 }
 
@@ -116,23 +138,8 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 	if cfg.MaxWait > 0 {
 		rc.RetryWaitMax = cfg.MaxWait
 	}
-	rc.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
-		if err != nil {
-			return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
-		}
-		if resp.StatusCode == http.StatusTooManyRequests {
-			return true, nil
-		}
-		if resp.StatusCode >= 500 {
-			switch resp.Request.Method {
-			case http.MethodGet, http.MethodPatch:
-				return true, nil
-			default:
-				return false, nil
-			}
-		}
-		return false, nil
-	}
+	rc.CheckRetry = shouldRetry
+	rc.ErrorHandler = retriesExhaustedHandler
 	rc.Logger = retryablehttp.LeveledLogger(&retryLogger{})
 
 	// Configure custom TLS before StandardClient() so the retry transport
@@ -203,6 +210,7 @@ func (c *Client) GetHealth(ctx context.Context) (string, error) {
 // doText performs a GET request and returns the response body as a trimmed
 // string. Handles both plain text and JSON-encoded string responses.
 func (c *Client) doText(ctx context.Context, path string) (string, error) {
+	ctx = withRequestMethod(ctx, http.MethodGet)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
 		return "", fmt.Errorf("creating request for %s: %w", path, err)
@@ -268,6 +276,50 @@ func (c *Client) DisableMCP(ctx context.Context) error {
 	return nil
 }
 
+// requestMethodKey stores the HTTP method on the request context so
+// CheckRetry can classify transport errors when resp is nil (timeouts).
+type requestMethodKey struct{}
+
+func withRequestMethod(ctx context.Context, method string) context.Context {
+	return context.WithValue(ctx, requestMethodKey{}, method)
+}
+
+func requestMethodFromContext(ctx context.Context, resp *http.Response) string {
+	if m, ok := ctx.Value(requestMethodKey{}).(string); ok && m != "" {
+		return m
+	}
+	if resp != nil && resp.Request != nil {
+		return resp.Request.Method
+	}
+	return ""
+}
+
+// shouldRetry is the retryablehttp CheckRetry policy.
+// 429 retries every method. Transport errors and 5xx retry GET and PATCH
+// only; POST/PUT/DELETE must not retry on timeout (duplicate creates).
+func shouldRetry(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	if err != nil {
+		switch requestMethodFromContext(ctx, resp) {
+		case http.MethodGet, http.MethodPatch:
+			return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+		default:
+			return false, nil
+		}
+	}
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return true, nil
+	}
+	if resp.StatusCode >= 500 {
+		switch resp.Request.Method {
+		case http.MethodGet, http.MethodPatch:
+			return true, nil
+		default:
+			return false, nil
+		}
+	}
+	return false, nil
+}
+
 // NotFoundError is returned when the API responds with 404.
 type NotFoundError struct {
 	Message string
@@ -279,6 +331,67 @@ func (e *NotFoundError) Error() string { return e.Message }
 func IsNotFound(err error) bool {
 	var nf *NotFoundError
 	return errors.As(err, &nf)
+}
+
+// APIStatusError is returned when the API responds with a non-2xx status
+// other than 404 (which uses NotFoundError).
+type APIStatusError struct {
+	Status  int
+	Message string
+}
+
+func (e *APIStatusError) Error() string {
+	if e == nil {
+		return "api status error"
+	}
+	if e.Message != "" {
+		return fmt.Sprintf("status %d: %s", e.Status, e.Message)
+	}
+	return fmt.Sprintf("status %d", e.Status)
+}
+
+// IsBadRequest reports whether err is an APIStatusError with HTTP 400.
+func IsBadRequest(err error) bool {
+	var apiErr *APIStatusError
+	return errors.As(err, &apiErr) && apiErr.Status == http.StatusBadRequest
+}
+
+// APIMessageContains reports whether err is an APIStatusError whose Message
+// contains substr. It does not inspect outer wrap text.
+func APIMessageContains(err error, substr string) bool {
+	var apiErr *APIStatusError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return strings.Contains(apiErr.Message, substr)
+}
+
+// ErrRetriesExhausted is wrapped when the retryable HTTP client gives up.
+var ErrRetriesExhausted = errors.New("giving up after retries")
+
+// retriesExhaustedHandler marks transport-level retry exhaustion with
+// ErrRetriesExhausted so callers can use errors.Is without reading
+// err.Error(). When the last attempt produced an HTTP response (typically
+// 5xx), that response is returned so doWithStatus can classify it by status.
+func retriesExhaustedHandler(resp *http.Response, err error, numTries int) (*http.Response, error) {
+	if err != nil {
+		if resp != nil && resp.Body != nil {
+			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+			_ = resp.Body.Close()
+		}
+		return nil, fmt.Errorf("%w: %w", ErrRetriesExhausted, err)
+	}
+	if resp != nil {
+		return resp, nil
+	}
+	return nil, fmt.Errorf("%w after %d attempts", ErrRetriesExhausted, numTries)
+}
+
+func wrapHTTPDoError(method, path string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("executing request for %s %s: %w", method, path, err)
 }
 
 // do executes an API request, accepting any 2xx status.
@@ -299,8 +412,12 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 		// Evict corrupted or type-mismatched entry and fall through to fresh fetch.
 		c.listCache.invalidate(path)
 	}
+	// Snapshot generation after the miss (and any corrupt-entry invalidate)
+	// so a later Create/Update invalidate makes this GET's set a no-op.
+	gen := c.listCache.generation(path)
 	// Make the real API call and capture raw bytes.
 	tflog.Trace(ctx, "API request", map[string]interface{}{"method": "GET", "path": path})
+	ctx = withRequestMethod(ctx, http.MethodGet)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
 	if err != nil {
 		return fmt.Errorf("creating request for GET %s: %w", path, err)
@@ -310,7 +427,7 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("executing request for GET %s: %w", path, err)
+		return wrapHTTPDoError(http.MethodGet, path, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -328,7 +445,10 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 		return &NotFoundError{Message: fmt.Sprintf("resource not found (GET %s): %s", path, extractAPIMessage(respBody))}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("API returned status %d for GET %s: %s", resp.StatusCode, path, extractAPIMessage(respBody))
+		return fmt.Errorf("API returned status %d for GET %s: %w", resp.StatusCode, path, &APIStatusError{
+			Status:  resp.StatusCode,
+			Message: extractAPIMessage(respBody),
+		})
 	}
 
 	// Cache only after successful unmarshal to avoid storing malformed data.
@@ -337,7 +457,7 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 			return fmt.Errorf("decoding response: %w", err)
 		}
 	}
-	c.listCache.set(path, respBody)
+	c.listCache.set(path, respBody, gen)
 	return nil
 }
 
@@ -361,6 +481,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 		})
 	}
 
+	ctx = withRequestMethod(ctx, method)
 	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, reqBody)
 	if err != nil {
 		return fmt.Errorf("creating request for %s %s: %w", method, path, err)
@@ -373,7 +494,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("executing request for %s %s: %w", method, path, err)
+		return wrapHTTPDoError(method, path, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -392,11 +513,15 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	if resp.StatusCode == http.StatusNotFound {
 		return &NotFoundError{Message: fmt.Sprintf("resource not found (%s %s): %s", method, path, extractAPIMessage(respBody))}
 	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		apiErr := &APIStatusError{Status: resp.StatusCode, Message: extractAPIMessage(respBody)}
+		if expectedStatus != 0 && resp.StatusCode != expectedStatus {
+			return fmt.Errorf("expected status %d, got %d for %s %s: %w", expectedStatus, resp.StatusCode, method, path, apiErr)
+		}
+		return fmt.Errorf("api error (status %d) for %s %s: %w", resp.StatusCode, method, path, apiErr)
+	}
 	if expectedStatus != 0 && resp.StatusCode != expectedStatus {
 		return fmt.Errorf("expected status %d, got %d for %s %s: %s", expectedStatus, resp.StatusCode, method, path, extractAPIMessage(respBody))
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("api error (status %d) for %s %s: %s", resp.StatusCode, method, path, extractAPIMessage(respBody))
 	}
 
 	if result != nil {
@@ -422,6 +547,8 @@ var sensitiveKeys = map[string]bool{
 	"value":              true, // env var payloads use {"key":"DB_PASS","value":"secret"}
 	"docker_compose_raw": true, "docker_compose": true,
 	"cloud_init_script": true, "dockerfile": true,
+	"script":      true, // cloud-init YAML bodies
+	"webhook_url": true,
 }
 
 // redactJSON replaces sensitive field values with [REDACTED] in a JSON byte
@@ -440,15 +567,42 @@ func redactJSON(data []byte) string {
 	return truncateString(string(out), 500)
 }
 
+func isSensitiveField(name string) bool {
+	lower := strings.ToLower(name)
+	if sensitiveKeys[lower] {
+		return true
+	}
+	return strings.Contains(lower, "password") ||
+		strings.Contains(lower, "secret") ||
+		strings.Contains(lower, "private_key") ||
+		strings.Contains(lower, "token") ||
+		strings.Contains(lower, "api_key") ||
+		strings.Contains(lower, "license_key") ||
+		strings.Contains(lower, "user_key")
+}
+
+// mapHasKeyAndSecret reports whether m looks like an S3 credential object
+// (both "key" and "secret", case-insensitive). Lone "key" fields are env-var
+// names and must not be redacted.
+func mapHasKeyAndSecret(m map[string]interface{}) bool {
+	hasKey, hasSecret := false, false
+	for k := range m {
+		switch strings.ToLower(k) {
+		case "key":
+			hasKey = true
+		case "secret":
+			hasSecret = true
+		}
+	}
+	return hasKey && hasSecret
+}
+
 func redactValue(v interface{}) {
 	switch val := v.(type) {
 	case map[string]interface{}:
+		redactAccessKey := mapHasKeyAndSecret(val)
 		for k, child := range val {
-			lower := strings.ToLower(k)
-			if sensitiveKeys[lower] || strings.Contains(lower, "password") ||
-				strings.Contains(lower, "secret") || strings.Contains(lower, "private_key") ||
-				strings.Contains(lower, "token") || strings.Contains(lower, "api_key") ||
-				strings.Contains(lower, "license_key") || strings.Contains(lower, "user_key") {
+			if isSensitiveField(k) || (redactAccessKey && strings.EqualFold(k, "key")) {
 				val[k] = "[REDACTED]"
 			} else {
 				redactValue(child)
@@ -486,8 +640,9 @@ func validateParentType(pt string) error {
 }
 
 // extractAPIMessage attempts to parse a JSON error response from the Coolify
-// API and return the human-readable "message" field. Falls back to the raw
-// body if parsing fails or no message field is present.
+// API and return the human-readable "message" field. Raw response bodies are
+// never appended (they may contain secrets or HTML). When an "errors" map is
+// present, values for sensitive field names are redacted.
 func extractAPIMessage(body []byte) string {
 	var parsed struct {
 		Message string                     `json:"message"`
@@ -497,22 +652,17 @@ func extractAPIMessage(body []byte) string {
 		if len(parsed.Errors) > 0 {
 			parts := make([]string, 0, len(parsed.Errors))
 			for field, detail := range parsed.Errors {
-				parts = append(parts, field+": "+string(detail))
+				if isSensitiveField(field) {
+					parts = append(parts, field+": [REDACTED]")
+				} else {
+					parts = append(parts, field+": "+string(detail))
+				}
 			}
 			return parsed.Message + " " + strings.Join(parts, "; ")
 		}
 		return parsed.Message
 	}
-	s := strings.Map(func(r rune) rune {
-		if r < 32 && r != '\n' {
-			return -1
-		}
-		return r
-	}, string(body))
-	if len(s) > 200 {
-		s = s[:200] + "... (truncated)"
-	}
-	return "[raw API response] " + s
+	return "API error response omitted"
 }
 
 // RetryDelete retries a delete operation with backoff when the error is
@@ -567,13 +717,12 @@ func toMap(keysAndValues []interface{}) map[string]interface{} {
 	return m
 }
 
-// PollUntilDeleted polls a get function with exponential backoff (500ms to 5s),
-// returning true when the resource is confirmed gone (NotFound) or false if the
-// poll timed out or the context was cancelled. It respects the parent context's
-// deadline (e.g., Terraform operation timeout) if set, otherwise falls back to a
-// 2-minute deadline. Use after an async delete to wait for Coolify to finish
-// tearing down containers.
-func PollUntilDeleted(ctx context.Context, getFn func() error) bool {
+// PollUntilDeleted polls a get function with exponential backoff (500ms to 5s).
+// It returns gone=true when the resource is confirmed NotFound. A poll-context
+// deadline with the resource still present returns gone=false and that
+// deadline error. The first GET runs immediately; later probes wait. getFn
+// receives pollCtx so the deadline cancels in-flight GETs.
+func PollUntilDeleted(ctx context.Context, getFn func(context.Context) error) (bool, error) {
 	pollCtx := ctx
 	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
 		var cancel context.CancelFunc
@@ -584,13 +733,17 @@ func PollUntilDeleted(ctx context.Context, getFn func() error) bool {
 	delay := 500 * time.Millisecond
 	const maxDelay = 5 * time.Second
 	for {
+		err := getFn(pollCtx)
+		if IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
 		select {
 		case <-pollCtx.Done():
-			return false
+			return false, pollCtx.Err()
 		case <-time.After(delay):
-		}
-		if IsNotFound(getFn()) {
-			return true
 		}
 		delay *= 2
 		if delay > maxDelay {

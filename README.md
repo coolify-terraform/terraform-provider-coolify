@@ -67,8 +67,9 @@ resource "coolify_application" "api" {
   name           = "acme-api"
   project_uuid   = coolify_project.example.uuid
   server_uuid    = "your-server-uuid"
-  git_repository = "https://github.com/example/acme-api"
-  git_branch     = "main"
+  git_repository = "https://github.com/coollabsio/coolify-examples"
+  git_branch     = "v4.x"
+  base_directory = "/nodejs"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
   domains        = "https://api.example.com"
@@ -286,8 +287,9 @@ resource "coolify_application" "web" {
   name           = "my-web-app"
   project_uuid   = coolify_project.example.uuid
   server_uuid    = "your-server-uuid"
-  git_repository = "https://github.com/example/app"
-  git_branch     = "main"
+  git_repository = "https://github.com/coollabsio/coolify-examples"
+  git_branch     = "v4.x"
+  base_directory = "/nodejs"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
   domains = "https://app.example.com"
@@ -314,7 +316,12 @@ The provider requires a Coolify API token. Coolify's API is disabled by default,
 Install the local prerequisites, then bootstrap the repo-managed tools before
 running the commands below:
 
+- Go 1.26
+- GNU Make (Git Bash or WSL on Windows)
+- Terraform >= 1.6
 - Python 3.9+
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full prerequisite list and local setup.
 
 ```bash
 make tools         # Install CI-pinned local tools into ./bin
@@ -323,7 +330,7 @@ make acc-preflight # Verify required env, API reachability, and optional accepta
 ```
 
 `make tools` installs the pinned local versions of `golangci-lint`,
-`goreleaser`, and `tfplugindocs` used by the repo workflows. `make acc-bootstrap`
+`goreleaser`, `actionlint`, and `tfplugindocs` used by the repo workflows. `make acc-bootstrap`
 wraps the supported [`scripts/setup-coolify-test.sh`](scripts/setup-coolify-test.sh)
 helper and prints the `COOLIFY_*` exports to copy into your shell once the
 local Coolify instance is up. `make acc-preflight` checks the required
@@ -367,7 +374,8 @@ and project structure details, see [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 ### CI Pipeline
 
-9 jobs in the CI workflow: Detect Changes, DCO (PR only), Test, Lint,
+10 jobs in the CI workflow: Detect Changes, DCO (PR only), Test, Coverage
+(merge shards), Lint,
 Validate (includes examples, docs, Trivy, Gitleaks), Scenario Tests
 (core, github-cicd, and hetzner suites),
 Acceptance Tests, Contract Freshness (weekly), and a CI gate job.

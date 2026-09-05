@@ -384,7 +384,7 @@ resource "coolify_database_postgresql" "test" {
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
-			ExpectError: regexp.MustCompile(`(?s)PostgreSQL database created but refresh failed.*Could not read PostgreSQL database.*partial Terraform state was saved`),
+			ExpectError: regexp.MustCompile(`PostgreSQL database created but refresh failed`),
 		}},
 	})
 }

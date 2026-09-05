@@ -214,6 +214,7 @@ func flattenExtendedDefaults(app *client.Application, f commonAppFields) {
 	}
 	flattenApplicationSettingFields(app, f)
 	flattenRestartLimitFields(app, f)
+	flattenDomainPortOverrides(app.DomainPortOverrides, f.DomainPortOverrides)
 	// instant_deploy is create-only and never returned by the API.
 	// Preserve state value when set; default to false otherwise (import).
 	if f.InstantDeploy != nil && (f.InstantDeploy.IsNull() || f.InstantDeploy.IsUnknown()) {
@@ -411,6 +412,7 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.BoolPtrNonDefault(f.IsAutoDeployEnabled, true) ||
 		// Build/deploy
 		flex.StringPtrNonDefault(f.BaseDirectory, "") ||
+		flex.StringPtrNonDefault(f.DockerfileTargetBuild, "") ||
 		flex.StringPtrNonDefault(f.PublishDirectory, "") ||
 		flex.StringPtrNonDefault(f.DockerRegistryImageTag, "") ||
 		flex.StringPtrNonDefault(f.DockerComposeDomains, "") ||
@@ -530,6 +532,7 @@ func buildPostCreatePatch(f commonAppFields) client.UpdateApplicationInput {
 	flex.SetBoolPtr(&input.IsAutoDeployEnabled, safeBool(f.IsAutoDeployEnabled))
 	// Build/deploy
 	flex.SetStrPtr(&input.BaseDirectory, safeStr(f.BaseDirectory))
+	flex.SetStrPtr(&input.DockerfileTargetBuild, safeStr(f.DockerfileTargetBuild))
 	flex.SetStrPtr(&input.PublishDirectory, safeStr(f.PublishDirectory))
 	flex.SetStrPtr(&input.DockerRegistryImageTag, safeStr(f.DockerRegistryImageTag))
 	if f.DockerComposeDomains != nil && !f.DockerComposeDomains.IsNull() && !f.DockerComposeDomains.IsUnknown() {
@@ -643,6 +646,26 @@ func flattenRestartLimitFields(app *client.Application, f commonAppFields) {
 	}
 	setBoolOrNull(f.RestartLimitReached, app.RestartLimitReached)
 	setBoolOrNull(f.ContainerPresent, app.ContainerPresent)
+}
+
+func flattenDomainPortOverrides(src map[string]int64, dest *types.Map) {
+	if dest == nil {
+		return
+	}
+	if src == nil {
+		*dest = types.MapNull(types.Int64Type)
+		return
+	}
+	elems := make(map[string]attr.Value, len(src))
+	for k, v := range src {
+		elems[k] = types.Int64Value(v)
+	}
+	m, diags := types.MapValue(types.Int64Type, elems)
+	if diags.HasError() {
+		*dest = types.MapNull(types.Int64Type)
+		return
+	}
+	*dest = m
 }
 
 func setBoolOrNull(dst *types.Bool, v *bool) {

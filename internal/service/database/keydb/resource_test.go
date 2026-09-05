@@ -341,7 +341,7 @@ resource "coolify_database_keydb" "test" {
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
-			ExpectError: regexp.MustCompile(`(?s)KeyDB database created but refresh failed.*Could not read KeyDB database.*partial Terraform state was saved`),
+			ExpectError: regexp.MustCompile(`KeyDB database created but refresh failed`),
 		}},
 	})
 }

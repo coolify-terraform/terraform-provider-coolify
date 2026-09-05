@@ -102,8 +102,9 @@ resource "coolify_application" "web" {
   project_uuid     = coolify_project.main.uuid
   server_uuid      = coolify_server.web.uuid
   environment_name = "production"
-  git_repository   = "https://github.com/example/my-web-app"
-  git_branch       = "main"
+  git_repository   = "https://github.com/coollabsio/coolify-examples"
+  git_branch       = "v4.x"
+  base_directory   = "/nodejs"
   build_pack       = "nixpacks"
   ports_exposes    = "3000"
   domains          = var.app_domain != "" ? "https://${var.app_domain}" : null

@@ -366,6 +366,57 @@ resource "coolify_storage_backup" "test" {
 	})
 }
 
+func TestStorageBackupResource_Delete400NotFoundIsError(t *testing.T) {
+	t.Parallel()
+	var deleteCalls int
+	mux := http.NewServeMux()
+	mux.HandleFunc("PUT /api/v1/applications/"+appUUID+"/storages/"+storUUID+"/backups", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(client.VolumeBackupSchedule{
+			UUID: schedUUID, StorageUUID: storUUID, StorageType: "persistent",
+			Frequency: "0 2 * * *", Enabled: true, Timeout: 3600,
+			RetentionAmountLocally: 7, RetentionAmountS3: 7,
+		})
+	})
+	mux.HandleFunc("GET /api/v1/applications/"+appUUID+"/storages", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"persistent_storages": []client.Storage{{UUID: storUUID, Name: "data", MountPath: "/data"}},
+			"file_storages":       []client.Storage{},
+		})
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/"+appUUID+"/storages/"+storUUID+"/backups", func(w http.ResponseWriter, _ *http.Request) {
+		deleteCalls++
+		if deleteCalls == 1 {
+			// 400 body contains "not found" but is not a 404. Must not be treated as success.
+			http.Error(w, `{"message":"Storage backup schedule not found."}`, http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "ok"})
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+	cfg := acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_storage_backup" "test" {
+  application_uuid = "` + appUUID + `"
+  storage_uuid     = "` + storUUID + `"
+  frequency        = "0 2 * * *"
+}`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{Config: cfg},
+			{
+				Config:      cfg,
+				Destroy:     true,
+				ExpectError: regexp.MustCompile(`Error deleting storage backup schedule`),
+			},
+		},
+	})
+}
+
 func TestStorageBackupResource_DeleteNotFound(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()

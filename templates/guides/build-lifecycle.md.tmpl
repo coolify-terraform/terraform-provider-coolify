@@ -7,10 +7,14 @@ description: |-
 
 # Build Lifecycle
 
-When `terraform apply` creates or updates an application, Coolify
-**queues a build**. Terraform's job ends when the Coolify API confirms
-the resource exists. The build, container start, and health check happen
-asynchronously.
+When `terraform apply` creates an application, Coolify records the
+application row. Terraform's job ends when the Coolify API confirms
+the resource exists. A build is **not** queued by default
+(`instant_deploy` defaults to `false`).
+
+A build starts only when you set `instant_deploy = true` or when a
+`coolify_deployment` resource runs. The build, container start, and
+health check then happen asynchronously.
 
 This guide explains the lifecycle, how to monitor it, and how to wait
 for completion in CI/CD pipelines.
@@ -28,7 +32,7 @@ terraform apply
   │
   └─ 3. Terraform writes state ✓  (apply is "done" here)
 
-Meanwhile, in Coolify:
+If instant_deploy = true, or a coolify_deployment resource runs:
   │
   ├─ 4. Build is queued on the server
   ├─ 5. Source is cloned, image is built (nixpacks/Dockerfile)
@@ -36,9 +40,10 @@ Meanwhile, in Coolify:
   └─ 7. Health check passes → status becomes "running"
 ```
 
-**Key point:** steps 4-7 happen after Terraform finishes. A successful
-`terraform apply` means the resource exists in Coolify, not that the
-application is live and serving traffic.
+**Key point:** steps 4-7 happen only when `instant_deploy = true` or a
+`coolify_deployment` resource runs. Default apply does not queue a
+build. A successful `terraform apply` means the resource exists in
+Coolify, not that the application is live and serving traffic.
 
 ## Checking Application Status
 

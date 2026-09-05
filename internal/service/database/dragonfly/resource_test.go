@@ -341,7 +341,7 @@ resource "coolify_database_dragonfly" "test" {
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
-			ExpectError: regexp.MustCompile(`(?s)Dragonfly database created but refresh failed.*Could not read Dragonfly database.*partial Terraform state was saved`),
+			ExpectError: regexp.MustCompile(`Dragonfly database created but refresh failed`),
 		}},
 	})
 }

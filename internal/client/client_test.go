@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,6 +18,44 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestShouldRetry_TransportErrorByMethod(t *testing.T) {
+	t.Parallel()
+	timeoutErr := fmt.Errorf("net/http: request canceled (Client.Timeout exceeded while awaiting headers)")
+
+	cases := []struct {
+		method string
+		want   bool
+	}{
+		{http.MethodGet, true},
+		{http.MethodPatch, true},
+		{http.MethodPost, false},
+		{http.MethodPut, false},
+		{http.MethodDelete, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.method, func(t *testing.T) {
+			t.Parallel()
+			ctx := withRequestMethod(context.Background(), tc.method)
+			retry, err := shouldRetry(ctx, nil, timeoutErr)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, retry, "timeout retry for %s", tc.method)
+		})
+	}
+}
+
+func TestShouldRetry_429RetriesAllMethods(t *testing.T) {
+	t.Parallel()
+	for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
+		resp := &http.Response{
+			StatusCode: http.StatusTooManyRequests,
+			Request:    &http.Request{Method: method},
+		}
+		retry, err := shouldRetry(context.Background(), resp, nil)
+		require.NoError(t, err)
+		assert.True(t, retry, "429 must retry %s", method)
+	}
+}
 
 func TestClient_RetryOn429(t *testing.T) {
 	t.Parallel()
@@ -861,6 +902,22 @@ func TestClient_GetDatabase(t *testing.T) {
 	assert.Equal(t, "appdb", db.PostgresDB)
 }
 
+func TestClient_GetDatabase_EmptyUUIDIsError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	db, err := c.GetDatabase(context.Background(), "db-empty")
+	require.Error(t, err)
+	assert.Nil(t, db)
+	assert.Contains(t, err.Error(), "empty")
+	assert.False(t, IsNotFound(err))
+}
+
 func TestClient_CreateDatabase_Mysql(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1170,6 +1227,22 @@ func TestClient_GetService(t *testing.T) {
 	assert.Equal(t, "srv-1", svc.ServerUUID)
 	assert.Equal(t, "proj-1", svc.ProjectUUID)
 	assert.Equal(t, "production", svc.EnvironmentName)
+}
+
+func TestClient_GetService_EmptyUUIDIsError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	svc, err := c.GetService(context.Background(), "svc-empty")
+	require.Error(t, err)
+	assert.Nil(t, svc)
+	assert.Contains(t, err.Error(), "empty")
+	assert.False(t, IsNotFound(err))
 }
 
 func TestClient_CreateService(t *testing.T) {
@@ -1487,6 +1560,22 @@ func TestClient_GetApplication(t *testing.T) {
 	assert.Equal(t, "srv-1", app.ServerUUID)
 	assert.Equal(t, "proj-1", app.ProjectUUID)
 	assert.Equal(t, "running", app.Status)
+}
+
+func TestClient_GetApplication_EmptyUUIDIsError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	app, err := c.GetApplication(context.Background(), "app-empty")
+	require.Error(t, err)
+	assert.Nil(t, app)
+	assert.Contains(t, err.Error(), "empty")
+	assert.False(t, IsNotFound(err))
 }
 
 func TestClient_UpdateApplication(t *testing.T) {
@@ -2426,32 +2515,37 @@ func TestExtractAPIMessage(t *testing.T) {
 		{
 			name:  "json without message field",
 			input: []byte(`{"error":"not found","code":404}`),
-			want:  `[raw API response] {"error":"not found","code":404}`,
+			want:  "API error response omitted",
 		},
 		{
 			name:  "non-json body",
 			input: []byte("plain text error"),
-			want:  "[raw API response] plain text error",
+			want:  "API error response omitted",
 		},
 		{
 			name:  "empty body",
 			input: []byte(""),
-			want:  "[raw API response] ",
+			want:  "API error response omitted",
 		},
 		{
-			name:  "json with empty message falls back to raw",
+			name:  "json with empty message omits body",
 			input: []byte(`{"message":""}`),
-			want:  `[raw API response] {"message":""}`,
+			want:  "API error response omitted",
 		},
 		{
-			name:  "long body is truncated",
+			name:  "long body is omitted not dumped",
 			input: []byte(strings.Repeat("x", 300)),
-			want:  "[raw API response] " + strings.Repeat("x", 200) + "... (truncated)",
+			want:  "API error response omitted",
 		},
 		{
 			name:  "json with message and errors",
 			input: []byte(`{"message":"Validation failed","errors":{"name":["required"]}}`),
 			want:  `Validation failed name: ["required"]`,
+		},
+		{
+			name:  "errors password field is redacted",
+			input: []byte(`{"message":"Validation failed","errors":{"password":["hunter2"]}}`),
+			want:  `Validation failed password: [REDACTED]`,
 		},
 	}
 	for _, tt := range tests {
@@ -2461,6 +2555,20 @@ func TestExtractAPIMessage(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestExtractAPIMessage_DoesNotDumpRawBody(t *testing.T) {
+	t.Parallel()
+	html := []byte(`<html><body>token=super-secret-token</body></html>`)
+	got := extractAPIMessage(html)
+	assert.NotContains(t, got, "super-secret-token")
+	assert.NotContains(t, got, "<html>")
+	assert.NotContains(t, got, "[raw API response]")
+
+	rawJSON := []byte(`{"error":"not found","token":"leak-me"}`)
+	gotJSON := extractAPIMessage(rawJSON)
+	assert.NotContains(t, gotJSON, "leak-me")
+	assert.NotContains(t, gotJSON, "[raw API response]")
 }
 
 // --- doText error paths ---
@@ -2477,7 +2585,8 @@ func TestClient_GetVersion_Non2xx(t *testing.T) {
 	_, err := c.GetVersion(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "403")
-	assert.Contains(t, err.Error(), "forbidden")
+	assert.Contains(t, err.Error(), "API error response omitted")
+	assert.NotContains(t, err.Error(), "forbidden")
 }
 
 func TestClient_GetVersion_JSONQuoted(t *testing.T) {
@@ -2531,6 +2640,85 @@ func TestIsNotFound(t *testing.T) {
 	assert.True(t, IsNotFound(&NotFoundError{Message: "gone"}))
 	assert.False(t, IsNotFound(io.EOF))
 	assert.False(t, IsNotFound(nil))
+}
+
+func TestIsBadRequest(t *testing.T) {
+	t.Parallel()
+	assert.True(t, IsBadRequest(&APIStatusError{Status: http.StatusBadRequest, Message: "bad"}))
+	assert.True(t, IsBadRequest(fmt.Errorf("getting logs: %w", &APIStatusError{Status: http.StatusBadRequest})))
+	assert.False(t, IsBadRequest(&APIStatusError{Status: http.StatusInternalServerError}))
+	assert.False(t, IsBadRequest(&NotFoundError{Message: "gone"}))
+	assert.False(t, IsBadRequest(io.EOF))
+	assert.False(t, IsBadRequest(nil))
+}
+
+func TestAPIMessageContains(t *testing.T) {
+	t.Parallel()
+	wrapped := fmt.Errorf("already stopped wrapper: %w", &APIStatusError{Status: http.StatusBadRequest, Message: "validation failed"})
+	assert.False(t, APIMessageContains(wrapped, "already stopped"))
+	assert.True(t, APIMessageContains(wrapped, "validation failed"))
+	assert.False(t, APIMessageContains(io.EOF, "EOF"))
+	assert.False(t, APIMessageContains(nil, "x"))
+}
+
+func TestWrapHTTPDoError_DoesNotSniffGivingUp(t *testing.T) {
+	t.Parallel()
+	err := wrapHTTPDoError(http.MethodGet, "/api/v1/x", errors.New("server said giving up, try later"))
+	if errors.Is(err, ErrRetriesExhausted) {
+		t.Fatal("wrapHTTPDoError must not treat a giving-up substring as retry exhaustion")
+	}
+}
+
+func TestClient_Get_RetriesExhaustedWrapsSentinel(t *testing.T) {
+	t.Parallel()
+	// Closed listener: GET transport errors retry, then ErrorHandler wraps the sentinel.
+	// The inner net error does not contain "giving up".
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := ln.Addr().String()
+	require.NoError(t, ln.Close())
+
+	c := New("http://"+addr, "test-token", RetryConfig{
+		Attempts: 1,
+		MinWait:  time.Millisecond,
+		MaxWait:  time.Millisecond,
+	})
+	_, err = c.GetProject(context.Background(), "u")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrRetriesExhausted), "timeout-exhausted GET must wrap ErrRetriesExhausted, got %v", err)
+}
+
+func TestIsMissingDestinationUUID_IgnoresWrapText(t *testing.T) {
+	t.Parallel()
+	err := fmt.Errorf("creating app destination_uuid with multiple destinations: %w",
+		&APIStatusError{Status: http.StatusInternalServerError, Message: "internal error"})
+	if isMissingDestinationUUID(err) {
+		t.Fatal("must not match wrap text or non-400 status")
+	}
+}
+
+func TestIsMissingDestinationUUID_Matches400Message(t *testing.T) {
+	t.Parallel()
+	err := fmt.Errorf("creating database: %w",
+		&APIStatusError{Status: http.StatusBadRequest, Message: "Server has multiple destinations and you do not set destination_uuid."})
+	if !isMissingDestinationUUID(err) {
+		t.Fatal("expected 400 API message match")
+	}
+}
+
+func TestIsBadRequest_DoWithStatus400(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"message":"container is not running"}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetApplicationLogs(context.Background(), "app-1")
+	require.Error(t, err)
+	assert.True(t, IsBadRequest(err), "doWithStatus 400 must wrap APIStatusError, got %v", err)
 }
 
 // --- doWithStatus status mismatch ---
@@ -2716,35 +2904,85 @@ func TestPollUntilDeleted_ImmediateNotFound(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	result := PollUntilDeleted(ctx, func() error {
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
 		return &NotFoundError{Message: "gone"}
 	})
-	assert.True(t, result, "expected true when resource is immediately gone")
+	assert.NoError(t, err)
+	assert.True(t, gone, "expected true when resource is immediately gone")
 }
 
 func TestPollUntilDeleted_CancelledContext(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
-	result := PollUntilDeleted(ctx, func() error {
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
 		return nil // resource still exists
 	})
-	assert.False(t, result, "expected false when context is cancelled")
+	assert.Error(t, err)
+	assert.False(t, gone, "expected false when context is cancelled")
 }
 
 func TestPollUntilDeleted_DeadlineRespected(t *testing.T) {
 	t.Parallel()
-	// Short deadline (200ms) is shorter than the initial 500ms poll delay,
-	// so the function should return false before ever calling getFn.
+	// Resource still exists on the immediate probe; the 200ms deadline then
+	// expires during the first backoff sleep.
 	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 	start := time.Now()
-	result := PollUntilDeleted(ctx, func() error {
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
 		return nil // resource still exists
 	})
 	elapsed := time.Since(start)
-	assert.False(t, result, "expected false when deadline expires before poll")
+	assert.Error(t, err)
+	assert.False(t, gone, "expected false when deadline expires before poll")
 	assert.Less(t, elapsed, 1*time.Second, "should respect short deadline, not wait 2 minutes")
+}
+
+func TestPollUntilDeleted_ProbesImmediately(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	start := time.Now()
+	var firstProbe time.Duration
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
+		if firstProbe == 0 {
+			firstProbe = time.Since(start)
+		}
+		return &NotFoundError{Message: "gone"}
+	})
+	assert.NoError(t, err)
+	assert.True(t, gone, "expected true when resource is immediately gone")
+	assert.Less(t, firstProbe, 100*time.Millisecond, "first GET should run immediately, not after 500ms sleep")
+}
+
+func TestPollUntilDeleted_GetFnReceivesDeadline(t *testing.T) {
+	t.Parallel()
+	var sawDeadline bool
+	gone, err := PollUntilDeleted(context.Background(), func(pollCtx context.Context) error {
+		_, sawDeadline = pollCtx.Deadline()
+		return &NotFoundError{Message: "gone"}
+	})
+	assert.NoError(t, err)
+	assert.True(t, gone, "expected true when resource is immediately gone")
+	assert.True(t, sawDeadline, "getFn must receive pollCtx with the 2-minute fallback deadline")
+}
+
+func TestPollUntilDeleted_NonNotFoundErrorStopsImmediately(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var calls int
+	start := time.Now()
+	gone, err := PollUntilDeleted(ctx, func(context.Context) error {
+		calls++
+		return fmt.Errorf("html")
+	})
+	elapsed := time.Since(start)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "html")
+	assert.False(t, gone)
+	assert.Equal(t, 1, calls, "must not keep polling after a non-404 GET error")
+	assert.Less(t, elapsed, 500*time.Millisecond, "must return the GET error, not wait for the poll deadline")
 }
 
 // --- validateParentType ---
@@ -5383,6 +5621,295 @@ func TestCachedList_ConcurrentAccess(t *testing.T) {
 		"all concurrent reads should use cache; expected 1 server call total")
 }
 
+func TestCachedList_StaleInFlightGetDoesNotRefillAfterInvalidate(t *testing.T) {
+	t.Parallel()
+	releaseFirst := make(chan struct{})
+	firstStarted := make(chan struct{})
+	var calls atomic.Int32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		n := calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		if n == 1 {
+			close(firstStarted)
+			<-releaseFirst
+			_ = json.NewEncoder(w).Encode([]Project{{UUID: "p1", Name: "stale"}})
+			return
+		}
+		_ = json.NewEncoder(w).Encode([]Project{{UUID: "p1", Name: "fresh"}})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	path := "/api/v1/projects"
+
+	errCh := make(chan error, 1)
+	go func() {
+		var r []Project
+		errCh <- c.doCachedList(context.Background(), path, &r)
+	}()
+	<-firstStarted
+
+	c.listCache.invalidate(path)
+
+	var r2 []Project
+	require.NoError(t, c.doCachedList(context.Background(), path, &r2))
+	require.Len(t, r2, 1)
+	assert.Equal(t, "fresh", r2[0].Name)
+
+	close(releaseFirst)
+	require.NoError(t, <-errCh)
+
+	var r3 []Project
+	require.NoError(t, c.doCachedList(context.Background(), path, &r3))
+	require.Len(t, r3, 1)
+	assert.Equal(t, "fresh", r3[0].Name, "stale in-flight GET must not refill cache after invalidate")
+	assert.Equal(t, int32(2), calls.Load(), "third list should hit the fresh cache entry")
+}
+
+func TestClient_ListGitLabApps_CachesWithinTTL(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/gitlab-apps", r.URL.Path)
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]GitLabApp{
+			{ID: 1, UUID: "gl-1", Name: "GitLab App"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	first, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	assert.Equal(t, "GitLab App", first[0].Name)
+
+	second, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	assert.Equal(t, "GitLab App", second[0].Name)
+
+	assert.Equal(t, int32(1), calls.Load(), "expected exactly 1 HTTP call within 5s TTL")
+}
+
+func TestClient_ListGitLabApps_InvalidateOnWrite(t *testing.T) {
+	t.Parallel()
+	var listCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/gitlab-apps":
+			n := listCalls.Add(1)
+			json.NewEncoder(w).Encode([]GitLabApp{
+				{ID: 1, UUID: "gl-1", Name: fmt.Sprintf("App-%d", n)},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/gitlab-apps":
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(GitLabApp{ID: 2, UUID: "gl-2", Name: "Created"})
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v1/gitlab-apps/1":
+			json.NewEncoder(w).Encode(GitLabApp{ID: 1, UUID: "gl-1", Name: "Updated"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/gitlab-apps/1":
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, int32(1), listCalls.Load())
+
+	_, err = c.CreateGitLabApp(context.Background(), CreateGitLabAppInput{Name: "Created", HTMLURL: "https://gitlab.example"})
+	require.NoError(t, err)
+	created, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, created, 1)
+	assert.Equal(t, "App-2", created[0].Name, "create should invalidate the list cache")
+	assert.Equal(t, int32(2), listCalls.Load())
+
+	_, err = c.UpdateGitLabApp(context.Background(), 1, UpdateGitLabAppInput{})
+	require.NoError(t, err)
+	updated, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, updated, 1)
+	assert.Equal(t, "App-3", updated[0].Name, "update should invalidate the list cache")
+	assert.Equal(t, int32(3), listCalls.Load())
+
+	require.NoError(t, c.DeleteGitLabApp(context.Background(), 1))
+	deleted, err := c.ListGitLabApps(context.Background())
+	require.NoError(t, err)
+	require.Len(t, deleted, 1)
+	assert.Equal(t, "App-4", deleted[0].Name, "delete should invalidate the list cache")
+	assert.Equal(t, int32(4), listCalls.Load())
+}
+
+func TestClient_ListSharedEnvs_CachesWithinTTL(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/team/envs", r.URL.Path)
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]SharedEnvironmentVariable{
+			{ID: 1, UUID: "env-1", Key: "FOO", Value: "bar"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	first, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	assert.Equal(t, "FOO", first[0].Key)
+
+	second, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	assert.Equal(t, "FOO", second[0].Key)
+
+	assert.Equal(t, int32(1), calls.Load(), "expected exactly 1 HTTP call within 5s TTL")
+}
+
+func TestClient_ListSharedEnvs_InvalidateOnWrite(t *testing.T) {
+	t.Parallel()
+	var listCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/team/envs":
+			n := listCalls.Add(1)
+			json.NewEncoder(w).Encode([]SharedEnvironmentVariable{
+				{ID: 1, UUID: "env-1", Key: fmt.Sprintf("KEY-%d", n)},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/team/envs":
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(SharedEnvironmentVariable{ID: 2, UUID: "env-2", Key: "CREATED"})
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v1/team/envs/1":
+			json.NewEncoder(w).Encode(SharedEnvironmentVariable{ID: 1, UUID: "env-1", Key: "UPDATED"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/team/envs/1":
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	assert.Equal(t, int32(1), listCalls.Load())
+
+	_, err = c.CreateSharedEnv(context.Background(), "team", "", "", "", SharedEnvInput{Key: "CREATED", Value: "v"})
+	require.NoError(t, err)
+	created, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, created, 1)
+	assert.Equal(t, "KEY-2", created[0].Key, "create should invalidate the list cache")
+	assert.Equal(t, int32(2), listCalls.Load())
+
+	_, err = c.UpdateSharedEnv(context.Background(), "team", "", "", "", "1", SharedEnvInput{Value: "v2"})
+	require.NoError(t, err)
+	updated, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, updated, 1)
+	assert.Equal(t, "KEY-3", updated[0].Key, "update should invalidate the list cache")
+	assert.Equal(t, int32(3), listCalls.Load())
+
+	require.NoError(t, c.DeleteSharedEnv(context.Background(), "team", "", "", "", "1"))
+	deleted, err := c.ListSharedEnvs(context.Background(), "team", "", "", "")
+	require.NoError(t, err)
+	require.Len(t, deleted, 1)
+	assert.Equal(t, "KEY-4", deleted[0].Key, "delete should invalidate the list cache")
+	assert.Equal(t, int32(4), listCalls.Load())
+}
+
+func TestClient_ListTags_CachesWithinTTL(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/tags", r.URL.Path)
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Tag{
+			{UUID: "tag-1", Name: "prod"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	first, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	assert.Equal(t, "prod", first[0].Name)
+
+	second, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	assert.Equal(t, "prod", second[0].Name)
+
+	assert.Equal(t, int32(1), calls.Load(), "expected exactly 1 HTTP call within 5s TTL")
+}
+
+func TestClient_ListTags_InvalidateOnWrite(t *testing.T) {
+	t.Parallel()
+	var listCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tags":
+			n := listCalls.Add(1)
+			json.NewEncoder(w).Encode([]Tag{
+				{UUID: "tag-1", Name: fmt.Sprintf("tag-%d", n)},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tags":
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(Tag{UUID: "tag-2", Name: "created"})
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v1/tags/tag-1":
+			json.NewEncoder(w).Encode(Tag{UUID: "tag-1", Name: "updated"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/tags/tag-1":
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, int32(1), listCalls.Load())
+
+	_, err = c.CreateTag(context.Background(), CreateTagInput{Name: "created"})
+	require.NoError(t, err)
+	created, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, created, 1)
+	assert.Equal(t, "tag-2", created[0].Name, "create should invalidate the list cache")
+	assert.Equal(t, int32(2), listCalls.Load())
+
+	_, err = c.UpdateTag(context.Background(), "tag-1", UpdateTagInput{Name: "updated"})
+	require.NoError(t, err)
+	updated, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, updated, 1)
+	assert.Equal(t, "tag-3", updated[0].Name, "update should invalidate the list cache")
+	assert.Equal(t, int32(3), listCalls.Load())
+
+	require.NoError(t, c.DeleteTag(context.Background(), "tag-1"))
+	deleted, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, deleted, 1)
+	assert.Equal(t, "tag-4", deleted[0].Name, "delete should invalidate the list cache")
+	assert.Equal(t, int32(4), listCalls.Load())
+}
+
 // --- TLS / CA Cert ---
 
 func TestClient_CustomCACert(t *testing.T) {
@@ -5503,6 +6030,36 @@ func TestRedactJSON_InvalidJSON(t *testing.T) {
 	t.Parallel()
 	got := redactJSON([]byte("not json"))
 	assert.Equal(t, "[non-JSON body omitted]", got)
+}
+
+func TestRedactJSON_ScriptAndWebhookURL(t *testing.T) {
+	t.Parallel()
+	input := `{"name":"hook","script":"#cloud-config\npassword: hunter2","webhook_url":"https://hooks.example/abc"}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"name":"hook"`)
+	assert.Contains(t, got, `[REDACTED]`)
+	assert.NotContains(t, got, "hunter2")
+	assert.NotContains(t, got, "#cloud-config")
+	assert.NotContains(t, got, "hooks.example")
+}
+
+func TestRedactJSON_S3KeyWithSecret(t *testing.T) {
+	t.Parallel()
+	input := `{"name":"backups","key":"AKIAIOSFODNN7EXAMPLE","secret":"wJalrXUtnFEMI/K7MDENG"}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"name":"backups"`)
+	assert.NotContains(t, got, "AKIAIOSFODNN7EXAMPLE")
+	assert.NotContains(t, got, "wJalrXUtnFEMI/K7MDENG")
+	assert.Contains(t, got, `[REDACTED]`)
+}
+
+func TestRedactJSON_EnvKeyValueDoesNotRedactKeyName(t *testing.T) {
+	t.Parallel()
+	input := `{"key":"DB_PASS","value":"s3cret-env"}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"key":"DB_PASS"`)
+	assert.NotContains(t, got, "s3cret-env")
+	assert.Contains(t, got, `[REDACTED]`)
 }
 
 func TestClient_CreateDatabase_EmptyUUID(t *testing.T) {

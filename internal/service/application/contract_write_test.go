@@ -204,7 +204,6 @@ func TestUpdateInput_OnlySendsAllowedFields(t *testing.T) {
 	knownGaps := map[string]string{
 		"dockerfile":         "create-only field; editing a Dockerfile in place has no allowed update route",
 		"docker_compose_raw": "create-only field, and only for the deprecated inline-compose endpoint",
-		"github_app_uuid":    "create-only field; re-pointing an app at another GitHub App has no update route",
 	}
 	var unexpected []string
 	for _, key := range bad {

@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -130,9 +131,10 @@ func (c *Client) listServerDestinationsBestEffort(ctx context.Context, serverUUI
 }
 
 func isMissingDestinationUUID(err error) bool {
-	if err == nil {
+	var apiErr *APIStatusError
+	if !errors.As(err, &apiErr) || apiErr.Status != http.StatusBadRequest {
 		return false
 	}
-	msg := err.Error()
-	return strings.Contains(msg, "destination_uuid") && strings.Contains(msg, "multiple destinations")
+	return strings.Contains(apiErr.Message, "destination_uuid") &&
+		strings.Contains(apiErr.Message, "multiple destinations")
 }

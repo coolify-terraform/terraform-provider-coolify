@@ -57,6 +57,14 @@ run "create_and_verify" {
     error_message = "Git repository URL was normalized: got ${coolify_application.website.git_repository}"
   }
   assert {
+    condition     = coolify_application.website.git_branch == "v4.x"
+    error_message = "Git branch mismatch: got ${coolify_application.website.git_branch}"
+  }
+  assert {
+    condition     = coolify_application.website.base_directory == "/nodejs"
+    error_message = "Base directory mismatch: got ${coolify_application.website.base_directory}"
+  }
+  assert {
     condition     = coolify_application.website.ports_exposes == "3000"
     error_message = "Ports exposes mismatch: got ${coolify_application.website.ports_exposes}"
   }

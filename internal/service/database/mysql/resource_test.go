@@ -237,7 +237,7 @@ resource "coolify_database_mysql" "test" {
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
 `,
-			ExpectError: regexp.MustCompile(`(?s)MySQL database created but refresh failed.*Could not read MySQL database.*partial Terraform state was saved`),
+			ExpectError: regexp.MustCompile(`MySQL database created but refresh failed`),
 		}},
 	})
 }

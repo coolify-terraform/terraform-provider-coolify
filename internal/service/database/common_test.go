@@ -11,8 +11,13 @@ import (
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func strPtr(v string) *types.String { s := types.StringValue(v); return &s }
@@ -20,6 +25,40 @@ func strPtr(v string) *types.String { s := types.StringValue(v); return &s }
 func int64Ptr(v int64) *types.Int64 { i := types.Int64Value(v); return &i }
 
 func boolPtr(v bool) *types.Bool { b := types.BoolValue(v); return &b }
+
+func TestImportDatabaseState_UUIDOnlySeedsProduction(t *testing.T) {
+	t.Parallel()
+
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"uuid":             schema.StringAttribute{Optional: true},
+			"environment_name": schema.StringAttribute{Optional: true},
+			"project_uuid":     schema.StringAttribute{Optional: true},
+			"server_uuid":      schema.StringAttribute{Optional: true},
+		},
+	}
+	resp := &resource.ImportStateResponse{
+		State: tfsdk.State{
+			Schema: s,
+			Raw:    tftypes.NewValue(s.Type().TerraformType(context.Background()), nil),
+		},
+	}
+	ImportDatabaseState(context.Background(), nil, resource.ImportStateRequest{
+		ID: "aaaa0001-0001-4000-8000-000000000001",
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("unexpected import errors: %v", resp.Diagnostics.Errors())
+	}
+
+	var envName types.String
+	getDiags := resp.State.GetAttribute(context.Background(), path.Root("environment_name"), &envName)
+	if getDiags.HasError() {
+		t.Fatalf("reading environment_name: %v", getDiags.Errors())
+	}
+	if envName.ValueString() != "production" {
+		t.Fatalf("environment_name = %q, want production", envName.ValueString())
+	}
+}
 
 func TestSetUpdateExtended_OmitsDisallowedKeys(t *testing.T) {
 	t.Parallel()
@@ -202,24 +241,24 @@ func TestDeleteDatabase_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	defer cancel()
 	resp := &resource.DeleteResponse{}
 
-	err := DeleteDatabase(ctx, c, "coolify_database_postgresql", uuid, resp)
+	err := DeleteDatabase(ctx, c, "coolify_database_postgresql", uuid, timeouts.Value{}, resp)
 	if err != nil {
 		t.Fatalf("unexpected delete error: %v", err)
 	}
-	if resp.Diagnostics.HasError() {
-		t.Fatalf("unexpected errors: %v", resp.Diagnostics.Errors())
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected delete error when resource is still present after polling")
 	}
-	if resp.Diagnostics.WarningsCount() != 1 {
-		t.Fatalf("expected 1 warning, got %d", resp.Diagnostics.WarningsCount())
+	if resp.Diagnostics.WarningsCount() != 0 {
+		t.Fatalf("expected no warnings, got %d", resp.Diagnostics.WarningsCount())
 	}
-	warning := resp.Diagnostics.Warnings()[0]
-	if warning.Summary() != deletePollingTimeoutWarningSummary {
-		t.Fatalf("warning summary = %q, want %q", warning.Summary(), deletePollingTimeoutWarningSummary)
+	got := resp.Diagnostics.Errors()[0]
+	if got.Summary() != deletePollingErrorSummary {
+		t.Fatalf("error summary = %q, want %q", got.Summary(), deletePollingErrorSummary)
 	}
-	if !strings.Contains(warning.Detail(), uuid) {
-		t.Fatalf("warning detail %q does not mention uuid %s", warning.Detail(), uuid)
+	if !strings.Contains(got.Detail(), uuid) {
+		t.Fatalf("error detail %q does not mention uuid %s", got.Detail(), uuid)
 	}
-	if !strings.Contains(warning.Detail(), "may still exist temporarily") {
-		t.Fatalf("warning detail %q does not explain the temporary remote state", warning.Detail())
+	if !strings.Contains(got.Detail(), "keep it in state") {
+		t.Fatalf("error detail %q does not say Terraform will keep state", got.Detail())
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -211,6 +212,7 @@ func TestHasNonDefaultAppExtendedFields_EachField(t *testing.T) {
 		{"HealthCheckType", func(f *commonAppFields) { f.HealthCheckType = strPtr("tcp") }},
 		{"IsAutoDeployEnabled", func(f *commonAppFields) { f.IsAutoDeployEnabled = boolPtr(false) }},
 		{"BaseDirectory", func(f *commonAppFields) { f.BaseDirectory = strPtr("/app") }},
+		{"DockerfileTargetBuild", func(f *commonAppFields) { f.DockerfileTargetBuild = strPtr("builder") }},
 		{"PublishDirectory", func(f *commonAppFields) { f.PublishDirectory = strPtr("/dist") }},
 		{"DockerRegistryImageTag", func(f *commonAppFields) { f.DockerRegistryImageTag = strPtr("v1") }},
 		{"DockerComposeDomains", func(f *commonAppFields) { f.DockerComposeDomains = strPtr("foo.com") }},
@@ -316,22 +318,22 @@ func TestDeleteApplication_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	defer cancel()
 	resp := &resource.DeleteResponse{}
 
-	deleteApplication(ctx, c, "coolify_application", uuid, resp)
+	deleteApplication(ctx, c, "coolify_application", uuid, timeouts.Value{}, resp)
 
-	if resp.Diagnostics.HasError() {
-		t.Fatalf("unexpected errors: %v", resp.Diagnostics.Errors())
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected delete error when resource is still present after polling")
 	}
-	if resp.Diagnostics.WarningsCount() != 1 {
-		t.Fatalf("expected 1 warning, got %d", resp.Diagnostics.WarningsCount())
+	if resp.Diagnostics.WarningsCount() != 0 {
+		t.Fatalf("expected no warnings, got %d", resp.Diagnostics.WarningsCount())
 	}
-	warning := resp.Diagnostics.Warnings()[0]
-	if warning.Summary() != deletePollingTimeoutWarningSummary {
-		t.Fatalf("warning summary = %q, want %q", warning.Summary(), deletePollingTimeoutWarningSummary)
+	got := resp.Diagnostics.Errors()[0]
+	if got.Summary() != deletePollingErrorSummary {
+		t.Fatalf("error summary = %q, want %q", got.Summary(), deletePollingErrorSummary)
 	}
-	if !strings.Contains(warning.Detail(), uuid) {
-		t.Fatalf("warning detail %q does not mention uuid %s", warning.Detail(), uuid)
+	if !strings.Contains(got.Detail(), uuid) {
+		t.Fatalf("error detail %q does not mention uuid %s", got.Detail(), uuid)
 	}
-	if !strings.Contains(warning.Detail(), "may still exist temporarily") {
-		t.Fatalf("warning detail %q does not explain the temporary remote state", warning.Detail())
+	if !strings.Contains(got.Detail(), "keep it in state") {
+		t.Fatalf("error detail %q does not say Terraform will keep state", got.Detail())
 	}
 }

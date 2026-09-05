@@ -75,7 +75,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a service resource on Coolify. A service can be created from the Coolify catalog (using `type`) or from a custom Docker Compose file (using `docker_compose_raw`). These two fields are mutually exclusive.",
 		Attributes: map[string]schema.Attribute{
-			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true}),
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{Create: true, Delete: true}),
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the service.",
 				Computed:            true,
@@ -301,6 +301,8 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	flex.SetIfKnown(&input.Description, plan.Description)
 	flex.SetIfKnown(&input.DestinationUUID, plan.DestinationUUID)
 	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
+	input.ConnectToNetwork = flex.BoolValueOrNull(plan.ConnectToNetwork)
+	input.IsContainerLabelEscapeEnabled = flex.BoolValueOrNull(plan.IsContainerLabelEscapeEnabled)
 	input.URLs = expandServiceURLs(plan.URLs)
 	input.ForceDomainOverride = flex.BoolValueOrNull(plan.ForceDomainOverride)
 	created, err := r.client.CreateService(ctx, input)
@@ -332,6 +334,13 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 
 	svc, err := r.client.GetService(ctx, created.UUID)
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.Diagnostics.AddError(
+				flex.CreateReadBackFailedSummary("Service"),
+				flex.CreateReadBackNotFoundDetail("service", created.UUID),
+			)
+			return
+		}
 		resp.Diagnostics.AddError(
 			flex.CreateReadBackFailedSummary("Service"),
 			flex.CreateReadBackFailedDetail("service", created.UUID, err),
@@ -412,20 +421,29 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-const deletePollingTimeoutWarningSummary = "Delete is still finishing in Coolify"
+const deletePollingErrorSummary = "Error deleting resource"
 
-func addDeletePollingTimeoutWarning(resp *resource.DeleteResponse, resourceType, uuid string) {
-	resp.Diagnostics.AddWarning(
-		deletePollingTimeoutWarningSummary,
-		fmt.Sprintf(
-			"Coolify accepted deletion of %s %s, but the resource was still returned by the API when the provider stopped polling. Terraform removed it from state, but the remote resource may still exist temporarily. Wait a moment before retrying dependent operations if they still report it.",
-			resourceType,
-			uuid,
-		),
+func addDeletePollingError(resp *resource.DeleteResponse, resourceType, uuid string, err error) {
+	detail := fmt.Sprintf(
+		"Coolify accepted deletion of %s %s, but the resource was still returned by the API when the provider stopped polling. Terraform will keep it in state.",
+		resourceType,
+		uuid,
 	)
+	if err != nil {
+		detail = fmt.Sprintf("%s Delete polling failed: %s", detail, err)
+	}
+	resp.Diagnostics.AddError(deletePollingErrorSummary, detail)
 }
 
-func deleteService(ctx context.Context, c *client.Client, resourceType, uuid string, resp *resource.DeleteResponse) {
+func deleteService(ctx context.Context, c *client.Client, resourceType, uuid string, t timeouts.Value, resp *resource.DeleteResponse) {
+	deleteTimeout, diags := t.Delete(ctx, 2*time.Minute)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, deleteTimeout)
+	defer cancel()
+
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 
 	if err := c.DeleteService(ctx, uuid); err != nil {
@@ -435,9 +453,10 @@ func deleteService(ctx context.Context, c *client.Client, resourceType, uuid str
 		resp.Diagnostics.AddError("Error deleting service", fmt.Sprintf("service %s: %s", uuid, err))
 		return
 	}
-	if !client.PollUntilDeleted(ctx, func() error { _, err := c.GetService(ctx, uuid); return err }) {
-		tflog.Warn(ctx, "resource may still exist after polling timeout", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
-		addDeletePollingTimeoutWarning(resp, resourceType, uuid)
+	gone, err := client.PollUntilDeleted(ctx, func(ctx context.Context) error { _, err := c.GetService(ctx, uuid); return err })
+	if err != nil || !gone {
+		addDeletePollingError(resp, resourceType, uuid, err)
+		return
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": resourceType, "uuid": uuid})
 }
@@ -449,7 +468,7 @@ func (r *serviceResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	deleteService(ctx, r.client, "coolify_service", state.UUID.ValueString(), resp)
+	deleteService(ctx, r.client, "coolify_service", state.UUID.ValueString(), state.Timeouts, resp)
 }
 
 func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -466,6 +485,8 @@ func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportSt
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parsed.ProjectUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parsed.ServerUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parsed.EnvironmentName)...)
+	} else {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 	resp.Diagnostics.AddWarning(

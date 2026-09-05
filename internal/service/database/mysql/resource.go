@@ -181,7 +181,7 @@ func (r *mysqlDatabaseResource) Delete(ctx context.Context, req resource.DeleteR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_mysql", state.UUID.ValueString(), resp)
+	dbcommon.DeleteDatabaseState(ctx, r.client, "coolify_database_mysql", state.UUID.ValueString(), state.Timeouts, resp)
 }
 
 func (r *mysqlDatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

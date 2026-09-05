@@ -49,9 +49,11 @@ resource "coolify_application" "app" {
   project_uuid   = coolify_project.demo.uuid
   server_uuid    = "your-server-uuid"
   git_repository = "https://github.com/coollabsio/coolify-examples"
-  git_branch     = "main"
+  git_branch     = "v4.x"
+  base_directory = "/nodejs"
   build_pack     = "nixpacks"
   ports_exposes  = "3000"
+  instant_deploy = true
 }
 
 # Output the application UUID
@@ -82,8 +84,10 @@ terraform plan
 terraform apply
 ```
 
-Terraform creates the project and application. Coolify begins building and
-deploying the app.
+Terraform creates the project and application. A build starts only because
+this sample sets `instant_deploy = true`. The default is `false`: apply
+creates the application and does not queue a build unless you set
+`instant_deploy = true` or add a `coolify_deployment` resource.
 
 ## 4. Verify
 

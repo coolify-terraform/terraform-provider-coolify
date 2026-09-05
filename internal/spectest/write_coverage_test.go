@@ -1,6 +1,7 @@
 package spectest
 
 import (
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -178,6 +179,45 @@ func TestWriteCoverage_ServiceUpdateNoExtraKeys(t *testing.T) {
 	}
 }
 
+// TestWriteCoverage_ServiceCreateAllowList fails if CreateServiceInput would
+// send a JSON key Coolify create rejects, or if create-allow-list bools that
+// the schema already exposes are missing from the create payload.
+func TestWriteCoverage_ServiceCreateAllowList(t *testing.T) {
+	t.Parallel()
+	c := loadContract(t)
+	ep, ok := c.Endpoints["ServicesController::create_service"]
+	if !ok {
+		t.Fatal("ServicesController::create_service not in contract")
+	}
+	if len(ep.AllowedFields) == 0 {
+		t.Fatal("ServicesController::create_service has empty allowed_fields")
+	}
+	allow := map[string]struct{}{}
+	for _, f := range ep.AllowedFields {
+		allow[f] = struct{}{}
+	}
+	tags := client.CreateServiceJSONTags()
+	if len(tags) == 0 {
+		t.Fatal("CreateServiceJSONTags returned empty set")
+	}
+	var extra []string
+	for field := range tags {
+		if _, ok := allow[field]; !ok {
+			extra = append(extra, field)
+		}
+	}
+	sort.Strings(extra)
+	if len(extra) > 0 {
+		t.Errorf("CreateServiceInput JSON keys not on ServicesController::create_service allowed_fields:\n  %s",
+			strings.Join(extra, "\n  "))
+	}
+	for _, required := range []string{"connect_to_docker_network", "is_container_label_escape_enabled"} {
+		if _, ok := tags[required]; !ok {
+			t.Errorf("CreateServiceInput missing create allow-list field %q", required)
+		}
+	}
+}
+
 // TestWriteCoverage_DatabaseDisallowedNotOnAllowList fails if a key we
 // strip before PATCH appears on the extracted update allow list. That
 // would mean Coolify started accepting it, or the strip list is stale.
@@ -264,5 +304,29 @@ func TestWriteCoverage_InstanceEmailUpdate(t *testing.T) {
 	if len(missing) > 0 {
 		t.Errorf("InstanceEmailSettingsController::update allowed_fields missing from UpdateInstanceEmailInput:\n  %s",
 			strings.Join(missing, "\n  "))
+	}
+}
+
+// TestWriteCoverage_ApplicationDomainPortOverridesNotOnWriteInputs fails if
+// create or update application payloads grow a domain_port_overrides JSON tag.
+// Coolify ApplicationsController create/update extra-key 422 that field
+// (preview endpoints mention it; Livewire writes it). GET-only on the provider.
+func TestWriteCoverage_ApplicationDomainPortOverridesNotOnWriteInputs(t *testing.T) {
+	t.Parallel()
+	const forbidden = "domain_port_overrides"
+
+	byType := client.CreateAppInputJSONTagsByType()
+	if len(byType) == 0 {
+		t.Fatal("CreateAppInputJSONTagsByType returned empty set")
+	}
+	for typeName, tags := range byType {
+		if _, ok := tags[forbidden]; ok {
+			t.Errorf("%s must not include %s (GET-only; ApplicationsController extra-key 422)", typeName, forbidden)
+		}
+	}
+
+	updateTags := jsonTagsFromStruct(reflect.TypeOf(client.UpdateApplicationInput{}))
+	if _, ok := updateTags[forbidden]; ok {
+		t.Errorf("UpdateApplicationInput must not include %s (GET-only; ApplicationsController extra-key 422)", forbidden)
 	}
 }

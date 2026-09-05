@@ -128,6 +128,13 @@ resource "coolify_application" "web" {
 All domains receive TLS certificates. Requests to any of them route to
 the same application container.
 
+Coolify tip after the Sep 2026 applications column (not in tag v4.3.14)
+may return `domain_port_overrides`: a map of full domain URL to container
+port. Read it from the application resource or `data.coolify_application`
+after apply. Do not set it in HCL. On Coolify <= v4.3.14 the attribute is
+null, not an empty map. `data.coolify_applications` (list) does not include
+this map; use the singular data source.
+
 ## Auto-generated Domains
 
 On **create**, Coolify defaults `autogenerate_domain` to `true`. If you

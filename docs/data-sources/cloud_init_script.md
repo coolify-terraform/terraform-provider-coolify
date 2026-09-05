@@ -28,4 +28,4 @@ data "coolify_cloud_init_script" "bootstrap" {
 ### Read-Only
 
 - `name` (String) Script name.
-- `script` (String) Script body when the token can read it.
+- `script` (String, Sensitive) Script body when the token can read it.
