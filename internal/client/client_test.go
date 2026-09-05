@@ -6116,6 +6116,28 @@ func TestRedactJSON_ScriptAndWebhookURL(t *testing.T) {
 	assert.NotContains(t, got, "hooks.example")
 }
 
+func TestRedactJSON_DiscordSlackWebhookAndConnectionSecrets(t *testing.T) {
+	t.Parallel()
+	input := `{
+		"name":"notify",
+		"discord_webhook_url":"https://discord.com/api/webhooks/1/secret-discord",
+		"slack_webhook_url":"https://hooks.slack.com/services/T/B/secret-slack",
+		"internal_db_url":"postgresql://user:password@host/db",
+		"logdrain_custom_config":"authToken=drain-secret",
+		"webhook_enabled":true
+	}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"name":"notify"`)
+	assert.Contains(t, got, `"webhook_enabled":true`)
+	assert.Contains(t, got, `[REDACTED]`)
+	assert.NotContains(t, got, "secret-discord")
+	assert.NotContains(t, got, "secret-slack")
+	assert.NotContains(t, got, "discord.com/api/webhooks")
+	assert.NotContains(t, got, "hooks.slack.com")
+	assert.NotContains(t, got, "postgresql://user:password@host/db")
+	assert.NotContains(t, got, "drain-secret")
+}
+
 func TestRedactJSON_S3KeyWithSecret(t *testing.T) {
 	t.Parallel()
 	input := `{"name":"backups","key":"AKIAIOSFODNN7EXAMPLE","secret":"wJalrXUtnFEMI/K7MDENG"}`

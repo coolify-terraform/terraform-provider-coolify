@@ -212,13 +212,11 @@ func (r *deploymentResource) pollDeployment(ctx context.Context, uuid string, pl
 		resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 		if dep.Status == "finished" || dep.Status == "failed" || dep.Status == "error" {
 			if dep.Status == "failed" || dep.Status == "error" {
-				msg := fmt.Sprintf("Deployment %s finished with status '%s'.", uuid, dep.Status)
-				if tail := dep.FormatLogs(40); tail != "" {
-					msg += " Last log lines:\n" + tail
-				} else {
-					msg += " Check the Coolify UI (application > Deployments) for details."
-				}
-				resp.Diagnostics.AddError("Deployment failed", msg)
+				// Do not append FormatLogs: Coolify only returns logs when the
+				// token can read sensitive fields, and those lines often include
+				// git tokens and docker login credentials.
+				resp.Diagnostics.AddError("Deployment failed",
+					fmt.Sprintf("Deployment %s finished with status '%s'. Check the Coolify UI (application > Deployments) for details.", uuid, dep.Status))
 			}
 			return
 		}
