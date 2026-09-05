@@ -83,7 +83,7 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				},
 			},
 			"force_domain_override": schema.BoolAttribute{
-				MarkdownDescription: "When `true`, Coolify applies the preview domains even if they conflict with another resource. Write-only; default `false`. " + previewDomainUpdateFloor,
+				MarkdownDescription: "When `true`, Coolify applies the preview domains even if they conflict with another resource. Omitted or `false` is not sent (Coolify keeps its default). Coolify has no GET for a single preview, so the value is preserved from state. " + previewDomainUpdateFloor,
 				Optional:            true,
 			},
 		},

@@ -158,7 +158,7 @@ func (c *Client) createWithDestinationRetry(
 		}
 		dest, rerr := c.ResolveDestinationUUID(ctx, serverUUID, destUUID)
 		if rerr != nil || dest == "" {
-			return fmt.Errorf("%s: %w", wrap, err)
+			return fmt.Errorf("%s: Coolify requires destination_uuid (multiple destinations) but none could be resolved: %w", wrap, err)
 		}
 		setDest(dest)
 		if err := c.doWithStatus(ctx, http.MethodPost, path, input, result, http.StatusCreated); err != nil {

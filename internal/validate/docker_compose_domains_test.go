@@ -20,7 +20,6 @@ func TestDockerComposeDomains_Valid(t *testing.T) {
 		`[{"name":"web","domain":"https://pr.example.com","redirect":"non-www"}]`,
 		`[{"name":"web","domain":"https://pr.example.com","redirect":"both"}]`,
 		`[{"name":"web","domain":"https://pr.example.com","redirect":null}]`,
-		`[{"name":"web","domain":"https://pr.example.com","redirect":""}]`,
 		`[{"name":"web","domain":"https://a.example.com"},{"name":"api","domain":"https://b.example.com"}]`,
 	}
 	v := validate.DockerComposeDomains()
@@ -41,6 +40,7 @@ func TestDockerComposeDomains_Invalid(t *testing.T) {
 	const required = "docker_compose_domains items require non-empty string name and domain"
 	const extraPort = `docker_compose_domains has unknown field "port"; allowed fields are name, domain, redirect`
 	const badRedirect = `redirect must be www, non-www, or both, got "always"`
+	const emptyRedirect = `redirect must be www, non-www, or both, got ""`
 	tests := []struct {
 		in   string
 		want string
@@ -58,6 +58,7 @@ func TestDockerComposeDomains_Invalid(t *testing.T) {
 		{`[{"name":"web","domain":1}]`, required},
 		{`[{"name":"web","domain":"https://pr.example.com","port":80}]`, extraPort},
 		{`[{"name":"web","domain":"https://pr.example.com","redirect":"always"}]`, badRedirect},
+		{`[{"name":"web","domain":"https://pr.example.com","redirect":""}]`, emptyRedirect},
 	}
 	v := validate.DockerComposeDomains()
 	for _, tt := range tests {

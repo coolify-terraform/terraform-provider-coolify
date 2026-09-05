@@ -20,7 +20,7 @@ type dockerComposeDomainsValidator struct{}
 // docker_compose_domains. Null, unknown, and empty values are allowed.
 // Non-empty values must be a JSON array of objects, each with non-empty
 // string name and domain. Extra keys are not allowed. Optional redirect
-// must be www, non-www, or both when present and non-null.
+// must be www, non-www, or both when present and non-null. Empty string is invalid.
 func DockerComposeDomains() validator.String {
 	return dockerComposeDomainsValidator{}
 }
@@ -88,7 +88,7 @@ func previewComposeRedirectError(obj map[string]any) string {
 		return ""
 	}
 	s, isStr := redirect.(string)
-	if isStr && (s == "" || s == "www" || s == "non-www" || s == "both") {
+	if isStr && (s == "www" || s == "non-www" || s == "both") {
 		return ""
 	}
 	if isStr {
