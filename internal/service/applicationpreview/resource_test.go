@@ -140,7 +140,7 @@ func TestApplicationPreviewResource_CreateDomainsTooOld(t *testing.T) {
 					pull_request_id  = 12
 					domains          = "https://pr.example.com"
 				`),
-				ExpectError: regexp.MustCompile(`Error updating preview domains`),
+				ExpectError: regexp.MustCompile(`preview domain updates require Coolify >= v4\.3\.15`),
 			},
 		},
 	})

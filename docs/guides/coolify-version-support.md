@@ -65,7 +65,7 @@ teams, and most list/single data sources.
 | `coolify_project`, `coolify_environment` | |
 | `coolify_server`, `coolify_server_hetzner` | Hetzner provision path (`coolify_server_validate` needs 4.2+) |
 | `coolify_application*` (public, docker image, dockerfile, private git, github app) | Some **attributes** need 4.2/4.3 (see below) |
-| `coolify_application_preview` | Domain attributes (`domains`, `docker_compose_domains`, `force_domain_override`) need Coolify >= v4.3.15 (hard apply error on older) |
+| `coolify_application_preview` | Non-empty `domains` / `docker_compose_domains` need Coolify >= v4.3.15 (hard apply error on older). `force_domain_override` alone does not PATCH. |
 | Eight database engines + `coolify_database_backup`, `coolify_backup_execution` | Core CRUD works on 4.1+. Some optional settings exist only on newer Coolify lines; omit attributes you do not need so plans stay empty on older instances. |
 | `coolify_service`, `coolify_storage` | |
 | `coolify_environment_variable`, `coolify_envs_bulk` | |

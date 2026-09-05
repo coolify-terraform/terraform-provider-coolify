@@ -111,9 +111,10 @@ do not want an immediate deploy; the ordering is intrinsic to Coolify.
 Error: preview domain updates require Coolify >= v4.3.15
 ```
 
-**Cause:** `coolify_application_preview` set `domains`,
-`docker_compose_domains`, or `force_domain_override` on Coolify older
-than v4.3.15. Those writes are a hard apply error, not a plan warning.
+**Cause:** `coolify_application_preview` set a non-empty `domains` or
+`docker_compose_domains` on Coolify older than v4.3.15. Those writes
+are a hard apply error, not a plan warning. `force_domain_override`
+alone does not send a PATCH.
 
 **Fix:** omit the domain attributes on older Coolify, or upgrade to
 **>= v4.3.15**.
