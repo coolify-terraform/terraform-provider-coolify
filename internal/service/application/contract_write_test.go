@@ -179,30 +179,10 @@ func TestPostCreatePatch_OnlySendsAllowedFields(t *testing.T) {
 	allowed := readContractAllowList(t)
 	f := fillCommonAppFields(t, "contract-probe", 7, true)
 
-	bad := disallowedKeys(t, buildPostCreatePatch(f), allowed)
-
-	// dockerfile is accepted on create and documented on the update OpenAPI
-	// schema, but ApplicationsController::update_by_uuid $allowedFields omits
-	// it. Git-backed Create POST structs also omit it, so first apply sends
-	// dockerfile on this PATCH (same gap as TestUpdateInput_OnlySendsAllowedFields).
-	knownGaps := map[string]string{
-		"dockerfile": "create-only field; editing a Dockerfile in place has no allowed update route",
-	}
-	var unexpected []string
-	for _, key := range bad {
-		if _, known := knownGaps[key]; !known {
-			unexpected = append(unexpected, key)
-		}
-	}
-	if len(unexpected) > 0 {
+	if bad := disallowedKeys(t, buildPostCreatePatch(f), allowed); len(bad) > 0 {
 		t.Errorf("post-create PATCH sends %d field(s) outside the update_by_uuid allow list; "+
 			"Coolify answers 422 \"This field is not allowed.\" and aborts the whole request:\n  %s",
-			len(unexpected), strings.Join(unexpected, "\n  "))
-	}
-	for key, why := range knownGaps {
-		if allowed[key] {
-			t.Errorf("%q is on the allow list now (%s); remove it from knownGaps", key, why)
-		}
+			len(bad), strings.Join(bad, "\n  "))
 	}
 }
 

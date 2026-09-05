@@ -3,6 +3,7 @@
 package application_test
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -121,6 +122,100 @@ func TestApplicationResource_Create(t *testing.T) {
 				`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+// TestPublicApplicationResource_CreateSendsDockerfile verifies git-backed
+// Create POST includes dockerfile (create allow list). Coolify update_by_uuid
+// rejects that key, so it must not go on the post-create PATCH.
+func TestPublicApplicationResource_CreateSendsDockerfile(t *testing.T) {
+	t.Parallel()
+	const (
+		appUUID       = "public-df-create-uuid"
+		rawDockerfile = "FROM alpine:3.19\nCMD [\"sleep\",\"infinity\"]\n"
+		projUUID      = "aaaa0002-0002-4000-8000-000000000002"
+		srvUUID       = "bbbb0002-0002-4000-8000-000000000002"
+	)
+	wantDockerfile := base64.StdEncoding.EncodeToString([]byte(rawDockerfile))
+	var gotBody map[string]interface{}
+	var deleted bool
+	app := client.Application{
+		UUID:            appUUID,
+		Name:            "df-create-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "dockerfile",
+		PortsExposes:    "80",
+		ProjectUUID:     projUUID,
+		ServerUUID:      srvUUID,
+		EnvironmentName: "production",
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		gotBody = body
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		deleted = true
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(app)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_application", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, fmt.Sprintf(`
+					project_uuid   = %q
+					server_uuid    = %q
+					git_repository = "https://github.com/example/repo"
+					build_pack     = "dockerfile"
+					ports_exposes  = "80"
+					name           = "df-create-app"
+					dockerfile     = %q
+				`, projUUID, srvUUID, rawDockerfile)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "uuid", appUUID),
+					resource.TestCheckResourceAttr("coolify_application.test", "dockerfile", rawDockerfile),
+					func(_ *terraform.State) error {
+						if gotBody == nil {
+							return fmt.Errorf("create body not captured")
+						}
+						got, _ := gotBody["dockerfile"].(string)
+						if got == "" {
+							return fmt.Errorf("POST missing dockerfile: %v", gotBody)
+						}
+						if got == rawDockerfile {
+							return fmt.Errorf("POST dockerfile was raw, want base64")
+						}
+						if got != wantDockerfile {
+							return fmt.Errorf("POST dockerfile = %q, want %q", got, wantDockerfile)
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
