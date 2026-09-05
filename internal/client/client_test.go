@@ -5324,6 +5324,33 @@ func TestClient_UpdatePreviewDeployment(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestClient_UpdatePreviewDeployment_DockerComposeDomains(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-prev-1/previews/42", r.URL.Path)
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		arr, ok := body["docker_compose_domains"].([]any)
+		require.True(t, ok, "docker_compose_domains must be a JSON array, got %T", body["docker_compose_domains"])
+		require.NotEmpty(t, arr)
+		first, ok := arr[0].(map[string]any)
+		require.True(t, ok, "first docker_compose_domains element must be an object, got %T", arr[0])
+		assert.Equal(t, "web", first["name"])
+		assert.Equal(t, "https://pr.example.com", first["domain"])
+		_, domainsPresent := body["domains"]
+		assert.False(t, domainsPresent, "domains key must be absent on compose PATCH")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.UpdatePreviewDeployment(context.Background(), "app-prev-1", 42, UpdatePreviewInput{
+		DockerComposeDomains: json.RawMessage(`[{"name":"web","domain":"https://pr.example.com"}]`),
+	})
+	require.NoError(t, err)
+}
+
 func TestClient_UpdatePreviewDeployment_NotFound(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

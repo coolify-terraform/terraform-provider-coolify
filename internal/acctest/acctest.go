@@ -696,6 +696,7 @@ func truncateForSkip(s string, n int) string {
 func isControllerResourceNotFound(msgLower string) bool {
 	for _, s := range []string{
 		"application not found",
+		"preview not found",
 		"resource not found",
 		"storage not found",
 		"database not found",
@@ -910,6 +911,59 @@ func AccTestSMTPEhloDomainAccepted(t *testing.T) bool {
 	t.Helper()
 	ok, _ := coolifyAcceptsSMTPEhloDomain(t)
 	return ok
+}
+
+// AccTestSkipIfNoPreviewDomainUpdate skips when PATCH
+// /applications/{uuid}/previews/{pr} is an unmatched route (plain
+// "Not found." or empty). Soft-skip even when COOLIFY_REQUIRE_TIP_APIS=1:
+// CI edge reports 4.3.0 and older images lack the route. Controller 404
+// (preview or application not found), 422, or 409 means the route exists.
+func AccTestSkipIfNoPreviewDomainUpdate(t *testing.T) {
+	t.Helper()
+	TestAccPreCheck(t)
+
+	endpoint := strings.TrimRight(os.Getenv("COOLIFY_ENDPOINT"), "/")
+	token := os.Getenv("COOLIFY_TOKEN")
+	path := endpoint + "/api/v1/applications/00000000-0000-4000-8000-000000000099/previews/999999"
+	req, err := http.NewRequest(http.MethodPatch, path, strings.NewReader(`{"domains":"https://pr.example.com"}`))
+	if err != nil {
+		t.Fatalf("building preview domain probe request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Skipf("preview domain PATCH probe failed (cannot reach Coolify): %v", err)
+		return
+	}
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	_ = resp.Body.Close()
+	msg := strings.ToLower(string(raw))
+
+	switch resp.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return
+	case http.StatusUnprocessableEntity, http.StatusConflict:
+		return
+	case http.StatusNotFound:
+		if isControllerResourceNotFound(msg) {
+			return
+		}
+		t.Skipf("Coolify has no preview domain PATCH route (HTTP %d). Body: %s",
+			resp.StatusCode, truncateForSkip(string(raw), 200))
+		return
+	case http.StatusMethodNotAllowed:
+		t.Skipf("Coolify has no preview domain PATCH route (HTTP 405). Body: %s",
+			truncateForSkip(string(raw), 200))
+		return
+	default:
+		if resp.StatusCode >= 500 {
+			t.Skipf("preview domain PATCH probe returned HTTP %d: %s",
+				resp.StatusCode, truncateForSkip(string(raw), 200))
+		}
+	}
 }
 
 // AccTestSkipIfCoolifyBelow skips (or fails with COOLIFY_REQUIRE_TIP_APIS=1)
