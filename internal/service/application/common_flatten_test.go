@@ -395,6 +395,20 @@ func TestBuildUpdateInput_MaxRestartCountChanged(t *testing.T) {
 	}
 }
 
+func TestBuildUpdateInput_OmitsDockerfile(t *testing.T) {
+	t.Parallel()
+	plan := fillCommonAppFields(t, "plan-df", 1, true)
+	state := fillCommonAppFields(t, "state-df", 2, false)
+	planDF := types.StringValue("FROM alpine")
+	stateDF := types.StringValue("FROM nginx")
+	plan.Dockerfile = &planDF
+	state.Dockerfile = &stateDF
+	input := buildUpdateInput(plan, state)
+	if input.Dockerfile != nil {
+		t.Errorf("expected Dockerfile omitted from PATCH, got %q", *input.Dockerfile)
+	}
+}
+
 func TestBuildUpdateInput_NilSafeOptionalPtrs(t *testing.T) {
 	t.Parallel()
 	// GitRepository nil in both sides should not panic and produce nil in output.
@@ -1196,6 +1210,23 @@ func TestFlattenExtendedDefaults_BoolWithAPIValue(t *testing.T) {
 // ---------------------------------------------------------------------------
 // custom_labels auto-encoding: flatten preserves user's raw value
 // ---------------------------------------------------------------------------
+
+func TestFlattenExtendedFields_DockerfileRawPreserved(t *testing.T) {
+	t.Parallel()
+	raw := "FROM alpine"
+	apiBase64 := base64.StdEncoding.EncodeToString([]byte(raw))
+
+	df := types.StringValue(raw)
+	f, _ := newDefaultFields()
+	f.Dockerfile = &df
+
+	app := &client.Application{Dockerfile: apiBase64}
+	flattenExtendedFields(app, f)
+
+	if f.Dockerfile.ValueString() != raw {
+		t.Errorf("Dockerfile = %q, want user's raw value %q", f.Dockerfile.ValueString(), raw)
+	}
+}
 
 func TestFlattenExtendedFields_CustomLabelsRawPreserved(t *testing.T) {
 	t.Parallel()

@@ -5324,6 +5324,33 @@ func TestClient_UpdatePreviewDeployment(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestClient_UpdatePreviewDeployment_DockerComposeDomains(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-prev-1/previews/42", r.URL.Path)
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		arr, ok := body["docker_compose_domains"].([]any)
+		require.True(t, ok, "docker_compose_domains must be a JSON array, got %T", body["docker_compose_domains"])
+		require.NotEmpty(t, arr)
+		first, ok := arr[0].(map[string]any)
+		require.True(t, ok, "first docker_compose_domains element must be an object, got %T", arr[0])
+		assert.Equal(t, "web", first["name"])
+		assert.Equal(t, "https://pr.example.com", first["domain"])
+		_, domainsPresent := body["domains"]
+		assert.False(t, domainsPresent, "domains key must be absent on compose PATCH")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	err := c.UpdatePreviewDeployment(context.Background(), "app-prev-1", 42, UpdatePreviewInput{
+		DockerComposeDomains: json.RawMessage(`[{"name":"web","domain":"https://pr.example.com"}]`),
+	})
+	require.NoError(t, err)
+}
+
 func TestClient_UpdatePreviewDeployment_NotFound(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -6087,6 +6114,28 @@ func TestRedactJSON_ScriptAndWebhookURL(t *testing.T) {
 	assert.NotContains(t, got, "hunter2")
 	assert.NotContains(t, got, "#cloud-config")
 	assert.NotContains(t, got, "hooks.example")
+}
+
+func TestRedactJSON_DiscordSlackWebhookAndConnectionSecrets(t *testing.T) {
+	t.Parallel()
+	input := `{
+		"name":"notify",
+		"discord_webhook_url":"https://discord.com/api/webhooks/1/secret-discord",
+		"slack_webhook_url":"https://hooks.slack.com/services/T/B/secret-slack",
+		"internal_db_url":"postgresql://user:password@host/db",
+		"logdrain_custom_config":"authToken=drain-secret",
+		"webhook_enabled":true
+	}`
+	got := redactJSON([]byte(input))
+	assert.Contains(t, got, `"name":"notify"`)
+	assert.Contains(t, got, `"webhook_enabled":true`)
+	assert.Contains(t, got, `[REDACTED]`)
+	assert.NotContains(t, got, "secret-discord")
+	assert.NotContains(t, got, "secret-slack")
+	assert.NotContains(t, got, "discord.com/api/webhooks")
+	assert.NotContains(t, got, "hooks.slack.com")
+	assert.NotContains(t, got, "postgresql://user:password@host/db")
+	assert.NotContains(t, got, "drain-secret")
 }
 
 func TestRedactJSON_S3KeyWithSecret(t *testing.T) {

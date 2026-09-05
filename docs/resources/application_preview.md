@@ -3,30 +3,46 @@
 page_title: "coolify_application_preview Resource - coolify"
 subcategory: ""
 description: |-
-  Manages the lifecycle of a PR preview deployment for a Coolify application. Create is state-only unless you set preview domains; on destroy, it deletes the preview deployment via the Coolify API. There is no GET for a single preview, so domain attributes are preserved from state.
+  Tracks a Coolify PR preview so terraform destroy can delete it, and optionally PATCHes domains when that preview already exists. This resource does not create the PR preview; Coolify creates it (webhook or UI). There is no GET for a single preview, so domain attributes are preserved from state. Apply returns 404 if Coolify has no preview for the pull request yet.
 ---
 
 # coolify_application_preview (Resource)
 
-Manages the lifecycle of a PR preview deployment for a Coolify application. Create is state-only unless you set preview domains; on destroy, it deletes the preview deployment via the Coolify API. There is no GET for a single preview, so domain attributes are preserved from state.
+Tracks a Coolify PR preview so terraform destroy can delete it, and optionally PATCHes domains when that preview already exists. This resource does **not** create the PR preview; Coolify creates it (webhook or UI). There is no GET for a single preview, so domain attributes are preserved from state. Apply returns 404 if Coolify has no preview for the pull request yet.
 
 ## Example Usage
 
 ```terraform
-# Track a PR preview deployment so terraform destroy cleans it up.
-# domains requires Coolify >= v4.3.15; omit it on older instances.
+# Track a PR preview so terraform destroy can delete it. This resource
+# does not create the preview; Coolify creates it (webhook or UI).
+# domains PATCH an existing preview (the PR must already have a Coolify
+# preview deploy). Requires Coolify >= v4.3.15.
 resource "coolify_application_preview" "pr_42" {
+  application_uuid = coolify_application.api.uuid
+  pull_request_id  = 42
+}
+
+# PATCH domains on an existing preview. PR 42 must already be deployed.
+resource "coolify_application_preview" "pr_42_domains" {
   application_uuid = coolify_application.api.uuid
   pull_request_id  = 42
   domains          = "https://pr.example.com"
 }
 
 # Compose preview: write docker_compose_domains as a JSON array (not the GET object map).
-# Requires Coolify >= v4.3.15; omit it on older instances.
+# PR 43 must already be deployed. Requires Coolify >= v4.3.15.
 resource "coolify_application_preview" "pr_43_compose" {
   application_uuid       = coolify_application.compose.uuid
   pull_request_id        = 43
   docker_compose_domains = jsonencode([{ name = "web", domain = "https://pr.example.com" }])
+}
+
+# Set force_domain_override = true when the domain is already in use.
+resource "coolify_application_preview" "pr_44_override" {
+  application_uuid      = coolify_application.api.uuid
+  pull_request_id       = 44
+  domains               = "https://pr.example.com"
+  force_domain_override = true
 }
 ```
 
@@ -40,6 +56,6 @@ resource "coolify_application_preview" "pr_43_compose" {
 
 ### Optional
 
-- `docker_compose_domains` (String) JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.
-- `domains` (String) Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). Requires Coolify >= v4.3.15 (not in tag v4.3.14). Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.
+- `docker_compose_domains` (String) JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.
+- `domains` (String) Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.
 - `force_domain_override` (Boolean) When `true`, Coolify applies the preview domains even if they conflict with another resource. Write-only; default `false`. Requires Coolify >= v4.3.15 (not in tag v4.3.14).

@@ -34,6 +34,7 @@ jobs:
       ci: ${{ steps.filter.outputs.ci }}
       scripts: ${{ steps.filter.outputs.scripts }}
       scenarios: ${{ steps.filter.outputs.scenarios }}
+      workflows: ${{ steps.filter.outputs.workflows }}
     steps:
       - name: Harden runner
         if: runner.os == 'Linux'
@@ -81,6 +82,9 @@ jobs:
             scripts:
               - 'scripts/**'
               - '.github/workflows/ci.yml'
+            workflows:
+              - '.github/workflows/**'
+              - '.github/zizmor.yml'
             scenarios:
               # Product + scenario HCL + the runner script. Do not include
               # ci.yml alone: every workflow-only PR was running Coolify
@@ -137,7 +141,6 @@ jobs:
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
-        github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch'
       )
     strategy:
@@ -389,21 +392,43 @@ jobs:
           else
             echo "Skipping tools/ govulncheck (no packages)"
           fi
-      # goreleaser-action downloads the binary from GitHub releases; CDN
-      # flakes (socket hang up) should not fail the whole Lint job. Real
-      # .goreleaser.yml breakage still surfaces on the release workflow.
+      # Retry is for GitHub releases flake; config errors must fail Lint.
       - name: GoReleaser check
         if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch') }}
-        id: goreleaser-check
-        continue-on-error: true
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
-        with:
-          version: "~> 2"
-          args: check
-      - name: Warn if GoReleaser check failed
-        if: ${{ steps.goreleaser-check.outcome == 'failure' }}
         run: |
-          echo "::warning::GoReleaser check failed (often a GitHub releases download flake). Config is still validated on the release workflow."
+          set -euo pipefail
+          BIN_DIR="${HOME}/.local/bin"
+          mkdir -p "$BIN_DIR"
+          echo "$BIN_DIR" >> "$GITHUB_PATH"
+          VER="2.15.4"
+          if [ ! -x "$BIN_DIR/goreleaser" ] || ! "$BIN_DIR/goreleaser" --version 2>/dev/null | grep -q "$VER"; then
+            install_ok=0
+            for attempt in 1 2 3; do
+              if GOBIN="$BIN_DIR" go install github.com/goreleaser/goreleaser/v2@v"${VER}"; then
+                install_ok=1
+                break
+              fi
+              echo "::warning::GoReleaser install failed (attempt ${attempt}/3)"
+              sleep $((attempt * 2))
+            done
+            if [ "$install_ok" != "1" ]; then
+              echo "::error::Failed to install goreleaser v${VER} after 3 attempts (download flake)"
+              exit 1
+            fi
+          fi
+          check_ok=0
+          for attempt in 1 2 3; do
+            if "$BIN_DIR/goreleaser" check; then
+              check_ok=1
+              break
+            fi
+            echo "::warning::GoReleaser check failed (attempt ${attempt}/3); retrying for download flake"
+            sleep $((attempt * 2))
+          done
+          if [ "$check_ok" != "1" ]; then
+            echo "::error::GoReleaser check failed after 3 attempts"
+            exit 1
+          fi
 
   validate:
     name: Validate
@@ -471,12 +496,6 @@ jobs:
       - name: Check contract compatibility
         if: ${{ !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: make contract-compat
-      - name: Install actionlint
-        if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-        run: GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
-      - name: Lint GitHub Actions workflows
-        if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-        run: make actionlint-check
       - name: Run Python script tests
         if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: |
@@ -556,6 +575,42 @@ jobs:
           else
             gitleaks detect --source . --config .gitleaks.toml --exit-code 1
           fi
+
+  workflow-lint:
+    name: Workflow Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: changes
+    if: >-
+      always() &&
+      (
+        needs.changes.outputs.workflows == 'true' ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch'
+      )
+    steps:
+      - name: Harden runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install actionlint
+        run: GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - name: Lint GitHub Actions workflows
+        run: make actionlint-check
+      - name: Install zizmor
+        run: |
+          python3 -m pip install --user "zizmor==1.16.1"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Run zizmor
+        run: zizmor --config .github/zizmor.yml .github/workflows
 
   contract-freshness:
     name: Contract Freshness
@@ -907,7 +962,7 @@ jobs:
     timeout-minutes: 2
     # coverage is best-effort for the GitHub code-quality upload; do not gate
     # merge on it (upload already uses fail-on-error: false).
-    needs: [dco, test, lint, validate, scenario-tests, acceptance-tests]
+    needs: [dco, test, lint, validate, scenario-tests, acceptance-tests, workflow-lint]
     steps:
       - name: Harden runner
         if: runner.os == 'Linux'
@@ -915,8 +970,10 @@ jobs:
         with:
           egress-policy: audit
       - name: Check results
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
         run: |
-          results='${{ toJSON(needs.*.result) }}'
+          results="$RESULTS"
           if echo "$results" | grep -qE '"failure"|"cancelled"'; then
             echo "::error::One or more CI jobs failed"
             echo "$results"

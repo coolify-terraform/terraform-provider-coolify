@@ -547,8 +547,10 @@ var sensitiveKeys = map[string]bool{
 	"value":              true, // env var payloads use {"key":"DB_PASS","value":"secret"}
 	"docker_compose_raw": true, "docker_compose": true,
 	"cloud_init_script": true, "dockerfile": true,
-	"script":      true, // cloud-init YAML bodies
-	"webhook_url": true,
+	"script":                 true, // cloud-init YAML bodies
+	"webhook_url":            true,
+	"internal_db_url":        true,
+	"logdrain_custom_config": true,
 }
 
 // redactJSON replaces sensitive field values with [REDACTED] in a JSON byte
@@ -578,7 +580,8 @@ func isSensitiveField(name string) bool {
 		strings.Contains(lower, "token") ||
 		strings.Contains(lower, "api_key") ||
 		strings.Contains(lower, "license_key") ||
-		strings.Contains(lower, "user_key")
+		strings.Contains(lower, "user_key") ||
+		strings.Contains(lower, "webhook_url")
 }
 
 // mapHasKeyAndSecret reports whether m looks like an S3 credential object

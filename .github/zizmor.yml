@@ -1,0 +1,33 @@
+# zizmor configuration
+# https://docs.zizmor.sh/configuration/
+
+rules:
+  # Allow tag refs (SHA pinning remains preferred). See ci-workflow-hygiene Rule 9.
+  unpinned-uses:
+    config:
+      policies:
+        "*": ref-pin
+
+  # pull_request_target / workflow_run without checkout of untrusted code.
+  dangerous-triggers:
+    ignore:
+      - dependabot-auto-merge.yml
+      - pr-title.yml
+      - release.yml
+
+  # Same-repo head is required. github.actor is the triggering user
+  # (maintainer re-run), not the PR author.
+  bot-conditions:
+    ignore:
+      - auto-approve.yml
+
+  # setup-go module cache on a tag / workflow_run release, not a PR.
+  cache-poisoning:
+    ignore:
+      - release.yml
+
+  # Workflow-defined matrix cells and trusted job/env values, not PR input.
+  template-injection:
+    ignore:
+      - coolify-nightly.yml
+      - release.yml

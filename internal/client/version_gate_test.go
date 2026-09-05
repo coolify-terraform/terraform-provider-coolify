@@ -216,6 +216,8 @@ func TestSupportsPreviewDomainUpdate(t *testing.T) {
 	}{
 		{"4.3.14", false},
 		{"v4.3.14", false},
+		{"4.3.0", true}, // CI edge version lie
+		{"v4.3.0-edge", true},
 		{"4.3.15", true},
 		{"v4.3.15", true},
 		{"4.3.17", true},
