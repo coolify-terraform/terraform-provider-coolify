@@ -64,6 +64,7 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 			"domains": schema.StringAttribute{
 				MarkdownDescription: "Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). " + previewDomainUpdateFloor + " Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
 				Optional:            true,
+				Validators:          []validator.String{validate.Domains()},
 			},
 			"docker_compose_domains": schema.StringAttribute{
 				MarkdownDescription: "JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. " + previewDomainUpdateFloor + " Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
@@ -186,8 +187,9 @@ func (r *applicationPreviewResource) patchPreviewDomains(ctx context.Context, pl
 	if !plan.DockerComposeDomains.IsNull() && !plan.DockerComposeDomains.IsUnknown() {
 		raw := strings.TrimSpace(plan.DockerComposeDomains.ValueString())
 		if raw != "" {
-			if !json.Valid([]byte(raw)) {
-				return fmt.Errorf("docker_compose_domains must be a JSON array")
+			var items []json.RawMessage
+			if err := json.Unmarshal([]byte(raw), &items); err != nil {
+				return fmt.Errorf("docker_compose_domains must be a JSON array: %w", err)
 			}
 			input.DockerComposeDomains = json.RawMessage(raw)
 		}

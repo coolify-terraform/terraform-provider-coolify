@@ -280,6 +280,64 @@ func TestApplicationPreviewResource_CreateSendsForceDomainOverride(t *testing.T)
 	}
 }
 
+func TestApplicationPreviewResource_CreateDockerComposeDomainsObjectRejected(t *testing.T) {
+	t.Parallel()
+	var patchCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440052/previews/19", func(w http.ResponseWriter, r *http.Request) {
+		patchCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.15"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid       = "550e8400-e29b-41d4-a716-446655440052"
+					pull_request_id        = 19
+					docker_compose_domains = "{\"web\":{\"domain\":\"https://pr.example.com\"}}"
+				`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains must be a\s+JSON array`),
+			},
+		},
+	})
+	if got := patchCount.Load(); got != 0 {
+		t.Fatalf("PATCH count = %d, want 0 (object form rejected before PATCH)", got)
+	}
+}
+
+func TestApplicationPreviewResource_CreateInvalidDomains(t *testing.T) {
+	t.Parallel()
+	var patchCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440053/previews/20", func(w http.ResponseWriter, _ *http.Request) {
+		patchCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid = "550e8400-e29b-41d4-a716-446655440053"
+					pull_request_id  = 20
+					domains          = "not-a-url"
+				`),
+				ExpectError: regexp.MustCompile(`must be empty, or comma-separated http:// or https:// URLs`),
+			},
+		},
+	})
+	if got := patchCount.Load(); got != 0 {
+		t.Fatalf("PATCH count = %d, want 0 (invalid domains rejected at plan)", got)
+	}
+}
+
 func TestApplicationPreviewResource_CreateInvalidDockerComposeDomains(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
