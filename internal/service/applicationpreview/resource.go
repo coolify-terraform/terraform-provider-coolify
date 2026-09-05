@@ -9,6 +9,8 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
@@ -64,11 +66,17 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 			"domains": schema.StringAttribute{
 				MarkdownDescription: "Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). " + previewDomainUpdateFloor + " Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
 				Optional:            true,
-				Validators:          []validator.String{validate.Domains()},
+				Validators: []validator.String{
+					validate.Domains(),
+					stringvalidator.ConflictsWith(path.MatchRoot("docker_compose_domains")),
+				},
 			},
 			"docker_compose_domains": schema.StringAttribute{
 				MarkdownDescription: "JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. " + previewDomainUpdateFloor + " Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
 				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRoot("domains")),
+				},
 			},
 			"force_domain_override": schema.BoolAttribute{
 				MarkdownDescription: "When `true`, Coolify applies the preview domains even if they conflict with another resource. Write-only; default `false`. " + previewDomainUpdateFloor,
@@ -165,13 +173,13 @@ func (r *applicationPreviewResource) Delete(ctx context.Context, req resource.De
 }
 
 func (m applicationPreviewModel) hasDomainWrite() bool {
-	if !m.Domains.IsNull() && !m.Domains.IsUnknown() {
+	if !m.Domains.IsNull() && !m.Domains.IsUnknown() && m.Domains.ValueString() != "" {
 		return true
 	}
-	if !m.DockerComposeDomains.IsNull() && !m.DockerComposeDomains.IsUnknown() {
+	if !m.DockerComposeDomains.IsNull() && !m.DockerComposeDomains.IsUnknown() && strings.TrimSpace(m.DockerComposeDomains.ValueString()) != "" {
 		return true
 	}
-	return !m.ForceDomainOverride.IsNull() && !m.ForceDomainOverride.IsUnknown() && m.ForceDomainOverride.ValueBool()
+	return false
 }
 
 func (r *applicationPreviewResource) patchPreviewDomains(ctx context.Context, plan applicationPreviewModel) error {

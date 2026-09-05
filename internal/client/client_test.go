@@ -2547,6 +2547,11 @@ func TestExtractAPIMessage(t *testing.T) {
 			input: []byte(`{"message":"Validation failed","errors":{"password":["hunter2"]}}`),
 			want:  `Validation failed password: [REDACTED]`,
 		},
+		{
+			name:  "json with message warning and conflicts",
+			input: []byte(`{"message":"Domain conflict","warning":"in use","conflicts":[{"domain":"https://pr.example.com"}]}`),
+			want:  `Domain conflict in use conflicts: [{"domain":"https://pr.example.com"}]`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
