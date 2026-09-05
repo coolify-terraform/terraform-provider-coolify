@@ -632,8 +632,10 @@ jobs:
   scenario-tests:
     name: Scenario Tests
     runs-on: ubuntu-latest
-    # core is short; github-cicd waits up to 15m on deploy; hetzner creates VMs.
-    timeout-minutes: 25
+    # core is short. github-cicd waits up to 15m on deploy and retries
+    # once on Coolify build flake; 25m cannot fit first-fail plus retry.
+    # hetzner creates VMs. Keep one suite per job (do not even-split dirs).
+    timeout-minutes: ${{ matrix.timeout }}
     needs: [changes]
     if: >-
       always() &&
@@ -644,7 +646,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [core, github-cicd, hetzner]
+        include:
+          - suite: core
+            timeout: 25
+          - suite: github-cicd
+            timeout: 35
+          - suite: hetzner
+            timeout: 25
     permissions:
       contents: read
       # Playwright browser cache save in setup-coolify.
