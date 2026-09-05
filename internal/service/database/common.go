@@ -442,6 +442,10 @@ func RecoverCreateAfterExtendedError(ctx context.Context, c *client.Client, uuid
 // AddCreateReadBackError is a thin wrapper around flex.AddCreateReadBackError
 // kept for existing database package call sites.
 func AddCreateReadBackError(resp *resource.CreateResponse, label, identifier string, err error) {
+	if client.IsNotFound(err) {
+		flex.AddCreateReadBackNotFoundError(resp, label, identifier)
+		return
+	}
 	flex.AddCreateReadBackError(resp, label, identifier, err)
 }
 
@@ -462,6 +466,8 @@ func ImportDatabaseState(ctx context.Context, c *client.Client, req resource.Imp
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parsed.ProjectUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parsed.ServerUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parsed.EnvironmentName)...)
+	} else {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 }

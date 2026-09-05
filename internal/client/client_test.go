@@ -2640,6 +2640,31 @@ func TestIsNotFound(t *testing.T) {
 	assert.False(t, IsNotFound(nil))
 }
 
+func TestIsBadRequest(t *testing.T) {
+	t.Parallel()
+	assert.True(t, IsBadRequest(&APIStatusError{Status: http.StatusBadRequest, Message: "bad"}))
+	assert.True(t, IsBadRequest(fmt.Errorf("getting logs: %w", &APIStatusError{Status: http.StatusBadRequest})))
+	assert.False(t, IsBadRequest(&APIStatusError{Status: http.StatusInternalServerError}))
+	assert.False(t, IsBadRequest(&NotFoundError{Message: "gone"}))
+	assert.False(t, IsBadRequest(io.EOF))
+	assert.False(t, IsBadRequest(nil))
+}
+
+func TestIsBadRequest_DoWithStatus400(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"message":"container is not running"}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.GetApplicationLogs(context.Background(), "app-1")
+	require.Error(t, err)
+	assert.True(t, IsBadRequest(err), "doWithStatus 400 must wrap APIStatusError, got %v", err)
+}
+
 // --- doWithStatus status mismatch ---
 
 func TestClient_CreateProject_WrongStatusCode(t *testing.T) {
@@ -5745,6 +5770,87 @@ func TestClient_ListSharedEnvs_InvalidateOnWrite(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, deleted, 1)
 	assert.Equal(t, "KEY-4", deleted[0].Key, "delete should invalidate the list cache")
+	assert.Equal(t, int32(4), listCalls.Load())
+}
+
+func TestClient_ListTags_CachesWithinTTL(t *testing.T) {
+	t.Parallel()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/tags", r.URL.Path)
+		calls.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]Tag{
+			{UUID: "tag-1", Name: "prod"},
+		})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	first, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	assert.Equal(t, "prod", first[0].Name)
+
+	second, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	assert.Equal(t, "prod", second[0].Name)
+
+	assert.Equal(t, int32(1), calls.Load(), "expected exactly 1 HTTP call within 5s TTL")
+}
+
+func TestClient_ListTags_InvalidateOnWrite(t *testing.T) {
+	t.Parallel()
+	var listCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/tags":
+			n := listCalls.Add(1)
+			json.NewEncoder(w).Encode([]Tag{
+				{UUID: "tag-1", Name: fmt.Sprintf("tag-%d", n)},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/tags":
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(Tag{UUID: "tag-2", Name: "created"})
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v1/tags/tag-1":
+			json.NewEncoder(w).Encode(Tag{UUID: "tag-1", Name: "updated"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/tags/tag-1":
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, int32(1), listCalls.Load())
+
+	_, err = c.CreateTag(context.Background(), CreateTagInput{Name: "created"})
+	require.NoError(t, err)
+	created, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, created, 1)
+	assert.Equal(t, "tag-2", created[0].Name, "create should invalidate the list cache")
+	assert.Equal(t, int32(2), listCalls.Load())
+
+	_, err = c.UpdateTag(context.Background(), "tag-1", UpdateTagInput{Name: "updated"})
+	require.NoError(t, err)
+	updated, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, updated, 1)
+	assert.Equal(t, "tag-3", updated[0].Name, "update should invalidate the list cache")
+	assert.Equal(t, int32(3), listCalls.Load())
+
+	require.NoError(t, c.DeleteTag(context.Background(), "tag-1"))
+	deleted, err := c.ListTags(context.Background())
+	require.NoError(t, err)
+	require.Len(t, deleted, 1)
+	assert.Equal(t, "tag-4", deleted[0].Name, "delete should invalidate the list cache")
 	assert.Equal(t, int32(4), listCalls.Load())
 }
 

@@ -24,6 +24,7 @@ import (
 	fwresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -230,6 +231,45 @@ func TestServiceResource_CreateImport(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestServiceResource_ImportUUIDOnlySeedsEnvironmentName(t *testing.T) {
+	t.Parallel()
+
+	res := servicepkg.NewResource()
+	ctx := context.Background()
+	var schemaResp fwresource.SchemaResponse
+	res.Schema(ctx, fwresource.SchemaRequest{}, &schemaResp)
+	if schemaResp.Diagnostics.HasError() {
+		t.Fatalf("unexpected schema errors: %v", schemaResp.Diagnostics.Errors())
+	}
+
+	importer, ok := res.(fwresource.ResourceWithImportState)
+	if !ok {
+		t.Fatal("service resource does not implement ResourceWithImportState")
+	}
+
+	resp := &fwresource.ImportStateResponse{
+		State: tfsdk.State{
+			Schema: schemaResp.Schema,
+			Raw:    tftypes.NewValue(schemaResp.Schema.Type().TerraformType(ctx), nil),
+		},
+	}
+	importer.ImportState(ctx, fwresource.ImportStateRequest{
+		ID: "dddd0001-0001-4000-8000-000000000001",
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("unexpected import errors: %v", resp.Diagnostics.Errors())
+	}
+
+	var envName types.String
+	getDiags := resp.State.GetAttribute(ctx, path.Root("environment_name"), &envName)
+	if getDiags.HasError() {
+		t.Fatalf("reading environment_name: %v", getDiags.Errors())
+	}
+	if envName.ValueString() != "production" {
+		t.Fatalf("environment_name = %q, want production", envName.ValueString())
+	}
 }
 
 func TestServiceResource_ImportBadSimpleUUID(t *testing.T) {

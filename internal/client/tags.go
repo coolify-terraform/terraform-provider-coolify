@@ -29,7 +29,7 @@ type AttachTagsInput struct {
 
 func (c *Client) ListTags(ctx context.Context) ([]Tag, error) {
 	var r []Tag
-	if err := c.do(ctx, http.MethodGet, "/api/v1/tags", nil, &r); err != nil {
+	if err := c.doCachedList(ctx, "/api/v1/tags", &r); err != nil {
 		return nil, fmt.Errorf("listing tags: %w", err)
 	}
 	return r, nil
@@ -53,6 +53,7 @@ func (c *Client) CreateTag(ctx context.Context, input CreateTagInput) (*Tag, err
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/tags", input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating tag: %w", err)
 	}
+	c.listCache.invalidate("/api/v1/tags")
 	return &r, nil
 }
 
@@ -61,6 +62,7 @@ func (c *Client) UpdateTag(ctx context.Context, uuid string, input UpdateTagInpu
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/tags/%s", url.PathEscape(uuid)), input, &r); err != nil {
 		return nil, fmt.Errorf("updating tag %s: %w", uuid, err)
 	}
+	c.listCache.invalidate("/api/v1/tags")
 	return &r, nil
 }
 
@@ -68,6 +70,7 @@ func (c *Client) DeleteTag(ctx context.Context, uuid string) error {
 	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/tags/%s", url.PathEscape(uuid)), nil, nil); err != nil {
 		return fmt.Errorf("deleting tag %s: %w", uuid, err)
 	}
+	c.listCache.invalidate("/api/v1/tags")
 	return nil
 }
 

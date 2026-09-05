@@ -332,6 +332,42 @@ func IsNotFound(err error) bool {
 	return errors.As(err, &nf)
 }
 
+// APIStatusError is returned when the API responds with a non-2xx status
+// other than 404 (which uses NotFoundError).
+type APIStatusError struct {
+	Status  int
+	Message string
+}
+
+func (e *APIStatusError) Error() string {
+	if e == nil {
+		return "api status error"
+	}
+	if e.Message != "" {
+		return fmt.Sprintf("status %d: %s", e.Status, e.Message)
+	}
+	return fmt.Sprintf("status %d", e.Status)
+}
+
+// IsBadRequest reports whether err is an APIStatusError with HTTP 400.
+func IsBadRequest(err error) bool {
+	var apiErr *APIStatusError
+	return errors.As(err, &apiErr) && apiErr.Status == http.StatusBadRequest
+}
+
+// ErrRetriesExhausted is wrapped when the retryable HTTP client gives up.
+var ErrRetriesExhausted = errors.New("giving up after retries")
+
+func wrapHTTPDoError(method, path string, err error) error {
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(err.Error(), "giving up") {
+		return fmt.Errorf("executing request for %s %s: %w: %w", method, path, ErrRetriesExhausted, err)
+	}
+	return fmt.Errorf("executing request for %s %s: %w", method, path, err)
+}
+
 // do executes an API request, accepting any 2xx status.
 func (c *Client) do(ctx context.Context, method, path string, body interface{}, result interface{}) error {
 	return c.doWithStatus(ctx, method, path, body, result, 0)
@@ -365,7 +401,7 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("executing request for GET %s: %w", path, err)
+		return wrapHTTPDoError(http.MethodGet, path, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -383,7 +419,10 @@ func (c *Client) doCachedList(ctx context.Context, path string, result interface
 		return &NotFoundError{Message: fmt.Sprintf("resource not found (GET %s): %s", path, extractAPIMessage(respBody))}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("API returned status %d for GET %s: %s", resp.StatusCode, path, extractAPIMessage(respBody))
+		return fmt.Errorf("API returned status %d for GET %s: %w", resp.StatusCode, path, &APIStatusError{
+			Status:  resp.StatusCode,
+			Message: extractAPIMessage(respBody),
+		})
 	}
 
 	// Cache only after successful unmarshal to avoid storing malformed data.
@@ -429,7 +468,7 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("executing request for %s %s: %w", method, path, err)
+		return wrapHTTPDoError(method, path, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -448,11 +487,15 @@ func (c *Client) doWithStatus(ctx context.Context, method, path string, body int
 	if resp.StatusCode == http.StatusNotFound {
 		return &NotFoundError{Message: fmt.Sprintf("resource not found (%s %s): %s", method, path, extractAPIMessage(respBody))}
 	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		apiErr := &APIStatusError{Status: resp.StatusCode, Message: extractAPIMessage(respBody)}
+		if expectedStatus != 0 && resp.StatusCode != expectedStatus {
+			return fmt.Errorf("expected status %d, got %d for %s %s: %w", expectedStatus, resp.StatusCode, method, path, apiErr)
+		}
+		return fmt.Errorf("api error (status %d) for %s %s: %w", resp.StatusCode, method, path, apiErr)
+	}
 	if expectedStatus != 0 && resp.StatusCode != expectedStatus {
 		return fmt.Errorf("expected status %d, got %d for %s %s: %s", expectedStatus, resp.StatusCode, method, path, extractAPIMessage(respBody))
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("api error (status %d) for %s %s: %s", resp.StatusCode, method, path, extractAPIMessage(respBody))
 	}
 
 	if result != nil {

@@ -2,7 +2,7 @@ package application
 
 import (
 	"context"
-	"strings"
+	"errors"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/filter"
@@ -95,15 +95,14 @@ func (d *applicationLogsDataSource) Read(ctx context.Context, req datasource.Rea
 		// 400: container not running. Timeout: container does not exist
 		// and Coolify hangs waiting for docker logs. Both are expected
 		// for applications that have not been deployed yet.
-		errMsg := err.Error()
-		if strings.Contains(errMsg, "status 400") ||
-			strings.Contains(errMsg, "context deadline exceeded") ||
-			strings.Contains(errMsg, "giving up") {
+		if client.IsBadRequest(err) ||
+			errors.Is(err, context.DeadlineExceeded) ||
+			errors.Is(err, client.ErrRetriesExhausted) {
 			config.Logs = []applicationLogModel{}
 			resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 			return
 		}
-		resp.Diagnostics.AddError("Error reading application logs", errMsg)
+		resp.Diagnostics.AddError("Error reading application logs", err.Error())
 		return
 	}
 

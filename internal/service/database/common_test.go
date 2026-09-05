@@ -12,8 +12,12 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 func strPtr(v string) *types.String { s := types.StringValue(v); return &s }
@@ -21,6 +25,40 @@ func strPtr(v string) *types.String { s := types.StringValue(v); return &s }
 func int64Ptr(v int64) *types.Int64 { i := types.Int64Value(v); return &i }
 
 func boolPtr(v bool) *types.Bool { b := types.BoolValue(v); return &b }
+
+func TestImportDatabaseState_UUIDOnlySeedsProduction(t *testing.T) {
+	t.Parallel()
+
+	s := schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"uuid":             schema.StringAttribute{Optional: true},
+			"environment_name": schema.StringAttribute{Optional: true},
+			"project_uuid":     schema.StringAttribute{Optional: true},
+			"server_uuid":      schema.StringAttribute{Optional: true},
+		},
+	}
+	resp := &resource.ImportStateResponse{
+		State: tfsdk.State{
+			Schema: s,
+			Raw:    tftypes.NewValue(s.Type().TerraformType(context.Background()), nil),
+		},
+	}
+	ImportDatabaseState(context.Background(), nil, resource.ImportStateRequest{
+		ID: "aaaa0001-0001-4000-8000-000000000001",
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("unexpected import errors: %v", resp.Diagnostics.Errors())
+	}
+
+	var envName types.String
+	getDiags := resp.State.GetAttribute(context.Background(), path.Root("environment_name"), &envName)
+	if getDiags.HasError() {
+		t.Fatalf("reading environment_name: %v", getDiags.Errors())
+	}
+	if envName.ValueString() != "production" {
+		t.Fatalf("environment_name = %q, want production", envName.ValueString())
+	}
+}
 
 func TestSetUpdateExtended_OmitsDisallowedKeys(t *testing.T) {
 	t.Parallel()

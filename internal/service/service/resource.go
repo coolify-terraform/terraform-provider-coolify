@@ -334,6 +334,13 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 
 	svc, err := r.client.GetService(ctx, created.UUID)
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.Diagnostics.AddError(
+				flex.CreateReadBackFailedSummary("Service"),
+				flex.CreateReadBackNotFoundDetail("service", created.UUID),
+			)
+			return
+		}
 		resp.Diagnostics.AddError(
 			flex.CreateReadBackFailedSummary("Service"),
 			flex.CreateReadBackFailedDetail("service", created.UUID, err),
@@ -478,6 +485,8 @@ func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportSt
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("project_uuid"), parsed.ProjectUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("server_uuid"), parsed.ServerUUID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), parsed.EnvironmentName)...)
+	} else {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_name"), "production")...)
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("uuid"), parsed.UUID)...)
 	resp.Diagnostics.AddWarning(
