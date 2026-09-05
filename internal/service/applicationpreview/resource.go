@@ -10,6 +10,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -60,12 +61,13 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				Validators:          []validator.String{validate.UUID()},
 			},
 			"pull_request_id": schema.Int64Attribute{
-				MarkdownDescription: "The pull request number for the preview deployment.",
+				MarkdownDescription: "The pull request number for the preview deployment. Must be a positive integer (Coolify 422s 0).",
 				Required:            true,
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.RequiresReplace()},
+				Validators:          []validator.Int64{int64validator.AtLeast(1)},
 			},
 			"domains": schema.StringAttribute{
-				MarkdownDescription: "Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
+				MarkdownDescription: "Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state. An empty string skips PATCH; it does not clear Coolify preview domains.",
 				Optional:            true,
 				Validators: []validator.String{
 					validate.Domains(),
@@ -73,7 +75,7 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				},
 			},
 			"docker_compose_domains": schema.StringAttribute{
-				MarkdownDescription: "JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
+				MarkdownDescription: "JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. Extra keys are rejected at plan; `redirect` must be `www`, `non-www`, or `both`. PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state. An empty string and `[]` skip PATCH; they do not clear Coolify preview domains.",
 				Optional:            true,
 				Validators: []validator.String{
 					validate.DockerComposeDomains(),
@@ -81,7 +83,7 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				},
 			},
 			"force_domain_override": schema.BoolAttribute{
-				MarkdownDescription: "When `true`, Coolify applies the preview domains even if they conflict with another resource. Write-only; default `false`. " + previewDomainUpdateFloor,
+				MarkdownDescription: "When `true`, Coolify applies the preview domains even if they conflict with another resource. Omitted or `false` is not sent (Coolify keeps its default). Coolify has no GET for a single preview, so the value is preserved from state. " + previewDomainUpdateFloor,
 				Optional:            true,
 			},
 		},
@@ -109,11 +111,25 @@ func (r *applicationPreviewResource) Create(ctx context.Context, req resource.Cr
 	// deployment is created by Coolify (webhook or UI); this resource
 	// tracks it so terraform destroy can clean it up, and optionally
 	// PATCHes domains when Coolify >= v4.3.15.
-	if plan.hasDomainWrite() {
-		if err := r.patchPreviewDomains(ctx, plan); err != nil {
+	input, ok, err := plan.previewDomainInput()
+	if err != nil {
+		resp.Diagnostics.AddError(previewDomainError(plan, err))
+		return
+	}
+	if ok {
+		tflog.Debug(ctx, "patching preview domains", map[string]interface{}{
+			"app_uuid": plan.ApplicationUUID.ValueString(),
+			"pr_id":    plan.PullRequestID.ValueInt64(),
+		})
+		if err := r.patchPreviewDomains(ctx, plan, input); err != nil {
 			resp.Diagnostics.AddError(previewDomainError(plan, err))
 			return
 		}
+	} else {
+		tflog.Debug(ctx, "skipping preview domain PATCH", map[string]interface{}{
+			"app_uuid": plan.ApplicationUUID.ValueString(),
+			"pr_id":    plan.PullRequestID.ValueInt64(),
+		})
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -130,11 +146,31 @@ func (r *applicationPreviewResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	if plan.hasDomainWrite() {
-		if err := r.patchPreviewDomains(ctx, plan); err != nil {
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{
+		"resource_type": "coolify_application_preview",
+		"app_uuid":      plan.ApplicationUUID.ValueString(),
+		"pr_id":         plan.PullRequestID.ValueInt64(),
+	})
+
+	input, ok, err := plan.previewDomainInput()
+	if err != nil {
+		resp.Diagnostics.AddError(previewDomainError(plan, err))
+		return
+	}
+	if ok {
+		tflog.Debug(ctx, "patching preview domains", map[string]interface{}{
+			"app_uuid": plan.ApplicationUUID.ValueString(),
+			"pr_id":    plan.PullRequestID.ValueInt64(),
+		})
+		if err := r.patchPreviewDomains(ctx, plan, input); err != nil {
 			resp.Diagnostics.AddError(previewDomainError(plan, err))
 			return
 		}
+	} else {
+		tflog.Debug(ctx, "skipping preview domain PATCH", map[string]interface{}{
+			"app_uuid": plan.ApplicationUUID.ValueString(),
+			"pr_id":    plan.PullRequestID.ValueInt64(),
+		})
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -166,50 +202,64 @@ func (r *applicationPreviewResource) Delete(ctx context.Context, req resource.De
 	}
 }
 
-func (m applicationPreviewModel) hasDomainWrite() bool {
-	if !m.Domains.IsNull() && !m.Domains.IsUnknown() && m.Domains.ValueString() != "" {
-		return true
-	}
-	if m.DockerComposeDomains.IsNull() || m.DockerComposeDomains.IsUnknown() {
-		return false
-	}
-	raw := strings.TrimSpace(m.DockerComposeDomains.ValueString())
-	if raw == "" {
-		return false
-	}
-	// "[]" is valid JSON (empty array) but Coolify 422s it on empty compose.
-	var items []json.RawMessage
-	if err := json.Unmarshal([]byte(raw), &items); err == nil && len(items) == 0 {
-		return false
-	}
-	return true
-}
-
-func (r *applicationPreviewResource) patchPreviewDomains(ctx context.Context, plan applicationPreviewModel) error {
-	if r.client == nil || !r.client.SupportsPreviewDomainUpdate() {
-		return fmt.Errorf("preview domain updates require Coolify >= v4.3.15")
-	}
-
-	input := client.UpdatePreviewInput{}
-	if !plan.Domains.IsNull() && !plan.Domains.IsUnknown() {
-		v := plan.Domains.ValueString()
-		input.Domains = &v
-	}
-	if !plan.DockerComposeDomains.IsNull() && !plan.DockerComposeDomains.IsUnknown() {
-		raw := strings.TrimSpace(plan.DockerComposeDomains.ValueString())
-		if raw != "" {
-			var items []json.RawMessage
-			if err := json.Unmarshal([]byte(raw), &items); err != nil {
-				return fmt.Errorf("docker_compose_domains must be a JSON array: %w", err)
-			}
-			input.DockerComposeDomains = json.RawMessage(raw)
+func hasNonEmptyDomainSegment(raw string) bool {
+	for _, part := range strings.Split(strings.TrimSpace(raw), ",") {
+		if strings.TrimSpace(part) != "" {
+			return true
 		}
 	}
-	if !plan.ForceDomainOverride.IsNull() && !plan.ForceDomainOverride.IsUnknown() && plan.ForceDomainOverride.ValueBool() {
+	return false
+}
+
+func composeDomainWrite(raw types.String) (json.RawMessage, bool, error) {
+	if raw.IsNull() || raw.IsUnknown() {
+		return nil, false, nil
+	}
+	s := strings.TrimSpace(raw.ValueString())
+	if s == "" {
+		return nil, false, nil
+	}
+	var items []json.RawMessage
+	if err := json.Unmarshal([]byte(s), &items); err != nil {
+		return nil, false, fmt.Errorf("docker_compose_domains must be a JSON array: %w", err)
+	}
+	if len(items) == 0 {
+		return nil, false, nil
+	}
+	return json.RawMessage(s), true, nil
+}
+
+func (m applicationPreviewModel) previewDomainInput() (client.UpdatePreviewInput, bool, error) {
+	input := client.UpdatePreviewInput{}
+	ok := false
+
+	if !m.Domains.IsNull() && !m.Domains.IsUnknown() && hasNonEmptyDomainSegment(m.Domains.ValueString()) {
+		v := strings.TrimSpace(m.Domains.ValueString())
+		input.Domains = &v
+		ok = true
+	}
+
+	compose, composeOK, err := composeDomainWrite(m.DockerComposeDomains)
+	if err != nil {
+		return client.UpdatePreviewInput{}, false, err
+	}
+	if composeOK {
+		input.DockerComposeDomains = compose
+		ok = true
+	}
+
+	if ok && !m.ForceDomainOverride.IsNull() && !m.ForceDomainOverride.IsUnknown() && m.ForceDomainOverride.ValueBool() {
 		v := true
 		input.ForceDomainOverride = &v
 	}
 
+	return input, ok, nil
+}
+
+func (r *applicationPreviewResource) patchPreviewDomains(ctx context.Context, plan applicationPreviewModel, input client.UpdatePreviewInput) error {
+	if r.client == nil || !r.client.SupportsPreviewDomainUpdate() {
+		return fmt.Errorf("preview domain updates require Coolify >= v4.3.15")
+	}
 	return r.client.UpdatePreviewDeployment(ctx, plan.ApplicationUUID.ValueString(), plan.PullRequestID.ValueInt64(), input)
 }
 

@@ -7088,6 +7088,78 @@ func TestClient_ResolveDestinationUUID(t *testing.T) {
 	assert.Equal(t, "d-coolify", got)
 }
 
+func TestClient_createWithDestinationRetry(t *testing.T) {
+	t.Parallel()
+	var attempts int
+	var gotBody map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{{UUID: "dest-retry-1", Network: "coolify", Type: "standalone"}})
+	})
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+		if attempts == 1 {
+			http.Error(w, `{"message":"Server has multiple destinations and you do not set destination_uuid."}`, http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(Application{UUID: "app-retry-1"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	input := CreatePublicAppInput{ProjectUUID: "p", ServerUUID: "s", EnvironmentName: "production"}
+	var a Application
+	err := c.createWithDestinationRetry(
+		context.Background(),
+		"/api/v1/applications/public",
+		&input,
+		input.ServerUUID,
+		input.DestinationUUID,
+		func(dest string) { input.DestinationUUID = dest },
+		&a,
+		"creating public application",
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "app-retry-1", a.UUID)
+	assert.Equal(t, 2, attempts)
+	assert.Equal(t, "dest-retry-1", gotBody["destination_uuid"])
+}
+
+func TestClient_createWithDestinationRetry_EmptyDest(t *testing.T) {
+	t.Parallel()
+	var attempts int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/servers/{uuid}/destinations", func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Destination{})
+	})
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		http.Error(w, `{"message":"Server has multiple destinations and you do not set destination_uuid."}`, http.StatusBadRequest)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	input := CreatePublicAppInput{ProjectUUID: "p", ServerUUID: "s", EnvironmentName: "production"}
+	var a Application
+	err := c.createWithDestinationRetry(
+		context.Background(),
+		"/api/v1/applications/public",
+		&input,
+		input.ServerUUID,
+		input.DestinationUUID,
+		func(dest string) { input.DestinationUUID = dest },
+		&a,
+		"creating public application",
+	)
+	require.Error(t, err)
+	assert.Equal(t, 1, attempts)
+	assert.Contains(t, err.Error(), "Coolify requires destination_uuid (multiple destinations) but none could be resolved")
+	assert.Contains(t, err.Error(), "destination_uuid")
+	assert.Empty(t, input.DestinationUUID)
+}
+
 func TestClient_CreateDockerfileApplication_ResolvesDestination(t *testing.T) {
 	t.Parallel()
 	var attempts int

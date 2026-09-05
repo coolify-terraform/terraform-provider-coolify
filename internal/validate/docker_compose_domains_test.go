@@ -16,7 +16,10 @@ func TestDockerComposeDomains_Valid(t *testing.T) {
 		" ",
 		"[]",
 		`[{"name":"web","domain":"https://pr.example.com"}]`,
+		`[{"name":"web","domain":"https://pr.example.com","redirect":"www"}]`,
+		`[{"name":"web","domain":"https://pr.example.com","redirect":"non-www"}]`,
 		`[{"name":"web","domain":"https://pr.example.com","redirect":"both"}]`,
+		`[{"name":"web","domain":"https://pr.example.com","redirect":null}]`,
 		`[{"name":"web","domain":"https://a.example.com"},{"name":"api","domain":"https://b.example.com"}]`,
 	}
 	v := validate.DockerComposeDomains()
@@ -33,27 +36,43 @@ func TestDockerComposeDomains_Valid(t *testing.T) {
 
 func TestDockerComposeDomains_Invalid(t *testing.T) {
 	t.Parallel()
-	invalid := []string{
-		"not-json",
-		`{"web":{"domain":"https://pr.example.com"}}`,
-		`"web"`,
-		"[1]",
-		"[{}]",
-		`[{"name":"web"}]`,
-		`[{"domain":"https://pr.example.com"}]`,
-		`[{"name":"","domain":"https://pr.example.com"}]`,
-		`[{"name":"web","domain":""}]`,
-		`[{"name":1,"domain":"https://pr.example.com"}]`,
-		`[{"name":"web","domain":1}]`,
+	const notArray = `docker_compose_domains must be a JSON array of {name, domain, redirect} objects, not an object map. Write jsonencode([{ name = "web", domain = "https://pr.example.com" }]). Coolify GET uses {"web":{"domain":"..."}}.`
+	const required = "docker_compose_domains items require non-empty string name and domain"
+	const extraPort = `docker_compose_domains has unknown field "port"; allowed fields are name, domain, redirect`
+	const badRedirect = `redirect must be www, non-www, or both, got "always"`
+	const emptyRedirect = `redirect must be www, non-www, or both, got ""`
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{"not-json", notArray},
+		{`{"web":{"domain":"https://pr.example.com"}}`, notArray},
+		{`"web"`, notArray},
+		{"[1]", required},
+		{"[{}]", required},
+		{`[{"name":"web"}]`, required},
+		{`[{"domain":"https://pr.example.com"}]`, required},
+		{`[{"name":"","domain":"https://pr.example.com"}]`, required},
+		{`[{"name":"web","domain":""}]`, required},
+		{`[{"name":1,"domain":"https://pr.example.com"}]`, required},
+		{`[{"name":"web","domain":1}]`, required},
+		{`[{"name":"web","domain":"https://pr.example.com","port":80}]`, extraPort},
+		{`[{"name":"web","domain":"https://pr.example.com","redirect":"always"}]`, badRedirect},
+		{`[{"name":"web","domain":"https://pr.example.com","redirect":""}]`, emptyRedirect},
 	}
 	v := validate.DockerComposeDomains()
-	for _, s := range invalid {
+	for _, tt := range tests {
 		resp := validator.StringResponse{}
 		v.ValidateString(context.Background(), validator.StringRequest{
-			ConfigValue: types.StringValue(s),
+			ConfigValue: types.StringValue(tt.in),
 		}, &resp)
 		if !resp.Diagnostics.HasError() {
-			t.Errorf("DockerComposeDomains(%q) should be invalid, got no error", s)
+			t.Errorf("DockerComposeDomains(%q) should be invalid, got no error", tt.in)
+			continue
+		}
+		got := resp.Diagnostics.Errors()[0].Detail()
+		if got != tt.want {
+			t.Errorf("DockerComposeDomains(%q) detail = %q, want %q", tt.in, got, tt.want)
 		}
 	}
 }

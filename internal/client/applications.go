@@ -477,25 +477,34 @@ func (c *Client) GetApplication(ctx context.Context, uuid string) (*Application,
 	a.PromoteSettings()
 	return &a, nil
 }
-func (c *Client) CreatePublicApplication(ctx context.Context, input CreatePublicAppInput) (*Application, error) {
+func (c *Client) createApplicationWithDestRetry(
+	ctx context.Context,
+	path string,
+	input any,
+	serverUUID, destUUID string,
+	setDest func(string),
+	wrap string,
+) (*Application, error) {
 	var a Application
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/public", input, &a, http.StatusCreated); err != nil {
-		if !isMissingDestinationUUID(err) {
-			return nil, fmt.Errorf("creating public application: %w", err)
-		}
-		dest, rerr := c.ResolveDestinationUUID(ctx, input.ServerUUID, input.DestinationUUID)
-		if rerr != nil || dest == "" {
-			return nil, fmt.Errorf("creating public application: %w", err)
-		}
-		input.DestinationUUID = dest
-		if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/public", input, &a, http.StatusCreated); err != nil {
-			return nil, fmt.Errorf("creating public application: %w", err)
-		}
+	if err := c.createWithDestinationRetry(ctx, path, input, serverUUID, destUUID, setDest, &a, wrap); err != nil {
+		return nil, err
 	}
 	if a.UUID == "" {
-		return nil, fmt.Errorf("creating public application: API returned empty UUID")
+		return nil, fmt.Errorf("%s: API returned empty UUID", wrap)
 	}
 	return &a, nil
+}
+
+func (c *Client) CreatePublicApplication(ctx context.Context, input CreatePublicAppInput) (*Application, error) {
+	return c.createApplicationWithDestRetry(
+		ctx,
+		"/api/v1/applications/public",
+		&input,
+		input.ServerUUID,
+		input.DestinationUUID,
+		func(dest string) { input.DestinationUUID = dest },
+		"creating public application",
+	)
 }
 func (c *Client) UpdateApplication(ctx context.Context, uuid string, input UpdateApplicationInput) (*Application, error) {
 	if !c.SupportsApplicationSettings() {
@@ -677,24 +686,15 @@ type CreatePrivateGitAppInput struct {
 }
 
 func (c *Client) CreatePrivateGitApplication(ctx context.Context, input CreatePrivateGitAppInput) (*Application, error) {
-	var a Application
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-deploy-key", input, &a, http.StatusCreated); err != nil {
-		if !isMissingDestinationUUID(err) {
-			return nil, fmt.Errorf("creating private git application: %w", err)
-		}
-		dest, rerr := c.ResolveDestinationUUID(ctx, input.ServerUUID, input.DestinationUUID)
-		if rerr != nil || dest == "" {
-			return nil, fmt.Errorf("creating private git application: %w", err)
-		}
-		input.DestinationUUID = dest
-		if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-deploy-key", input, &a, http.StatusCreated); err != nil {
-			return nil, fmt.Errorf("creating private git application: %w", err)
-		}
-	}
-	if a.UUID == "" {
-		return nil, fmt.Errorf("creating private git application: API returned empty UUID")
-	}
-	return &a, nil
+	return c.createApplicationWithDestRetry(
+		ctx,
+		"/api/v1/applications/private-deploy-key",
+		&input,
+		input.ServerUUID,
+		input.DestinationUUID,
+		func(dest string) { input.DestinationUUID = dest },
+		"creating private git application",
+	)
 }
 
 type CreateDockerImageAppInput struct {
@@ -715,24 +715,15 @@ type CreateDockerImageAppInput struct {
 }
 
 func (c *Client) CreateDockerImageApplication(ctx context.Context, input CreateDockerImageAppInput) (*Application, error) {
-	var a Application
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockerimage", input, &a, http.StatusCreated); err != nil {
-		if !isMissingDestinationUUID(err) {
-			return nil, fmt.Errorf("creating docker image application: %w", err)
-		}
-		dest, rerr := c.ResolveDestinationUUID(ctx, input.ServerUUID, input.DestinationUUID)
-		if rerr != nil || dest == "" {
-			return nil, fmt.Errorf("creating docker image application: %w", err)
-		}
-		input.DestinationUUID = dest
-		if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockerimage", input, &a, http.StatusCreated); err != nil {
-			return nil, fmt.Errorf("creating docker image application: %w", err)
-		}
-	}
-	if a.UUID == "" {
-		return nil, fmt.Errorf("creating docker image application: API returned empty UUID")
-	}
-	return &a, nil
+	return c.createApplicationWithDestRetry(
+		ctx,
+		"/api/v1/applications/dockerimage",
+		&input,
+		input.ServerUUID,
+		input.DestinationUUID,
+		func(dest string) { input.DestinationUUID = dest },
+		"creating docker image application",
+	)
 }
 
 type CreateDockerfileAppInput struct {
@@ -754,24 +745,15 @@ type CreateDockerfileAppInput struct {
 }
 
 func (c *Client) CreateDockerfileApplication(ctx context.Context, input CreateDockerfileAppInput) (*Application, error) {
-	var a Application
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockerfile", input, &a, http.StatusCreated); err != nil {
-		if !isMissingDestinationUUID(err) {
-			return nil, fmt.Errorf("creating dockerfile application: %w", err)
-		}
-		dest, rerr := c.ResolveDestinationUUID(ctx, input.ServerUUID, input.DestinationUUID)
-		if rerr != nil || dest == "" {
-			return nil, fmt.Errorf("creating dockerfile application: %w", err)
-		}
-		input.DestinationUUID = dest
-		if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/dockerfile", input, &a, http.StatusCreated); err != nil {
-			return nil, fmt.Errorf("creating dockerfile application: %w", err)
-		}
-	}
-	if a.UUID == "" {
-		return nil, fmt.Errorf("creating dockerfile application: API returned empty UUID")
-	}
-	return &a, nil
+	return c.createApplicationWithDestRetry(
+		ctx,
+		"/api/v1/applications/dockerfile",
+		&input,
+		input.ServerUUID,
+		input.DestinationUUID,
+		func(dest string) { input.DestinationUUID = dest },
+		"creating dockerfile application",
+	)
 }
 
 type CreateGitHubAppInput struct {
@@ -798,24 +780,15 @@ type CreateGitHubAppInput struct {
 }
 
 func (c *Client) CreateGitHubAppApplication(ctx context.Context, input CreateGitHubAppInput) (*Application, error) {
-	var a Application
-	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-github-app", input, &a, http.StatusCreated); err != nil {
-		if !isMissingDestinationUUID(err) {
-			return nil, fmt.Errorf("creating github app application: %w", err)
-		}
-		dest, rerr := c.ResolveDestinationUUID(ctx, input.ServerUUID, input.DestinationUUID)
-		if rerr != nil || dest == "" {
-			return nil, fmt.Errorf("creating github app application: %w", err)
-		}
-		input.DestinationUUID = dest
-		if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/applications/private-github-app", input, &a, http.StatusCreated); err != nil {
-			return nil, fmt.Errorf("creating github app application: %w", err)
-		}
-	}
-	if a.UUID == "" {
-		return nil, fmt.Errorf("creating github app application: API returned empty UUID")
-	}
-	return &a, nil
+	return c.createApplicationWithDestRetry(
+		ctx,
+		"/api/v1/applications/private-github-app",
+		&input,
+		input.ServerUUID,
+		input.DestinationUUID,
+		func(dest string) { input.DestinationUUID = dest },
+		"creating github app application",
+	)
 }
 
 // ApplicationLog represents a single log line from an application.

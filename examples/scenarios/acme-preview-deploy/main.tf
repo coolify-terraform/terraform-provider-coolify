@@ -1,15 +1,15 @@
 # ACME Corp Preview Deployments
 #
-# Demonstrates PR-based preview environments:
+# Tracks PR-based preview environments that Coolify already created
+# (webhook or UI). This resource does not create those previews.
 # 1. Deploy an application using a Dockerfile
-# 2. Create preview environments for specific pull requests
-# 3. Clean up previews automatically on terraform destroy
+# 2. Track preview environments for specific pull requests
+# 3. terraform destroy DELETEs each tracked preview if it exists
 #
-# Preview environments let you spin up isolated copies of your app
-# for each PR. Coolify tracks them by pull_request_id so destroy
-# removes only those previews.
+# Domain PATCH examples live in
+# examples/resources/coolify_application_preview/resource.tf
 #
-# This scenario answers: "How do I set up preview deployments for PRs?"
+# This scenario answers: "How do I track Coolify PR previews in Terraform?"
 
 terraform {
   required_providers {
@@ -49,8 +49,8 @@ resource "coolify_application_dockerfile" "web" {
 
 # --- PR Preview Environments ---
 #
-# Each preview tracks a specific pull request. When the PR is merged
-# or closed, run terraform destroy to clean up the preview environment.
+# Each resource tracks a preview Coolify already created (webhook/UI).
+# terraform destroy DELETEs the tracked preview if it exists.
 
 resource "coolify_application_preview" "pr_1" {
   application_uuid = coolify_application_dockerfile.web.uuid

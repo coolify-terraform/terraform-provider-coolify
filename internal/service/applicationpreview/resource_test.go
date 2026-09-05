@@ -418,6 +418,35 @@ func TestApplicationPreviewResource_CreateSendsForceDomainOverride(t *testing.T)
 	}
 }
 
+func TestApplicationPreviewResource_CreateDockerComposeDomainsExtraKeyRejected(t *testing.T) {
+	t.Parallel()
+	var patchCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440061/previews/28", func(w http.ResponseWriter, _ *http.Request) {
+		patchCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.15"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid       = "550e8400-e29b-41d4-a716-446655440061"
+					pull_request_id        = 28
+					docker_compose_domains = "[{\"name\":\"web\",\"domain\":\"https://pr.example.com\",\"port\":80}]"
+				`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains\s+has\s+unknown\s+field\s+"port";\s+allowed\s+fields\s+are\s+name,\s+domain,\s+redirect`),
+			},
+		},
+	})
+	if got := patchCount.Load(); got != 0 {
+		t.Fatalf("PATCH count = %d, want 0 (extra compose key rejected before PATCH)", got)
+	}
+}
+
 func TestApplicationPreviewResource_CreateDockerComposeDomainsObjectRejected(t *testing.T) {
 	t.Parallel()
 	var patchCount atomic.Int32
@@ -438,12 +467,108 @@ func TestApplicationPreviewResource_CreateDockerComposeDomainsObjectRejected(t *
 					pull_request_id        = 19
 					docker_compose_domains = "{\"web\":{\"domain\":\"https://pr.example.com\"}}"
 				`),
-				ExpectError: regexp.MustCompile(`docker_compose_domains must be a\s+JSON array`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains\s+must\s+be\s+a\s+JSON\s+array\s+of\s+\{name,\s+domain,\s+redirect\}\s+objects`),
 			},
 		},
 	})
 	if got := patchCount.Load(); got != 0 {
 		t.Fatalf("PATCH count = %d, want 0 (object form rejected before PATCH)", got)
+	}
+}
+
+func TestApplicationPreviewResource_CreateWhitespaceDomainsSkipsPatch(t *testing.T) {
+	t.Parallel()
+	var patchCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440062/previews/29", func(w http.ResponseWriter, _ *http.Request) {
+		patchCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/550e8400-e29b-41d4-a716-446655440062/previews/29", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.15"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid = "550e8400-e29b-41d4-a716-446655440062"
+					pull_request_id  = 29
+					domains          = " "
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_preview.test", "domains", " "),
+				),
+			},
+		},
+	})
+	if got := patchCount.Load(); got != 0 {
+		t.Fatalf("PATCH count = %d, want 0 (whitespace domains is not a domain write)", got)
+	}
+}
+
+func TestApplicationPreviewResource_CreateCommaOnlyDomainsSkipsPatch(t *testing.T) {
+	t.Parallel()
+	var patchCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440063/previews/30", func(w http.ResponseWriter, _ *http.Request) {
+		patchCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/550e8400-e29b-41d4-a716-446655440063/previews/30", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.15"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid = "550e8400-e29b-41d4-a716-446655440063"
+					pull_request_id  = 30
+					domains          = ","
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_preview.test", "domains", ","),
+				),
+			},
+		},
+	})
+	if got := patchCount.Load(); got != 0 {
+		t.Fatalf("PATCH count = %d, want 0 (comma-only domains is not a domain write)", got)
+	}
+}
+
+func TestApplicationPreviewResource_CreatePullRequestIDZero(t *testing.T) {
+	t.Parallel()
+	var patchCount atomic.Int32
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440064/previews/0", func(w http.ResponseWriter, _ *http.Request) {
+		patchCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.15"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid = "550e8400-e29b-41d4-a716-446655440064"
+					pull_request_id  = 0
+				`),
+				ExpectError: regexp.MustCompile(`value must be at least\s+1`),
+			},
+		},
+	})
+	if got := patchCount.Load(); got != 0 {
+		t.Fatalf("PATCH count = %d, want 0 (pull_request_id 0 rejected at plan)", got)
 	}
 }
 
@@ -499,7 +624,7 @@ func TestApplicationPreviewResource_CreateInvalidDockerComposeDomains(t *testing
 					pull_request_id        = 16
 					docker_compose_domains = "not-json"
 				`),
-				ExpectError: regexp.MustCompile(`docker_compose_domains must be a\s+JSON array`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains\s+must\s+be\s+a\s+JSON\s+array\s+of\s+\{name,\s+domain,\s+redirect\}\s+objects`),
 			},
 		},
 	})
@@ -525,7 +650,7 @@ func TestApplicationPreviewResource_CreateDockerComposeDomainsNonObjectRejected(
 					pull_request_id        = 26
 					docker_compose_domains = "[1]"
 				`),
-				ExpectError: regexp.MustCompile(`docker_compose_domains must be a\s+JSON array`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains\s+items\s+require\s+non-empty\s+string\s+name\s+and\s+domain`),
 			},
 		},
 	})

@@ -197,9 +197,17 @@ func (r *dockerImageApplicationResource) Update(ctx context.Context, req resourc
 	}
 
 	dockerImageChanged := plan.DockerImage.ValueString() != state.DockerImage.ValueString()
-	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
-		flattenDockerImageApplication(app, &plan, r.client)
-	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields, dockerImageChanged)
+	updateAndReadBack(ctx, r.client, resp, updateAndReadBackArgs{
+		UUID:  plan.UUID.ValueString(),
+		Input: input,
+		Flatten: func(app *client.Application) {
+			flattenDockerImageApplication(app, &plan, r.client)
+		},
+		RedeployOnUpdate:    plan.RedeployOnUpdate.ValueBool(),
+		Plan:                planFields,
+		State:               stateFields,
+		TypeSpecificChanged: dockerImageChanged,
+	})
 	if resp.Diagnostics.HasError() {
 		return
 	}

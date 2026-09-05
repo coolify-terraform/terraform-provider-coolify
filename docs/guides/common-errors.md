@@ -158,21 +158,30 @@ set force_domain_override = true if you intend to take over the domain.
 **Fix:** set `force_domain_override = true` if you intend to take over the
 domain, or choose a different domain.
 
-### docker_compose_domains must be a JSON array
+### Invalid Docker Compose Domains (plan-time)
 
 ```
-Error: docker_compose_domains must be a JSON array
+Error: Invalid Docker Compose Domains
+docker_compose_domains has unknown field "port"; allowed fields are name, domain, redirect
 ```
 
-**Cause:** a compose preview was given the GET object map
-(`{"web":{"domain":"https://pr.example.com"}}`) instead of the write
-array. Preview does not accept the GET object map.
+```
+Error: Invalid Docker Compose Domains
+docker_compose_domains must be a JSON array of {name, domain, redirect} objects, not an object map. Write jsonencode([{ name = "web", domain = "https://pr.example.com" }]). Coolify GET uses {"web":{"domain":"..."}}.
+```
 
-**Fix:** send a JSON array of `{name, domain}` objects:
+**Cause:** extra keys such as `port` are rejected at plan. The GET object map
+(`{"web":{"domain":"https://pr.example.com"}}`) is also rejected; write a JSON
+array instead.
+
+**Fix:** send a JSON array of `{name, domain, redirect}` objects. `redirect`
+must be `www`, `non-www`, or `both` when set.
 
 ```hcl
 docker_compose_domains = jsonencode([{ name = "web", domain = "https://pr.example.com" }])
 ```
+
+An empty string and `[]` skip PATCH; they do not clear Coolify preview domains.
 
 ### Coolify version cannot write some application settings
 
