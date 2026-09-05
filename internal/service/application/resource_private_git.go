@@ -1,3 +1,4 @@
+//nolint:dupl // github-app and private-git share CRUD shape; Create inputs differ
 package application
 
 import (
