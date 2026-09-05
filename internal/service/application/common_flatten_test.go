@@ -541,6 +541,19 @@ func TestBuildPostCreatePatch_DockerfileTargetBuild(t *testing.T) {
 	}
 }
 
+func TestBuildPostCreatePatch_Dockerfile(t *testing.T) {
+	t.Parallel()
+	df := types.StringValue("FROM alpine")
+	f := commonAppFields{Dockerfile: &df}
+	input := buildPostCreatePatch(f)
+	if input.Dockerfile == nil {
+		t.Fatal("expected Dockerfile non-nil")
+	}
+	if *input.Dockerfile != "FROM alpine" {
+		t.Errorf("expected Dockerfile=%q, got %q", "FROM alpine", *input.Dockerfile)
+	}
+}
+
 func TestBuildPostCreatePatch_MaxRestartCount(t *testing.T) {
 	t.Parallel()
 	n := types.Int64Value(3)

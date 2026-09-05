@@ -212,6 +212,7 @@ func TestHasNonDefaultAppExtendedFields_EachField(t *testing.T) {
 		{"HealthCheckType", func(f *commonAppFields) { f.HealthCheckType = strPtr("tcp") }},
 		{"IsAutoDeployEnabled", func(f *commonAppFields) { f.IsAutoDeployEnabled = boolPtr(false) }},
 		{"BaseDirectory", func(f *commonAppFields) { f.BaseDirectory = strPtr("/app") }},
+		{"Dockerfile", func(f *commonAppFields) { f.Dockerfile = strPtr("FROM alpine") }},
 		{"DockerfileTargetBuild", func(f *commonAppFields) { f.DockerfileTargetBuild = strPtr("builder") }},
 		{"PublishDirectory", func(f *commonAppFields) { f.PublishDirectory = strPtr("/dist") }},
 		{"DockerRegistryImageTag", func(f *commonAppFields) { f.DockerRegistryImageTag = strPtr("v1") }},
