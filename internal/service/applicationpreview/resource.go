@@ -211,6 +211,24 @@ func hasNonEmptyDomainSegment(raw string) bool {
 	return false
 }
 
+func composeDomainWrite(raw types.String) (json.RawMessage, bool, error) {
+	if raw.IsNull() || raw.IsUnknown() {
+		return nil, false, nil
+	}
+	s := strings.TrimSpace(raw.ValueString())
+	if s == "" {
+		return nil, false, nil
+	}
+	var items []json.RawMessage
+	if err := json.Unmarshal([]byte(s), &items); err != nil {
+		return nil, false, fmt.Errorf("docker_compose_domains must be a JSON array: %w", err)
+	}
+	if len(items) == 0 {
+		return nil, false, nil
+	}
+	return json.RawMessage(s), true, nil
+}
+
 func (m applicationPreviewModel) previewDomainInput() (client.UpdatePreviewInput, bool, error) {
 	input := client.UpdatePreviewInput{}
 	ok := false
@@ -221,18 +239,13 @@ func (m applicationPreviewModel) previewDomainInput() (client.UpdatePreviewInput
 		ok = true
 	}
 
-	if !m.DockerComposeDomains.IsNull() && !m.DockerComposeDomains.IsUnknown() {
-		raw := strings.TrimSpace(m.DockerComposeDomains.ValueString())
-		if raw != "" {
-			var items []json.RawMessage
-			if err := json.Unmarshal([]byte(raw), &items); err != nil {
-				return client.UpdatePreviewInput{}, false, fmt.Errorf("docker_compose_domains must be a JSON array: %w", err)
-			}
-			if len(items) > 0 {
-				input.DockerComposeDomains = json.RawMessage(raw)
-				ok = true
-			}
-		}
+	compose, composeOK, err := composeDomainWrite(m.DockerComposeDomains)
+	if err != nil {
+		return client.UpdatePreviewInput{}, false, err
+	}
+	if composeOK {
+		input.DockerComposeDomains = compose
+		ok = true
 	}
 
 	if ok && !m.ForceDomainOverride.IsNull() && !m.ForceDomainOverride.IsUnknown() && m.ForceDomainOverride.ValueBool() {
