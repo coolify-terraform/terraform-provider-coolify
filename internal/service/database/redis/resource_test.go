@@ -348,9 +348,15 @@ func TestRedisDatabaseResource_CreateSendsDestinationUUID(t *testing.T) {
 		destUUID  = "dddd0001-0001-4000-8000-000000000001"
 	)
 	var gotBody map[string]interface{}
+	var (
+		deleted bool
+		mu      sync.Mutex
+	)
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/redis":
 			if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
@@ -360,6 +366,10 @@ func TestRedisDatabaseResource_CreateSendsDestinationUUID(t *testing.T) {
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]string{"uuid": redisUUID})
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":                      redisUUID,
 				"name":                      "redis-dest-db",
@@ -387,6 +397,7 @@ func TestRedisDatabaseResource_CreateSendsDestinationUUID(t *testing.T) {
 				"enable_ssl":                false,
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			deleted = true
 			w.WriteHeader(http.StatusOK)
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
 			w.WriteHeader(http.StatusOK)
@@ -448,9 +459,15 @@ func TestRedisDatabaseResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T)
 	t.Parallel()
 	const redisUUID = "aaaa0001-0001-4000-8000-000000000098"
 	var gotBody map[string]interface{}
+	var (
+		deleted bool
+		mu      sync.Mutex
+	)
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
+		defer mu.Unlock()
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/redis":
 			if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
@@ -460,6 +477,10 @@ func TestRedisDatabaseResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T)
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]string{"uuid": redisUUID})
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			if deleted {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid": redisUUID, "name": "redis-omit-dest",
 				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
@@ -473,6 +494,7 @@ func TestRedisDatabaseResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T)
 				"health_check_retries": 5, "health_check_start_period": 5, "enable_ssl": false,
 			})
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
+			deleted = true
 			w.WriteHeader(http.StatusOK)
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", redisUUID):
 			w.WriteHeader(http.StatusOK)

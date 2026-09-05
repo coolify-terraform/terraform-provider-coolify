@@ -233,7 +233,11 @@ goreleaser-check: check-goreleaser-version ## Validate .goreleaser.yml with CI-c
 
 vulncheck: ## Run govulncheck for known vulnerabilities
 	go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
-	cd tools && go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...
+	@if pkgs="$$(cd tools && go list ./... 2>/dev/null)" && [ -n "$$pkgs" ]; then \
+		cd tools && go run golang.org/x/vuln/cmd/govulncheck@v1.3.0 ./...; \
+	else \
+		echo "Skipping tools/ govulncheck (no packages)"; \
+	fi
 
 tools: ## Install all required development tools
 	@mkdir -p "$(BIN_DIR)"

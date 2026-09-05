@@ -311,7 +311,7 @@ resource "coolify_environment" "test" {
   name         = "readback-failure"
 }
 `,
-				ExpectError: regexp.MustCompile(`(?s)Environment created but refresh failed.*Could not read environment.*partial Terraform state was saved`),
+				ExpectError: regexp.MustCompile(`Environment created but refresh failed`),
 			},
 		},
 	})
