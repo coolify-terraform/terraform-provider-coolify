@@ -175,9 +175,16 @@ func (r *applicationResource) Update(ctx context.Context, req resource.UpdateReq
 	planFields := plan.common()
 	stateFields := state.common()
 	input := buildUpdateInput(planFields, stateFields)
-	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
-		flattenApplication(app, &plan, r.client)
-	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields)
+	updateAndReadBack(ctx, r.client, resp, updateAndReadBackArgs{
+		UUID:  plan.UUID.ValueString(),
+		Input: input,
+		Flatten: func(app *client.Application) {
+			flattenApplication(app, &plan, r.client)
+		},
+		RedeployOnUpdate: plan.RedeployOnUpdate.ValueBool(),
+		Plan:             planFields,
+		State:            stateFields,
+	})
 	if resp.Diagnostics.HasError() {
 		return
 	}

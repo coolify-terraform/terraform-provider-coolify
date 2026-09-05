@@ -183,9 +183,16 @@ func (r *gitHubAppApplicationResource) Update(ctx context.Context, req resource.
 	planFields := plan.common()
 	stateFields := state.common()
 	input := buildUpdateInput(planFields, stateFields)
-	updateAndReadBack(ctx, r.client, plan.UUID.ValueString(), input, resp, func(app *client.Application) {
-		flattenGitHubAppApplication(app, &plan, r.client)
-	}, plan.RedeployOnUpdate.ValueBool(), planFields, stateFields, false)
+	updateAndReadBack(ctx, r.client, resp, updateAndReadBackArgs{
+		UUID:  plan.UUID.ValueString(),
+		Input: input,
+		Flatten: func(app *client.Application) {
+			flattenGitHubAppApplication(app, &plan, r.client)
+		},
+		RedeployOnUpdate: plan.RedeployOnUpdate.ValueBool(),
+		Plan:             planFields,
+		State:            stateFields,
+	})
 	if resp.Diagnostics.HasError() {
 		return
 	}
