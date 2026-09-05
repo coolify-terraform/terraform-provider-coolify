@@ -6,7 +6,39 @@ import (
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+func TestHasDomainWrite(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name                 string
+		domains              types.String
+		dockerComposeDomains types.String
+		want                 bool
+	}{
+		{"empty domains", types.StringValue(""), types.StringNull(), false},
+		{"whitespace domains", types.StringValue(" "), types.StringNull(), false},
+		{"comma-only domains", types.StringValue(","), types.StringNull(), false},
+		{"real URL", types.StringValue("https://pr.example.com"), types.StringNull(), true},
+		{"domains JSON array", types.StringValue("[]"), types.StringNull(), true},
+		{"empty compose array", types.StringNull(), types.StringValue("[]"), false},
+		{"empty compose", types.StringNull(), types.StringValue(""), false},
+		{"valid compose JSON", types.StringNull(), types.StringValue(`[{"name":"web","domain":"https://pr.example.com"}]`), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			m := applicationPreviewModel{
+				Domains:              tt.domains,
+				DockerComposeDomains: tt.dockerComposeDomains,
+			}
+			if got := m.hasDomainWrite(); got != tt.want {
+				t.Errorf("hasDomainWrite() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestAnnotatePreviewDomainError(t *testing.T) {
 	t.Parallel()

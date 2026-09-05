@@ -52,7 +52,7 @@ resource "coolify_application_preview" "pr_44_override" {
 ### Required
 
 - `application_uuid` (String) The UUID of the application that owns the preview.
-- `pull_request_id` (Number) The pull request number for the preview deployment.
+- `pull_request_id` (Number) The pull request number for the preview deployment. Must be a positive integer (Coolify 422s 0).
 
 ### Optional
 

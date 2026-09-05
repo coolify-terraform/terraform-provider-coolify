@@ -16,7 +16,11 @@ func TestDockerComposeDomains_Valid(t *testing.T) {
 		" ",
 		"[]",
 		`[{"name":"web","domain":"https://pr.example.com"}]`,
+		`[{"name":"web","domain":"https://pr.example.com","redirect":"www"}]`,
+		`[{"name":"web","domain":"https://pr.example.com","redirect":"non-www"}]`,
 		`[{"name":"web","domain":"https://pr.example.com","redirect":"both"}]`,
+		`[{"name":"web","domain":"https://pr.example.com","redirect":null}]`,
+		`[{"name":"web","domain":"https://pr.example.com","redirect":""}]`,
 		`[{"name":"web","domain":"https://a.example.com"},{"name":"api","domain":"https://b.example.com"}]`,
 	}
 	v := validate.DockerComposeDomains()
@@ -45,6 +49,8 @@ func TestDockerComposeDomains_Invalid(t *testing.T) {
 		`[{"name":"web","domain":""}]`,
 		`[{"name":1,"domain":"https://pr.example.com"}]`,
 		`[{"name":"web","domain":1}]`,
+		`[{"name":"web","domain":"https://pr.example.com","port":80}]`,
+		`[{"name":"web","domain":"https://pr.example.com","redirect":"always"}]`,
 	}
 	v := validate.DockerComposeDomains()
 	for _, s := range invalid {

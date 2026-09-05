@@ -10,6 +10,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -60,9 +61,10 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				Validators:          []validator.String{validate.UUID()},
 			},
 			"pull_request_id": schema.Int64Attribute{
-				MarkdownDescription: "The pull request number for the preview deployment.",
+				MarkdownDescription: "The pull request number for the preview deployment. Must be a positive integer (Coolify 422s 0).",
 				Required:            true,
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.RequiresReplace()},
+				Validators:          []validator.Int64{int64validator.AtLeast(1)},
 			},
 			"domains": schema.StringAttribute{
 				MarkdownDescription: "Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
@@ -166,8 +168,17 @@ func (r *applicationPreviewResource) Delete(ctx context.Context, req resource.De
 	}
 }
 
+func hasNonEmptyDomainSegment(raw string) bool {
+	for _, part := range strings.Split(strings.TrimSpace(raw), ",") {
+		if strings.TrimSpace(part) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func (m applicationPreviewModel) hasDomainWrite() bool {
-	if !m.Domains.IsNull() && !m.Domains.IsUnknown() && m.Domains.ValueString() != "" {
+	if !m.Domains.IsNull() && !m.Domains.IsUnknown() && hasNonEmptyDomainSegment(m.Domains.ValueString()) {
 		return true
 	}
 	if m.DockerComposeDomains.IsNull() || m.DockerComposeDomains.IsUnknown() {
@@ -192,7 +203,7 @@ func (r *applicationPreviewResource) patchPreviewDomains(ctx context.Context, pl
 
 	input := client.UpdatePreviewInput{}
 	if !plan.Domains.IsNull() && !plan.Domains.IsUnknown() {
-		v := plan.Domains.ValueString()
+		v := strings.TrimSpace(plan.Domains.ValueString())
 		input.Domains = &v
 	}
 	if !plan.DockerComposeDomains.IsNull() && !plan.DockerComposeDomains.IsUnknown() {
