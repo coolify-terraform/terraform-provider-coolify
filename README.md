@@ -159,7 +159,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_notification_pushover` | Team Pushover notification settings (Coolify >= v4.3.0) |
 | `coolify_notification_webhook` | Team generic webhook notification settings (Coolify >= v4.3.0) |
 | `coolify_envs_bulk` | Manage environment variables as a single atomic set |
-| `coolify_application_preview` | Manage application preview deployments |
+| `coolify_application_preview` | Track a Coolify PR preview (does not create it); optional domain PATCH on Coolify >= v4.3.15 |
 | `coolify_api_settings` | Manage Coolify API and MCP server settings |
 | `coolify_backup_execution` | Trigger database backup executions |
 | `coolify_cloud_token_validate` | Validate cloud provider tokens |
@@ -223,7 +223,7 @@ Deploy a full stack (app, database, backups, env vars) in a single `terraform ap
 | [acme-private-repo](examples/scenarios/acme-private-repo) | SSH deploy key + private Git repo + deployment with wait |
 | [acme-team-ops](examples/scenarios/acme-team-ops) | Team management, server discovery, project inventory |
 | [acme-day2-ops](examples/scenarios/acme-day2-ops) | Stop/start/restart resources with trigger-based re-execution |
-| [acme-preview-deploy](examples/scenarios/acme-preview-deploy) | GitHub App + PR preview environments |
+| [acme-preview-deploy](examples/scenarios/acme-preview-deploy) | Dockerfile app + track PR 1/2 (Coolify creates the preview) |
 | [acme-github-cicd](examples/scenarios/acme-github-cicd) | GitHub App CI/CD pipeline with env vars + deployment |
 | [acme-compose-git](examples/scenarios/acme-compose-git) | Custom Docker Compose stack via docker_compose_raw |
 | [acme-env-scale](examples/scenarios/acme-env-scale) | Bulk env var management with shared + per-app patterns |

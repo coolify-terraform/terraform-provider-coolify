@@ -1,11 +1,15 @@
 # ACME Corp Preview Deployments
 
-This scenario sets up PR-based preview environments, demonstrating:
+This scenario tracks PR-based preview environments that Coolify already
+created (webhook or UI). Terraform does not create those previews.
 
 1. **Application** (`coolify_application_dockerfile`) deployed from an
    inline Dockerfile (any application type supports previews).
-2. **Preview environments** (`coolify_application_preview`) created for
-   specific pull requests, cleaned up automatically on `terraform destroy`.
+2. **Preview tracking** (`coolify_application_preview`) for pull requests
+   #1 and #2. `terraform destroy` DELETEs each tracked preview if it exists.
+
+Domain PATCH examples live in
+[`examples/resources/coolify_application_preview/resource.tf`](../../resources/coolify_application_preview/resource.tf).
 
 ## Resources Tested
 
@@ -13,7 +17,7 @@ This scenario sets up PR-based preview environments, demonstrating:
 |----------|---------|
 | `coolify_project` | Project container |
 | `coolify_application_dockerfile` | Application to attach previews to |
-| `coolify_application_preview` (x2) | PR preview environments for PRs #1 and #2 |
+| `coolify_application_preview` (x2) | Track PR 1/2 (Coolify creates the preview) |
 
 ## Running
 

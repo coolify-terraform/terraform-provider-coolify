@@ -67,7 +67,7 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				Validators:          []validator.Int64{int64validator.AtLeast(1)},
 			},
 			"domains": schema.StringAttribute{
-				MarkdownDescription: "Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
+				MarkdownDescription: "Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state. An empty string skips PATCH; it does not clear Coolify preview domains.",
 				Optional:            true,
 				Validators: []validator.String{
 					validate.Domains(),
@@ -75,7 +75,7 @@ func (r *applicationPreviewResource) Schema(_ context.Context, _ resource.Schema
 				},
 			},
 			"docker_compose_domains": schema.StringAttribute{
-				MarkdownDescription: "JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.",
+				MarkdownDescription: "JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. Extra keys are rejected at plan; `redirect` must be `www`, `non-www`, or `both`. PATCHes an **existing** preview; Coolify returns 404 if it has not created the preview yet. " + previewDomainUpdateFloor + " Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state. An empty string and `[]` skip PATCH; they do not clear Coolify preview domains.",
 				Optional:            true,
 				Validators: []validator.String{
 					validate.DockerComposeDomains(),

@@ -3,12 +3,16 @@ package validate
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
-const dockerComposeDomainsDetail = "docker_compose_domains must be a JSON array of objects with non-empty string name and domain; only name, domain, and redirect fields are supported"
+const dockerComposeDomainsNotArray = `docker_compose_domains must be a JSON array of {name, domain, redirect} objects, not an object map. Write jsonencode([{ name = "web", domain = "https://pr.example.com" }]). Coolify GET uses {"web":{"domain":"..."}}.`
+
+const dockerComposeDomainsRequired = "docker_compose_domains items require non-empty string name and domain"
 
 type dockerComposeDomainsValidator struct{}
 
@@ -40,44 +44,55 @@ func (v dockerComposeDomainsValidator) ValidateString(_ context.Context, req val
 
 	var items []json.RawMessage
 	if err := json.Unmarshal([]byte(val), &items); err != nil {
-		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Docker Compose Domains", dockerComposeDomainsDetail)
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Docker Compose Domains", dockerComposeDomainsNotArray)
 		return
 	}
 	for _, item := range items {
-		if !validPreviewComposeDomainItem(item) {
-			resp.Diagnostics.AddAttributeError(req.Path, "Invalid Docker Compose Domains", dockerComposeDomainsDetail)
+		if detail := previewComposeDomainItemError(item); detail != "" {
+			resp.Diagnostics.AddAttributeError(req.Path, "Invalid Docker Compose Domains", detail)
 			return
 		}
 	}
 }
 
-func validPreviewComposeDomainItem(item json.RawMessage) bool {
+func previewComposeDomainItemError(item json.RawMessage) string {
 	var obj map[string]any
 	if err := json.Unmarshal(item, &obj); err != nil {
-		return false
+		return dockerComposeDomainsRequired
 	}
+	var unknown []string
 	for key := range obj {
 		if !allowedPreviewComposeDomainKey(key) {
-			return false
+			unknown = append(unknown, key)
 		}
+	}
+	if len(unknown) > 0 {
+		sort.Strings(unknown)
+		return fmt.Sprintf("docker_compose_domains has unknown field %q; allowed fields are name, domain, redirect", unknown[0])
 	}
 	name, nameOK := obj["name"].(string)
 	domain, domainOK := obj["domain"].(string)
 	if !nameOK || strings.TrimSpace(name) == "" || !domainOK || strings.TrimSpace(domain) == "" {
-		return false
+		return dockerComposeDomainsRequired
 	}
-	return validPreviewComposeRedirect(obj)
+	return previewComposeRedirectError(obj)
 }
 
 func allowedPreviewComposeDomainKey(key string) bool {
 	return key == "name" || key == "domain" || key == "redirect"
 }
 
-func validPreviewComposeRedirect(obj map[string]any) bool {
+func previewComposeRedirectError(obj map[string]any) string {
 	redirect, ok := obj["redirect"]
 	if !ok || redirect == nil {
-		return true
+		return ""
 	}
 	s, isStr := redirect.(string)
-	return isStr && (s == "" || s == "www" || s == "non-www" || s == "both")
+	if isStr && (s == "" || s == "www" || s == "non-www" || s == "both") {
+		return ""
+	}
+	if isStr {
+		return fmt.Sprintf("redirect must be www, non-www, or both, got %q", s)
+	}
+	return fmt.Sprintf("redirect must be www, non-www, or both, got %q", fmt.Sprint(redirect))
 }

@@ -438,7 +438,7 @@ func TestApplicationPreviewResource_CreateDockerComposeDomainsExtraKeyRejected(t
 					pull_request_id        = 28
 					docker_compose_domains = "[{\"name\":\"web\",\"domain\":\"https://pr.example.com\",\"port\":80}]"
 				`),
-				ExpectError: regexp.MustCompile(`only name, domain, and redirect`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains\s+has\s+unknown\s+field\s+"port";\s+allowed\s+fields\s+are\s+name,\s+domain,\s+redirect`),
 			},
 		},
 	})
@@ -467,7 +467,7 @@ func TestApplicationPreviewResource_CreateDockerComposeDomainsObjectRejected(t *
 					pull_request_id        = 19
 					docker_compose_domains = "{\"web\":{\"domain\":\"https://pr.example.com\"}}"
 				`),
-				ExpectError: regexp.MustCompile(`docker_compose_domains must be a\s+JSON array`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains\s+must\s+be\s+a\s+JSON\s+array\s+of\s+\{name,\s+domain,\s+redirect\}\s+objects`),
 			},
 		},
 	})
@@ -624,7 +624,7 @@ func TestApplicationPreviewResource_CreateInvalidDockerComposeDomains(t *testing
 					pull_request_id        = 16
 					docker_compose_domains = "not-json"
 				`),
-				ExpectError: regexp.MustCompile(`docker_compose_domains must be a\s+JSON array`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains\s+must\s+be\s+a\s+JSON\s+array\s+of\s+\{name,\s+domain,\s+redirect\}\s+objects`),
 			},
 		},
 	})
@@ -650,7 +650,7 @@ func TestApplicationPreviewResource_CreateDockerComposeDomainsNonObjectRejected(
 					pull_request_id        = 26
 					docker_compose_domains = "[1]"
 				`),
-				ExpectError: regexp.MustCompile(`docker_compose_domains must be a\s+JSON array`),
+				ExpectError: regexp.MustCompile(`docker_compose_domains\s+items\s+require\s+non-empty\s+string\s+name\s+and\s+domain`),
 			},
 		},
 	})
