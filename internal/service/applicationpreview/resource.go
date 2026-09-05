@@ -117,10 +117,19 @@ func (r *applicationPreviewResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 	if ok {
+		tflog.Debug(ctx, "patching preview domains", map[string]interface{}{
+			"app_uuid": plan.ApplicationUUID.ValueString(),
+			"pr_id":    plan.PullRequestID.ValueInt64(),
+		})
 		if err := r.patchPreviewDomains(ctx, plan, input); err != nil {
 			resp.Diagnostics.AddError(previewDomainError(plan, err))
 			return
 		}
+	} else {
+		tflog.Debug(ctx, "skipping preview domain PATCH", map[string]interface{}{
+			"app_uuid": plan.ApplicationUUID.ValueString(),
+			"pr_id":    plan.PullRequestID.ValueInt64(),
+		})
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -137,16 +146,31 @@ func (r *applicationPreviewResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
+	tflog.Debug(ctx, "updating resource", map[string]interface{}{
+		"resource_type": "coolify_application_preview",
+		"app_uuid":      plan.ApplicationUUID.ValueString(),
+		"pr_id":         plan.PullRequestID.ValueInt64(),
+	})
+
 	input, ok, err := plan.previewDomainInput()
 	if err != nil {
 		resp.Diagnostics.AddError(previewDomainError(plan, err))
 		return
 	}
 	if ok {
+		tflog.Debug(ctx, "patching preview domains", map[string]interface{}{
+			"app_uuid": plan.ApplicationUUID.ValueString(),
+			"pr_id":    plan.PullRequestID.ValueInt64(),
+		})
 		if err := r.patchPreviewDomains(ctx, plan, input); err != nil {
 			resp.Diagnostics.AddError(previewDomainError(plan, err))
 			return
 		}
+	} else {
+		tflog.Debug(ctx, "skipping preview domain PATCH", map[string]interface{}{
+			"app_uuid": plan.ApplicationUUID.ValueString(),
+			"pr_id":    plan.PullRequestID.ValueInt64(),
+		})
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
