@@ -84,6 +84,7 @@ jobs:
               - '.github/workflows/ci.yml'
             workflows:
               - '.github/workflows/**'
+              - '.github/zizmor.yml'
             scenarios:
               # Product + scenario HCL + the runner script. Do not include
               # ci.yml alone: every workflow-only PR was running Coolify
@@ -140,7 +141,6 @@ jobs:
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
-        github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch'
       )
     strategy:
@@ -496,12 +496,6 @@ jobs:
       - name: Check contract compatibility
         if: ${{ !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: make contract-compat
-      - name: Install actionlint
-        if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-        run: GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
-      - name: Lint GitHub Actions workflows
-        if: ${{ !cancelled() && (needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
-        run: make actionlint-check
       - name: Run Python script tests
         if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: |
@@ -611,6 +605,12 @@ jobs:
         run: GOBIN="$(pwd)/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
       - name: Lint GitHub Actions workflows
         run: make actionlint-check
+      - name: Install zizmor
+        run: |
+          python3 -m pip install --user "zizmor==1.16.1"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Run zizmor
+        run: zizmor --config .github/zizmor.yml .github/workflows
 
   contract-freshness:
     name: Contract Freshness
@@ -970,8 +970,10 @@ jobs:
         with:
           egress-policy: audit
       - name: Check results
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
         run: |
-          results='${{ toJSON(needs.*.result) }}'
+          results="$RESULTS"
           if echo "$results" | grep -qE '"failure"|"cancelled"'; then
             echo "::error::One or more CI jobs failed"
             echo "$results"
