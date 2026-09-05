@@ -139,13 +139,14 @@ This pipeline catches API drift automatically when Coolify updates its models.
 
 ## CI pipeline
 
-The CI pipeline runs 9 jobs on every push and PR:
+The CI pipeline runs 10 jobs on every push and PR:
 
 | Job | What it checks |
 |-----|---------------|
 | Detect Changes | Path-based filtering to skip unchanged jobs |
 | DCO | Signed-off-by trailer on all PR commits |
 | Test | Unit tests with race detector + code coverage |
+| Coverage | Merge package-shard coverage reports |
 | Lint | golangci-lint (20 linters) + Govulncheck + GoReleaser check |
 | Validate | HCL formatting + tfplugindocs + Trivy + Gitleaks |
 | Acceptance Tests | Full suite against a bootstrapped Coolify instance |

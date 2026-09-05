@@ -5,9 +5,12 @@
 ### Prerequisites
 
 - [Go](https://golang.org/doc/install) >= 1.26
+- GNU Make and a Unix shell (Git Bash or WSL on Windows)
 - [Python](https://www.python.org/downloads/) >= 3.9 (required for script unit tests run by `make ci`)
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.6 (required for `terraform fmt` validation)
 - [golangci-lint](https://golangci-lint.run/welcome/install/) v2.12.2 exactly (must match CI)
+
+If `python3` is not on your PATH, run `make ci PYTHON=python`. The makefile defaults to `PYTHON ?= python3`.
 
 ### Clone and Build
 
@@ -23,7 +26,7 @@ If you plan to run `make ci`, install the required local tools first:
 make tools
 ```
 
-This installs `golangci-lint`, `goreleaser`, and `tfplugindocs` in one step. Python remains a separate prerequisite for `make ci`, `make python-test`, and the other Python-backed tooling targets. On a fresh clone, `make ci` fails early if a required tool is missing. Run `make help` to see every supported local target from [GNUmakefile](GNUmakefile).
+This installs `golangci-lint`, `goreleaser`, `actionlint`, and `tfplugindocs` in one step. Python remains a separate prerequisite for `make ci`, `make python-test`, and the other Python-backed tooling targets. On a fresh clone, `make ci` fails early if a required tool is missing. Run `make help` to see every supported local target from [GNUmakefile](GNUmakefile).
 
 ### Running Tests
 
@@ -131,7 +134,7 @@ make validate          # Check HCL formatting in examples/
 make goreleaser-check  # Validate .goreleaser.yml (requires goreleaser v2.x)
 ```
 
-**Required local tools:** Run `make tools` to install `golangci-lint`, `goreleaser`, and `tfplugindocs` automatically. You also need `terraform` >= 1.6 (for `terraform fmt` on examples).
+**Required local tools:** Run `make tools` to install `golangci-lint`, `goreleaser`, `actionlint`, and `tfplugindocs` automatically. You also need `terraform` >= 1.6 (for `terraform fmt` on examples).
 
 ## Project Structure
 
@@ -197,21 +200,29 @@ and run `make ci`.
 
 To test the provider against a real Coolify instance without publishing:
 
-1. Build and install locally:
+1. Build and install locally (`make install` sets `GOFIPS140=latest`):
    ```bash
-   go install .
+   make install
    ```
 
-2. Create or edit `~/.terraformrc`:
+2. Point Terraform at the local binary with `TF_CLI_CONFIG_FILE`. This is the portable override and works on every OS:
+   ```bash
+   export TF_CLI_CONFIG_FILE="$PWD/dev.tfrc"
+   ```
+
+   Create that file with:
    ```hcl
    provider_installation {
      dev_overrides {
-       "coolify-terraform/coolify" = "/home/YOUR_USER/go/bin"
+       "coolify-terraform/coolify" = "/path/to/go/bin"
      }
      direct {}
    }
    ```
-   Replace `/home/YOUR_USER/go/bin` with your `$GOPATH/bin` (run `go env GOPATH` to find it).
+
+   Set the override path to `$(go env GOPATH)/bin`. On Windows that is typically `C:\Users\<you>\go\bin`.
+
+   On Windows you can also put the same block in `%APPDATA%\terraform.rc` instead of setting `TF_CLI_CONFIG_FILE`.
 
 3. Run Terraform commands with the local override in place:
    ```bash
