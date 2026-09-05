@@ -651,28 +651,28 @@ func extractAPIMessage(body []byte) string {
 		Warning   string                     `json:"warning"`
 		Conflicts json.RawMessage            `json:"conflicts"`
 	}
-	if json.Unmarshal(body, &parsed) == nil && parsed.Message != "" {
-		msg := parsed.Message
-		if len(parsed.Errors) > 0 {
-			parts := make([]string, 0, len(parsed.Errors))
-			for field, detail := range parsed.Errors {
-				if isSensitiveField(field) {
-					parts = append(parts, field+": [REDACTED]")
-				} else {
-					parts = append(parts, field+": "+string(detail))
-				}
-			}
-			msg += " " + strings.Join(parts, "; ")
-		}
-		if parsed.Warning != "" {
-			msg += " " + parsed.Warning
-		}
-		if len(parsed.Conflicts) > 0 {
-			msg += " conflicts: " + truncateString(string(parsed.Conflicts), 500)
-		}
-		return msg
+	if json.Unmarshal(body, &parsed) != nil || parsed.Message == "" {
+		return "API error response omitted"
 	}
-	return "API error response omitted"
+	msg := parsed.Message
+	if len(parsed.Errors) > 0 {
+		parts := make([]string, 0, len(parsed.Errors))
+		for field, detail := range parsed.Errors {
+			if isSensitiveField(field) {
+				parts = append(parts, field+": [REDACTED]")
+			} else {
+				parts = append(parts, field+": "+string(detail))
+			}
+		}
+		msg += " " + strings.Join(parts, "; ")
+	}
+	if parsed.Warning != "" {
+		msg += " " + parsed.Warning
+	}
+	if len(parsed.Conflicts) > 0 {
+		msg += " conflicts: " + truncateString(string(parsed.Conflicts), 500)
+	}
+	return msg
 }
 
 // RetryDelete retries a delete operation with backoff when the error is
