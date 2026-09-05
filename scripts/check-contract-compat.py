@@ -123,6 +123,27 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "noindex_domains",
         "is_force_https_enabled",
     },
+    # Restart-limit notification events landed in tag v4.3.15. Absent from
+    # v4.3.14 and from v4.4-rc.1 (cut before that stable line).
+    "NotificationsController::update_discord": {
+        "restart_limit_reached_discord_notifications",
+    },
+    "NotificationsController::update_email": {
+        "restart_limit_reached_email_notifications",
+    },
+    "NotificationsController::update_pushover": {
+        "restart_limit_reached_pushover_notifications",
+    },
+    "NotificationsController::update_slack": {
+        "restart_limit_reached_slack_notifications",
+    },
+    "NotificationsController::update_telegram": {
+        "restart_limit_reached_telegram_notifications",
+        "telegram_notifications_restart_limit_reached_thread_id",
+    },
+    "NotificationsController::update_webhook": {
+        "restart_limit_reached_webhook_notifications",
+    },
 }
 
 

@@ -45,6 +45,7 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 	updatedCloudTokenName := "updated-token"
 	updatedGitHubAppName := "updated-gh-app"
 	updatedGitHubAppSecret := "updated-secret"
+	previewDomains := "https://pr.example.com"
 
 	endpoints := []endpoint{
 		// Projects
@@ -194,6 +195,9 @@ func TestClientEndpoints_SpecCompliance(t *testing.T) {
 			nil, 200, []map[string]interface{}{{"timestamp": "2024-01-01T00:00:00Z", "message": "started"}}},
 		{"DeletePreview", "DELETE", "/api/v1/applications/app-1/previews/123",
 			nil, 200, map[string]string{"message": "deleted"}},
+		{"UpdatePreview", "PATCH", "/api/v1/applications/app-1/previews/123",
+			client.UpdatePreviewInput{Domains: &previewDomains},
+			200, map[string]interface{}{"uuid": "prev-1", "pull_request_id": 123, "domains": "https://pr.example.com"}},
 
 		// Scheduled Tasks (application)
 		{"ListAppTasks", "GET", "/api/v1/applications/app-1/scheduled-tasks",

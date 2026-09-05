@@ -13,16 +13,16 @@ Coolify contract extracted from the real application code.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
-Contract version: `v4.3.14` | Extracted from: `coollabsio/coolify@v4.3.14`
+Contract version: `v4.3.17` | Extracted from: `coollabsio/coolify@v4.3.17`
 
 ## Summary
 
 | Metric | Count |
 |--------|------:|
-| Public schema fields compared | 315 |
-| Public schema type matches | 315/315 |
-| Public schema nullable matches | 252/315 |
-| Public schema client JSON mappings | 245/315 |
+| Public schema fields compared | 318 |
+| Public schema type matches | 318/318 |
+| Public schema nullable matches | 253/318 |
+| Public schema client JSON mappings | 248/318 |
 | Reusable public schemas compared | 10 |
 | Contract-only / inline-only models documented | 12 |
 
@@ -32,7 +32,7 @@ Contract version: `v4.3.14` | Extracted from: `coollabsio/coolify@v4.3.14`
 
 ## Application
 
-Fields: 136 | Type matches: 136/136 | Nullable matches: 119/136 | Client JSON mappings: 107/136
+Fields: 139 | Type matches: 139/139 | Nullable matches: 120/139 | Client JSON mappings: 110/139
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -43,6 +43,7 @@ Fields: 136 | Type matches: 136/136 | Nullable matches: 119/136 | Client JSON ma
 | compose_parsing_version | string | string | yes | yes | 1 | n/a |
 | config_hash | string | string | yes | **WRONG** | - | mapped |
 | connect_to_docker_network | boolean | boolean | yes | yes | false | mapped |
+| container_present | boolean | boolean | yes | **WRONG** | - | mapped |
 | custom_docker_run_options | string | string | yes | yes | - | mapped |
 | custom_healthcheck_found | boolean | boolean | yes | yes | false | n/a |
 | custom_internal_name | string | string | yes | **WRONG** | - | mapped |
@@ -66,6 +67,7 @@ Fields: 136 | Type matches: 136/136 | Nullable matches: 119/136 | Client JSON ma
 | dockerfile_location | string | string | yes | **WRONG** | - | mapped |
 | dockerfile_target_build | string | string | yes | yes | - | mapped |
 | domain_dns_statuses | object | object | yes | **WRONG** | - | n/a |
+| domain_port_overrides | object | object | yes | **WRONG** | - | mapped |
 | environment_id | integer | integer | yes | yes | - | n/a |
 | force_domain_override | string | string | yes | yes | - | mapped |
 | fqdn | string | string | yes | yes | - | mapped |
@@ -153,6 +155,7 @@ Fields: 136 | Type matches: 136/136 | Nullable matches: 119/136 | Client JSON ma
 | redirect | string | string | yes | reviewed drift | both | mapped |
 | repository_project_id | integer | integer | yes | yes | - | n/a |
 | restart_count | integer | integer | yes | yes | 0 | n/a |
+| restart_limit_reached | boolean | boolean | yes | yes | false | mapped |
 | source_id | integer | integer | yes | yes | - | n/a |
 | source_type | string | string | yes | **WRONG** | - | n/a |
 | start_command | string | string | yes | reviewed drift | - | mapped |
@@ -501,7 +504,7 @@ Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Client JSON mapping
 
 ## StandaloneClickhouse
 
-Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Client JSON mappings: 28/36
+Fields: 38 | Type matches: 38/38 | Nullable matches: 38/38 | Client JSON mappings: 30/38
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -533,18 +536,20 @@ Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Client JSON mapping
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
 | limits_memory_swappiness | integer | - | - | - | 60 | mapped |
+| max_restart_count | integer | - | - | - | 10 | mapped |
 | name | string | - | - | - | - | mapped |
 | ports_mappings | string | - | - | - | - | mapped |
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
+| restart_limit_reached | boolean | - | - | - | false | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
 | uuid | string | - | - | - | - | mapped |
 
 ## StandaloneDragonfly
 
-Fields: 35 | Type matches: 35/35 | Nullable matches: 35/35 | Client JSON mappings: 27/35
+Fields: 37 | Type matches: 37/37 | Nullable matches: 37/37 | Client JSON mappings: 29/37
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -575,18 +580,20 @@ Fields: 35 | Type matches: 35/35 | Nullable matches: 35/35 | Client JSON mapping
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
 | limits_memory_swappiness | integer | - | - | - | 60 | mapped |
+| max_restart_count | integer | - | - | - | 10 | mapped |
 | name | string | - | - | - | - | mapped |
 | ports_mappings | string | - | - | - | - | mapped |
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
+| restart_limit_reached | boolean | - | - | - | false | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
 | uuid | string | - | - | - | - | mapped |
 
 ## StandaloneKeydb
 
-Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Client JSON mappings: 28/36
+Fields: 38 | Type matches: 38/38 | Nullable matches: 38/38 | Client JSON mappings: 30/38
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -618,18 +625,20 @@ Fields: 36 | Type matches: 36/36 | Nullable matches: 36/36 | Client JSON mapping
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
 | limits_memory_swappiness | integer | - | - | - | 60 | mapped |
+| max_restart_count | integer | - | - | - | 10 | mapped |
 | name | string | - | - | - | - | mapped |
 | ports_mappings | string | - | - | - | - | mapped |
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
+| restart_limit_reached | boolean | - | - | - | false | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
 | uuid | string | - | - | - | - | mapped |
 
 ## StandaloneMariadb
 
-Fields: 38 | Type matches: 38/38 | Nullable matches: 38/38 | Client JSON mappings: 30/38
+Fields: 40 | Type matches: 40/40 | Nullable matches: 40/40 | Client JSON mappings: 32/40
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -663,18 +672,20 @@ Fields: 38 | Type matches: 38/38 | Nullable matches: 38/38 | Client JSON mapping
 | mariadb_password | string | - | - | - | - | mapped |
 | mariadb_root_password | string | - | - | - | - | mapped |
 | mariadb_user | string | - | - | - | mariadb | mapped |
+| max_restart_count | integer | - | - | - | 10 | mapped |
 | name | string | - | - | - | - | mapped |
 | ports_mappings | string | - | - | - | - | mapped |
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
+| restart_limit_reached | boolean | - | - | - | false | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
 | uuid | string | - | - | - | - | mapped |
 
 ## StandaloneMongodb
 
-Fields: 39 | Type matches: 39/39 | Nullable matches: 39/39 | Client JSON mappings: 31/39
+Fields: 41 | Type matches: 41/41 | Nullable matches: 41/41 | Client JSON mappings: 33/41
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -704,6 +715,7 @@ Fields: 39 | Type matches: 39/39 | Nullable matches: 39/39 | Client JSON mapping
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
 | limits_memory_swappiness | integer | - | - | - | 60 | mapped |
+| max_restart_count | integer | - | - | - | 10 | mapped |
 | mongo_conf | string | - | - | - | - | mapped |
 | mongo_initdb_database | string | - | - | - | default | mapped |
 | mongo_initdb_root_password | string | - | - | - | - | mapped |
@@ -713,6 +725,7 @@ Fields: 39 | Type matches: 39/39 | Nullable matches: 39/39 | Client JSON mapping
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
+| restart_limit_reached | boolean | - | - | - | false | mapped |
 | ssl_mode | string | - | - | - | require | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
@@ -720,7 +733,7 @@ Fields: 39 | Type matches: 39/39 | Nullable matches: 39/39 | Client JSON mapping
 
 ## StandaloneMysql
 
-Fields: 40 | Type matches: 40/40 | Nullable matches: 40/40 | Client JSON mappings: 32/40
+Fields: 42 | Type matches: 42/42 | Nullable matches: 42/42 | Client JSON mappings: 34/42
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -750,6 +763,7 @@ Fields: 40 | Type matches: 40/40 | Nullable matches: 40/40 | Client JSON mapping
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
 | limits_memory_swappiness | integer | - | - | - | 60 | mapped |
+| max_restart_count | integer | - | - | - | 10 | mapped |
 | mysql_conf | string | - | - | - | - | mapped |
 | mysql_database | string | - | - | - | default | mapped |
 | mysql_password | string | - | - | - | - | mapped |
@@ -760,6 +774,7 @@ Fields: 40 | Type matches: 40/40 | Nullable matches: 40/40 | Client JSON mapping
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
+| restart_limit_reached | boolean | - | - | - | false | mapped |
 | ssl_mode | string | - | - | - | REQUIRED | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
@@ -767,7 +782,7 @@ Fields: 40 | Type matches: 40/40 | Nullable matches: 40/40 | Client JSON mapping
 
 ## StandalonePostgresql
 
-Fields: 42 | Type matches: 42/42 | Nullable matches: 42/42 | Client JSON mappings: 34/42
+Fields: 44 | Type matches: 44/44 | Nullable matches: 44/44 | Client JSON mappings: 36/44
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -798,6 +813,7 @@ Fields: 42 | Type matches: 42/42 | Nullable matches: 42/42 | Client JSON mapping
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
 | limits_memory_swappiness | integer | - | - | - | 60 | mapped |
+| max_restart_count | integer | - | - | - | 10 | mapped |
 | name | string | - | - | - | - | mapped |
 | ports_mappings | string | - | - | - | - | mapped |
 | postgres_conf | string | - | - | - | - | mapped |
@@ -809,6 +825,7 @@ Fields: 42 | Type matches: 42/42 | Nullable matches: 42/42 | Client JSON mapping
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
+| restart_limit_reached | boolean | - | - | - | false | mapped |
 | ssl_mode | string | - | - | - | require | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
@@ -816,7 +833,7 @@ Fields: 42 | Type matches: 42/42 | Nullable matches: 42/42 | Client JSON mapping
 
 ## StandaloneRedis
 
-Fields: 35 | Type matches: 35/35 | Nullable matches: 35/35 | Client JSON mappings: 27/35
+Fields: 37 | Type matches: 37/37 | Nullable matches: 37/37 | Client JSON mappings: 29/37
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -846,12 +863,14 @@ Fields: 35 | Type matches: 35/35 | Nullable matches: 35/35 | Client JSON mapping
 | limits_memory_reservation | string | - | - | - | 0 | mapped |
 | limits_memory_swap | string | - | - | - | 0 | mapped |
 | limits_memory_swappiness | integer | - | - | - | 60 | mapped |
+| max_restart_count | integer | - | - | - | 10 | mapped |
 | name | string | - | - | - | - | mapped |
 | ports_mappings | string | - | - | - | - | mapped |
 | public_port | integer | - | - | - | - | mapped |
 | public_port_timeout | string | - | - | - | - | mapped |
 | redis_conf | string | - | - | - | - | mapped |
 | restart_count | string | - | - | - | - | n/a |
+| restart_limit_reached | boolean | - | - | - | false | mapped |
 | started_at | string | - | - | - | - | n/a |
 | status | string | - | - | - | exited | mapped |
 | uuid | string | - | - | - | - | mapped |

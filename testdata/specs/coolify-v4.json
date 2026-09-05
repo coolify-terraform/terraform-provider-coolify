@@ -12979,6 +12979,10 @@
                         "description": "Connect to docker network.",
                         "default": false
                     },
+                    "container_present": {
+                        "type": "boolean",
+                        "description": "Container present."
+                    },
                     "created_at": {
                         "type": "string",
                         "format": "date-time",
@@ -13112,6 +13116,10 @@
                     "domain_dns_statuses": {
                         "type": "object",
                         "description": "Domain dns statuses."
+                    },
+                    "domain_port_overrides": {
+                        "type": "object",
+                        "description": "Domain port overrides."
                     },
                     "environment_id": {
                         "type": "integer",
@@ -13552,6 +13560,11 @@
                         "type": "integer",
                         "description": "Restart count.",
                         "default": 0
+                    },
+                    "restart_limit_reached": {
+                        "type": "boolean",
+                        "description": "Restart limit reached.",
+                        "default": false
                     },
                     "source_id": {
                         "type": "integer",
@@ -14768,6 +14781,11 @@
                         "description": "Limits memory swappiness.",
                         "default": 60
                     },
+                    "max_restart_count": {
+                        "type": "integer",
+                        "description": "Max restart count.",
+                        "default": 10
+                    },
                     "name": {
                         "type": "string",
                         "description": "Name.",
@@ -14823,6 +14841,11 @@
                     "restart_count": {
                         "type": "string",
                         "description": "Restart count."
+                    },
+                    "restart_limit_reached": {
+                        "type": "boolean",
+                        "description": "Restart limit reached.",
+                        "default": false
                     },
                     "ssl_mode": {
                         "type": "string",
@@ -14988,6 +15011,11 @@
                         "description": "Limits memory swappiness.",
                         "default": 60
                     },
+                    "max_restart_count": {
+                        "type": "integer",
+                        "description": "Max restart count.",
+                        "default": 10
+                    },
                     "mysql_conf": {
                         "type": "string",
                         "description": "Mysql conf.",
@@ -15035,6 +15063,11 @@
                     "restart_count": {
                         "type": "string",
                         "description": "Restart count."
+                    },
+                    "restart_limit_reached": {
+                        "type": "boolean",
+                        "description": "Restart limit reached.",
+                        "default": false
                     },
                     "ssl_mode": {
                         "type": "string",
@@ -15219,6 +15252,11 @@
                         "default": "mariadb",
                         "maxLength": 255
                     },
+                    "max_restart_count": {
+                        "type": "integer",
+                        "description": "Max restart count.",
+                        "default": 10
+                    },
                     "name": {
                         "type": "string",
                         "description": "Name.",
@@ -15241,6 +15279,11 @@
                     "restart_count": {
                         "type": "string",
                         "description": "Restart count."
+                    },
+                    "restart_limit_reached": {
+                        "type": "boolean",
+                        "description": "Restart limit reached.",
+                        "default": false
                     },
                     "started_at": {
                         "type": "string",
@@ -15394,6 +15437,11 @@
                         "description": "Limits memory swappiness.",
                         "default": 60
                     },
+                    "max_restart_count": {
+                        "type": "integer",
+                        "description": "Max restart count.",
+                        "default": 10
+                    },
                     "mongo_conf": {
                         "type": "string",
                         "description": "Mongo conf.",
@@ -15435,6 +15483,11 @@
                     "restart_count": {
                         "type": "string",
                         "description": "Restart count."
+                    },
+                    "restart_limit_reached": {
+                        "type": "boolean",
+                        "description": "Restart limit reached.",
+                        "default": false
                     },
                     "ssl_mode": {
                         "type": "string",
@@ -15599,6 +15652,11 @@
                         "description": "Limits memory swappiness.",
                         "default": 60
                     },
+                    "max_restart_count": {
+                        "type": "integer",
+                        "description": "Max restart count.",
+                        "default": 10
+                    },
                     "name": {
                         "type": "string",
                         "description": "Name.",
@@ -15626,6 +15684,11 @@
                     "restart_count": {
                         "type": "string",
                         "description": "Restart count."
+                    },
+                    "restart_limit_reached": {
+                        "type": "boolean",
+                        "description": "Restart limit reached.",
+                        "default": false
                     },
                     "started_at": {
                         "type": "string",
@@ -15790,6 +15853,11 @@
                         "description": "Limits memory swappiness.",
                         "default": 60
                     },
+                    "max_restart_count": {
+                        "type": "integer",
+                        "description": "Max restart count.",
+                        "default": 10
+                    },
                     "name": {
                         "type": "string",
                         "description": "Name.",
@@ -15812,6 +15880,11 @@
                     "restart_count": {
                         "type": "string",
                         "description": "Restart count."
+                    },
+                    "restart_limit_reached": {
+                        "type": "boolean",
+                        "description": "Restart limit reached.",
+                        "default": false
                     },
                     "started_at": {
                         "type": "string",
@@ -15974,6 +16047,11 @@
                         "description": "Limits memory swappiness.",
                         "default": 60
                     },
+                    "max_restart_count": {
+                        "type": "integer",
+                        "description": "Max restart count.",
+                        "default": 10
+                    },
                     "name": {
                         "type": "string",
                         "description": "Name.",
@@ -15996,6 +16074,11 @@
                     "restart_count": {
                         "type": "string",
                         "description": "Restart count."
+                    },
+                    "restart_limit_reached": {
+                        "type": "boolean",
+                        "description": "Restart limit reached.",
+                        "default": false
                     },
                     "started_at": {
                         "type": "string",
@@ -16153,6 +16236,11 @@
                         "description": "Limits memory swappiness.",
                         "default": 60
                     },
+                    "max_restart_count": {
+                        "type": "integer",
+                        "description": "Max restart count.",
+                        "default": 10
+                    },
                     "name": {
                         "type": "string",
                         "description": "Name.",
@@ -16175,6 +16263,11 @@
                     "restart_count": {
                         "type": "string",
                         "description": "Restart count."
+                    },
+                    "restart_limit_reached": {
+                        "type": "boolean",
+                        "description": "Restart limit reached.",
+                        "default": false
                     },
                     "started_at": {
                         "type": "string",

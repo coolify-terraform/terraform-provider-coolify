@@ -139,13 +139,12 @@ type Application struct {
 	NoindexDomains  []string `json:"noindex_domains,omitempty"`
 	MaxRestartCount *int64   `json:"max_restart_count,omitempty"`
 	// RestartLimitReached and ContainerPresent are runtime status flags
-	// (Coolify tip after 2026-08-31). Pointers so omitted JSON stays null.
+	// (Coolify >= v4.3.15). Pointers so omitted JSON stays null.
 	RestartLimitReached *bool `json:"restart_limit_reached,omitempty"`
 	ContainerPresent    *bool `json:"container_present,omitempty"`
-	// DomainPortOverrides is GET-only (Coolify tip after the Sep 2026
-	// applications column). Omitted, null, and Laravel empty-array [] are
-	// nil; {} is an empty map. Not on ApplicationsController create/update
-	// $allowedFields.
+	// DomainPortOverrides is GET-only (Coolify >= v4.3.15). Omitted, null,
+	// and Laravel empty-array [] are nil; {} is an empty map. Not on
+	// ApplicationsController create/update $allowedFields.
 	DomainPortOverrides DomainPortOverridesMap `json:"domain_port_overrides,omitempty"`
 	// Nested settings blob from GET responses (promoted after decode).
 	Settings *ApplicationSettings `json:"settings,omitempty"`
@@ -835,6 +834,23 @@ func (c *Client) GetApplicationLogs(ctx context.Context, uuid string) ([]Applica
 func (c *Client) DeletePreviewDeployment(ctx context.Context, appUUID string, pullRequestID int64) error {
 	if err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/applications/%s/previews/%d", url.PathEscape(appUUID), pullRequestID), nil, nil); err != nil {
 		return fmt.Errorf("deleting preview deployment for application %s pull request %d: %w", appUUID, pullRequestID, err)
+	}
+	return nil
+}
+
+// UpdatePreviewInput is the body for PATCH /applications/{uuid}/previews/{pull_request_id}.
+// Regular apps send domains; Docker Compose apps send docker_compose_domains.
+// Coolify extra-key 422s unknown keys. Route exists from Coolify v4.3.15.
+type UpdatePreviewInput struct {
+	Domains              *string         `json:"domains,omitempty"`
+	DockerComposeDomains json.RawMessage `json:"docker_compose_domains,omitempty"`
+	ForceDomainOverride  *bool           `json:"force_domain_override,omitempty"`
+}
+
+// UpdatePreviewDeployment replaces domains on a PR preview deployment.
+func (c *Client) UpdatePreviewDeployment(ctx context.Context, appUUID string, pullRequestID int64, input UpdatePreviewInput) error {
+	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s/previews/%d", url.PathEscape(appUUID), pullRequestID), input, nil); err != nil {
+		return fmt.Errorf("updating preview deployment for application %s pull request %d: %w", appUUID, pullRequestID, err)
 	}
 	return nil
 }

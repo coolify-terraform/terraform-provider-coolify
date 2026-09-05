@@ -642,27 +642,37 @@ func validateParentType(pt string) error {
 // extractAPIMessage attempts to parse a JSON error response from the Coolify
 // API and return the human-readable "message" field. Raw response bodies are
 // never appended (they may contain secrets or HTML). When an "errors" map is
-// present, values for sensitive field names are redacted.
+// present, values for sensitive field names are redacted. 409 domain clashes
+// also carry optional "warning" and "conflicts" fields with no errors map.
 func extractAPIMessage(body []byte) string {
 	var parsed struct {
-		Message string                     `json:"message"`
-		Errors  map[string]json.RawMessage `json:"errors"`
+		Message   string                     `json:"message"`
+		Errors    map[string]json.RawMessage `json:"errors"`
+		Warning   string                     `json:"warning"`
+		Conflicts json.RawMessage            `json:"conflicts"`
 	}
-	if json.Unmarshal(body, &parsed) == nil && parsed.Message != "" {
-		if len(parsed.Errors) > 0 {
-			parts := make([]string, 0, len(parsed.Errors))
-			for field, detail := range parsed.Errors {
-				if isSensitiveField(field) {
-					parts = append(parts, field+": [REDACTED]")
-				} else {
-					parts = append(parts, field+": "+string(detail))
-				}
+	if json.Unmarshal(body, &parsed) != nil || parsed.Message == "" {
+		return "API error response omitted"
+	}
+	msg := parsed.Message
+	if len(parsed.Errors) > 0 {
+		parts := make([]string, 0, len(parsed.Errors))
+		for field, detail := range parsed.Errors {
+			if isSensitiveField(field) {
+				parts = append(parts, field+": [REDACTED]")
+			} else {
+				parts = append(parts, field+": "+string(detail))
 			}
-			return parsed.Message + " " + strings.Join(parts, "; ")
 		}
-		return parsed.Message
+		msg += " " + strings.Join(parts, "; ")
 	}
-	return "API error response omitted"
+	if parsed.Warning != "" {
+		msg += " " + parsed.Warning
+	}
+	if len(parsed.Conflicts) > 0 {
+		msg += " conflicts: " + truncateString(string(parsed.Conflicts), 500)
+	}
+	return msg
 }
 
 // RetryDelete retries a delete operation with backoff when the error is

@@ -22,8 +22,8 @@ data "coolify_application" "example" {
 # deploys instead of rolling updates.
 
 # domain_port_overrides is a computed GET-only map of full domain URL to
-# container port. It is null on Coolify <= v4.3.14. Output the whole map;
-# do not index a key without a null check.
+# container port. It is null on Coolify <= v4.3.14 (requires >= v4.3.15).
+# Output the whole map; do not index a key without a null check.
 output "domain_port_overrides" {
   value = data.coolify_application.example.domain_port_overrides
 }
@@ -40,12 +40,12 @@ output "domain_port_overrides" {
 
 - `build_command` (String) The build command.
 - `build_pack` (String) The build pack type used by the application.
-- `container_present` (Boolean) Whether Coolify last observed the application container on the server. Coolify tip after 2026-08-31 (not in tag v4.3.14).
+- `container_present` (Boolean) Whether Coolify last observed the application container on the server. Requires Coolify >= v4.3.15 (not in tag v4.3.14).
 - `description` (String) The description of the application.
 - `docker_compose_raw` (String, Sensitive) The raw Docker Compose content.
 - `docker_registry_image_name` (String) The Docker registry image name.
 - `dockerfile_location` (String) For Git-backed applications, the path to the Dockerfile relative to the repository root. For `coolify_application_dockerfile` resources, this contains the Dockerfile content (base64-encoded).
-- `domain_port_overrides` (Map of Number) Read-only map of canonical domain URL to container port from GET (`{"https://app.example.com": 3000}`). Coolify tip after the Sep 2026 applications column (not in tag v4.3.14). Not accepted on create or update.
+- `domain_port_overrides` (Map of Number) Read-only map of canonical domain URL to container port from GET (`{"https://app.example.com": 3000}`). Requires Coolify >= v4.3.15 (not in tag v4.3.14). Not accepted on create or update.
 - `domains` (String) The fully qualified domain name of the application.
 - `environment_name` (String) The environment name of the application.
 - `git_branch` (String) The Git branch used by the application.
@@ -57,7 +57,7 @@ output "domain_port_overrides" {
 - `noindex_domains` (List of String) Subset of application domain URLs served with an `X-Robots-Tag: noindex, nofollow` response header (keeps them out of search engines). Entries that are not among the application domains are ignored by Coolify. Requires Coolify >= v4.3.0. Omitted or empty on GET from older Coolify instances.
 - `ports_exposes` (String) The exposed ports.
 - `project_uuid` (String) The UUID of the project the application belongs to.
-- `restart_limit_reached` (Boolean) Whether Coolify has stopped the application because restart_count reached max_restart_count. Coolify tip after 2026-08-31 (not in tag v4.3.14).
+- `restart_limit_reached` (Boolean) Whether Coolify has stopped the application because restart_count reached max_restart_count. Requires Coolify >= v4.3.15 (not in tag v4.3.14).
 - `server_uuid` (String) The UUID of the server the application is deployed on.
 - `start_command` (String) The start command.
 - `status` (String) The current status of the application (e.g., running, stopped, exited).

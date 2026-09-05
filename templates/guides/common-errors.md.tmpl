@@ -105,6 +105,36 @@ That path does not depend on a git deploy to populate compose raw.
 Do **not** force `instant_deploy = true` only to hide the constraint if you
 do not want an immediate deploy; the ordering is intrinsic to Coolify.
 
+### preview domain updates require Coolify >= v4.3.15
+
+```
+Error: preview domain updates require Coolify >= v4.3.15
+```
+
+**Cause:** `coolify_application_preview` set a non-empty `domains` or
+`docker_compose_domains` on Coolify older than v4.3.15. Those writes
+are a hard apply error, not a plan warning. `force_domain_override`
+alone does not send a PATCH.
+
+**Fix:** omit the domain attributes on older Coolify, or upgrade to
+**>= v4.3.15**.
+
+### docker_compose_domains must be a JSON array
+
+```
+Error: docker_compose_domains must be a JSON array
+```
+
+**Cause:** a compose preview was given the GET object map
+(`{"web":{"domain":"https://pr.example.com"}}`) instead of the write
+array. Preview does not accept the GET object map.
+
+**Fix:** send a JSON array of `{name, domain}` objects:
+
+```hcl
+docker_compose_domains = jsonencode([{ name = "web", domain = "https://pr.example.com" }])
+```
+
 ### Coolify version cannot write some application settings
 
 Full matrix of which application attributes need Coolify 4.2 vs 4.3:
@@ -130,7 +160,7 @@ both gates:
 
 Notification `restart_limit_reached` on older Coolify is a real extra-key
 422 (not version-gated). Omit that attribute unless your instance accepts
-it (Coolify tip after 2026-08-31).
+it (Coolify >= v4.3.15).
 
 **Fix:** upgrade Coolify to the version named in the warning (**v4.2.0** or
 **v4.3.0** as listed), or remove those attributes from configuration. The

@@ -104,7 +104,7 @@ func EventSchemaAttrs(channel string) map[string]schema.Attribute {
 	for _, e := range eventNames {
 		desc := fmt.Sprintf("Whether to send %s notifications for %s events.", channel, e.label)
 		if e.attr == "restart_limit_reached" {
-			desc += " Coolify tip after 2026-08-31 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422."
+			desc += " Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422."
 		}
 		attrs[e.attr] = BoolOptComputed(desc)
 	}

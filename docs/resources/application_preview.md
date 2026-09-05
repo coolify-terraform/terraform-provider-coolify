@@ -3,20 +3,30 @@
 page_title: "coolify_application_preview Resource - coolify"
 subcategory: ""
 description: |-
-  Manages the lifecycle of a PR preview deployment for a Coolify application. The resource itself is state-only on create; on destroy, it deletes the preview deployment via the Coolify API.
+  Manages the lifecycle of a PR preview deployment for a Coolify application. Create is state-only unless you set preview domains; on destroy, it deletes the preview deployment via the Coolify API. There is no GET for a single preview, so domain attributes are preserved from state.
 ---
 
 # coolify_application_preview (Resource)
 
-Manages the lifecycle of a PR preview deployment for a Coolify application. The resource itself is state-only on create; on destroy, it deletes the preview deployment via the Coolify API.
+Manages the lifecycle of a PR preview deployment for a Coolify application. Create is state-only unless you set preview domains; on destroy, it deletes the preview deployment via the Coolify API. There is no GET for a single preview, so domain attributes are preserved from state.
 
 ## Example Usage
 
 ```terraform
 # Track a PR preview deployment so terraform destroy cleans it up.
+# domains requires Coolify >= v4.3.15; omit it on older instances.
 resource "coolify_application_preview" "pr_42" {
   application_uuid = coolify_application.api.uuid
   pull_request_id  = 42
+  domains          = "https://pr.example.com"
+}
+
+# Compose preview: write docker_compose_domains as a JSON array (not the GET object map).
+# Requires Coolify >= v4.3.15; omit it on older instances.
+resource "coolify_application_preview" "pr_43_compose" {
+  application_uuid       = coolify_application.compose.uuid
+  pull_request_id        = 43
+  docker_compose_domains = jsonencode([{ name = "web", domain = "https://pr.example.com" }])
 }
 ```
 
@@ -27,3 +37,9 @@ resource "coolify_application_preview" "pr_42" {
 
 - `application_uuid` (String) The UUID of the application that owns the preview.
 - `pull_request_id` (Number) The pull request number for the preview deployment.
+
+### Optional
+
+- `docker_compose_domains` (String) JSON array of `{name, domain, redirect}` objects for a Docker Compose application preview. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Mutually exclusive with `domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.
+- `domains` (String) Comma-separated preview domain URLs for a non-compose application (for example `https://pr.example.com`). Requires Coolify >= v4.3.15 (not in tag v4.3.14). Mutually exclusive with `docker_compose_domains` on the Coolify side. Coolify has no GET for a single preview, so the value is preserved from state.
+- `force_domain_override` (Boolean) When `true`, Coolify applies the preview domains even if they conflict with another resource. Write-only; default `false`. Requires Coolify >= v4.3.15 (not in tag v4.3.14).

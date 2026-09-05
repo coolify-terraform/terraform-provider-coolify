@@ -143,11 +143,11 @@ func (d *databaseDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Computed:            true,
 			},
 			"max_restart_count": schema.Int64Attribute{
-				MarkdownDescription: "Maximum container restarts before Coolify stops the database. GET-only. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+				MarkdownDescription: "Maximum container restarts before Coolify stops the database. GET-only. Requires Coolify >= v4.3.15 (not in tag v4.3.14).",
 				Computed:            true,
 			},
 			"restart_limit_reached": schema.BoolAttribute{
-				MarkdownDescription: "Whether Coolify has stopped the database because restart_count reached max_restart_count. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+				MarkdownDescription: "Whether Coolify has stopped the database because restart_count reached max_restart_count. Requires Coolify >= v4.3.15 (not in tag v4.3.14).",
 				Computed:            true,
 			},
 			"internal_db_url": schema.StringAttribute{

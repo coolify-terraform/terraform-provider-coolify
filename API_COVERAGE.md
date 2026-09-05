@@ -11,9 +11,9 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 246 covered / 298 registry entries (82.6%)  
+**Coverage**: 247 covered / 299 registry entries (82.6%)  
 **Planned**: 0 | **Skipped**: 52  
-**Registry size**: 298 (contract routes + allowlisted extras)
+**Registry size**: 299 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
 
@@ -275,6 +275,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | Route | Since |
 |-------|-------|
 | `POST /applications/private-github-app` | v0.2.0 |
+
+### `coolify_application_preview`
+
+| Route | Since |
+|-------|-------|
+| `PATCH /applications/{uuid}/previews/{pull_request_id}` | v0.1.20 |
 
 ### `coolify_application_private_git`
 
@@ -1153,6 +1159,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `PATCH /applications/{uuid}` | covered | `coolify_application + variants` |
 | `PATCH /applications/{uuid}/envs` | covered | `coolify_environment_variable` |
 | `PATCH /applications/{uuid}/envs/bulk` | covered | `client.BulkUpdateEnvVars` |
+| `PATCH /applications/{uuid}/previews/{pull_request_id}` | covered | `coolify_application_preview` |
 | `PATCH /applications/{uuid}/scheduled-tasks/{task_uuid}` | covered | `coolify_scheduled_task` |
 | `PATCH /applications/{uuid}/storages` | covered | `coolify_storage` |
 | `PATCH /cloud-init-scripts/{uuid}` | covered | `coolify_cloud_init_script` |

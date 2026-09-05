@@ -2547,6 +2547,11 @@ func TestExtractAPIMessage(t *testing.T) {
 			input: []byte(`{"message":"Validation failed","errors":{"password":["hunter2"]}}`),
 			want:  `Validation failed password: [REDACTED]`,
 		},
+		{
+			name:  "json with message warning and conflicts",
+			input: []byte(`{"message":"Domain conflict","warning":"in use","conflicts":[{"domain":"https://pr.example.com"}]}`),
+			want:  `Domain conflict in use conflicts: [{"domain":"https://pr.example.com"}]`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5294,6 +5299,47 @@ func TestClient_DeletePreviewDeployment(t *testing.T) {
 	c := New(srv.URL, "test-token")
 	err := c.DeletePreviewDeployment(context.Background(), "app-prev-1", 42)
 	require.NoError(t, err)
+}
+
+func TestClient_UpdatePreviewDeployment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-prev-1/previews/42", r.URL.Path)
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		assert.Equal(t, "https://pr.example.com", body["domains"])
+		assert.Equal(t, true, body["force_domain_override"])
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	domains := "https://pr.example.com"
+	force := true
+	err := c.UpdatePreviewDeployment(context.Background(), "app-prev-1", 42, UpdatePreviewInput{
+		Domains:             &domains,
+		ForceDomainOverride: &force,
+	})
+	require.NoError(t, err)
+}
+
+func TestClient_UpdatePreviewDeployment_NotFound(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-prev-1/previews/42", r.URL.Path)
+		http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	domains := "https://pr.example.com"
+	err := c.UpdatePreviewDeployment(context.Background(), "app-prev-1", 42, UpdatePreviewInput{
+		Domains: &domains,
+	})
+	require.Error(t, err)
+	assert.True(t, IsNotFound(err))
 }
 
 // --- Client Enable/Disable API ---

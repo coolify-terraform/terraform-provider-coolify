@@ -206,11 +206,11 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"health_check_start_period": schema.Int64Attribute{MarkdownDescription: "Grace period in seconds before health checks start counting failures after container start. Minimum `0`. Defaults to `5`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{int64validator.AtLeast(0)}},
 		"status":                    schema.StringAttribute{MarkdownDescription: "The current status of the database (e.g., `running`, `exited`).", Computed: true},
 		"max_restart_count": schema.Int64Attribute{
-			MarkdownDescription: "Maximum container restarts before Coolify stops the database. GET-only (not on DatabasesController create or update allow lists; set the limit in the Coolify UI). Coolify tip after 2026-08-31 (not in tag v4.3.14). Defaults to `10` when the column exists.",
+			MarkdownDescription: "Maximum container restarts before Coolify stops the database. GET-only (not on DatabasesController create or update allow lists; set the limit in the Coolify UI). Requires Coolify >= v4.3.15 (not in tag v4.3.14). Defaults to `10` when the column exists.",
 			Computed:            true,
 		},
 		"restart_limit_reached": schema.BoolAttribute{
-			MarkdownDescription: "Whether Coolify has stopped the database because restart_count reached max_restart_count. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+			MarkdownDescription: "Whether Coolify has stopped the database because restart_count reached max_restart_count. Computed runtime status. Requires Coolify >= v4.3.15 (not in tag v4.3.14).",
 			Computed:            true,
 		},
 		"internal_db_url": schema.StringAttribute{MarkdownDescription: "Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.", Computed: true, Sensitive: true},
