@@ -34,7 +34,7 @@ output "notifications" {
 - `docker_cleanup_success` (Boolean) Whether Telegram notifications are sent for Docker cleanup success events.
 - `enabled` (Boolean) Whether Telegram notifications are enabled for the team.
 - `id` (String) Identifier. Always `current` (team is implied by the API token).
-- `restart_limit_reached` (Boolean) Whether Telegram notifications are sent for restart limit reached events. Coolify tip after 2026-08-31 (not in tag v4.3.14).
+- `restart_limit_reached` (Boolean) Whether Telegram notifications are sent for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14).
 - `scheduled_task_failure` (Boolean) Whether Telegram notifications are sent for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether Telegram notifications are sent for scheduled task success events.
 - `server_disk_usage` (Boolean) Whether Telegram notifications are sent for server disk usage events.

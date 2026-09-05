@@ -5296,6 +5296,29 @@ func TestClient_DeletePreviewDeployment(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestClient_UpdatePreviewDeployment(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPatch, r.Method)
+		assert.Equal(t, "/api/v1/applications/app-prev-1/previews/42", r.URL.Path)
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+		assert.Equal(t, "https://pr.example.com", body["domains"])
+		assert.Equal(t, true, body["force_domain_override"])
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	domains := "https://pr.example.com"
+	force := true
+	err := c.UpdatePreviewDeployment(context.Background(), "app-prev-1", 42, UpdatePreviewInput{
+		Domains:             &domains,
+		ForceDomainOverride: &force,
+	})
+	require.NoError(t, err)
+}
+
 // --- Client Enable/Disable API ---
 
 func TestClient_EnableAPI(t *testing.T) {

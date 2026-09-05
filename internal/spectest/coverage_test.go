@@ -93,6 +93,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"PATCH /applications/{uuid}/envs/bulk":                            covered("client.BulkUpdateEnvVars", "v0.2.0"),
 		"GET /applications/{uuid}/logs":                                   covered("data.coolify_application_logs", "v0.2.0"),
 		"DELETE /applications/{uuid}/previews/{pull_request_id}":          covered("client.DeletePreviewDeployment", "v0.2.0"),
+		"PATCH /applications/{uuid}/previews/{pull_request_id}":           covered("coolify_application_preview", "v0.1.20"),
 
 		// ── Databases ──
 		"GET /databases":                                                   covered("data.coolify_databases", "v0.1.0"),

@@ -8,5 +8,5 @@ resource "coolify_notification_discord" "main" {
   backup_failure     = true
   server_disk_usage  = true
   server_unreachable = true
-  # restart_limit_reached = true  # tip after 2026-08-31; older APIs 422
+  # restart_limit_reached = true  # requires Coolify >= v4.3.15; older APIs 422
 }

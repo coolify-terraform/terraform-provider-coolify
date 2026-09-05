@@ -42,7 +42,7 @@ resource "coolify_notification_pushover" "main" {
 - `docker_cleanup_failure` (Boolean) Whether to send Pushover notifications for Docker cleanup failure events.
 - `docker_cleanup_success` (Boolean) Whether to send Pushover notifications for Docker cleanup success events.
 - `enabled` (Boolean) Whether Pushover notifications are enabled for the team.
-- `restart_limit_reached` (Boolean) Whether to send Pushover notifications for restart limit reached events. Coolify tip after 2026-08-31 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
+- `restart_limit_reached` (Boolean) Whether to send Pushover notifications for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
 - `scheduled_task_failure` (Boolean) Whether to send Pushover notifications for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether to send Pushover notifications for scheduled task success events.
 - `server_disk_usage` (Boolean) Whether to send Pushover notifications for server disk usage events.

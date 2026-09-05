@@ -56,7 +56,7 @@ resource "coolify_notification_email" "main" {
 - `docker_cleanup_success` (Boolean) Whether to send email notifications for Docker cleanup success events.
 - `resend_api_key` (String, Sensitive) Resend API key. Sensitive; Coolify may omit it on read unless the API token can read sensitive fields (`read:sensitive` or root). Preserve after import.
 - `resend_enabled` (Boolean) Whether Resend delivery is enabled.
-- `restart_limit_reached` (Boolean) Whether to send email notifications for restart limit reached events. Coolify tip after 2026-08-31 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
+- `restart_limit_reached` (Boolean) Whether to send email notifications for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
 - `scheduled_task_failure` (Boolean) Whether to send email notifications for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether to send email notifications for scheduled task success events.
 - `server_disk_usage` (Boolean) Whether to send email notifications for server disk usage events.

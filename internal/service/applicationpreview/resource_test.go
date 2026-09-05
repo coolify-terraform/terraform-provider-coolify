@@ -1,6 +1,7 @@
 package applicationpreview_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -83,6 +84,64 @@ func TestApplicationPreviewResource_DeleteNotFound(t *testing.T) {
 				`),
 			},
 			acctest.DestroyRemoveResourceStep(srv.URL),
+		},
+	})
+}
+
+func TestApplicationPreviewResource_CreateSendsDomains(t *testing.T) {
+	t.Parallel()
+	var gotBody map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("PATCH /api/v1/applications/550e8400-e29b-41d4-a716-446655440044/previews/11", func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/550e8400-e29b-41d4-a716-446655440044/previews/11", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.15"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid = "550e8400-e29b-41d4-a716-446655440044"
+					pull_request_id  = 11
+					domains          = "https://pr.example.com"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_preview.test", "domains", "https://pr.example.com"),
+				),
+			},
+		},
+	})
+	if gotBody["domains"] != "https://pr.example.com" {
+		t.Fatalf("PATCH body domains = %#v", gotBody["domains"])
+	}
+}
+
+func TestApplicationPreviewResource_CreateDomainsTooOld(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application_preview", "test", `
+					application_uuid = "550e8400-e29b-41d4-a716-446655440045"
+					pull_request_id  = 12
+					domains          = "https://pr.example.com"
+				`),
+				ExpectError: regexp.MustCompile(`Error updating preview domains`),
+			},
 		},
 	})
 }

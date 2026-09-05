@@ -43,8 +43,8 @@ const dockerComposeDomainsDescription = "Domain mappings for Docker Compose serv
 // domainPortOverridesDescription is the shared schema docs for
 // domain_port_overrides on application resources and data sources.
 const domainPortOverridesDescription = "Read-only map of canonical domain URL to container port from GET " +
-	"(`{\"https://app.example.com\": 3000}`). Coolify tip after the Sep 2026 applications column " +
-	"(not in tag v4.3.14). Not accepted on create or update."
+	"(`{\"https://app.example.com\": 3000}`). Requires Coolify >= v4.3.15 (not in tag v4.3.14). " +
+	"Not accepted on create or update."
 
 // annotateDockerComposeDomainsError appends operator guidance when Coolify
 // rejects docker_compose_domains because compose raw is not loaded yet.

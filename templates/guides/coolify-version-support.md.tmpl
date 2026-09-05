@@ -40,14 +40,16 @@ output "coolify_version" {
 | **≥ 4.3.0** | 4.3 application settings, `noindex_domains`, notification channels, S3, volume backup schedules, GPU/log-drain, etc. |
 | **≥ 4.3.10** | Instance email settings and `smtp_ehlo_domain` on team email notifications. Recommended for the full feature set. |
 
-Pinned API contract today: Coolify **v4.3.14** (`testdata/contracts/coolify-v4.json`).
+Pinned API contract today: Coolify **v4.3.17** (`testdata/contracts/coolify-v4.json`).
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
 That route stays `nested-service` (use `coolify_service` for the stack).
 v4.3.10 adds instance-wide SMTP settings (`GET`/`PATCH /settings/email`) and
-`smtp_ehlo_domain` on team email notifications. Tags v4.3.11 through v4.3.14
-and `v4.4-rc.1` match that public API (0 write-path drift). The provider
-remains usable on 4.1.0+ for the common surface.
+`smtp_ehlo_domain` on team email notifications. Tags v4.3.15 through v4.3.17
+add restart-limit GET fields, GET-only `domain_port_overrides`, notification
+`restart_limit_reached_*` writes, and `PATCH` preview domains on
+`coolify_application_preview`. `v4.4-rc.1` was cut before those 4.3.15
+fields. The provider remains usable on 4.1.0+ for the common surface.
 
 ## Resources and data sources by Coolify version
 
@@ -128,8 +130,13 @@ Coolify **≥ 4.3.3**. They are not writable and are omitted from
 `GET /projects` (list). Empty on older instances.
 
 `domain_port_overrides` is computed on application resources and
-`data.coolify_application` on Coolify tip. It is null on v4.3.14 and
-earlier. It is not on `data.coolify_applications` and is not writable.
+`data.coolify_application` on Coolify **>= v4.3.15**. It is null on
+v4.3.14 and earlier. It is not on `data.coolify_applications` and is
+not writable.
+
+`coolify_application_preview` can PATCH preview domains
+(`domains` / `docker_compose_domains` / `force_domain_override`) on
+Coolify **>= v4.3.15**. Omit those attributes on older instances.
 
 ## Application attributes by Coolify version
 

@@ -26,7 +26,7 @@ resource "coolify_notification_discord" "main" {
   backup_failure     = true
   server_disk_usage  = true
   server_unreachable = true
-  # restart_limit_reached = true  # tip after 2026-08-31; older APIs 422
+  # restart_limit_reached = true  # requires Coolify >= v4.3.15; older APIs 422
 }
 ```
 
@@ -43,7 +43,7 @@ resource "coolify_notification_discord" "main" {
 - `docker_cleanup_success` (Boolean) Whether to send Discord notifications for Docker cleanup success events.
 - `enabled` (Boolean) Whether Discord notifications are enabled for the team.
 - `ping_enabled` (Boolean) Whether Discord @here / role pings are enabled.
-- `restart_limit_reached` (Boolean) Whether to send Discord notifications for restart limit reached events. Coolify tip after 2026-08-31 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
+- `restart_limit_reached` (Boolean) Whether to send Discord notifications for restart limit reached events. Requires Coolify >= v4.3.15 (not in tag v4.3.14). Omit on older instances; the API rejects the field with HTTP 422.
 - `scheduled_task_failure` (Boolean) Whether to send Discord notifications for scheduled task failure events.
 - `scheduled_task_success` (Boolean) Whether to send Discord notifications for scheduled task success events.
 - `server_disk_usage` (Boolean) Whether to send Discord notifications for server disk usage events.

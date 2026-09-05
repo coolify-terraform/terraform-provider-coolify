@@ -389,11 +389,11 @@ func extendedRuntimeAttrs() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 		},
 		"restart_limit_reached": schema.BoolAttribute{
-			MarkdownDescription: "Whether Coolify has stopped the application because `restart_count` reached `max_restart_count`. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+			MarkdownDescription: "Whether Coolify has stopped the application because `restart_count` reached `max_restart_count`. Computed runtime status. Requires Coolify >= v4.3.15 (not in tag v4.3.14).",
 			Computed:            true,
 		},
 		"container_present": schema.BoolAttribute{
-			MarkdownDescription: "Whether Coolify last observed the application container on the server. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+			MarkdownDescription: "Whether Coolify last observed the application container on the server. Computed runtime status. Requires Coolify >= v4.3.15 (not in tag v4.3.14).",
 			Computed:            true,
 		},
 		"domain_port_overrides": schema.MapAttribute{

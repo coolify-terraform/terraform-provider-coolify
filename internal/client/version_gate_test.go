@@ -207,6 +207,34 @@ func TestSupportsSMTPEhloDomain(t *testing.T) {
 	}
 }
 
+func TestSupportsPreviewDomainUpdate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.3.14", false},
+		{"v4.3.14", false},
+		{"4.3.15", true},
+		{"v4.3.15", true},
+		{"4.3.17", true},
+		{"4.4.0", true},
+		{"", true},
+		{"not-a-version", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsPreviewDomainUpdate(); got != tt.want {
+			t.Errorf("SupportsPreviewDomainUpdate(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsPreviewDomainUpdate() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
 func TestHasOnlyApplicationSettings(t *testing.T) {
 	t.Parallel()
 

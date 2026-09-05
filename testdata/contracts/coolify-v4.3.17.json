@@ -10682,6 +10682,5 @@
         "api.ability:read"
       ]
     }
-  ],
-  "notes": "Pin is tag v4.3.17. Restart-limit fields (Application.container_present and restart_limit_reached; standalone database max_restart_count and restart_limit_reached; notification restart_limit_reached_* events and Telegram thread id) and GET-only Application.domain_port_overrides landed in tag v4.3.15. v4.3.15 also adds PATCH /applications/{uuid}/previews/{pull_request_id} for preview domains. Public API otherwise matches v4.3.15 through v4.3.17."
+  ]
 }

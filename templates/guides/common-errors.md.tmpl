@@ -130,7 +130,7 @@ both gates:
 
 Notification `restart_limit_reached` on older Coolify is a real extra-key
 422 (not version-gated). Omit that attribute unless your instance accepts
-it (Coolify tip after 2026-08-31).
+it (Coolify >= v4.3.15).
 
 **Fix:** upgrade Coolify to the version named in the warning (**v4.2.0** or
 **v4.3.0** as listed), or remove those attributes from configuration. The

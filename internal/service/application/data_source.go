@@ -144,11 +144,11 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 				Computed:            true,
 			},
 			"restart_limit_reached": schema.BoolAttribute{
-				MarkdownDescription: "Whether Coolify has stopped the application because restart_count reached max_restart_count. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+				MarkdownDescription: "Whether Coolify has stopped the application because restart_count reached max_restart_count. Requires Coolify >= v4.3.15 (not in tag v4.3.14).",
 				Computed:            true,
 			},
 			"container_present": schema.BoolAttribute{
-				MarkdownDescription: "Whether Coolify last observed the application container on the server. Coolify tip after 2026-08-31 (not in tag v4.3.14).",
+				MarkdownDescription: "Whether Coolify last observed the application container on the server. Requires Coolify >= v4.3.15 (not in tag v4.3.14).",
 				Computed:            true,
 			},
 			"domain_port_overrides": schema.MapAttribute{

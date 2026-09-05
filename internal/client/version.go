@@ -115,6 +115,22 @@ func versionStringLagsTip(ver string) bool {
 	return strings.HasPrefix(v, "4.3.0")
 }
 
+// minPreviewDomainUpdateVersion is the first Coolify git tag whose API
+// exposes PATCH /applications/{uuid}/previews/{pull_request_id}.
+// Absent from tag v4.3.14; present in v4.3.15 and later.
+const minPreviewDomainUpdateVersion = "4.3.15"
+
+// SupportsPreviewDomainUpdate reports whether the connected instance
+// accepts PATCH preview domains.
+//
+// Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
+func (c *Client) SupportsPreviewDomainUpdate() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minPreviewDomainUpdateVersion)
+}
+
 // SupportsSMTPEhloDomain reports whether the connected instance accepts
 // smtp_ehlo_domain on email notification GET/PATCH.
 //

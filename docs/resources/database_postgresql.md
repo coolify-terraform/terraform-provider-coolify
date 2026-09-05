@@ -80,8 +80,8 @@ resource "coolify_database_postgresql" "example" {
 ### Read-Only
 
 - `internal_db_url` (String, Sensitive) Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.
-- `max_restart_count` (Number) Maximum container restarts before Coolify stops the database. GET-only (not on DatabasesController create or update allow lists; set the limit in the Coolify UI). Coolify tip after 2026-08-31 (not in tag v4.3.14). Defaults to `10` when the column exists.
-- `restart_limit_reached` (Boolean) Whether Coolify has stopped the database because restart_count reached max_restart_count. Computed runtime status. Coolify tip after 2026-08-31 (not in tag v4.3.14).
+- `max_restart_count` (Number) Maximum container restarts before Coolify stops the database. GET-only (not on DatabasesController create or update allow lists; set the limit in the Coolify UI). Requires Coolify >= v4.3.15 (not in tag v4.3.14). Defaults to `10` when the column exists.
+- `restart_limit_reached` (Boolean) Whether Coolify has stopped the database because restart_count reached max_restart_count. Computed runtime status. Requires Coolify >= v4.3.15 (not in tag v4.3.14).
 - `status` (String) The current status of the database (e.g., `running`, `exited`).
 - `uuid` (String) The UUID of the database.
 
