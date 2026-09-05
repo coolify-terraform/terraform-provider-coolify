@@ -3,7 +3,6 @@ package resourceaction
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -165,12 +164,14 @@ func (r *resourceActionResource) executeAction(ctx context.Context, resType, act
 // the resource is already in the target state (e.g. "Database is already
 // stopped." when action is "stop"). These are idempotent successes.
 func isAlreadyInDesiredState(err error, action string) bool {
-	msg := err.Error()
+	if !client.IsBadRequest(err) {
+		return false
+	}
 	switch action {
 	case "start":
-		return strings.Contains(msg, "already running")
+		return client.APIMessageContains(err, "already running")
 	case "stop":
-		return strings.Contains(msg, "already stopped")
+		return client.APIMessageContains(err, "already stopped")
 	default:
 		return false
 	}

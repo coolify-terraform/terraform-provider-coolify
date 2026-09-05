@@ -419,10 +419,6 @@ func (r *storageBackupResource) Delete(ctx context.Context, req resource.DeleteR
 		if client.IsNotFound(err) {
 			return
 		}
-		// Coolify returns 404 with message when schedule missing.
-		if strings.Contains(err.Error(), "not found") {
-			return
-		}
 		resp.Diagnostics.AddError("Error deleting storage backup schedule",
 			fmt.Sprintf("storage %s: %s", state.StorageUUID.ValueString(), err))
 	}

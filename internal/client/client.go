@@ -139,6 +139,7 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 		rc.RetryWaitMax = cfg.MaxWait
 	}
 	rc.CheckRetry = shouldRetry
+	rc.ErrorHandler = retriesExhaustedHandler
 	rc.Logger = retryablehttp.LeveledLogger(&retryLogger{})
 
 	// Configure custom TLS before StandardClient() so the retry transport
@@ -355,15 +356,40 @@ func IsBadRequest(err error) bool {
 	return errors.As(err, &apiErr) && apiErr.Status == http.StatusBadRequest
 }
 
+// APIMessageContains reports whether err is an APIStatusError whose Message
+// contains substr. It does not inspect outer wrap text.
+func APIMessageContains(err error, substr string) bool {
+	var apiErr *APIStatusError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	return strings.Contains(apiErr.Message, substr)
+}
+
 // ErrRetriesExhausted is wrapped when the retryable HTTP client gives up.
 var ErrRetriesExhausted = errors.New("giving up after retries")
+
+// retriesExhaustedHandler marks transport-level retry exhaustion with
+// ErrRetriesExhausted so callers can use errors.Is without reading
+// err.Error(). When the last attempt produced an HTTP response (typically
+// 5xx), that response is returned so doWithStatus can classify it by status.
+func retriesExhaustedHandler(resp *http.Response, err error, numTries int) (*http.Response, error) {
+	if err != nil {
+		if resp != nil && resp.Body != nil {
+			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+			_ = resp.Body.Close()
+		}
+		return nil, fmt.Errorf("%w: %w", ErrRetriesExhausted, err)
+	}
+	if resp != nil {
+		return resp, nil
+	}
+	return nil, fmt.Errorf("%w after %d attempts", ErrRetriesExhausted, numTries)
+}
 
 func wrapHTTPDoError(method, path string, err error) error {
 	if err == nil {
 		return nil
-	}
-	if strings.Contains(err.Error(), "giving up") {
-		return fmt.Errorf("executing request for %s %s: %w: %w", method, path, ErrRetriesExhausted, err)
 	}
 	return fmt.Errorf("executing request for %s %s: %w", method, path, err)
 }

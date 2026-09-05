@@ -3,7 +3,6 @@ package privatekey
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -273,9 +272,7 @@ func (r *privateKeyResource) ImportState(ctx context.Context, req resource.Impor
 }
 
 func isPrivateKeyDeleteRetryable(err error) bool {
-	message := err.Error()
-
-	return strings.Contains(message, "in use") || strings.Contains(message, "cannot be deleted")
+	return client.APIMessageContains(err, "in use") || client.APIMessageContains(err, "cannot be deleted")
 }
 
 func flattenPrivateKey(key *client.PrivateKey, model *privateKeyResourceModel) {

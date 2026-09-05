@@ -3,7 +3,6 @@ package project
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -213,13 +212,17 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
 	uuid := state.UUID.ValueString()
 	err := client.RetryDelete(ctx, 24, 5*time.Second,
 		func() error { return r.client.DeleteProject(ctx, uuid) },
-		func(err error) bool { return strings.Contains(err.Error(), "has resources") },
+		isProjectDeleteRetryable,
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting project", fmt.Sprintf("Could not delete project %s: %s", uuid, err))
 		return
 	}
 	tflog.Debug(ctx, "deleted resource", map[string]interface{}{"resource_type": "coolify_project", "uuid": uuid})
+}
+
+func isProjectDeleteRetryable(err error) bool {
+	return client.APIMessageContains(err, "has resources")
 }
 
 func (r *projectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

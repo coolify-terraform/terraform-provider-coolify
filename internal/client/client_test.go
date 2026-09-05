@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -2648,6 +2650,60 @@ func TestIsBadRequest(t *testing.T) {
 	assert.False(t, IsBadRequest(&NotFoundError{Message: "gone"}))
 	assert.False(t, IsBadRequest(io.EOF))
 	assert.False(t, IsBadRequest(nil))
+}
+
+func TestAPIMessageContains(t *testing.T) {
+	t.Parallel()
+	wrapped := fmt.Errorf("already stopped wrapper: %w", &APIStatusError{Status: http.StatusBadRequest, Message: "validation failed"})
+	assert.False(t, APIMessageContains(wrapped, "already stopped"))
+	assert.True(t, APIMessageContains(wrapped, "validation failed"))
+	assert.False(t, APIMessageContains(io.EOF, "EOF"))
+	assert.False(t, APIMessageContains(nil, "x"))
+}
+
+func TestWrapHTTPDoError_DoesNotSniffGivingUp(t *testing.T) {
+	t.Parallel()
+	err := wrapHTTPDoError(http.MethodGet, "/api/v1/x", errors.New("server said giving up, try later"))
+	if errors.Is(err, ErrRetriesExhausted) {
+		t.Fatal("wrapHTTPDoError must not treat a giving-up substring as retry exhaustion")
+	}
+}
+
+func TestClient_Get_RetriesExhaustedWrapsSentinel(t *testing.T) {
+	t.Parallel()
+	// Closed listener: GET transport errors retry, then ErrorHandler wraps the sentinel.
+	// The inner net error does not contain "giving up".
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := ln.Addr().String()
+	require.NoError(t, ln.Close())
+
+	c := New("http://"+addr, "test-token", RetryConfig{
+		Attempts: 1,
+		MinWait:  time.Millisecond,
+		MaxWait:  time.Millisecond,
+	})
+	_, err = c.GetProject(context.Background(), "u")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrRetriesExhausted), "timeout-exhausted GET must wrap ErrRetriesExhausted, got %v", err)
+}
+
+func TestIsMissingDestinationUUID_IgnoresWrapText(t *testing.T) {
+	t.Parallel()
+	err := fmt.Errorf("creating app destination_uuid with multiple destinations: %w",
+		&APIStatusError{Status: http.StatusInternalServerError, Message: "internal error"})
+	if isMissingDestinationUUID(err) {
+		t.Fatal("must not match wrap text or non-400 status")
+	}
+}
+
+func TestIsMissingDestinationUUID_Matches400Message(t *testing.T) {
+	t.Parallel()
+	err := fmt.Errorf("creating database: %w",
+		&APIStatusError{Status: http.StatusBadRequest, Message: "Server has multiple destinations and you do not set destination_uuid."})
+	if !isMissingDestinationUUID(err) {
+		t.Fatal("expected 400 API message match")
+	}
 }
 
 func TestIsBadRequest_DoWithStatus400(t *testing.T) {
