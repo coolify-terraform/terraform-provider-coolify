@@ -1,10 +1,12 @@
 package acctest
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"testing"
 )
 
@@ -267,6 +269,9 @@ func TestIsControllerResourceNotFound(t *testing.T) {
 	if !isControllerResourceNotFound("application not found.") {
 		t.Fatal("expected application not found to be controller-style")
 	}
+	if !isControllerResourceNotFound("preview not found.") {
+		t.Fatal("expected preview not found to be controller-style")
+	}
 	if isControllerResourceNotFound(`{"message":"not found."}`) {
 		t.Fatal("plain not found must not look like controller resource 404")
 	}
@@ -351,6 +356,115 @@ func TestAccTestSkipIfNoSMTPEhloDomain_ValidationPresent(t *testing.T) {
 	t.Setenv("COOLIFY_TOKEN", "test-token")
 
 	AccTestSkipIfNoSMTPEhloDomain(t)
+}
+
+func TestAccTestSkipIfNoPreviewDomainUpdate_PlainNotFound(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.3.0"})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}/previews/{pr}", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"Not found."}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfNoPreviewDomainUpdate(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfNoPreviewDomainUpdate to skip on plain Not found. body")
+	}
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "1")
+	reachedTip := false
+	t.Run("skip-under-require-tip", func(t *testing.T) {
+		AccTestSkipIfNoPreviewDomainUpdate(t)
+		reachedTip = true
+	})
+	if reachedTip {
+		t.Fatal("preview domain unmatched 404 must soft-skip under COOLIFY_REQUIRE_TIP_APIS=1")
+	}
+}
+
+func TestAccTestSkipIfNoPreviewDomainUpdate_ControllerNotFound(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.3.0"})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}/previews/{pr}", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"Preview not found."}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	AccTestSkipIfNoPreviewDomainUpdate(t)
+}
+
+func TestAccTestSkipIfNoPreviewDomainUpdate_ServerError(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.3.0"})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}/previews/{pr}", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"internal server error"}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfNoPreviewDomainUpdate(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfNoPreviewDomainUpdate to skip on HTTP 500")
+	}
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "1")
+	if os.Getenv("ACC_PREVIEW_PROBE_CHILD") == "1" {
+		t.Run("fatal", func(t *testing.T) {
+			AccTestSkipIfNoPreviewDomainUpdate(t)
+		})
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestAccTestSkipIfNoPreviewDomainUpdate_ServerError$")
+	cmd.Env = append(os.Environ(), "ACC_PREVIEW_PROBE_CHILD=1", "COOLIFY_REQUIRE_TIP_APIS=1")
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected Fatal on HTTP 500 with COOLIFY_REQUIRE_TIP_APIS=1, child passed:\n%s", out)
+	}
+	if !bytes.Contains(out, []byte("COOLIFY_REQUIRE_TIP_APIS")) {
+		t.Fatalf("child output missing REQUIRE_TIP fatal message:\n%s", out)
+	}
 }
 
 func TestAccTestSMTPEhloDomainAccepted_OK(t *testing.T) {

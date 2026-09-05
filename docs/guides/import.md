@@ -218,6 +218,7 @@ Additionally, Coolify normalizes some input values:
 | `git_repository` | Strips `https://github.com/` prefix (e.g. `https://github.com/org/repo` becomes `org/repo`). The provider reconstructs the full URL on import. |
 | `docker_image` | Strips image tags (e.g. `redis:7-alpine` becomes `redis`, `nginx:latest` becomes `nginx`). The provider cannot reconstruct the original tag; expect a one-time diff after import. |
 | `dockerfile_location` | For `coolify_application_dockerfile`: base64-encoded Dockerfile content (not a file path); not returned on GET. For other app types: a file path relative to the repository root. |
+| `dockerfile` | Create-only inline Dockerfile for git-backed apps. GET often omits it (sensitive), so imported state is empty. Re-supply it in HCL or omit it. Do not apply an in-place fill after import; changing the value replaces the application. |
 | `ports_exposes` | May be overridden by Coolify for Dockerfile apps (e.g. returns `80` instead of configured `3000`) |
 | Storage `name` | Coolify prepends the application UUID (e.g. `my-vol` becomes `{app-uuid}-my-vol`) |
 

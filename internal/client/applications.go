@@ -312,6 +312,7 @@ type CreatePublicAppInput struct {
 	Description        string `json:"description,omitempty"`
 	Domains            string `json:"domains,omitempty"`
 	DockerfileLocation string `json:"dockerfile_location,omitempty"`
+	Dockerfile         string `json:"dockerfile,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
 	StartCommand       string `json:"start_command,omitempty"`
@@ -667,6 +668,7 @@ type CreatePrivateGitAppInput struct {
 	Description        string `json:"description,omitempty"`
 	Domains            string `json:"domains,omitempty"`
 	DockerfileLocation string `json:"dockerfile_location,omitempty"`
+	Dockerfile         string `json:"dockerfile,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
 	StartCommand       string `json:"start_command,omitempty"`
@@ -787,6 +789,7 @@ type CreateGitHubAppInput struct {
 	Description        string `json:"description,omitempty"`
 	Domains            string `json:"domains,omitempty"`
 	DockerfileLocation string `json:"dockerfile_location,omitempty"`
+	Dockerfile         string `json:"dockerfile,omitempty"`
 	InstallCommand     string `json:"install_command,omitempty"`
 	BuildCommand       string `json:"build_command,omitempty"`
 	StartCommand       string `json:"start_command,omitempty"`

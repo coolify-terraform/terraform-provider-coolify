@@ -16,6 +16,10 @@ func TestValidatorDescriptions(t *testing.T) {
 	assert.NotEmpty(t, domains.Description(ctx))
 	assert.Equal(t, domains.Description(ctx), domains.MarkdownDescription(ctx))
 
+	composeDomains := validate.DockerComposeDomains()
+	assert.NotEmpty(t, composeDomains.Description(ctx))
+	assert.Equal(t, composeDomains.Description(ctx), composeDomains.MarkdownDescription(ctx))
+
 	ports := validate.PortMappings()
 	assert.NotEmpty(t, ports.Description(ctx))
 	assert.Equal(t, ports.Description(ctx), ports.MarkdownDescription(ctx))

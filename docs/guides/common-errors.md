@@ -68,6 +68,19 @@ required fields that are not always obvious:
 | `coolify_server` | `ip`, `private_key_uuid` |
 | `coolify_database_backup` | `frequency` (cron expression) |
 
+### This field is not allowed (dockerfile)
+
+```
+Error: This field is not allowed.
+```
+
+**Cause:** `dockerfile` is create-only on git-backed applications. Coolify
+accepts it on Create POST and extra-key 422s it on PATCH (`update_by_uuid`).
+
+**Fix:** changing `dockerfile` now replaces the application. After import,
+omit the attribute (GET often hides it; empty state is expected) or replace
+the resource. Do not apply an in-place fill.
+
 ### Cannot set docker_compose_domains without docker_compose_raw
 
 ```
@@ -118,6 +131,32 @@ alone does not send a PATCH.
 
 **Fix:** omit the domain attributes on older Coolify, or upgrade to
 **>= v4.3.15**.
+
+### Preview not found / 404
+
+```
+Error: Error updating preview domains
+Preview not found.
+Coolify has no preview for this PR yet. Open the PR or trigger a preview deploy, then re-apply.
+```
+
+**Cause:** `coolify_application_preview` PATCHes domains on a preview Coolify
+has not created yet. This resource does not create the PR preview.
+
+**Fix:** open the PR or trigger a preview deploy in Coolify, then re-apply.
+
+### Domain conflict / 409
+
+```
+Error: Error updating preview domains
+Domain conflict.
+set force_domain_override = true if you intend to take over the domain.
+```
+
+**Cause:** the preview domain is already used by another Coolify resource.
+
+**Fix:** set `force_domain_override = true` if you intend to take over the
+domain, or choose a different domain.
 
 ### docker_compose_domains must be a JSON array
 

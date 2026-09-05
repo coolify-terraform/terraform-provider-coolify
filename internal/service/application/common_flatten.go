@@ -140,10 +140,15 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	if f.CustomNginxConfiguration != nil {
 		*f.CustomNginxConfiguration = flex.ResolveBase64Field(*f.CustomNginxConfiguration, app.CustomNginxConfiguration)
 	}
+	// dockerfile: Create POSTs EnsureBase64. GET with read:sensitive can
+	// return that base64. ResolveBase64Field keeps the user's raw HCL so
+	// the next plan does not RequiresReplace destroy/create.
+	if f.Dockerfile != nil {
+		*f.Dockerfile = flex.ResolveBase64Field(*f.Dockerfile, app.Dockerfile)
+	}
 	// Nullable fields — seed null state from API (import) and clear when the
 	// API returns empty for configured values (UI drift).
 	flex.SetStringSeedOrClear(f.PublishDirectory, app.PublishDirectory)
-	flex.SetStringIfConfigured(f.Dockerfile, app.Dockerfile)
 	flex.SetStringOrClear(f.DockerRegistryImageTag, app.DockerRegistryImageTag)
 	// Coolify stores/returns an object map; Terraform config uses the write
 	// array shape. Normalize on read so plan stays empty (#652).
@@ -364,9 +369,8 @@ func addExtendedUpdateFields(plan, state commonAppFields, input *client.UpdateAp
 	if plan.ForceDomainOverride != nil && state.ForceDomainOverride != nil {
 		input.ForceDomainOverride = boolDiff(*plan.ForceDomainOverride, *state.ForceDomainOverride)
 	}
-	if plan.Dockerfile != nil && state.Dockerfile != nil {
-		input.Dockerfile = strDiff(*plan.Dockerfile, *state.Dockerfile)
-	}
+	// dockerfile is create-only on git-backed apps. Coolify extra-key 422s
+	// it on update_by_uuid. Schema RequiresReplace; do not PATCH leftovers.
 	if plan.DockerfileTargetBuild != nil && state.DockerfileTargetBuild != nil {
 		input.DockerfileTargetBuild = strDiff(*plan.DockerfileTargetBuild, *state.DockerfileTargetBuild)
 	}

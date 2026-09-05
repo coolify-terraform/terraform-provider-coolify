@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -489,8 +490,8 @@ func TestDeploymentResource_WaitForCompletionFailed(t *testing.T) {
 				}
 				if status == failureStatus {
 					body["logs"] = []map[string]interface{}{
-						{"output": "cloning repository", "hidden": false},
-						{"output": "nixpacks build failed: no start command", "hidden": false},
+						{"output": "git clone https://x-access-token:ghp_leakedtoken@github.com/org/repo.git", "hidden": false},
+						{"output": "docker login -u user -p s3cret", "hidden": false},
 					}
 				}
 				json.NewEncoder(w).Encode(body)
@@ -501,6 +502,13 @@ func TestDeploymentResource_WaitForCompletionFailed(t *testing.T) {
 
 			resource.UnitTest(t, resource.TestCase{
 				ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+				ErrorCheck: func(err error) error {
+					msg := err.Error()
+					if strings.Contains(msg, "ghp_") || strings.Contains(msg, "docker login") {
+						return fmt.Errorf("deployment failed diagnostic leaked raw logs")
+					}
+					return err
+				},
 				Steps: []resource.TestStep{
 					{
 						Config: fmt.Sprintf(`
@@ -517,7 +525,10 @@ resource "coolify_deployment" "test" {
   }
 }
 `, srv.URL, appUUID),
-						ExpectError: regexp.MustCompile(`nixpacks build failed: no start command`),
+						ExpectError: regexp.MustCompile(fmt.Sprintf(
+							`(?s)Deployment %s finished with status\s+'%s'\.\s+Check the Coolify UI \(application > Deployments\)`,
+							regexp.QuoteMeta(deploymentUUID), failureStatus,
+						)),
 					},
 				},
 			})

@@ -51,7 +51,7 @@ func TestAccPrivateGitApplicationResource_CRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application_private_git.test", "uuid"),
-				ImportStateVerifyIgnore:              []string{"environment_name", "private_key_uuid", "project_uuid", "server_uuid"},
+				ImportStateVerifyIgnore:              []string{"environment_name", "private_key_uuid", "project_uuid", "server_uuid", "dockerfile"},
 			},
 		},
 	})

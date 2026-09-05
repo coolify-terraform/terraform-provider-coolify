@@ -139,7 +139,7 @@ This pipeline catches API drift automatically when Coolify updates its models.
 
 ## CI pipeline
 
-The CI pipeline runs 10 jobs on every push and PR:
+The CI pipeline runs 11 jobs on every push and PR:
 
 | Job | What it checks |
 |-----|---------------|
@@ -149,6 +149,7 @@ The CI pipeline runs 10 jobs on every push and PR:
 | Coverage | Merge package-shard coverage reports |
 | Lint | golangci-lint (20 linters) + Govulncheck + GoReleaser check |
 | Validate | HCL formatting + tfplugindocs + Trivy + Gitleaks |
+| Workflow Lint | actionlint + zizmor on `.github/workflows/**` |
 | Acceptance Tests | Full suite against a bootstrapped Coolify instance |
 | Scenario Tests | `terraform test` in 3 suites (core, github-cicd, hetzner) |
 | Contract Freshness | Weekly check that the contract matches upstream |

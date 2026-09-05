@@ -124,8 +124,14 @@ const minPreviewDomainUpdateVersion = "4.3.15"
 // accepts PATCH preview domains.
 //
 // Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
+// A 4.3.0 version string also reports true: CI edge lies with that
+// string while shipping later tip routes. Acc tests must still probe
+// the route before writing so a real 4.3.0 unmatched 404 is skipped.
 func (c *Client) SupportsPreviewDomainUpdate() bool {
 	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minPreviewDomainUpdateVersion)
