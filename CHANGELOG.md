@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.20](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.19...v0.1.20) (2026-09-05)
+
+
+### Features
+
+* **application:** expose computed domain_port_overrides ([#832](https://github.com/coolify-terraform/terraform-provider-coolify/issues/832)) ([7a8ea06](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7a8ea060347b689bb1f91c33cc13d062a2f3f612))
+* expose Coolify tip restart-limit API ([#826](https://github.com/coolify-terraform/terraform-provider-coolify/issues/826)) ([069a758](https://github.com/coolify-terraform/terraform-provider-coolify/commit/069a758257415a7457518b07d326a0e647761075))
+* pin Coolify v4.3.17 and write preview domains ([#834](https://github.com/coolify-terraform/terraform-provider-coolify/issues/834)) ([e976255](https://github.com/coolify-terraform/terraform-provider-coolify/commit/e976255fb18f247173494484384260eea9536efa))
+
+
+### Bug Fixes
+
+* **application:** converge max_restart_count on first apply ([#828](https://github.com/coolify-terraform/terraform-provider-coolify/issues/828)) ([4a9084c](https://github.com/coolify-terraform/terraform-provider-coolify/commit/4a9084cb0e3c80abe62b5aaf6847f19945816cc4))
+
 ## [0.1.19](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.18...v0.1.19) (2026-08-29)
 
 
