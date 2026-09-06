@@ -115,7 +115,7 @@
   <rect x="545" y="460" width="195" height="50" rx="25" fill="#2D1F4E"/>
   <text x="642" y="493" text-anchor="middle"
         font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-        font-size="24" font-weight="600" fill="#C4A5E8">1500+ Tests</text>
+        font-size="24" font-weight="600" fill="#C4A5E8">1600+ Tests</text>
 
   <rect x="755" y="460" width="275" height="50" rx="25" fill="#2D1F4E"/>
   <text x="892" y="493" text-anchor="middle"
