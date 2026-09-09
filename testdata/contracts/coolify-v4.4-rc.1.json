@@ -1,7 +1,7 @@
 {
   "version": "v4.4-rc.1",
   "extracted_from": "coollabsio/coolify@v4.4-rc.1",
-  "extracted_at": "2026-08-22T15:56:13.871893+00:00",
+  "extracted_at": "2026-09-09T22:34:47.947835+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -7094,6 +7094,40 @@
         "health_check_start_period"
       ]
     },
+    "DatabasesController::create_backup": {
+      "allowed_fields": [
+        "save_s3",
+        "enabled",
+        "dump_all",
+        "frequency",
+        "databases_to_backup",
+        "database_backup_retention_amount_locally",
+        "database_backup_retention_days_locally",
+        "database_backup_retention_max_storage_locally",
+        "database_backup_retention_amount_s3",
+        "database_backup_retention_days_s3",
+        "database_backup_retention_max_storage_s3",
+        "s3_storage_uuid",
+        "timeout"
+      ]
+    },
+    "DatabasesController::update_backup": {
+      "allowed_fields": [
+        "save_s3",
+        "enabled",
+        "dump_all",
+        "frequency",
+        "databases_to_backup",
+        "database_backup_retention_amount_locally",
+        "database_backup_retention_days_locally",
+        "database_backup_retention_max_storage_locally",
+        "database_backup_retention_amount_s3",
+        "database_backup_retention_days_s3",
+        "database_backup_retention_max_storage_s3",
+        "s3_storage_uuid",
+        "timeout"
+      ]
+    },
     "DatabasesController::create_database": {
       "allowed_fields": [
         "name",
@@ -7259,6 +7293,38 @@
         "hetzner_network_ids",
         "cloud_init_script",
         "instant_validate"
+      ]
+    },
+    "InstanceEmailSettingsController::update": {
+      "allowed_fields": [
+        "smtp_enabled",
+        "smtp_from_address",
+        "smtp_from_name",
+        "smtp_host",
+        "smtp_port",
+        "smtp_encryption",
+        "smtp_username",
+        "smtp_password",
+        "smtp_timeout",
+        "smtp_ehlo_domain",
+        "resend_enabled",
+        "resend_api_key"
+      ]
+    },
+    "InstanceEmailSettingsController::show": {
+      "allowed_fields": [
+        "smtp_enabled",
+        "smtp_from_address",
+        "smtp_from_name",
+        "smtp_host",
+        "smtp_port",
+        "smtp_encryption",
+        "smtp_username",
+        "smtp_password",
+        "smtp_timeout",
+        "smtp_ehlo_domain",
+        "resend_enabled",
+        "resend_api_key"
       ]
     },
     "NotificationsController::update_email": {
@@ -7697,38 +7763,6 @@
         "vultr_ssh_key_ids",
         "cloud_init_script",
         "instant_validate"
-      ]
-    },
-    "InstanceEmailSettingsController::show": {
-      "allowed_fields": [
-        "smtp_enabled",
-        "smtp_from_address",
-        "smtp_from_name",
-        "smtp_host",
-        "smtp_port",
-        "smtp_encryption",
-        "smtp_username",
-        "smtp_password",
-        "smtp_timeout",
-        "smtp_ehlo_domain",
-        "resend_enabled",
-        "resend_api_key"
-      ]
-    },
-    "InstanceEmailSettingsController::update": {
-      "allowed_fields": [
-        "smtp_enabled",
-        "smtp_from_address",
-        "smtp_from_name",
-        "smtp_host",
-        "smtp_port",
-        "smtp_encryption",
-        "smtp_username",
-        "smtp_password",
-        "smtp_timeout",
-        "smtp_ehlo_domain",
-        "resend_enabled",
-        "resend_api_key"
       ]
     }
   },

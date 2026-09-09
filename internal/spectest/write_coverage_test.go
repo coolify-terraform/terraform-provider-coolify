@@ -307,6 +307,41 @@ func TestWriteCoverage_InstanceEmailUpdate(t *testing.T) {
 	}
 }
 
+// TestWriteCoverage_DatabaseBackup ensures $backupConfigFields on
+// create_backup / update_backup appear on the client write payloads.
+func TestWriteCoverage_DatabaseBackup(t *testing.T) {
+	t.Parallel()
+	c := loadContract(t)
+	cases := []struct {
+		endpoint string
+		input    any
+	}{
+		{"DatabasesController::create_backup", client.CreateDatabaseBackupInput{}},
+		{"DatabasesController::update_backup", client.UpdateDatabaseBackupInput{}},
+	}
+	for _, tc := range cases {
+		ep, ok := c.Endpoints[tc.endpoint]
+		if !ok {
+			t.Fatalf("endpoint %s not found in contract", tc.endpoint)
+		}
+		if len(ep.AllowedFields) == 0 {
+			t.Fatalf("endpoint %s has empty allowed_fields ($backupConfigFields extract missing?)", tc.endpoint)
+		}
+		tags := jsonTagsFromStruct(reflect.TypeOf(tc.input))
+		var missing []string
+		for _, field := range ep.AllowedFields {
+			if _, ok := tags[field]; !ok {
+				missing = append(missing, field)
+			}
+		}
+		sort.Strings(missing)
+		if len(missing) > 0 {
+			t.Errorf("%s allowed_fields missing from %T:\n  %s",
+				tc.endpoint, tc.input, strings.Join(missing, "\n  "))
+		}
+	}
+}
+
 // TestWriteCoverage_ApplicationDomainPortOverridesNotOnWriteInputs fails if
 // create or update application payloads grow a domain_port_overrides JSON tag.
 // Coolify ApplicationsController create/update extra-key 422 that field

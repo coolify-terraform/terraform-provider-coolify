@@ -104,6 +104,15 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
     "DatabasesController::create_database": {
         "tags",
     },
+    # Scheduled backup write list lives in $backupConfigFields (#847).
+    # missing_backup_notification_days is Coolify >= v4.3.18 only. Absent
+    # from v4.3.17 and from v4.4-rc.1 (that rc was cut first).
+    "DatabasesController::create_backup": {
+        "missing_backup_notification_days",
+    },
+    "DatabasesController::update_backup": {
+        "missing_backup_notification_days",
+    },
     "ServicesController::create_service": {
         "tags",
     },

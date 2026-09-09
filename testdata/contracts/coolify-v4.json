@@ -1,7 +1,7 @@
 {
   "version": "v4.3.18",
   "extracted_from": "coollabsio/coolify@v4.3.18",
-  "extracted_at": "2026-09-09T20:20:12.256306+00:00",
+  "extracted_at": "2026-09-09T22:34:46.066352+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -7297,6 +7297,42 @@
         "health_check_start_period"
       ]
     },
+    "DatabasesController::create_backup": {
+      "allowed_fields": [
+        "save_s3",
+        "enabled",
+        "dump_all",
+        "frequency",
+        "databases_to_backup",
+        "database_backup_retention_amount_locally",
+        "database_backup_retention_days_locally",
+        "database_backup_retention_max_storage_locally",
+        "database_backup_retention_amount_s3",
+        "database_backup_retention_days_s3",
+        "database_backup_retention_max_storage_s3",
+        "s3_storage_uuid",
+        "timeout",
+        "missing_backup_notification_days"
+      ]
+    },
+    "DatabasesController::update_backup": {
+      "allowed_fields": [
+        "save_s3",
+        "enabled",
+        "dump_all",
+        "frequency",
+        "databases_to_backup",
+        "database_backup_retention_amount_locally",
+        "database_backup_retention_days_locally",
+        "database_backup_retention_max_storage_locally",
+        "database_backup_retention_amount_s3",
+        "database_backup_retention_days_s3",
+        "database_backup_retention_max_storage_s3",
+        "s3_storage_uuid",
+        "timeout",
+        "missing_backup_notification_days"
+      ]
+    },
     "DatabasesController::create_database": {
       "allowed_fields": [
         "name",
@@ -10711,5 +10747,5 @@
       ]
     }
   ],
-  "notes": "Pin is tag v4.3.18. ScheduledDatabaseBackup.missing_backup_notification_days is writable on create/update (integer 0-365; 0 disables alerts). last_execution_at and missing_backup_notification_sent_at are GET-only runtime timestamps. Those three fields are absent from v4.3.17 and from v4.4-rc.1 (that rc was cut before them). Restart-limit fields, GET domain_port_overrides, and PATCH preview domains remain from v4.3.15. Public API otherwise matches v4.3.15 through v4.3.18."
+  "notes": "Pin is tag v4.3.18. Extractor maps DatabasesController $backupConfigFields onto create_backup / update_backup. ScheduledDatabaseBackup.missing_backup_notification_days is writable on create/update (integer 0-365; 0 disables alerts). last_execution_at and missing_backup_notification_sent_at are GET-only runtime timestamps. Those three fields are absent from v4.3.17 and from v4.4-rc.1 (that rc was cut before them). Restart-limit fields, GET domain_port_overrides, and PATCH preview domains remain from v4.3.15. Public API otherwise matches v4.3.15 through v4.3.18."
 }
