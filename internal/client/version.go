@@ -154,6 +154,43 @@ func (c *Client) SupportsSMTPEhloDomain() bool {
 	return IsVersionAtLeast(c.CoolifyVersion, minSMTPEhloDomainVersion)
 }
 
+// minMissingBackupNotificationDaysVersion is the first Coolify git tag
+// whose database backup create/update allow lists include
+// missing_backup_notification_days.
+//
+// The field landed in tag v4.3.18 (and later 4.3.x tip). It is absent
+// from v4.3.17 and from v4.4-rc.1 (that rc was cut before the field).
+const minMissingBackupNotificationDaysVersion = "4.3.18"
+
+// versionIs44Prerelease reports Coolify 4.4 release-candidate version
+// strings. Those cuts predate missing_backup_notification_days.
+func versionIs44Prerelease(ver string) bool {
+	v := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(ver)), "v")
+	return strings.HasPrefix(v, "4.4-rc") || strings.HasPrefix(v, "4.4.0-rc")
+}
+
+// SupportsMissingBackupNotificationDays reports whether the connected
+// instance accepts missing_backup_notification_days on database backup
+// create and update.
+//
+// Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
+// A 4.3.0 version string also reports true: CI edge lies with that
+// string while shipping later tip fields. Acc tests must still extra-key
+// probe before writing so a real 4.3.0 extra-key 422 is skipped.
+// 4.4-rc.* reports false: v4.4-rc.1 was cut without the write field.
+func (c *Client) SupportsMissingBackupNotificationDays() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionIs44Prerelease(c.CoolifyVersion) {
+		return false
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minMissingBackupNotificationDaysVersion)
+}
+
 // IsVersionAtLeast compares two semver-like version strings (e.g. "4.0.0").
 // Returns true if actual >= minimum. Non-parseable versions return true
 // to avoid blocking on unexpected version formats.

@@ -10,6 +10,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -36,25 +37,28 @@ type databaseBackupResource struct {
 }
 
 type databaseBackupResourceModel struct {
-	ID                    types.Int64  `tfsdk:"id"`
-	UUID                  types.String `tfsdk:"uuid"`
-	DatabaseUUID          types.String `tfsdk:"database_uuid"`
-	Frequency             types.String `tfsdk:"frequency"`
-	Enabled               types.Bool   `tfsdk:"enabled"`
-	Description           types.String `tfsdk:"description"`
-	DisableLocalBackup    types.Bool   `tfsdk:"disable_local_backup"`
-	SaveS3                types.Bool   `tfsdk:"save_s3"`
-	S3StorageUUID         types.String `tfsdk:"s3_storage_uuid"`
-	DatabasesToBackup     types.String `tfsdk:"databases_to_backup"`
-	DumpAll               types.Bool   `tfsdk:"dump_all"`
-	BackupNow             types.Bool   `tfsdk:"backup_now"`
-	RetainAmountLocally   types.Int64  `tfsdk:"retain_amount_locally"`
-	RetainDaysLocally     types.Int64  `tfsdk:"retain_days_locally"`
-	RetainMaxStorageLocal types.Int64  `tfsdk:"retain_max_storage_locally"`
-	RetainAmountS3        types.Int64  `tfsdk:"retain_amount_s3"`
-	RetainDaysS3          types.Int64  `tfsdk:"retain_days_s3"`
-	RetainMaxStorageS3    types.Int64  `tfsdk:"retain_max_storage_s3"`
-	Timeout               types.Int64  `tfsdk:"timeout"`
+	ID                              types.Int64  `tfsdk:"id"`
+	UUID                            types.String `tfsdk:"uuid"`
+	DatabaseUUID                    types.String `tfsdk:"database_uuid"`
+	Frequency                       types.String `tfsdk:"frequency"`
+	Enabled                         types.Bool   `tfsdk:"enabled"`
+	Description                     types.String `tfsdk:"description"`
+	DisableLocalBackup              types.Bool   `tfsdk:"disable_local_backup"`
+	SaveS3                          types.Bool   `tfsdk:"save_s3"`
+	S3StorageUUID                   types.String `tfsdk:"s3_storage_uuid"`
+	DatabasesToBackup               types.String `tfsdk:"databases_to_backup"`
+	DumpAll                         types.Bool   `tfsdk:"dump_all"`
+	BackupNow                       types.Bool   `tfsdk:"backup_now"`
+	RetainAmountLocally             types.Int64  `tfsdk:"retain_amount_locally"`
+	RetainDaysLocally               types.Int64  `tfsdk:"retain_days_locally"`
+	RetainMaxStorageLocal           types.Int64  `tfsdk:"retain_max_storage_locally"`
+	RetainAmountS3                  types.Int64  `tfsdk:"retain_amount_s3"`
+	RetainDaysS3                    types.Int64  `tfsdk:"retain_days_s3"`
+	RetainMaxStorageS3              types.Int64  `tfsdk:"retain_max_storage_s3"`
+	Timeout                         types.Int64  `tfsdk:"timeout"`
+	MissingBackupNotificationDays   types.Int64  `tfsdk:"missing_backup_notification_days"`
+	LastExecutionAt                 types.String `tfsdk:"last_execution_at"`
+	MissingBackupNotificationSentAt types.String `tfsdk:"missing_backup_notification_sent_at"`
 }
 
 func NewResource() resource.Resource { return &databaseBackupResource{} }
@@ -189,6 +193,26 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.Between(60, 36000)},
 			},
+			"missing_backup_notification_days": schema.Int64Attribute{
+				MarkdownDescription: "Days without a backup execution before Coolify sends a missing-backup notification. " +
+					"`0` disables alerts. Valid range is 0-365. " +
+					"Requires Coolify >= v4.3.18. Absent from `v4.4-rc.1` (that rc was cut before the field). " +
+					"On older instances the provider keeps the value in state and does not send it.",
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+				Validators:    []validator.Int64{int64validator.Between(0, 365)},
+			},
+			"last_execution_at": schema.StringAttribute{
+				MarkdownDescription: "Timestamp of the last backup execution. Read-only. Coolify >= v4.3.18.",
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"missing_backup_notification_sent_at": schema.StringAttribute{
+				MarkdownDescription: "Timestamp of the last missing-backup notification. Read-only. Coolify >= v4.3.18.",
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
 		},
 	}
 }
@@ -245,6 +269,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	input.RetainDaysS3 = flex.Int64PtrFromFramework(plan.RetainDaysS3)
 	input.RetainMaxStorageS3 = flex.Float64PtrFromInt64Framework(plan.RetainMaxStorageS3)
 	input.Timeout = flex.Int64PtrFromFramework(plan.Timeout)
+	input.MissingBackupNotificationDays = flex.Int64PtrFromFramework(plan.MissingBackupNotificationDays)
 
 	created, err := r.client.CreateDatabaseBackup(ctx, plan.DatabaseUUID.ValueString(), input)
 	if err != nil {
@@ -256,39 +281,8 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	// the full backup object. Save partial state immediately so the
 	// resource is tracked even if the follow-up read fails.
 	plan.UUID = types.StringValue(created.UUID)
-	if plan.ID.IsUnknown() {
-		plan.ID = types.Int64Null()
-	}
-	if plan.Enabled.IsUnknown() {
-		plan.Enabled = types.BoolNull()
-	}
-	if plan.SaveS3.IsUnknown() {
-		plan.SaveS3 = types.BoolNull()
-	}
-	if plan.DumpAll.IsUnknown() {
-		plan.DumpAll = types.BoolNull()
-	}
-	if plan.RetainAmountLocally.IsUnknown() {
-		plan.RetainAmountLocally = types.Int64Null()
-	}
-	if plan.RetainDaysLocally.IsUnknown() {
-		plan.RetainDaysLocally = types.Int64Null()
-	}
-	if plan.RetainMaxStorageLocal.IsUnknown() {
-		plan.RetainMaxStorageLocal = types.Int64Null()
-	}
-	if plan.RetainAmountS3.IsUnknown() {
-		plan.RetainAmountS3 = types.Int64Null()
-	}
-	if plan.RetainDaysS3.IsUnknown() {
-		plan.RetainDaysS3 = types.Int64Null()
-	}
-	if plan.RetainMaxStorageS3.IsUnknown() {
-		plan.RetainMaxStorageS3 = types.Int64Null()
-	}
-	if plan.Timeout.IsUnknown() {
-		plan.Timeout = types.Int64Null()
-	}
+	nullUnknownBackupComputed(&plan)
+	warnUnsupportedMissingBackupNotificationDays(r.client, plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -376,21 +370,23 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 	backupID := int(state.ID.ValueInt64())
 
 	input := client.UpdateDatabaseBackupInput{
-		Frequency:             flex.StringIfChanged(plan.Frequency, state.Frequency),
-		Enabled:               flex.BoolIfChanged(plan.Enabled, state.Enabled),
-		SaveS3:                flex.BoolIfChanged(plan.SaveS3, state.SaveS3),
-		S3StorageID:           flex.StringPtrForUpdate(plan.S3StorageUUID, state.S3StorageUUID),
-		DatabasesToBackup:     flex.StringPtrForUpdate(plan.DatabasesToBackup, state.DatabasesToBackup),
-		DumpAll:               flex.BoolIfChanged(plan.DumpAll, state.DumpAll),
-		RetainAmountLocally:   flex.Int64IfChanged(plan.RetainAmountLocally, state.RetainAmountLocally),
-		RetainDaysLocally:     flex.Int64IfChanged(plan.RetainDaysLocally, state.RetainDaysLocally),
-		RetainMaxStorageLocal: flex.Float64IfChangedFromInt64(plan.RetainMaxStorageLocal, state.RetainMaxStorageLocal),
-		RetainAmountS3:        flex.Int64IfChanged(plan.RetainAmountS3, state.RetainAmountS3),
-		RetainDaysS3:          flex.Int64IfChanged(plan.RetainDaysS3, state.RetainDaysS3),
-		RetainMaxStorageS3:    flex.Float64IfChangedFromInt64(plan.RetainMaxStorageS3, state.RetainMaxStorageS3),
-		Timeout:               flex.Int64IfChanged(plan.Timeout, state.Timeout),
+		Frequency:                     flex.StringIfChanged(plan.Frequency, state.Frequency),
+		Enabled:                       flex.BoolIfChanged(plan.Enabled, state.Enabled),
+		SaveS3:                        flex.BoolIfChanged(plan.SaveS3, state.SaveS3),
+		S3StorageID:                   flex.StringPtrForUpdate(plan.S3StorageUUID, state.S3StorageUUID),
+		DatabasesToBackup:             flex.StringPtrForUpdate(plan.DatabasesToBackup, state.DatabasesToBackup),
+		DumpAll:                       flex.BoolIfChanged(plan.DumpAll, state.DumpAll),
+		RetainAmountLocally:           flex.Int64IfChanged(plan.RetainAmountLocally, state.RetainAmountLocally),
+		RetainDaysLocally:             flex.Int64IfChanged(plan.RetainDaysLocally, state.RetainDaysLocally),
+		RetainMaxStorageLocal:         flex.Float64IfChangedFromInt64(plan.RetainMaxStorageLocal, state.RetainMaxStorageLocal),
+		RetainAmountS3:                flex.Int64IfChanged(plan.RetainAmountS3, state.RetainAmountS3),
+		RetainDaysS3:                  flex.Int64IfChanged(plan.RetainDaysS3, state.RetainDaysS3),
+		RetainMaxStorageS3:            flex.Float64IfChangedFromInt64(plan.RetainMaxStorageS3, state.RetainMaxStorageS3),
+		Timeout:                       flex.Int64IfChanged(plan.Timeout, state.Timeout),
+		MissingBackupNotificationDays: flex.Int64IfChanged(plan.MissingBackupNotificationDays, state.MissingBackupNotificationDays),
 	}
 
+	warnUnsupportedMissingBackupNotificationDays(r.client, plan, &resp.Diagnostics)
 	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, state.UUID.ValueString(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating database backup", fmt.Sprintf("backup %s for database %s: %s", state.UUID.ValueString(), dbUUID, err))
 		return
@@ -548,6 +544,51 @@ func (r *databaseBackupResource) readBackup(ctx context.Context, dbUUID string, 
 	return nil, nil
 }
 
+func nullUnknownBackupComputed(plan *databaseBackupResourceModel) {
+	if plan.ID.IsUnknown() {
+		plan.ID = types.Int64Null()
+	}
+	if plan.Enabled.IsUnknown() {
+		plan.Enabled = types.BoolNull()
+	}
+	if plan.SaveS3.IsUnknown() {
+		plan.SaveS3 = types.BoolNull()
+	}
+	if plan.DumpAll.IsUnknown() {
+		plan.DumpAll = types.BoolNull()
+	}
+	if plan.RetainAmountLocally.IsUnknown() {
+		plan.RetainAmountLocally = types.Int64Null()
+	}
+	if plan.RetainDaysLocally.IsUnknown() {
+		plan.RetainDaysLocally = types.Int64Null()
+	}
+	if plan.RetainMaxStorageLocal.IsUnknown() {
+		plan.RetainMaxStorageLocal = types.Int64Null()
+	}
+	if plan.RetainAmountS3.IsUnknown() {
+		plan.RetainAmountS3 = types.Int64Null()
+	}
+	if plan.RetainDaysS3.IsUnknown() {
+		plan.RetainDaysS3 = types.Int64Null()
+	}
+	if plan.RetainMaxStorageS3.IsUnknown() {
+		plan.RetainMaxStorageS3 = types.Int64Null()
+	}
+	if plan.Timeout.IsUnknown() {
+		plan.Timeout = types.Int64Null()
+	}
+	if plan.MissingBackupNotificationDays.IsUnknown() {
+		plan.MissingBackupNotificationDays = types.Int64Null()
+	}
+	if plan.LastExecutionAt.IsUnknown() {
+		plan.LastExecutionAt = types.StringNull()
+	}
+	if plan.MissingBackupNotificationSentAt.IsUnknown() {
+		plan.MissingBackupNotificationSentAt = types.StringNull()
+	}
+}
+
 func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceModel) {
 	m.ID = types.Int64Value(int64(b.ID))
 	m.UUID = types.StringValue(b.UUID)
@@ -576,4 +617,42 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 	m.RetainDaysS3 = flex.Int64PtrToFramework(b.RetainDaysS3)
 	m.RetainMaxStorageS3 = flex.Float64PtrToInt64Framework(b.RetainMaxStorageS3)
 	m.Timeout = flex.Int64PtrToFramework(b.Timeout)
+	if b.MissingBackupNotificationDays != nil {
+		m.MissingBackupNotificationDays = types.Int64Value(*b.MissingBackupNotificationDays)
+	} else if m.MissingBackupNotificationDays.IsUnknown() {
+		m.MissingBackupNotificationDays = types.Int64Null()
+	}
+	if b.LastExecutionAt != "" {
+		m.LastExecutionAt = types.StringValue(b.LastExecutionAt)
+	} else if m.LastExecutionAt.IsUnknown() {
+		m.LastExecutionAt = types.StringNull()
+	}
+	if b.MissingBackupNotificationSentAt != "" {
+		m.MissingBackupNotificationSentAt = types.StringValue(b.MissingBackupNotificationSentAt)
+	} else if m.MissingBackupNotificationSentAt.IsUnknown() {
+		m.MissingBackupNotificationSentAt = types.StringNull()
+	}
+}
+
+func warnUnsupportedMissingBackupNotificationDays(c *client.Client, plan databaseBackupResourceModel, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsMissingBackupNotificationDays() {
+		return
+	}
+	if plan.MissingBackupNotificationDays.IsNull() || plan.MissingBackupNotificationDays.IsUnknown() {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write missing_backup_notification_days",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept missing_backup_notification_days (added in Coolify v4.3.18). "+
+				"The provider will keep the value in Terraform state but will not send it to the Coolify API. "+
+				"Upgrade to Coolify v4.3.18 or later, or remove missing_backup_notification_days from configuration. "+
+				"v4.4-rc.1 was cut before this field.",
+			ver,
+		),
+	)
 }

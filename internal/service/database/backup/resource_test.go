@@ -34,10 +34,17 @@ type mockBackupState struct {
 	s3StorageID       string
 	databasesToBackup string
 	retainDays        *int64
+	missingDays       *int64
+	sawMissingDays    bool
+	lastExecutionAt   string
 	deleted           bool
 }
 
 func newMockBackupServer() (*httptest.Server, *mockBackupState) {
+	return newMockBackupServerVersion(acctest.DefaultTestCoolifyVersion)
+}
+
+func newMockBackupServerVersion(version string) (*httptest.Server, *mockBackupState) {
 	state := &mockBackupState{
 		id:     42,
 		uuid:   "bkp-uuid-001",
@@ -47,7 +54,7 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 		// matching values masked body serialization bugs.
 	}
 
-	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		state.mu.Lock()
 		defer state.mu.Unlock()
@@ -74,6 +81,13 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			if v, ok := body["database_backup_retention_amount_locally"].(float64); ok {
 				i := int64(v)
 				state.retainDays = &i
+			}
+			if v, ok := body["missing_backup_notification_days"]; ok {
+				state.sawMissingDays = true
+				if f, ok := v.(float64); ok {
+					i := int64(f)
+					state.missingDays = &i
+				}
 			}
 			// Real Coolify API returns only uuid+message on create.
 			w.WriteHeader(http.StatusCreated)
@@ -129,6 +143,13 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 					}
 				}
 			}
+			if v, ok := body["missing_backup_notification_days"]; ok {
+				state.sawMissingDays = true
+				if f, ok := v.(float64); ok {
+					i := int64(f)
+					state.missingDays = &i
+				}
+			}
 			// Real Coolify API returns only message on update.
 			json.NewEncoder(w).Encode(map[string]string{"message": "Database backup configuration updated"})
 
@@ -142,7 +163,7 @@ func newMockBackupServer() (*httptest.Server, *mockBackupState) {
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
 		}
-	})))
+	}), version))
 	return srv, state
 }
 
@@ -164,6 +185,12 @@ func backupResponse(s *mockBackupState) map[string]interface{} {
 	}
 	if s.retainDays != nil {
 		resp["database_backup_retention_amount_locally"] = *s.retainDays
+	}
+	if s.missingDays != nil {
+		resp["missing_backup_notification_days"] = *s.missingDays
+	}
+	if s.lastExecutionAt != "" {
+		resp["last_execution_at"] = s.lastExecutionAt
 	}
 	return resp
 }
@@ -687,6 +714,94 @@ func TestDatabaseBackupResource_S3RoundTrip(t *testing.T) {
 				`),
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestDatabaseBackupResource_MissingBackupNotificationDays(t *testing.T) {
+	t.Parallel()
+	srv, state := newMockBackupServerVersion("v4.3.18")
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkBackupDestroy(srv.URL),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid                     = "eeee0001-0001-4000-8000-000000000001"
+					frequency                         = "0 2 * * *"
+					enabled                           = true
+					missing_backup_notification_days  = 3
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "missing_backup_notification_days", "3"),
+					func(_ *terraform.State) error {
+						state.mu.Lock()
+						defer state.mu.Unlock()
+						if !state.sawMissingDays {
+							return fmt.Errorf("expected POST missing_backup_notification_days")
+						}
+						if state.missingDays == nil || *state.missingDays != 3 {
+							return fmt.Errorf("store missing days = %v, want 3", state.missingDays)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid                     = "eeee0001-0001-4000-8000-000000000001"
+					frequency                         = "0 2 * * *"
+					enabled                           = true
+					missing_backup_notification_days  = 7
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "missing_backup_notification_days", "7"),
+				),
+			},
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid                     = "eeee0001-0001-4000-8000-000000000001"
+					frequency                         = "0 2 * * *"
+					enabled                           = true
+					missing_backup_notification_days  = 7
+				`),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestDatabaseBackupResource_MissingBackupNotificationDaysWithheldOnOldCoolify(t *testing.T) {
+	t.Parallel()
+	srv, state := newMockBackupServer() // default mock version is v4.2.0-test
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             checkBackupDestroy(srv.URL),
+		Steps: []resource.TestStep{
+			{
+				Config: testBackupConfig(srv.URL, `
+					database_uuid                     = "eeee0001-0001-4000-8000-000000000001"
+					frequency                         = "0 2 * * *"
+					enabled                           = true
+					missing_backup_notification_days  = 5
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "missing_backup_notification_days", "5"),
+					func(_ *terraform.State) error {
+						state.mu.Lock()
+						defer state.mu.Unlock()
+						if state.sawMissingDays {
+							return fmt.Errorf("expected missing_backup_notification_days withheld on old Coolify")
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})

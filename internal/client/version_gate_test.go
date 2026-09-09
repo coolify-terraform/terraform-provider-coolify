@@ -207,6 +207,39 @@ func TestSupportsSMTPEhloDomain(t *testing.T) {
 	}
 }
 
+func TestSupportsMissingBackupNotificationDays(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.3.17", false},
+		{"v4.3.17", false},
+		{"4.3.0", true}, // CI edge version lie
+		{"v4.3.0-edge", true},
+		{"4.3.18", true},
+		{"v4.3.18", true},
+		{"4.3.19", true},
+		{"4.4.0", true},
+		{"4.4-rc.1", false}, // cut before the write field
+		{"v4.4-rc.1", false},
+		{"4.4.0-rc.1", false},
+		{"", true},
+		{"not-a-version", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsMissingBackupNotificationDays(); got != tt.want {
+			t.Errorf("SupportsMissingBackupNotificationDays(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsMissingBackupNotificationDays() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
 func TestSupportsPreviewDomainUpdate(t *testing.T) {
 	t.Parallel()
 

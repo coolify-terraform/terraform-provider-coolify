@@ -14616,6 +14616,20 @@
                         "description": "Frequency.",
                         "maxLength": 255
                     },
+                    "last_execution_at": {
+                        "type": "string",
+                        "description": "Last execution at.",
+                        "format": "date-time"
+                    },
+                    "missing_backup_notification_days": {
+                        "type": "string",
+                        "description": "Missing backup notification days."
+                    },
+                    "missing_backup_notification_sent_at": {
+                        "type": "string",
+                        "description": "Missing backup notification sent at.",
+                        "format": "date-time"
+                    },
                     "number_of_backups_locally": {
                         "type": "integer",
                         "description": "Number of backups locally.",

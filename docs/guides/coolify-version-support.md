@@ -39,9 +39,10 @@ output "coolify_version" {
 | **4.2.x** | 4.2 resources and application settings writes work. 4.3-only attributes still withheld with a plan warning. |
 | **≥ 4.3.0** | 4.3 application settings, `noindex_domains`, notification channels, S3, volume backup schedules, GPU/log-drain, etc. |
 | **≥ 4.3.10** | Instance email settings and `smtp_ehlo_domain` on team email notifications (email/SMTP floor). |
-| **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. Recommended for the full feature set. |
+| **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
+| **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. Recommended for the full feature set. |
 
-Pinned API contract today: Coolify **v4.3.17** (`testdata/contracts/coolify-v4.json`).
+Pinned API contract today: Coolify **v4.3.18** (`testdata/contracts/coolify-v4.json`).
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
 That route stays `nested-service` (use `coolify_service` for the stack).
@@ -49,8 +50,11 @@ v4.3.10 adds instance-wide SMTP settings (`GET`/`PATCH /settings/email`) and
 `smtp_ehlo_domain` on team email notifications. Tags v4.3.15 through v4.3.17
 add restart-limit GET fields, GET-only `domain_port_overrides`, notification
 `restart_limit_reached_*` writes, and `PATCH` preview domains on
-`coolify_application_preview`. `v4.4-rc.1` was cut before those 4.3.15
-fields. The provider remains usable on 4.1.0+ for the common surface.
+`coolify_application_preview`. Tag v4.3.18 adds
+`missing_backup_notification_days` on database backup create/update.
+`v4.4-rc.1` was cut before the 4.3.15 restart-limit fields and before the
+4.3.18 backup notification field. The provider remains usable on 4.1.0+
+for the common surface.
 
 ## Resources and data sources by Coolify version
 

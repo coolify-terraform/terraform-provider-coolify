@@ -20,12 +20,13 @@ variable "existing_s3_storage_uuid" {
 }
 
 resource "coolify_database_backup" "daily" {
-  database_uuid         = coolify_database_postgresql.example.uuid
-  frequency             = "0 2 * * *"
-  enabled               = true
-  save_s3               = true
-  retain_amount_locally = 7 # Number of backup copies to keep (not days)
-  s3_storage_uuid       = var.existing_s3_storage_uuid
+  database_uuid                    = coolify_database_postgresql.example.uuid
+  frequency                        = "0 2 * * *"
+  enabled                          = true
+  save_s3                          = true
+  retain_amount_locally            = 7 # Number of backup copies to keep (not days)
+  s3_storage_uuid                  = var.existing_s3_storage_uuid
+  missing_backup_notification_days = 2 # Requires Coolify >= v4.3.18
 }
 ```
 
@@ -43,6 +44,7 @@ resource "coolify_database_backup" "daily" {
 - `databases_to_backup` (String) Comma-separated list of database names to back up selectively. Defaults to the primary database name if not specified.
 - `dump_all` (Boolean) Whether to dump all databases.
 - `enabled` (Boolean) Whether the backup schedule is active.
+- `missing_backup_notification_days` (Number) Days without a backup execution before Coolify sends a missing-backup notification. `0` disables alerts. Valid range is 0-365. Requires Coolify >= v4.3.18. Absent from `v4.4-rc.1` (that rc was cut before the field). On older instances the provider keeps the value in state and does not send it.
 - `retain_amount_locally` (Number) Number of backup copies to retain locally.
 - `retain_amount_s3` (Number) Number of backup copies to retain in S3.
 - `retain_days_locally` (Number) Number of days to retain backups locally.
@@ -58,6 +60,8 @@ resource "coolify_database_backup" "daily" {
 - `description` (String) Optional description of the backup schedule. Read-only: Coolify does not accept this field on the public create/update backup API (UI-only write). Present when set out-of-band.
 - `disable_local_backup` (Boolean) Whether local backup retention is disabled. Read-only: Coolify does not accept this field on the public create/update backup API (UI-only write).
 - `id` (Number) The numeric ID of the backup configuration.
+- `last_execution_at` (String) Timestamp of the last backup execution. Read-only. Coolify >= v4.3.18.
+- `missing_backup_notification_sent_at` (String) Timestamp of the last missing-backup notification. Read-only. Coolify >= v4.3.18.
 - `uuid` (String) The UUID of the backup configuration.
 
 ## Import

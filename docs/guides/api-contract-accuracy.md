@@ -13,16 +13,16 @@ Coolify contract extracted from the real application code.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
-Contract version: `v4.3.17` | Extracted from: `coollabsio/coolify@v4.3.17`
+Contract version: `v4.3.18` | Extracted from: `coollabsio/coolify@v4.3.18`
 
 ## Summary
 
 | Metric | Count |
 |--------|------:|
-| Public schema fields compared | 318 |
-| Public schema type matches | 318/318 |
-| Public schema nullable matches | 253/318 |
-| Public schema client JSON mappings | 248/318 |
+| Public schema fields compared | 321 |
+| Public schema type matches | 321/321 |
+| Public schema nullable matches | 254/321 |
+| Public schema client JSON mappings | 251/321 |
 | Reusable public schemas compared | 10 |
 | Contract-only / inline-only models documented | 12 |
 
@@ -255,7 +255,7 @@ This section compares the internal source-derived backup model against the publi
 Coolify stores the relation as `s3_storage_id` internally, while the public API accepts `s3_storage_uuid` on request bodies.
 That identifier translation is expected and does not imply a missing top-level S3 CRUD API.
 
-Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mappings: 16/19
+Fields: 22 | Type matches: 22/22 | Nullable matches: 20/22 | Client JSON mappings: 19/22
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -273,6 +273,9 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mapping
 | dump_all | boolean | boolean | yes | yes | false | mapped |
 | enabled | boolean | boolean | yes | yes | true | mapped |
 | frequency | string | string | yes | yes | - | mapped |
+| last_execution_at | string | string | yes | **WRONG** | - | mapped |
+| missing_backup_notification_days | string | string | yes | yes | - | mapped |
+| missing_backup_notification_sent_at | string | string | yes | **WRONG** | - | mapped |
 | number_of_backups_locally | integer | integer | yes | yes | 7 | n/a |
 | s3_storage_id | integer | integer | yes | yes | - | n/a |
 | save_s3 | boolean | boolean | yes | yes | true | mapped |
