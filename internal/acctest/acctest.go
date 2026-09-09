@@ -942,7 +942,8 @@ func coolifyAcceptsMissingBackupNotificationDays(t *testing.T) (ok bool, detail 
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return false, fmt.Sprintf("missing_backup_notification_days extra-key probe failed (cannot reach Coolify): %v", err)
+		accTestMissingFeature(t, "missing_backup_notification_days extra-key probe failed (cannot reach Coolify): %v", err)
+		return false, ""
 	}
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	_ = resp.Body.Close()
@@ -966,8 +967,9 @@ func coolifyAcceptsMissingBackupNotificationDays(t *testing.T) (ok bool, detail 
 			resp.StatusCode, truncateForSkip(string(raw), 200))
 	default:
 		if resp.StatusCode >= 500 {
-			return false, fmt.Sprintf("missing_backup_notification_days extra-key probe returned HTTP %d: %s",
+			accTestMissingFeature(t, "missing_backup_notification_days extra-key probe returned HTTP %d (server error): %s",
 				resp.StatusCode, truncateForSkip(string(raw), 200))
+			return false, ""
 		}
 		return true, ""
 	}
@@ -975,8 +977,9 @@ func coolifyAcceptsMissingBackupNotificationDays(t *testing.T) (ok bool, detail 
 
 // AccTestSkipIfNoMissingBackupNotificationDays skips when backup create
 // extra-key 422s or 404s missing_backup_notification_days (Coolify
-// before v4.3.18, or v4.4-rc.1). Soft-skip even when
-// COOLIFY_REQUIRE_TIP_APIS=1: CI edge reports 4.3.0.
+// before v4.3.18, or v4.4-rc.1). Soft-skip extra-key 422 and 404/405 even
+// when COOLIFY_REQUIRE_TIP_APIS=1: CI edge reports 4.3.0. Transport errors
+// and HTTP 5xx use accTestMissingFeature (hard fail under REQUIRE_TIP_APIS).
 func AccTestSkipIfNoMissingBackupNotificationDays(t *testing.T) {
 	t.Helper()
 	ok, detail := coolifyAcceptsMissingBackupNotificationDays(t)
