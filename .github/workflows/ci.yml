@@ -606,7 +606,7 @@ jobs:
         run: make actionlint-check
       - name: Install zizmor
         run: |
-          python3 -m pip install --user "zizmor==1.16.1"
+          python3 -m pip install --user --require-hashes -r .github/requirements/zizmor.txt
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Run zizmor
         run: zizmor --config .github/zizmor.yml .github/workflows
