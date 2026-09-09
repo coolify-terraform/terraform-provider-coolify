@@ -41,7 +41,7 @@ This provider follows these security principles:
 - Dependabot monitors Go modules and GitHub Actions for updates
 - GitHub Dependency Review checks every PR for known vulnerabilities in new dependencies
 - FOSSA monitors license compliance
-- CodeQL runs on every push and PR for static application security testing (SAST)
+- CodeQL runs on every PR and weekly for static application security testing (SAST)
 - OpenSSF Scorecard runs weekly and reports supply chain security posture
 - Test credentials use placeholder values (`"test-token"`)
 - No real API tokens or secrets are committed to the repository

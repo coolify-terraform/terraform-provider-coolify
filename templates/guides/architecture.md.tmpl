@@ -139,7 +139,8 @@ This pipeline catches API drift automatically when Coolify updates its models.
 
 ## CI pipeline
 
-The CI pipeline runs 11 jobs on every push and PR:
+The CI pipeline runs 11 jobs on pull requests (weekly schedule for scanners).
+Product CI does not rebuild on push to main:
 
 | Job | What it checks |
 |-----|---------------|
