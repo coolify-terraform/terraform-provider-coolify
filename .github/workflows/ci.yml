@@ -2,11 +2,14 @@
 # self-hosted runners, see git history before this commit for the
 # full self-hosted config (fork safety guards, PATH normalization,
 # Docker credential workarounds, python3.9 pinning, cache: false).
+#
+# Recipe A: product CI is pull_request + workflow_dispatch + weekly
+# schedule only. There is no merge queue, so do not add merge_group.
+# An empty ci.yml run list on a squash-merge SHA is expected. Do not
+# gh workflow run ci.yml on a green squash SHA.
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -62,11 +65,9 @@ jobs:
               - 'templates/**'
               - 'docs/**'
               - '*.md'
-              # release-please / release override files: not provider docs.
-              # Matching them alone must not force full Validate (fmt, docs gen,
-              # Trivy, Gitleaks) on every version-bump PR.
+              # release-please changelog is not provider docs. Matching it
+              # alone must not force full Validate on every version-bump PR.
               - '!CHANGELOG.md'
-              - '!RELEASE_NOTES.md'
             terraform:
               - 'examples/**/*.tf'
             ci:
@@ -570,8 +571,6 @@ jobs:
           fi
           if [ "$EVENT_NAME" = "pull_request" ]; then
             gitleaks detect --source . --config .gitleaks.toml --log-opts="${PR_BASE_SHA}..HEAD" --exit-code 1
-          elif [ "$EVENT_NAME" = "push" ]; then
-            gitleaks detect --source . --config .gitleaks.toml --log-opts="${GIT_BEFORE}..${GIT_AFTER}" --exit-code 1
           else
             gitleaks detect --source . --config .gitleaks.toml --exit-code 1
           fi
@@ -697,7 +696,8 @@ jobs:
       (
         needs.changes.outputs.scenarios == 'true' ||
         github.event_name == 'workflow_dispatch'
-      )
+      ) &&
+      !(github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please'))
     strategy:
       fail-fast: false
       matrix:
@@ -834,7 +834,8 @@ jobs:
         needs.changes.outputs.ci == 'true' ||
         needs.changes.outputs.scripts == 'true' ||
         github.event_name == 'workflow_dispatch'
-      )
+      ) &&
+      !(github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please'))
     strategy:
       fail-fast: false
       matrix:

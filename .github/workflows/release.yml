@@ -1,10 +1,9 @@
 name: Release
 
 on:
-  # Triggered automatically when CI completes on main (eliminates polling).
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  # Recipe A/E: cheap release-please on push to main (no product compile).
+  # GoReleaser is the one trusted compile at release_created.
+  push:
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -20,15 +19,32 @@ permissions:
   contents: read
 
 jobs:
+  # W9: after Recipe A, PR setup-go caches do not populate the default-branch
+  # cache. Write the shared Go module cache here with no product compile.
+  cache-go:
+    name: Cache Go modules
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Only run for successful CI triggered by push (not schedule/dispatch).
-    if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push'
+    if: github.event_name == 'push'
     permissions:
       contents: write
       pull-requests: write
@@ -69,7 +85,6 @@ jobs:
     permissions:
       actions: read
       contents: write
-      pull-requests: write
       # SLSA provenance / GitHub attestations for Scorecard Signed-Releases.
       id-token: write
       attestations: write
@@ -93,42 +108,14 @@ jobs:
             echo "::error::Tag does not point to a commit on main branch"
             exit 1
           fi
-      # CI already verified via workflow_run trigger; only poll on manual dispatch.
-      - name: Verify CI passed
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SHA=$(git rev-parse HEAD)
-          echo "Checking CI status for commit ${SHA:0:7}..."
-          for attempt in $(seq 1 30); do
-            CONCLUSION=$(gh run list \
-              --commit "$SHA" \
-              --workflow ci.yml \
-              --status completed \
-              --json conclusion \
-              --jq '.[0].conclusion // empty')
-            if [ "$CONCLUSION" = "success" ]; then
-              echo "CI passed (attempt $attempt)"
-              exit 0
-            fi
-            if [ -n "$CONCLUSION" ]; then
-              echo "::error::CI workflow conclusion is '${CONCLUSION}', refusing to release"
-              exit 1
-            fi
-            echo "No completed CI run found yet (attempt $attempt/30), waiting 30s..."
-            sleep 30
-          done
-          echo "::error::No completed CI run for $SHA after 15 minutes. CI may still be running or was never triggered."
-          exit 1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
       - name: Install Syft for SBOM generation
         uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
-      # Smoke test and goreleaser check removed: both are already covered
-      # by CI (which must pass before this workflow triggers).
+      # Smoke test and goreleaser check live in PR CI. This job is the
+      # one trusted compile at release_created (Recipe E).
       - name: Clean existing release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -139,24 +126,6 @@ jobs:
             echo "Deleting existing asset: $asset"
             gh release delete-asset "$TAG" "$asset" -y || true
           done
-      # Custom release notes override:
-      # To use curated release notes instead of auto-generated ones, commit a
-      # RELEASE_NOTES.md file to main (via a prep PR) BEFORE merging the
-      # release-please PR. The file must be on main, not on the release-please
-      # branch (release-please force-pushes its branch on every new main commit,
-      # which wipes any extra files). The cleanup step below deletes the file
-      # from main after the release completes.
-      - name: Apply custom release notes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ env.RELEASE_TAG }}
-        run: |
-          if [ -f RELEASE_NOTES.md ]; then
-            echo "Custom release notes found, updating release body..."
-            gh release edit "$TAG" --notes-file RELEASE_NOTES.md
-          else
-            echo "No custom release notes, using auto-generated notes"
-          fi
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         id: import_gpg
@@ -211,34 +180,16 @@ jobs:
           else
             echo "::warning::No attestation bundles produced; Scorecard provenance may stay incomplete"
           fi
-      # Generate a GitHub App token for the cleanup PR so that push events
-      # trigger CI and auto-approve (GITHUB_TOKEN suppresses both).
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        id: cleanup-token
-        with:
-          client-id: ${{ vars.AUTO_APPROVE_CLIENT_ID }}
-          private-key: ${{ secrets.AUTO_APPROVE_PRIVATE_KEY }}
-      - name: Clean up release notes file
+      # Curated notes live on release-note-<semver> or in Actions vars.
+      # Apply after the GitHub Release exists (release-please created it;
+      # GoReleaser uploaded assets). Missing source leaves the auto
+      # changelog. continue-on-error so a notes miss does not fail publish.
+      - name: Apply curated release notes
+        continue-on-error: true
         env:
-          GH_TOKEN: ${{ steps.cleanup-token.outputs.token }}
-        run: |
-          if git ls-tree HEAD --name-only | grep -q '^RELEASE_NOTES.md$'; then
-            echo "Removing RELEASE_NOTES.md from main..."
-            # Branch protection prevents direct pushes to main, so create a
-            # short-lived PR to delete the file. The auto-approve workflow
-            # handles approval, and auto-merge closes it once CI passes.
-            BRANCH="chore/cleanup-release-notes-${{ env.RELEASE_TAG }}"
-            gh api "repos/${{ github.repository }}/git/refs" \
-              -f ref="refs/heads/$BRANCH" \
-              -f sha="$(git rev-parse HEAD)"
-            FILE_SHA=$(gh api "repos/${{ github.repository }}/contents/RELEASE_NOTES.md?ref=$BRANCH" \
-              --jq '.sha')
-            gh api --method DELETE "repos/${{ github.repository }}/contents/RELEASE_NOTES.md" \
-              -f message="chore: remove release notes override" \
-              -f sha="$FILE_SHA" \
-              -f branch="$BRANCH"
-            PR_URL=$(gh pr create --base main --head "$BRANCH" \
-              --title "chore: remove release notes override" \
-              --body "Auto-cleanup of \`RELEASE_NOTES.md\` after ${{ env.RELEASE_TAG }} release.")
-            gh pr merge "$PR_URL" --auto --squash
-          fi
+          TAG: ${{ env.RELEASE_TAG }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_NOTES: ${{ vars.RELEASE_NOTES }}
+          RELEASE_NOTES_TAG: ${{ vars.RELEASE_NOTES_TAG }}
+        run: bash scripts/apply-release-notes.sh

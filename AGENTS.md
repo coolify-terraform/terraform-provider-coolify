@@ -228,7 +228,10 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 
 ## CI
 
-11 GitHub Actions jobs on push to main and PRs (GitHub-hosted ubuntu-latest):
+11 GitHub Actions jobs on pull requests (GitHub-hosted ubuntu-latest).
+Product CI does not run again on push to main; an empty `ci.yml` run list
+on a squash-merge SHA is expected. Do not `gh workflow run ci.yml` on a
+green squash.
 Detect Changes, DCO (PR only), Test (4 package shards), Coverage (merge shards),
 Lint (includes Govulncheck + GoReleaser Check),
 Validate (includes HCL fmt + Docs + Trivy + Gitleaks),
@@ -254,22 +257,28 @@ plus tip scenarios on `edge`. Schedule: daily 06:00 UTC. Also
 Release-please manages versioning and CHANGELOG generation. Two release modes:
 
 - **Automated**: merge the release-please PR as-is. Auto-generated notes ship unchanged.
-- **AI-assisted (curated notes)**: commit a `RELEASE_NOTES.md` file to main via a prep PR,
-  merge it, then merge the release-please PR. The release workflow detects the file and
-  uses it as the GitHub Release body. A cleanup step deletes the file from main afterward.
+- **AI-assisted (curated notes)**: push an orphan one-file branch
+  `release-note-<semver>` (tag `v0.2.0` -> `release-note-0.2.0`) with only
+  `RELEASE_NOTES.md`. Do not commit that file to main. Do not open a notes PR.
+  Do not put notes on `release-please--branches--main` (the next force-push
+  wipes it). After GoReleaser, `scripts/apply-release-notes.sh` copies the
+  notes onto the GitHub Release and deletes the notes branch.
 
-**Important**: `RELEASE_NOTES.md` must be committed to main, NOT to the release-please
-branch. Release-please force-pushes its branch on every new main commit, which wipes any
-extra files added directly to that branch.
+**Release-As** still belongs on main (empty `chore` commit). The notes
+branch is not main.
+
+The GitHub Release page stays the auto changelog until apply succeeds
+(often after GoReleaser). Do not `gh release edit` by hand unless apply
+failed. Re-apply with Actions → **Apply release notes** (no compile).
+After apply, `git ls-remote --heads origin 'release-note-*'` is empty.
 
 The correct sequence for curated releases:
-1. Write `RELEASE_NOTES.md` with user-facing release description
-2. Push it to main via a small PR (e.g., `docs: add release notes for vX.Y.Z`)
-3. Wait for release-please to update its PR (picks up the new commit)
-4. Optional but recommended: Actions → **Coolify Nightly Acc** → Run workflow
+1. Write `RELEASE_NOTES.md` and push it on orphan `release-note-<semver>`
+2. Optional but recommended: Actions → **Coolify Nightly Acc** → Run workflow
    (profile `tip-and-stable` or `all`) on `main` and wait for green
-5. Merge the release-please PR
-6. Release workflow applies the curated notes and cleans up the file
+3. Merge the release-please PR (explicit human yes)
+4. Approve the `release` environment so GoReleaser publishes
+5. Confirm apply succeeded and the notes branch is gone
 
 Published to both [Terraform Registry](https://registry.terraform.io/providers/coolify-terraform/coolify)
 and [OpenTofu Registry](https://search.opentofu.org/provider/coolify-terraform/coolify).
