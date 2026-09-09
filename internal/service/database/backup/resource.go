@@ -587,6 +587,15 @@ func nullUnknownBackupComputed(plan *databaseBackupResourceModel) {
 	if plan.MissingBackupNotificationSentAt.IsUnknown() {
 		plan.MissingBackupNotificationSentAt = types.StringNull()
 	}
+	if plan.Description.IsUnknown() {
+		plan.Description = types.StringNull()
+	}
+	if plan.DisableLocalBackup.IsUnknown() {
+		plan.DisableLocalBackup = types.BoolNull()
+	}
+	if plan.DatabasesToBackup.IsUnknown() {
+		plan.DatabasesToBackup = types.StringNull()
+	}
 }
 
 func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceModel) {
