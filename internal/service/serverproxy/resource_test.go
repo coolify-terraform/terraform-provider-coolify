@@ -203,6 +203,103 @@ resource "coolify_server_proxy" "test" {
 	})
 }
 
+// Coolify GET/PATCH /proxy includes last_saved_proxy_configuration when the
+// token can read sensitive data. apply() must PUT the planned compose, not
+// the stored value flattenProxy would copy into the plan (#842).
+func TestServerProxyResource_ConfigurationUpdateKeepsPlanned(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	const existing = "http:\n  routers:\n    old: {}\n"
+	const updated = "http:\n  routers:\n    cloudflare: {}\n"
+	store := map[string]any{"proxy_type": "traefik", "configuration": existing}
+	var mu sync.Mutex
+	var lastPut string
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/proxy/configuration") && r.Method == http.MethodPut:
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("decode proxy config: %v", err)
+			}
+			cfg, _ := body["configuration"].(string)
+			if cfg == "" {
+				t.Errorf("expected non-empty configuration in PUT body, got %v", body)
+			}
+			lastPut = cfg
+			store["configuration"] = cfg
+			w.WriteHeader(http.StatusOK)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch:
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			for k, v := range body {
+				store[k] = v
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid   = "` + serverUUID + `"
+  proxy_type    = "traefik"
+  configuration = <<-EOT
+http:
+  routers:
+    cloudflare: {}
+EOT
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "configuration", updated),
+					func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPut != updated {
+							return fmt.Errorf("PUT wrote %q, want planned %q", lastPut, updated)
+						}
+						if store["configuration"] != updated {
+							return fmt.Errorf("store configuration=%v", store["configuration"])
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid   = "` + serverUUID + `"
+  proxy_type    = "traefik"
+  configuration = <<-EOT
+http:
+  routers:
+    cloudflare: {}
+    extra: {}
+EOT
+}`,
+				Check: func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					const want = "http:\n  routers:\n    cloudflare: {}\n    extra: {}\n"
+					if lastPut != want {
+						return fmt.Errorf("update PUT wrote %q, want %q", lastPut, want)
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func TestServerProxyResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
