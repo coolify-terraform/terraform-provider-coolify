@@ -863,7 +863,8 @@ func coolifyAcceptsSMTPEhloDomain(t *testing.T) (ok bool, detail string) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return false, fmt.Sprintf("smtp_ehlo_domain extra-key probe failed (cannot reach Coolify): %v", err)
+		accTestMissingFeature(t, "smtp_ehlo_domain extra-key probe failed (cannot reach Coolify): %v", err)
+		return false, ""
 	}
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	_ = resp.Body.Close()
@@ -884,8 +885,9 @@ func coolifyAcceptsSMTPEhloDomain(t *testing.T) (ok bool, detail string) {
 			resp.StatusCode, truncateForSkip(string(raw), 200))
 	default:
 		if resp.StatusCode >= 500 {
-			return false, fmt.Sprintf("smtp_ehlo_domain extra-key probe returned HTTP %d: %s",
+			accTestMissingFeature(t, "smtp_ehlo_domain extra-key probe returned HTTP %d (server error): %s",
 				resp.StatusCode, truncateForSkip(string(raw), 200))
+			return false, ""
 		}
 		// Other 4xx still means a handler ran and did not extra-key reject.
 		return true, ""
@@ -893,10 +895,12 @@ func coolifyAcceptsSMTPEhloDomain(t *testing.T) (ok bool, detail string) {
 }
 
 // AccTestSkipIfNoSMTPEhloDomain skips when PATCH extra-key 422s
-// smtp_ehlo_domain (Coolify before #11398). Soft-skip even when
-// COOLIFY_REQUIRE_TIP_APIS=1: CI edge reports 4.3.0 and extra-key 422s
-// this field. Do not use AccTestSkipIfCoolifyBelow (that helper plus
-// the flag is a hard fail on the version string).
+// smtp_ehlo_domain (Coolify before #11398). Soft-skip extra-key 422
+// even when COOLIFY_REQUIRE_TIP_APIS=1: CI edge reports 4.3.0 and
+// extra-key 422s this field. Do not use AccTestSkipIfCoolifyBelow
+// (that helper plus the flag is a hard fail on the version string).
+// Transport errors and HTTP 5xx use accTestMissingFeature (hard fail
+// under REQUIRE_TIP_APIS).
 func AccTestSkipIfNoSMTPEhloDomain(t *testing.T) {
 	t.Helper()
 	ok, detail := coolifyAcceptsSMTPEhloDomain(t)
@@ -942,7 +946,8 @@ func coolifyAcceptsMissingBackupNotificationDays(t *testing.T) (ok bool, detail 
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return false, fmt.Sprintf("missing_backup_notification_days extra-key probe failed (cannot reach Coolify): %v", err)
+		accTestMissingFeature(t, "missing_backup_notification_days extra-key probe failed (cannot reach Coolify): %v", err)
+		return false, ""
 	}
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	_ = resp.Body.Close()
@@ -966,8 +971,9 @@ func coolifyAcceptsMissingBackupNotificationDays(t *testing.T) (ok bool, detail 
 			resp.StatusCode, truncateForSkip(string(raw), 200))
 	default:
 		if resp.StatusCode >= 500 {
-			return false, fmt.Sprintf("missing_backup_notification_days extra-key probe returned HTTP %d: %s",
+			accTestMissingFeature(t, "missing_backup_notification_days extra-key probe returned HTTP %d (server error): %s",
 				resp.StatusCode, truncateForSkip(string(raw), 200))
+			return false, ""
 		}
 		return true, ""
 	}
@@ -975,8 +981,9 @@ func coolifyAcceptsMissingBackupNotificationDays(t *testing.T) (ok bool, detail 
 
 // AccTestSkipIfNoMissingBackupNotificationDays skips when backup create
 // extra-key 422s or 404s missing_backup_notification_days (Coolify
-// before v4.3.18, or v4.4-rc.1). Soft-skip even when
-// COOLIFY_REQUIRE_TIP_APIS=1: CI edge reports 4.3.0.
+// before v4.3.18, or v4.4-rc.1). Soft-skip extra-key 422 and 404/405 even
+// when COOLIFY_REQUIRE_TIP_APIS=1: CI edge reports 4.3.0. Transport errors
+// and HTTP 5xx use accTestMissingFeature (hard fail under REQUIRE_TIP_APIS).
 func AccTestSkipIfNoMissingBackupNotificationDays(t *testing.T) {
 	t.Helper()
 	ok, detail := coolifyAcceptsMissingBackupNotificationDays(t)

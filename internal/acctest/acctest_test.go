@@ -457,6 +457,100 @@ func TestAccTestSkipIfNoMissingBackupNotificationDays_NotFound(t *testing.T) {
 	}
 }
 
+func TestAccTestSkipIfNoSMTPEhloDomain_ServerError(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.3.0"})
+	})
+	mux.HandleFunc("PATCH /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"internal server error"}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfNoSMTPEhloDomain(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfNoSMTPEhloDomain to skip on HTTP 500")
+	}
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "1")
+	if os.Getenv("ACC_SMTP_EHLO_PROBE_CHILD") == "1" {
+		t.Run("fatal", func(t *testing.T) {
+			AccTestSkipIfNoSMTPEhloDomain(t)
+		})
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestAccTestSkipIfNoSMTPEhloDomain_ServerError$")
+	cmd.Env = append(os.Environ(), "ACC_SMTP_EHLO_PROBE_CHILD=1", "COOLIFY_REQUIRE_TIP_APIS=1")
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected Fatal on HTTP 500 with COOLIFY_REQUIRE_TIP_APIS=1, child passed:\n%s", out)
+	}
+	if !bytes.Contains(out, []byte("COOLIFY_REQUIRE_TIP_APIS")) {
+		t.Fatalf("child output missing REQUIRE_TIP fatal message:\n%s", out)
+	}
+}
+
+func TestAccTestSkipIfNoMissingBackupNotificationDays_ServerError(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.3.0"})
+	})
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/backups", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"internal server error"}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfNoMissingBackupNotificationDays(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfNoMissingBackupNotificationDays to skip on HTTP 500")
+	}
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "1")
+	if os.Getenv("ACC_MISSING_DAYS_PROBE_CHILD") == "1" {
+		t.Run("fatal", func(t *testing.T) {
+			AccTestSkipIfNoMissingBackupNotificationDays(t)
+		})
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestAccTestSkipIfNoMissingBackupNotificationDays_ServerError$")
+	cmd.Env = append(os.Environ(), "ACC_MISSING_DAYS_PROBE_CHILD=1", "COOLIFY_REQUIRE_TIP_APIS=1")
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected Fatal on HTTP 500 with COOLIFY_REQUIRE_TIP_APIS=1, child passed:\n%s", out)
+	}
+	if !bytes.Contains(out, []byte("COOLIFY_REQUIRE_TIP_APIS")) {
+		t.Fatalf("child output missing REQUIRE_TIP fatal message:\n%s", out)
+	}
+}
+
 func TestAccTestSkipIfNoPreviewDomainUpdate_PlainNotFound(t *testing.T) {
 	resetAccTestCaches()
 	defer resetAccTestCaches()
