@@ -913,6 +913,78 @@ func AccTestSMTPEhloDomainAccepted(t *testing.T) bool {
 	return ok
 }
 
+// missingBackupNotificationDaysProbeDB is a fake database UUID. Coolify
+// validates missing_backup_notification_days before looking the database
+// up, so -1 extra-key/min probes do not create a backup.
+const missingBackupNotificationDaysProbeDB = "00000000-0000-4000-8000-000000000099"
+
+// coolifyAcceptsMissingBackupNotificationDays POSTs an invalid
+// missing_backup_notification_days (-1) on backup create. ok is true
+// when Coolify treated the key as allowed (validation 422). Extra-key
+// 422 or 404 (old API looks up the database before extra-field check)
+// means the field is absent. Do not use AccTestSkipIfCoolifyBelow:
+// CI edge reports 4.3.0 while already shipping v4.3.18 fields.
+func coolifyAcceptsMissingBackupNotificationDays(t *testing.T) (ok bool, detail string) {
+	t.Helper()
+	TestAccPreCheck(t)
+
+	endpoint := strings.TrimRight(os.Getenv("COOLIFY_ENDPOINT"), "/")
+	token := os.Getenv("COOLIFY_TOKEN")
+	path := endpoint + "/api/v1/databases/" + missingBackupNotificationDaysProbeDB + "/backups"
+	body := `{"frequency":"0 2 * * *","missing_backup_notification_days":-1}`
+	req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("building missing_backup_notification_days probe request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, fmt.Sprintf("missing_backup_notification_days extra-key probe failed (cannot reach Coolify): %v", err)
+	}
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	_ = resp.Body.Close()
+	msg := strings.ToLower(string(raw))
+
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated, http.StatusUnauthorized, http.StatusForbidden:
+		return true, ""
+	case http.StatusUnprocessableEntity:
+		if isExtraKeyNotAllowed(msg) {
+			return false, fmt.Sprintf("Coolify extra-key 422s missing_backup_notification_days (need Coolify >= v4.3.18). Body: %s",
+				truncateForSkip(string(raw), 200))
+		}
+		// Validation 422 (min:0) means the field is allowed.
+		return true, ""
+	case http.StatusNotFound, http.StatusMethodNotAllowed:
+		// Old create_backup looks up the database before extra-field
+		// check, so a fake UUID 404s when the key is not in the
+		// validator. Treat as absent.
+		return false, fmt.Sprintf("Coolify has no missing_backup_notification_days write (HTTP %d). Body: %s",
+			resp.StatusCode, truncateForSkip(string(raw), 200))
+	default:
+		if resp.StatusCode >= 500 {
+			return false, fmt.Sprintf("missing_backup_notification_days extra-key probe returned HTTP %d: %s",
+				resp.StatusCode, truncateForSkip(string(raw), 200))
+		}
+		return true, ""
+	}
+}
+
+// AccTestSkipIfNoMissingBackupNotificationDays skips when backup create
+// extra-key 422s or 404s missing_backup_notification_days (Coolify
+// before v4.3.18, or v4.4-rc.1). Soft-skip even when
+// COOLIFY_REQUIRE_TIP_APIS=1: CI edge reports 4.3.0.
+func AccTestSkipIfNoMissingBackupNotificationDays(t *testing.T) {
+	t.Helper()
+	ok, detail := coolifyAcceptsMissingBackupNotificationDays(t)
+	if !ok {
+		t.Skip(detail)
+	}
+}
+
 // AccTestSkipIfNoPreviewDomainUpdate skips when PATCH
 // /applications/{uuid}/previews/{pr} is an unmatched route (plain
 // "Not found." or empty). Soft-skip unmatched 404/405 even when

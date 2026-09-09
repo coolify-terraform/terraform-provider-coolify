@@ -10710,6 +10710,5 @@
         "api.ability:read"
       ]
     }
-  ],
-  "notes": "Pin is tag v4.3.18. ScheduledDatabaseBackup.missing_backup_notification_days is writable on create/update (integer 0-365; 0 disables alerts). last_execution_at and missing_backup_notification_sent_at are GET-only runtime timestamps. Those three fields are absent from v4.3.17 and from v4.4-rc.1 (that rc was cut before them). Restart-limit fields, GET domain_port_overrides, and PATCH preview domains remain from v4.3.15. Public API otherwise matches v4.3.15 through v4.3.18."
+  ]
 }

@@ -358,6 +358,105 @@ func TestAccTestSkipIfNoSMTPEhloDomain_ValidationPresent(t *testing.T) {
 	AccTestSkipIfNoSMTPEhloDomain(t)
 }
 
+func TestAccTestSkipIfNoMissingBackupNotificationDays_ExtraKey(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.3.0"})
+	})
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/backups", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = w.Write([]byte(`{"message":"Validation failed.","errors":{"missing_backup_notification_days":["This field is not allowed."]}}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfNoMissingBackupNotificationDays(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfNoMissingBackupNotificationDays to skip on extra-key 422")
+	}
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "1")
+	reachedTip := false
+	t.Run("skip-under-require-tip", func(t *testing.T) {
+		AccTestSkipIfNoMissingBackupNotificationDays(t)
+		reachedTip = true
+	})
+	if reachedTip {
+		t.Fatal("missing_backup_notification_days extra-key 422 must soft-skip under COOLIFY_REQUIRE_TIP_APIS=1")
+	}
+}
+
+func TestAccTestSkipIfNoMissingBackupNotificationDays_ValidationPresent(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.3.0"})
+	})
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/backups", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode probe body: %v", err)
+		}
+		if body["missing_backup_notification_days"] != float64(-1) {
+			t.Fatalf("probe days = %v, want -1", body["missing_backup_notification_days"])
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = w.Write([]byte(`{"message":"Validation failed.","errors":{"missing_backup_notification_days":["The missing backup notification days must be at least 0."]}}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	AccTestSkipIfNoMissingBackupNotificationDays(t)
+}
+
+func TestAccTestSkipIfNoMissingBackupNotificationDays_NotFound(t *testing.T) {
+	resetAccTestCaches()
+	defer resetAccTestCaches()
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.3.17"})
+	})
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/backups", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"Database not found."}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfNoMissingBackupNotificationDays(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfNoMissingBackupNotificationDays to skip on 404")
+	}
+}
+
 func TestAccTestSkipIfNoPreviewDomainUpdate_PlainNotFound(t *testing.T) {
 	resetAccTestCaches()
 	defer resetAccTestCaches()

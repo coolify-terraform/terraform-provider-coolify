@@ -87,6 +87,61 @@ resource "coolify_database_backup" "test" {
 // TestAccDatabaseBackupResource_S3 — S3 backup workflow against real MinIO
 // ---------------------------------------------------------------------------
 
+func TestAccDatabaseBackupResource_MissingBackupNotificationDays(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+	acctest.AccTestSkipIfNoMissingBackupNotificationDays(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-bkp-miss")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckNestedDestroy("coolify_database_backup", "database_uuid", "/api/v1/databases/%s/backups"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccBackupMissingNotificationConfig(name, serverUUID, 3),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "missing_backup_notification_days", "3"),
+					resource.TestCheckResourceAttrSet("coolify_database_backup.test", "uuid"),
+				),
+			},
+			{
+				Config:             testAccBackupMissingNotificationConfig(name, serverUUID, 3),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: testAccBackupMissingNotificationConfig(name, serverUUID, 7),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "missing_backup_notification_days", "7"),
+				),
+			},
+		},
+	})
+}
+
+func testAccBackupMissingNotificationConfig(name, serverUUID string, days int) string {
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_database_postgresql" "test" {
+  project_uuid = coolify_project.test.uuid
+  server_uuid  = %[2]q
+  name         = %[1]q
+}
+
+resource "coolify_database_backup" "test" {
+  database_uuid                    = coolify_database_postgresql.test.uuid
+  frequency                        = "0 2 * * *"
+  enabled                          = true
+  missing_backup_notification_days = %[3]d
+}
+`, name, serverUUID, days)
+}
+
 func TestAccDatabaseBackupResource_S3(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)

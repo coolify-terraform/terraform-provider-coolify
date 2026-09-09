@@ -347,6 +347,14 @@ type DatabaseBackup struct {
 	RetainDaysS3          *int64   `json:"database_backup_retention_days_s3,omitempty"`
 	RetainMaxStorageS3    *float64 `json:"database_backup_retention_max_storage_s3,omitempty"`
 	Timeout               *int64   `json:"timeout,omitempty"`
+	// MissingBackupNotificationDays is days without an execution before
+	// Coolify sends a missing-backup alert. 0 disables alerts.
+	// Requires Coolify >= v4.3.18. Absent from v4.4-rc.1.
+	MissingBackupNotificationDays *int64 `json:"missing_backup_notification_days,omitempty"`
+	// LastExecutionAt is GET-only (runtime). Coolify jobs update it.
+	LastExecutionAt string `json:"last_execution_at,omitempty"`
+	// MissingBackupNotificationSentAt is GET-only (runtime).
+	MissingBackupNotificationSentAt string `json:"missing_backup_notification_sent_at,omitempty"`
 }
 
 type CreateDatabaseBackupInput struct {
@@ -364,6 +372,8 @@ type CreateDatabaseBackupInput struct {
 	RetainDaysS3          *int64   `json:"database_backup_retention_days_s3,omitempty"`
 	RetainMaxStorageS3    *float64 `json:"database_backup_retention_max_storage_s3,omitempty"`
 	Timeout               *int64   `json:"timeout,omitempty"`
+	// MissingBackupNotificationDays requires Coolify >= v4.3.18.
+	MissingBackupNotificationDays *int64 `json:"missing_backup_notification_days,omitempty"`
 }
 
 type UpdateDatabaseBackupInput struct {
@@ -380,6 +390,8 @@ type UpdateDatabaseBackupInput struct {
 	RetainDaysS3          *int64   `json:"database_backup_retention_days_s3,omitempty"`
 	RetainMaxStorageS3    *float64 `json:"database_backup_retention_max_storage_s3,omitempty"`
 	Timeout               *int64   `json:"timeout,omitempty"`
+	// MissingBackupNotificationDays requires Coolify >= v4.3.18.
+	MissingBackupNotificationDays *int64 `json:"missing_backup_notification_days,omitempty"`
 }
 
 func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]DatabaseBackup, error) {
@@ -391,6 +403,9 @@ func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]Data
 }
 
 func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input CreateDatabaseBackupInput) (*DatabaseBackup, error) {
+	if !c.SupportsMissingBackupNotificationDays() {
+		input.MissingBackupNotificationDays = nil
+	}
 	var b DatabaseBackup
 	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)), input, &b, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating backup for database %s: %w", dbUUID, err)
@@ -400,6 +415,9 @@ func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input 
 }
 
 func (c *Client) UpdateDatabaseBackup(ctx context.Context, dbUUID string, backupUUID string, input UpdateDatabaseBackupInput) (*DatabaseBackup, error) {
+	if !c.SupportsMissingBackupNotificationDays() {
+		input.MissingBackupNotificationDays = nil
+	}
 	var b DatabaseBackup
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/backups/%s", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), input, &b); err != nil {
 		return nil, fmt.Errorf("updating backup %s for database %s: %w", backupUUID, dbUUID, err)

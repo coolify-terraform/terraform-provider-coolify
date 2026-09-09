@@ -2225,6 +2225,48 @@ func TestClient_CreateDatabaseBackup(t *testing.T) {
 	assert.True(t, b.Enabled)
 }
 
+func TestClient_CreateDatabaseBackup_MissingBackupNotificationDaysVersionGate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		version string
+		wantKey bool
+	}{
+		{"4.3.17 withholds", "4.3.17", false},
+		{"4.3.0 sends (CI edge version lie)", "4.3.0", true},
+		{"4.3.18 sends", "4.3.18", true},
+		{"4.4-rc.1 withholds", "4.4-rc.1", false},
+		{"empty version sends", "", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var lastPost map[string]interface{}
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&lastPost))
+				w.WriteHeader(http.StatusCreated)
+				_ = json.NewEncoder(w).Encode(DatabaseBackup{UUID: "bk-new"})
+			}))
+			defer srv.Close()
+			c := New(srv.URL, "test-token")
+			c.CoolifyVersion = tt.version
+			days := int64(3)
+			_, err := c.CreateDatabaseBackup(context.Background(), "db-uuid-1", CreateDatabaseBackupInput{
+				Frequency:                     "0 2 * * *",
+				Enabled:                       true,
+				MissingBackupNotificationDays: &days,
+			})
+			require.NoError(t, err)
+			_, sent := lastPost["missing_backup_notification_days"]
+			if sent != tt.wantKey {
+				t.Errorf("Coolify %q: missing_backup_notification_days sent=%v, want %v (body=%v)",
+					tt.version, sent, tt.wantKey, lastPost)
+			}
+		})
+	}
+}
+
 func TestClient_UpdateDatabaseBackup(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
