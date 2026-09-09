@@ -63,8 +63,12 @@ func (r *serverProxyResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "Whether to generate exact Docker labels (removes extra labels from containers). " +
 					"Setting `false` is ignored by Coolify today (`$request->has('generate_exact_labels')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.",
 			},
-			"proxy_type":    schema.StringAttribute{Optional: true, Computed: true, MarkdownDescription: "Proxy type (for example traefik or caddy)."},
-			"configuration": schema.StringAttribute{Optional: true, MarkdownDescription: "Raw proxy configuration written with PUT .../proxy/configuration."},
+			"proxy_type": schema.StringAttribute{Optional: true, Computed: true, MarkdownDescription: "Proxy type (for example traefik or caddy)."},
+			"configuration": schema.StringAttribute{
+				Optional: true,
+				MarkdownDescription: "Raw proxy Docker Compose written with PUT .../proxy/configuration. " +
+					"The provider sends the planned value. Coolify GET/PATCH may also return the previously stored compose when the token can read sensitive data; that response is not used as the PUT body.",
+			},
 		},
 	}
 }
@@ -121,6 +125,10 @@ func flattenProxy(got *client.ServerProxy, plan *serverProxyModel) {
 func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel) error {
 	uuid := plan.ServerUUID.ValueString()
 	input := proxyUpdateFromPlan(*plan)
+	// GET and PATCH include last_saved_proxy_configuration when the token
+	// can read sensitive data. flattenProxy would copy that into the plan
+	// and PUT would write the previous compose back (#842).
+	plannedConfig := plan.Configuration
 
 	current, err := r.client.GetServerProxy(ctx, uuid)
 	if err != nil && !client.IsNotFound(err) {
@@ -128,6 +136,7 @@ func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel)
 	}
 	if current != nil {
 		flattenProxy(current, plan)
+		plan.Configuration = plannedConfig
 	}
 
 	wantType := ""
@@ -164,8 +173,9 @@ func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel)
 			return err
 		}
 	}
-	if !plan.Configuration.IsNull() && !plan.Configuration.IsUnknown() && plan.Configuration.ValueString() != "" {
-		return r.client.PutServerProxyConfiguration(ctx, uuid, plan.Configuration.ValueString())
+	plan.Configuration = plannedConfig
+	if !plannedConfig.IsNull() && !plannedConfig.IsUnknown() && plannedConfig.ValueString() != "" {
+		return r.client.PutServerProxyConfiguration(ctx, uuid, plannedConfig.ValueString())
 	}
 	return nil
 }

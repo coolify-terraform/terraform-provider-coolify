@@ -439,6 +439,27 @@ stays. `redirect_url` uses `exists()` and does persist.
 path with `redirect_url` (use a resolvable host such as
 `https://example.com`; reserved names like `example.invalid` return 422).
 
+### Server proxy configuration apply writes the stored compose
+
+```
+Error: Provider produced inconsistent result after apply
+.configuration: inconsistent values for sensitive attribute
+```
+
+**Symptom:** updating `coolify_server_proxy.configuration` (for example
+adding a Cloudflare DNS challenge to an existing Traefik compose) fails
+on apply. The planned YAML never lands in Coolify.
+
+**Cause:** Coolify `GET`/`PATCH /servers/{uuid}/proxy` returns
+`configuration` when the token can read sensitive data (`root` or
+`read:sensitive`) and the server already has a stored compose. Provider
+0.1.20 and earlier copied that stored value onto the plan, then PUT it
+back. This is independent of Coolify version (any >= v4.3.0).
+
+**Fix:** upgrade the provider. Until then, write the compose with
+`PUT /api/v1/servers/{uuid}/proxy/configuration` (or the Coolify UI)
+and omit `configuration` from the resource, or keep it matching GET.
+
 ### "forces replacement"
 
 ```

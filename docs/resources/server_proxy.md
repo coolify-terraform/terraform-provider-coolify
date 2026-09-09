@@ -30,7 +30,7 @@ resource "coolify_server_proxy" "example" {
 
 ### Optional
 
-- `configuration` (String) Raw proxy configuration written with PUT .../proxy/configuration.
+- `configuration` (String) Raw proxy Docker Compose written with PUT .../proxy/configuration. The provider sends the planned value. Coolify GET/PATCH may also return the previously stored compose when the token can read sensitive data; that response is not used as the PUT body.
 - `generate_exact_labels` (Boolean) Whether to generate exact Docker labels (removes extra labels from containers). Setting `false` is ignored by Coolify today (`$request->has('generate_exact_labels')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.
 - `proxy_type` (String) Proxy type (for example traefik or caddy).
 - `redirect_enabled` (Boolean) Whether HTTP to HTTPS redirect is enabled. Coolify defaults this to `true`. Setting `false` is ignored by Coolify today (`$request->has('redirect_enabled')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.
