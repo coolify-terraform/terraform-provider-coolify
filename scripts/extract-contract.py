@@ -383,10 +383,13 @@ def expand_allowed_field_list(
 
 
 def extract_allowed_fields(content: str) -> dict[str, list[str]]:
-    """Extract $allowedFields / $allowed arrays from controller methods.
+    """Extract $allowedFields / $allowed / $backupConfigFields arrays.
 
     Coolify mostly uses ``$allowedFields = [...]``. DestinationsController
     (v4.2) uses the shorter ``$allowed = [...]`` for the same purpose.
+    DatabasesController ``create_backup`` / ``update_backup`` own the
+    scheduled-backup write list in ``$backupConfigFields`` and never
+    assign ``$allowedFields`` (#847).
 
     PHP spreads such as ``...self::APPLICATION_SETTING_FIELDS`` are expanded
     from class constants in the same file (#661).
@@ -394,7 +397,8 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
     constants = extract_php_string_list_constants(content)
     result: dict[str, list[str]] = {}
     pattern = re.compile(
-        r"\$(?:allowedFields|allowed)\s*=\s*\[(.*?)\];", re.DOTALL
+        r"\$(?:allowedFields|allowed|backupConfigFields)\s*=\s*\[(.*?)\];",
+        re.DOTALL,
     )
     # Find the enclosing method for context
     for match in pattern.finditer(content):

@@ -1,7 +1,7 @@
 {
   "version": "v4.3.15",
   "extracted_from": "coollabsio/coolify@v4.3.15",
-  "extracted_at": "2026-09-05T13:46:20.259862+00:00",
+  "extracted_at": "2026-09-09T22:34:40.866286+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -7269,6 +7269,40 @@
         "health_check_start_period"
       ]
     },
+    "DatabasesController::create_backup": {
+      "allowed_fields": [
+        "save_s3",
+        "enabled",
+        "dump_all",
+        "frequency",
+        "databases_to_backup",
+        "database_backup_retention_amount_locally",
+        "database_backup_retention_days_locally",
+        "database_backup_retention_max_storage_locally",
+        "database_backup_retention_amount_s3",
+        "database_backup_retention_days_s3",
+        "database_backup_retention_max_storage_s3",
+        "s3_storage_uuid",
+        "timeout"
+      ]
+    },
+    "DatabasesController::update_backup": {
+      "allowed_fields": [
+        "save_s3",
+        "enabled",
+        "dump_all",
+        "frequency",
+        "databases_to_backup",
+        "database_backup_retention_amount_locally",
+        "database_backup_retention_days_locally",
+        "database_backup_retention_max_storage_locally",
+        "database_backup_retention_amount_s3",
+        "database_backup_retention_days_s3",
+        "database_backup_retention_max_storage_s3",
+        "s3_storage_uuid",
+        "timeout"
+      ]
+    },
     "DatabasesController::create_database": {
       "allowed_fields": [
         "name",
@@ -7711,6 +7745,28 @@
         "configuration"
       ]
     },
+    "ServerTransferController::migrate": {
+      "allowed_fields": [
+        "target_url",
+        "target_token",
+        "write_remote",
+        "rebind_sentinel",
+        "preserve_uuids",
+        "adopt_mode"
+      ]
+    },
+    "ServerTransferController::import": {
+      "allowed_fields": [
+        "bundle",
+        "passphrase",
+        "dry_run",
+        "preserve_uuids",
+        "adopt_mode",
+        "claim",
+        "write_remote",
+        "rebind_sentinel"
+      ]
+    },
     "ServersController::create_server": {
       "allowed_fields": [
         "name",
@@ -7742,28 +7798,6 @@
         "server_disk_usage_check_frequency",
         "connection_timeout",
         "is_terminal_enabled"
-      ]
-    },
-    "ServerTransferController::migrate": {
-      "allowed_fields": [
-        "target_url",
-        "target_token",
-        "write_remote",
-        "rebind_sentinel",
-        "preserve_uuids",
-        "adopt_mode"
-      ]
-    },
-    "ServerTransferController::import": {
-      "allowed_fields": [
-        "bundle",
-        "passphrase",
-        "dry_run",
-        "preserve_uuids",
-        "adopt_mode",
-        "claim",
-        "write_remote",
-        "rebind_sentinel"
       ]
     },
     "ServiceApplicationsController::update": {
@@ -7915,32 +7949,27 @@
     }
   },
   "enums": {
-    "ActivityTypes": [
-      "inline",
-      "command"
-    ],
-    "ApplicationDeploymentStatus": [
+    "ProcessStatus": [
       "queued",
       "in_progress",
       "finished",
-      "failed",
-      "cancelled-by-user"
+      "error",
+      "killed",
+      "cancelled",
+      "closed"
     ],
-    "BuildPackTypes": [
-      "nixpacks",
-      "static",
-      "dockerfile",
-      "dockercompose",
-      "railpack"
+    "RedirectTypes": [
+      "both",
+      "www",
+      "non-www"
     ],
-    "ContainerStatusTypes": [
-      "paused",
-      "restarting",
-      "removing",
-      "running",
-      "dead",
-      "created",
-      "exited"
+    "ProxyTypes": [
+      "NONE",
+      "TRAEFIK",
+      "NGINX",
+      "CADDY",
+      "exited",
+      "running"
     ],
     "NewDatabaseTypes": [
       "postgresql",
@@ -7951,6 +7980,9 @@
       "keydb",
       "dragonfly",
       "clickhouse"
+    ],
+    "StaticImageTypes": [
+      "nginx:alpine"
     ],
     "NewResourceTypes": [
       "public",
@@ -7969,35 +8001,37 @@
       "dragonfly",
       "clickhouse"
     ],
-    "ProcessStatus": [
+    "ActivityTypes": [
+      "inline",
+      "command"
+    ],
+    "ApplicationDeploymentStatus": [
       "queued",
       "in_progress",
       "finished",
-      "error",
-      "killed",
-      "cancelled",
-      "closed"
-    ],
-    "ProxyTypes": [
-      "NONE",
-      "TRAEFIK",
-      "NGINX",
-      "CADDY",
-      "exited",
-      "running"
-    ],
-    "RedirectTypes": [
-      "both",
-      "www",
-      "non-www"
+      "failed",
+      "cancelled-by-user"
     ],
     "Role": [
       "member",
       "admin",
       "owner"
     ],
-    "StaticImageTypes": [
-      "nginx:alpine"
+    "BuildPackTypes": [
+      "nixpacks",
+      "static",
+      "dockerfile",
+      "dockercompose",
+      "railpack"
+    ],
+    "ContainerStatusTypes": [
+      "paused",
+      "restarting",
+      "removing",
+      "running",
+      "dead",
+      "created",
+      "exited"
     ]
   },
   "validation_patterns": {

@@ -1,7 +1,7 @@
 {
   "version": "v4.3.7",
   "extracted_from": "coollabsio/coolify@v4.3.7",
-  "extracted_at": "2026-08-19T04:29:07.311341+00:00",
+  "extracted_at": "2026-09-09T22:34:25.975816+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -7092,6 +7092,40 @@
         "health_check_timeout",
         "health_check_retries",
         "health_check_start_period"
+      ]
+    },
+    "DatabasesController::create_backup": {
+      "allowed_fields": [
+        "save_s3",
+        "enabled",
+        "dump_all",
+        "frequency",
+        "databases_to_backup",
+        "database_backup_retention_amount_locally",
+        "database_backup_retention_days_locally",
+        "database_backup_retention_max_storage_locally",
+        "database_backup_retention_amount_s3",
+        "database_backup_retention_days_s3",
+        "database_backup_retention_max_storage_s3",
+        "s3_storage_uuid",
+        "timeout"
+      ]
+    },
+    "DatabasesController::update_backup": {
+      "allowed_fields": [
+        "save_s3",
+        "enabled",
+        "dump_all",
+        "frequency",
+        "databases_to_backup",
+        "database_backup_retention_amount_locally",
+        "database_backup_retention_days_locally",
+        "database_backup_retention_max_storage_locally",
+        "database_backup_retention_amount_s3",
+        "database_backup_retention_days_s3",
+        "database_backup_retention_max_storage_s3",
+        "s3_storage_uuid",
+        "timeout"
       ]
     },
     "DatabasesController::create_database": {

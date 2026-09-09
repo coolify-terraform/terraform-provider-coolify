@@ -675,6 +675,53 @@ class InstanceEmailSettingsController {
         self.assertEqual(result["update"], want)
         self.assertEqual(result["show"], want)
 
+    def test_backup_config_fields_mapped_to_create_and_update_backup(self):
+        # DatabasesController create_backup / update_backup own the write
+        # list in $backupConfigFields and never assign $allowedFields (#847).
+        php = """<?php
+class DatabasesController {
+    public function create_backup(Request $request) {
+        $backupConfigFields = [
+            'save_s3', 'enabled', 'dump_all', 'frequency', 'timeout',
+            'missing_backup_notification_days',
+        ];
+        $extraFields = array_diff(array_keys($request->all()), $backupConfigFields, ['backup_now']);
+        $backupData = $request->only($backupConfigFields);
+    }
+    public function update_backup(Request $request) {
+        $backupConfigFields = [
+            'save_s3', 'enabled', 'dump_all', 'frequency', 'timeout',
+            'missing_backup_notification_days',
+        ];
+        $backupData = $request->only($backupConfigFields);
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        want = [
+            "save_s3",
+            "enabled",
+            "dump_all",
+            "frequency",
+            "timeout",
+            "missing_backup_notification_days",
+        ]
+        self.assertEqual(result["create_backup"], want)
+        self.assertEqual(result["update_backup"], want)
+
+    def test_backup_config_fields_does_not_invent_missing_days(self):
+        # Coolify < v4.3.18 and v4.4-rc.1 omit missing_backup_notification_days.
+        php = """<?php
+class DatabasesController {
+    public function create_backup(Request $request) {
+        $backupConfigFields = ['save_s3', 'enabled', 'frequency', 'timeout'];
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(result["create_backup"], ["save_s3", "enabled", "frequency", "timeout"])
+        self.assertNotIn("missing_backup_notification_days", result["create_backup"])
+
     def test_self_const_spread_expanded(self):
         # ApplicationsController (v4.2+) ends $allowedFields with
         # ...self::APPLICATION_SETTING_FIELDS. Without expansion the contract
