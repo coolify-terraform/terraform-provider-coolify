@@ -114,6 +114,20 @@ class WorkflowTriggerTests(unittest.TestCase):
         self.assertIn("name: DCO", ci)
         self.assertNotIn("RELEASE_NOTES.md", ci)
 
+    def test_ci_zizmor_pip_is_hash_pinned(self) -> None:
+        # Scorecard PinnedDependenciesID (#36) flags unhashed pip install.
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "pip install --user --require-hashes -r .github/requirements/zizmor.txt",
+            ci,
+        )
+        self.assertNotIn('pip install --user "zizmor==', ci)
+        req = ROOT / ".github" / "requirements" / "zizmor.txt"
+        self.assertTrue(req.is_file(), req)
+        body = req.read_text(encoding="utf-8")
+        self.assertIn("zizmor==1.16.1", body)
+        self.assertIn("--hash=sha256:", body)
+
     def test_optional_jobs_skip_release_please(self) -> None:
         ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
         acc = ci[ci.index("name: Acceptance Tests") :]
