@@ -96,13 +96,15 @@ jobs:
 
       - name: Check for changes
         id: diff
+        env:
+          SIGNIFICANT: ${{ steps.stats.outputs.significant }}
         run: |
           if git diff --quiet assets/; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No stat changes detected"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Stats changed, significant=${{ steps.stats.outputs.significant }}"
+            echo "Stats changed, significant=${SIGNIFICANT}"
             git diff --stat assets/
           fi
 
