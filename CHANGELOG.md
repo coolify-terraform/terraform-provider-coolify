@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.21](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.20...v0.1.21) (2026-09-10)
+
+
+### Features
+
+* pin Coolify v4.3.18 and write missing-backup notifications ([#846](https://github.com/coolify-terraform/terraform-provider-coolify/issues/846)) ([82e5853](https://github.com/coolify-terraform/terraform-provider-coolify/commit/82e5853a2b6b4a0675dd86032db57cf55a24f970))
+
+
+### Bug Fixes
+
+* **backup:** keep create-error state valid and fail 5xx acc probes ([#851](https://github.com/coolify-terraform/terraform-provider-coolify/issues/851)) ([b698061](https://github.com/coolify-terraform/terraform-provider-coolify/commit/b6980615310150b185fc8afa4106d817ffff32a8))
+* extract $backupConfigFields for database backup writes ([#849](https://github.com/coolify-terraform/terraform-provider-coolify/issues/849)) ([c5fe92c](https://github.com/coolify-terraform/terraform-provider-coolify/commit/c5fe92c99617aee48846e214cc71fec635742655))
+* **server_proxy:** keep planned configuration on apply ([#844](https://github.com/coolify-terraform/terraform-provider-coolify/issues/844)) ([9869727](https://github.com/coolify-terraform/terraform-provider-coolify/commit/98697276b717ac063c61333b5ea489934e57e5de)), closes [#842](https://github.com/coolify-terraform/terraform-provider-coolify/issues/842)
+
 ## [0.1.20](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.19...v0.1.20) (2026-09-06)
 
 
