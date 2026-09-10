@@ -6,10 +6,15 @@ social-preview and then create a new one. gh issue create did not apply
 that label (issues landed as needs-triage only), so the close query
 matched nothing and every release opened a duplicate.
 
-This script lists open issues by title and by the social-preview label,
-keeps the oldest as canonical, updates its body, and closes extras.
-If none are open, it reopens the oldest closed issue with that title
-instead of creating a new number.
+Do not use `gh issue list --search`. GitHub search is a separate index
+and often returns no hits for GitHub App installation tokens, even when
+an open issue with the exact title already exists (#840 then #854).
+
+This script lists open and closed issues through the Issues REST list
+(`gh issue list` without --search), keeps the oldest open title match
+as canonical, updates its body, and closes extras. If none are open, it
+reopens the oldest closed issue with that title instead of creating a
+new number.
 """
 
 from __future__ import annotations
@@ -56,6 +61,23 @@ def collect_candidates(
     return sorted(seen.values(), key=lambda i: int(i["number"]))
 
 
+def list_issues_with_title(gh: GhFn, *, state: str, title: str) -> list[dict[str, Any]]:
+    """REST list, not search. Filter the exact title in process."""
+    raw = gh(
+        [
+            "issue",
+            "list",
+            "--state",
+            state,
+            "--json",
+            "number,title",
+            "--limit",
+            "100",
+        ]
+    )
+    return [i for i in parse_issues(raw) if i.get("title") == title]
+
+
 def plan_upsert(
     candidates: list[dict[str, Any]],
     closed: list[dict[str, Any]] | None = None,
@@ -82,23 +104,7 @@ def upsert(
     title: str = ISSUE_TITLE,
     label: str = LABEL,
 ) -> dict[str, Any]:
-    by_title = parse_issues(
-        gh(
-            [
-                "issue",
-                "list",
-                "--state",
-                "open",
-                "--search",
-                f'is:open in:title "{title}"',
-                "--json",
-                "number,title",
-                "--limit",
-                "50",
-            ]
-        )
-    )
-    by_title = [i for i in by_title if i.get("title") == title]
+    by_title = list_issues_with_title(gh, state="open", title=title)
     by_label = parse_issues(
         gh(
             [
@@ -111,27 +117,11 @@ def upsert(
                 "--json",
                 "number,title",
                 "--limit",
-                "50",
+                "100",
             ]
         )
     )
-    closed = parse_issues(
-        gh(
-            [
-                "issue",
-                "list",
-                "--state",
-                "closed",
-                "--search",
-                f'in:title "{title}"',
-                "--json",
-                "number,title",
-                "--limit",
-                "50",
-            ]
-        )
-    )
-    closed = [i for i in closed if i.get("title") == title]
+    closed = list_issues_with_title(gh, state="closed", title=title)
     plan = plan_upsert(collect_candidates(by_title, by_label), closed)
 
     if plan["action"] == "reopen":

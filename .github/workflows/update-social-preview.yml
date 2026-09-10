@@ -64,6 +64,20 @@ jobs:
           echo "Data Sources: $DATASOURCES"
           echo "Tests: ${TESTS}+ (raw: $RAW_TESTS)"
 
+          OLD_R=$(sed -n 's/.*>\([0-9][0-9]*\) Resources<.*/\1/p' assets/social-preview.svg | head -1)
+          OLD_D=$(sed -n 's/.*>\([0-9][0-9]*\) Data Sources<.*/\1/p' assets/social-preview.svg | head -1)
+          {
+            echo "old_resources=$OLD_R"
+            echo "old_datasources=$OLD_D"
+          } >> "$GITHUB_OUTPUT"
+          if [ "$OLD_R" != "$RESOURCES" ] || [ "$OLD_D" != "$DATASOURCES" ]; then
+            echo "significant=true" >> "$GITHUB_OUTPUT"
+            echo "Significant card change: resources $OLD_R->$RESOURCES datasources $OLD_D->$DATASOURCES"
+          else
+            echo "significant=false" >> "$GITHUB_OUTPUT"
+            echo "No resource/data-source change; skip upload reminder"
+          fi
+
       - name: Update SVG with live stats
         env:
           RESOURCES: ${{ steps.stats.outputs.resources }}
@@ -82,13 +96,15 @@ jobs:
 
       - name: Check for changes
         id: diff
+        env:
+          SIGNIFICANT: ${{ steps.stats.outputs.significant }}
         run: |
           if git diff --quiet assets/; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No stat changes detected"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Stats changed, will create PR"
+            echo "Stats changed, significant=${SIGNIFICANT}"
             git diff --stat assets/
           fi
 
@@ -110,7 +126,7 @@ jobs:
           fi
 
       - name: Create PR with updated stats
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.diff.outputs.changed == 'true' && steps.stats.outputs.significant == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           TESTS: ${{ steps.stats.outputs.tests }}
@@ -134,7 +150,7 @@ jobs:
           gh pr merge "$PR_URL" --auto --squash
 
       - name: Create upload reminder issue
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.diff.outputs.changed == 'true' && steps.stats.outputs.significant == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           RESOURCES: ${{ steps.stats.outputs.resources }}
