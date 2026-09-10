@@ -29,6 +29,18 @@ jobs:
             const issue = context.payload.issue;
             const author = issue.user.login;
 
+            // Bot reminder for the social-preview upload. Not inbox.
+            if (issue.title === 'Upload social preview image') {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['social-preview', 'ready']
+              });
+              core.info('Social-preview reminder: labeled social-preview,ready');
+              return;
+            }
+
             // Check author association (OWNER, MEMBER, COLLABORATOR skip triage)
             const assoc = issue.author_association;
             const trusted = ['OWNER', 'MEMBER', 'COLLABORATOR'];

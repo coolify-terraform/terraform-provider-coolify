@@ -44,6 +44,22 @@ class TestPlanUpsert(unittest.TestCase):
         self.assertEqual(plan["close"], [812])
 
 
+class TestListIssuesWithTitle(unittest.TestCase):
+    def test_filters_title_and_skips_search(self) -> None:
+        def gh(args: list[str]) -> str:
+            self.assertNotIn("--search", args)
+            self.assertEqual(args[args.index("--state") + 1], "open")
+            return json.dumps(
+                [
+                    {"number": 1, "title": "Unrelated"},
+                    {"number": 840, "title": usp.ISSUE_TITLE},
+                ]
+            )
+
+        got = usp.list_issues_with_title(gh, state="open", title=usp.ISSUE_TITLE)
+        self.assertEqual([i["number"] for i in got], [840])
+
+
 class TestCollectCandidates(unittest.TestCase):
     def test_unions_title_and_label_and_sorts(self) -> None:
         got = usp.collect_candidates(
@@ -84,13 +100,15 @@ class TestUpsert(unittest.TestCase):
 
         def gh(args: list[str]) -> str:
             calls.append(args)
-            if args[:2] == ["issue", "list"] and "--search" in args:
-                return json.dumps(
-                    [
-                        {"number": 812, "title": usp.ISSUE_TITLE},
-                        {"number": 774, "title": usp.ISSUE_TITLE},
-                    ]
-                )
+            if args[:2] == ["issue", "list"] and "--state" in args:
+                state = args[args.index("--state") + 1]
+                if state == "open" and "--label" not in args:
+                    return json.dumps(
+                        [
+                            {"number": 812, "title": usp.ISSUE_TITLE},
+                            {"number": 774, "title": usp.ISSUE_TITLE},
+                        ]
+                    )
             if args[:2] == ["issue", "list"]:
                 return "[]"
             return ""
@@ -104,15 +122,17 @@ class TestUpsert(unittest.TestCase):
         self.assertEqual(closes[0][2], "812")
         self.assertIn("Duplicate of #774", " ".join(closes[0]))
 
-    def test_ignores_other_titles_in_search(self) -> None:
+    def test_ignores_other_titles_in_list(self) -> None:
         def gh(args: list[str]) -> str:
-            if args[:2] == ["issue", "list"] and "--search" in args:
-                return json.dumps(
-                    [
-                        {"number": 1, "title": "Unrelated"},
-                        {"number": 774, "title": usp.ISSUE_TITLE},
-                    ]
-                )
+            if args[:2] == ["issue", "list"] and "--state" in args:
+                state = args[args.index("--state") + 1]
+                if state == "open" and "--label" not in args:
+                    return json.dumps(
+                        [
+                            {"number": 1, "title": "Unrelated"},
+                            {"number": 774, "title": usp.ISSUE_TITLE},
+                        ]
+                    )
             if args[:2] == ["issue", "list"]:
                 return "[]"
             return ""
@@ -121,6 +141,23 @@ class TestUpsert(unittest.TestCase):
         self.assertEqual(plan["canonical"], 774)
         self.assertEqual(plan["close"], [])
 
+    def test_open_list_does_not_use_search(self) -> None:
+        calls: list[list[str]] = []
+
+        def gh(args: list[str]) -> str:
+            calls.append(args)
+            if args[:2] == ["issue", "list"]:
+                return "[]"
+            if args[:2] == ["issue", "create"]:
+                return "https://github.com/org/repo/issues/900\n"
+            raise AssertionError(args)
+
+        usp.upsert("body", gh=gh)
+        lists = [c for c in calls if c[:2] == ["issue", "list"]]
+        self.assertTrue(lists)
+        for c in lists:
+            self.assertNotIn("--search", c)
+
     def test_reopens_closed_singleton(self) -> None:
         calls: list[list[str]] = []
 
@@ -128,7 +165,7 @@ class TestUpsert(unittest.TestCase):
             calls.append(args)
             if args[:2] == ["issue", "list"] and "--state" in args:
                 idx = args.index("--state")
-                if args[idx + 1] == "closed":
+                if args[idx + 1] == "closed" and "--label" not in args:
                     return json.dumps([{"number": 774, "title": usp.ISSUE_TITLE}])
             if args[:2] == ["issue", "list"]:
                 return "[]"
