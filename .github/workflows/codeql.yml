@@ -1,7 +1,9 @@
 # CodeQL security analysis
 # Recipe A: PR + weekly schedule + dispatch. No push-to-main rebuild.
-# Recipe G: release-please heads keep the required check names
-# (CodeQL (go), CodeQL (actions)) via a cheap stand-in.
+# Recipe G: release-please heads skip the Go compile. The required
+# CodeQL (go) check is a stand-in. Python and actions still run
+# codeql-action/analyze so Scorecard SAST sees a
+# github-advanced-security check on every merged PR.
 name: CodeQL
 
 on:
@@ -10,6 +12,15 @@ on:
   schedule:
     - cron: "0 4 * * 1"  # Weekly Monday 4am UTC
   workflow_dispatch:
+    inputs:
+      analyze_sha:
+        description: Commit SHA to check out and attach Code Scanning results to
+        required: false
+        type: string
+      analyze_ref:
+        description: Git ref for analyze_sha (for example refs/pull/845/head)
+        required: false
+        type: string
 
 concurrency:
   group: codeql-${{ github.ref }}
@@ -27,6 +38,9 @@ jobs:
       contents: read
       security-events: write
     timeout-minutes: 20
+    env:
+      # Recipe G: skip only the Go compile on release-please heads.
+      SKIP_GO_ANALYZE: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please') && matrix.language == 'go' }}
     strategy:
       fail-fast: false
       matrix:
@@ -44,33 +58,36 @@ jobs:
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
-      - name: Release-please stand-in
-        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please')
-        run: echo 'version-bump PR; CodeQL already ran on the feature PR'
+      - name: Release-please Go stand-in
+        if: env.SKIP_GO_ANALYZE == 'true'
+        run: echo 'version-bump PR; skip Go compile; python/actions still upload SARIF'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please')
+        if: env.SKIP_GO_ANALYZE != 'true'
         with:
           persist-credentials: false
+          ref: ${{ inputs.analyze_sha || github.sha }}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        if: >-
-          matrix.language == 'go' &&
-          (github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please'))
+        if: matrix.language == 'go' && env.SKIP_GO_ANALYZE != 'true'
         with:
           go-version-file: go.mod
           cache: false
       - uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
-        if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please')
+        if: env.SKIP_GO_ANALYZE != 'true'
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           queries: security-and-quality
           dependency-caching: true
       - name: Build (Go)
-        if: >-
-          matrix.build-mode == 'manual' &&
-          (github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please'))
+        if: matrix.build-mode == 'manual' && env.SKIP_GO_ANALYZE != 'true'
         run: GOFIPS140=latest go build ./...
       - uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
-        if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please')
+        if: env.SKIP_GO_ANALYZE != 'true' && !inputs.analyze_sha
         with:
           category: "/language:${{ matrix.language }}"
+      - uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+        if: env.SKIP_GO_ANALYZE != 'true' && inputs.analyze_sha != ''
+        with:
+          category: "/language:${{ matrix.language }}"
+          sha: ${{ inputs.analyze_sha }}
+          ref: ${{ inputs.analyze_ref }}

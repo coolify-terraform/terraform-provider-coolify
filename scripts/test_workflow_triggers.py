@@ -94,19 +94,35 @@ class WorkflowTriggerTests(unittest.TestCase):
     def test_codeql_standin_on_release_please(self) -> None:
         sec = (WORKFLOWS / "codeql.yml").read_text(encoding="utf-8")
         self.assertIn("startsWith(github.head_ref, 'release-please')", sec)
+        self.assertIn("SKIP_GO_ANALYZE", sec)
+        self.assertIn("matrix.language == 'go'", sec)
+        self.assertIn("env.SKIP_GO_ANALYZE == 'true'", sec)
+        self.assertIn("env.SKIP_GO_ANALYZE != 'true'", sec)
         self.assertIn(
-            "echo 'version-bump PR; CodeQL already ran on the feature PR'",
+            "echo 'version-bump PR; skip Go compile; python/actions still upload SARIF'",
             sec,
         )
-        for pin in (
-            "github/codeql-action/init@",
-            "github/codeql-action/analyze@",
-        ):
-            idx = sec.index(pin)
+        self.assertIn("analyze_sha:", sec)
+        self.assertIn("github/codeql-action/init@", sec)
+        self.assertIn("github/codeql-action/analyze@", sec)
+        # Scorecard SAST only counts github-advanced-security checks from
+        # a real analyze upload. Do not skip python/actions on version bumps.
+        start = 0
+        found = 0
+        while True:
+            idx = sec.find("github/codeql-action/", start)
+            if idx < 0:
+                break
+            found += 1
             window = sec[max(0, idx - 400) : idx]
-            self.assertIn(
-                "!startsWith(github.head_ref, 'release-please')", window, pin
+            self.assertNotIn(
+                "!startsWith(github.head_ref, 'release-please')",
+                window,
+                sec[idx : idx + 40],
             )
+            self.assertIn("SKIP_GO_ANALYZE", window, sec[idx : idx + 40])
+            start = idx + 1
+        self.assertGreaterEqual(found, 3)
 
     def test_required_ci_gate_stays_named(self) -> None:
         ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
