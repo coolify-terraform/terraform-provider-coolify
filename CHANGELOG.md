@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.22](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.21...v0.1.22) (2026-09-10)
+
+
+### Bug Fixes
+
+* **ci:** one social-preview reminder and skip test-only nags ([#855](https://github.com/coolify-terraform/terraform-provider-coolify/issues/855)) ([9d6d8cb](https://github.com/coolify-terraform/terraform-provider-coolify/commit/9d6d8cbcfbf29576a020e15eb4916bd85d6f6c98))
+
 ## [0.1.21](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.20...v0.1.21) (2026-09-10)
 
 
