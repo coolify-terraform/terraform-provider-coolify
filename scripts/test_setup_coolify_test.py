@@ -30,8 +30,9 @@ class TestSetupCoolifyTestTimeouts(unittest.TestCase):
         self.assertNotIn("-p 9000:9000", src)
         self.assertNotIn("-p 9001:9001", src)
         self.assertIn("docker start coolify-minio", src)
+        self.assertIn("quay.io/minio/minio:", src)
         start = src.index("Starting MinIO for S3 backup tests")
-        run = src[start : src.index("minio/minio:latest", start) + 80]
+        run = src[start : src.index("quay.io/minio/minio:", start) + 80]
         self.assertNotIn(">/dev/null", run)
         self.assertNotIn("2>&1", run)
 

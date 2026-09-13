@@ -270,8 +270,9 @@ if ! grep -q "API_RATE_LIMIT" "$COOLIFY_DATA_DIR/source/.env" 2>/dev/null; then
 fi
 
 # --- Step 7: MinIO S3 storage for backup tests ---
-# Stay on the coolify network only. Host 9000/9001 binds fail with
-# docker run exit 125 when Coolify already uses those ports (Acc #858).
+# Stay on the coolify network only. Host 9000/9001 binds fail when
+# Coolify already uses those ports. Pull from quay.io; Docker Hub
+# denies minio/minio (Acc #858, docker run exit 125).
 
 if docker ps --format '{{.Names}}' | grep -q "^coolify-minio$"; then
   log "MinIO already running"
@@ -285,7 +286,7 @@ else
     --network coolify \
     -e MINIO_ROOT_USER=minioadmin \
     -e MINIO_ROOT_PASSWORD=minioadmin123 \
-    minio/minio:latest server /data --console-address ":9001"
+    quay.io/minio/minio:latest server /data --console-address ":9001"
 fi
 sleep 3
 docker exec coolify-minio mc alias set local http://localhost:9000 minioadmin minioadmin123 || true
