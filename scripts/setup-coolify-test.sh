@@ -270,23 +270,26 @@ if ! grep -q "API_RATE_LIMIT" "$COOLIFY_DATA_DIR/source/.env" 2>/dev/null; then
 fi
 
 # --- Step 7: MinIO S3 storage for backup tests ---
+# Stay on the coolify network only. Host 9000/9001 binds fail with
+# docker run exit 125 when Coolify already uses those ports (Acc #858).
 
-if ! docker ps --format '{{.Names}}' | grep -q "^coolify-minio$"; then
+if docker ps --format '{{.Names}}' | grep -q "^coolify-minio$"; then
+  log "MinIO already running"
+elif docker ps -a --format '{{.Names}}' | grep -q "^coolify-minio$"; then
+  log "Starting existing MinIO container"
+  docker start coolify-minio
+else
   log "Starting MinIO for S3 backup tests"
   docker run -d \
     --name coolify-minio \
     --network coolify \
     -e MINIO_ROOT_USER=minioadmin \
     -e MINIO_ROOT_PASSWORD=minioadmin123 \
-    -p 9000:9000 \
-    -p 9001:9001 \
-    minio/minio:latest server /data --console-address ":9001" > /dev/null 2>&1
-  sleep 3
-  docker exec coolify-minio mc alias set local http://localhost:9000 minioadmin minioadmin123 > /dev/null 2>&1
-  docker exec coolify-minio mc mb local/coolify-backups > /dev/null 2>&1 || true
-else
-  log "MinIO already running"
+    minio/minio:latest server /data --console-address ":9001"
 fi
+sleep 3
+docker exec coolify-minio mc alias set local http://localhost:9000 minioadmin minioadmin123 || true
+docker exec coolify-minio mc mb local/coolify-backups || true
 
 S3_COUNT=$(psql_exec "SELECT count(*) FROM s3_storages WHERE name = 'minio-test';")
 if [[ "$S3_COUNT" == "0" ]]; then
