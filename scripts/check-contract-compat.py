@@ -127,10 +127,12 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
     },
     # Service-application noindex (service stack apps; app resource covers standalone apps).
     # is_force_https_enabled landed on this nested PATCH in Coolify v4.3.8.
+    # max_restart_count landed on this nested PATCH in Coolify v4.3.19.
     # Route is skipNestedService; standalone apps already map the field.
     "ServiceApplicationsController::update": {
         "noindex_domains",
         "is_force_https_enabled",
+        "max_restart_count",
     },
     # Restart-limit notification events landed in tag v4.3.15. Absent from
     # v4.3.14 and from v4.4-rc.1 (cut before that stable line).

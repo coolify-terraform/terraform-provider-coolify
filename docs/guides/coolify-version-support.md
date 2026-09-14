@@ -42,7 +42,7 @@ output "coolify_version" {
 | **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. Recommended for the full feature set. |
 
-Pinned API contract today: Coolify **v4.3.18** (`testdata/contracts/coolify-v4.json`).
+Pinned API contract today: Coolify **v4.3.19** (`testdata/contracts/coolify-v4.json`).
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
 That route stays `nested-service` (use `coolify_service` for the stack).
@@ -52,6 +52,8 @@ add restart-limit GET fields, GET-only `domain_port_overrides`, notification
 `restart_limit_reached_*` writes, and `PATCH` preview domains on
 `coolify_application_preview`. Tag v4.3.18 adds
 `missing_backup_notification_days` on database backup create/update.
+Tag v4.3.19 adds `max_restart_count` on that same nested service-application
+PATCH (still `nested-service`).
 `v4.4-rc.1` was cut before the 4.3.15 restart-limit fields and before the
 4.3.18 backup notification field. The provider remains usable on 4.1.0+
 for the common surface.
