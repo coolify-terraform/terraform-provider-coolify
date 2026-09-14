@@ -144,6 +144,22 @@ class WorkflowTriggerTests(unittest.TestCase):
         self.assertIn("zizmor==1.16.1", body)
         self.assertIn("--hash=sha256:", body)
 
+    def test_acceptance_does_not_run_on_generic_scripts(self) -> None:
+        # Channel-watch / OpenAPI / FOSSA Python-only edits must not boot
+        # two Coolify instances. Acc still runs when go or CI plumbing
+        # changes (ci filter lists boot + shard scripts).
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        acc_header = ci[ci.index("name: Acceptance Tests") :].split("steps:")[0]
+        self.assertNotIn("needs.changes.outputs.scripts == 'true'", acc_header)
+        self.assertIn("needs.changes.outputs.go == 'true'", acc_header)
+        self.assertIn("needs.changes.outputs.ci == 'true'", acc_header)
+        ci_filter = ci[ci.index("            ci:") : ci.index("            scripts:")]
+        self.assertIn("scripts/setup-coolify-test.sh", ci_filter)
+        self.assertIn("scripts/ci-coolify-boot.sh", ci_filter)
+        self.assertIn("scripts/ci-acc-packages.sh", ci_filter)
+        validate = ci[ci.index("name: Validate") : ci.index("name: Acceptance Tests")]
+        self.assertIn("needs.changes.outputs.scripts == 'true'", validate)
+
     def test_optional_jobs_skip_release_please(self) -> None:
         ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
         acc = ci[ci.index("name: Acceptance Tests") :]

@@ -77,10 +77,14 @@ jobs:
               - 'scripts/ci-acc-packages.sh'
               - 'scripts/ci-coolify-boot.sh'
               - 'scripts/ci-scenario-suite-need.sh'
+              - 'scripts/setup-coolify-test.sh'
               - '.codecov.yml'
               - '.goreleaser.yml'
               - 'GNUmakefile'
             scripts:
+              # Python/shell helpers. Validate python-test uses this.
+              # Do not gate Acceptance Tests on it: a channel-watch
+              # script change would boot two Coolify instances.
               - 'scripts/**'
               - '.github/workflows/ci.yml'
             workflows:
@@ -832,7 +836,6 @@ jobs:
       (
         needs.changes.outputs.go == 'true' ||
         needs.changes.outputs.ci == 'true' ||
-        needs.changes.outputs.scripts == 'true' ||
         github.event_name == 'workflow_dispatch'
       ) &&
       !(github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please'))
