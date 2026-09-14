@@ -42,7 +42,7 @@ resource "coolify_gitlab_app" "example" {
 - `custom_port` (Number) SSH port. Coolify defaults to 22.
 - `custom_user` (String) SSH user. Coolify defaults to git.
 - `group_name` (String) Optional group filter.
-- `is_system_wide` (Boolean) System-wide on self-hosted Coolify only.
+- `is_system_wide` (Boolean) System-wide on self-hosted Coolify only. Create-only: changing this value replaces the app.
 - `redirect_uri` (String) OAuth redirect URI. May be a private URL.
 - `webhook_token` (String, Sensitive) Webhook secret. Coolify generates one when omitted.
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -111,9 +113,6 @@ func (s *mockGitHubAppStore) Update(id int64, upd mockGitHubAppUpdate) (*mockGit
 	if upd.WebhookSecret != nil {
 		app.WebhookSecret = *upd.WebhookSecret
 	}
-	if upd.IsSystemWide != nil {
-		app.IsSystemWide = *upd.IsSystemWide
-	}
 	return app, true
 }
 
@@ -126,7 +125,6 @@ type mockGitHubAppUpdate struct {
 	InstallationID   *int64  `json:"installation_id"`
 	ClientID         *string `json:"client_id"`
 	WebhookSecret    *string `json:"webhook_secret"`
-	IsSystemWide     *bool   `json:"is_system_wide"`
 }
 
 func (s *mockGitHubAppStore) Delete(id int64) bool {
@@ -222,8 +220,23 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 			return
 		}
 
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		var extra map[string]any
+		if err := json.Unmarshal(raw, &extra); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		if _, ok := extra["is_system_wide"]; ok {
+			http.Error(w, `{"message":"The is_system_wide field is not allowed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+
 		var body mockGitHubAppUpdate
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		if err := json.Unmarshal(raw, &body); err != nil {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 			return
 		}
@@ -417,6 +430,11 @@ is_system_wide   = false
 			},
 			{
 				Config: updated,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_github_app.test", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_github_app.test", "custom_user", "git"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "custom_port", "22"),

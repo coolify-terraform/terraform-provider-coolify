@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -134,10 +135,13 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Validators:          []validator.String{validate.UUID()},
 			},
 			"is_system_wide": schema.BoolAttribute{
-				MarkdownDescription: "Whether this GitHub App is available to all teams on the Coolify instance. Only applied on self-hosted (non-cloud) Coolify; cloud ignores the field. Coolify default: `false`.",
+				MarkdownDescription: "Whether this GitHub App is available to all teams on the Coolify instance. Only applied on self-hosted (non-cloud) Coolify; cloud ignores the field. Coolify default: `false`. Create-only: changing this value replaces the app.",
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}
@@ -274,7 +278,6 @@ func (r *gitHubAppResource) Update(ctx context.Context, req resource.UpdateReque
 		ClientSecret:     flex.StringIfChanged(plan.ClientSecret, state.ClientSecret),
 		WebhookSecret:    flex.StringIfChanged(plan.WebhookSecret, state.WebhookSecret),
 		PrivateKeyUUID:   flex.StringIfChanged(plan.PrivateKeyUUID, state.PrivateKeyUUID),
-		IsSystemWide:     flex.BoolIfChanged(plan.IsSystemWide, state.IsSystemWide),
 	}
 
 	// Use the PATCH response directly (returns the full object) instead of

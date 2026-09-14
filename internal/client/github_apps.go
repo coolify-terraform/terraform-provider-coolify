@@ -52,7 +52,6 @@ type UpdateGitHubAppIntegrationInput struct {
 	ClientSecret     *string `json:"client_secret,omitempty"`
 	WebhookSecret    *string `json:"webhook_secret,omitempty"`
 	PrivateKeyUUID   *string `json:"private_key_uuid,omitempty"`
-	IsSystemWide     *bool   `json:"is_system_wide,omitempty"`
 }
 
 type GitHubRepository struct {

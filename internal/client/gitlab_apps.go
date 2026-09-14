@@ -51,7 +51,6 @@ type UpdateGitLabAppInput struct {
 	ClientSecret *string `json:"client_secret,omitempty"`
 	WebhookToken *string `json:"webhook_token,omitempty"`
 	RedirectURI  *string `json:"redirect_uri,omitempty"`
-	IsSystemWide *bool   `json:"is_system_wide,omitempty"`
 }
 
 func (c *Client) ListGitLabApps(ctx context.Context) ([]GitLabApp, error) {

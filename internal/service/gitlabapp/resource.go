@@ -7,6 +7,7 @@ import (
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -51,7 +52,7 @@ func (r *gitlabAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify GitLab App source. Requires Coolify >= v4.3.0.",
 		Attributes: map[string]schema.Attribute{
-			"id":             schema.Int64Attribute{Computed: true, MarkdownDescription: "Coolify numeric GitLab App id (used in PATCH/DELETE)."},
+			"id":             schema.Int64Attribute{Computed: true, MarkdownDescription: "Coolify numeric GitLab App id (used in PATCH/DELETE).", PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}},
 			"uuid":           schema.StringAttribute{Computed: true, MarkdownDescription: "Coolify UUID when returned.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"name":           schema.StringAttribute{Required: true, MarkdownDescription: "Display name."},
 			"html_url":       schema.StringAttribute{Required: true, MarkdownDescription: "GitLab HTML URL (for example https://gitlab.example.com)."},
@@ -63,7 +64,7 @@ func (r *gitlabAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"client_secret":  schema.StringAttribute{Optional: true, Sensitive: true, MarkdownDescription: "OAuth application secret. Preserved when GET omits it."},
 			"webhook_token":  schema.StringAttribute{Optional: true, Computed: true, Sensitive: true, MarkdownDescription: "Webhook secret. Coolify generates one when omitted.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"redirect_uri":   schema.StringAttribute{Optional: true, MarkdownDescription: "OAuth redirect URI. May be a private URL."},
-			"is_system_wide": schema.BoolAttribute{Optional: true, Computed: true, MarkdownDescription: "System-wide on self-hosted Coolify only.", PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()}},
+			"is_system_wide": schema.BoolAttribute{Optional: true, Computed: true, MarkdownDescription: "System-wide on self-hosted Coolify only. Create-only: changing this value replaces the app.", PlanModifiers: []planmodifier.Bool{boolplanmodifier.RequiresReplace(), boolplanmodifier.UseStateForUnknown()}},
 		},
 	}
 }
@@ -194,17 +195,50 @@ func updateInputFromPlan(plan gitlabAppModel) client.UpdateGitLabAppInput {
 	return input
 }
 
-func (r *gitlabAppResource) resolveUpdateID(ctx context.Context, plan *gitlabAppModel) int64 {
-	id := plan.ID.ValueInt64()
-	if id != 0 {
-		return id
+func knownNonZeroID(v types.Int64) (int64, bool) {
+	if v.IsNull() || v.IsUnknown() {
+		return 0, false
 	}
-	got, err := r.client.GetGitLabAppByUUID(ctx, plan.UUID.ValueString())
-	if err != nil || got.ID == 0 {
-		return id
+	id := v.ValueInt64()
+	if id == 0 {
+		return 0, false
+	}
+	return id, true
+}
+
+func knownUUID(plan, state *gitlabAppModel) string {
+	if !plan.UUID.IsNull() && !plan.UUID.IsUnknown() && plan.UUID.ValueString() != "" {
+		return plan.UUID.ValueString()
+	}
+	if !state.UUID.IsNull() && !state.UUID.IsUnknown() {
+		return state.UUID.ValueString()
+	}
+	return ""
+}
+
+func (r *gitlabAppResource) resolveUpdateID(ctx context.Context, plan, state *gitlabAppModel, diags *diag.Diagnostics) (int64, bool) {
+	if id, ok := knownNonZeroID(state.ID); ok {
+		return id, true
+	}
+	if id, ok := knownNonZeroID(plan.ID); ok {
+		return id, true
+	}
+	uuid := knownUUID(plan, state)
+	if uuid == "" {
+		diags.AddError("Error updating GitLab App", "GitLab App id is unknown and uuid is not available to look up the app")
+		return 0, false
+	}
+	got, err := r.client.GetGitLabAppByUUID(ctx, uuid)
+	if err != nil {
+		diags.AddError("Error updating GitLab App", fmt.Sprintf("could not resolve GitLab App id for uuid %q: %s", uuid, err))
+		return 0, false
+	}
+	if got == nil || got.ID == 0 {
+		diags.AddError("Error updating GitLab App", fmt.Sprintf("GitLab App uuid %q resolved without a numeric id", uuid))
+		return 0, false
 	}
 	plan.ID = types.Int64Value(got.ID)
-	return got.ID
+	return got.ID, true
 }
 
 func preserveGitLabSecrets(got *client.GitLabApp, plan *gitlabAppModel, secret, token types.String) {
@@ -222,8 +256,17 @@ func (r *gitlabAppResource) Update(ctx context.Context, req resource.UpdateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	var state gitlabAppModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	id, ok := r.resolveUpdateID(ctx, &plan, &state, &resp.Diagnostics)
+	if !ok {
+		return
+	}
 	secret, token := plan.ClientSecret, plan.WebhookToken
-	got, err := r.client.UpdateGitLabApp(ctx, r.resolveUpdateID(ctx, &plan), updateInputFromPlan(plan))
+	got, err := r.client.UpdateGitLabApp(ctx, id, updateInputFromPlan(plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating GitLab App", err.Error())
 		return
