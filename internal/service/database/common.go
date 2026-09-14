@@ -247,7 +247,7 @@ func EnableSSLAttr() schema.BoolAttribute {
 // SSLModePostgresqlAttr returns the ssl_mode schema attribute for PostgreSQL.
 func SSLModePostgresqlAttr() schema.StringAttribute {
 	return schema.StringAttribute{
-		MarkdownDescription: "The SSL connection mode for PostgreSQL. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-ca`, `verify-full`.",
+		MarkdownDescription: "The SSL connection mode for PostgreSQL. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-ca`, `verify-full`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.",
 		Optional:            true,
 		Computed:            true,
 		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
@@ -258,7 +258,7 @@ func SSLModePostgresqlAttr() schema.StringAttribute {
 // SSLModeMysqlAttr returns the ssl_mode schema attribute for MySQL/MariaDB.
 func SSLModeMysqlAttr() schema.StringAttribute {
 	return schema.StringAttribute{
-		MarkdownDescription: "The SSL connection mode. Only applies when `enable_ssl` is `true`. Valid values: `REQUIRED`, `DISABLED`, `PREFERRED`, `VERIFY_CA`, `VERIFY_IDENTITY`.",
+		MarkdownDescription: "The SSL connection mode. Only applies when `enable_ssl` is `true`. Valid values: `REQUIRED`, `DISABLED`, `PREFERRED`, `VERIFY_CA`, `VERIFY_IDENTITY`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.",
 		Optional:            true,
 		Computed:            true,
 		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
@@ -269,7 +269,7 @@ func SSLModeMysqlAttr() schema.StringAttribute {
 // SSLModeMongodbAttr returns the ssl_mode schema attribute for MongoDB.
 func SSLModeMongodbAttr() schema.StringAttribute {
 	return schema.StringAttribute{
-		MarkdownDescription: "The SSL connection mode for MongoDB. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-ca`, `verify-full`.",
+		MarkdownDescription: "The SSL connection mode for MongoDB. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-ca`, `verify-full`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.",
 		Optional:            true,
 		Computed:            true,
 		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
@@ -548,12 +548,18 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	*f.HealthCheckTimeout = flex.Int64PtrToFramework(db.HealthCheckTimeout)
 	*f.HealthCheckRetries = flex.Int64PtrToFramework(db.HealthCheckRetries)
 	*f.HealthCheckStartPeriod = flex.Int64PtrToFramework(db.HealthCheckStartPeriod)
-	// SSL settings — always set from API.
+	// SSL settings. enable_ssl is always set from API. ssl_mode is not on
+	// Coolify create/update allow lists; GET is often empty, so keep the
+	// configured value (same pattern as limits_cpuset).
 	if f.EnableSSL != nil {
 		*f.EnableSSL = types.BoolValue(db.EnableSSL)
 	}
 	if f.SSLMode != nil {
-		*f.SSLMode = flex.StringToFramework(db.SSLMode)
+		if db.SSLMode != "" {
+			*f.SSLMode = types.StringValue(db.SSLMode)
+		} else if f.SSLMode.IsUnknown() {
+			*f.SSLMode = types.StringNull()
+		}
 	}
 	// Status is Computed — always set.
 	*f.Status = flex.StringToFramework(db.Status)

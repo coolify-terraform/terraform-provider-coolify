@@ -148,7 +148,7 @@ func digitaloceanSchemaAttributes() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},
 		"image": schema.StringAttribute{
-			MarkdownDescription: "The OS image to use (e.g., `ubuntu-24.04`). Use `coolify_digitalocean_images` data source to list available images. Changing this forces a new resource.",
+			MarkdownDescription: "The OS image to use (e.g., `ubuntu-24-04-x64`). Use `coolify_digitalocean_images` data source to list available images. Changing this forces a new resource.",
 			Required:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},

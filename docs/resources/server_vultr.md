@@ -48,9 +48,9 @@ variable "vultr_token" {
 - `cloud_provider_token_uuid` (String) The UUID of the Vultr cloud provider token (from `coolify_cloud_token`). Changing this forces a new resource.
 - `name` (String) The name of the server.
 - `os_id` (Number) The Vultr operating system ID. Use `coolify_vultr_os` to list available operating systems. Changing this forces a new resource.
-- `plan` (String) The Vultr server type (e.g., `s-1vcpu-1gb`). Use `coolify_vultr_plans` to list available plans. Changing this forces a new resource.
+- `plan` (String) The Vultr server type (e.g., `vc2-1c-1gb`). Use `coolify_vultr_plans` to list available plans. Changing this forces a new resource.
 - `private_key_uuid` (String) The UUID of the private key used for SSH authentication.
-- `region` (String) The Vultr region slug (e.g., `nyc1`). Use `coolify_vultr_regions` to list available regions. Changing this forces a new resource.
+- `region` (String) The Vultr region slug (e.g., `ewr`). Use `coolify_vultr_regions` to list available regions. Changing this forces a new resource.
 
 ### Optional
 

@@ -145,6 +145,12 @@ terraform import coolify_storage.data application:<app-uuid>:<storage-uuid>
 terraform import coolify_storage.vol service:<svc-uuid>:<storage-uuid>
 terraform import coolify_storage.pgdata database:<db-uuid>:<storage-uuid>
 
+# Storage backup schedule: application|service|database:parent_uuid:storage_uuid
+# Coolify has no GET for the schedule. Import only sets parent + storage UUID.
+terraform import coolify_storage_backup.app_data application:<app-uuid>:<storage-uuid>
+terraform import coolify_storage_backup.svc_data service:<svc-uuid>:<storage-uuid>
+terraform import coolify_storage_backup.db_data database:<db-uuid>:<storage-uuid>
+
 # Deployment: application_uuid:deployment_uuid
 terraform import coolify_deployment.web <app-uuid>:<deployment-uuid>
 
@@ -199,6 +205,7 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | `coolify_notification_email` | SMTP/Resend passwords and API keys (sensitive; may be omitted without `read:sensitive`) |
 | `coolify_instance_email_settings` | SMTP/Resend passwords and API keys (sensitive; may be omitted without `read:sensitive`) |
 | Database backups | `database_uuid`, `s3_storage_uuid` when `save_s3 = true` |
+| `coolify_storage_backup` | Coolify has no GET for the schedule. Import id is `application\|service\|database:<parent>:<storage>` and only sets parent + storage UUID. `frequency` is required; set it (and other schedule fields) to match the live schedule before apply. First apply PUTs HCL over the live schedule. |
 
 If these fields are missing, `terraform plan` will either show a diff
 or propose replacing the resource. Set them in your config to match

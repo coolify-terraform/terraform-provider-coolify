@@ -46,7 +46,7 @@ variable "digitalocean_token" {
 ### Required
 
 - `cloud_provider_token_uuid` (String) The UUID of the DigitalOcean cloud provider token (from `coolify_cloud_token`). Changing this forces a new resource.
-- `image` (String) The OS image to use (e.g., `ubuntu-24.04`). Use `coolify_digitalocean_images` data source to list available images. Changing this forces a new resource.
+- `image` (String) The OS image to use (e.g., `ubuntu-24-04-x64`). Use `coolify_digitalocean_images` data source to list available images. Changing this forces a new resource.
 - `name` (String) The name of the server.
 - `private_key_uuid` (String) The UUID of the private key used for SSH authentication.
 - `region` (String) The DigitalOcean region slug (e.g., `nyc1`). Use `coolify_digitalocean_regions` to list available regions. Changing this forces a new resource.

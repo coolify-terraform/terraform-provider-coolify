@@ -138,12 +138,12 @@ func vultrSchemaAttributes() map[string]schema.Attribute {
 			Validators:          []validator.String{validate.UUID()},
 		},
 		"plan": schema.StringAttribute{
-			MarkdownDescription: "The Vultr server type (e.g., `s-1vcpu-1gb`). Use `coolify_vultr_plans` to list available plans. Changing this forces a new resource.",
+			MarkdownDescription: "The Vultr server type (e.g., `vc2-1c-1gb`). Use `coolify_vultr_plans` to list available plans. Changing this forces a new resource.",
 			Required:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},
 		"region": schema.StringAttribute{
-			MarkdownDescription: "The Vultr region slug (e.g., `nyc1`). Use `coolify_vultr_regions` to list available regions. Changing this forces a new resource.",
+			MarkdownDescription: "The Vultr region slug (e.g., `ewr`). Use `coolify_vultr_regions` to list available regions. Changing this forces a new resource.",
 			Required:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},

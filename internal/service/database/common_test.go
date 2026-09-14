@@ -125,6 +125,20 @@ func TestPopulateBaseCreateInput_LimitsMemory(t *testing.T) {
 	}
 }
 
+func TestFlattenDatabaseExtended_EmptyAPISSLModeKeepsConfigured(t *testing.T) {
+	t.Parallel()
+	m := CommonModel{}
+	enableSSL := types.BoolValue(true)
+	sslMode := types.StringValue("require")
+	f := m.ExtFields().WithSSL(&enableSSL, &sslMode)
+
+	FlattenDatabaseExtended(&client.Database{SSLMode: ""}, f)
+
+	if sslMode.IsNull() || sslMode.IsUnknown() || sslMode.ValueString() != "require" {
+		t.Fatalf("ssl_mode = %#v, want configured require after empty API GET", sslMode)
+	}
+}
+
 func TestHasExtendedFields_AllDefaults(t *testing.T) {
 	t.Parallel()
 	f := DatabaseExtendedPtrs{}
