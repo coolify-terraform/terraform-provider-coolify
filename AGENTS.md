@@ -243,10 +243,12 @@ the matching secret is empty).
 A separate Dependabot Auto-Merge workflow auto-merges minor/patch PRs.
 An Issue Triage workflow auto-labels new issues (`needs-triage` or `ready`).
 Format check (gofmt) is included in the Lint job via golangci-lint.
-A daily Coolify Channels workflow (`.github/workflows/coolify-channels.yml`)
-compares CDN stable/nightly and GitHub prereleases to the pinned contract and
-opens, updates, or closes a `coolify-channel` issue
-(`scripts/check-coolify-channels.py`).
+A Coolify Channels workflow (`.github/workflows/coolify-channels.yml`,
+every 6 hours) compares CDN stable/nightly, GitHub releases, source tip,
+and tip contract drift to the pinned contract. It opens, updates, or
+closes a `coolify-channel` issue (`scripts/check-coolify-channels.py`).
+A pin or title-target change closes the current issue and opens a new
+one instead of stacking comments.
 A **Coolify Nightly Acc** workflow (`.github/workflows/coolify-nightly.yml`)
 runs full acceptance on Coolify `edge`, `latest` (stable), and `4.1.2` (floor),
 plus tip scenarios on `edge`. Schedule: daily 06:00 UTC. Also

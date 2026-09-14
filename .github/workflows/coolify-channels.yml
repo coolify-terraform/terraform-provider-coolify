@@ -1,6 +1,7 @@
 # Coolify channel watch: stable CDN, nightly CDN, GitHub releases, source tip
 # version (config/constants.php), and tip contract API drift vs pin.
-# Goal: open/update issues early enough to finish provider work before stable ships.
+# Goal: open/update/replace issues early enough to finish provider work before stable ships.
+# Pin or title-target change: close the current issue and open a new one (no comment stack).
 # Lesson from v4.3.0: CDN nightly can stay on the previous line until release day
 # while tip already carries next-line API fields.
 name: Coolify Channels
@@ -41,7 +42,7 @@ jobs:
           make contract-extract VERSION=latest
           test -f testdata/contracts/coolify-v4-latest.json
 
-      - name: Check Coolify channels and open/update issue
+      - name: Check Coolify channels and open, update, or replace issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

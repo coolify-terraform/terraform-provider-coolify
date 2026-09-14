@@ -91,7 +91,7 @@ class ChannelSnapshot:
 
 @dataclass
 class Decision:
-    action: str  # none | open | update | comment
+    action: str  # none | open | update | replace
     reasons: list[str]
     snapshot: ChannelSnapshot
     title: str
@@ -274,6 +274,12 @@ def build_body(snap: ChannelSnapshot, reasons: list[str]) -> str:
 
     reasons_md = "\n".join(f"- {r}" for r in reasons) if reasons else "- (no lag)"
 
+    replace_note = (
+        "When the **pin** or **target version in the title** changes, the "
+        "channel job closes this issue and opens a new one. Do not add "
+        "status comments; the table below is the current snapshot."
+    )
+
     tip_block = ""
     if tip_diff > 0 and snap.tip_contract_summary:
         tip_block = f"""
@@ -304,6 +310,8 @@ def build_body(snap: ChannelSnapshot, reasons: list[str]) -> str:
 Automated check of Coolify CDN channels, GitHub releases, **source tip version**,
 and optional **tip contract API drift**. Goal: start provider work *before*
 stable ships.
+
+{replace_note}
 
 | Channel | Version |
 |---------|---------|
@@ -354,7 +362,11 @@ while tip already carries the next-line API.
 """
 
 
-def decide(snap: ChannelSnapshot, previous: Optional[dict[str, Any]] = None) -> Decision:
+def decide(
+    snap: ChannelSnapshot,
+    previous: Optional[dict[str, Any]] = None,
+    existing_title: str = "",
+) -> Decision:
     reasons: list[str] = []
     pin = snap.pin
     stable = snap.stable
@@ -466,10 +478,16 @@ def decide(snap: ChannelSnapshot, previous: Optional[dict[str, Any]] = None) -> 
         action = "open"
     elif channels_changed:
         title = f"coolify-channel: channels updated (stable {stable}, nightly {nightly})"
-        action = "comment"
+        action = "update"
     else:
         title = f"coolify-channel: stable {stable}, nightly {nightly}, pin {pin}"
         action = "none"
+
+    if existing_title and action != "none":
+        if existing_title.strip() != title.strip():
+            action = "replace"
+        elif action == "open":
+            action = "update"
 
     seen: set[str] = set()
     uniq_reasons: list[str] = []
@@ -616,6 +634,14 @@ def gh_json(args: list[str]) -> Any:
     return json.loads(out) if out.strip() else None
 
 
+def parse_created_issue_number(output: str) -> str:
+    """Parse the issue number from `gh issue create` URL output."""
+    m = re.search(r"/issues/(\d+)", (output or "").strip())
+    if not m:
+        raise ValueError(f"could not parse issue number from {output!r}")
+    return m.group(1)
+
+
 def find_open_channel_issue() -> Optional[dict[str, Any]]:
     issues = gh_json(
         [
@@ -664,7 +690,7 @@ def ensure_labels() -> None:
 
 
 def apply_decision(decision: Decision) -> int:
-    """Create, update, or close GitHub issue. Returns 0 unless gh fails hard."""
+    """Create, update, replace, or close the GitHub issue. Returns 0 unless gh fails hard."""
     ensure_labels()
     existing = find_open_channel_issue()
     label_args: list[str] = []
@@ -704,7 +730,7 @@ def apply_decision(decision: Decision) -> int:
         return 0
 
     if existing is None:
-        if decision.action in ("open", "update", "comment"):
+        if decision.action in ("open", "update", "replace"):
             cmd = [
                 "gh",
                 "issue",
@@ -721,63 +747,76 @@ def apply_decision(decision: Decision) -> int:
         return 0
 
     number = str(existing["number"])
+    force_replace = decision.action == "replace"
     prev = decode_state(existing.get("body") or "")
-    if prev and decision.action == "open":
-        decision = decide(decision.snapshot, previous=prev)
-        if decision.action == "none" and not (
-            decision.pin_behind_nightly
-            or decision.pin_behind_stable
-            or decision.pin_behind_prerelease
-            or decision.pin_behind_latest_release
-            or decision.pin_behind_tip_version
-            or decision.pin_behind_tip_api
-            or decision.nightly_ahead_of_stable
-        ):
-            print(f"Open issue #{number} already current; no update.")
-            return 0
-
-    if decision.action in ("open", "update") or (
-        decision.nightly_ahead_of_stable
-        or decision.pin_behind_nightly
+    decision = decide(
+        decision.snapshot,
+        previous=prev,
+        existing_title=existing.get("title") or "",
+    )
+    if force_replace and decision.action != "none":
+        decision.action = "replace"
+    if decision.action == "none" and not (
+        decision.pin_behind_nightly
         or decision.pin_behind_stable
         or decision.pin_behind_prerelease
         or decision.pin_behind_latest_release
         or decision.pin_behind_tip_version
         or decision.pin_behind_tip_api
+        or decision.nightly_ahead_of_stable
     ):
-        print(f"Updating issue #{number}: {decision.title}")
-        subprocess.check_call(
-            ["gh", "issue", "edit", number, "--title", decision.title, "--body", decision.body]
-        )
-        labels_to_add = list(LABELS)
-        if early:
-            labels_to_add.append(PRIORITY_LABEL)
-        for lab in labels_to_add:
-            subprocess.run(
-                ["gh", "issue", "edit", number, "--add-label", lab],
-                check=False,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+        print(f"Open issue #{number} already current; no update.")
         return 0
 
-    if decision.action == "comment":
-        print(f"Commenting on issue #{number}")
+    if decision.action == "replace":
+        print(f"Replacing issue #{number}: {existing.get('title')} -> {decision.title}")
+        created = subprocess.check_output(
+            [
+                "gh",
+                "issue",
+                "create",
+                "--title",
+                decision.title,
+                "--body",
+                decision.body,
+                *label_args,
+            ],
+            text=True,
+        )
+        new_number = parse_created_issue_number(created)
+        print(f"Opened #{new_number}")
         subprocess.check_call(
             [
                 "gh",
                 "issue",
-                "comment",
+                "close",
                 number,
-                "--body",
-                decision.body,
+                "--reason",
+                "completed",
+                "--comment",
+                (
+                    f"Superseded by #{new_number}. The pin or channel target "
+                    "changed, so this watch is replaced instead of collecting "
+                    "more comments."
+                ),
             ]
-        )
-        subprocess.check_call(
-            ["gh", "issue", "edit", number, "--title", decision.title, "--body", decision.body]
         )
         return 0
 
+    print(f"Updating issue #{number}: {decision.title}")
+    subprocess.check_call(
+        ["gh", "issue", "edit", number, "--title", decision.title, "--body", decision.body]
+    )
+    labels_to_add = list(LABELS)
+    if early:
+        labels_to_add.append(PRIORITY_LABEL)
+    for lab in labels_to_add:
+        subprocess.run(
+            ["gh", "issue", "edit", number, "--add-label", lab],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     return 0
 
 
@@ -848,6 +887,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--apply",
         action="store_true",
         help="Create/update GitHub issue via gh CLI when action is needed",
+    )
+    parser.add_argument(
+        "--force-replace",
+        action="store_true",
+        help="Close the open channel issue and open a fresh one for this snapshot",
     )
     parser.add_argument(
         "--json",
@@ -944,15 +988,20 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.previous_state_json and args.previous_state_json.exists():
         previous = json.loads(args.previous_state_json.read_text())
 
-    if args.apply and previous is None:
+    existing_title = ""
+    if args.apply:
         try:
             issue = find_open_channel_issue()
             if issue:
-                previous = decode_state(issue.get("body") or "")
+                if previous is None:
+                    previous = decode_state(issue.get("body") or "")
+                existing_title = issue.get("title") or ""
         except (subprocess.CalledProcessError, FileNotFoundError):
-            previous = None
+            existing_title = ""
 
-    decision = decide(snap, previous=previous)
+    decision = decide(snap, previous=previous, existing_title=existing_title)
+    if args.force_replace and existing_title and decision.action != "none":
+        decision.action = "replace"
 
     print(
         f"stable={snap.stable} nightly={snap.nightly} pin={snap.pin} "

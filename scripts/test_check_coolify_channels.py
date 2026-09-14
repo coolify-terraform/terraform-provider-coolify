@@ -212,14 +212,48 @@ class TestDecide(unittest.TestCase):
         self.assertTrue(d.pin_behind_latest_release)
         self.assertEqual(d.action, "open")
 
-    def test_channel_change_comment(self):
+    def test_channel_change_updates_not_comment(self):
         snap = cc.ChannelSnapshot(
             stable="4.2.0", nightly="4.2.0", pin="4.2.0", prereleases=[]
         )
         prev = {"stable": "4.1.2", "nightly": "4.2.0", "pin": "4.2.0", "prereleases": []}
         d = cc.decide(snap, previous=prev)
-        self.assertEqual(d.action, "comment")
+        self.assertEqual(d.action, "update")
         self.assertTrue(any("Stable CDN changed" in r for r in d.reasons))
+
+    def test_same_title_updates_existing_issue(self):
+        snap = cc.ChannelSnapshot(
+            stable="4.1.2", nightly="4.2.0", pin="4.1.2", prereleases=["4.2.0"]
+        )
+        first = cc.decide(snap)
+        self.assertEqual(first.action, "open")
+        again = cc.decide(snap, existing_title=first.title)
+        self.assertEqual(again.action, "update")
+        self.assertEqual(again.title, first.title)
+
+    def test_pin_or_target_change_replaces_issue(self):
+        snap = cc.ChannelSnapshot(
+            stable="4.3.19",
+            nightly="4.4-rc.1",
+            pin="4.3.19",
+            prereleases=["4.4-rc.1"],
+            latest_release="4.3.19",
+            tip_version="4.3.19",
+        )
+        d = cc.decide(
+            snap,
+            existing_title="coolify-channel: support Coolify 4.4-rc.1 (pin is 4.3.18)",
+        )
+        self.assertEqual(d.action, "replace")
+        self.assertIn("pin is 4.3.19", d.title)
+        self.assertIn("opens a new one", d.body)
+
+    def test_parse_created_issue_number(self):
+        url = (
+            "https://github.com/coolify-terraform/terraform-provider-coolify"
+            "/issues/860\n"
+        )
+        self.assertEqual(cc.parse_created_issue_number(url), "860")
 
     def test_state_roundtrip(self):
         snap = cc.ChannelSnapshot(
