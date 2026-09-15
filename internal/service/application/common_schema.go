@@ -80,7 +80,7 @@ func gitAppSourceAttrs(gitRepositoryDescription string) map[string]schema.Attrib
 			Optional:            true,
 		},
 		"docker_compose_location": schema.StringAttribute{
-			MarkdownDescription: "The path to the Docker Compose file within the application's base directory. Must start with `/`. When omitted, Coolify defaults to `/docker-compose.yaml`.",
+			MarkdownDescription: "The path to the Docker Compose file within the application's base directory. Must start with `/`. When omitted, Coolify defaults to `/docker-compose.yaml`. Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Coolify uses this path when `build_pack = \"dockercompose\"`. Deployment reads `{base_directory}{docker_compose_location}`. To return to Coolify's default after a custom path, set `/docker-compose.yaml` in HCL. Omitting the attribute later does not clear the stored path.",
 			Optional:            true,
 			Validators: []validator.String{
 				stringvalidator.LengthAtMost(255),

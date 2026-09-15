@@ -111,12 +111,7 @@ func TestAccApplicationResource_DockerComposeLocation(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-app-compose")
 
 	config := func(location string) string {
-		return testAccPublicGitAppConfig(
-			name,
-			serverUUID,
-			"3000",
-			fmt.Sprintf(`docker_compose_location = %q`, location),
-		)
+		return testAccPublicGitComposeAppConfig(name, serverUUID, location)
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -178,4 +173,23 @@ resource "coolify_application" "test" {
   %[3]s
 }
 `, name, serverUUID, extra, ports)
+}
+
+func testAccPublicGitComposeAppConfig(name, serverUUID, location string) string {
+	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
+resource "coolify_project" "test" {
+  name = %[1]q
+}
+
+resource "coolify_application" "test" {
+  project_uuid              = coolify_project.test.uuid
+  server_uuid               = %[2]q
+  name                      = %[1]q
+  git_repository            = "https://github.com/coollabsio/coolify-examples"
+  git_branch                = "main"
+  build_pack                = "dockercompose"
+  ports_exposes             = "3000"
+  docker_compose_location   = %[3]q
+}
+`, name, serverUUID, location)
 }

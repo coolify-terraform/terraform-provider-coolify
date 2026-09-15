@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -190,4 +192,38 @@ func TestGitApplicationResources_DockerComposeLocation(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestGitApplicationResource_InvalidDockerComposeLocation(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	tooLong := "/" + strings.Repeat("a", 255)
+	attrs := func(location string) string {
+		return fmt.Sprintf(`
+	name                    = "compose-location-invalid"
+	project_uuid            = "aaaa0001-0001-4000-8000-000000000001"
+	server_uuid             = "bbbb0001-0001-4000-8000-000000000001"
+	git_repository          = "https://github.com/example/repo"
+	git_branch              = "main"
+	build_pack              = "dockercompose"
+	ports_exposes           = "3000"
+	docker_compose_location = %q
+`, location)
+	}
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config:      acctest.TestResourceConfig(srv.URL, "coolify_application", "test", attrs("compose.yaml")),
+				ExpectError: regexp.MustCompile(`must start with ` + "`/`"),
+			},
+			{
+				Config:      acctest.TestResourceConfig(srv.URL, "coolify_application", "test", attrs(tooLong)),
+				ExpectError: regexp.MustCompile(`string length must be at most 255`),
+			},
+		},
+	})
 }
