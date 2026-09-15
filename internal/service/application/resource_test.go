@@ -2046,6 +2046,204 @@ func TestApplicationResource_MaxRestartCount_V42Withheld(t *testing.T) {
 	})
 }
 
+func TestApplicationResource_MaxRestartCount_Configured10(t *testing.T) {
+	t.Parallel()
+
+	trueVal := true
+	maxRestart := int64(0)
+	currentApp := client.Application{
+		UUID:                "aaaa0013-0013-4013-8013-000000000013",
+		Name:                "restart-limit-10-app",
+		GitRepository:       "https://github.com/org/repo",
+		GitBranch:           "main",
+		BuildPack:           "nixpacks",
+		PortsExposes:        "3000",
+		ProjectUUID:         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+		ServerUUID:          "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+		EnvironmentName:     "production",
+		IsAutoDeployEnabled: &trueVal,
+		MaxRestartCount:     &maxRestart,
+	}
+	mu := sync.Mutex{}
+	deleted := false
+	var lastPATCH map[string]interface{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPATCH = body
+		if v, ok := body["max_restart_count"].(float64); ok && int64(v) == 10 {
+			n := int64(v)
+			currentApp.MaxRestartCount = &n
+		}
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.21"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid     = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+					server_uuid      = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+					environment_name = "production"
+					git_repository   = "https://github.com/org/repo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					name             = "restart-limit-10-app"
+					max_restart_count = 10
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "max_restart_count", "10"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPATCH["max_restart_count"] != float64(10) {
+							return fmt.Errorf("create PATCH max_restart_count = %v, want 10", lastPATCH["max_restart_count"])
+						}
+						return nil
+					}),
+				),
+			},
+		},
+	})
+}
+
+func TestApplicationResource_MaxRestartCount_DisableZero(t *testing.T) {
+	t.Parallel()
+
+	trueVal := true
+	maxRestart := int64(10)
+	currentApp := client.Application{
+		UUID:                "aaaa0014-0014-4014-8014-000000000014",
+		Name:                "restart-limit-zero-app",
+		GitRepository:       "https://github.com/org/repo",
+		GitBranch:           "main",
+		BuildPack:           "nixpacks",
+		PortsExposes:        "3000",
+		ProjectUUID:         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+		ServerUUID:          "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+		EnvironmentName:     "production",
+		IsAutoDeployEnabled: &trueVal,
+		MaxRestartCount:     &maxRestart,
+	}
+	mu := sync.Mutex{}
+	deleted := false
+	var lastPATCH map[string]interface{}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		lastPATCH = body
+		if v, ok := body["max_restart_count"].(float64); ok && v == 0 {
+			n := int64(0)
+			currentApp.MaxRestartCount = &n
+		}
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "v4.3.21"))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid     = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+					server_uuid      = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+					environment_name = "production"
+					git_repository   = "https://github.com/org/repo"
+					git_branch       = "main"
+					build_pack       = "nixpacks"
+					ports_exposes    = "3000"
+					name             = "restart-limit-zero-app"
+					max_restart_count = 0
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "max_restart_count", "0"),
+					resource.TestCheckFunc(func(_ *terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						v, ok := lastPATCH["max_restart_count"]
+						if !ok {
+							return fmt.Errorf("create PATCH missing max_restart_count (omitempty dropped 0)")
+						}
+						if v != float64(0) {
+							return fmt.Errorf("create PATCH max_restart_count = %v (%T), want 0", v, v)
+						}
+						return nil
+					}),
+				),
+			},
+		},
+	})
+}
+
 func TestApplicationResource_DomainPortOverrides(t *testing.T) {
 	t.Parallel()
 	overrides := client.DomainPortOverridesMap{"https://app.example.com": 3000}

@@ -482,7 +482,8 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		// String overrides
 		flex.StringPtrNonDefault(f.Redirect, defaultRedirect) ||
 		flex.StringPtrNonDefault(f.StaticImage, defaultStaticImage) ||
-		flex.Int64PtrNonDefault(f.MaxRestartCount, 10)
+		// Coolify 4.3.21 default is 0; configured 10 must PATCH.
+		flex.Int64PtrConfigured(f.MaxRestartCount)
 }
 
 // listPtrConfigured reports whether a List pointer is set (non-null, non-unknown).

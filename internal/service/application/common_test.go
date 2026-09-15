@@ -248,6 +248,7 @@ func TestHasNonDefaultAppExtendedFields_EachField(t *testing.T) {
 		{"ManualWebhookSecretBitbucket", func(f *commonAppFields) { f.ManualWebhookSecretBitbucket = strPtr("bb-secret") }},
 		{"ManualWebhookSecretGitea", func(f *commonAppFields) { f.ManualWebhookSecretGitea = strPtr("gitea-secret") }},
 		{"MaxRestartCount", func(f *commonAppFields) { f.MaxRestartCount = int64Ptr(3) }},
+		{"MaxRestartCount=10", func(f *commonAppFields) { f.MaxRestartCount = int64Ptr(10) }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -279,7 +280,6 @@ func TestHasNonDefaultAppExtendedFields_DefaultValues(t *testing.T) {
 		{"IsForceHTTPSEnabled=true", func(f *commonAppFields) { f.IsForceHTTPSEnabled = boolPtr(true) }},
 		{"Redirect=both", func(f *commonAppFields) { f.Redirect = strPtr(defaultRedirect) }},
 		{"StaticImage=nginx:alpine", func(f *commonAppFields) { f.StaticImage = strPtr(defaultStaticImage) }},
-		{"MaxRestartCount=10", func(f *commonAppFields) { f.MaxRestartCount = int64Ptr(10) }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
