@@ -1326,6 +1326,42 @@ func TestFlattenExtendedFields_CustomNginxEmptyAPIPreservesState(t *testing.T) {
 	}
 }
 
+func TestFlattenExtendedFields_DockerComposeCustomCommandsImport(t *testing.T) {
+	t.Parallel()
+
+	start := types.StringNull()
+	build := types.StringNull()
+	app := client.Application{
+		DockerComposeCustomStartCommand: "docker compose up -d",
+		DockerComposeCustomBuildCommand: "docker compose build",
+	}
+
+	flattenExtendedFields(&app, commonAppFields{
+		DockerComposeCustomStartCommand: &start,
+		DockerComposeCustomBuildCommand: &build,
+	})
+
+	if start.IsNull() || start.ValueString() != "docker compose up -d" {
+		t.Errorf("docker_compose_custom_start_command = %q null=%v, want seeded command", start.ValueString(), start.IsNull())
+	}
+	if build.IsNull() || build.ValueString() != "docker compose build" {
+		t.Errorf("docker_compose_custom_build_command = %q null=%v, want seeded command", build.ValueString(), build.IsNull())
+	}
+}
+
+func TestFlattenExtendedFields_DockerfileTargetBuildImport(t *testing.T) {
+	t.Parallel()
+
+	target := types.StringNull()
+	app := client.Application{DockerfileTargetBuild: "production"}
+
+	flattenExtendedFields(&app, commonAppFields{DockerfileTargetBuild: &target})
+
+	if target.IsNull() || target.ValueString() != "production" {
+		t.Errorf("dockerfile_target_build = %q null=%v, want production", target.ValueString(), target.IsNull())
+	}
+}
+
 func TestFlattenExtendedFields_DockerComposeLocationImport(t *testing.T) {
 	t.Parallel()
 

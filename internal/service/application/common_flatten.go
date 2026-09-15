@@ -165,7 +165,7 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	flex.SetStringOrClear(f.PostDeploymentCommandContainer, app.PostDeploymentCommandContainer)
 	// Nil-safe optional string fields (resource-specific extras, all nullable)
 	if f.DockerfileTargetBuild != nil {
-		flex.SetStringOrClear(f.DockerfileTargetBuild, app.DockerfileTargetBuild)
+		flex.SetStringSeedOrClear(f.DockerfileTargetBuild, app.DockerfileTargetBuild)
 	}
 	if f.DockerComposeLocation != nil {
 		flex.SetStringSeedIfConfigured(
@@ -175,10 +175,10 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 		)
 	}
 	if f.DockerComposeCustomBuildCommand != nil {
-		flex.SetStringOrClear(f.DockerComposeCustomBuildCommand, app.DockerComposeCustomBuildCommand)
+		flex.SetStringSeedOrClear(f.DockerComposeCustomBuildCommand, app.DockerComposeCustomBuildCommand)
 	}
 	if f.DockerComposeCustomStartCommand != nil {
-		flex.SetStringOrClear(f.DockerComposeCustomStartCommand, app.DockerComposeCustomStartCommand)
+		flex.SetStringSeedOrClear(f.DockerComposeCustomStartCommand, app.DockerComposeCustomStartCommand)
 	}
 	flattenExtendedDefaults(app, f)
 }
