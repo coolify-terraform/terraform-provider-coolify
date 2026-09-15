@@ -90,6 +90,30 @@ func gitAppSourceAttrs(gitRepositoryDescription string) map[string]schema.Attrib
 				),
 			},
 		},
+		"docker_compose_custom_start_command": schema.StringAttribute{
+			MarkdownDescription: "Custom `docker compose` start command used when `build_pack = \"dockercompose\"`. Coolify validates the value as a shell-safe command (max 1000 characters; `&&` and `||` are allowed; `;`, `|`, `$`, backticks, and newlines are not). Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Deployment injects `--project-directory` when the command does not already include it. Omitting the attribute later does not clear the stored command.",
+			Optional:            true,
+			Validators: []validator.String{
+				stringvalidator.LengthAtMost(1000),
+				validate.ShellSafeCommand(),
+			},
+		},
+		"docker_compose_custom_build_command": schema.StringAttribute{
+			MarkdownDescription: "Custom `docker compose` build command used when `build_pack = \"dockercompose\"`. Coolify validates the value as a shell-safe command (max 1000 characters; `&&` and `||` are allowed; `;`, `|`, `$`, backticks, and newlines are not). Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Deployment injects `--project-directory` when the command does not already include it. Omitting the attribute later does not clear the stored command.",
+			Optional:            true,
+			Validators: []validator.String{
+				stringvalidator.LengthAtMost(1000),
+				validate.ShellSafeCommand(),
+			},
+		},
+		"dockerfile_target_build": schema.StringAttribute{
+			MarkdownDescription: "Target stage for multi-stage Docker builds when `build_pack = \"dockerfile\"`. Must start with a letter or digit and may contain letters, digits, dots, hyphens, and underscores (max 128 characters). Coolify accepts this field on update only; the provider sends it in a post-create PATCH so the first apply converges. Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Omitting the attribute later does not clear the stored target.",
+			Optional:            true,
+			Validators: []validator.String{
+				stringvalidator.LengthAtMost(128),
+				validate.DockerTarget(),
+			},
+		},
 	}
 }
 

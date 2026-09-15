@@ -118,6 +118,80 @@ func TestSchemaCoverage_ApplicationSettings(t *testing.T) {
 	}
 }
 
+func TestSchemaCoverage_ApplicationAllowList(t *testing.T) {
+	t.Parallel()
+	c := loadContract(t)
+	createEP, ok := c.Endpoints["ApplicationsController::create_application"]
+	if !ok {
+		t.Fatal("ApplicationsController::create_application missing from contract")
+	}
+	updateEP, ok := c.Endpoints["ApplicationsController::update_by_uuid"]
+	if !ok {
+		t.Fatal("ApplicationsController::update_by_uuid missing from contract")
+	}
+
+	byField := make(map[string]SchemaCoverageEntry, len(applicationAllowListSchemaRegistry))
+	for _, e := range applicationAllowListSchemaRegistry {
+		if err := e.validate(); err != nil {
+			t.Errorf("registry entry %q: %v", e.ContractField, err)
+			continue
+		}
+		if _, dup := byField[e.ContractField]; dup {
+			t.Errorf("duplicate registry entry for %q", e.ContractField)
+		}
+		byField[e.ContractField] = e
+	}
+
+	allow := map[string]struct{}{}
+	for _, f := range createEP.AllowedFields {
+		allow[f] = struct{}{}
+	}
+	for _, f := range updateEP.AllowedFields {
+		allow[f] = struct{}{}
+	}
+
+	var missing []string
+	for name := range allow {
+		if _, ok := byField[name]; !ok {
+			missing = append(missing, name)
+		}
+	}
+	sort.Strings(missing)
+	if len(missing) > 0 {
+		t.Errorf("ApplicationsController allow-list fields missing from Phase C schema registry:\n  %s",
+			strings.Join(missing, "\n  "))
+	}
+
+	var extra []string
+	for name := range byField {
+		if _, ok := allow[name]; !ok {
+			extra = append(extra, name)
+		}
+	}
+	sort.Strings(extra)
+	if len(extra) > 0 {
+		t.Errorf("Phase C registry fields not on create_application or update_by_uuid allow-list:\n  %s",
+			strings.Join(extra, "\n  "))
+	}
+
+	attrs, err := applicationResourceSchemaUnion()
+	if err != nil {
+		t.Fatalf("application schema union: %v", err)
+	}
+	for _, e := range applicationAllowListSchemaRegistry {
+		if e.Status != StatusCovered {
+			if e.Status == SkipInternal {
+				t.Errorf("public allow-list field %s must not be marked internal", e.ContractField)
+			}
+			continue
+		}
+		if _, ok := attrs[e.SchemaAttribute]; !ok {
+			t.Errorf("covered allow-list field %s maps to %q missing on application resource schemas",
+				e.ContractField, e.SchemaAttribute)
+		}
+	}
+}
+
 func TestSchemaCoverage_ScheduledTask(t *testing.T) {
 	t.Parallel()
 	c := loadContract(t)

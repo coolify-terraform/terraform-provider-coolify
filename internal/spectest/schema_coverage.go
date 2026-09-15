@@ -9,7 +9,10 @@ import (
 )
 
 // SchemaCoverageEntry maps a Coolify contract field to a Terraform schema
-// attribute (or an explicit skip). Phase A: EnvironmentVariable (#621). Phase B: Application settings + ScheduledTask. Status is StatusCovered or a SkipStatus value.
+// attribute (or an explicit skip). Phase A: EnvironmentVariable (#621).
+// Phase B: Application settings + ScheduledTask. Phase C: ApplicationsController
+// create_application + update_by_uuid $allowedFields (#866). Status is
+// StatusCovered or a SkipStatus value.
 type SchemaCoverageEntry struct {
 	ContractField   string
 	SchemaAttribute string // tfsdk name; empty when not covered

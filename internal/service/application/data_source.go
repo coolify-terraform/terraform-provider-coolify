@@ -34,6 +34,7 @@ type ApplicationDataSourceModel struct {
 	GitBranch                        types.String `tfsdk:"git_branch"`
 	BuildPack                        types.String `tfsdk:"build_pack"`
 	DockerfileLocation               types.String `tfsdk:"dockerfile_location"`
+	DockerComposeLocation            types.String `tfsdk:"docker_compose_location"`
 	InstallCommand                   types.String `tfsdk:"install_command"`
 	BuildCommand                     types.String `tfsdk:"build_command"`
 	StartCommand                     types.String `tfsdk:"start_command"`
@@ -96,6 +97,10 @@ func (d *ApplicationDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 			},
 			"dockerfile_location": schema.StringAttribute{
 				MarkdownDescription: "For Git-backed applications, the path to the Dockerfile relative to the repository root. For `coolify_application_dockerfile` resources, this contains the Dockerfile content (base64-encoded).",
+				Computed:            true,
+			},
+			"docker_compose_location": schema.StringAttribute{
+				MarkdownDescription: "The path to the Docker Compose file within the application's base directory. Coolify defaults to `/docker-compose.yaml` when the application was created without a custom path.",
 				Computed:            true,
 			},
 			"install_command": schema.StringAttribute{
@@ -201,6 +206,7 @@ func (d *ApplicationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	config.GitBranch = flex.StringToFramework(app.GitBranch)
 	config.BuildPack = flex.StringToFramework(app.BuildPack)
 	config.DockerfileLocation = flex.StringToFramework(app.DockerfileLocation)
+	config.DockerComposeLocation = flex.StringToFramework(app.DockerComposeLocation)
 	config.InstallCommand = flex.StringToFramework(app.InstallCommand)
 	config.BuildCommand = flex.StringToFramework(app.BuildCommand)
 	config.StartCommand = flex.StringToFramework(app.StartCommand)

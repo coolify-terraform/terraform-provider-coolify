@@ -17,6 +17,9 @@ data "coolify_application" "example" {
   uuid = "550e8400-e29b-41d4-a716-446655440000"
 }
 
+# docker_compose_location is the compose file path Coolify stores for
+# git-backed dockercompose applications (default /docker-compose.yaml).
+
 # is_consistent_container_name_enabled is computed from Coolify application
 # settings. Use it to detect drift when a volume-backed app needs stop-then-start
 # deploys instead of rolling updates.
@@ -42,6 +45,7 @@ output "domain_port_overrides" {
 - `build_pack` (String) The build pack type used by the application.
 - `container_present` (Boolean) Whether Coolify last observed the application container on the server. Requires Coolify >= v4.3.15 (not in tag v4.3.14).
 - `description` (String) The description of the application.
+- `docker_compose_location` (String) The path to the Docker Compose file within the application's base directory. Coolify defaults to `/docker-compose.yaml` when the application was created without a custom path.
 - `docker_compose_raw` (String, Sensitive) The raw Docker Compose content.
 - `docker_registry_image_name` (String) The Docker registry image name.
 - `dockerfile_location` (String) For Git-backed applications, the path to the Dockerfile relative to the repository root. For `coolify_application_dockerfile` resources, this contains the Dockerfile content (base64-encoded).

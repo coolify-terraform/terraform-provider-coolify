@@ -120,10 +120,22 @@ func TestAccApplicationResource_DockerComposeLocation(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: config("/compose.yaml"),
-				Check: resource.TestCheckResourceAttr(
-					"coolify_application.test",
-					"docker_compose_location",
-					"/compose.yaml",
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"coolify_application.test",
+						"docker_compose_location",
+						"/compose.yaml",
+					),
+					resource.TestCheckResourceAttr(
+						"coolify_application.test",
+						"docker_compose_custom_start_command",
+						"docker compose up -d",
+					),
+					resource.TestCheckResourceAttr(
+						"coolify_application.test",
+						"docker_compose_custom_build_command",
+						"docker compose build",
+					),
 				),
 			},
 			{
@@ -187,9 +199,11 @@ resource "coolify_application" "test" {
   name                      = %[1]q
   git_repository            = "https://github.com/coollabsio/coolify-examples"
   git_branch                = "main"
-  build_pack                = "dockercompose"
-  ports_exposes             = "80"
-  docker_compose_location   = %[3]q
+  build_pack                              = "dockercompose"
+  ports_exposes                           = "80"
+  docker_compose_location                 = %[3]q
+  docker_compose_custom_start_command     = "docker compose up -d"
+  docker_compose_custom_build_command     = "docker compose build"
 }
 `, name, serverUUID, location)
 }

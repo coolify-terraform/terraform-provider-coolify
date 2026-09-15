@@ -27,4 +27,12 @@ func TestValidatorDescriptions(t *testing.T) {
 	shell := validate.NoShellMetachars()
 	assert.NotEmpty(t, shell.Description(ctx))
 	assert.Equal(t, shell.Description(ctx), shell.MarkdownDescription(ctx))
+
+	safe := validate.ShellSafeCommand()
+	assert.NotEmpty(t, safe.Description(ctx))
+	assert.Equal(t, safe.Description(ctx), safe.MarkdownDescription(ctx))
+
+	target := validate.DockerTarget()
+	assert.NotEmpty(t, target.Description(ctx))
+	assert.Equal(t, target.Description(ctx), target.MarkdownDescription(ctx))
 }
