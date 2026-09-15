@@ -10747,6 +10747,5 @@
         "api.ability:read"
       ]
     }
-  ],
-  "notes": "Pin is tag v4.3.21. Tags v4.3.20 and v4.3.21 add no public routes or allow-list fields versus v4.3.19. Application.max_restart_count model default is 0 on v4.3.21 (0 disables the limit). Tags through v4.3.20 had no model default (column default 10). Nested ServiceApplicationsController::update max_restart_count remains skipNestedService (same class as is_force_https_enabled). Extractor maps DatabasesController $backupConfigFields onto create_backup / update_backup. ScheduledDatabaseBackup.missing_backup_notification_days is writable on create/update (integer 0-365; 0 disables alerts). last_execution_at and missing_backup_notification_sent_at are GET-only runtime timestamps. Those three fields are absent from v4.3.17 and from v4.4-rc.1 (that rc was cut before them). Restart-limit fields, GET domain_port_overrides, and PATCH preview domains remain from v4.3.15."
+  ]
 }
