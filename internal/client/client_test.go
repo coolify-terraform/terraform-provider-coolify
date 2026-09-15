@@ -703,6 +703,8 @@ func TestClient_CreateServer(t *testing.T) {
 		assert.Equal(t, "pk-99", input.PrivateKeyUUID)
 		require.NotNil(t, input.IsBuildServer)
 		assert.True(t, *input.IsBuildServer)
+		require.NotNil(t, input.InstantValidate)
+		assert.True(t, *input.InstantValidate)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -711,14 +713,16 @@ func TestClient_CreateServer(t *testing.T) {
 	defer srv.Close()
 
 	buildServer := true
+	instantValidate := true
 	c := New(srv.URL, "test-token")
 	s, err := c.CreateServer(context.Background(), CreateServerInput{
-		Name:           "New Server",
-		IP:             "10.0.0.5",
-		Port:           2222,
-		User:           "deploy",
-		PrivateKeyUUID: "pk-99",
-		IsBuildServer:  &buildServer,
+		Name:            "New Server",
+		IP:              "10.0.0.5",
+		Port:            2222,
+		User:            "deploy",
+		PrivateKeyUUID:  "pk-99",
+		IsBuildServer:   &buildServer,
+		InstantValidate: &instantValidate,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "srv-new", s.UUID)
@@ -736,6 +740,10 @@ func TestClient_UpdateServer(t *testing.T) {
 		require.NoError(t, json.Unmarshal(body, &input))
 		require.NotNil(t, input.Name)
 		assert.Equal(t, "Updated", *input.Name)
+		require.NotNil(t, input.InstantValidate)
+		assert.True(t, *input.InstantValidate)
+		require.NotNil(t, input.IsTerminalEnabled)
+		assert.True(t, *input.IsTerminalEnabled)
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(Server{UUID: "srv-upd", Name: "Updated"})
@@ -744,7 +752,13 @@ func TestClient_UpdateServer(t *testing.T) {
 
 	c := New(srv.URL, "test-token")
 	name := "Updated"
-	s, err := c.UpdateServer(context.Background(), "srv-upd", UpdateServerInput{Name: &name})
+	instantValidate := true
+	terminal := true
+	s, err := c.UpdateServer(context.Background(), "srv-upd", UpdateServerInput{
+		Name:              &name,
+		InstantValidate:   &instantValidate,
+		IsTerminalEnabled: &terminal,
+	})
 	require.NoError(t, err)
 	assert.Equal(t, "srv-upd", s.UUID)
 	assert.Equal(t, "Updated", s.Name)

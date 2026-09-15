@@ -75,6 +75,9 @@ func applyVultrServerPatch(srv *client.Server, update client.UpdateServerInput) 
 	if update.ServerDiskUsageCheckFrequency != nil {
 		srv.Settings.ServerDiskUsageCheckFrequency = *update.ServerDiskUsageCheckFrequency
 	}
+	if update.IsTerminalEnabled != nil {
+		srv.Settings.IsTerminalEnabled = *update.IsTerminalEnabled
+	}
 }
 
 func newVultrServerMock(t *testing.T) *httptest.Server {

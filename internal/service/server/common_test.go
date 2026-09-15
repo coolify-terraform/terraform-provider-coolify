@@ -24,7 +24,8 @@ func newTestPtrs() (ServerCommonPtrs, *testModel) {
 		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
 		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
 		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
-		WildcardDomain: &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
+		InstantValidate: &m.InstantValidate,
+		WildcardDomain:  &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
 		IsTerminalEnabled: &m.IsTerminalEnabled, IsSentinelEnabled: &m.IsSentinelEnabled,
 		SentinelMetricsHistoryDays: &m.SentinelMetricsHistoryDays, SentinelMetricsRefreshRateSeconds: &m.SentinelMetricsRefreshRateSeconds,
@@ -45,6 +46,7 @@ type testModel struct {
 	ServerDiskUsageNotificationThreshold              types.Int64
 	ServerDiskUsageCheckFrequency                     types.String
 	IsBuildServer, IsReachable, IsUsable              types.Bool
+	InstantValidate                                   types.Bool
 	// Extended settings
 	WildcardDomain                    types.String
 	IsCloudFlareTunnel                types.Bool
@@ -73,7 +75,6 @@ var readOnlyExtendedSettingNames = []string{
 	"is_cloudflare_tunnel",
 	"server_timezone",
 	"is_metrics_enabled",
-	"is_terminal_enabled",
 	"is_sentinel_enabled",
 	"sentinel_metrics_history_days",
 	"sentinel_metrics_refresh_rate_seconds",
@@ -97,8 +98,10 @@ var expectedWritableServerUpdateKeys = []string{
 	"deployment_queue_limit",
 	"description",
 	"dynamic_timeout",
+	"instant_validate",
 	"ip",
 	"is_build_server",
+	"is_terminal_enabled",
 	"name",
 	"port",
 	"private_key_uuid",
@@ -319,6 +322,10 @@ func TestBuildServerUpdateInput_NoChanges(t *testing.T) {
 	b := types.BoolValue(false)
 	*plan.IsBuildServer = b
 	*state.IsBuildServer = b
+	*plan.InstantValidate = b
+	*state.InstantValidate = b
+	*plan.IsTerminalEnabled = b
+	*state.IsTerminalEnabled = b
 
 	input := BuildServerUpdateInput(plan, state)
 
@@ -330,6 +337,12 @@ func TestBuildServerUpdateInput_NoChanges(t *testing.T) {
 	}
 	if input.IsBuildServer != nil {
 		t.Errorf("IsBuildServer should be nil when unchanged, got %v", *input.IsBuildServer)
+	}
+	if input.InstantValidate != nil {
+		t.Errorf("InstantValidate should be nil when unchanged, got %v", *input.InstantValidate)
+	}
+	if input.IsTerminalEnabled != nil {
+		t.Errorf("IsTerminalEnabled should be nil when unchanged, got %v", *input.IsTerminalEnabled)
 	}
 }
 
@@ -380,6 +393,26 @@ func TestCommonServerAttrs_ExtendedSettingsAreReadOnly(t *testing.T) {
 		default:
 			t.Fatalf("unexpected attribute type %T for %s", attr, name)
 		}
+	}
+}
+
+func TestCommonServerAttrs_TerminalEnabledIsWritable(t *testing.T) {
+	t.Parallel()
+
+	attrs := CommonServerAttrs(context.Background(), map[string]schema.Attribute{})
+	attr, ok := attrs["is_terminal_enabled"]
+	if !ok {
+		t.Fatal("missing attribute is_terminal_enabled")
+	}
+	a, ok := attr.(schema.BoolAttribute)
+	if !ok {
+		t.Fatalf("is_terminal_enabled type %T, want BoolAttribute", attr)
+	}
+	if !a.Optional || !a.Computed || a.Required {
+		t.Errorf("is_terminal_enabled should be Optional+Computed, got Optional=%v Required=%v Computed=%v", a.Optional, a.Required, a.Computed)
+	}
+	if a.Default != nil {
+		t.Error("is_terminal_enabled must not set Default (422 on Coolify < v4.3.0 after import)")
 	}
 }
 
@@ -437,6 +470,10 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	// Bool field: plan != state.
 	*plan.IsBuildServer = types.BoolValue(true)
 	*state.IsBuildServer = types.BoolValue(false)
+	*plan.InstantValidate = types.BoolValue(true)
+	*state.InstantValidate = types.BoolValue(false)
+	*plan.IsTerminalEnabled = types.BoolValue(true)
+	*state.IsTerminalEnabled = types.BoolValue(false)
 
 	// Unsupported extended settings still appear on reads, but the update
 	// contract must never write them back.
@@ -448,8 +485,6 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	*state.ServerTimezone = types.StringValue("UTC")
 	*plan.IsMetricsEnabled = types.BoolValue(true)
 	*state.IsMetricsEnabled = types.BoolValue(false)
-	*plan.IsTerminalEnabled = types.BoolValue(true)
-	*state.IsTerminalEnabled = types.BoolValue(false)
 	*plan.IsSentinelEnabled = types.BoolValue(true)
 	*state.IsSentinelEnabled = types.BoolValue(false)
 	*plan.SentinelMetricsHistoryDays = types.Int64Value(7)
@@ -520,6 +555,16 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	} else if *input.IsBuildServer != true {
 		t.Errorf("IsBuildServer = %v, want true", *input.IsBuildServer)
 	}
+	if input.InstantValidate == nil {
+		t.Error("InstantValidate should be non-nil")
+	} else if *input.InstantValidate != true {
+		t.Errorf("InstantValidate = %v, want true", *input.InstantValidate)
+	}
+	if input.IsTerminalEnabled == nil {
+		t.Error("IsTerminalEnabled should be non-nil")
+	} else if *input.IsTerminalEnabled != true {
+		t.Errorf("IsTerminalEnabled = %v, want true", *input.IsTerminalEnabled)
+	}
 
 	payload, err := json.Marshal(input)
 	if err != nil {
@@ -580,6 +625,9 @@ func TestBuildPostCreateSettingsInput_AllDefaults(t *testing.T) {
 	if input.ServerDiskUsageCheckFrequency != nil {
 		t.Errorf("DiskUsageFrequency should be nil at default, got %v", *input.ServerDiskUsageCheckFrequency)
 	}
+	if input.IsTerminalEnabled != nil {
+		t.Errorf("IsTerminalEnabled should be nil at default, got %v", *input.IsTerminalEnabled)
+	}
 }
 
 func TestBuildPostCreateSettingsInput_NonDefaults(t *testing.T) {
@@ -591,6 +639,7 @@ func TestBuildPostCreateSettingsInput_NonDefaults(t *testing.T) {
 	m.ConnectionTimeout = types.Int64Value(30)
 	m.ServerDiskUsageNotificationThreshold = types.Int64Value(95)
 	m.ServerDiskUsageCheckFrequency = types.StringValue("*/10 * * * *")
+	m.IsTerminalEnabled = types.BoolValue(false)
 
 	input := BuildPostCreateSettingsInput(ptrs)
 
@@ -616,6 +665,11 @@ func TestBuildPostCreateSettingsInput_NonDefaults(t *testing.T) {
 		t.Error("ServerDiskUsageCheckFrequency should be non-nil")
 	} else if *input.ServerDiskUsageCheckFrequency != "*/10 * * * *" {
 		t.Errorf("ServerDiskUsageCheckFrequency = %q, want %q", *input.ServerDiskUsageCheckFrequency, "*/10 * * * *")
+	}
+	if input.IsTerminalEnabled == nil {
+		t.Error("IsTerminalEnabled should be non-nil")
+	} else if *input.IsTerminalEnabled {
+		t.Errorf("IsTerminalEnabled = %v, want false", *input.IsTerminalEnabled)
 	}
 
 	// Verify the input does NOT include fields that belong only in Update.
@@ -805,6 +859,9 @@ func TestHasNonDefaultSettings_EachField(t *testing.T) {
 		}},
 		{"ServerDiskUsageCheckFrequency", func(m *serverResourceModel) {
 			m.ServerDiskUsageCheckFrequency = types.StringValue("*/10 * * * *")
+		}},
+		{"IsTerminalEnabled", func(m *serverResourceModel) {
+			m.IsTerminalEnabled = types.BoolValue(false)
 		}},
 	}
 	for _, tc := range cases {

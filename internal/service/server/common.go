@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -28,6 +29,9 @@ type ServerCommonPtrs struct {
 	ServerDiskUsageNotificationThreshold              *types.Int64
 	ServerDiskUsageCheckFrequency                     *types.String
 	IsBuildServer, IsReachable, IsUsable              *types.Bool
+	// InstantValidate is optional: set on coolify_server only (cloud types
+	// own their own extra-attr field and must not share this pointer).
+	InstantValidate *types.Bool
 	// Read-only extended settings returned by GET responses.
 	WildcardDomain                    *types.String
 	IsCloudFlareTunnel                *types.Bool
@@ -201,8 +205,11 @@ func addCoreExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 		Computed:            true,
 	}
 	attrs["is_terminal_enabled"] = schema.BoolAttribute{
-		MarkdownDescription: "Whether the web terminal is enabled for this server.",
-		Computed:            true,
+		MarkdownDescription: "Whether the web terminal is enabled for this server. " +
+			"Requires Coolify >= v4.3.0. Coolify defaults to true.",
+		Optional:      true,
+		Computed:      true,
+		PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 	}
 	attrs["is_sentinel_enabled"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether the Sentinel monitoring agent is enabled.",
@@ -472,14 +479,15 @@ func HasNonDefaultSettings(p ServerCommonPtrs) bool {
 		flex.Int64ValueNonDefault(*p.DeploymentQueueLimit, 25) ||
 		flex.Int64ValueNonDefault(*p.ConnectionTimeout, 10) ||
 		flex.Int64ValueNonDefault(*p.ServerDiskUsageNotificationThreshold, 80) ||
-		flex.StringValueNonDefault(*p.ServerDiskUsageCheckFrequency, "")
+		flex.StringValueNonDefault(*p.ServerDiskUsageCheckFrequency, "") ||
+		flex.BoolPtrNonDefault(p.IsTerminalEnabled, true)
 }
 
 // BuildPostCreateSettingsInput returns an UpdateServerInput populated with
 // only the settings fields that differ from Coolify's create-time defaults.
 // Callers can extend the returned input with additional fields before sending.
 func BuildPostCreateSettingsInput(p ServerCommonPtrs) client.UpdateServerInput {
-	return client.UpdateServerInput{
+	input := client.UpdateServerInput{
 		ConcurrentBuilds:                     flex.IntIfNonDefault(*p.ConcurrentBuilds, 2),
 		DynamicTimeout:                       flex.IntIfNonDefault(*p.DynamicTimeout, 3600),
 		DeploymentQueueLimit:                 flex.IntIfNonDefault(*p.DeploymentQueueLimit, 25),
@@ -487,6 +495,10 @@ func BuildPostCreateSettingsInput(p ServerCommonPtrs) client.UpdateServerInput {
 		ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(*p.ServerDiskUsageNotificationThreshold, 80),
 		ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(*p.ServerDiskUsageCheckFrequency),
 	}
+	if p.IsTerminalEnabled != nil {
+		input.IsTerminalEnabled = flex.BoolIfNonDefault(*p.IsTerminalEnabled, true)
+	}
+	return input
 }
 
 // HasNonDefaultCloudProviderSettings reports whether a cloud-provisioned
@@ -563,6 +575,12 @@ func BuildServerUpdateInput(plan, state ServerCommonPtrs) client.UpdateServerInp
 		ConnectionTimeout:                    flex.IntIfChanged(*plan.ConnectionTimeout, *state.ConnectionTimeout),
 		ServerDiskUsageNotificationThreshold: flex.IntIfChanged(*plan.ServerDiskUsageNotificationThreshold, *state.ServerDiskUsageNotificationThreshold),
 		ServerDiskUsageCheckFrequency:        flex.StringIfChanged(*plan.ServerDiskUsageCheckFrequency, *state.ServerDiskUsageCheckFrequency),
+	}
+	if plan.IsTerminalEnabled != nil && state.IsTerminalEnabled != nil {
+		input.IsTerminalEnabled = flex.BoolIfChanged(*plan.IsTerminalEnabled, *state.IsTerminalEnabled)
+	}
+	if plan.InstantValidate != nil && state.InstantValidate != nil {
+		input.InstantValidate = flex.BoolIfChanged(*plan.InstantValidate, *state.InstantValidate)
 	}
 	return input
 }

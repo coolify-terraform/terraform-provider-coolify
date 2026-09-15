@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -44,6 +46,7 @@ type serverResourceModel struct {
 	ConnectionTimeout                    types.Int64    `tfsdk:"connection_timeout"`
 	ServerDiskUsageNotificationThreshold types.Int64    `tfsdk:"server_disk_usage_notification_threshold"`
 	ServerDiskUsageCheckFrequency        types.String   `tfsdk:"server_disk_usage_check_frequency"`
+	InstantValidate                      types.Bool     `tfsdk:"instant_validate"`
 	// Read-only extended settings returned by GET responses.
 	WildcardDomain                    types.String `tfsdk:"wildcard_domain"`
 	IsCloudFlareTunnel                types.Bool   `tfsdk:"is_cloudflare_tunnel"`
@@ -103,6 +106,13 @@ func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "The IP address of the server.",
 				Required:            true,
 			},
+			"instant_validate": schema.BoolAttribute{
+				MarkdownDescription: "Whether to validate server connectivity immediately after creation or update. " +
+					"Coolify defaults to false. The API does not return this field; it only triggers a validation job when true.",
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
 		}),
 	}
 }
@@ -129,13 +139,14 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server"})
 
 	input := client.CreateServerInput{
-		Name:           plan.Name.ValueString(),
-		Description:    plan.Description.ValueString(),
-		IP:             plan.IP.ValueString(),
-		Port:           int(plan.Port.ValueInt64()),
-		User:           plan.User.ValueString(),
-		PrivateKeyUUID: plan.PrivateKeyUUID.ValueString(),
-		IsBuildServer:  flex.BoolValueOrNull(plan.IsBuildServer),
+		Name:            plan.Name.ValueString(),
+		Description:     plan.Description.ValueString(),
+		IP:              plan.IP.ValueString(),
+		Port:            int(plan.Port.ValueInt64()),
+		User:            plan.User.ValueString(),
+		PrivateKeyUUID:  plan.PrivateKeyUUID.ValueString(),
+		IsBuildServer:   flex.BoolValueOrNull(plan.IsBuildServer),
+		InstantValidate: flex.BoolValueOrNull(plan.InstantValidate),
 	}
 
 	created, err := r.client.CreateServer(ctx, input)
@@ -158,6 +169,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	if plan.ServerDiskUsageCheckFrequency.IsUnknown() {
 		plan.ServerDiskUsageCheckFrequency = types.StringNull()
 	}
+	resolveInstantValidate(&plan.InstantValidate)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -188,6 +200,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	flattenServer(srv, &plan)
+	resolveInstantValidate(&plan.InstantValidate)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": created.UUID})
 }
@@ -213,6 +226,7 @@ func (r *serverResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	flattenServer(srv, &state)
+	resolveInstantValidate(&state.InstantValidate)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -247,6 +261,7 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	flattenServer(srv, &plan)
+	resolveInstantValidate(&plan.InstantValidate)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -292,7 +307,8 @@ func (m *serverResourceModel) commonPtrs() ServerCommonPtrs {
 		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
 		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
 		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
-		WildcardDomain: &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
+		InstantValidate: &m.InstantValidate,
+		WildcardDomain:  &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
 		IsTerminalEnabled: &m.IsTerminalEnabled, IsSentinelEnabled: &m.IsSentinelEnabled,
 		SentinelMetricsHistoryDays: &m.SentinelMetricsHistoryDays, SentinelMetricsRefreshRateSeconds: &m.SentinelMetricsRefreshRateSeconds,
@@ -318,4 +334,12 @@ func (m *serverResourceModel) commonPtrs() ServerCommonPtrs {
 
 func flattenServer(srv *client.Server, model *serverResourceModel) {
 	FlattenServerCommon(srv, model.commonPtrs())
+}
+
+// resolveInstantValidate fills the create/update-only trigger after flatten.
+// Coolify never returns instant_validate on GET.
+func resolveInstantValidate(v *types.Bool) {
+	if v.IsNull() || v.IsUnknown() {
+		*v = types.BoolValue(false)
+	}
 }

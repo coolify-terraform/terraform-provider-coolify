@@ -32,6 +32,8 @@ resource "coolify_server" "example" {
   # connection_timeout                     = 10      # SSH connection timeout in seconds (1-300, default: 10)
   # server_disk_usage_notification_threshold = 80    # Disk usage alert threshold % (default: 80)
   # server_disk_usage_check_frequency      = "*/5 * * * *"  # Cron schedule for disk checks
+  # instant_validate                       = true    # Validate SSH after create or update
+  # is_terminal_enabled                    = true    # Web terminal (Coolify >= v4.3.0, default true)
 
   # Additional server settings such as wildcard domains, Sentinel flags,
   # and Docker cleanup options are exposed as read-only attributes because
@@ -55,7 +57,9 @@ resource "coolify_server" "example" {
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
 - `description` (String) A description of the server.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
+- `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation or update. Coolify defaults to false. The API does not return this field; it only triggers a validation job when true.
 - `is_build_server` (Boolean) Whether this server is used for building applications.
+- `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server. Requires Coolify >= v4.3.0. Coolify defaults to true.
 - `port` (Number) The SSH port of the server.
 - `server_disk_usage_check_frequency` (String) Cron or Coolify human schedule for how often disk usage is checked (e.g., `*/5 * * * *`, `daily`, `@daily`).
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
@@ -89,7 +93,6 @@ resource "coolify_server" "example" {
 - `is_sentinel_enabled` (Boolean) Whether the Sentinel monitoring agent is enabled.
 - `is_swarm_manager` (Boolean) Whether this server is a Docker Swarm manager. Read-only (not on public server PATCH allow-list).
 - `is_swarm_worker` (Boolean) Whether this server is a Docker Swarm worker. Read-only (not on public server PATCH allow-list).
-- `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server.
 - `is_usable` (Boolean) Whether the server is currently usable for deployments.
 - `logdrain_axiom_api_key` (String, Sensitive) Axiom API key for log drain. Sensitive; read-only.
 - `logdrain_axiom_dataset_name` (String) Axiom dataset name for log drain. Read-only.

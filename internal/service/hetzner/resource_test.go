@@ -126,6 +126,9 @@ func newHetznerServerMockServer() *httptest.Server {
 			if update.ServerDiskUsageCheckFrequency != nil {
 				srv.Settings.ServerDiskUsageCheckFrequency = *update.ServerDiskUsageCheckFrequency
 			}
+			if update.IsTerminalEnabled != nil {
+				srv.Settings.IsTerminalEnabled = *update.IsTerminalEnabled
+			}
 			json.NewEncoder(w).Encode(srv)
 
 		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):

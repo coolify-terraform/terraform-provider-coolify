@@ -14,6 +14,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func newServerMockServer() *httptest.Server {
@@ -51,6 +52,7 @@ func newServerMockServer() *httptest.Server {
 					ConnectionTimeout:                    10,
 					ServerDiskUsageNotificationThreshold: 80,
 					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+					IsTerminalEnabled:                    true,
 				},
 			}
 			servers[srv.UUID] = srv
@@ -135,6 +137,9 @@ func newServerMockServer() *httptest.Server {
 			}
 			if update.ServerDiskUsageCheckFrequency != nil {
 				srv.Settings.ServerDiskUsageCheckFrequency = *update.ServerDiskUsageCheckFrequency
+			}
+			if update.IsTerminalEnabled != nil {
+				srv.Settings.IsTerminalEnabled = *update.IsTerminalEnabled
 			}
 			json.NewEncoder(w).Encode(srv)
 
@@ -437,6 +442,7 @@ func TestServerResource_DeleteUsesForce(t *testing.T) {
 					ConnectionTimeout:                    10,
 					ServerDiskUsageNotificationThreshold: 80,
 					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+					IsTerminalEnabled:                    true,
 				},
 			}
 			servers[created.UUID] = created
@@ -624,6 +630,211 @@ resource "coolify_server" "test" {
   private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 }`,
 				ExpectError: regexp.MustCompile(`Error creating server`),
+			},
+		},
+	})
+}
+
+func TestServerResource_CreateInstantValidate(t *testing.T) {
+	t.Parallel()
+
+	var gotCreate client.CreateServerInput
+	servers := make(map[string]*client.Server)
+	var mu sync.Mutex
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers":
+			if err := json.NewDecoder(r.Body).Decode(&gotCreate); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			if gotCreate.InstantValidate == nil || !*gotCreate.InstantValidate {
+				t.Errorf("POST instant_validate = %v, want true", gotCreate.InstantValidate)
+			}
+			created := &client.Server{
+				UUID:           "bbbb0020-0001-4000-8000-000000000001",
+				Name:           gotCreate.Name,
+				IP:             gotCreate.IP,
+				Port:           gotCreate.Port,
+				User:           gotCreate.User,
+				PrivateKeyUUID: gotCreate.PrivateKeyUUID,
+				IsReachable:    true,
+				IsUsable:       true,
+				Settings: &client.ServerSettings{
+					ConcurrentBuilds:                     2,
+					DynamicTimeout:                       3600,
+					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
+					ServerDiskUsageNotificationThreshold: 80,
+					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+					IsTerminalEnabled:                    true,
+				},
+			}
+			servers[created.UUID] = created
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(created)
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			server, ok := servers[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			resp := *server
+			resp.PrivateKeyUUID = ""
+			json.NewEncoder(w).Encode(resp)
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			delete(servers, uuid)
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name              = "validate-on-create"
+  ip                = "10.0.0.1"
+  private_key_uuid  = "dddd0002-0002-4000-8000-000000000002"
+  instant_validate  = true
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server.test", "instant_validate", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestServerResource_UpdateInstantValidateAndTerminal(t *testing.T) {
+	t.Parallel()
+
+	var lastPatch client.UpdateServerInput
+	servers := make(map[string]*client.Server)
+	var mu sync.Mutex
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers":
+			var input client.CreateServerInput
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			created := &client.Server{
+				UUID:           "bbbb0021-0001-4000-8000-000000000001",
+				Name:           input.Name,
+				IP:             input.IP,
+				Port:           input.Port,
+				User:           input.User,
+				PrivateKeyUUID: input.PrivateKeyUUID,
+				IsReachable:    true,
+				IsUsable:       true,
+				Settings: &client.ServerSettings{
+					ConcurrentBuilds:                     2,
+					DynamicTimeout:                       3600,
+					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
+					ServerDiskUsageNotificationThreshold: 80,
+					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+					IsTerminalEnabled:                    false,
+				},
+			}
+			servers[created.UUID] = created
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(created)
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			server, ok := servers[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			resp := *server
+			resp.PrivateKeyUUID = ""
+			json.NewEncoder(w).Encode(resp)
+		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			server, ok := servers[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			var update client.UpdateServerInput
+			if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			lastPatch = update
+			if update.Name != nil {
+				server.Name = *update.Name
+			}
+			if update.IsTerminalEnabled != nil {
+				server.Settings.IsTerminalEnabled = *update.IsTerminalEnabled
+			}
+			json.NewEncoder(w).Encode(server)
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			delete(servers, uuid)
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "terminal-off"
+  ip               = "10.0.0.1"
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server.test", "is_terminal_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_server.test", "instant_validate", "false"),
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name               = "terminal-on"
+  ip                 = "10.0.0.1"
+  private_key_uuid   = "dddd0002-0002-4000-8000-000000000002"
+  instant_validate   = true
+  is_terminal_enabled = true
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server.test", "is_terminal_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_server.test", "instant_validate", "true"),
+					func(*terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if lastPatch.InstantValidate == nil || !*lastPatch.InstantValidate {
+							return fmt.Errorf("PATCH instant_validate = %v, want true", lastPatch.InstantValidate)
+						}
+						if lastPatch.IsTerminalEnabled == nil || !*lastPatch.IsTerminalEnabled {
+							return fmt.Errorf("PATCH is_terminal_enabled = %v, want true", lastPatch.IsTerminalEnabled)
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})

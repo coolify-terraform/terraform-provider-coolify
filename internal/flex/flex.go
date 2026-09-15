@@ -247,6 +247,17 @@ func Int64IfChanged(plan, state types.Int64) *int64 {
 	return Int64PtrFromFramework(plan)
 }
 
+// BoolIfNonDefault returns a pointer to the value only if it differs from the
+// given default. Used to skip sending fields that already match the API's
+// create-time default.
+func BoolIfNonDefault(v types.Bool, dflt bool) *bool {
+	if v.IsNull() || v.IsUnknown() || v.ValueBool() == dflt {
+		return nil
+	}
+	b := v.ValueBool()
+	return &b
+}
+
 // IntIfNonDefault returns a pointer to the value only if it differs from the
 // given default. Used to skip sending fields that already match the API's
 // create-time default.

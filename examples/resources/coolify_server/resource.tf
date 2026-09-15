@@ -14,6 +14,8 @@ resource "coolify_server" "example" {
   # connection_timeout                     = 10      # SSH connection timeout in seconds (1-300, default: 10)
   # server_disk_usage_notification_threshold = 80    # Disk usage alert threshold % (default: 80)
   # server_disk_usage_check_frequency      = "*/5 * * * *"  # Cron schedule for disk checks
+  # instant_validate                       = true    # Validate SSH after create or update
+  # is_terminal_enabled                    = true    # Web terminal (Coolify >= v4.3.0, default true)
 
   # Additional server settings such as wildcard domains, Sentinel flags,
   # and Docker cleanup options are exposed as read-only attributes because

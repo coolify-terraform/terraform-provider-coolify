@@ -80,18 +80,19 @@ type Server struct {
 	Settings                  *ServerSettings `json:"settings,omitempty"`
 }
 type CreateServerInput struct {
-	Name           string `json:"name"`
-	Description    string `json:"description,omitempty"`
-	IP             string `json:"ip"`
-	Port           int    `json:"port"`
-	User           string `json:"user,omitempty"`
-	PrivateKeyUUID string `json:"private_key_uuid"`
-	IsBuildServer  *bool  `json:"is_build_server,omitempty"`
+	Name            string `json:"name"`
+	Description     string `json:"description,omitempty"`
+	IP              string `json:"ip"`
+	Port            int    `json:"port"`
+	User            string `json:"user,omitempty"`
+	PrivateKeyUUID  string `json:"private_key_uuid"`
+	IsBuildServer   *bool  `json:"is_build_server,omitempty"`
+	InstantValidate *bool  `json:"instant_validate,omitempty"`
 }
 
 // UpdateServerInput matches the public server PATCH contract.
-// Extended settings returned under ServerSettings are intentionally omitted
-// because the public controller does not accept them on update.
+// Extended settings returned under ServerSettings are omitted unless they
+// appear on ServersController::update_server $allowedFields.
 type UpdateServerInput struct {
 	Name                                 *string `json:"name,omitempty"`
 	Description                          *string `json:"description,omitempty"`
@@ -100,6 +101,8 @@ type UpdateServerInput struct {
 	User                                 *string `json:"user,omitempty"`
 	PrivateKeyUUID                       *string `json:"private_key_uuid,omitempty"`
 	IsBuildServer                        *bool   `json:"is_build_server,omitempty"`
+	InstantValidate                      *bool   `json:"instant_validate,omitempty"`
+	IsTerminalEnabled                    *bool   `json:"is_terminal_enabled,omitempty"`
 	ConcurrentBuilds                     *int    `json:"concurrent_builds,omitempty"`
 	DynamicTimeout                       *int    `json:"dynamic_timeout,omitempty"`
 	DeploymentQueueLimit                 *int    `json:"deployment_queue_limit,omitempty"`
