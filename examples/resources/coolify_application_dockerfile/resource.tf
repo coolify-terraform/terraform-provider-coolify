@@ -19,5 +19,5 @@ resource "coolify_application_dockerfile" "app" {
   # (SQLite, DuckDB, LMDB, BoltDB). Without this, Coolify rolling updates
   # report success while the new container never starts.
   # is_consistent_container_name_enabled = true
-  # max_restart_count = 3  # Coolify >= v4.3.0; API default 10
+  # max_restart_count = 3  # Coolify >= v4.3.0; API default 0 (disabled) since v4.3.21
 }

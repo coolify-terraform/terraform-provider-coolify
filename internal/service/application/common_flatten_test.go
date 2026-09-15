@@ -741,6 +741,42 @@ func TestFlattenRestartLimitFields_OmitsAPIKeepsKnownDest(t *testing.T) {
 	}
 }
 
+// Coolify >= v4.3.21 returns 0 (restart limit disabled). Coolify v4.3.0
+// through v4.3.20 returned 10. JSON omitempty does not apply on decode, so
+// an explicit 0 is a pointer to 0, not a nil omitted field.
+func TestFlattenRestartLimitFields_GetZeroVsGetTen(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GET 0 new Coolify default", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Int64
+		n := int64(0)
+		flattenRestartLimitFields(&client.Application{MaxRestartCount: &n}, commonAppFields{MaxRestartCount: &dest})
+		if dest.IsNull() || dest.IsUnknown() || dest.ValueInt64() != 0 {
+			t.Errorf("MaxRestartCount = %v, want 0 (v4.3.21 default, restart limit disabled)", dest)
+		}
+	})
+
+	t.Run("GET 10 former Coolify default", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Int64
+		n := int64(10)
+		flattenRestartLimitFields(&client.Application{MaxRestartCount: &n}, commonAppFields{MaxRestartCount: &dest})
+		if dest.IsNull() || dest.IsUnknown() || dest.ValueInt64() != 10 {
+			t.Errorf("MaxRestartCount = %v, want 10 (v4.3.0 through v4.3.20 default)", dest)
+		}
+	})
+
+	t.Run("GET omitted stays null", func(t *testing.T) {
+		t.Parallel()
+		var dest types.Int64
+		flattenRestartLimitFields(&client.Application{}, commonAppFields{MaxRestartCount: &dest})
+		if !dest.IsNull() {
+			t.Errorf("MaxRestartCount = %v, want null (omitted field is not the new 0 default)", dest)
+		}
+	})
+}
+
 func TestFlattenDomainPortOverrides(t *testing.T) {
 	t.Parallel()
 
