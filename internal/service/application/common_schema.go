@@ -79,6 +79,17 @@ func gitAppSourceAttrs(gitRepositoryDescription string) map[string]schema.Attrib
 			MarkdownDescription: "The path to the Dockerfile, relative to the repository root.",
 			Optional:            true,
 		},
+		"docker_compose_location": schema.StringAttribute{
+			MarkdownDescription: "The path to the Docker Compose file within the application's base directory. Must start with `/`. When omitted, Coolify defaults to `/docker-compose.yaml`.",
+			Optional:            true,
+			Validators: []validator.String{
+				stringvalidator.LengthAtMost(255),
+				stringvalidator.RegexMatches(
+					regexp.MustCompile(`^/[a-zA-Z0-9._\-/~@+]+$`),
+					"must start with `/` and contain only letters, numbers, dots, hyphens, underscores, slashes, `~`, `@`, or `+`",
+				),
+			},
+		},
 	}
 }
 

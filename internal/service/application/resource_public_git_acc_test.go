@@ -102,6 +102,65 @@ data "coolify_application" "test" {
 	})
 }
 
+func TestAccApplicationResource_DockerComposeLocation(t *testing.T) {
+	t.Parallel()
+	acctest.AccTestSkipIfNoTFAcc(t)
+	acctest.TestAccPreCheck(t)
+
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-app-compose")
+
+	config := func(location string) string {
+		return testAccPublicGitAppConfig(
+			name,
+			serverUUID,
+			"3000",
+			fmt.Sprintf(`docker_compose_location = %q`, location),
+		)
+	}
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: config("/compose.yaml"),
+				Check: resource.TestCheckResourceAttr(
+					"coolify_application.test",
+					"docker_compose_location",
+					"/compose.yaml",
+				),
+			},
+			{
+				Config:             config("/compose.yaml"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: config("/config/compose.yaml"),
+				Check: resource.TestCheckResourceAttr(
+					"coolify_application.test",
+					"docker_compose_location",
+					"/config/compose.yaml",
+				),
+			},
+			{
+				Config:             config("/config/compose.yaml"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				ResourceName:                         "coolify_application.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateVerifyIdentifierAttribute: "uuid",
+				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application.test", "uuid"),
+				ImportStateVerifyIgnore:              []string{"environment_name", "project_uuid", "server_uuid", "dockerfile"},
+			},
+		},
+	})
+}
+
 func testAccPublicGitAppConfig(name, serverUUID, ports, extra string) string {
 	return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_project" "test" {

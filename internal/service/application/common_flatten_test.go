@@ -1326,6 +1326,61 @@ func TestFlattenExtendedFields_CustomNginxEmptyAPIPreservesState(t *testing.T) {
 	}
 }
 
+func TestFlattenExtendedFields_DockerComposeLocationImport(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		apiValue  string
+		wantNull  bool
+		wantValue string
+	}{
+		{
+			name:     "default stays null",
+			apiValue: "/docker-compose.yaml",
+			wantNull: true,
+		},
+		{
+			name:      "non-default seeds import state",
+			apiValue:  "/compose.yaml",
+			wantValue: "/compose.yaml",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			location := types.StringNull()
+			app := client.Application{
+				DockerComposeLocation: tt.apiValue,
+			}
+
+			flattenExtendedFields(&app, commonAppFields{
+				DockerComposeLocation: &location,
+			})
+
+			if tt.wantNull {
+				if !location.IsNull() {
+					t.Fatalf("docker_compose_location = %q, want null", location.ValueString())
+				}
+				return
+			}
+
+			if location.IsNull() {
+				t.Fatal("docker_compose_location is null, want non-null value")
+			}
+			if location.ValueString() != tt.wantValue {
+				t.Errorf(
+					"docker_compose_location = %q, want %q",
+					location.ValueString(),
+					tt.wantValue,
+				)
+			}
+		})
+	}
+}
+
 // ---------------------------------------------------------------------------
 // custom_labels + custom_nginx_configuration: update input encoding
 // ---------------------------------------------------------------------------
