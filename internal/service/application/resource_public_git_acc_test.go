@@ -188,7 +188,7 @@ resource "coolify_application" "test" {
   git_repository            = "https://github.com/coollabsio/coolify-examples"
   git_branch                = "main"
   build_pack                = "dockercompose"
-  ports_exposes             = "3000"
+  ports_exposes             = "80"
   docker_compose_location   = %[3]q
 }
 `, name, serverUUID, location)
