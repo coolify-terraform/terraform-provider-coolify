@@ -105,9 +105,11 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 			Default:             stringdefault.StaticString("root"),
 		},
 		"private_key_uuid": schema.StringAttribute{
-			MarkdownDescription: "The UUID of the private key used for SSH authentication.",
-			Required:            true,
-			Validators:          []validator.String{validate.UUID()},
+			MarkdownDescription: "The UUID of the private key used for SSH authentication. " +
+				"Coolify GET often omits this field, so import leaves it empty. " +
+				"Set the same UUID that is already on the server in HCL, or the next apply will PATCH a new SSH key.",
+			Required:   true,
+			Validators: []validator.String{validate.UUID()},
 		},
 		"is_build_server": schema.BoolAttribute{
 			MarkdownDescription: "Whether this server is used for building applications.",

@@ -54,7 +54,7 @@ resource "coolify_server_hetzner" "example" {
 - `image` (String) The OS image to use (e.g., `ubuntu-24.04`). Use `coolify_hetzner_images` data source to list available images. Changing this forces a new resource.
 - `location` (String) The Hetzner datacenter location (e.g., `fsn1`, `nbg1`). Use `coolify_hetzner_locations` data source to list available locations. Changing this forces a new resource.
 - `name` (String) The name of the server.
-- `private_key_uuid` (String) The UUID of the private key used for SSH authentication.
+- `private_key_uuid` (String) The UUID of the private key used for SSH authentication. Coolify GET often omits this field, so import leaves it empty. Set the same UUID that is already on the server in HCL, or the next apply will PATCH a new SSH key.
 - `server_type` (String) The Hetzner server type (e.g., `cx22`, `cpx31`). Use `coolify_hetzner_server_types` data source to list available types. Changing this forces a new resource.
 
 ### Optional
@@ -139,5 +139,8 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# NOTE: Coolify GET often omits private_key_uuid, so import leaves it empty.
+# Set the same UUID that is already on the server in your .tf config
+# BEFORE running terraform plan, or the next apply will PATCH a new SSH key.
 terraform import coolify_server_hetzner.example <server-uuid>
 ```

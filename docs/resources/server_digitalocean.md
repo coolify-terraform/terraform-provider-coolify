@@ -48,7 +48,7 @@ variable "digitalocean_token" {
 - `cloud_provider_token_uuid` (String) The UUID of the DigitalOcean cloud provider token (from `coolify_cloud_token`). Changing this forces a new resource.
 - `image` (String) The OS image to use (e.g., `ubuntu-24-04-x64`). Use `coolify_digitalocean_images` data source to list available images. Changing this forces a new resource.
 - `name` (String) The name of the server.
-- `private_key_uuid` (String) The UUID of the private key used for SSH authentication.
+- `private_key_uuid` (String) The UUID of the private key used for SSH authentication. Coolify GET often omits this field, so import leaves it empty. Set the same UUID that is already on the server in HCL, or the next apply will PATCH a new SSH key.
 - `region` (String) The DigitalOcean region slug (e.g., `nyc1`). Use `coolify_digitalocean_regions` to list available regions. Changing this forces a new resource.
 - `size` (String) The DigitalOcean server type (e.g., `s-1vcpu-1gb`). Use `coolify_digitalocean_sizes` data source to list available types. Changing this forces a new resource.
 
@@ -133,5 +133,8 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 ```shell
 #!/bin/sh
 # Import requires Coolify >= v4.2.0. DigitalOcean create-only fields are empty after import.
+# NOTE: Coolify GET often omits private_key_uuid, so import leaves it empty.
+# Set the same UUID that is already on the server in your .tf config
+# BEFORE running terraform plan, or the next apply will PATCH a new SSH key.
 terraform import coolify_server_digitalocean.app <server-uuid>
 ```

@@ -49,7 +49,7 @@ variable "vultr_token" {
 - `name` (String) The name of the server.
 - `os_id` (Number) The Vultr operating system ID. Use `coolify_vultr_os` to list available operating systems. Changing this forces a new resource.
 - `plan` (String) The Vultr server type (e.g., `vc2-1c-1gb`). Use `coolify_vultr_plans` to list available plans. Changing this forces a new resource.
-- `private_key_uuid` (String) The UUID of the private key used for SSH authentication.
+- `private_key_uuid` (String) The UUID of the private key used for SSH authentication. Coolify GET often omits this field, so import leaves it empty. Set the same UUID that is already on the server in HCL, or the next apply will PATCH a new SSH key.
 - `region` (String) The Vultr region slug (e.g., `ewr`). Use `coolify_vultr_regions` to list available regions. Changing this forces a new resource.
 
 ### Optional
@@ -132,5 +132,8 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 #!/bin/sh
+# NOTE: Coolify GET often omits private_key_uuid, so import leaves it empty.
+# Set the same UUID that is already on the server in your .tf config
+# BEFORE running terraform plan, or the next apply will PATCH a new SSH key.
 terraform import coolify_server_vultr.app <server-uuid>
 ```

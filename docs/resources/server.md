@@ -46,7 +46,7 @@ resource "coolify_server" "example" {
 
 - `ip` (String) The IP address of the server.
 - `name` (String) The name of the server.
-- `private_key_uuid` (String) The UUID of the private key used for SSH authentication.
+- `private_key_uuid` (String) The UUID of the private key used for SSH authentication. Coolify GET often omits this field, so import leaves it empty. Set the same UUID that is already on the server in HCL, or the next apply will PATCH a new SSH key.
 
 ### Optional
 
@@ -121,5 +121,8 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# NOTE: Coolify GET often omits private_key_uuid, so import leaves it empty.
+# Set the same UUID that is already on the server in your .tf config
+# BEFORE running terraform plan, or the next apply will PATCH a new SSH key.
 terraform import coolify_server.example <server-uuid>
 ```
