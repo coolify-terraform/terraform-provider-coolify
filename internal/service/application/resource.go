@@ -134,6 +134,8 @@ func (r *applicationResource) Create(ctx context.Context, req resource.CreateReq
 	flex.NormalizeUnknownString(&plan.BuildCommand)
 	flex.NormalizeUnknownString(&plan.DockerComposeCustomBuildCommand)
 	flex.NormalizeUnknownString(&plan.DockerComposeCustomStartCommand)
+	flex.NormalizeUnknownString(&plan.DockerComposeLocation)
+	flex.NormalizeUnknownString(&plan.DockerfileTargetBuild)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
