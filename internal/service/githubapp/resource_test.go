@@ -39,16 +39,31 @@ type mockGitHubApp struct {
 	ClientID         string `json:"client_id,omitempty"`
 	WebhookSecret    string `json:"webhook_secret,omitempty"`
 	IsSystemWide     bool   `json:"is_system_wide"`
+	ClientSecret     string `json:"-"`
+	PrivateKeyUUID   string `json:"-"`
 }
 
 // mockGitHubAppStore is a thread-safe in-memory store for mock GitHub Apps.
 type mockGitHubAppStore struct {
-	mu      sync.Mutex
-	apps    map[int64]*mockGitHubApp
-	counter int64
+	mu                   sync.Mutex
+	apps                 map[int64]*mockGitHubApp
+	counter              int64
+	requireUpdateSecrets bool
 }
 
-func (s *mockGitHubAppStore) Create(name, orgName, customUser string, customPort, appID, installID int64, clientID, webhookSecret string, isSystemWide bool) *mockGitHubApp {
+func (s *mockGitHubAppStore) SetRequireUpdateSecrets(v bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.requireUpdateSecrets = v
+}
+
+func (s *mockGitHubAppStore) RequireUpdateSecrets() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.requireUpdateSecrets
+}
+
+func (s *mockGitHubAppStore) Create(name, orgName, customUser string, customPort, appID, installID int64, clientID, clientSecret, webhookSecret, privateKeyUUID string, isSystemWide bool) *mockGitHubApp {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.counter++
@@ -70,6 +85,8 @@ func (s *mockGitHubAppStore) Create(name, orgName, customUser string, customPort
 		ClientID:         clientID,
 		WebhookSecret:    webhookSecret,
 		IsSystemWide:     isSystemWide,
+		ClientSecret:     clientSecret,
+		PrivateKeyUUID:   privateKeyUUID,
 	}
 	s.apps[app.ID] = app
 	return app
@@ -113,6 +130,12 @@ func (s *mockGitHubAppStore) Update(id int64, upd mockGitHubAppUpdate) (*mockGit
 	if upd.WebhookSecret != nil {
 		app.WebhookSecret = *upd.WebhookSecret
 	}
+	if upd.ClientSecret != nil {
+		app.ClientSecret = *upd.ClientSecret
+	}
+	if upd.PrivateKeyUUID != nil {
+		app.PrivateKeyUUID = *upd.PrivateKeyUUID
+	}
 	return app, true
 }
 
@@ -125,6 +148,8 @@ type mockGitHubAppUpdate struct {
 	InstallationID   *int64  `json:"installation_id"`
 	ClientID         *string `json:"client_id"`
 	WebhookSecret    *string `json:"webhook_secret"`
+	ClientSecret     *string `json:"client_secret"`
+	PrivateKeyUUID   *string `json:"private_key_uuid"`
 }
 
 func (s *mockGitHubAppStore) SetSystemWide(id int64, v bool) {
@@ -198,6 +223,10 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 			return
 		}
+		if body.ClientSecret == "" || body.PrivateKeyUUID == "" {
+			http.Error(w, `{"error":"client_secret and private_key_uuid required"}`, http.StatusUnprocessableEntity)
+			return
+		}
 
 		var port int64
 		if body.CustomPort != nil {
@@ -207,7 +236,7 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 		if body.IsSystemWide != nil {
 			systemWide = *body.IsSystemWide
 		}
-		app := store.Create(body.Name, body.OrganizationName, body.CustomUser, port, body.AppID, body.InstallationID, body.ClientID, body.WebhookSecret, systemWide)
+		app := store.Create(body.Name, body.OrganizationName, body.CustomUser, port, body.AppID, body.InstallationID, body.ClientID, body.ClientSecret, body.WebhookSecret, body.PrivateKeyUUID, systemWide)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -247,6 +276,12 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 		if err := json.Unmarshal(raw, &body); err != nil {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 			return
+		}
+		if store.RequireUpdateSecrets() {
+			if body.ClientSecret == nil || *body.ClientSecret == "" || body.PrivateKeyUUID == nil || *body.PrivateKeyUUID == "" {
+				http.Error(w, `{"error":"client_secret and private_key_uuid required"}`, http.StatusUnprocessableEntity)
+				return
+			}
 		}
 
 		app, ok := store.Update(id, body)
@@ -369,6 +404,12 @@ private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
 						}
 						if app.CustomUser != "git" || app.CustomPort != 22 {
 							return fmt.Errorf("expected default custom_user/port, got %q/%d", app.CustomUser, app.CustomPort)
+						}
+						if app.ClientSecret != "secret123" {
+							return fmt.Errorf("expected store client_secret %q, got %q", "secret123", app.ClientSecret)
+						}
+						if app.PrivateKeyUUID != "dddd0001-0001-4000-8000-000000000001" {
+							return fmt.Errorf("expected store private_key_uuid %q, got %q", "dddd0001-0001-4000-8000-000000000001", app.PrivateKeyUUID)
 						}
 
 						return nil
@@ -513,8 +554,9 @@ custom_port      = 70000
 
 func TestGitHubAppResource_Update(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServer()
+	server, store := newMockCoolifyServer()
 	defer server.Close()
+	store.SetRequireUpdateSecrets(true)
 
 	initialConfig := testGitHubAppResourceConfig(server.URL, `
 name             = "my-github-app"
@@ -544,6 +586,7 @@ private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 					resource.TestCheckResourceAttrSet("coolify_github_app.test", "id"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "name", "my-github-app"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "webhook_secret", "hook-secret-1"),
+					checkGitHubAppStoreSecrets(store, "secret123", "dddd0001-0001-4000-8000-000000000001"),
 				),
 			},
 			{
@@ -554,6 +597,7 @@ private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 					resource.TestCheckResourceAttr("coolify_github_app.test", "installation_id", "99999"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "client_id", "Iv1.xyz789"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "webhook_secret", "hook-secret-2"),
+					checkGitHubAppStoreSecrets(store, "secret456", "dddd0002-0002-4000-8000-000000000002"),
 				),
 			},
 			// Plan idempotency after update
@@ -586,7 +630,7 @@ func TestGitHubAppResource_CreateUsesCreateResponse(t *testing.T) {
 		if body.IsSystemWide != nil {
 			systemWide = *body.IsSystemWide
 		}
-		createdApp := store.Create(body.Name, body.OrganizationName, body.CustomUser, port, body.AppID, body.InstallationID, body.ClientID, body.WebhookSecret, systemWide)
+		createdApp := store.Create(body.Name, body.OrganizationName, body.CustomUser, port, body.AppID, body.InstallationID, body.ClientID, body.ClientSecret, body.WebhookSecret, body.PrivateKeyUUID, systemWide)
 		responseApp := *createdApp
 		responseApp.UUID = "ghapp-create-response"
 
@@ -1049,6 +1093,30 @@ resource "coolify_github_app" "test" {
 
 func testGitHubAppResourceConfig(endpoint, attrs string) string {
 	return acctest.TestResourceConfig(endpoint, "coolify_github_app", "test", attrs)
+}
+
+func checkGitHubAppStoreSecrets(store *mockGitHubAppStore, clientSecret, privateKeyUUID string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["coolify_github_app.test"]
+		if !ok {
+			return fmt.Errorf("resource not found in state")
+		}
+		id, err := strconv.ParseInt(rs.Primary.Attributes["id"], 10, 64)
+		if err != nil {
+			return fmt.Errorf("parsing resource id: %w", err)
+		}
+		app, ok := store.Get(id)
+		if !ok {
+			return fmt.Errorf("mock github app %d not found", id)
+		}
+		if app.ClientSecret != clientSecret {
+			return fmt.Errorf("expected store client_secret %q, got %q", clientSecret, app.ClientSecret)
+		}
+		if app.PrivateKeyUUID != privateKeyUUID {
+			return fmt.Errorf("expected store private_key_uuid %q, got %q", privateKeyUUID, app.PrivateKeyUUID)
+		}
+		return nil
+	}
 }
 
 // checkGitHubAppDestroy verifies that all coolify_github_app resources have
