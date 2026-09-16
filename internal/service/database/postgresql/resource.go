@@ -132,7 +132,7 @@ func (r *postgresqlDatabaseResource) Create(ctx context.Context, req resource.Cr
 
 	// Apply extended fields that cannot be set during creation.
 	ext := plan.ExtFields().WithSSL(&plan.EnableSSL, &plan.SSLMode)
-	needsUpdate := dbcommon.HasExtendedFields(ext) || flex.StringValueConfigured(plan.PostgresConf) || flex.StringValueConfigured(plan.PostgresInitdbArgs) || flex.StringValueConfigured(plan.PostgresHostAuthMethod) || flex.StringValueConfigured(plan.InitScripts)
+	needsUpdate := dbcommon.HasExtendedFields(ext) || flex.StringValueConfigured(plan.PostgresConf) || flex.StringValueConfigured(plan.PostgresInitdbArgs) || flex.StringValueConfigured(plan.PostgresHostAuthMethod)
 	if needsUpdate {
 		update := client.UpdateDatabaseInput{}
 		dbcommon.SetUpdateExtended(&update, ext)
