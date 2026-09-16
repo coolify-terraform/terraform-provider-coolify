@@ -127,6 +127,14 @@ type mockGitHubAppUpdate struct {
 	WebhookSecret    *string `json:"webhook_secret"`
 }
 
+func (s *mockGitHubAppStore) SetSystemWide(id int64, v bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if app, ok := s.apps[id]; ok {
+		app.IsSystemWide = v
+	}
+}
+
 func (s *mockGitHubAppStore) Delete(id int64) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -440,6 +448,42 @@ is_system_wide   = false
 					resource.TestCheckResourceAttr("coolify_github_app.test", "custom_port", "22"),
 					resource.TestCheckResourceAttr("coolify_github_app.test", "is_system_wide", "false"),
 				),
+			},
+		},
+	})
+}
+
+func TestGitHubAppResource_UnconfiguredSystemWideDriftDoesNotReplace(t *testing.T) {
+	t.Parallel()
+	server, store := newMockCoolifyServer(t)
+	defer server.Close()
+
+	config := testGitHubAppResourceConfig(server.URL, `
+name             = "drift-gh"
+app_id           = 11
+installation_id  = 22
+client_id        = "Iv1.drift"
+client_secret    = "secret"
+private_key_uuid = "dddd0001-0001-4000-8000-000000000001"
+`)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check:  resource.TestCheckResourceAttr("coolify_github_app.test", "is_system_wide", "false"),
+			},
+			{
+				PreConfig: func() {
+					store.SetSystemWide(1, true)
+				},
+				Config: config,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_github_app.test", plancheck.ResourceActionNoop),
+					},
+				},
 			},
 		},
 	})

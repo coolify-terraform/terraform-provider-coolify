@@ -365,6 +365,16 @@ resource "coolify_database_mongodb" "test" {
 `,
 				ExpectError: regexp.MustCompile(`value must be one of`),
 			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_mongodb" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  ssl_mode     = "verify-ca"
+}
+`,
+				ExpectError: regexp.MustCompile(`value must be one of`),
+			},
 		},
 	})
 }

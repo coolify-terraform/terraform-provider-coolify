@@ -248,6 +248,15 @@ class TestDecide(unittest.TestCase):
         self.assertIn("pin is 4.3.19", d.title)
         self.assertIn("opens a new one", d.body)
 
+    def test_replace_path_reapplies_labels(self):
+        src = Path(cc.__file__).read_text()
+        replace = src[src.index("if decision.action == \"replace\":") :]
+        replace = replace[: replace.index("print(f\"Updating issue")]
+        self.assertIn("apply_issue_labels(new_number, early)", replace)
+        self.assertIn("def apply_issue_labels(", src)
+        first_create = src[src.index("if existing is None:"): src.index("number = str(existing")]
+        self.assertIn("apply_issue_labels(parse_created_issue_number(created), early)", first_create)
+
     def test_parse_created_issue_number(self):
         url = (
             "https://github.com/coolify-terraform/terraform-provider-coolify"

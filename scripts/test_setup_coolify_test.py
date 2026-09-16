@@ -36,6 +36,14 @@ class TestSetupCoolifyTestTimeouts(unittest.TestCase):
         self.assertNotIn(">/dev/null", run)
         self.assertNotIn("2>&1", run)
 
+    def test_minio_bucket_must_exist_before_register(self) -> None:
+        src = SCRIPT.read_text()
+        register = src.index("Registering MinIO S3 storage in Coolify")
+        prelude = src[:register]
+        self.assertIn("coolify-backups does not exist", prelude)
+        self.assertIn("quay.io/minio/mc:", prelude)
+        self.assertIn("exit 1", prelude[prelude.rfind("Starting MinIO for S3 backup tests") :])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -601,6 +601,13 @@ func TestSetStringSeedOrClear(t *testing.T) {
 			t.Fatalf("expected null, got %q", dst.ValueString())
 		}
 	})
+	t.Run("resolves unknown to null when API empty", func(t *testing.T) {
+		dst := types.StringUnknown()
+		flex.SetStringSeedOrClear(&dst, "")
+		if !dst.IsNull() {
+			t.Fatalf("expected null, got unknown=%v value=%q", dst.IsUnknown(), dst.ValueString())
+		}
+	})
 	t.Run("clears configured when API empty", func(t *testing.T) {
 		dst := types.StringValue("old")
 		flex.SetStringSeedOrClear(&dst, "")

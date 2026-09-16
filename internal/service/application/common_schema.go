@@ -82,6 +82,8 @@ func gitAppSourceAttrs(gitRepositoryDescription string) map[string]schema.Attrib
 		"docker_compose_location": schema.StringAttribute{
 			MarkdownDescription: "The path to the Docker Compose file within the application's base directory. Must start with `/`. When omitted, Coolify defaults to `/docker-compose.yaml`. Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Coolify uses this path when `build_pack = \"dockercompose\"`. Deployment reads `{base_directory}{docker_compose_location}`. To return to Coolify's default after a custom path, set `/docker-compose.yaml` in HCL. Omitting the attribute later does not clear the stored path.",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			Validators: []validator.String{
 				stringvalidator.LengthAtMost(255),
 				stringvalidator.RegexMatches(
@@ -91,24 +93,30 @@ func gitAppSourceAttrs(gitRepositoryDescription string) map[string]schema.Attrib
 			},
 		},
 		"docker_compose_custom_start_command": schema.StringAttribute{
-			MarkdownDescription: "Custom `docker compose` start command used when `build_pack = \"dockercompose\"`. Coolify validates the value as a shell-safe command (max 1000 characters; `&&` and `||` are allowed; `;`, `|`, `$`, backticks, and newlines are not). Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Deployment injects `--project-directory` when the command does not already include it. Omitting the attribute later does not clear the stored command.",
+			MarkdownDescription: "Custom `docker compose` start command used when `build_pack = \"dockercompose\"`. Coolify validates the value as a shell-safe command (max 255 characters, the column width; `&&` and `||` are allowed; `;`, `|`, `$`, backticks, and newlines are not). Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Deployment injects `--project-directory` when the command does not already include it. Omitting the attribute later does not clear the stored command.",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			Validators: []validator.String{
-				stringvalidator.LengthAtMost(1000),
+				stringvalidator.LengthAtMost(255),
 				validate.ShellSafeCommand(),
 			},
 		},
 		"docker_compose_custom_build_command": schema.StringAttribute{
-			MarkdownDescription: "Custom `docker compose` build command used when `build_pack = \"dockercompose\"`. Coolify validates the value as a shell-safe command (max 1000 characters; `&&` and `||` are allowed; `;`, `|`, `$`, backticks, and newlines are not). Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Deployment injects `--project-directory` when the command does not already include it. Omitting the attribute later does not clear the stored command.",
+			MarkdownDescription: "Custom `docker compose` build command used when `build_pack = \"dockercompose\"`. Coolify validates the value as a shell-safe command (max 255 characters, the column width; `&&` and `||` are allowed; `;`, `|`, `$`, backticks, and newlines are not). Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Deployment injects `--project-directory` when the command does not already include it. Omitting the attribute later does not clear the stored command.",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			Validators: []validator.String{
-				stringvalidator.LengthAtMost(1000),
+				stringvalidator.LengthAtMost(255),
 				validate.ShellSafeCommand(),
 			},
 		},
 		"dockerfile_target_build": schema.StringAttribute{
 			MarkdownDescription: "Target stage for multi-stage Docker builds when `build_pack = \"dockerfile\"`. Must start with a letter or digit and may contain letters, digits, dots, hyphens, and underscores (max 128 characters). Coolify accepts this field on update only; the provider sends it in a post-create PATCH so the first apply converges. Present on every Coolify version this provider supports (v4.1.0 and later); no version gate. Omitting the attribute later does not clear the stored target.",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			Validators: []validator.String{
 				stringvalidator.LengthAtMost(128),
 				validate.DockerTarget(),

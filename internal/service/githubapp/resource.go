@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
@@ -135,12 +134,12 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Validators:          []validator.String{validate.UUID()},
 			},
 			"is_system_wide": schema.BoolAttribute{
-				MarkdownDescription: "Whether this GitHub App is available to all teams on the Coolify instance. Only applied on self-hosted (non-cloud) Coolify; cloud ignores the field. Coolify default: `false`. Create-only: changing this value replaces the app.",
+				MarkdownDescription: "Whether this GitHub App is available to all teams on the Coolify instance. Only applied on self-hosted (non-cloud) Coolify; cloud ignores the field. Coolify default: `false`. Create-only: changing a configured value replaces the app. Omitting the attribute ignores out-of-band UI drift.",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
+					boolplanmodifier.RequiresReplaceIfConfigured(),
+					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},

@@ -291,6 +291,20 @@ fi
 sleep 3
 docker exec coolify-minio mc alias set local http://localhost:9000 minioadmin minioadmin123 || true
 docker exec coolify-minio mc mb local/coolify-backups || true
+if ! docker exec coolify-minio mc ls local/coolify-backups >/dev/null 2>&1; then
+  log "Server image has no mc client; creating bucket with quay.io/minio/mc"
+  docker run --rm --network coolify --entrypoint /bin/sh \
+    quay.io/minio/mc:latest -c \
+    'mc alias set local http://coolify-minio:9000 minioadmin minioadmin123 && mc mb --ignore-existing local/coolify-backups'
+fi
+if ! docker exec coolify-minio mc ls local/coolify-backups >/dev/null 2>&1 \
+  && ! docker run --rm --network coolify --entrypoint /bin/sh \
+    quay.io/minio/mc:latest -c \
+    'mc alias set local http://coolify-minio:9000 minioadmin minioadmin123 && mc ls local/coolify-backups' \
+    >/dev/null 2>&1; then
+  log "ERROR: MinIO bucket coolify-backups does not exist; not registering minio-test"
+  exit 1
+fi
 
 S3_COUNT=$(psql_exec "SELECT count(*) FROM s3_storages WHERE name = 'minio-test';")
 if [[ "$S3_COUNT" == "0" ]]; then

@@ -188,7 +188,7 @@ func TestGitApplicationResource_InvalidDockerComposeCustomCommand(t *testing.T) 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
 	defer srv.Close()
 
-	tooLong := "docker compose " + strings.Repeat("x", 1000)
+	tooLong := "docker compose " + strings.Repeat("x", 241)
 	attrs := func(cmd string) string {
 		return fmt.Sprintf(`
 	name                                  = "compose-command-invalid"
@@ -211,7 +211,76 @@ func TestGitApplicationResource_InvalidDockerComposeCustomCommand(t *testing.T) 
 			},
 			{
 				Config:      acctest.TestResourceConfig(srv.URL, "coolify_application", "test", attrs(tooLong)),
-				ExpectError: regexp.MustCompile(`string length must be at most`),
+				ExpectError: regexp.MustCompile(`(?s)string length must be at most\s+255`),
+			},
+		},
+	})
+}
+
+func TestGitApplicationResource_DockerComposeCustomCommandOmitKeepsState(t *testing.T) {
+	t.Parallel()
+
+	app := client.Application{
+		UUID:                            "compose-command-omit",
+		Name:                            "compose-command-omit",
+		GitRepository:                   "https://github.com/example/repo",
+		GitBranch:                       "main",
+		BuildPack:                       "dockercompose",
+		PortsExposes:                    "3000",
+		ProjectUUID:                     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:                      "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName:                 "production",
+		DockerComposeCustomStartCommand: "docker compose up -d",
+	}
+	var deleted atomic.Bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if deleted.Load() {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		t.Error("omit-after-set must not PATCH docker_compose_custom_start_command")
+		http.Error(w, `{"error":"unexpected patch"}`, http.StatusUnprocessableEntity)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		deleted.Store(true)
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	base := `
+	name           = "compose-command-omit"
+	project_uuid   = "aaaa0001-0001-4000-8000-000000000001"
+	server_uuid    = "bbbb0001-0001-4000-8000-000000000001"
+	git_repository = "https://github.com/example/repo"
+	git_branch     = "main"
+	build_pack     = "dockercompose"
+	ports_exposes  = "3000"
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application", "test", base+`
+	docker_compose_custom_start_command = "docker compose up -d"
+`),
+				Check: resource.TestCheckResourceAttr("coolify_application.test", "docker_compose_custom_start_command", "docker compose up -d"),
+			},
+			{
+				Config:             acctest.TestResourceConfig(srv.URL, "coolify_application", "test", base),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})

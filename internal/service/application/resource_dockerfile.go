@@ -82,6 +82,8 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 			"dockerfile_target_build": schema.StringAttribute{
 				MarkdownDescription: "The target stage for multi-stage Docker builds.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"git_repository": schema.StringAttribute{
 				MarkdownDescription: "The Git repository URL. Read-only, set by the API.",

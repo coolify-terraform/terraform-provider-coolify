@@ -163,6 +163,8 @@ func SetStringSeedOrClear(dst *types.String, v string) {
 	if dst.IsNull() || dst.IsUnknown() {
 		if v != "" {
 			*dst = types.StringValue(v)
+		} else {
+			*dst = types.StringNull()
 		}
 		return
 	}

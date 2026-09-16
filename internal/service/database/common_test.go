@@ -139,6 +139,34 @@ func TestFlattenDatabaseExtended_EmptyAPISSLModeKeepsConfigured(t *testing.T) {
 	}
 }
 
+func TestFlattenDatabaseExtended_APIDefaultDoesNotOverwriteConfigured(t *testing.T) {
+	t.Parallel()
+	m := CommonModel{
+		IsLogDrainEnabled:   types.BoolValue(true),
+		IsIncludeTimestamps: types.BoolValue(true),
+	}
+	enableSSL := types.BoolValue(true)
+	sslMode := types.StringValue("verify-full")
+	f := m.ExtFields().WithSSL(&enableSSL, &sslMode)
+
+	FlattenDatabaseExtended(&client.Database{
+		SSLMode:             "require",
+		EnableSSL:           false,
+		IsLogDrainEnabled:   false,
+		IsIncludeTimestamps: false,
+	}, f)
+
+	if sslMode.ValueString() != "verify-full" {
+		t.Fatalf("ssl_mode = %q, want configured verify-full after default GET", sslMode.ValueString())
+	}
+	if !enableSSL.ValueBool() {
+		t.Fatal("enable_ssl overwritten by GET default false")
+	}
+	if !m.IsLogDrainEnabled.ValueBool() || !m.IsIncludeTimestamps.ValueBool() {
+		t.Fatal("UI-only bools overwritten by GET defaults")
+	}
+}
+
 func TestHasExtendedFields_AllDefaults(t *testing.T) {
 	t.Parallel()
 	f := DatabaseExtendedPtrs{}

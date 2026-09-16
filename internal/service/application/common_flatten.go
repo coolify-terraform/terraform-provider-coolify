@@ -168,11 +168,7 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 		flex.SetStringSeedOrClear(f.DockerfileTargetBuild, app.DockerfileTargetBuild)
 	}
 	if f.DockerComposeLocation != nil {
-		flex.SetStringSeedIfConfigured(
-			f.DockerComposeLocation,
-			app.DockerComposeLocation,
-			"/docker-compose.yaml",
-		)
+		flex.SetStringSeedOrClear(f.DockerComposeLocation, app.DockerComposeLocation)
 	}
 	if f.DockerComposeCustomBuildCommand != nil {
 		flex.SetStringSeedOrClear(f.DockerComposeCustomBuildCommand, app.DockerComposeCustomBuildCommand)

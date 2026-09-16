@@ -258,22 +258,22 @@ func SSLModePostgresqlAttr() schema.StringAttribute {
 // SSLModeMysqlAttr returns the ssl_mode schema attribute for MySQL/MariaDB.
 func SSLModeMysqlAttr() schema.StringAttribute {
 	return schema.StringAttribute{
-		MarkdownDescription: "The SSL connection mode. Only applies when `enable_ssl` is `true`. Valid values: `REQUIRED`, `DISABLED`, `PREFERRED`, `VERIFY_CA`, `VERIFY_IDENTITY`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.",
+		MarkdownDescription: "The SSL connection mode. Only applies when `enable_ssl` is `true`. Valid values: `PREFERRED`, `REQUIRED`, `VERIFY_CA`, `VERIFY_IDENTITY`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.",
 		Optional:            true,
 		Computed:            true,
 		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-		Validators:          []validator.String{stringvalidator.OneOf("REQUIRED", "DISABLED", "PREFERRED", "VERIFY_CA", "VERIFY_IDENTITY")},
+		Validators:          []validator.String{stringvalidator.OneOf("PREFERRED", "REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY")},
 	}
 }
 
 // SSLModeMongodbAttr returns the ssl_mode schema attribute for MongoDB.
 func SSLModeMongodbAttr() schema.StringAttribute {
 	return schema.StringAttribute{
-		MarkdownDescription: "The SSL connection mode for MongoDB. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-ca`, `verify-full`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.",
+		MarkdownDescription: "The SSL connection mode for MongoDB. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-full`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.",
 		Optional:            true,
 		Computed:            true,
 		PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-		Validators:          []validator.String{stringvalidator.OneOf("allow", "prefer", "require", "verify-ca", "verify-full")},
+		Validators:          []validator.String{stringvalidator.OneOf("allow", "prefer", "require", "verify-full")},
 	}
 }
 
@@ -515,6 +515,15 @@ func (f DatabaseExtendedPtrs) WithSSL(enableSSL *types.Bool, sslMode *types.Stri
 	return f
 }
 
+func preserveOrSetBool(dst *types.Bool, api bool) {
+	if dst == nil {
+		return
+	}
+	if dst.IsNull() || dst.IsUnknown() {
+		*dst = types.BoolValue(api)
+	}
+}
+
 // FlattenDatabaseExtended sets the extended fields shared by all database types.
 // Optional-only fields use setIfConfigured to avoid "inconsistent result after
 // apply" errors when the API returns defaults for unconfigured fields.
@@ -537,9 +546,10 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	flex.SetStringOrClear(f.PortsMappings, db.PortsMappings)
 	flex.SetStringOrClear(f.CustomDockerRunOptions, db.CustomDockerRunOptions)
 	flex.SetInt64IfConfigured(f.PublicPortTimeout, db.PublicPortTimeout)
-	// Logging settings (boolean with default false — always set from API).
-	*f.IsLogDrainEnabled = types.BoolValue(db.IsLogDrainEnabled)
-	*f.IsIncludeTimestamps = types.BoolValue(db.IsIncludeTimestamps)
+	// Logging / SSL bools are not on Coolify create or update allow lists.
+	// GET returns the column default, so keep a known plan value (#872).
+	preserveOrSetBool(f.IsLogDrainEnabled, db.IsLogDrainEnabled)
+	preserveOrSetBool(f.IsIncludeTimestamps, db.IsIncludeTimestamps)
 	// Health check settings (boolean + integer with defaults — always set from API).
 	if db.HealthCheckEnabled != nil {
 		*f.HealthCheckEnabled = types.BoolValue(*db.HealthCheckEnabled)
@@ -548,16 +558,13 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	*f.HealthCheckTimeout = flex.Int64PtrToFramework(db.HealthCheckTimeout)
 	*f.HealthCheckRetries = flex.Int64PtrToFramework(db.HealthCheckRetries)
 	*f.HealthCheckStartPeriod = flex.Int64PtrToFramework(db.HealthCheckStartPeriod)
-	// SSL settings. enable_ssl is always set from API. ssl_mode is not on
-	// Coolify create/update allow lists; GET is often empty, so keep the
-	// configured value (same pattern as limits_cpuset).
 	if f.EnableSSL != nil {
-		*f.EnableSSL = types.BoolValue(db.EnableSSL)
+		preserveOrSetBool(f.EnableSSL, db.EnableSSL)
 	}
-	if f.SSLMode != nil {
+	if f.SSLMode != nil && (f.SSLMode.IsNull() || f.SSLMode.IsUnknown()) {
 		if db.SSLMode != "" {
 			*f.SSLMode = types.StringValue(db.SSLMode)
-		} else if f.SSLMode.IsUnknown() {
+		} else {
 			*f.SSLMode = types.StringNull()
 		}
 	}

@@ -1408,9 +1408,9 @@ func TestFlattenExtendedFields_DockerComposeLocationImport(t *testing.T) {
 		wantValue string
 	}{
 		{
-			name:     "default stays null",
-			apiValue: "/docker-compose.yaml",
-			wantNull: true,
+			name:      "default seeds computed state",
+			apiValue:  "/docker-compose.yaml",
+			wantValue: "/docker-compose.yaml",
 		},
 		{
 			name:      "non-default seeds import state",

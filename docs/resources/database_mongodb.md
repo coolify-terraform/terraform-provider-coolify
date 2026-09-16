@@ -69,7 +69,7 @@ resource "coolify_database_mongodb" "example" {
 - `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`). The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 - `public_port_timeout` (Number) Timeout in seconds for public port allocation.
-- `ssl_mode` (String) The SSL connection mode for MongoDB. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-ca`, `verify-full`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.
+- `ssl_mode` (String) The SSL connection mode for MongoDB. Only applies when `enable_ssl` is `true`. Valid values: `allow`, `prefer`, `require`, `verify-full`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only

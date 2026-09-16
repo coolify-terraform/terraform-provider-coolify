@@ -689,6 +689,20 @@ def ensure_labels() -> None:
         )
 
 
+def apply_issue_labels(number: str, early: bool) -> None:
+    """Re-apply channel labels. `gh issue create --label` can drop them."""
+    labels_to_add = list(LABELS)
+    if early:
+        labels_to_add.append(PRIORITY_LABEL)
+    for lab in labels_to_add:
+        subprocess.run(
+            ["gh", "issue", "edit", number, "--add-label", lab],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+
 def apply_decision(decision: Decision) -> int:
     """Create, update, replace, or close the GitHub issue. Returns 0 unless gh fails hard."""
     ensure_labels()
@@ -742,7 +756,8 @@ def apply_decision(decision: Decision) -> int:
                 *label_args,
             ]
             print("Creating issue:", decision.title)
-            subprocess.check_call(cmd)
+            created = subprocess.check_output(cmd, text=True)
+            apply_issue_labels(parse_created_issue_number(created), early)
             return 0
         return 0
 
@@ -785,6 +800,7 @@ def apply_decision(decision: Decision) -> int:
         )
         new_number = parse_created_issue_number(created)
         print(f"Opened #{new_number}")
+        apply_issue_labels(new_number, early)
         subprocess.check_call(
             [
                 "gh",
@@ -807,16 +823,7 @@ def apply_decision(decision: Decision) -> int:
     subprocess.check_call(
         ["gh", "issue", "edit", number, "--title", decision.title, "--body", decision.body]
     )
-    labels_to_add = list(LABELS)
-    if early:
-        labels_to_add.append(PRIORITY_LABEL)
-    for lab in labels_to_add:
-        subprocess.run(
-            ["gh", "issue", "edit", number, "--add-label", lab],
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+    apply_issue_labels(number, early)
     return 0
 
 
