@@ -406,6 +406,8 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 	flex.NormalizeUnknownString(&m.Description)
 	flex.NormalizeUnknownString(&m.EnvironmentName)
 	flex.NormalizeUnknownString(&m.Domains)
+	flex.NormalizeUnknownString(&m.InstallCommand)
+	flex.NormalizeUnknownString(&m.StartCommand)
 	flex.NormalizeUnknownString(&m.Status)
 	flex.NormalizeUnknownBool(&m.HealthCheckEnabled)
 	flex.NormalizeUnknownBool(&m.IsAutoDeployEnabled)
@@ -441,6 +443,9 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 	flex.NormalizeUnknownString(&m.CustomInternalName)
 	// NoindexDomains (List) has no NormalizeUnknown helper; resolve on flatten.
 	flex.NormalizeUnknownString(&m.PreviewURLTemplate)
+	flex.NormalizeUnknownString(&m.BaseDirectory)
+	flex.NormalizeUnknownString(&m.PublishDirectory)
+	flex.NormalizeUnknownString(&m.WatchPaths)
 	flex.NormalizeUnknownString(&m.HealthCheckHost)
 	flex.NormalizeUnknownString(&m.HealthCheckMethod)
 	flex.NormalizeUnknownInt64(&m.HealthCheckReturnCode)

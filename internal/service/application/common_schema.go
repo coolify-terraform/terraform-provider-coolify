@@ -130,14 +130,20 @@ func gitAppCommandAttrs() map[string]schema.Attribute {
 		"install_command": schema.StringAttribute{
 			MarkdownDescription: "The command to run during the install phase.",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"build_command": schema.StringAttribute{
 			MarkdownDescription: "The command to run during the build phase.",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"start_command": schema.StringAttribute{
 			MarkdownDescription: "The command to run to start the application.",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 	}
 }
@@ -304,10 +310,14 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 		"base_directory": schema.StringAttribute{
 			MarkdownDescription: "The base directory for the application source code.",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"publish_directory": schema.StringAttribute{
 			MarkdownDescription: "The directory to publish for static sites.",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"dockerfile": schema.StringAttribute{
 			MarkdownDescription: "Inline Dockerfile content (base64 encoded). For `coolify_application_dockerfile` resources, use `dockerfile_location` instead; this field is only used by Git-backed application types that embed a Dockerfile inline. Create-only for git-backed apps: sent on Create POST. Coolify rejects it on PATCH (`This field is not allowed`). Changing it after apply replaces the application. GET often hides it (sensitive). After import, re-supply it in HCL or omit it (empty state is expected).",
@@ -330,6 +340,8 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 		"watch_paths": schema.StringAttribute{
 			MarkdownDescription: "Paths to watch for changes (triggers auto-deploy).",
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"redirect": schema.StringAttribute{
 			MarkdownDescription: "Domain redirect mode. Valid values: `www`, `non-www`, `both`.",

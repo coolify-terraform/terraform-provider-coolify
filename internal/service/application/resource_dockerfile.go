@@ -70,14 +70,20 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 			"install_command": schema.StringAttribute{
 				MarkdownDescription: "The command to run during the install phase.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"build_command": schema.StringAttribute{
 				MarkdownDescription: "The command to run during the build phase.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"start_command": schema.StringAttribute{
 				MarkdownDescription: "The command to run to start the application.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"dockerfile_target_build": schema.StringAttribute{
 				MarkdownDescription: "The target stage for multi-stage Docker builds.",
