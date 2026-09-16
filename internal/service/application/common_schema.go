@@ -332,6 +332,8 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 		"docker_compose_domains": schema.StringAttribute{
 			MarkdownDescription: dockerComposeDomainsDescription,
 			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"git_commit_sha": schema.StringAttribute{
 			MarkdownDescription: "The specific Git commit SHA to deploy.",

@@ -38,6 +38,7 @@ const dockerComposeDomainsDescription = "Domain mappings for Docker Compose serv
 	"This ordering is a Coolify API constraint on all Coolify versions supported by this provider (v4.1.0 and later). " +
 	"Recommended two-stage apply: (1) create without `docker_compose_domains` and deploy once (`instant_deploy = true` or a manual deploy), " +
 	"wait until the deployment succeeds; (2) add `docker_compose_domains` and apply again. " +
+	"Omitting the attribute later does not clear the stored mappings. " +
 	"Alternatively use `coolify_service` with inline `docker_compose_raw` when the compose file can live in Terraform."
 
 // domainPortOverridesDescription is the shared schema docs for

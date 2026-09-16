@@ -29,6 +29,7 @@ func TestDockerComposeDomainsDescription_DocumentsOrderingAndVersions(t *testing
 		"coolify_service",
 		"load-compose",
 		"normalizes", // #652: array write vs object read
+		"stored mappings",
 	}
 	for _, needle := range required {
 		if !strings.Contains(dockerComposeDomainsDescription, needle) {

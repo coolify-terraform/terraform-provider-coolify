@@ -107,6 +107,109 @@ func TestGitApplicationResource_WatchPathsOmitKeepsState(t *testing.T) {
 	testGitApplicationDirectoryOmitKeepsState(t, "watch_paths", "/src")
 }
 
+func TestGitApplicationResource_DockerComposeDomainsOmitKeepsState(t *testing.T) {
+	t.Parallel()
+
+	const writeJSON = `[{"name":"web","domain":"https://app.example.com"}]`
+	app := client.Application{
+		UUID:            "compose-domains-omit",
+		Name:            "compose-domains-omit",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "dockercompose",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+		EnvironmentName: "production",
+	}
+
+	// Create POST omits docker_compose_domains; Create then PATCHes it.
+	// Allow that first PATCH, then fail if omit-after-set sends another.
+	var allowCreatePatch atomic.Bool
+	allowCreatePatch.Store(true)
+	var deleted atomic.Bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if deleted.Load() {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		// Coolify stores an object map (GET), not the write-shape array.
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"uuid":             app.UUID,
+			"name":             app.Name,
+			"git_repository":   app.GitRepository,
+			"git_branch":       app.GitBranch,
+			"build_pack":       app.BuildPack,
+			"ports_exposes":    app.PortsExposes,
+			"project_uuid":     app.ProjectUUID,
+			"server_uuid":      app.ServerUUID,
+			"environment_name": app.EnvironmentName,
+			"docker_compose_domains": map[string]any{
+				"web": map[string]string{"domain": "https://app.example.com"},
+			},
+		})
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if _, sent := body["docker_compose_domains"]; sent && !allowCreatePatch.Load() {
+			t.Error("omit-after-set must not PATCH docker_compose_domains")
+			http.Error(w, `{"error":"unexpected patch"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		deleted.Store(true)
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	base := `
+	name           = "compose-domains-omit"
+	project_uuid   = "aaaa0001-0001-4000-8000-000000000001"
+	server_uuid    = "bbbb0001-0001-4000-8000-000000000001"
+	git_repository = "https://github.com/example/repo"
+	git_branch     = "main"
+	build_pack     = "dockercompose"
+	ports_exposes  = "3000"
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_application", "test", base+`
+	docker_compose_domains = "[{\"name\":\"web\",\"domain\":\"https://app.example.com\"}]"
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "docker_compose_domains", writeJSON),
+					func(*terraform.State) error {
+						allowCreatePatch.Store(false)
+						return nil
+					},
+				),
+			},
+			{
+				Config:             acctest.TestResourceConfig(srv.URL, "coolify_application", "test", base),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testGitApplicationDirectoryOmitKeepsState(t *testing.T, attr, value string) {
 	t.Helper()
 
