@@ -120,6 +120,8 @@ func resolveDockerComposeDomains(dst *types.String, api string) {
 		n := normalizeDockerComposeDomains(api)
 		if n != "" {
 			*dst = types.StringValue(n)
+		} else {
+			*dst = types.StringNull()
 		}
 		return
 	}

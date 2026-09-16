@@ -447,6 +447,7 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 	flex.NormalizeUnknownString(&m.BaseDirectory)
 	flex.NormalizeUnknownString(&m.PublishDirectory)
 	flex.NormalizeUnknownString(&m.WatchPaths)
+	flex.NormalizeUnknownString(&m.DockerComposeDomains)
 	flex.NormalizeUnknownString(&m.HealthCheckHost)
 	flex.NormalizeUnknownString(&m.HealthCheckMethod)
 	flex.NormalizeUnknownInt64(&m.HealthCheckReturnCode)
