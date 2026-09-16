@@ -553,13 +553,20 @@ def fetch_tip_version() -> str:
         import base64
 
         php = base64.b64decode(out.strip().replace("\n", "")).decode()
-        return parse_tip_version_from_constants(php)
-    except (subprocess.CalledProcessError, FileNotFoundError, Exception):
+        ver = parse_tip_version_from_constants(php)
+        if ver:
+            return ver
+    except (subprocess.CalledProcessError, FileNotFoundError, ValueError, OSError):
         pass
     try:
-        return parse_tip_version_from_constants(fetch_text(CONSTANTS_RAW_URL))
+        ver = parse_tip_version_from_constants(fetch_text(CONSTANTS_RAW_URL))
+        if ver:
+            return ver
     except (urllib.error.URLError, TimeoutError, UnicodeDecodeError):
-        return ""
+        pass
+    raise RuntimeError(
+        "could not fetch tip version from GitHub API or raw constants.php"
+    )
 
 
 def fetch_prerelease_tags(repo: str = COOLIFY_REPO) -> list[str]:
@@ -701,6 +708,16 @@ def apply_issue_labels(number: str, early: bool) -> None:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+
+
+def fetch_errors_block_apply(fetch_errors: list[str]) -> bool:
+    """True when a failed optional fetch must not mutate the channel issue.
+
+    Empty tip/latest/prerelease after a fetch error is not alignment and is
+    not a real channel change. An existing watch that is already open for
+    CDN lag would otherwise replace and rewrite the state marker.
+    """
+    return bool(fetch_errors)
 
 
 def apply_decision(decision: Decision) -> int:
@@ -937,6 +954,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         return 2
 
+    fetch_errors: list[str] = []
     if args.prerelease_tags is not None:
         prereleases = [normalize_version(t) for t in args.prerelease_tags]
     elif args.fetch_prereleases or args.fetch:
@@ -945,6 +963,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         except Exception as e:  # noqa: BLE001
             print(f"WARNING: could not fetch prereleases: {e}", file=sys.stderr)
             prereleases = []
+            fetch_errors.append("prereleases")
     else:
         prereleases = []
 
@@ -956,6 +975,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         except Exception as e:  # noqa: BLE001
             print(f"WARNING: could not fetch latest release: {e}", file=sys.stderr)
             latest_release = ""
+            fetch_errors.append("latest_release")
     else:
         latest_release = ""
 
@@ -967,6 +987,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         except Exception as e:  # noqa: BLE001
             print(f"WARNING: could not fetch tip version: {e}", file=sys.stderr)
             tip_version = ""
+            fetch_errors.append("tip_version")
     else:
         tip_version = ""
 
@@ -1023,6 +1044,15 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(json.dumps(asdict(decision), indent=2))
     else:
         print(f"title={decision.title}")
+
+    if fetch_errors_block_apply(fetch_errors):
+        print(
+            "ERROR: incomplete channel snapshot "
+            f"({', '.join(fetch_errors)}); not treating missing "
+            "channels as aligned or as a channel change.",
+            file=sys.stderr,
+        )
+        return 2
 
     if args.apply:
         return apply_decision(decision)

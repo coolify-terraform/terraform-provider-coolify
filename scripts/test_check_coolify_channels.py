@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 _SCRIPT = Path(__file__).resolve().parent / "check-coolify-channels.py"
 _spec = importlib.util.spec_from_file_location("check_coolify_channels", _SCRIPT)
@@ -124,6 +125,10 @@ class TestDecide(unittest.TestCase):
         self.assertTrue(d.nightly_ahead_of_stable)
         self.assertEqual(d.action, "open")
         self.assertTrue(any("ahead of stable" in r for r in d.reasons))
+
+    def test_fetch_errors_block_aligned_and_channel_change(self):
+        self.assertTrue(cc.fetch_errors_block_apply(["tip_version"]))
+        self.assertFalse(cc.fetch_errors_block_apply([]))
 
     def test_all_aligned(self):
         snap = cc.ChannelSnapshot(
@@ -391,6 +396,150 @@ class TestCLI(unittest.TestCase):
                 ]
             )
             self.assertEqual(rc, 1)
+
+    def _aligned_versions(self, td: str) -> str:
+        path = Path(td) / "versions.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "coolify": {
+                        "v4": {"version": "4.2.0"},
+                        "nightly": {"version": "4.2.0"},
+                    }
+                }
+            )
+        )
+        return str(path)
+
+    def _open_watch_issue(self) -> dict:
+        return {
+            "number": 868,
+            "title": "coolify-channel: support Coolify 4.4-rc.1 (pin is 4.3.21)",
+            "body": (
+                "<!-- coolify-channel-state: "
+                '{"stable":"4.3.21","nightly":"4.4-rc.1","pin":"4.3.21",'
+                '"prereleases":["4.4-rc.1"],"latest_release":"4.3.21",'
+                '"tip_version":"4.3.21","tip_contract_diff_count":0} -->\n'
+                "open watch"
+            ),
+        }
+
+    def test_tip_fetch_failure_does_not_apply_aligned_close(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = self._aligned_versions(td)
+            with mock.patch.object(
+                cc, "fetch_tip_version", side_effect=RuntimeError("gh down")
+            ), mock.patch.object(
+                cc, "find_open_channel_issue", return_value=self._open_watch_issue()
+            ), mock.patch.object(cc, "apply_decision") as apply:
+                rc = cc.main(
+                    [
+                        "--versions-json",
+                        path,
+                        "--pinned-version",
+                        "4.2.0",
+                        "--latest-release",
+                        "4.2.0",
+                        "--prerelease-tags",
+                        "--fetch-tip-version",
+                        "--apply",
+                    ]
+                )
+        apply.assert_not_called()
+        self.assertEqual(rc, 2)
+
+    def test_latest_release_fetch_failure_does_not_apply_aligned_close(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = self._aligned_versions(td)
+            with mock.patch.object(
+                cc,
+                "fetch_latest_release_tag",
+                side_effect=RuntimeError("releases api down"),
+            ), mock.patch.object(
+                cc, "find_open_channel_issue", return_value=self._open_watch_issue()
+            ), mock.patch.object(cc, "apply_decision") as apply:
+                rc = cc.main(
+                    [
+                        "--versions-json",
+                        path,
+                        "--pinned-version",
+                        "4.2.0",
+                        "--tip-version",
+                        "4.2.0",
+                        "--prerelease-tags",
+                        "--fetch-latest-release",
+                        "--apply",
+                    ]
+                )
+        apply.assert_not_called()
+        self.assertEqual(rc, 2)
+
+    def test_prerelease_fetch_failure_does_not_apply_aligned_close(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = self._aligned_versions(td)
+            with mock.patch.object(
+                cc, "fetch_prerelease_tags", side_effect=RuntimeError("tags down")
+            ), mock.patch.object(
+                cc, "find_open_channel_issue", return_value=self._open_watch_issue()
+            ), mock.patch.object(cc, "apply_decision") as apply:
+                rc = cc.main(
+                    [
+                        "--versions-json",
+                        path,
+                        "--pinned-version",
+                        "4.2.0",
+                        "--tip-version",
+                        "4.2.0",
+                        "--latest-release",
+                        "4.2.0",
+                        "--fetch-prereleases",
+                        "--apply",
+                    ]
+                )
+        apply.assert_not_called()
+        self.assertEqual(rc, 2)
+
+    def test_tip_fetch_failure_does_not_replace_open_watch(self):
+        data = {
+            "coolify": {
+                "v4": {"version": "4.1.2"},
+                "nightly": {"version": "4.2.0"},
+            }
+        }
+        existing = {
+            "number": 868,
+            "title": "coolify-channel: support Coolify 4.3.0 (pin is 4.1.2)",
+            "body": (
+                "<!-- coolify-channel-state: "
+                '{"stable":"4.1.2","nightly":"4.2.0","pin":"4.1.2",'
+                '"prereleases":[],"latest_release":"4.1.2",'
+                '"tip_version":"4.3.0","tip_contract_diff_count":0} -->\n'
+                "open watch"
+            ),
+        }
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "versions.json"
+            path.write_text(json.dumps(data))
+            with mock.patch.object(
+                cc, "fetch_tip_version", side_effect=RuntimeError("gh down")
+            ), mock.patch.object(
+                cc, "find_open_channel_issue", return_value=existing
+            ), mock.patch.object(cc, "apply_decision") as apply:
+                rc = cc.main(
+                    [
+                        "--versions-json",
+                        str(path),
+                        "--pinned-version",
+                        "4.1.2",
+                        "--latest-release",
+                        "4.1.2",
+                        "--prerelease-tags",
+                        "--fetch-tip-version",
+                        "--apply",
+                    ]
+                )
+        apply.assert_not_called()
+        self.assertEqual(rc, 2)
 
 
 if __name__ == "__main__":
