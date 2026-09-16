@@ -254,7 +254,11 @@ class TestDecide(unittest.TestCase):
         replace = replace[: replace.index("print(f\"Updating issue")]
         self.assertIn("apply_issue_labels(new_number, early)", replace)
         self.assertIn("def apply_issue_labels(", src)
-        first_create = src[src.index("if existing is None:"): src.index("number = str(existing")]
+        # The close-aligned path also assigns number = str(existing[...])
+        # before first-create. Search that marker only after if existing is None.
+        none_at = src.index("if existing is None:")
+        first_create = src[none_at : src.index("number = str(existing", none_at)]
+        self.assertTrue(first_create.strip(), "first-create slice must be non-empty")
         self.assertIn("apply_issue_labels(parse_created_issue_number(created), early)", first_create)
 
     def test_parse_created_issue_number(self):
