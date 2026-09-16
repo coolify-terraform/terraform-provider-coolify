@@ -46,7 +46,7 @@ func TestAccApplicationResource_CRUD(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application.test", "uuid"),
-				ImportStateVerifyIgnore:              []string{"environment_name", "project_uuid", "server_uuid", "dockerfile"},
+				ImportStateVerifyIgnore:              []string{"environment_name", "project_uuid", "server_uuid", "dockerfile", "container_present"},
 			},
 		},
 	})
@@ -162,7 +162,7 @@ func TestAccApplicationResource_DockerComposeLocation(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application.test", "uuid"),
-				ImportStateVerifyIgnore:              []string{"environment_name", "project_uuid", "server_uuid", "dockerfile"},
+				ImportStateVerifyIgnore:              []string{"environment_name", "project_uuid", "server_uuid", "dockerfile", "container_present"},
 			},
 		},
 	})

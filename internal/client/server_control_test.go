@@ -196,6 +196,77 @@ func TestClient_GetUpdateServerSentinel(t *testing.T) {
 	assert.True(t, *updated.IsMetricsEnabled)
 }
 
+func TestClient_UpdateServerSentinel_RetriesWithoutEnableFlag(t *testing.T) {
+	t.Parallel()
+	var patches []map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/servers/"+testServerUUID+"/sentinel", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		enabled := true
+		metrics := false
+		switch r.Method {
+		case http.MethodGet:
+			_ = json.NewEncoder(w).Encode(ServerSentinel{IsSentinelEnabled: &enabled, IsMetricsEnabled: &metrics})
+		case http.MethodPatch:
+			var body map[string]any
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			patches = append(patches, body)
+			if _, ok := body["is_sentinel_enabled"]; ok {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				_, _ = w.Write([]byte(`{"message":"Validation failed.","errors":{"is_sentinel_enabled":["This field is not allowed."]}}`))
+				return
+			}
+			assert.Equal(t, false, body["is_metrics_enabled"])
+			_ = json.NewEncoder(w).Encode(ServerSentinel{IsSentinelEnabled: &enabled, IsMetricsEnabled: &metrics})
+		default:
+			http.Error(w, r.URL.Path, http.StatusMethodNotAllowed)
+		}
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	on, off := true, false
+	got, err := c.UpdateServerSentinel(context.Background(), testServerUUID, ServerSentinel{
+		IsSentinelEnabled: &on,
+		IsMetricsEnabled:  &off,
+	})
+	require.NoError(t, err)
+	require.Len(t, patches, 2)
+	_, sentEnable := patches[0]["is_sentinel_enabled"]
+	_, retryEnable := patches[1]["is_sentinel_enabled"]
+	assert.True(t, sentEnable)
+	assert.False(t, retryEnable)
+	require.NotNil(t, got.IsMetricsEnabled)
+	assert.False(t, *got.IsMetricsEnabled)
+}
+
+func TestClient_UpdateServerSentinel_EnableOnlyExtraKeyFallsBackToGet(t *testing.T) {
+	t.Parallel()
+	var patches int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v1/servers/"+testServerUUID+"/sentinel", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		enabled := true
+		switch r.Method {
+		case http.MethodGet:
+			_ = json.NewEncoder(w).Encode(ServerSentinel{IsSentinelEnabled: &enabled})
+		case http.MethodPatch:
+			patches++
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = w.Write([]byte(`{"message":"Validation failed.","errors":{"is_sentinel_enabled":["This field is not allowed."]}}`))
+		default:
+			http.Error(w, r.URL.Path, http.StatusMethodNotAllowed)
+		}
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "test-token")
+	on := true
+	got, err := c.UpdateServerSentinel(context.Background(), testServerUUID, ServerSentinel{IsSentinelEnabled: &on})
+	require.NoError(t, err)
+	assert.Equal(t, 1, patches)
+	require.NotNil(t, got.IsSentinelEnabled)
+	assert.True(t, *got.IsSentinelEnabled)
+}
+
 func TestClient_GetUpdateServerDockerCleanup(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

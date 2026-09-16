@@ -22,18 +22,20 @@ func TestAccServerSentinelResource_CRUD(t *testing.T) {
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_server_sentinel" "test" {
-  server_uuid         = %q
-  is_sentinel_enabled = false
+  server_uuid        = %q
+  is_metrics_enabled = true
 }
 `, serverUUID),
-				Check: resource.TestCheckResourceAttr("coolify_server_sentinel.test", "is_sentinel_enabled", "false"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_sentinel.test", "is_metrics_enabled", "true"),
+					resource.TestCheckResourceAttrSet("coolify_server_sentinel.test", "is_sentinel_enabled"),
+				),
 			},
 			{
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_server_sentinel" "test" {
-  server_uuid          = %q
-  is_sentinel_enabled  = false
-  is_metrics_enabled   = false
+  server_uuid        = %q
+  is_metrics_enabled = false
 }
 `, serverUUID),
 				Check: resource.TestCheckResourceAttr("coolify_server_sentinel.test", "is_metrics_enabled", "false"),

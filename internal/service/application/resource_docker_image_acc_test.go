@@ -56,7 +56,7 @@ func TestAccDockerImageApplicationResource_CRUD(t *testing.T) {
 				ImportStateIdFunc:                    acctest.ImportStateIDFunc("coolify_application_docker_image.test", "uuid"),
 				// docker_image is ignored because Coolify may strip the tag (e.g. "nginx:alpine" → "nginx")
 				// and the provider cannot reconstruct the original tag on import.
-				ImportStateVerifyIgnore: []string{"environment_name", "project_uuid", "server_uuid", "docker_image"},
+				ImportStateVerifyIgnore: []string{"environment_name", "project_uuid", "server_uuid", "docker_image", "container_present"},
 			},
 		},
 	})

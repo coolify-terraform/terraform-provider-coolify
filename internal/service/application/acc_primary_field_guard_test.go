@@ -68,3 +68,30 @@ func TestDockerfileAccV43Settings_MaxRestartCount(t *testing.T) {
 		t.Errorf("%s V43 settings extra must set max_restart_count", path)
 	}
 }
+
+// TestApplicationCRUDFiles_ImportIgnoresContainerPresent fails if an
+// acc CRUD import regresses to verifying container_present. Coolify
+// may omit that runtime flag on create GET and return false on import.
+func TestApplicationCRUDFiles_ImportIgnoresContainerPresent(t *testing.T) {
+	t.Parallel()
+	files := []string{
+		"resource_docker_image_acc_test.go",
+		"resource_public_git_acc_test.go",
+		"resource_private_git_acc_test.go",
+		"resource_github_app_acc_test.go",
+		"resource_dockerfile_acc_test.go",
+	}
+	for _, path := range files {
+		path := path
+		t.Run(path, func(t *testing.T) {
+			t.Parallel()
+			b, err := os.ReadFile(path) //nolint:gosec // test fixture path
+			if err != nil {
+				t.Fatalf("read %s: %v", path, err)
+			}
+			if !strings.Contains(string(b), `"container_present"`) {
+				t.Errorf("%s ImportStateVerifyIgnore must include container_present", path)
+			}
+		})
+	}
+}

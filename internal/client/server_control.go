@@ -118,10 +118,52 @@ func (c *Client) GetServerSentinel(ctx context.Context, serverUUID string) (*Ser
 	return &r, nil
 }
 
+// IsSentinelEnabledNotAllowed reports a Coolify extra-key 422 for
+// is_sentinel_enabled on PATCH /servers/{uuid}/sentinel. Tip after
+// 2026-09-15 treats Sentinel as mandatory on regular servers, so that
+// key is GET-only (readOnly in OpenAPI).
+func IsSentinelEnabledNotAllowed(err error) bool {
+	return APIMessageContains(err, "is_sentinel_enabled") && APIMessageContains(err, "not allowed")
+}
+
+func sentinelWriteEmpty(in ServerSentinel) bool {
+	return in.IsSentinelEnabled == nil &&
+		in.IsMetricsEnabled == nil &&
+		in.IsSentinelDebugEnabled == nil &&
+		in.SentinelToken == "" &&
+		in.SentinelMetricsRefreshRateSeconds == nil &&
+		in.SentinelMetricsHistoryDays == nil &&
+		in.SentinelPushIntervalSeconds == nil &&
+		in.SentinelCustomURL == ""
+}
+
 func (c *Client) UpdateServerSentinel(ctx context.Context, serverUUID string, input ServerSentinel) (*ServerSentinel, error) {
+	path := fmt.Sprintf("/api/v1/servers/%s/sentinel", url.PathEscape(serverUUID))
 	var r ServerSentinel
-	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s/sentinel", url.PathEscape(serverUUID)), input, &r); err != nil {
+	if err := c.do(ctx, http.MethodPatch, path, input, &r); err != nil {
+		return c.updateServerSentinelAfterError(ctx, serverUUID, path, input, err)
+	}
+	return &r, nil
+}
+
+func (c *Client) updateServerSentinelAfterError(ctx context.Context, serverUUID, path string, input ServerSentinel, err error) (*ServerSentinel, error) {
+	if input.IsSentinelEnabled == nil || !IsSentinelEnabledNotAllowed(err) {
 		return nil, fmt.Errorf("updating server sentinel %s: %w", serverUUID, err)
+	}
+	// Coolify extra-key 422s the enable flag. Retry without it so
+	// metrics/token writes still land. An enable-only payload becomes a GET.
+	stripped := input
+	stripped.IsSentinelEnabled = nil
+	if sentinelWriteEmpty(stripped) {
+		got, getErr := c.GetServerSentinel(ctx, serverUUID)
+		if getErr != nil {
+			return nil, fmt.Errorf("updating server sentinel %s: %w", serverUUID, err)
+		}
+		return got, nil
+	}
+	var r ServerSentinel
+	if retryErr := c.do(ctx, http.MethodPatch, path, stripped, &r); retryErr != nil {
+		return nil, fmt.Errorf("updating server sentinel %s: %w", serverUUID, retryErr)
 	}
 	return &r, nil
 }

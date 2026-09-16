@@ -44,10 +44,16 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 
 func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy sets is_sentinel_enabled to false.",
+		MarkdownDescription: "Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy tries to set is_sentinel_enabled to false; newer Coolify extra-key 422s that field (Sentinel is mandatory on regular servers) and destroy then only drops state.",
 		Attributes: map[string]schema.Attribute{
-			"server_uuid":                           schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
-			"is_sentinel_enabled":                   schema.BoolAttribute{Optional: true, Computed: true},
+			"server_uuid": schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
+			"is_sentinel_enabled": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "Whether Sentinel is enabled. Coolify tip after 2026-09-15 " +
+					"treats Sentinel as mandatory on regular servers, so PATCH extra-key 422s " +
+					"this field (GET remains). Writable on Coolify 4.3.x before that change.",
+			},
 			"is_metrics_enabled":                    schema.BoolAttribute{Optional: true, Computed: true},
 			"is_sentinel_debug_enabled":             schema.BoolAttribute{Optional: true, Computed: true},
 			"sentinel_token":                        schema.StringAttribute{Optional: true, Sensitive: true, MarkdownDescription: "Preserved when GET omits it."},
@@ -187,7 +193,11 @@ func (r *res) Delete(ctx context.Context, req resource.DeleteRequest, resp *reso
 	off := false
 	in := client.ServerSentinel{IsSentinelEnabled: &off}
 	if _, err := r.client.UpdateServerSentinel(ctx, state.ServerUUID.ValueString(), in); err != nil && !client.IsNotFound(err) {
-		resp.Diagnostics.AddError("Error disabling Sentinel", err.Error())
+		// Newer Coolify extra-key 422s the enable flag and GET-computes it.
+		// Destroy cannot disable remotely; drop state only.
+		if !client.IsSentinelEnabledNotAllowed(err) {
+			resp.Diagnostics.AddError("Error disabling Sentinel", err.Error())
+		}
 	}
 }
 

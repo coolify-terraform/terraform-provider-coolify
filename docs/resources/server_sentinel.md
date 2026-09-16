@@ -3,20 +3,19 @@
 page_title: "coolify_server_sentinel Resource - coolify"
 subcategory: ""
 description: |-
-  Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH /servers/{uuid}/sentinel). Destroy sets is_sentinel_enabled to false.
+  Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH /servers/{uuid}/sentinel). Destroy tries to set is_sentinel_enabled to false; newer Coolify extra-key 422s that field (Sentinel is mandatory on regular servers) and destroy then only drops state.
 ---
 
 # coolify_server_sentinel (Resource)
 
-Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy sets is_sentinel_enabled to false.
+Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy tries to set is_sentinel_enabled to false; newer Coolify extra-key 422s that field (Sentinel is mandatory on regular servers) and destroy then only drops state.
 
 ## Example Usage
 
 ```terraform
 resource "coolify_server_sentinel" "example" {
-  server_uuid         = coolify_server.example.uuid
-  is_sentinel_enabled = true
-  is_metrics_enabled  = true
+  server_uuid        = coolify_server.example.uuid
+  is_metrics_enabled = true
 }
 ```
 
@@ -31,7 +30,7 @@ resource "coolify_server_sentinel" "example" {
 
 - `is_metrics_enabled` (Boolean)
 - `is_sentinel_debug_enabled` (Boolean)
-- `is_sentinel_enabled` (Boolean)
+- `is_sentinel_enabled` (Boolean) Whether Sentinel is enabled. Coolify tip after 2026-09-15 treats Sentinel as mandatory on regular servers, so PATCH extra-key 422s this field (GET remains). Writable on Coolify 4.3.x before that change.
 - `sentinel_custom_url` (String)
 - `sentinel_metrics_history_days` (Number)
 - `sentinel_metrics_refresh_rate_seconds` (Number)
