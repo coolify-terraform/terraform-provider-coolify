@@ -463,6 +463,66 @@ func TestS3StorageResource_Disappears(t *testing.T) {
 	})
 }
 
+func TestS3StorageResource_DescriptionOmitKeepsState(t *testing.T) {
+	t.Parallel()
+	server, store := newMockCoolifyServer()
+	defer server.Close()
+
+	withDesc := acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_s3_storage" "test" {
+  name        = "omit-desc"
+  description = "keep-me"
+  endpoint    = "https://s3.us-east-1.amazonaws.com"
+  bucket      = "my-bucket"
+  region      = "us-east-1"
+  key         = "AKIATESTKEY"
+  secret      = "secret-value"
+}
+`
+	withoutDesc := acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_s3_storage" "test" {
+  name     = "omit-desc"
+  endpoint = "https://s3.us-east-1.amazonaws.com"
+  bucket   = "my-bucket"
+  region   = "us-east-1"
+  key      = "AKIATESTKEY"
+  secret   = "secret-value"
+}
+`
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: withDesc,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_s3_storage.test", "description", "keep-me"),
+					func(s *terraform.State) error {
+						rs, ok := s.RootModule().Resources["coolify_s3_storage.test"]
+						if !ok {
+							return fmt.Errorf("resource not found")
+						}
+						uuid := rs.Primary.Attributes["uuid"]
+						got, ok := store.Get(uuid)
+						if !ok {
+							return fmt.Errorf("s3 storage %s not found in store", uuid)
+						}
+						if got.Description != "keep-me" {
+							return fmt.Errorf("GET must return stored description, got %q", got.Description)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config:             withoutDesc,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestS3StorageResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()

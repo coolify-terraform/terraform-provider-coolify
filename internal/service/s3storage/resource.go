@@ -66,8 +66,12 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "Optional description of the S3 storage.",
+				MarkdownDescription: "Optional description of the S3 storage. Omitting the attribute later does not clear the stored Coolify value.",
 				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "S3-compatible endpoint URL (e.g. `https://s3.us-east-1.amazonaws.com`). " +
@@ -260,9 +264,7 @@ func (r *s3StorageResource) ImportState(ctx context.Context, req resource.Import
 func flattenS3Storage(s *client.S3Storage, m *s3StorageResourceModel) {
 	m.UUID = types.StringValue(s.UUID)
 	m.Name = types.StringValue(s.Name)
-	if s.Description != "" || m.Description.IsNull() || m.Description.IsUnknown() {
-		m.Description = flex.StringToFramework(s.Description)
-	}
+	flex.SetStringSeedOrClear(&m.Description, s.Description)
 	m.Endpoint = types.StringValue(s.Endpoint)
 	m.Bucket = types.StringValue(s.Bucket)
 	m.Region = types.StringValue(s.Region)

@@ -48,7 +48,7 @@ resource "coolify_s3_storage" "example" {
 
 ### Optional
 
-- `description` (String) Optional description of the S3 storage.
+- `description` (String) Optional description of the S3 storage. Omitting the attribute later does not clear the stored Coolify value.
 - `is_usable` (Boolean) Whether Coolify marks this storage as usable. Defaults to `false`. Connection validation can update this on the server.
 
 ### Read-Only
