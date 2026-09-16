@@ -136,7 +136,7 @@ test-import-gen: ## Test terraform plan -generate-config-out compatibility (need
 scaffold: ## Scaffold a new resource (usage: make scaffold NAME=webhook)
 	@./scripts/new-resource.sh $(NAME)
 
-ci: build lint test validate actionlint-check python-test docs-check api-coverage-check counts-check contract-compat vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
+ci: build lint test validate actionlint-check zizmor-check python-test docs-check api-coverage-check counts-check contract-compat vulncheck goreleaser-check modverify ## Run all checks (CI also runs trivy + gitleaks security scans)
 
 modverify: ## Verify module cache integrity against go.sum
 	go mod verify
@@ -225,6 +225,15 @@ check-actionlint-version: ## Verify actionlint version matches CI
 actionlint-check: check-actionlint-version ## Lint GitHub Actions workflows
 	actionlint -ignore 'unknown permission scope "code-quality"'
 
+zizmor-check: check-python3 ## Lint workflows and composite actions with zizmor (matches CI)
+	@venv="$(BIN_DIR)/zizmor-venv"; \
+	mkdir -p "$(BIN_DIR)"; \
+	if [ ! -x "$$venv/bin/zizmor" ]; then \
+	  python3 -m venv "$$venv"; \
+	  "$$venv/bin/pip" install --require-hashes -r .github/requirements/zizmor.txt; \
+	fi; \
+	"$$venv/bin/zizmor" --config .github/zizmor.yml .github/workflows .github/actions
+
 check-tfplugindocs: ## Verify tfplugindocs version matches tools/go.mod
 	@expected="$$(awk '/terraform-plugin-docs v[0-9]/ {print $$2; exit}' tools/go.mod | sed 's/^v//')"; \
 	version="$$(tfplugindocs --version 2>/dev/null | awk 'NR == 1 {print $$NF}' | sed 's/^v//')"; \
@@ -271,4 +280,4 @@ merge: ## Merge a PR as sole maintainer (usage: make merge PR=123)
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: build test testacc acc-bootstrap acc-preflight check-pkg test-pkg testacc-pkg lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-compat contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-python3 check-actionlint-version check-tfplugindocs actionlint-check goreleaser-check modverify ci scaffold test-import-gen tools merge help
+.PHONY: build test testacc acc-bootstrap acc-preflight check-pkg test-pkg testacc-pkg lint fmt docs docs-check api-coverage-check counts-check validate python-test install spec-update spec-check spec-generate api-coverage contract-extract contract-check contract-compat contract-matrix vulncheck check-golangci-lint-version check-goreleaser-version check-python3 check-actionlint-version check-tfplugindocs actionlint-check zizmor-check goreleaser-check modverify ci scaffold test-import-gen tools merge help

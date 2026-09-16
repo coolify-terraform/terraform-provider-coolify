@@ -89,6 +89,7 @@ jobs:
               - '.github/workflows/ci.yml'
             workflows:
               - '.github/workflows/**'
+              - '.github/actions/**'
               - '.github/zizmor.yml'
             scenarios:
               # Product + scenario HCL + the runner script. Do not include
@@ -613,7 +614,7 @@ jobs:
           python3 -m pip install --user --require-hashes -r .github/requirements/zizmor.txt
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Run zizmor
-        run: zizmor --config .github/zizmor.yml .github/workflows
+        run: zizmor --config .github/zizmor.yml .github/workflows .github/actions
 
   contract-freshness:
     name: Contract Freshness
@@ -674,6 +675,7 @@ jobs:
         if: steps.contract-check.outputs.contract_drift == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIGHTLY_FAILURE_ASSIGNEE: ${{ vars.NIGHTLY_FAILURE_ASSIGNEE || 'SebTardif' }}
         run: |
           gh label create contract-drift --description "Upstream Coolify source contract has changed" --color "d93f0b" --force 2>/dev/null || true
           BODY_FILE=.github/contract-freshness-issue.md
@@ -681,7 +683,8 @@ jobs:
           if [ "$EXISTING" = "0" ]; then
             gh issue create \
               --title "Upstream Coolify contract has changed" \
-              --label "contract-drift" \
+              --label "contract-drift,ready" \
+              --assignee "$NIGHTLY_FAILURE_ASSIGNEE" \
               --body-file "$BODY_FILE"
           fi
           # When a drift issue is already open, do not re-post the same checklist

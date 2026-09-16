@@ -58,6 +58,18 @@ jobs:
               return;
             }
 
+            // Weekly contract freshness. Same bot-author trap as nightly.
+            if (labelNames.includes('contract-drift')) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['contract-drift', 'ready']
+              });
+              core.info('Contract drift: labeled contract-drift,ready');
+              return;
+            }
+
             // Check author association (OWNER, MEMBER, COLLABORATOR skip triage)
             const assoc = issue.author_association;
             const trusted = ['OWNER', 'MEMBER', 'COLLABORATOR'];

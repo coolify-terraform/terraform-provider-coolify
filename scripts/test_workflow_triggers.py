@@ -144,6 +144,28 @@ class WorkflowTriggerTests(unittest.TestCase):
         self.assertIn("zizmor==1.16.1", body)
         self.assertIn("--hash=sha256:", body)
 
+    def test_workflow_lint_covers_composite_actions(self) -> None:
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        wf_filter = ci[ci.index("            workflows:") : ci.index("            scenarios:")]
+        self.assertIn(".github/actions/**", wf_filter)
+        self.assertIn(
+            "zizmor --config .github/zizmor.yml .github/workflows .github/actions",
+            ci,
+        )
+        makefile = (ROOT / "GNUmakefile").read_text(encoding="utf-8")
+        self.assertIn("zizmor-check", makefile)
+        self.assertRegex(makefile, r"ci:.*zizmor-check")
+
+    def test_contract_freshness_issues_are_ready_and_assigned(self) -> None:
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        start = ci.index("name: Contract Freshness")
+        job = ci[start : ci.index("name: Scenario Tests", start)]
+        self.assertIn("--label \"contract-drift,ready\"", job)
+        self.assertIn("--assignee \"$NIGHTLY_FAILURE_ASSIGNEE\"", job)
+        triage = (WORKFLOWS / "issue-triage.yml").read_text(encoding="utf-8")
+        self.assertIn("labelNames.includes('contract-drift')", triage)
+        self.assertIn("labels: ['contract-drift', 'ready']", triage)
+
     def test_acceptance_does_not_run_on_generic_scripts(self) -> None:
         # Channel-watch / OpenAPI / FOSSA Python-only edits must not boot
         # two Coolify instances. Acc still runs when go or CI plumbing

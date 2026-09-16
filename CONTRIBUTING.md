@@ -105,6 +105,7 @@ From [GNUmakefile](GNUmakefile), `make ci` runs these local targets:
 - `test`
 - `validate`
 - `actionlint-check`
+- `zizmor-check`
 - `python-test`
 - `docs-check`
 - `api-coverage-check`
