@@ -235,8 +235,8 @@ zizmor-check: check-python3 ## Lint workflows and composite actions with zizmor 
 	"$$venv/bin/zizmor" --config .github/zizmor.yml .github/workflows .github/actions
 
 check-tfplugindocs: ## Verify tfplugindocs version matches tools/go.mod
-	@expected="$$(awk '/terraform-plugin-docs v[0-9]/ {print $$2; exit}' tools/go.mod | sed 's/^v//')"; \
-	version="$$(tfplugindocs --version 2>/dev/null | awk 'NR == 1 {print $$NF}' | sed 's/^v//')"; \
+	@expected="$$(awk '/terraform-plugin-docs / { for (i=1;i<=NF;i++) if ($$i ~ /^v[0-9]/) {print $$i; exit} }' tools/go.mod | sed 's/^v//')"; \
+	version="$$(tfplugindocs --version 2>&1 | awk 'NR == 1 {print $$NF}' | sed 's/^v//')"; \
 	if [ "$$version" != "$$expected" ]; then \
 		echo "ERROR: tfplugindocs $$expected required to match tools/go.mod. Install with: make tools"; \
 		if [ -n "$$version" ]; then echo "Installed: $$version"; else echo "Installed: not found"; fi; \
@@ -263,7 +263,7 @@ tools: ## Install all required development tools
 	@echo "Installing actionlint $(ACTIONLINT_VERSION) to $(BIN_DIR)..."
 	@GOBIN="$(BIN_DIR)" go install github.com/rhysd/actionlint/cmd/actionlint@v$(ACTIONLINT_VERSION)
 	@echo "Installing tfplugindocs to $(BIN_DIR)..."
-	@expected="$$(awk '/terraform-plugin-docs v[0-9]/ {print $$2; exit}' tools/go.mod | sed 's/^v//')"; \
+	@expected="$$(awk '/terraform-plugin-docs / { for (i=1;i<=NF;i++) if ($$i ~ /^v[0-9]/) {print $$i; exit} }' tools/go.mod | sed 's/^v//')"; \
 	cd tools && GOBIN="$(BIN_DIR)" go install -ldflags "-X github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs/build.version=$$expected" github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 	@echo "All tools installed to $(BIN_DIR)."
 
