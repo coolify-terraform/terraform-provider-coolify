@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.23](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.22...v0.1.23) (2026-09-16)
+
+
+### Bug Fixes
+
+* **makefile:** correct tfplugindocs version detection ([#891](https://github.com/coolify-terraform/terraform-provider-coolify/issues/891)) ([1097786](https://github.com/coolify-terraform/terraform-provider-coolify/commit/10977863c8dffcc28a26acd5c53830c949d28859))
+* **sentinel:** seed custom URL on import and harden CI notify ([#888](https://github.com/coolify-terraform/terraform-provider-coolify/issues/888)) ([f150667](https://github.com/coolify-terraform/terraform-provider-coolify/commit/f1506679576fdf7fcb74ba49dd3e171cd62c88fb))
+
 ## [0.1.22](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.21...v0.1.22) (2026-09-16)
 
 
