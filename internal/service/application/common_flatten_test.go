@@ -941,6 +941,9 @@ func TestFlattenApplicationCommon_NilAPIBoolDefaults(t *testing.T) {
 	if f.HealthCheckEnabled.ValueBool() != false {
 		t.Errorf("HealthCheckEnabled = %v, want false for nil API value", f.HealthCheckEnabled.ValueBool())
 	}
+	if f.IsAutoDeployEnabled.IsNull() || !f.IsAutoDeployEnabled.ValueBool() {
+		t.Errorf("IsAutoDeployEnabled = %v, want true for nil API value", f.IsAutoDeployEnabled)
+	}
 }
 
 func TestFlattenApplicationCommon_EmptyDockerfileLocationPreservesState(t *testing.T) {

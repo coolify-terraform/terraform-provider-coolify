@@ -109,17 +109,14 @@ func flattenLimitsAndHealth(app *client.Application, f commonAppFields) {
 	if app.HealthCheckReturnCode != nil {
 		*f.HealthCheckReturnCode = types.Int64Value(*app.HealthCheckReturnCode)
 	}
-	// health_check_enabled and is_auto_deploy_enabled are Optional+Computed
-	// without Default. Always set them to resolve unknown values after Create.
-	// When API returns nil, use the Coolify DB default.
+	// health_check_enabled has no schema Default (Coolify column default is false).
+	// is_auto_deploy_enabled has Default: true. Always resolve after Create/import.
 	if app.HealthCheckEnabled != nil {
 		*f.HealthCheckEnabled = types.BoolValue(*app.HealthCheckEnabled)
 	} else {
 		*f.HealthCheckEnabled = types.BoolValue(false)
 	}
-	if app.IsAutoDeployEnabled != nil {
-		*f.IsAutoDeployEnabled = types.BoolValue(*app.IsAutoDeployEnabled)
-	}
+	setBoolDefault(f.IsAutoDeployEnabled, app.IsAutoDeployEnabled, true)
 }
 
 // flattenExtendedFields sets extended application fields from the API response.
