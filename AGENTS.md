@@ -254,6 +254,8 @@ A **Coolify Nightly Acc** workflow (`.github/workflows/coolify-nightly.yml`)
 runs full acceptance on Coolify `edge`, `latest` (stable), and `4.1.2` (floor),
 plus tip scenarios on `edge`. Schedule: daily 06:00 UTC. Also
 `workflow_dispatch` for pre-release checks (not a required PR status).
+A red run opens (or replaces) an assigned `nightly-failure` issue so the
+maintainer is notified; a green run closes it.
 
 ## Releases
 

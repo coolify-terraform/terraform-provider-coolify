@@ -41,6 +41,23 @@ jobs:
               return;
             }
 
+            // Nightly Acc failure tracker. github-actions[bot] is not
+            // OWNER/MEMBER; without this it lands as needs-triage.
+            const labelNames = (issue.labels || []).map((l) => l.name);
+            if (
+              issue.title.startsWith('Nightly Acc red:') ||
+              labelNames.includes('nightly-failure')
+            ) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['nightly-failure', 'ready']
+              });
+              core.info('Nightly failure: labeled nightly-failure,ready');
+              return;
+            }
+
             // Check author association (OWNER, MEMBER, COLLABORATOR skip triage)
             const assoc = issue.author_association;
             const trusted = ['OWNER', 'MEMBER', 'COLLABORATOR'];

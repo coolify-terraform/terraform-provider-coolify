@@ -12,6 +12,9 @@
 #
 # Scenarios run only on tip-edge (expensive; tip-shaped demos).
 # Tip-only APIs (S3 storage, volume backups) skip via AccTestSkipIf* on older images.
+#
+# The Nightly gate job opens (or replaces) an assigned nightly-failure
+# issue when the matrix is red, and closes it when the run is green.
 name: Coolify Nightly Acc
 
 on:
@@ -381,12 +384,30 @@ jobs:
     needs: [prepare, acceptance, scenarios]
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
     steps:
       - name: Harden runner
         if: runner.os == 'Linux'
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Report nightly failure issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIGHTLY_FAILURE_ASSIGNEE: ${{ vars.NIGHTLY_FAILURE_ASSIGNEE || 'SebTardif' }}
+        run: |
+          python3 scripts/report-nightly-failure.py --apply \
+            --run-id "${{ github.run_id }}" \
+            --head-sha "${{ github.sha }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --prepare "${{ needs.prepare.result }}" \
+            --acceptance "${{ needs.acceptance.result }}" \
+            --scenarios "${{ needs.scenarios.result }}"
       - name: Check matrix results
         run: |
           set -euo pipefail
