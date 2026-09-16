@@ -140,6 +140,9 @@ func (r *gitHubAppApplicationResource) Create(ctx context.Context, req resource.
 	plan.UUID = types.StringValue(created.UUID)
 	normalizeCommonAppCreateState(&plan.applicationCommonModel)
 	flex.NormalizeUnknownString(&plan.GitBranch)
+	flex.NormalizeUnknownString(&plan.BuildCommand)
+	flex.NormalizeUnknownString(&plan.DockerComposeCustomBuildCommand)
+	flex.NormalizeUnknownString(&plan.DockerComposeCustomStartCommand)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)

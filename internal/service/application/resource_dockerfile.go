@@ -172,6 +172,7 @@ func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource
 	flex.NormalizeUnknownString(&plan.GitRepository)
 	flex.NormalizeUnknownString(&plan.GitBranch)
 	flex.NormalizeUnknownString(&plan.BuildPack)
+	flex.NormalizeUnknownString(&plan.BuildCommand)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
