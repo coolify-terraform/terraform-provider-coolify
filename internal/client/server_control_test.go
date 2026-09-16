@@ -267,6 +267,56 @@ func TestClient_UpdateServerSentinel_EnableOnlyExtraKeyFallsBackToGet(t *testing
 	assert.True(t, *got.IsSentinelEnabled)
 }
 
+func TestClient_UpdateServerSentinel_EnableOnlyExtraKeyGetErrorSurfaces(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name       string
+		getStatus  int
+		getBody    string
+		wantSubstr string
+	}{
+		{
+			name:       "get_404",
+			getStatus:  http.StatusNotFound,
+			getBody:    `{"message":"Not found."}`,
+			wantSubstr: "getting server sentinel",
+		},
+		{
+			name:       "get_500",
+			getStatus:  http.StatusInternalServerError,
+			getBody:    `{"message":"sentinel store unavailable"}`,
+			wantSubstr: "getting server sentinel",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "/api/v1/servers/"+testServerUUID+"/sentinel", r.URL.Path)
+				w.Header().Set("Content-Type", "application/json")
+				switch r.Method {
+				case http.MethodGet:
+					w.WriteHeader(tc.getStatus)
+					_, _ = w.Write([]byte(tc.getBody))
+				case http.MethodPatch:
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					_, _ = w.Write([]byte(`{"message":"Validation failed.","errors":{"is_sentinel_enabled":["This field is not allowed."]}}`))
+				default:
+					http.Error(w, r.URL.Path, http.StatusMethodNotAllowed)
+				}
+			}))
+			defer srv.Close()
+			c := New(srv.URL, "test-token", RetryConfig{Attempts: 1, MinWait: 1, MaxWait: 1})
+			on := true
+			got, err := c.UpdateServerSentinel(context.Background(), testServerUUID, ServerSentinel{IsSentinelEnabled: &on})
+			require.Error(t, err)
+			assert.Nil(t, got)
+			assert.Contains(t, err.Error(), "updating server sentinel")
+			assert.Contains(t, err.Error(), tc.wantSubstr)
+			assert.NotContains(t, err.Error(), "not allowed")
+		})
+	}
+}
+
 func TestClient_GetUpdateServerDockerCleanup(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -60,7 +60,11 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 			"sentinel_metrics_refresh_rate_seconds": schema.Int64Attribute{Optional: true, Computed: true},
 			"sentinel_metrics_history_days":         schema.Int64Attribute{Optional: true, Computed: true},
 			"sentinel_push_interval_seconds":        schema.Int64Attribute{Optional: true, Computed: true},
-			"sentinel_custom_url":                   schema.StringAttribute{Optional: true},
+			"sentinel_custom_url": schema.StringAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
 		},
 	}
 }
@@ -126,8 +130,10 @@ func flatten(s *client.ServerSentinel, m *model) {
 	} else if m.SentinelPushIntervalSeconds.IsUnknown() {
 		m.SentinelPushIntervalSeconds = types.Int64Null()
 	}
-	if s.SentinelCustomURL != "" && !m.SentinelCustomURL.IsNull() {
+	if s.SentinelCustomURL != "" {
 		m.SentinelCustomURL = types.StringValue(s.SentinelCustomURL)
+	} else if m.SentinelCustomURL.IsUnknown() {
+		m.SentinelCustomURL = types.StringNull()
 	}
 }
 

@@ -157,7 +157,7 @@ func (c *Client) updateServerSentinelAfterError(ctx context.Context, serverUUID,
 	if sentinelWriteEmpty(stripped) {
 		got, getErr := c.GetServerSentinel(ctx, serverUUID)
 		if getErr != nil {
-			return nil, fmt.Errorf("updating server sentinel %s: %w", serverUUID, err)
+			return nil, fmt.Errorf("updating server sentinel %s: %w", serverUUID, getErr)
 		}
 		return got, nil
 	}
