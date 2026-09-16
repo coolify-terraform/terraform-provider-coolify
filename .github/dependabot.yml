@@ -41,3 +41,19 @@ updates:
       actions:
         patterns:
           - "*"
+
+  - package-ecosystem: pip
+    directory: /.github/requirements
+    schedule:
+      interval: weekly
+    rebase-strategy: auto
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 5
+    groups:
+      pip-minor:
+        update-types:
+          - "minor"
+          - "patch"
