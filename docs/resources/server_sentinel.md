@@ -31,11 +31,11 @@ resource "coolify_server_sentinel" "example" {
 - `is_metrics_enabled` (Boolean)
 - `is_sentinel_debug_enabled` (Boolean)
 - `is_sentinel_enabled` (Boolean) Whether Sentinel is enabled. Coolify tip after 2026-09-15 treats Sentinel as mandatory on regular servers, so PATCH extra-key 422s this field (GET remains). Writable on Coolify 4.3.x before that change.
-- `sentinel_custom_url` (String)
+- `sentinel_custom_url` (String) Custom Sentinel push URL. Writable on GET/PATCH `/servers/{uuid}/sentinel` (unlike the read-only copy on `coolify_server`). Max 255 characters. Seeded from GET when Coolify returns a non-empty value; keep it in configuration after import if GET still omits it.
 - `sentinel_metrics_history_days` (Number)
 - `sentinel_metrics_refresh_rate_seconds` (Number)
 - `sentinel_push_interval_seconds` (Number)
-- `sentinel_token` (String, Sensitive) Preserved when GET omits it.
+- `sentinel_token` (String, Sensitive) Sentinel agent token. Preserved on refresh when GET omits it. After import, keep the token in configuration; GET typically hides it so import cannot seed state.
 
 ## Import
 
@@ -44,5 +44,9 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# NOTE: Coolify GET typically hides sentinel_token, so import cannot seed it.
+# Keep sentinel_token in your Terraform config before terraform plan.
+# Keep sentinel_custom_url in config too if GET still omits it (the provider
+# seeds it when GET returns a non-empty value).
 terraform import coolify_server_sentinel.example <server-uuid>
 ```

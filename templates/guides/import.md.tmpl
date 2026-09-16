@@ -192,6 +192,7 @@ must be set in your `.tf` configuration before running `terraform plan`:
 | `coolify_application_github_app` | `github_app_uuid` (Coolify stores the linked GitHub App as `source_id`/`source_type`, so import cannot recover the original UUID) |
 | `coolify_service` | `project_uuid`, `server_uuid`, `environment_name`, `type` |
 | `coolify_server` | `private_key_uuid` (Coolify stores only the linked `private_key_id`, so import cannot reconstruct the original UUID) |
+| `coolify_server_sentinel` | `sentinel_token` (GET typically hides it; keep it in configuration before the first `terraform plan`). `sentinel_custom_url` is seeded when GET returns a non-empty value; keep it in configuration if GET still omits it |
 | `coolify_server_hetzner` | `cloud_provider_token_uuid`, `server_type`, `location`, `image`, `private_key_uuid`, `hetzner_ssh_key_ids`, `hetzner_firewall_ids`, `hetzner_network_ids`, `cloud_init_script`, `enable_ipv4`, `enable_ipv6`, `enable_backups`, `instant_validate` (Hetzner-specific fields are only sent at creation time and not returned by the server GET endpoint) |
 | `coolify_environment_variable` | `value` (sensitive value is not reliably returned on import; keep it in configuration before the first `terraform plan`) |
 | `coolify_deployment` | `triggers`, `wait_for_completion` (Terraform-only behavior controls, not persisted by the Coolify API) |
