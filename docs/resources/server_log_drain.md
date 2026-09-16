@@ -38,12 +38,12 @@ resource "coolify_server_log_drain" "example" {
 - `is_logdrain_axiom_enabled` (Boolean)
 - `is_logdrain_custom_enabled` (Boolean)
 - `is_logdrain_newrelic_enabled` (Boolean)
-- `logdrain_axiom_api_key` (String, Sensitive)
-- `logdrain_axiom_dataset_name` (String)
-- `logdrain_custom_config` (String, Sensitive)
-- `logdrain_custom_config_parser` (String)
-- `logdrain_newrelic_base_uri` (String)
-- `logdrain_newrelic_license_key` (String, Sensitive)
+- `logdrain_axiom_api_key` (String, Sensitive) Axiom API key. Omitting the attribute later does not clear the stored Coolify value.
+- `logdrain_axiom_dataset_name` (String) Axiom dataset name. Omitting the attribute later does not clear the stored Coolify value.
+- `logdrain_custom_config` (String, Sensitive) Custom log drain configuration. Omitting the attribute later does not clear the stored Coolify value.
+- `logdrain_custom_config_parser` (String) Custom log drain config parser. Omitting the attribute later does not clear the stored Coolify value.
+- `logdrain_newrelic_base_uri` (String) New Relic log API base URI. Omitting the attribute later does not clear the stored Coolify value.
+- `logdrain_newrelic_license_key` (String, Sensitive) New Relic license key. Omitting the attribute later does not clear the stored Coolify value.
 
 ## Import
 

@@ -47,16 +47,49 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages Coolify server log drain settings (New Relic, Axiom, or custom). Requires Coolify >= v4.3.0. Destroy disables all drains.",
 		Attributes: map[string]schema.Attribute{
-			"server_uuid":                   schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
-			"is_logdrain_newrelic_enabled":  schema.BoolAttribute{Optional: true, Computed: true},
-			"logdrain_newrelic_license_key": schema.StringAttribute{Optional: true, Sensitive: true},
-			"logdrain_newrelic_base_uri":    schema.StringAttribute{Optional: true},
-			"is_logdrain_axiom_enabled":     schema.BoolAttribute{Optional: true, Computed: true},
-			"logdrain_axiom_dataset_name":   schema.StringAttribute{Optional: true},
-			"logdrain_axiom_api_key":        schema.StringAttribute{Optional: true, Sensitive: true},
-			"is_logdrain_custom_enabled":    schema.BoolAttribute{Optional: true, Computed: true},
-			"logdrain_custom_config":        schema.StringAttribute{Optional: true, Sensitive: true},
-			"logdrain_custom_config_parser": schema.StringAttribute{Optional: true},
+			"server_uuid":                  schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
+			"is_logdrain_newrelic_enabled": schema.BoolAttribute{Optional: true, Computed: true},
+			"logdrain_newrelic_license_key": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Sensitive:           true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "New Relic license key. Omitting the attribute later does not clear the stored Coolify value.",
+			},
+			"logdrain_newrelic_base_uri": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "New Relic log API base URI. Omitting the attribute later does not clear the stored Coolify value.",
+			},
+			"is_logdrain_axiom_enabled": schema.BoolAttribute{Optional: true, Computed: true},
+			"logdrain_axiom_dataset_name": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "Axiom dataset name. Omitting the attribute later does not clear the stored Coolify value.",
+			},
+			"logdrain_axiom_api_key": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Sensitive:           true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "Axiom API key. Omitting the attribute later does not clear the stored Coolify value.",
+			},
+			"is_logdrain_custom_enabled": schema.BoolAttribute{Optional: true, Computed: true},
+			"logdrain_custom_config": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Sensitive:           true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "Custom log drain configuration. Omitting the attribute later does not clear the stored Coolify value.",
+			},
+			"logdrain_custom_config_parser": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "Custom log drain config parser. Omitting the attribute later does not clear the stored Coolify value.",
+			},
 		},
 	}
 }
@@ -85,34 +118,22 @@ func flatten(s *client.ServerLogDrains, m *model) {
 	} else if m.NewRelicEnabled.IsUnknown() {
 		m.NewRelicEnabled = types.BoolValue(false)
 	}
-	if s.NewRelicLicenseKey != "" {
-		m.NewRelicLicenseKey = types.StringValue(s.NewRelicLicenseKey)
-	}
-	if s.NewRelicBaseURI != "" {
-		m.NewRelicBaseURI = types.StringValue(s.NewRelicBaseURI)
-	}
+	flex.SetStringSeedOrClear(&m.NewRelicLicenseKey, s.NewRelicLicenseKey)
+	flex.SetStringSeedOrClear(&m.NewRelicBaseURI, s.NewRelicBaseURI)
 	if s.IsAxiomEnabled != nil {
 		m.AxiomEnabled = types.BoolValue(*s.IsAxiomEnabled)
 	} else if m.AxiomEnabled.IsUnknown() {
 		m.AxiomEnabled = types.BoolValue(false)
 	}
-	if s.AxiomDatasetName != "" {
-		m.AxiomDatasetName = types.StringValue(s.AxiomDatasetName)
-	}
-	if s.AxiomAPIKey != "" {
-		m.AxiomAPIKey = types.StringValue(s.AxiomAPIKey)
-	}
+	flex.SetStringSeedOrClear(&m.AxiomDatasetName, s.AxiomDatasetName)
+	flex.SetStringSeedOrClear(&m.AxiomAPIKey, s.AxiomAPIKey)
 	if s.IsCustomEnabled != nil {
 		m.CustomEnabled = types.BoolValue(*s.IsCustomEnabled)
 	} else if m.CustomEnabled.IsUnknown() {
 		m.CustomEnabled = types.BoolValue(false)
 	}
-	if s.CustomConfig != "" {
-		m.CustomConfig = types.StringValue(s.CustomConfig)
-	}
-	if s.CustomConfigParser != "" {
-		m.CustomConfigParser = types.StringValue(s.CustomConfigParser)
-	}
+	flex.SetStringSeedOrClear(&m.CustomConfig, s.CustomConfig)
+	flex.SetStringSeedOrClear(&m.CustomConfigParser, s.CustomConfigParser)
 }
 
 func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
