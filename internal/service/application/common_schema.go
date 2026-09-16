@@ -128,19 +128,19 @@ func gitAppSourceAttrs(gitRepositoryDescription string) map[string]schema.Attrib
 func gitAppCommandAttrs() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"install_command": schema.StringAttribute{
-			MarkdownDescription: "The command to run during the install phase.",
+			MarkdownDescription: "The command to run during the install phase. Omitting the attribute later does not clear the stored command.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"build_command": schema.StringAttribute{
-			MarkdownDescription: "The command to run during the build phase.",
+			MarkdownDescription: "The command to run during the build phase. Omitting the attribute later does not clear the stored command.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"start_command": schema.StringAttribute{
-			MarkdownDescription: "The command to run to start the application.",
+			MarkdownDescription: "The command to run to start the application. Omitting the attribute later does not clear the stored command.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
@@ -290,7 +290,7 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 		},
 		// Auto-deploy
 		"is_auto_deploy_enabled": schema.BoolAttribute{
-			MarkdownDescription: "Whether auto-deploy on push is enabled.",
+			MarkdownDescription: "Whether auto-deploy on push is enabled. Defaults to `true`. Coolify GET may omit the field; the provider treats a missing value as `true`.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
@@ -308,13 +308,13 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 func extendedBuildDeployAttrs() map[string]schema.Attribute {
 	attrs := map[string]schema.Attribute{
 		"base_directory": schema.StringAttribute{
-			MarkdownDescription: "The base directory for the application source code.",
+			MarkdownDescription: "The base directory for the application source code. Omitting the attribute later does not clear the stored path.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"publish_directory": schema.StringAttribute{
-			MarkdownDescription: "The directory to publish for static sites.",
+			MarkdownDescription: "The directory to publish for static sites. Omitting the attribute later does not clear the stored path.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
@@ -338,7 +338,7 @@ func extendedBuildDeployAttrs() map[string]schema.Attribute {
 			Optional:            true,
 		},
 		"watch_paths": schema.StringAttribute{
-			MarkdownDescription: "Paths to watch for changes (triggers auto-deploy).",
+			MarkdownDescription: "Paths to watch for changes (triggers auto-deploy). Omitting the attribute later does not clear the stored paths.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},

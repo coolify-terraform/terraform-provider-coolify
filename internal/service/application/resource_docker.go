@@ -61,13 +61,13 @@ func (r *dockerImageApplicationResource) Schema(ctx context.Context, _ resource.
 				},
 			},
 			"install_command": schema.StringAttribute{
-				MarkdownDescription: "The command to run during the install phase.",
+				MarkdownDescription: "The command to run during the install phase. Omitting the attribute later does not clear the stored command.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"start_command": schema.StringAttribute{
-				MarkdownDescription: "The command to run to start the application.",
+				MarkdownDescription: "The command to run to start the application. Omitting the attribute later does not clear the stored command.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},

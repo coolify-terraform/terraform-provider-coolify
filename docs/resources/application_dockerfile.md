@@ -51,8 +51,8 @@ resource "coolify_application_dockerfile" "app" {
 ### Optional
 
 - `autogenerate_domain` (Boolean) Create-only. When `true` (Coolify default) and `domains` is empty, Coolify generates a public FQDN (`https://{uuid}.{wildcard}` or `http://{uuid}.{server-ip}.sslip.io`). Set `false` for internal apps that must not get a Traefik host. Ignored when `domains` is set. Not accepted on update; changing this after create has no effect and does not force replacement.
-- `base_directory` (String) The base directory for the application source code.
-- `build_command` (String) The command to run during the build phase.
+- `base_directory` (String) The base directory for the application source code. Omitting the attribute later does not clear the stored path.
+- `build_command` (String) The command to run during the build phase. Omitting the attribute later does not clear the stored command.
 - `connect_to_docker_network` (Boolean) Whether to connect the application to the Docker network.
 - `custom_docker_run_options` (String) Custom Docker run options passed to the container.
 - `custom_internal_name` (String) Custom internal container name for the application. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
@@ -93,9 +93,9 @@ resource "coolify_application_dockerfile" "app" {
 - `http_basic_auth_username` (String) Username for HTTP Basic Authentication.
 - `include_source_commit_in_build` (Boolean) Whether to include the source commit SHA in the build. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `inject_build_args_to_dockerfile` (Boolean) Whether to inject build arguments into the Dockerfile. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
-- `install_command` (String) The command to run during the install phase.
+- `install_command` (String) The command to run during the install phase. Omitting the attribute later does not clear the stored command.
 - `instant_deploy` (Boolean) Whether to immediately deploy the application after creation. When `true`, Coolify triggers a deployment right away. When `false` (default), the application is created but not deployed.
-- `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled.
+- `is_auto_deploy_enabled` (Boolean) Whether auto-deploy on push is enabled. Defaults to `true`. Coolify GET may omit the field; the provider treats a missing value as `true`.
 - `is_consistent_container_name_enabled` (Boolean) Whether Coolify uses a consistent container name for this application. Coolify default is `false`. Set to `true` for apps that keep an exclusive file lock on a persistent volume (SQLite, DuckDB, LMDB, BoltDB). A fixed name makes Docker refuse a second container on the same mounts, so Coolify falls back to stop-then-start instead of a rolling update that would leave the new container unable to open the store while still reporting a successful deploy. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled.
 - `is_env_sorting_enabled` (Boolean) Whether environment variables are sorted. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
@@ -133,16 +133,16 @@ resource "coolify_application_dockerfile" "app" {
 - `post_deployment_command_container` (String) Container to run the post-deployment command in.
 - `pre_deployment_command` (String) Command to run before deployment.
 - `pre_deployment_command_container` (String) Container to run the pre-deployment command in.
-- `publish_directory` (String) The directory to publish for static sites.
+- `publish_directory` (String) The directory to publish for static sites. Omitting the attribute later does not clear the stored path.
 - `redeploy_on_update` (Boolean) When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`, and `github_app_uuid` on `coolify_application_github_app`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.
 - `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
-- `start_command` (String) The command to run to start the application.
+- `start_command` (String) The command to run to start the application. Omitting the attribute later does not clear the stored command.
 - `static_image` (String) The Docker image to use for serving static sites.
 - `stop_grace_period` (Number) Container stop grace period in seconds (Coolify application setting). Valid range 1-3600. When null/omitted, Coolify uses its default stop behavior. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `use_build_secrets` (Boolean) Whether to use Docker Build secrets for build-time environment variables. Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`. Against older instances the provider omits this field on write and emits a plan warning if it is set, rather than fail the whole request with 422.
 - `use_build_server` (Boolean) Whether to use a build server for building the application.
-- `watch_paths` (String) Paths to watch for changes (triggers auto-deploy).
+- `watch_paths` (String) Paths to watch for changes (triggers auto-deploy). Omitting the attribute later does not clear the stored paths.
 
 ### Read-Only
 
