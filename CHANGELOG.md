@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.22](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.21...v0.1.22) (2026-09-16)
+
+
+### Features
+
+* **application:** expose compose commands and Phase C schema coverage ([#867](https://github.com/coolify-terraform/terraform-provider-coolify/issues/867)) ([2f8b15f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/2f8b15f04c2925701b7f7b4ed79bcc0d083d5004))
+* **application:** expose docker_compose_location for git-backed applications ([#865](https://github.com/coolify-terraform/terraform-provider-coolify/issues/865)) ([5dade56](https://github.com/coolify-terraform/terraform-provider-coolify/commit/5dade5609520040b836d1232374998855952be4a))
+* pin Coolify 4.3.21 and fix restart-limit writes ([#882](https://github.com/coolify-terraform/terraform-provider-coolify/issues/882)) ([322ea67](https://github.com/coolify-terraform/terraform-provider-coolify/commit/322ea671d982aa753c258d980cbc245029e6c8de))
+* pin Coolify v4.3.19 and fix GitHub/GitLab App updates ([#863](https://github.com/coolify-terraform/terraform-provider-coolify/issues/863)) ([a31547c](https://github.com/coolify-terraform/terraform-provider-coolify/commit/a31547ca9d51a2091491211826e49593a840bcf9))
+
+
+### Bug Fixes
+
+* **application:** omit-after-set for commands and directories ([#884](https://github.com/coolify-terraform/terraform-provider-coolify/issues/884)) ([0c0ed8b](https://github.com/coolify-terraform/terraform-provider-coolify/commit/0c0ed8b70d0b53b56d89c5c7a3c08447cfe88738))
+* **ci:** one social-preview reminder and skip test-only nags ([#855](https://github.com/coolify-terraform/terraform-provider-coolify/issues/855)) ([9d6d8cb](https://github.com/coolify-terraform/terraform-provider-coolify/commit/9d6d8cbcfbf29576a020e15eb4916bd85d6f6c98))
+* omit-after-set flatten, ssl_mode preserve, and review follow-ups ([#883](https://github.com/coolify-terraform/terraform-provider-coolify/issues/883)) ([34667f5](https://github.com/coolify-terraform/terraform-provider-coolify/commit/34667f5349c8e0866d9045376873ff1811cc7422))
+
 ## [0.1.21](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.20...v0.1.21) (2026-09-10)
 
 
