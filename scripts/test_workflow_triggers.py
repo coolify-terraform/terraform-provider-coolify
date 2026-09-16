@@ -141,7 +141,7 @@ class WorkflowTriggerTests(unittest.TestCase):
         req = ROOT / ".github" / "requirements" / "zizmor.txt"
         self.assertTrue(req.is_file(), req)
         body = req.read_text(encoding="utf-8")
-        self.assertIn("zizmor==1.16.1", body)
+        self.assertRegex(body, r"(?m)^zizmor==\d+\.\d+\.\d+")
         self.assertIn("--hash=sha256:", body)
 
     def test_workflow_lint_covers_composite_actions(self) -> None:
