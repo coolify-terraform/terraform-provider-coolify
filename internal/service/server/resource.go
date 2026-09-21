@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -164,6 +165,14 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server"})
 
+	isBuild := flex.BoolValueOrNull(plan.IsBuildServer)
+	role := flex.StringValueOrNull(plan.ServerRole)
+	if r.client != nil && r.client.SupportsServerRole() && (role == nil || strings.TrimSpace(*role) == "") && isBuild != nil && !*isBuild {
+		// Default false must not invent server_role=both. Coolify 4.4
+		// defaults an omitted role to both, and older allow-lists 422
+		// the key.
+		isBuild = nil
+	}
 	input := client.CreateServerInput{
 		Name:            plan.Name.ValueString(),
 		Description:     plan.Description.ValueString(),
@@ -171,8 +180,8 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		Port:            int(plan.Port.ValueInt64()),
 		User:            plan.User.ValueString(),
 		PrivateKeyUUID:  plan.PrivateKeyUUID.ValueString(),
-		IsBuildServer:   flex.BoolValueOrNull(plan.IsBuildServer),
-		ServerRole:      flex.StringValueOrNull(plan.ServerRole),
+		IsBuildServer:   isBuild,
+		ServerRole:      role,
 		InstantValidate: flex.BoolValueOrNull(plan.InstantValidate),
 	}
 

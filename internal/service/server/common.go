@@ -120,7 +120,8 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 		"is_build_server": schema.BoolAttribute{
 			MarkdownDescription: "Whether this server is used only for building applications. " +
 				"On Coolify >= 4.4 the API replaced this field with `server_role`; the provider " +
-				"sends `server_role = build` when this is true and `server_role = both` when it is false. " +
+				"sends `server_role = build` when this is true and `server_role = both` when it changes to false. " +
+				"A create that leaves this false omits `server_role`. " +
 				"An explicit `server_role` wins over this mapping. " +
 				"Keep this attribute for 4.3.x and for existing HCL.",
 			Optional: true,
@@ -610,8 +611,16 @@ func AlignUnconfiguredServerRole(c *client.Client, configRole, planRole *types.S
 	if planBuild.IsNull() || planBuild.IsUnknown() {
 		return
 	}
-	if stateBuild != nil && !stateBuild.IsNull() && !stateBuild.IsUnknown() &&
-		stateBuild.ValueBool() == planBuild.ValueBool() {
+	if stateBuild == nil || stateBuild.IsNull() || stateBuild.IsUnknown() {
+		// Create. False is the schema default. Sending server_role=both
+		// 422s on instances whose version string looks like 4.4 tip but
+		// whose allow-list does not include the key (CI edge "4.3.0").
+		if planBuild.ValueBool() {
+			*planRole = types.StringValue("build")
+		}
+		return
+	}
+	if stateBuild.ValueBool() == planBuild.ValueBool() {
 		return
 	}
 	if planBuild.ValueBool() {
