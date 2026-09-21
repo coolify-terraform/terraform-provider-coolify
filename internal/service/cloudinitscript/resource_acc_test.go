@@ -2,6 +2,7 @@ package cloudinitscript_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -25,10 +26,12 @@ resource "coolify_cloud_init_script" "test" {
   script = "#cloud-config\npackages: [curl]\n"
 }
 data "coolify_cloud_init_script" "by_uuid" { uuid = coolify_cloud_init_script.test.uuid }
+data "coolify_cloud_init_scripts" "all" {}
 `, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_cloud_init_script.test", "name", name),
 					resource.TestCheckResourceAttrPair("data.coolify_cloud_init_script.by_uuid", "name", "coolify_cloud_init_script.test", "name"),
+					resource.TestMatchResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.#", regexp.MustCompile(`^[1-9]`)),
 				),
 			},
 			{
