@@ -421,7 +421,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_docker_cleanup` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves schedule |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
-### Data Sources (70 total)
+### Data Sources (71 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -437,6 +437,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_tag` | Unit | Requires Coolify >= v4.2.0 |
 | `coolify_tags` | Unit | Requires Coolify >= v4.2.0 |
 | `coolify_cloud_init_script` | Unit | Requires Coolify >= v4.3.0 |
+| `coolify_cloud_init_scripts` | Unit | Requires Coolify >= v4.3.0 |
 | `coolify_version` | Yes | |
 | `coolify_health` | Yes | |
 | `coolify_team` | Yes | |

@@ -78,6 +78,58 @@ data "coolify_cloud_init_script" "test" {
 	})
 }
 
+func TestCloudInitScriptsDataSource_Read(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/cloud-init-scripts", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+		  {"uuid":"cccc0001-0001-4000-8000-000000000001","name":"bootstrap","script":"#cloud-config\npackages: [nginx]\n"},
+		  {"uuid":"cccc0002-0002-4000-8000-000000000002","name":"docker"}
+		]`))
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_cloud_init_scripts" "all" {}
+`,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.#", "2"),
+				resource.TestCheckResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.0.name", "bootstrap"),
+				resource.TestCheckResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.0.uuid", "cccc0001-0001-4000-8000-000000000001"),
+				resource.TestCheckResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.0.script", "#cloud-config\npackages: [nginx]\n"),
+				resource.TestCheckResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.1.name", "docker"),
+				resource.TestCheckResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.1.uuid", "cccc0002-0002-4000-8000-000000000002"),
+				resource.TestCheckNoResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.1.script"),
+			),
+		}},
+	})
+}
+
+func TestCloudInitScriptsDataSource_ReadAPIError(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/cloud-init-scripts", func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"internal error"}`, http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_cloud_init_scripts" "all" {}
+`,
+			ExpectError: regexp.MustCompile(`Error listing cloud-init scripts`),
+		}},
+	})
+}
+
 func TestCloudInitScriptDataSource_NotFound(t *testing.T) {
 	t.Parallel()
 	mockSrv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

@@ -109,3 +109,40 @@ func TestClient_DeleteCloudInitScript_NotFound(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, IsNotFound(err))
 }
+
+func TestClient_ListCloudInitScripts(t *testing.T) {
+	t.Parallel()
+	want := []CloudInitScript{
+		{UUID: "ci-1", Name: "bootstrap", Script: "#cloud-config\npackages: [nginx]\n"},
+		{UUID: "ci-2", Name: "docker", Script: "#cloud-config\nruncmd:\n  - docker\n"},
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/cloud-init-scripts", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(want)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	got, err := c.ListCloudInitScripts(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
+}
+
+func TestClient_ListCloudInitScripts_ServerError(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/cloud-init-scripts", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"internal error"}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "test-token")
+	_, err := c.ListCloudInitScripts(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "listing cloud-init scripts")
+}
