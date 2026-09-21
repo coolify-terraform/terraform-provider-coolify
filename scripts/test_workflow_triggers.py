@@ -155,6 +155,9 @@ class WorkflowTriggerTests(unittest.TestCase):
         makefile = (ROOT / "GNUmakefile").read_text(encoding="utf-8")
         self.assertIn("zizmor-check", makefile)
         self.assertRegex(makefile, r"ci:.*zizmor-check")
+        ziz = (ROOT / ".github" / "zizmor.yml").read_text(encoding="utf-8")
+        self.assertIn("self-repository:", ziz)
+        self.assertIn("github-app:", ziz)
 
     def test_contract_freshness_issues_are_ready_and_assigned(self) -> None:
         ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")

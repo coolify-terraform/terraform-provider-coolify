@@ -31,3 +31,20 @@ rules:
     ignore:
       - coolify-nightly.yml
       - release.yml
+
+  # Local composite action. `./.github/actions/...` is the same-repo path
+  # GitHub has always accepted. `$/.github/actions/...` is equivalent.
+  self-repository:
+    ignore:
+      - ci.yml
+      - coolify-nightly.yml
+      - test-cloud-bootstrap.yml
+
+  # GitHub App tokens are required so GITHUB_TOKEN does not suppress
+  # pull_request events (release-please) and so Settings uploads work
+  # (social preview). zizmor 1.30+ flags create-github-app-token as
+  # error[github-app]; the pin is hash-pinned.
+  github-app:
+    ignore:
+      - release.yml
+      - update-social-preview.yml
