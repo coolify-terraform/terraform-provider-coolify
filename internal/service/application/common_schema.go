@@ -207,8 +207,9 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			MarkdownDescription: "Application URL(s) as a comma-separated list of http:// or https:// URLs. " +
 				"Empty string is allowed in Terraform (validator and PATCH body send `domains: \"\"`). " +
 				"When omitted on create, Coolify may auto-generate a domain unless `autogenerate_domain` is false. " +
-				"Clearing an existing FQDN on update requires Coolify to treat empty `domains` as present " +
-				"(current Coolify uses `$request->has('domains')` with `ConvertEmptyStringsToNull`, which drops empty clears; tracked upstream).",
+				"Clearing an existing FQDN with `domains = \"\"` depends on Coolify persisting empty domains as null fqdn " +
+				"(tracked in #647 and [coollabsio/coolify#11116](https://github.com/coollabsio/coolify/issues/11116)). " +
+				"If a live instance ignores the empty PATCH, recreate the application without `domains` and with `autogenerate_domain = false`.",
 			Optional:      true,
 			Computed:      true,
 			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},

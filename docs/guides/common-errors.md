@@ -421,8 +421,11 @@ When `domains` is blank, it generates a Traefik host automatically.
 
 **Fix:** set `autogenerate_domain = false` for internal apps (workers,
 queues, sidecars). See the [Domains and HTTPS](domains-and-https)
-guide. Clearing an existing FQDN with `domains = ""` is blocked by a
-Coolify update-path bug (`$request->has('domains')`); tracked as #647.
+guide. To drop an existing FQDN, set `domains = ""`. Some Coolify
+instances still ignore that empty PATCH (provider #647,
+[coollabsio/coolify#11116](https://github.com/coollabsio/coolify/issues/11116)).
+If apply leaves the old URL, recreate the application without `domains`
+(and with `autogenerate_domain = false`).
 
 ### Server proxy `false` flags stay `true`
 

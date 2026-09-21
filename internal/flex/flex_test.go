@@ -379,6 +379,13 @@ func TestStringIfChanged(t *testing.T) {
 			t.Fatalf("expected 'new', got %v", result)
 		}
 	})
+
+	t.Run("empty plan vs non-empty state returns empty pointer", func(t *testing.T) {
+		result := flex.StringIfChanged(types.StringValue(""), types.StringValue("https://app.example.com"))
+		if result == nil || *result != "" {
+			t.Fatalf("expected pointer to empty string for FQDN clear, got %v", result)
+		}
+	})
 }
 
 func TestBoolIfChanged(t *testing.T) {
