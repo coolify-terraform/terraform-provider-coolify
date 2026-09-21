@@ -539,6 +539,7 @@ def parse_tip_version_from_constants(php: str) -> str:
 
 def fetch_tip_version() -> str:
     """Read Coolify source tip version from config/constants.php on main."""
+    failures: list[str] = []
     try:
         out = subprocess.check_output(
             [
@@ -557,16 +558,19 @@ def fetch_tip_version() -> str:
         ver = parse_tip_version_from_constants(php)
         if ver:
             return ver
-    except (subprocess.CalledProcessError, FileNotFoundError, ValueError, OSError):
-        pass
+        failures.append("GitHub API had no version")
+    except (subprocess.CalledProcessError, FileNotFoundError, ValueError, OSError) as exc:
+        failures.append(str(exc))
     try:
         ver = parse_tip_version_from_constants(fetch_text(CONSTANTS_RAW_URL))
         if ver:
             return ver
-    except (urllib.error.URLError, TimeoutError, UnicodeDecodeError):
-        pass
+        failures.append("raw constants.php had no version")
+    except (urllib.error.URLError, TimeoutError, UnicodeDecodeError) as exc:
+        failures.append(str(exc))
     raise RuntimeError(
-        "could not fetch tip version from GitHub API or raw constants.php"
+        "could not fetch tip version from GitHub API or raw constants.php: "
+        + "; ".join(failures)
     )
 
 
