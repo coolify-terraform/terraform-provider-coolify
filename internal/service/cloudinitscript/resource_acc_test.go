@@ -26,7 +26,9 @@ resource "coolify_cloud_init_script" "test" {
   script = "#cloud-config\npackages: [curl]\n"
 }
 data "coolify_cloud_init_script" "by_uuid" { uuid = coolify_cloud_init_script.test.uuid }
-data "coolify_cloud_init_scripts" "all" {}
+data "coolify_cloud_init_scripts" "all" {
+  depends_on = [coolify_cloud_init_script.test]
+}
 `, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_cloud_init_script.test", "name", name),
