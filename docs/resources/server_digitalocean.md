@@ -63,7 +63,7 @@ variable "digitalocean_token" {
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `enable_ipv6` (Boolean) Whether to enable IPv6 on the droplet. Defaults to true to match Coolify.
 - `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation. Defaults to false to match Coolify.
-- `is_build_server` (Boolean) Whether this server is used only for building applications. On Coolify >= 4.4 the API replaced this field with `server_role`; the provider sends `server_role = build` when this is true and omits both keys when it is false (Coolify defaults to `both`). Keep this attribute for 4.3.x and for existing HCL.
+- `is_build_server` (Boolean) Whether this server is used only for building applications. On Coolify >= 4.4 the API replaced this field with `server_role`; the provider sends `server_role = build` when this is true and `server_role = both` when it is false. An explicit `server_role` wins over this mapping. Keep this attribute for 4.3.x and for existing HCL.
 - `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server. Requires Coolify >= v4.3.0. Coolify defaults to true.
 - `monitoring` (Boolean) Whether to enable DigitalOcean monitoring on the droplet. Defaults to true to match Coolify.
 - `port` (Number) The SSH port of the server.

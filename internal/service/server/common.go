@@ -120,8 +120,9 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 		"is_build_server": schema.BoolAttribute{
 			MarkdownDescription: "Whether this server is used only for building applications. " +
 				"On Coolify >= 4.4 the API replaced this field with `server_role`; the provider " +
-				"sends `server_role = build` when this is true and omits both keys when it is false " +
-				"(Coolify defaults to `both`). Keep this attribute for 4.3.x and for existing HCL.",
+				"sends `server_role = build` when this is true and `server_role = both` when it is false. " +
+				"An explicit `server_role` wins over this mapping. " +
+				"Keep this attribute for 4.3.x and for existing HCL.",
 			Optional: true,
 			Computed: true,
 			Default:  booldefault.StaticBool(false),
@@ -589,6 +590,35 @@ func ApplyPostCreateCloudProviderSettings(ctx context.Context, c *client.Client,
 		return fmt.Errorf("server %s: %w", uuid, err)
 	}
 	return nil
+}
+
+// AlignUnconfiguredServerRole sets the planned server_role from
+// is_build_server when the user left server_role unset and the build
+// flag is changing (or this is create, so there is no prior flag).
+// Coolify >= 4.4 persists server_role. An unchanged false flag must
+// not replace a deployment or build role copied from state.
+func AlignUnconfiguredServerRole(c *client.Client, configRole, planRole *types.String, planBuild, stateBuild *types.Bool) {
+	if c == nil || c.CoolifyVersion == "" || !c.SupportsServerRole() {
+		return
+	}
+	if configRole == nil || planRole == nil || planBuild == nil {
+		return
+	}
+	if !configRole.IsNull() && !configRole.IsUnknown() {
+		return
+	}
+	if planBuild.IsNull() || planBuild.IsUnknown() {
+		return
+	}
+	if stateBuild != nil && !stateBuild.IsNull() && !stateBuild.IsUnknown() &&
+		stateBuild.ValueBool() == planBuild.ValueBool() {
+		return
+	}
+	if planBuild.ValueBool() {
+		*planRole = types.StringValue("build")
+		return
+	}
+	*planRole = types.StringValue("both")
 }
 
 // BuildServerUpdateInput constructs an UpdateServerInput from the diff

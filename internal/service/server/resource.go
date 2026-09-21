@@ -22,6 +22,7 @@ var (
 	_ resource.Resource                = &serverResource{}
 	_ resource.ResourceWithConfigure   = &serverResource{}
 	_ resource.ResourceWithImportState = &serverResource{}
+	_ resource.ResourceWithModifyPlan  = &serverResource{}
 )
 
 type serverResource struct {
@@ -122,6 +123,30 @@ func (r *serverResource) Configure(_ context.Context, req resource.ConfigureRequ
 	r.client = flex.ConfigureClient(req, &resp.Diagnostics)
 }
 
+func (r *serverResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	var plan serverResourceModel
+	var cfg serverResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	var stateBuild *types.Bool
+	if !req.State.Raw.IsNull() {
+		var state serverResourceModel
+		resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		stateBuild = &state.IsBuildServer
+	}
+	AlignUnconfiguredServerRole(r.client, &cfg.ServerRole, &plan.ServerRole, &plan.IsBuildServer, stateBuild)
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
+}
+
 func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan serverResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -147,6 +172,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		User:            plan.User.ValueString(),
 		PrivateKeyUUID:  plan.PrivateKeyUUID.ValueString(),
 		IsBuildServer:   flex.BoolValueOrNull(plan.IsBuildServer),
+		ServerRole:      flex.StringValueOrNull(plan.ServerRole),
 		InstantValidate: flex.BoolValueOrNull(plan.InstantValidate),
 	}
 

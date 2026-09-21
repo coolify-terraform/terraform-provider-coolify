@@ -30,6 +30,7 @@ var (
 	_ resource.Resource                = &hetznerServerResource{}
 	_ resource.ResourceWithConfigure   = &hetznerServerResource{}
 	_ resource.ResourceWithImportState = &hetznerServerResource{}
+	_ resource.ResourceWithModifyPlan  = &hetznerServerResource{}
 )
 
 type hetznerServerResource struct {
@@ -328,6 +329,30 @@ func (r *hetznerServerResource) Read(ctx context.Context, req resource.ReadReque
 
 	flattenHetznerServer(srv, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func (r *hetznerServerResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	var plan hetznerServerResourceModel
+	var cfg hetznerServerResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	var stateBuild *types.Bool
+	if !req.State.Raw.IsNull() {
+		var state hetznerServerResourceModel
+		resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		stateBuild = &state.IsBuildServer
+	}
+	server.AlignUnconfiguredServerRole(r.client, &cfg.ServerRole, &plan.ServerRole, &plan.IsBuildServer, stateBuild)
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
 func (r *hetznerServerResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

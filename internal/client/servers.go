@@ -152,23 +152,28 @@ func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServ
 // Coolify version. Coolify >= 4.4 rejects is_build_server (extra-key 422)
 // and accepts server_role. Older versions are the reverse.
 //
-// A true is_build_server becomes server_role=build. False or unset is omitted
-// on 4.4 (API default is both). An explicit server_role always wins on 4.4.
+// A true is_build_server becomes server_role=build. A false value becomes
+// server_role=both: update_server changes the role only when the key is
+// present, so omitting false would leave a build server stuck. Nil is
+// omitted. An explicit server_role always wins on 4.4.
 func applyServerRoleWrite(c *Client, isBuild *bool, role *string) (*bool, *string) {
-	if c != nil && c.SupportsServerRole() {
-		if role != nil {
-			trimmed := strings.TrimSpace(*role)
-			if trimmed != "" {
-				return nil, &trimmed
-			}
+	if c == nil || !c.SupportsServerRole() {
+		return isBuild, nil
+	}
+	if role != nil {
+		trimmed := strings.TrimSpace(*role)
+		if trimmed != "" {
+			return nil, &trimmed
 		}
-		if isBuild != nil && *isBuild {
-			build := "build"
-			return nil, &build
-		}
+	}
+	if isBuild == nil {
 		return nil, nil
 	}
-	return isBuild, nil
+	mapped := "both"
+	if *isBuild {
+		mapped = "build"
+	}
+	return nil, &mapped
 }
 func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
 	path := fmt.Sprintf("/api/v1/servers/%s?force=true", url.PathEscape(uuid))

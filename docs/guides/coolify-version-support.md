@@ -209,7 +209,8 @@ from a given version are **version-gated on write**:
 `traffic_retention_1d_days`, `is_geoip_enabled`, `geoip_refresh_days`,
 and `geoip_maxmind_license_key` on `coolify_server_sentinel` use the same
 4.4-tip floor. On 4.4, `is_build_server = true` is sent as
-`server_role = build`. Tag v4.3.23 and `v4.4-rc.1` still write
+`server_role = build`, and `false` is sent as `server_role = both`.
+An explicit `server_role` wins. Tag v4.3.23 and `v4.4-rc.1` still write
 `is_build_server`.
 
 ### Matrix (application write gates)
