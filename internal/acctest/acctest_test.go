@@ -3,11 +3,14 @@ package acctest
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 )
 
 func TestAccTestServerUUID_UsesVisibleOverride(t *testing.T) {
@@ -681,4 +684,185 @@ func TestAccTestSMTPEhloDomainAccepted_OK(t *testing.T) {
 	if !AccTestSMTPEhloDomainAccepted(t) {
 		t.Fatal("expected 200 PATCH to accept smtp_ehlo_domain")
 	}
+}
+
+func TestIsClearDomainsProbeInfraError(t *testing.T) {
+	if isClearDomainsProbeInfraError(nil) {
+		t.Fatal("nil is not infra")
+	}
+	if !isClearDomainsProbeInfraError(client.ErrRetriesExhausted) {
+		t.Fatal("retries exhausted is infra")
+	}
+	if isClearDomainsProbeInfraError(&client.NotFoundError{Message: "application not found"}) {
+		t.Fatal("404 is a skip, not infra")
+	}
+	if isClearDomainsProbeInfraError(&client.APIStatusError{Status: http.StatusUnprocessableEntity, Message: "validation"}) {
+		t.Fatal("422 is a skip, not infra")
+	}
+	if !isClearDomainsProbeInfraError(&client.APIStatusError{Status: http.StatusInternalServerError, Message: "boom"}) {
+		t.Fatal("500 is infra")
+	}
+	if !isClearDomainsProbeInfraError(errors.New("executing request for POST /api/v1/projects: connection refused")) {
+		t.Fatal("POST transport without APIStatusError is infra")
+	}
+}
+
+func TestAccTestSkipIfCannotClearApplicationDomains_Clears(t *testing.T) {
+	t.Setenv("COOLIFY_SERVER_UUID", "from-host-preflight")
+	startClearDomainsProbeServer(t, clearDomainsModeClears)
+	AccTestSkipIfCannotClearApplicationDomains(t)
+}
+
+func TestAccTestSkipIfCannotClearApplicationDomains_Ignores(t *testing.T) {
+	startClearDomainsProbeServer(t, clearDomainsModeIgnores)
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfCannotClearApplicationDomains(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfCannotClearApplicationDomains to skip when empty PATCH leaves fqdn")
+	}
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "1")
+	reachedTip := false
+	t.Run("skip-under-require-tip", func(t *testing.T) {
+		AccTestSkipIfCannotClearApplicationDomains(t)
+		reachedTip = true
+	})
+	if reachedTip {
+		t.Fatal("empty-domains ignore must soft-skip under COOLIFY_REQUIRE_TIP_APIS=1")
+	}
+}
+
+func TestAccTestSkipIfCannotClearApplicationDomains_NoPersist(t *testing.T) {
+	startClearDomainsProbeServer(t, clearDomainsModeNoPersist)
+
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfCannotClearApplicationDomains(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfCannotClearApplicationDomains to skip when create does not persist fqdn")
+	}
+}
+
+func TestAccTestSkipIfCannotClearApplicationDomains_ServerError(t *testing.T) {
+	startClearDomainsProbeServer(t, clearDomainsModeProject500)
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "")
+	reached := false
+	t.Run("skip", func(t *testing.T) {
+		AccTestSkipIfCannotClearApplicationDomains(t)
+		reached = true
+	})
+	if reached {
+		t.Fatal("expected AccTestSkipIfCannotClearApplicationDomains to skip on HTTP 500")
+	}
+
+	t.Setenv("COOLIFY_REQUIRE_TIP_APIS", "1")
+	if os.Getenv("ACC_CLEAR_DOMAINS_PROBE_CHILD") == "1" {
+		t.Run("fatal", func(t *testing.T) {
+			AccTestSkipIfCannotClearApplicationDomains(t)
+		})
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestAccTestSkipIfCannotClearApplicationDomains_ServerError$")
+	cmd.Env = append(os.Environ(), "ACC_CLEAR_DOMAINS_PROBE_CHILD=1", "COOLIFY_REQUIRE_TIP_APIS=1")
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		t.Fatalf("expected Fatal on HTTP 500 with COOLIFY_REQUIRE_TIP_APIS=1, child passed:\n%s", out)
+	}
+	if !bytes.Contains(out, []byte("COOLIFY_REQUIRE_TIP_APIS")) {
+		t.Fatalf("child output missing REQUIRE_TIP fatal message:\n%s", out)
+	}
+}
+
+const (
+	clearDomainsModeClears     = "clears"
+	clearDomainsModeIgnores    = "ignores"
+	clearDomainsModeNoPersist  = "nopersist"
+	clearDomainsModeProject500 = "project500"
+)
+
+type clearDomainsProbeAPI struct {
+	mode string
+	fqdn string
+}
+
+func startClearDomainsProbeServer(t *testing.T, mode string) {
+	t.Helper()
+	resetAccTestCaches()
+	t.Cleanup(resetAccTestCaches)
+
+	st := &clearDomainsProbeAPI{
+		mode: mode,
+		fqdn: "http://tf-acc-clrdmn.example.com",
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "v4.3.23"})
+	})
+	mux.HandleFunc("GET /api/v1/servers", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]map[string]string{{"uuid": "srv-clear-1"}})
+	})
+	mux.HandleFunc("POST /api/v1/projects", st.handleCreateProject)
+	mux.HandleFunc("POST /api/v1/applications/dockerimage", st.handleCreateApp)
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", st.handleGetApp)
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", st.handlePatchApp)
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", st.handleDelete)
+	mux.HandleFunc("DELETE /api/v1/projects/{uuid}", st.handleDelete)
+
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+	t.Setenv("COOLIFY_SERVER_UUID", "srv-clear-1")
+}
+
+func (st *clearDomainsProbeAPI) handleCreateProject(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if st.mode == clearDomainsModeProject500 {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"internal server error"}`))
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]string{"uuid": "proj-clear-1", "name": "probe"})
+}
+
+func (st *clearDomainsProbeAPI) handleCreateApp(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]string{"uuid": "app-clear-1"})
+}
+
+func (st *clearDomainsProbeAPI) handleGetApp(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	fqdn := st.fqdn
+	if st.mode == clearDomainsModeNoPersist {
+		fqdn = ""
+	}
+	_ = json.NewEncoder(w).Encode(map[string]string{"uuid": "app-clear-1", "fqdn": fqdn})
+}
+
+func (st *clearDomainsProbeAPI) handlePatchApp(w http.ResponseWriter, r *http.Request) {
+	var body map[string]any
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if st.mode == clearDomainsModeClears {
+		if d, ok := body["domains"].(string); ok && d == "" {
+			st.fqdn = ""
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"uuid": "app-clear-1", "fqdn": st.fqdn})
+}
+
+func (st *clearDomainsProbeAPI) handleDelete(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
 }

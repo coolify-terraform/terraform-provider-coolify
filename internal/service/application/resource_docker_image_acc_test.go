@@ -140,14 +140,41 @@ resource "coolify_application_docker_image" "test" {
 	})
 }
 
-// TestAccDockerImageApplicationResource_ClearDomains documents provider support for
-// domains="" on update (#645). Skipped against real Coolify: update_by_uuid only
-// writes fqdn when $request->has('domains') is true, and Laravel
-// ConvertEmptyStringsToNull + has() treat "" as absent, so empty never clears FQDN.
-// Unit test TestDockerImageApplicationResource_ClearDomainsOnUpdate covers the
-// provider wire format. Re-enable when Coolify uses exists('domains') (or equivalent).
+// TestAccDockerImageApplicationResource_ClearDomains updates domains="" and
+// expects Coolify to clear fqdn. The live probe skips when the instance
+// ignores empty PATCH (provider #647, coollabsio/coolify#11116). Provider
+// wire format is covered by TestDockerImageApplicationResource_ClearDomainsOnUpdate.
 func TestAccDockerImageApplicationResource_ClearDomains(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
-	t.Skip("Coolify ignores empty domains on update ($request->has + ConvertEmptyStringsToNull); tracked in #647; provider unit test covers wire format")
+	acctest.TestAccPreCheck(t)
+	acctest.AccTestSkipIfCannotClearApplicationDomains(t)
+	serverUUID := acctest.AccTestServerUUID(t)
+	name := acctest.RandomWithPrefix("tf-acc-clrdmn")
+	domain := fmt.Sprintf("http://%s.example.com", name)
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.AccCheckDestroy("coolify_application_docker_image", "/api/v1/applications/"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDockerImageAppConfig(name, serverUUID, "nginx:alpine", fmt.Sprintf(`
+  autogenerate_domain = false
+  domains             = %q
+`, domain)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "domains", domain),
+				),
+			},
+			{
+				Config: testAccDockerImageAppConfig(name, serverUUID, "nginx:alpine", `
+  autogenerate_domain = false
+  domains             = ""
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "domains", ""),
+				),
+			},
+		},
+	})
 }
