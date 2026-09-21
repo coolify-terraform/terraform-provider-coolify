@@ -42,6 +42,7 @@ func fullSettingsInput() UpdateApplicationInput {
 		GpuOptions:                       &gpuDriver,
 		IsConsistentContainerNameEnabled: &b,
 		CustomInternalName:               &name,
+		CustomContainerNamePrefix:        &name,
 		NoindexDomains:                   &noindex,
 		MaxRestartCount:                  &n,
 	}
@@ -76,15 +77,19 @@ func TestUpdateApplication_VersionGate(t *testing.T) {
 		version         string
 		wantSettingsV42 bool
 		wantSettingsV43 bool
+		wantSettingsV44 bool
 	}{
-		{"4.1.2 withholds all settings", "4.1.2", false, false},
-		{"4.1.0 withholds all settings", "4.1.0", false, false},
-		{"4.2.0 sends v4.2 settings only", "4.2.0", true, false},
-		{"4.2.1 sends v4.2 settings only", "4.2.1", true, false},
-		{"4.3.0 sends all settings", "4.3.0", true, true},
-		{"v-prefixed 4.2.0 sends v4.2 only", "v4.2.0", true, false},
-		{"v-prefixed 4.3.0 sends all", "v4.3.0", true, true},
-		{"unknown version assumes newest", "", true, true},
+		{"4.1.2 withholds all settings", "4.1.2", false, false, false},
+		{"4.1.0 withholds all settings", "4.1.0", false, false, false},
+		{"4.2.0 sends v4.2 settings only", "4.2.0", true, false, false},
+		{"4.2.1 sends v4.2 settings only", "4.2.1", true, false, false},
+		{"4.3.23 sends v4.2 and v4.3", "4.3.23", true, true, false},
+		{"4.3.0 CI lie sends all including v4.4", "4.3.0", true, true, true},
+		{"4.4-rc.1 withholds v4.4", "4.4-rc.1", true, true, false},
+		{"4.4.0 sends all settings", "4.4.0", true, true, true},
+		{"v-prefixed 4.2.0 sends v4.2 only", "v4.2.0", true, false, false},
+		{"v-prefixed 4.3.0 sends all", "v4.3.0", true, true, true},
+		{"unknown version assumes newest", "", true, true, true},
 	}
 
 	for _, tt := range tests {
@@ -117,6 +122,12 @@ func TestUpdateApplication_VersionGate(t *testing.T) {
 					t.Errorf("Coolify %q: %s sent=%v, want %v", tt.version, key, sent, tt.wantSettingsV43)
 				}
 			}
+			for _, key := range ApplicationSettingsV44WriteJSONKeys {
+				_, sent := body[key]
+				if sent != tt.wantSettingsV44 {
+					t.Errorf("Coolify %q: %s sent=%v, want %v", tt.version, key, sent, tt.wantSettingsV44)
+				}
+			}
 		})
 	}
 }
@@ -146,6 +157,63 @@ func TestSupportsApplicationSettings(t *testing.T) {
 	var nilClient *Client
 	if !nilClient.SupportsApplicationSettings() {
 		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
+func TestSupportsServerRole(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.3.21", false},
+		{"4.3.23", false},
+		{"4.4-rc.1", false},
+		{"v4.4-rc.1", false},
+		{"4.3.0", true}, // CI edge version lie
+		{"4.4", true},
+		{"4.4.0", true},
+		{"v4.4.0", true},
+		{"", true},
+		{"not-a-version", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsServerRole(); got != tt.want {
+			t.Errorf("SupportsServerRole(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsServerRole() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
+func TestSupportsApplicationSettingsV44(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.3.21", false},
+		{"4.3.23", false},
+		{"4.4-rc.1", false},
+		{"v4.4-rc.1", false},
+		{"4.3.0", true},
+		{"4.4", true},
+		{"4.4.0", true},
+		{"", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsApplicationSettingsV44(); got != tt.want {
+			t.Errorf("SupportsApplicationSettingsV44(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+		if got := c.SupportsSentinelTrafficSettings(); got != tt.want {
+			t.Errorf("SupportsSentinelTrafficSettings(%q) = %v, want %v", tt.version, got, tt.want)
+		}
 	}
 }
 
@@ -291,6 +359,10 @@ func TestHasOnlyApplicationSettings(t *testing.T) {
 	if !(UpdateApplicationInput{IsLogDrainEnabled: &b}).HasOnlyApplicationSettings() {
 		t.Error("v4.3 settings-only input should report true so callers can skip the request")
 	}
+	prefix := "my-api"
+	if !(UpdateApplicationInput{CustomContainerNamePrefix: &prefix}).HasOnlyApplicationSettings() {
+		t.Error("v4.4 settings-only input should report true so callers can skip the request")
+	}
 	if (UpdateApplicationInput{Name: &name, IsGzipEnabled: &b}).HasOnlyApplicationSettings() {
 		t.Error("input with a non-settings field still has work to do; want false")
 	}
@@ -318,6 +390,31 @@ func TestHasOnlyApplicationSettingsV43(t *testing.T) {
 	if (UpdateApplicationInput{Name: &name, IsLogDrainEnabled: &b}).HasOnlyApplicationSettingsV43() {
 		t.Error("input with a non-settings field still has work to do; want false")
 	}
+	prefix := "my-api"
+	if !(UpdateApplicationInput{CustomContainerNamePrefix: &prefix}).HasOnlyApplicationSettingsV43() {
+		t.Error("v4.4-only input is also withheld on v4.2.x and should report true")
+	}
+}
+
+func TestHasOnlyApplicationSettingsV44(t *testing.T) {
+	t.Parallel()
+
+	b := true
+	name := "x"
+	prefix := "my-api"
+
+	if (UpdateApplicationInput{}).HasOnlyApplicationSettingsV44() {
+		t.Error("empty input: want false")
+	}
+	if !(UpdateApplicationInput{CustomContainerNamePrefix: &prefix}).HasOnlyApplicationSettingsV44() {
+		t.Error("v4.4-only input should report true")
+	}
+	if (UpdateApplicationInput{IsLogDrainEnabled: &b}).HasOnlyApplicationSettingsV44() {
+		t.Error("v4.3-only field must not count as v4.4-only")
+	}
+	if (UpdateApplicationInput{Name: &name, CustomContainerNamePrefix: &prefix}).HasOnlyApplicationSettingsV44() {
+		t.Error("input with a non-settings field still has work to do; want false")
+	}
 }
 
 func TestVersionGatedWriteKeysPresent(t *testing.T) {
@@ -335,6 +432,10 @@ func TestVersionGatedWriteKeysPresent(t *testing.T) {
 	if len(gotV43) != len(ApplicationSettingsV43WriteJSONKeys) {
 		t.Fatalf("v43: got %d keys %v, want %d", len(gotV43), gotV43, len(ApplicationSettingsV43WriteJSONKeys))
 	}
+	gotV44 := fullSettingsInput().versionGatedV44WriteKeysPresent()
+	if len(gotV44) != len(ApplicationSettingsV44WriteJSONKeys) {
+		t.Fatalf("v44: got %d keys %v, want %d", len(gotV44), gotV44, len(ApplicationSettingsV44WriteJSONKeys))
+	}
 }
 
 // TestFullSettingsInput_CoversExportedKeys fails if ApplicationSettingsWriteJSONKeys
@@ -351,7 +452,7 @@ func TestFullSettingsInput_CoversExportedKeys(t *testing.T) {
 	if err := json.Unmarshal(raw, &body); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	allKeys := append(append([]string{}, ApplicationSettingsWriteJSONKeys...), ApplicationSettingsV43WriteJSONKeys...)
+	allKeys := append(append(append([]string{}, ApplicationSettingsWriteJSONKeys...), ApplicationSettingsV43WriteJSONKeys...), ApplicationSettingsV44WriteJSONKeys...)
 	for _, key := range allKeys {
 		if _, ok := body[key]; !ok {
 			t.Errorf("fullSettingsInput omits %q; update the fixture and clearApplicationSettings", key)
@@ -396,6 +497,32 @@ func TestFullSettingsInput_CoversExportedKeys(t *testing.T) {
 	for _, key := range ApplicationSettingsWriteJSONKeys {
 		if _, ok := v43Body[key]; !ok {
 			t.Errorf("clearApplicationSettingsV43 dropped v4.2 key %q", key)
+		}
+	}
+	for _, key := range ApplicationSettingsV44WriteJSONKeys {
+		if _, ok := v43Body[key]; ok {
+			t.Errorf("clearApplicationSettingsV43 left v4.4 key %q", key)
+		}
+	}
+
+	v44Only := fullSettingsInput()
+	v44Only.clearApplicationSettingsV44()
+	v44Raw, err := json.Marshal(v44Only)
+	if err != nil {
+		t.Fatalf("marshal v44 clear: %v", err)
+	}
+	var v44Body map[string]json.RawMessage
+	if err := json.Unmarshal(v44Raw, &v44Body); err != nil {
+		t.Fatalf("unmarshal v44 clear: %v", err)
+	}
+	for _, key := range ApplicationSettingsV44WriteJSONKeys {
+		if _, ok := v44Body[key]; ok {
+			t.Errorf("clearApplicationSettingsV44 left %q", key)
+		}
+	}
+	for _, key := range ApplicationSettingsV43WriteJSONKeys {
+		if _, ok := v44Body[key]; !ok {
+			t.Errorf("clearApplicationSettingsV44 dropped v4.3 key %q", key)
 		}
 	}
 }

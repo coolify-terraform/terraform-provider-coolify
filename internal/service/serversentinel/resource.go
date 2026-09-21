@@ -7,9 +7,12 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -34,6 +37,13 @@ type model struct {
 	SentinelMetricsHistoryDays        types.Int64  `tfsdk:"sentinel_metrics_history_days"`
 	SentinelPushIntervalSeconds       types.Int64  `tfsdk:"sentinel_push_interval_seconds"`
 	SentinelCustomURL                 types.String `tfsdk:"sentinel_custom_url"`
+	TrafficTopN                       types.Int64  `tfsdk:"traffic_topn"`
+	TrafficSampleThreshold            types.Int64  `tfsdk:"traffic_sample_threshold"`
+	TrafficRetention1hDays            types.Int64  `tfsdk:"traffic_retention_1h_days"`
+	TrafficRetention1dDays            types.Int64  `tfsdk:"traffic_retention_1d_days"`
+	IsGeoIPEnabled                    types.Bool   `tfsdk:"is_geoip_enabled"`
+	GeoIPRefreshDays                  types.Int64  `tfsdk:"geoip_refresh_days"`
+	GeoIPMaxMindLicenseKey            types.String `tfsdk:"geoip_maxmind_license_key"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -73,6 +83,60 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 					"after import if GET still omits it.",
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
+			"traffic_topn": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "How many top talkers Sentinel stores for traffic analytics. Coolify default is `50`. " +
+					"Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.",
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+				Validators:    []validator.Int64{int64validator.AtLeast(1)},
+			},
+			"traffic_sample_threshold": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "Minimum bytes before a flow is sampled. Coolify default is `0`. " +
+					"Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.",
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+				Validators:    []validator.Int64{int64validator.AtLeast(0)},
+			},
+			"traffic_retention_1h_days": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "Days to retain 1-hour traffic buckets. Coolify default is `30`. " +
+					"Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.",
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+				Validators:    []validator.Int64{int64validator.AtLeast(1)},
+			},
+			"traffic_retention_1d_days": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "Days to retain 1-day traffic buckets. Coolify default is `395`. " +
+					"Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.",
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+				Validators:    []validator.Int64{int64validator.AtLeast(1)},
+			},
+			"is_geoip_enabled": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "Whether GeoIP lookup is enabled for Sentinel traffic. Coolify default is `true`. " +
+					"Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.",
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"geoip_refresh_days": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "How often Sentinel refreshes the GeoIP database, in days. Coolify default is `30`. " +
+					"Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.",
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+				Validators:    []validator.Int64{int64validator.AtLeast(1)},
+			},
+			"geoip_maxmind_license_key": schema.StringAttribute{
+				Optional:  true,
+				Sensitive: true,
+				MarkdownDescription: "MaxMind license key for GeoIP database downloads. Preserved on refresh when GET omits it. " +
+					"Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write. " +
+					"After import, keep the key in configuration; GET typically hides it unless the token has read:sensitive.",
+			},
 		},
 	}
 }
@@ -101,6 +165,28 @@ func toInput(m model) client.ServerSentinel {
 		v := m.SentinelPushIntervalSeconds.ValueInt64()
 		in.SentinelPushIntervalSeconds = &v
 	}
+	if !m.TrafficTopN.IsNull() && !m.TrafficTopN.IsUnknown() {
+		v := m.TrafficTopN.ValueInt64()
+		in.TrafficTopN = &v
+	}
+	if !m.TrafficSampleThreshold.IsNull() && !m.TrafficSampleThreshold.IsUnknown() {
+		v := m.TrafficSampleThreshold.ValueInt64()
+		in.TrafficSampleThreshold = &v
+	}
+	if !m.TrafficRetention1hDays.IsNull() && !m.TrafficRetention1hDays.IsUnknown() {
+		v := m.TrafficRetention1hDays.ValueInt64()
+		in.TrafficRetention1hDays = &v
+	}
+	if !m.TrafficRetention1dDays.IsNull() && !m.TrafficRetention1dDays.IsUnknown() {
+		v := m.TrafficRetention1dDays.ValueInt64()
+		in.TrafficRetention1dDays = &v
+	}
+	in.IsGeoIPEnabled = flex.BoolValueOrNull(m.IsGeoIPEnabled)
+	if !m.GeoIPRefreshDays.IsNull() && !m.GeoIPRefreshDays.IsUnknown() {
+		v := m.GeoIPRefreshDays.ValueInt64()
+		in.GeoIPRefreshDays = &v
+	}
+	in.GeoIPMaxMindLicenseKey = m.GeoIPMaxMindLicenseKey.ValueString()
 	return in
 }
 
@@ -143,6 +229,27 @@ func flatten(s *client.ServerSentinel, m *model) {
 	} else if m.SentinelCustomURL.IsUnknown() {
 		m.SentinelCustomURL = types.StringNull()
 	}
+	flattenInt64(s.TrafficTopN, &m.TrafficTopN)
+	flattenInt64(s.TrafficSampleThreshold, &m.TrafficSampleThreshold)
+	flattenInt64(s.TrafficRetention1hDays, &m.TrafficRetention1hDays)
+	flattenInt64(s.TrafficRetention1dDays, &m.TrafficRetention1dDays)
+	if s.IsGeoIPEnabled != nil {
+		m.IsGeoIPEnabled = types.BoolValue(*s.IsGeoIPEnabled)
+	} else if m.IsGeoIPEnabled.IsUnknown() {
+		m.IsGeoIPEnabled = types.BoolNull()
+	}
+	flattenInt64(s.GeoIPRefreshDays, &m.GeoIPRefreshDays)
+	if s.GeoIPMaxMindLicenseKey != "" && !m.GeoIPMaxMindLicenseKey.IsNull() {
+		m.GeoIPMaxMindLicenseKey = types.StringValue(s.GeoIPMaxMindLicenseKey)
+	}
+}
+
+func flattenInt64(src *int64, dst *types.Int64) {
+	if src != nil {
+		*dst = types.Int64Value(*src)
+	} else if dst.IsUnknown() {
+		*dst = types.Int64Null()
+	}
 }
 
 func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -176,9 +283,13 @@ func (r *res) Read(ctx context.Context, req resource.ReadRequest, resp *resource
 		resp.Diagnostics.AddError("Error reading Sentinel settings", fmt.Sprintf("%s: %s", state.ServerUUID.ValueString(), err))
 		return
 	}
+	license := state.GeoIPMaxMindLicenseKey
 	flatten(got, &state)
 	if got.SentinelToken == "" {
 		state.SentinelToken = token
+	}
+	if got.GeoIPMaxMindLicenseKey == "" {
+		state.GeoIPMaxMindLicenseKey = license
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

@@ -223,6 +223,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"DELETE /tags/{uuid}":                                                           covered("coolify_tag + coolify_resource_tag", "v0.1.15"),
 		"DELETE /team/envs/{env_id}":                                                    covered("coolify_shared_environment_variable", "v0.1.15"),
 		"GET /applications/{uuid}/destinations":                                         covered("coolify_application_destination", "v0.1.15"),
+		"GET /applications/{uuid}/previews/{pull_request_id}/logs":                      skipped(skipLogs),
 		"GET /applications/{uuid}/rollback-images":                                      skipped(skipRollback),
 		"GET /applications/{uuid}/tags":                                                 covered("coolify_tag + coolify_resource_tag", "v0.1.15"),
 		"GET /cloud-init-scripts":                                                       covered("coolify_cloud_init_script", "v0.1.15"),

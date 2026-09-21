@@ -54,6 +54,7 @@ resource "coolify_application_dockerfile" "app" {
 - `base_directory` (String) The base directory for the application source code. Omitting the attribute later does not clear the stored path.
 - `build_command` (String) The command to run during the build phase. Omitting the attribute later does not clear the stored command.
 - `connect_to_docker_network` (Boolean) Whether to connect the application to the Docker network.
+- `custom_container_name_prefix` (String) Prefix for generated container names (`prefix-20260908T141530` instead of `{uuid}-timestamp`). Coolify slugifies the value and requires it to be unique across the instance. Use a lowercase slug (`my-api`). Maximum 30 characters. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `custom_docker_run_options` (String) Custom Docker run options passed to the container.
 - `custom_internal_name` (String) Custom internal container name for the application. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
 - `custom_labels` (String) Custom Docker labels for the container. The provider accepts plain text or pre-encoded base64; encoding is handled automatically.

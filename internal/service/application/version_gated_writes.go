@@ -97,6 +97,17 @@ func configuredVersionGatedV43WriteAttrs(f commonAppFields) []string {
 	return names
 }
 
+// configuredVersionGatedV44WriteAttrs returns Terraform attribute names set in
+// config that Coolify only accepts on write when SupportsApplicationSettingsV44
+// is true (Coolify >= 4.4 tip, not v4.4-rc.1).
+func configuredVersionGatedV44WriteAttrs(f commonAppFields) []string {
+	var names []string
+	if f.CustomContainerNamePrefix != nil && !f.CustomContainerNamePrefix.IsNull() && !f.CustomContainerNamePrefix.IsUnknown() {
+		names = append(names, "custom_container_name_prefix")
+	}
+	return names
+}
+
 // warnUnsupportedApplicationSettingsWrites adds a plan/apply warning when the
 // connected Coolify is older than the gate for configured fields. Values stay
 // in Terraform state; the client strips them on PATCH (see #662 / #663).
@@ -110,9 +121,9 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 	}
 	if !c.SupportsApplicationSettings() {
 		names := configuredVersionGatedWriteAttrs(f)
-		// On < 4.2.0 the v4.3 fields are also withheld (clearApplicationSettings
-		// strips both tiers).
+		// On < 4.2.0 the v4.3 and v4.4 fields are also withheld.
 		names = append(names, configuredVersionGatedV43WriteAttrs(f)...)
+		names = append(names, configuredVersionGatedV44WriteAttrs(f)...)
 		sort.Strings(names)
 		if len(names) > 0 {
 			diags.AddWarning(
@@ -120,7 +131,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 				fmt.Sprintf(
 					"This Coolify instance (%s) is older than v4.2.0, which is required to write: %s. "+
 						"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
-						"Upgrade Coolify to v4.2.0 or later (v4.3.0 for GPU/log drain/noindex fields), or remove these attributes from configuration.",
+						"Upgrade Coolify to v4.2.0 or later (v4.3.0 for GPU/log drain/noindex fields, 4.4 for custom_container_name_prefix), or remove these attributes from configuration.",
 					ver,
 					strings.Join(names, ", "),
 				),
@@ -130,6 +141,8 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 	}
 	if !c.SupportsApplicationSettingsV43() {
 		names := configuredVersionGatedV43WriteAttrs(f)
+		names = append(names, configuredVersionGatedV44WriteAttrs(f)...)
+		sort.Strings(names)
 		if len(names) == 0 {
 			return
 		}
@@ -138,7 +151,24 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 			fmt.Sprintf(
 				"This Coolify instance (%s) is older than v4.3.0, which is required to write: %s. "+
 					"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
-					"Upgrade Coolify to v4.3.0 or later, or remove these attributes from configuration.",
+					"Upgrade Coolify to v4.3.0 or later (4.4 for custom_container_name_prefix), or remove these attributes from configuration.",
+				ver,
+				strings.Join(names, ", "),
+			),
+		)
+		return
+	}
+	if !c.SupportsApplicationSettingsV44() {
+		names := configuredVersionGatedV44WriteAttrs(f)
+		if len(names) == 0 {
+			return
+		}
+		diags.AddWarning(
+			versionGatedWriteAttrSummary,
+			fmt.Sprintf(
+				"This Coolify instance (%s) is older than 4.4, which is required to write: %s. "+
+					"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
+					"Upgrade Coolify to 4.4 or later (not v4.4-rc.1), or remove these attributes from configuration.",
 				ver,
 				strings.Join(names, ", "),
 			),

@@ -11,9 +11,9 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 247 covered / 299 registry entries (82.6%)  
-**Planned**: 0 | **Skipped**: 52  
-**Registry size**: 299 (contract routes + allowlisted extras)
+**Coverage**: 247 covered / 300 registry entries (82.3%)  
+**Planned**: 0 | **Skipped**: 53  
+**Registry size**: 300 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
 
@@ -71,6 +71,7 @@ Log endpoints stream runtime output. That is not durable Terraform state.
 
 | Route |
 |-------|
+| `GET /applications/{uuid}/previews/{pull_request_id}/logs` |
 | `GET /databases/{uuid}/logs` |
 | `GET /services/{uuid}/applications/{app_uuid}/logs` |
 | `GET /services/{uuid}/databases/{database_uuid}/logs` |
@@ -1044,6 +1045,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /applications/{uuid}/destinations` | covered | `coolify_application_destination` |
 | `GET /applications/{uuid}/envs` | covered | `data.coolify_environment_variables` |
 | `GET /applications/{uuid}/logs` | covered | `data.coolify_application_logs` |
+| `GET /applications/{uuid}/previews/{pull_request_id}/logs` | skipped | `logs` |
 | `GET /applications/{uuid}/restart` | covered | `coolify_deployment` |
 | `GET /applications/{uuid}/rollback-images` | skipped | `rollback` |
 | `GET /applications/{uuid}/scheduled-tasks` | covered | `data.coolify_scheduled_tasks` |

@@ -42,7 +42,7 @@ output "coolify_version" {
 | **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. Recommended for the full feature set. |
 
-Pinned API contract today: Coolify **v4.3.21** (`testdata/contracts/coolify-v4.json`).
+Pinned API contract today: Coolify **v4.3.23** (`testdata/contracts/coolify-v4.json`).
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
 That route stays `nested-service` (use `coolify_service` for the stack).
@@ -56,7 +56,12 @@ Tag v4.3.19 adds `max_restart_count` on that same nested service-application
 PATCH (still `nested-service`). Tags v4.3.20 and v4.3.21 add no public routes
 or allow-list fields. v4.3.21 sets the Application `max_restart_count` model
 default to `0` (disable the limit); tags through v4.3.20 keep the column
-default of `10`.
+default of `10`. Tag v4.3.23 adds Server `sentinel_waiting_since` (runtime,
+not in schema) and `GET /applications/{uuid}/previews/{pull_request_id}/logs`
+(log stream, not a resource).
+Coolify **4.4 tip** (not tag v4.3.23, not `v4.4-rc.1`) replaces server
+`is_build_server` writes with `server_role`, adds application
+`custom_container_name_prefix`, and adds Sentinel GeoIP/traffic settings.
 `v4.4-rc.1` was cut before the 4.3.15 restart-limit fields and before the
 4.3.18 backup notification field. The provider remains usable on 4.1.0+
 for the common surface.
@@ -193,13 +198,28 @@ from a given version are **version-gated on write**:
 | `noindex_domains` | `noindex_domains` (list of domain URLs) |
 | `max_restart_count` | `max_restart_count` |
 
+### Writes require Coolify ≥ 4.4 (not v4.4-rc.1)
+
+| Terraform attribute | API JSON key |
+|---------------------|--------------|
+| `custom_container_name_prefix` | `custom_container_name_prefix` |
+
+`server_role` on `coolify_server` / cloud server resources and
+`traffic_topn`, `traffic_sample_threshold`, `traffic_retention_1h_days`,
+`traffic_retention_1d_days`, `is_geoip_enabled`, `geoip_refresh_days`,
+and `geoip_maxmind_license_key` on `coolify_server_sentinel` use the same
+4.4-tip floor. On 4.4, `is_build_server = true` is sent as
+`server_role = build`. Tag v4.3.23 and `v4.4-rc.1` still write
+`is_build_server`.
+
 ### Matrix (application write gates)
 
-| Attribute group | 4.1.x | 4.2.x | ≥ 4.3.0 |
-|-----------------|-------|-------|---------|
-| Core app fields (name, domains, build, limits, health checks, …) | Yes | Yes | Yes |
-| 4.2 settings / preview / build secrets (table above) | State only; no write | Yes | Yes |
-| 4.3 settings + `noindex_domains` | State only; no write | State only; no write | Yes |
+| Attribute group | 4.1.x | 4.2.x | ≥ 4.3.0 | ≥ 4.4 tip |
+|-----------------|-------|-------|---------|-----------|
+| Core app fields (name, domains, build, limits, health checks, …) | Yes | Yes | Yes | Yes |
+| 4.2 settings / preview / build secrets (table above) | State only; no write | Yes | Yes | Yes |
+| 4.3 settings + `noindex_domains` | State only; no write | State only; no write | Yes | Yes |
+| `custom_container_name_prefix` | State only; no write | State only; no write | State only; no write | Yes |
 
 ## What "does not work" means in practice
 

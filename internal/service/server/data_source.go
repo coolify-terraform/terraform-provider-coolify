@@ -31,6 +31,7 @@ type serverDataSourceModel struct {
 	Port                                 types.Int64  `tfsdk:"port"`
 	User                                 types.String `tfsdk:"user"`
 	IsBuildServer                        types.Bool   `tfsdk:"is_build_server"`
+	ServerRole                           types.String `tfsdk:"server_role"`
 	IsReachable                          types.Bool   `tfsdk:"is_reachable"`
 	IsUsable                             types.Bool   `tfsdk:"is_usable"`
 	ConcurrentBuilds                     types.Int64  `tfsdk:"concurrent_builds"`
@@ -74,6 +75,10 @@ func serverDataSourceAttributes() map[string]schema.Attribute {
 		},
 		"is_build_server": schema.BoolAttribute{
 			MarkdownDescription: "Whether this server is used for building applications.",
+			Computed:            true,
+		},
+		"server_role": schema.StringAttribute{
+			MarkdownDescription: "Server role (`deployment`, `build`, or `both`). Coolify >= 4.4.",
 			Computed:            true,
 		},
 		"is_reachable": schema.BoolAttribute{
@@ -145,6 +150,16 @@ func flattenServerDataSourceModel(srv client.Server) serverDataSourceModel {
 		IsBuildServer: types.BoolValue(srv.IsBuildServer),
 		IsReachable:   types.BoolValue(srv.IsReachable),
 		IsUsable:      types.BoolValue(srv.IsUsable),
+	}
+	role := srv.ServerRole
+	if role == "" && srv.Settings != nil {
+		role = srv.Settings.ServerRole
+	}
+	if role != "" {
+		model.ServerRole = types.StringValue(role)
+	}
+	if role == "build" && !srv.IsBuildServer {
+		model.IsBuildServer = types.BoolValue(true)
 	}
 
 	if srv.Settings == nil {

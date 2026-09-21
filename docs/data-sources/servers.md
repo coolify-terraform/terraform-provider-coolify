@@ -63,5 +63,6 @@ Read-Only:
 - `port` (Number) The SSH port of the server.
 - `server_disk_usage_check_frequency` (String) Cron expression for how often disk usage is checked.
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
+- `server_role` (String) Server role (`deployment`, `build`, or `both`). Coolify >= 4.4.
 - `user` (String) The SSH user for connecting to the server.
 - `uuid` (String) The unique identifier of the server.

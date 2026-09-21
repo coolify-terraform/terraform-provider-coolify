@@ -59,6 +59,7 @@ type digitalOceanServerResourceModel struct {
 	User                                 types.String `tfsdk:"user"`
 	PrivateKeyUUID                       types.String `tfsdk:"private_key_uuid"`
 	IsBuildServer                        types.Bool   `tfsdk:"is_build_server"`
+	ServerRole                           types.String `tfsdk:"server_role"`
 	ConcurrentBuilds                     types.Int64  `tfsdk:"concurrent_builds"`
 	DynamicTimeout                       types.Int64  `tfsdk:"dynamic_timeout"`
 	DeploymentQueueLimit                 types.Int64  `tfsdk:"deployment_queue_limit"`
@@ -354,7 +355,7 @@ func (m *digitalOceanServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 		ConnectionTimeout:                    &m.ConnectionTimeout,
 		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
 		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
-		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
+		IsBuildServer:                        &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
 		WildcardDomain: &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
 		IsTerminalEnabled: &m.IsTerminalEnabled, IsSentinelEnabled: &m.IsSentinelEnabled,

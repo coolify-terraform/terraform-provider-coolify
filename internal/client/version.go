@@ -66,6 +66,17 @@ var ApplicationSettingsV43WriteJSONKeys = []string{
 	"max_restart_count",
 }
 
+// minApplicationSettingsV44Version is Coolify 4.4 tip, which adds
+// custom_container_name_prefix to application create/update $allowedFields.
+// Tag v4.3.23 and v4.4-rc.1 do not accept the key.
+const minApplicationSettingsV44Version = "4.4.0"
+
+// ApplicationSettingsV44WriteJSONKeys lists Coolify application PATCH JSON keys
+// accepted only on Coolify >= 4.4 (not v4.4-rc.1).
+var ApplicationSettingsV44WriteJSONKeys = []string{
+	"custom_container_name_prefix",
+}
+
 // SupportsApplicationSettings reports whether the connected instance accepts
 // Coolify >= v4.2.0 application write fields (APPLICATION_SETTING_FIELDS plus
 // is_preview_deployments_enabled and use_build_secrets, which landed as
@@ -93,6 +104,30 @@ func (c *Client) SupportsApplicationSettingsV43() bool {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minApplicationSettingsV43Version)
+}
+
+// SupportsApplicationSettingsV44 reports whether the connected instance accepts
+// Coolify >= 4.4 application write fields (custom_container_name_prefix).
+//
+// Empty CoolifyVersion reports true. 4.4-rc.* reports false. A 4.3.0 version
+// string reports true (CI edge version lie).
+func (c *Client) SupportsApplicationSettingsV44() bool {
+	return c.supports44Tip()
+}
+
+// supports44Tip is the shared Coolify 4.4-tip gate (not v4.4-rc.1).
+// Empty version assumes newest. 4.3.0 is treated as maybe-tip (CI edge lie).
+func (c *Client) supports44Tip() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionIs44Prerelease(c.CoolifyVersion) {
+		return false
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minApplicationSettingsV44Version)
 }
 
 // minSMTPEhloDomainVersion is the first Coolify version string that accepts
@@ -152,6 +187,25 @@ func (c *Client) SupportsSMTPEhloDomain() bool {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minSMTPEhloDomainVersion)
+}
+
+// SupportsServerRole reports whether the connected instance accepts
+// server_role on POST/PATCH /servers and rejects is_build_server.
+// Same floor as minApplicationSettingsV44Version (Coolify 4.4 tip).
+//
+// Empty CoolifyVersion reports true (same rationale as SupportsApplicationSettings).
+// A 4.3.0 version string also reports true: CI edge lies with that
+// string while shipping later tip APIs. Acc tests must still extra-key
+// probe before treating a 422 as a provider bug.
+// 4.4-rc.* reports false: v4.4-rc.1 was cut without server_role.
+func (c *Client) SupportsServerRole() bool {
+	return c.supports44Tip()
+}
+
+// SupportsSentinelTrafficSettings reports whether PATCH /servers/{uuid}/sentinel
+// accepts GeoIP and traffic retention fields (Coolify 4.4 tip, not v4.4-rc.1).
+func (c *Client) SupportsSentinelTrafficSettings() bool {
+	return c.supports44Tip()
 }
 
 // minMissingBackupNotificationDaysVersion is the first Coolify git tag

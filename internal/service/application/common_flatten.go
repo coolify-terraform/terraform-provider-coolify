@@ -470,6 +470,7 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.StringPtrNonDefault(f.GpuOptions, "") ||
 		flex.BoolPtrNonDefault(f.IsConsistentContainerNameEnabled, false) ||
 		flex.StringPtrNonDefault(f.CustomInternalName, "") ||
+		flex.StringPtrNonDefault(f.CustomContainerNamePrefix, "") ||
 		listPtrConfigured(f.NoindexDomains) ||
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
@@ -605,6 +606,11 @@ func postCreatePatchExtendedFields(ctx context.Context, c *client.Client, uuid s
 			map[string]interface{}{"uuid": uuid})
 		return
 	}
+	if c.SupportsApplicationSettingsV43() && !c.SupportsApplicationSettingsV44() && input.HasOnlyApplicationSettingsV44() {
+		tflog.Debug(ctx, "skipping post-create patch: only Coolify>=4.4 write fields, unsupported on this Coolify version",
+			map[string]interface{}{"uuid": uuid})
+		return
+	}
 	tflog.Debug(ctx, "patching extended fields after create", map[string]interface{}{"uuid": uuid})
 	if _, err := c.UpdateApplication(ctx, uuid, input); err != nil {
 		hint := annotateDockerComposeDomainsError(err)
@@ -715,6 +721,7 @@ func flattenApplicationSettingFields(app *client.Application, f commonAppFields)
 	flex.SetStringSeedOrClear(f.GpuOptions, app.GpuOptions)
 	setBoolDefault(f.IsConsistentContainerNameEnabled, app.IsConsistentContainerNameEnabled, false)
 	flex.SetStringSeedOrClear(f.CustomInternalName, app.CustomInternalName)
+	flex.SetStringSeedOrClear(f.CustomContainerNamePrefix, app.CustomContainerNamePrefix)
 	flattenNoindexDomains(app.NoindexDomains, f.NoindexDomains)
 }
 
@@ -822,6 +829,7 @@ func addApplicationSettingUpdateFields(plan, state commonAppFields, input *clien
 	setStrDiff(&input.GpuOptions, plan.GpuOptions, state.GpuOptions)
 	setBoolDiff(&input.IsConsistentContainerNameEnabled, plan.IsConsistentContainerNameEnabled, state.IsConsistentContainerNameEnabled)
 	setStrDiff(&input.CustomInternalName, plan.CustomInternalName, state.CustomInternalName)
+	setStrDiff(&input.CustomContainerNamePrefix, plan.CustomContainerNamePrefix, state.CustomContainerNamePrefix)
 	if plan.NoindexDomains != nil && state.NoindexDomains != nil && !plan.NoindexDomains.Equal(*state.NoindexDomains) {
 		if plan.NoindexDomains.IsNull() {
 			empty := []string{}
@@ -864,6 +872,9 @@ func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f com
 	flex.SetBoolPtr(&input.IsConsistentContainerNameEnabled, safeBool(f.IsConsistentContainerNameEnabled))
 	if f.CustomInternalName != nil {
 		flex.SetStrPtr(&input.CustomInternalName, *f.CustomInternalName)
+	}
+	if f.CustomContainerNamePrefix != nil {
+		flex.SetStrPtr(&input.CustomContainerNamePrefix, *f.CustomContainerNamePrefix)
 	}
 	if listPtrConfigured(f.NoindexDomains) {
 		list := stringListFromTypes(*f.NoindexDomains)

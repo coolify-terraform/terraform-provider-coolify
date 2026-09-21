@@ -23,7 +23,7 @@ func newTestPtrs() (ServerCommonPtrs, *testModel) {
 		ConnectionTimeout:                    &m.ConnectionTimeout,
 		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
 		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
-		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
+		IsBuildServer:                        &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
 		InstantValidate: &m.InstantValidate,
 		WildcardDomain:  &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
@@ -46,6 +46,7 @@ type testModel struct {
 	ServerDiskUsageNotificationThreshold              types.Int64
 	ServerDiskUsageCheckFrequency                     types.String
 	IsBuildServer, IsReachable, IsUsable              types.Bool
+	ServerRole                                        types.String
 	InstantValidate                                   types.Bool
 	// Extended settings
 	WildcardDomain                    types.String
@@ -107,6 +108,7 @@ var expectedWritableServerUpdateKeys = []string{
 	"private_key_uuid",
 	"server_disk_usage_check_frequency",
 	"server_disk_usage_notification_threshold",
+	"server_role",
 	"user",
 }
 
@@ -470,6 +472,8 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	// Bool field: plan != state.
 	*plan.IsBuildServer = types.BoolValue(true)
 	*state.IsBuildServer = types.BoolValue(false)
+	*plan.ServerRole = types.StringValue("build")
+	*state.ServerRole = types.StringValue("both")
 	*plan.InstantValidate = types.BoolValue(true)
 	*state.InstantValidate = types.BoolValue(false)
 	*plan.IsTerminalEnabled = types.BoolValue(true)
@@ -519,6 +523,7 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 		{"User", "deploy", input.User},
 		{"PrivateKeyUUID", "new-key", input.PrivateKeyUUID},
 		{"ServerDiskUsageCheckFrequency", "*/10 * * * *", input.ServerDiskUsageCheckFrequency},
+		{"ServerRole", "build", input.ServerRole},
 	}
 	for _, c := range stringChecks {
 		if c.got == nil {

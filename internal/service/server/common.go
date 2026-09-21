@@ -9,6 +9,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
@@ -29,6 +30,7 @@ type ServerCommonPtrs struct {
 	ServerDiskUsageNotificationThreshold              *types.Int64
 	ServerDiskUsageCheckFrequency                     *types.String
 	IsBuildServer, IsReachable, IsUsable              *types.Bool
+	ServerRole                                        *types.String
 	// InstantValidate is optional: set on coolify_server only (cloud types
 	// own their own extra-attr field and must not share this pointer).
 	InstantValidate *types.Bool
@@ -116,10 +118,23 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 			Validators: []validator.String{validate.UUID()},
 		},
 		"is_build_server": schema.BoolAttribute{
-			MarkdownDescription: "Whether this server is used for building applications.",
-			Optional:            true,
-			Computed:            true,
-			Default:             booldefault.StaticBool(false),
+			MarkdownDescription: "Whether this server is used only for building applications. " +
+				"On Coolify >= 4.4 the API replaced this field with `server_role`; the provider " +
+				"sends `server_role = build` when this is true and omits both keys when it is false " +
+				"(Coolify defaults to `both`). Keep this attribute for 4.3.x and for existing HCL.",
+			Optional: true,
+			Computed: true,
+			Default:  booldefault.StaticBool(false),
+		},
+		"server_role": schema.StringAttribute{
+			MarkdownDescription: "Server role: `deployment`, `build`, or `both`. " +
+				"Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). " +
+				"Against older instances the provider omits it on write. " +
+				"When set, this value is sent instead of mapping `is_build_server`.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			Validators:    []validator.String{stringvalidator.OneOf("deployment", "build", "both")},
 		},
 		"is_reachable": schema.BoolAttribute{
 			MarkdownDescription: "Whether the server is currently reachable.",
@@ -386,6 +401,20 @@ func FlattenServerCommon(srv *client.Server, f ServerCommonPtrs) {
 	*f.IsBuildServer = types.BoolValue(srv.IsBuildServer)
 	*f.IsReachable = types.BoolValue(srv.IsReachable)
 	*f.IsUsable = types.BoolValue(srv.IsUsable)
+	role := srv.ServerRole
+	if role == "" && srv.Settings != nil {
+		role = srv.Settings.ServerRole
+	}
+	if f.ServerRole != nil {
+		if role != "" {
+			*f.ServerRole = types.StringValue(role)
+		} else if f.ServerRole.IsUnknown() {
+			*f.ServerRole = types.StringNull()
+		}
+	}
+	if role == "build" && !srv.IsBuildServer {
+		*f.IsBuildServer = types.BoolValue(true)
+	}
 
 	if srv.Settings != nil {
 		connectionTimeout := srv.Settings.ConnectionTimeout
@@ -510,6 +539,7 @@ func HasNonDefaultCloudProviderSettings(p ServerCommonPtrs) bool {
 		flex.Int64ValueNonDefault(*p.Port, 22) ||
 		flex.StringValueNonDefault(*p.User, "root") ||
 		flex.BoolValueNonDefault(*p.IsBuildServer, false) ||
+		(p.ServerRole != nil && flex.StringValueNonDefault(*p.ServerRole, "")) ||
 		HasNonDefaultSettings(p)
 }
 
@@ -522,6 +552,9 @@ func BuildPostCreateCloudProviderInput(p ServerCommonPtrs) client.UpdateServerIn
 	input.Port = flex.IntIfNonDefault(*p.Port, 22)
 	input.User = flex.StringValueOrNull(*p.User)
 	input.IsBuildServer = flex.BoolValueOrNull(*p.IsBuildServer)
+	if p.ServerRole != nil {
+		input.ServerRole = flex.StringValueOrNull(*p.ServerRole)
+	}
 	return input
 }
 
@@ -578,6 +611,9 @@ func BuildServerUpdateInput(plan, state ServerCommonPtrs) client.UpdateServerInp
 	}
 	if plan.IsTerminalEnabled != nil && state.IsTerminalEnabled != nil {
 		input.IsTerminalEnabled = flex.BoolIfChanged(*plan.IsTerminalEnabled, *state.IsTerminalEnabled)
+	}
+	if plan.ServerRole != nil && state.ServerRole != nil {
+		input.ServerRole = flex.StringIfChanged(*plan.ServerRole, *state.ServerRole)
 	}
 	if plan.InstantValidate != nil && state.InstantValidate != nil {
 		input.InstantValidate = flex.BoolIfChanged(*plan.InstantValidate, *state.InstantValidate)
