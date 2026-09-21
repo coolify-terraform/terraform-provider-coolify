@@ -923,3 +923,49 @@ func TestFlattenExtendedSettings_BackupCompressionAbsent(t *testing.T) {
 		t.Fatalf("expected null backup_compression_cpu_percentage, got %v", m.BackupCompressionCPUPercentage)
 	}
 }
+
+func TestAlignUnconfiguredServerRole(t *testing.T) {
+	t.Parallel()
+	build := types.BoolValue(true)
+	off := types.BoolValue(false)
+	unset := types.StringNull()
+	deploy := types.StringValue("deployment")
+	stale := types.StringValue("build")
+
+	tests := []struct {
+		name       string
+		version    string
+		config     types.String
+		plan       types.String
+		build      types.Bool
+		stateBuild *types.Bool
+		want       string
+	}{
+		{name: "4.3 leaves role", version: "4.3.23", config: unset, plan: stale, build: off, want: "build"},
+		{name: "4.4-rc leaves role", version: "4.4-rc.1", config: unset, plan: stale, build: off, want: "build"},
+		{name: "4.4 create true plans build", version: "4.4.0", config: unset, plan: stale, build: build, want: "build"},
+		{name: "4.4 create false leaves role", version: "4.4.0", config: unset, plan: stale, build: off, want: "build"},
+		{name: "4.4 true to false plans both", version: "4.4.0", config: unset, plan: stale, build: off, stateBuild: &build, want: "both"},
+		{name: "4.4 unchanged false keeps role", version: "4.4.0", config: unset, plan: deploy, build: off, stateBuild: &off, want: "deployment"},
+		{name: "4.4 explicit role wins", version: "4.4.0", config: deploy, plan: deploy, build: off, stateBuild: &build, want: "deployment"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			c := &client.Client{CoolifyVersion: tt.version}
+			cfg := tt.config
+			role := tt.plan
+			isBuild := tt.build
+			AlignUnconfiguredServerRole(c, &cfg, &role, &isBuild, tt.stateBuild)
+			if role.ValueString() != tt.want {
+				t.Fatalf("server_role=%s want %s", role.ValueString(), tt.want)
+			}
+		})
+	}
+
+	role := stale
+	AlignUnconfiguredServerRole(nil, &unset, &role, &off, nil)
+	if role.ValueString() != "build" {
+		t.Fatalf("nil client changed role to %s", role.ValueString())
+	}
+}

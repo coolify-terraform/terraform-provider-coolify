@@ -24,8 +24,10 @@ func TestApplyServerRoleWrite(t *testing.T) {
 		{name: "4.3 keeps is_build_server false", version: "4.3.23", isBuild: &falseVal, wantB: &falseVal},
 		{name: "4.4-rc.1 keeps is_build_server", version: "4.4-rc.1", isBuild: &trueVal, wantB: &trueVal},
 		{name: "4.4 maps true to build", version: "4.4.0", isBuild: &trueVal, wantR: "build"},
-		{name: "4.4 omits false default", version: "4.4.0", isBuild: &falseVal},
+		{name: "4.4 maps false to both", version: "4.4.0", isBuild: &falseVal, wantR: "both"},
+		{name: "4.4 nil is_build omits role", version: "4.4.0"},
 		{name: "4.4 explicit role wins", version: "4.4.0", isBuild: &trueVal, role: &deploy, wantR: "deployment"},
+		{name: "4.4 explicit role wins over false", version: "4.4.0", isBuild: &falseVal, role: &deploy, wantR: "deployment"},
 		{name: "4.4 role only", version: "4.4.0", role: &build, wantR: "build"},
 		{name: "empty version maps like 4.4", isBuild: &trueVal, wantR: "build"},
 	}

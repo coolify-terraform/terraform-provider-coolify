@@ -9,8 +9,8 @@ import json
 import sys
 import tempfile
 import unittest
+import unittest.mock as mock
 from pathlib import Path
-from unittest import mock
 
 _SCRIPT = Path(__file__).resolve().parent / "check-coolify-channels.py"
 _spec = importlib.util.spec_from_file_location("check_coolify_channels", _SCRIPT)
@@ -65,6 +65,21 @@ class TestTipVersionParse(unittest.TestCase):
 
     def test_parse_missing(self):
         self.assertEqual(cc.parse_tip_version_from_constants("no version here"), "")
+
+    def test_fetch_tip_version_includes_both_failures(self):
+        with mock.patch.object(
+            cc.subprocess,
+            "check_output",
+            side_effect=FileNotFoundError("gh missing"),
+        ), mock.patch.object(
+            cc, "fetch_text", side_effect=TimeoutError("raw timed out")
+        ):
+            with self.assertRaises(RuntimeError) as ctx:
+                cc.fetch_tip_version()
+        msg = str(ctx.exception)
+        self.assertIn("could not fetch tip version", msg)
+        self.assertIn("gh missing", msg)
+        self.assertIn("raw timed out", msg)
 
 
 class TestContractDiff(unittest.TestCase):
