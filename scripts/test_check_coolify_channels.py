@@ -258,13 +258,16 @@ class TestDecide(unittest.TestCase):
         replace = src[src.index("if decision.action == \"replace\":") :]
         replace = replace[: replace.index("print(f\"Updating issue")]
         self.assertIn("apply_issue_labels(new_number, early)", replace)
+        self.assertIn("close_duplicate_freshness_issues(new_number)", replace)
         self.assertIn("def apply_issue_labels(", src)
         # The close-aligned path also assigns number = str(existing[...])
         # before first-create. Search that marker only after if existing is None.
         none_at = src.index("if existing is None:")
         first_create = src[none_at : src.index("number = str(existing", none_at)]
         self.assertTrue(first_create.strip(), "first-create slice must be non-empty")
-        self.assertIn("apply_issue_labels(parse_created_issue_number(created), early)", first_create)
+        self.assertIn("new_number = parse_created_issue_number(created)", first_create)
+        self.assertIn("apply_issue_labels(new_number, early)", first_create)
+        self.assertIn("close_duplicate_freshness_issues(new_number)", first_create)
 
     def test_parse_created_issue_number(self):
         url = (
@@ -540,6 +543,59 @@ class TestCLI(unittest.TestCase):
                 )
         apply.assert_not_called()
         self.assertEqual(rc, 2)
+
+
+class TestCloseDuplicateFreshness(unittest.TestCase):
+    def test_closes_open_contract_drift_as_duplicate_of_channel(self) -> None:
+        freshness = [{"number": 895, "title": "Upstream Coolify contract has changed"}]
+        with mock.patch.object(
+            cc, "find_open_freshness_issues", return_value=freshness
+        ), mock.patch.object(cc.subprocess, "check_call") as check_call:
+            cc.close_duplicate_freshness_issues("894")
+        check_call.assert_called_once()
+        args = check_call.call_args[0][0]
+        self.assertEqual(args[:4], ["gh", "issue", "close", "895"])
+        self.assertIn("--reason", args)
+        self.assertIn("completed", args)
+        comment = args[args.index("--comment") + 1]
+        self.assertIn("Duplicate of #894", comment)
+
+    def test_skips_when_no_freshness_issues(self) -> None:
+        with mock.patch.object(
+            cc, "find_open_freshness_issues", return_value=[]
+        ), mock.patch.object(cc.subprocess, "check_call") as check_call:
+            cc.close_duplicate_freshness_issues("894")
+        check_call.assert_not_called()
+
+    def test_apply_create_closes_leftover_freshness(self) -> None:
+        decision = cc.Decision(
+            action="open",
+            reasons=["pin behind tip"],
+            snapshot=cc.ChannelSnapshot(
+                stable="4.3.23",
+                nightly="4.4-rc.1",
+                pin="4.3.21",
+            ),
+            title="coolify-channel: support Coolify 4.4 (pin is 4.3.21)",
+            body="body",
+            pin_behind_nightly=True,
+            pin_behind_stable=True,
+            pin_behind_prerelease=False,
+            pin_behind_latest_release=True,
+            pin_behind_tip_version=True,
+            pin_behind_tip_api=True,
+            nightly_ahead_of_stable=True,
+        )
+        with mock.patch.object(cc, "ensure_labels"), mock.patch.object(
+            cc, "find_open_channel_issue", return_value=None
+        ), mock.patch.object(
+            cc.subprocess, "check_output", return_value="https://github.com/o/r/issues/894\n"
+        ), mock.patch.object(cc, "apply_issue_labels"), mock.patch.object(
+            cc, "close_duplicate_freshness_issues"
+        ) as close_dup:
+            rc = cc.apply_decision(decision)
+        self.assertEqual(rc, 0)
+        close_dup.assert_called_once_with("894")
 
 
 if __name__ == "__main__":

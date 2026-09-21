@@ -69,6 +69,7 @@ STATE_MARKER_RE = re.compile(
 )
 ISSUE_LABEL = "coolify-channel"
 LABELS = ["coolify-channel", "ready"]
+FRESHNESS_LABEL = "contract-drift"
 # Early-signal label when tip/API drifts before stable CDN moves.
 PRIORITY_LABEL = "coolify-channel-early"
 # Matches: 'version' => env('COOLIFY_VERSION') ?: '4.3.0',
@@ -672,6 +673,54 @@ def find_open_channel_issue() -> Optional[dict[str, Any]]:
     return issues[0]
 
 
+def find_open_freshness_issues() -> list[dict[str, Any]]:
+    """Open weekly contract-freshness issues (label contract-drift)."""
+    issues = gh_json(
+        [
+            "issue",
+            "list",
+            "--label",
+            FRESHNESS_LABEL,
+            "--state",
+            "open",
+            "--json",
+            "number,title,url",
+            "--limit",
+            "20",
+        ]
+    )
+    return issues or []
+
+
+def close_duplicate_freshness_issues(canonical: str) -> None:
+    """Close leftover weekly freshness issues as duplicates of the channel watch.
+
+    Freshness and the channel job both detect tip API drift. The channel
+    issue carries the field/allow-list diff; the weekly checklist does not.
+    """
+    for issue in find_open_freshness_issues():
+        number = str(issue.get("number") or "")
+        if not number or number == str(canonical):
+            continue
+        print(f"Closing freshness issue #{number} as duplicate of #{canonical}.")
+        subprocess.check_call(
+            [
+                "gh",
+                "issue",
+                "close",
+                number,
+                "--reason",
+                "completed",
+                "--comment",
+                (
+                    f"Duplicate of #{canonical}. The weekly contract-freshness "
+                    "checklist covers the same tip API drift as the Coolify "
+                    "channel watch; keep the channel issue."
+                ),
+            ]
+        )
+
+
 def ensure_labels() -> None:
     for name, desc, color in (
         (ISSUE_LABEL, "Coolify CDN/GitHub channel watch (stable vs nightly vs pin)", "1d76db"),
@@ -756,6 +805,7 @@ def apply_decision(decision: Decision) -> int:
                     ),
                 ]
             )
+            close_duplicate_freshness_issues(number)
             return 0
         print("No channel action needed.")
         return 0
@@ -774,7 +824,9 @@ def apply_decision(decision: Decision) -> int:
             ]
             print("Creating issue:", decision.title)
             created = subprocess.check_output(cmd, text=True)
-            apply_issue_labels(parse_created_issue_number(created), early)
+            new_number = parse_created_issue_number(created)
+            apply_issue_labels(new_number, early)
+            close_duplicate_freshness_issues(new_number)
             return 0
         return 0
 
@@ -834,6 +886,7 @@ def apply_decision(decision: Decision) -> int:
                 ),
             ]
         )
+        close_duplicate_freshness_issues(new_number)
         return 0
 
     print(f"Updating issue #{number}: {decision.title}")
@@ -841,6 +894,7 @@ def apply_decision(decision: Decision) -> int:
         ["gh", "issue", "edit", number, "--title", decision.title, "--body", decision.body]
     )
     apply_issue_labels(number, early)
+    close_duplicate_freshness_issues(number)
     return 0
 
 

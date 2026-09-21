@@ -155,6 +155,9 @@ class WorkflowTriggerTests(unittest.TestCase):
         makefile = (ROOT / "GNUmakefile").read_text(encoding="utf-8")
         self.assertIn("zizmor-check", makefile)
         self.assertRegex(makefile, r"ci:.*zizmor-check")
+        ziz = (ROOT / ".github" / "zizmor.yml").read_text(encoding="utf-8")
+        self.assertIn("self-repository:", ziz)
+        self.assertIn("github-app:", ziz)
 
     def test_contract_freshness_issues_are_ready_and_assigned(self) -> None:
         ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
@@ -165,6 +168,19 @@ class WorkflowTriggerTests(unittest.TestCase):
         triage = (WORKFLOWS / "issue-triage.yml").read_text(encoding="utf-8")
         self.assertIn("labelNames.includes('contract-drift')", triage)
         self.assertIn("labels: ['contract-drift', 'ready']", triage)
+
+    def test_contract_freshness_defers_to_open_channel_issue(self) -> None:
+        # Weekly freshness and the 6-hour channel watch both detect tip
+        # API drift. An open coolify-channel issue is the tracker
+        # (lesson from #825 vs #799, repeated as #895 vs #894).
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        start = ci.index("name: Contract Freshness")
+        job = ci[start : ci.index("name: Scenario Tests", start)]
+        self.assertIn('--label "coolify-channel"', job)
+        self.assertIn(
+            '[ "$EXISTING" = "0" ] && [ "$CHANNEL" = "0" ]',
+            job,
+        )
 
     def test_acceptance_does_not_run_on_generic_scripts(self) -> None:
         # Channel-watch / OpenAPI / FOSSA Python-only edits must not boot
