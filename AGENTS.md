@@ -249,7 +249,10 @@ every 6 hours) compares CDN stable/nightly, GitHub releases, source tip,
 and tip contract drift to the pinned contract. It opens, updates, or
 closes a `coolify-channel` issue (`scripts/check-coolify-channels.py`).
 A pin or title-target change closes the current issue and opens a new
-one instead of stacking comments.
+one instead of stacking comments. Weekly `contract-freshness` (Monday
+`ci.yml`) skips creating a `contract-drift` issue when a
+`coolify-channel` issue is already open, and the channel job closes
+leftover freshness issues as duplicates of that watch.
 A **Coolify Nightly Acc** workflow (`.github/workflows/coolify-nightly.yml`)
 runs full acceptance on Coolify `edge`, `latest` (stable), and `4.1.2` (floor),
 plus tip scenarios on `edge`. Schedule: daily 06:00 UTC. Also

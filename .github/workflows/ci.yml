@@ -680,15 +680,17 @@ jobs:
           gh label create contract-drift --description "Upstream Coolify source contract has changed" --color "d93f0b" --force 2>/dev/null || true
           BODY_FILE=.github/contract-freshness-issue.md
           EXISTING=$(gh issue list --label "contract-drift" --state open --json number --jq length)
-          if [ "$EXISTING" = "0" ]; then
+          CHANNEL=$(gh issue list --label "coolify-channel" --state open --json number --jq length)
+          if [ "$EXISTING" = "0" ] && [ "$CHANNEL" = "0" ]; then
             gh issue create \
               --title "Upstream Coolify contract has changed" \
               --label "contract-drift,ready" \
               --assignee "$NIGHTLY_FAILURE_ASSIGNEE" \
               --body-file "$BODY_FILE"
           fi
-          # When a drift issue is already open, do not re-post the same checklist
-          # every week (noise). The open issue already carries the taxonomy body.
+          # Skip when a contract-drift or coolify-channel issue is already
+          # open. The channel watch is the richer tracker for the same tip
+          # API drift (#825 vs #799, #895 vs #894).
 
   scenario-tests:
     name: Scenario Tests
