@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -163,9 +164,13 @@ func disallowedKeys(t *testing.T, input any, allowed map[string]bool) []string {
 	if len(body) == 0 {
 		t.Fatal("input marshalled to an empty body; the builder emitted nothing")
 	}
+	gated := make(map[string]bool, len(client.ApplicationSettingsV44WriteJSONKeys))
+	for _, key := range client.ApplicationSettingsV44WriteJSONKeys {
+		gated[key] = true
+	}
 	var bad []string
 	for key := range body {
-		if !allowed[key] {
+		if !allowed[key] && !gated[key] {
 			bad = append(bad, key)
 		}
 	}

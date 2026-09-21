@@ -10765,6 +10765,5 @@
         "api.ability:read"
       ]
     }
-  ],
-  "notes": "Pin is tag v4.3.23. Versus v4.3.21: Server.sentinel_waiting_since (runtime timestamp, skipInternal) and GET /applications/{uuid}/previews/{pull_request_id}/logs (skipLogs). Server create/update $allowedFields still include is_build_server. Coolify 4.4 tip (not this pin) replaces is_build_server with server_role on those allow lists; the provider version-gates that write. Application custom_container_name_prefix and ServerSetting GeoIP/traffic fields are 4.4 tip-only and are version-gated on write. Nested ServiceApplicationsController::update max_restart_count remains skipNestedService. Extractor maps DatabasesController $backupConfigFields onto create_backup / update_backup. ScheduledDatabaseBackup.missing_backup_notification_days is writable on create/update (integer 0-365; 0 disables alerts). last_execution_at and missing_backup_notification_sent_at are GET-only runtime timestamps. Those three fields are absent from v4.3.17 and from v4.4-rc.1. Restart-limit fields, GET domain_port_overrides, and PATCH preview domains remain from v4.3.15."
+  ]
 }

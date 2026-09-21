@@ -67,6 +67,7 @@ var serverCoverageSkips = skipMap(
 	skipInternal("sentinel_metrics_history", "sentinel metrics config"),
 	skipInternal("sentinel_metrics_interval", "sentinel metrics config"),
 	skipInternal("started_at", "runtime status"),
+	skipInternal("sentinel_waiting_since", "runtime timestamp; Coolify >= v4.3.23"),
 	skipInternal("last_online_at", "runtime status"),
 	skipInternal("last_restart_at", "runtime status"),
 	skipInternal("last_restart_type", "runtime status"),

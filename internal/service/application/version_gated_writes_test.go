@@ -104,6 +104,18 @@ func TestConfiguredVersionGatedWriteAttrs(t *testing.T) {
 			t.Fatalf("v43 warn attrs drifted from client strip list\ngot:  %v\nwant: %v", got, want)
 		}
 	})
+
+	t.Run("matches client ApplicationSettingsV44WriteJSONKeys", func(t *testing.T) {
+		t.Parallel()
+		ts := types.StringValue("my-api")
+		f := commonAppFields{CustomContainerNamePrefix: &ts}
+		got := configuredVersionGatedV44WriteAttrs(f)
+		want := append([]string(nil), client.ApplicationSettingsV44WriteJSONKeys...)
+		sort.Strings(want)
+		if strings.Join(got, ",") != strings.Join(want, ",") {
+			t.Fatalf("v44 warn attrs drifted from client strip list\ngot:  %v\nwant: %v", got, want)
+		}
+	})
 }
 
 func TestWarnUnsupportedApplicationSettingsWrites(t *testing.T) {
@@ -146,6 +158,34 @@ func TestWarnUnsupportedApplicationSettingsWrites(t *testing.T) {
 		c := &client.Client{CoolifyVersion: "4.3.0"}
 		setLog := types.BoolValue(true)
 		warnUnsupportedApplicationSettingsWrites(c, commonAppFields{IsLogDrainEnabled: &setLog}, &diags)
+		if diags.WarningsCount() != 0 {
+			t.Fatalf("warnings=%d body=%v", diags.WarningsCount(), diags.Warnings())
+		}
+	})
+
+	t.Run("warn on 4.3.23 for v4.4 fields", func(t *testing.T) {
+		t.Parallel()
+		var diags diag.Diagnostics
+		c := &client.Client{CoolifyVersion: "4.3.23"}
+		prefix := types.StringValue("my-api")
+		warnUnsupportedApplicationSettingsWrites(c, commonAppFields{CustomContainerNamePrefix: &prefix}, &diags)
+		if diags.WarningsCount() != 1 {
+			t.Fatalf("warnings=%d, want 1: %v", diags.WarningsCount(), diags.Warnings())
+		}
+		detail := diags.Warnings()[0].Detail()
+		for _, needle := range []string{"4.3.23", "4.4", "custom_container_name_prefix"} {
+			if !strings.Contains(detail, needle) {
+				t.Errorf("detail missing %q: %s", needle, detail)
+			}
+		}
+	})
+
+	t.Run("no warn on 4.4.0 for v4.4 fields", func(t *testing.T) {
+		t.Parallel()
+		var diags diag.Diagnostics
+		c := &client.Client{CoolifyVersion: "4.4.0"}
+		prefix := types.StringValue("my-api")
+		warnUnsupportedApplicationSettingsWrites(c, commonAppFields{CustomContainerNamePrefix: &prefix}, &diags)
 		if diags.WarningsCount() != 0 {
 			t.Fatalf("warnings=%d body=%v", diags.WarningsCount(), diags.Warnings())
 		}

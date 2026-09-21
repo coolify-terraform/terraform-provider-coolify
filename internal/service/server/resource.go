@@ -38,6 +38,7 @@ type serverResourceModel struct {
 	User                                 types.String   `tfsdk:"user"`
 	PrivateKeyUUID                       types.String   `tfsdk:"private_key_uuid"`
 	IsBuildServer                        types.Bool     `tfsdk:"is_build_server"`
+	ServerRole                           types.String   `tfsdk:"server_role"`
 	IsReachable                          types.Bool     `tfsdk:"is_reachable"`
 	IsUsable                             types.Bool     `tfsdk:"is_usable"`
 	ConcurrentBuilds                     types.Int64    `tfsdk:"concurrent_builds"`
@@ -306,7 +307,7 @@ func (m *serverResourceModel) commonPtrs() ServerCommonPtrs {
 		ConnectionTimeout:                    &m.ConnectionTimeout,
 		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
 		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
-		IsBuildServer:                        &m.IsBuildServer, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
+		IsBuildServer:                        &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
 		InstantValidate: &m.InstantValidate,
 		WildcardDomain:  &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,

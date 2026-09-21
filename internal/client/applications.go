@@ -134,6 +134,7 @@ type Application struct {
 	GpuOptions                       string `json:"gpu_options,omitempty"`
 	IsConsistentContainerNameEnabled *bool  `json:"is_consistent_container_name_enabled,omitempty"`
 	CustomInternalName               string `json:"custom_internal_name,omitempty"`
+	CustomContainerNamePrefix        string `json:"custom_container_name_prefix,omitempty"`
 	// NoindexDomains is the subset of domains served with X-Robots-Tag noindex
 	// (Coolify >= v4.3.0). JSON array on the wire; empty means none.
 	NoindexDomains  []string `json:"noindex_domains,omitempty"`
@@ -240,6 +241,7 @@ type ApplicationSettings struct {
 	GpuOptions                       string `json:"gpu_options,omitempty"`
 	IsConsistentContainerNameEnabled *bool  `json:"is_consistent_container_name_enabled,omitempty"`
 	CustomInternalName               string `json:"custom_internal_name,omitempty"`
+	CustomContainerNamePrefix        string `json:"custom_container_name_prefix,omitempty"`
 }
 
 // PromoteSettings copies nested settings onto top-level Application fields when unset.
@@ -283,6 +285,9 @@ func (a *Application) PromoteSettings() {
 	promoteBool(&a.IsConsistentContainerNameEnabled, s.IsConsistentContainerNameEnabled)
 	if a.CustomInternalName == "" && s.CustomInternalName != "" {
 		a.CustomInternalName = s.CustomInternalName
+	}
+	if a.CustomContainerNamePrefix == "" && s.CustomContainerNamePrefix != "" {
+		a.CustomContainerNamePrefix = s.CustomContainerNamePrefix
 	}
 }
 
@@ -439,6 +444,7 @@ type UpdateApplicationInput struct {
 	GpuOptions                       *string `json:"gpu_options,omitempty"`
 	IsConsistentContainerNameEnabled *bool   `json:"is_consistent_container_name_enabled,omitempty"`
 	CustomInternalName               *string `json:"custom_internal_name,omitempty"`
+	CustomContainerNamePrefix        *string `json:"custom_container_name_prefix,omitempty"`
 	// NoindexDomains is a JSON array on the wire. Use a non-nil empty slice to
 	// clear when the attribute is configured empty (Coolify >= v4.3.0).
 	NoindexDomains *[]string `json:"noindex_domains,omitempty"`
@@ -510,7 +516,8 @@ func (c *Client) CreatePublicApplication(ctx context.Context, input CreatePublic
 	)
 }
 func (c *Client) UpdateApplication(ctx context.Context, uuid string, input UpdateApplicationInput) (*Application, error) {
-	if !c.SupportsApplicationSettings() {
+	switch {
+	case !c.SupportsApplicationSettings():
 		if withheld := input.versionGatedWriteKeysPresent(); len(withheld) > 0 {
 			tflog.Debug(ctx, "withholding Coolify >= v4.2.0 application write fields unsupported on this instance", map[string]interface{}{
 				"uuid":    uuid,
@@ -519,7 +526,7 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 			})
 		}
 		input.clearApplicationSettings()
-	} else if !c.SupportsApplicationSettingsV43() {
+	case !c.SupportsApplicationSettingsV43():
 		if withheld := input.versionGatedV43WriteKeysPresent(); len(withheld) > 0 {
 			tflog.Debug(ctx, "withholding Coolify >= v4.3.0 application write fields unsupported on this instance", map[string]interface{}{
 				"uuid":    uuid,
@@ -528,6 +535,15 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 			})
 		}
 		input.clearApplicationSettingsV43()
+	case !c.SupportsApplicationSettingsV44():
+		if withheld := input.versionGatedV44WriteKeysPresent(); len(withheld) > 0 {
+			tflog.Debug(ctx, "withholding Coolify >= v4.4 application write fields unsupported on this instance", map[string]interface{}{
+				"uuid":    uuid,
+				"version": c.CoolifyVersion,
+				"fields":  withheld,
+			})
+		}
+		input.clearApplicationSettingsV44()
 	}
 	var a Application
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), input, &a); err != nil {
@@ -546,6 +562,10 @@ func (i UpdateApplicationInput) versionGatedWriteKeysPresent() []string {
 // that would appear on the wire for this input before clearApplicationSettingsV43.
 func (i UpdateApplicationInput) versionGatedV43WriteKeysPresent() []string {
 	return i.keysPresent(ApplicationSettingsV43WriteJSONKeys)
+}
+
+func (i UpdateApplicationInput) versionGatedV44WriteKeysPresent() []string {
+	return i.keysPresent(ApplicationSettingsV44WriteJSONKeys)
 }
 
 func (i UpdateApplicationInput) keysPresent(keys []string) []string {
@@ -608,6 +628,11 @@ func (i *UpdateApplicationInput) clearApplicationSettingsV43() {
 	i.CustomInternalName = nil
 	i.NoindexDomains = nil
 	i.MaxRestartCount = nil
+	i.clearApplicationSettingsV44()
+}
+
+func (i *UpdateApplicationInput) clearApplicationSettingsV44() {
+	i.CustomContainerNamePrefix = nil
 }
 
 // HasOnlyApplicationSettings reports whether the payload would be empty once
@@ -629,6 +654,15 @@ func (i UpdateApplicationInput) HasOnlyApplicationSettings() bool {
 func (i UpdateApplicationInput) HasOnlyApplicationSettingsV43() bool {
 	stripped := i
 	stripped.clearApplicationSettingsV43()
+	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
+}
+
+// HasOnlyApplicationSettingsV44 reports whether the payload would be empty once
+// only the v4.4 gated fields are dropped. Used to skip a post-create PATCH on
+// Coolify 4.3.x when the only extended field is custom_container_name_prefix.
+func (i UpdateApplicationInput) HasOnlyApplicationSettingsV44() bool {
+	stripped := i
+	stripped.clearApplicationSettingsV44()
 	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
 }
 

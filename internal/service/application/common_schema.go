@@ -633,6 +633,9 @@ func applicationSettingAttrs() map[string]schema.Attribute {
 	for k, v := range applicationSettingAttrsV43() {
 		attrs[k] = v
 	}
+	for k, v := range applicationSettingAttrsV44() {
+		attrs[k] = v
+	}
 	return attrs
 }
 
@@ -798,6 +801,28 @@ func applicationSettingAttrsV43() map[string]schema.Attribute {
 			Optional:      true,
 			Computed:      true,
 			PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+		},
+	}
+}
+
+// applicationSettingAttrsV44 is Coolify >= 4.4 tip (not v4.4-rc.1 or v4.3.23).
+func applicationSettingAttrsV44() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"custom_container_name_prefix": schema.StringAttribute{
+			MarkdownDescription: "Prefix for generated container names (`prefix-20260908T141530` instead of `{uuid}-timestamp`). " +
+				"Coolify slugifies the value and requires it to be unique across the instance. Use a lowercase slug (`my-api`). " +
+				"Maximum 30 characters. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). " +
+				"Against older instances the provider omits it on write and emits a plan warning if the attribute is set.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			Validators: []validator.String{
+				stringvalidator.LengthAtMost(30),
+				stringvalidator.RegexMatches(
+					regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`),
+					"must be a lowercase slug (letters, digits, hyphens), e.g. \"my-api\"",
+				),
+			},
 		},
 	}
 }

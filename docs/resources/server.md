@@ -58,11 +58,12 @@ resource "coolify_server" "example" {
 - `description` (String) A description of the server.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation or update. Coolify defaults to false. The API does not return this field; it only triggers a validation job when true.
-- `is_build_server` (Boolean) Whether this server is used for building applications.
+- `is_build_server` (Boolean) Whether this server is used only for building applications. On Coolify >= 4.4 the API replaced this field with `server_role`; the provider sends `server_role = build` when this is true and omits both keys when it is false (Coolify defaults to `both`). Keep this attribute for 4.3.x and for existing HCL.
 - `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server. Requires Coolify >= v4.3.0. Coolify defaults to true.
 - `port` (Number) The SSH port of the server.
 - `server_disk_usage_check_frequency` (String) Cron or Coolify human schedule for how often disk usage is checked (e.g., `*/5 * * * *`, `daily`, `@daily`).
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
+- `server_role` (String) Server role: `deployment`, `build`, or `both`. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write. When set, this value is sent instead of mapping `is_build_server`.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `user` (String) The SSH user for connecting to the server.
 

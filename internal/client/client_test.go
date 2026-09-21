@@ -715,6 +715,7 @@ func TestClient_CreateServer(t *testing.T) {
 	buildServer := true
 	instantValidate := true
 	c := New(srv.URL, "test-token")
+	c.CoolifyVersion = "4.3.23"
 	s, err := c.CreateServer(context.Background(), CreateServerInput{
 		Name:            "New Server",
 		IP:              "10.0.0.5",

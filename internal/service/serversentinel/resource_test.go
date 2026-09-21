@@ -19,8 +19,13 @@ import (
 // after a successful decode; return true if it already wrote the response.
 func newSentinelServer(t *testing.T, store map[string]any, applyPatch func(http.ResponseWriter, map[string]any) bool) (*httptest.Server, *sync.Mutex) {
 	t.Helper()
+	return newSentinelServerVersion(t, "", store, applyPatch)
+}
+
+func newSentinelServerVersion(t *testing.T, version string, store map[string]any, applyPatch func(http.ResponseWriter, map[string]any) bool) (*httptest.Server, *sync.Mutex) {
+	t.Helper()
 	var mu sync.Mutex
-	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
@@ -48,8 +53,11 @@ func newSentinelServer(t *testing.T, store map[string]any, applyPatch func(http.
 		default:
 			http.Error(w, r.URL.Path, http.StatusNotFound)
 		}
-	})))
-	return srv, &mu
+	})
+	if version == "" {
+		return httptest.NewServer(acctest.WithVersionEndpoint(handler)), &mu
+	}
+	return httptest.NewServer(acctest.WithVersionEndpointVersion(handler, version)), &mu
 }
 
 func TestServerSentinelResource_CRUD(t *testing.T) {
@@ -240,5 +248,51 @@ resource "coolify_server_sentinel" "test" {
 }`,
 			ExpectError: regexp.MustCompile(`Error applying Sentinel settings`),
 		}},
+	})
+}
+
+func TestServerSentinelResource_TrafficSettings(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	store := map[string]any{
+		"is_sentinel_enabled": true,
+		"is_metrics_enabled":  true,
+	}
+	srv, _ := newSentinelServerVersion(t, "v4.4.0", store, func(_ http.ResponseWriter, body map[string]any) bool {
+		if _, disableOnly := body["is_sentinel_enabled"]; disableOnly && body["is_metrics_enabled"] == nil {
+			return false
+		}
+		if body["traffic_topn"] != float64(25) || body["is_geoip_enabled"] != true || body["geoip_maxmind_license_key"] != "change-me-in-production" {
+			t.Errorf("4.4 sentinel PATCH missing traffic/geoip fields: %#v", body)
+		}
+		return false
+	})
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_sentinel" "test" {
+  server_uuid                = "` + serverUUID + `"
+  is_metrics_enabled         = true
+  traffic_topn               = 25
+  traffic_sample_threshold   = 100
+  traffic_retention_1h_days  = 14
+  traffic_retention_1d_days  = 90
+  is_geoip_enabled           = true
+  geoip_refresh_days         = 7
+  geoip_maxmind_license_key  = "change-me-in-production"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_sentinel.test", "traffic_topn", "25"),
+					resource.TestCheckResourceAttr("coolify_server_sentinel.test", "traffic_sample_threshold", "100"),
+					resource.TestCheckResourceAttr("coolify_server_sentinel.test", "traffic_retention_1h_days", "14"),
+					resource.TestCheckResourceAttr("coolify_server_sentinel.test", "traffic_retention_1d_days", "90"),
+					resource.TestCheckResourceAttr("coolify_server_sentinel.test", "is_geoip_enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_server_sentinel.test", "geoip_refresh_days", "7"),
+				),
+			},
+		},
 	})
 }

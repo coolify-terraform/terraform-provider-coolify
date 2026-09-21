@@ -87,6 +87,12 @@ func (d *serversDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			return s.User, true
 		case "is_build_server":
 			return filter.BoolToString(s.IsBuildServer), true
+		case "server_role":
+			role := s.ServerRole
+			if role == "" && s.Settings != nil {
+				role = s.Settings.ServerRole
+			}
+			return role, role != ""
 		case "is_reachable":
 			return filter.BoolToString(s.IsReachable), true
 		case "is_usable":

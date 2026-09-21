@@ -108,6 +108,16 @@ type ServerSentinel struct {
 	SentinelMetricsHistoryDays        *int64 `json:"sentinel_metrics_history_days,omitempty"`
 	SentinelPushIntervalSeconds       *int64 `json:"sentinel_push_interval_seconds,omitempty"`
 	SentinelCustomURL                 string `json:"sentinel_custom_url,omitempty"`
+	// Coolify >= 4.4 tip (ServerSentinelController ALLOWED_FIELDS). Not in
+	// v4.3.23 or v4.4-rc.1. is_traffic_analytics_enabled is fillable on
+	// ServerSetting but is not on this allow list.
+	TrafficTopN            *int64 `json:"traffic_topn,omitempty"`
+	TrafficSampleThreshold *int64 `json:"traffic_sample_threshold,omitempty"`
+	TrafficRetention1hDays *int64 `json:"traffic_retention_1h_days,omitempty"`
+	TrafficRetention1dDays *int64 `json:"traffic_retention_1d_days,omitempty"`
+	IsGeoIPEnabled         *bool  `json:"is_geoip_enabled,omitempty"`
+	GeoIPRefreshDays       *int64 `json:"geoip_refresh_days,omitempty"`
+	GeoIPMaxMindLicenseKey string `json:"geoip_maxmind_license_key,omitempty"`
 }
 
 func (c *Client) GetServerSentinel(ctx context.Context, serverUUID string) (*ServerSentinel, error) {
@@ -134,10 +144,30 @@ func sentinelWriteEmpty(in ServerSentinel) bool {
 		in.SentinelMetricsRefreshRateSeconds == nil &&
 		in.SentinelMetricsHistoryDays == nil &&
 		in.SentinelPushIntervalSeconds == nil &&
-		in.SentinelCustomURL == ""
+		in.SentinelCustomURL == "" &&
+		in.TrafficTopN == nil &&
+		in.TrafficSampleThreshold == nil &&
+		in.TrafficRetention1hDays == nil &&
+		in.TrafficRetention1dDays == nil &&
+		in.IsGeoIPEnabled == nil &&
+		in.GeoIPRefreshDays == nil &&
+		in.GeoIPMaxMindLicenseKey == ""
+}
+
+func (s *ServerSentinel) clearTrafficSettings() {
+	s.TrafficTopN = nil
+	s.TrafficSampleThreshold = nil
+	s.TrafficRetention1hDays = nil
+	s.TrafficRetention1dDays = nil
+	s.IsGeoIPEnabled = nil
+	s.GeoIPRefreshDays = nil
+	s.GeoIPMaxMindLicenseKey = ""
 }
 
 func (c *Client) UpdateServerSentinel(ctx context.Context, serverUUID string, input ServerSentinel) (*ServerSentinel, error) {
+	if !c.SupportsSentinelTrafficSettings() {
+		input.clearTrafficSettings()
+	}
 	path := fmt.Sprintf("/api/v1/servers/%s/sentinel", url.PathEscape(serverUUID))
 	var r ServerSentinel
 	if err := c.do(ctx, http.MethodPatch, path, input, &r); err != nil {

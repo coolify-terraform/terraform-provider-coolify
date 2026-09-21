@@ -196,6 +196,56 @@ func TestClient_GetUpdateServerSentinel(t *testing.T) {
 	assert.True(t, *updated.IsMetricsEnabled)
 }
 
+func TestClient_UpdateServerSentinel_VersionGatesTraffic(t *testing.T) {
+	t.Parallel()
+
+	topn := int64(25)
+	geo := true
+	input := ServerSentinel{TrafficTopN: &topn, IsGeoIPEnabled: &geo, GeoIPMaxMindLicenseKey: "secret-key"}
+
+	t.Run("strips on 4.3.23", func(t *testing.T) {
+		t.Parallel()
+		var body map[string]any
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(ServerSentinel{})
+		}))
+		defer srv.Close()
+		c := New(srv.URL, "test-token")
+		c.CoolifyVersion = "4.3.23"
+		_, err := c.UpdateServerSentinel(context.Background(), testServerUUID, input)
+		require.NoError(t, err)
+		if _, ok := body["traffic_topn"]; ok {
+			t.Fatalf("4.3.23 must omit traffic_topn, got %v", body)
+		}
+		if _, ok := body["is_geoip_enabled"]; ok {
+			t.Fatalf("4.3.23 must omit is_geoip_enabled, got %v", body)
+		}
+		if _, ok := body["geoip_maxmind_license_key"]; ok {
+			t.Fatalf("4.3.23 must omit geoip_maxmind_license_key, got %v", body)
+		}
+	})
+
+	t.Run("sends on 4.4.0", func(t *testing.T) {
+		t.Parallel()
+		var body map[string]any
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(ServerSentinel{TrafficTopN: &topn, IsGeoIPEnabled: &geo})
+		}))
+		defer srv.Close()
+		c := New(srv.URL, "test-token")
+		c.CoolifyVersion = "4.4.0"
+		_, err := c.UpdateServerSentinel(context.Background(), testServerUUID, input)
+		require.NoError(t, err)
+		assert.Equal(t, float64(25), body["traffic_topn"])
+		assert.Equal(t, true, body["is_geoip_enabled"])
+		assert.Equal(t, "secret-key", body["geoip_maxmind_license_key"])
+	})
+}
+
 func TestClient_UpdateServerSentinel_RetriesWithoutEnableFlag(t *testing.T) {
 	t.Parallel()
 	var patches []map[string]any

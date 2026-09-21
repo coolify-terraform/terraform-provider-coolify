@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // ServerSettings holds the nested settings returned by the Coolify API
@@ -59,6 +60,8 @@ type ServerSettings struct {
 	// CPU share for volume-backup compression (Coolify >= v4.3.3).
 	// Pointer so older GET payloads without the column stay null, not 0.
 	BackupCompressionCPUPercentage *int `json:"backup_compression_cpu_percentage,omitempty"`
+	// ServerRole is Coolify >= 4.4 (deployment, build, both). Empty on 4.3.x GET.
+	ServerRole string `json:"server_role,omitempty"`
 }
 
 type Server struct {
@@ -70,6 +73,7 @@ type Server struct {
 	User                      string          `json:"user,omitempty"`
 	PrivateKeyUUID            string          `json:"private_key_uuid,omitempty"`
 	IsBuildServer             bool            `json:"is_build_server"`
+	ServerRole                string          `json:"server_role,omitempty"`
 	IsReachable               bool            `json:"is_reachable"`
 	IsUsable                  bool            `json:"is_usable"`
 	DigitalOceanDropletID     *int64          `json:"digitalocean_droplet_id,omitempty"`
@@ -80,14 +84,15 @@ type Server struct {
 	Settings                  *ServerSettings `json:"settings,omitempty"`
 }
 type CreateServerInput struct {
-	Name            string `json:"name"`
-	Description     string `json:"description,omitempty"`
-	IP              string `json:"ip"`
-	Port            int    `json:"port"`
-	User            string `json:"user,omitempty"`
-	PrivateKeyUUID  string `json:"private_key_uuid"`
-	IsBuildServer   *bool  `json:"is_build_server,omitempty"`
-	InstantValidate *bool  `json:"instant_validate,omitempty"`
+	Name            string  `json:"name"`
+	Description     string  `json:"description,omitempty"`
+	IP              string  `json:"ip"`
+	Port            int     `json:"port"`
+	User            string  `json:"user,omitempty"`
+	PrivateKeyUUID  string  `json:"private_key_uuid"`
+	IsBuildServer   *bool   `json:"is_build_server,omitempty"`
+	ServerRole      *string `json:"server_role,omitempty"`
+	InstantValidate *bool   `json:"instant_validate,omitempty"`
 }
 
 // UpdateServerInput matches the public server PATCH contract.
@@ -101,6 +106,7 @@ type UpdateServerInput struct {
 	User                                 *string `json:"user,omitempty"`
 	PrivateKeyUUID                       *string `json:"private_key_uuid,omitempty"`
 	IsBuildServer                        *bool   `json:"is_build_server,omitempty"`
+	ServerRole                           *string `json:"server_role,omitempty"`
 	InstantValidate                      *bool   `json:"instant_validate,omitempty"`
 	IsTerminalEnabled                    *bool   `json:"is_terminal_enabled,omitempty"`
 	ConcurrentBuilds                     *int    `json:"concurrent_builds,omitempty"`
@@ -126,6 +132,7 @@ func (c *Client) GetServer(ctx context.Context, uuid string) (*Server, error) {
 	return &s, nil
 }
 func (c *Client) CreateServer(ctx context.Context, input CreateServerInput) (*Server, error) {
+	input.IsBuildServer, input.ServerRole = applyServerRoleWrite(c, input.IsBuildServer, input.ServerRole)
 	var s Server
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating server: %w", err)
@@ -133,11 +140,35 @@ func (c *Client) CreateServer(ctx context.Context, input CreateServerInput) (*Se
 	return &s, nil
 }
 func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServerInput) (*Server, error) {
+	input.IsBuildServer, input.ServerRole = applyServerRoleWrite(c, input.IsBuildServer, input.ServerRole)
 	var s Server
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s", url.PathEscape(uuid)), input, &s); err != nil {
 		return nil, fmt.Errorf("updating server %s: %w", uuid, err)
 	}
 	return &s, nil
+}
+
+// applyServerRoleWrite maps is_build_server vs server_role for the connected
+// Coolify version. Coolify >= 4.4 rejects is_build_server (extra-key 422)
+// and accepts server_role. Older versions are the reverse.
+//
+// A true is_build_server becomes server_role=build. False or unset is omitted
+// on 4.4 (API default is both). An explicit server_role always wins on 4.4.
+func applyServerRoleWrite(c *Client, isBuild *bool, role *string) (*bool, *string) {
+	if c != nil && c.SupportsServerRole() {
+		if role != nil {
+			trimmed := strings.TrimSpace(*role)
+			if trimmed != "" {
+				return nil, &trimmed
+			}
+		}
+		if isBuild != nil && *isBuild {
+			build := "build"
+			return nil, &build
+		}
+		return nil, nil
+	}
+	return isBuild, nil
 }
 func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
 	path := fmt.Sprintf("/api/v1/servers/%s?force=true", url.PathEscape(uuid))
