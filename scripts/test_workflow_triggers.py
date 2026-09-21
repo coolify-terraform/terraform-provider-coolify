@@ -91,22 +91,15 @@ class WorkflowTriggerTests(unittest.TestCase):
         self.assertNotIn("gh pr merge", text)
         self.assertNotIn("pulls.merge", text)
 
-    def test_codeql_standin_on_release_please(self) -> None:
+    def test_codeql_uploads_every_language(self) -> None:
         sec = (WORKFLOWS / "codeql.yml").read_text(encoding="utf-8")
-        self.assertIn("startsWith(github.head_ref, 'release-please')", sec)
-        self.assertIn("SKIP_GO_ANALYZE", sec)
-        self.assertIn("matrix.language == 'go'", sec)
-        self.assertIn("env.SKIP_GO_ANALYZE == 'true'", sec)
-        self.assertIn("env.SKIP_GO_ANALYZE != 'true'", sec)
-        self.assertIn(
-            "echo 'version-bump PR; skip Go compile; python/actions still upload SARIF'",
-            sec,
-        )
+        self.assertNotIn("SKIP_GO_ANALYZE", sec)
+        self.assertNotIn("skip Go compile", sec)
         self.assertIn("analyze_sha:", sec)
         self.assertIn("github/codeql-action/init@", sec)
         self.assertIn("github/codeql-action/analyze@", sec)
-        # Scorecard SAST only counts github-advanced-security checks from
-        # a real analyze upload. Do not skip python/actions on version bumps.
+        # A release-please stand-in leaves CodeQL (go) green with no SARIF.
+        # The code scanning ruleset then blocks the release merge.
         start = 0
         found = 0
         while True:
@@ -116,11 +109,10 @@ class WorkflowTriggerTests(unittest.TestCase):
             found += 1
             window = sec[max(0, idx - 400) : idx]
             self.assertNotIn(
-                "!startsWith(github.head_ref, 'release-please')",
+                "release-please",
                 window,
                 sec[idx : idx + 40],
             )
-            self.assertIn("SKIP_GO_ANALYZE", window, sec[idx : idx + 40])
             start = idx + 1
         self.assertGreaterEqual(found, 3)
 
