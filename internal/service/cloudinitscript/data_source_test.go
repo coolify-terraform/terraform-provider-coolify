@@ -104,6 +104,7 @@ data "coolify_cloud_init_scripts" "all" {}
 				resource.TestCheckResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.0.script", "#cloud-config\npackages: [nginx]\n"),
 				resource.TestCheckResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.1.name", "docker"),
 				resource.TestCheckResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.1.uuid", "cccc0002-0002-4000-8000-000000000002"),
+				resource.TestCheckNoResourceAttr("data.coolify_cloud_init_scripts.all", "scripts.1.script"),
 			),
 		}},
 	})

@@ -132,7 +132,9 @@ func TestClient_ListCloudInitScripts(t *testing.T) {
 
 func TestClient_ListCloudInitScripts_ServerError(t *testing.T) {
 	t.Parallel()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/cloud-init-scripts", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"message":"internal error"}`))
