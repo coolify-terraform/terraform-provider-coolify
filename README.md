@@ -30,7 +30,7 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 | Area | Coverage |
 |---|---|
 | Managed resources | 57 |
-| Data sources | 70 |
+| Data sources | 71 |
 | Tests | 1670+ unit and acceptance tests |
 | Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
@@ -190,7 +190,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_github_app` / `coolify_github_apps` / `coolify_github_app_repositories` / `coolify_github_app_branches` | Read GitHub App(s), repos, branches |
 | `coolify_gitlab_app` / `coolify_gitlab_apps` | Read GitLab App(s) (Coolify >= v4.3.0) |
 | `coolify_tag` / `coolify_tags` | Read team tag(s) (Coolify >= v4.2.0) |
-| `coolify_cloud_init_script` | Read a cloud-init script (Coolify >= v4.3.0) |
+| `coolify_cloud_init_script` / `coolify_cloud_init_scripts` | Read / list cloud-init scripts (Coolify >= v4.3.0) |
 | `coolify_backup_executions` | List backup execution history |
 | `coolify_resources` | List all resources on a server |
 | `coolify_team` / `coolify_teams` / `coolify_team_members` | Read team(s) and members |

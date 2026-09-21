@@ -15,7 +15,7 @@ Terraform provider for [Coolify](https://coolify.io/), the open-source self-host
 Built with Go 1.26, Terraform Plugin Framework v1.19, and GoReleaser for releases.
 Builds use `GOFIPS140=latest` for FIPS 140-3 compliant cryptography (required for
 government/enterprise adoption; set in `.goreleaser.yml` and `release.yml` smoke test).
-57 resources, 70 data sources, 1670+ tests (unit + acceptance), 11 CI jobs.
+57 resources, 71 data sources, 1670+ tests (unit + acceptance), 11 CI jobs.
 18 ACME Corp scenario examples (all with `terraform test` integration tests; acme-private-repo uses plan-only).
 
 ## Source of Truth: Coolify Source Code (NOT OpenAPI spec)

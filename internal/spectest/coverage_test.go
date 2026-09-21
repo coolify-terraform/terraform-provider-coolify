@@ -226,7 +226,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /applications/{uuid}/previews/{pull_request_id}/logs":                      skipped(skipLogs),
 		"GET /applications/{uuid}/rollback-images":                                      skipped(skipRollback),
 		"GET /applications/{uuid}/tags":                                                 covered("coolify_tag + coolify_resource_tag", "v0.1.15"),
-		"GET /cloud-init-scripts":                                                       covered("coolify_cloud_init_script", "v0.1.15"),
+		"GET /cloud-init-scripts":                                                       covered("coolify_cloud_init_scripts", "v0.1.15"),
 		"GET /cloud-init-scripts/{uuid}":                                                covered("coolify_cloud_init_script", "v0.1.15"),
 		"GET /databases/{uuid}/logs":                                                    skipped(skipLogs),
 		"GET /databases/{uuid}/tags":                                                    covered("coolify_tag + coolify_resource_tag", "v0.1.15"),

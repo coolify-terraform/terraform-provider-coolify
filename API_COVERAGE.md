@@ -294,10 +294,15 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | Route | Since |
 |-------|-------|
 | `DELETE /cloud-init-scripts/{uuid}` | v0.1.15 |
-| `GET /cloud-init-scripts` | v0.1.15 |
 | `GET /cloud-init-scripts/{uuid}` | v0.1.15 |
 | `PATCH /cloud-init-scripts/{uuid}` | v0.1.15 |
 | `POST /cloud-init-scripts` | v0.1.15 |
+
+### `coolify_cloud_init_scripts`
+
+| Route | Since |
+|-------|-------|
+| `GET /cloud-init-scripts` | v0.1.15 |
 
 ### `coolify_cloud_token`
 
@@ -1054,7 +1059,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /applications/{uuid}/stop` | covered | `coolify_resource_action` |
 | `GET /applications/{uuid}/storages` | covered | `data.coolify_storages` |
 | `GET /applications/{uuid}/tags` | covered | `coolify_tag + coolify_resource_tag` |
-| `GET /cloud-init-scripts` | covered | `coolify_cloud_init_script` |
+| `GET /cloud-init-scripts` | covered | `coolify_cloud_init_scripts` |
 | `GET /cloud-init-scripts/{uuid}` | covered | `coolify_cloud_init_script` |
 | `GET /cloud-tokens` | covered | `data.coolify_cloud_tokens` |
 | `GET /cloud-tokens/{uuid}` | covered | `data.coolify_cloud_token` |

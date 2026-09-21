@@ -288,6 +288,7 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		application.NewLogsDataSource,
 		backup.NewExecutionsDataSource,
 		cloudinitscript.NewDataSource,
+		cloudinitscript.NewListDataSource,
 		cloudtoken.NewDataSource,
 		cloudtoken.NewListDataSource,
 		database.NewDataSource,
