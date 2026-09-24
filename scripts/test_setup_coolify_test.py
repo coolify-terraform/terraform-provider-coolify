@@ -30,9 +30,11 @@ class TestSetupCoolifyTestTimeouts(unittest.TestCase):
         self.assertNotIn("-p 9000:9000", src)
         self.assertNotIn("-p 9001:9001", src)
         self.assertIn("docker start coolify-minio", src)
-        self.assertIn("quay.io/minio/minio:", src)
+        self.assertIn("chainguard/minio@sha256:", src)
+        self.assertNotIn("quay.io/minio/minio:", src)
         start = src.index("Starting MinIO for S3 backup tests")
-        run = src[start : src.index("quay.io/minio/minio:", start) + 80]
+        run = src[start : src.index("sleep 3", start)]
+        self.assertIn("server /tmp/data", run)
         self.assertNotIn(">/dev/null", run)
         self.assertNotIn("2>&1", run)
 
@@ -41,7 +43,9 @@ class TestSetupCoolifyTestTimeouts(unittest.TestCase):
         register = src.index("Registering MinIO S3 storage in Coolify")
         prelude = src[:register]
         self.assertIn("coolify-backups does not exist", prelude)
-        self.assertIn("quay.io/minio/mc:", prelude)
+        self.assertIn("chainguard/minio-client@sha256:", prelude)
+        self.assertIn("MC_HOST_local=", prelude)
+        self.assertNotIn("quay.io/minio/mc:", prelude)
         self.assertIn("exit 1", prelude[prelude.rfind("Starting MinIO for S3 backup tests") :])
 
 
