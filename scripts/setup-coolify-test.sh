@@ -271,8 +271,13 @@ fi
 
 # --- Step 7: MinIO S3 storage for backup tests ---
 # Stay on the coolify network only. Host 9000/9001 binds fail when
-# Coolify already uses those ports. Pull from quay.io; Docker Hub
-# denies minio/minio (Acc #858, docker run exit 125).
+# Coolify already uses those ports. quay.io/minio and Docker Hub
+# minio/minio reject anonymous pulls (Acc #858, docker run exit 125).
+# Chainguard publishes a public server and client. The server runs as
+# uid 65532, so the data dir is /tmp/data. The client image has no
+# shell; MC_HOST_local carries the alias for a single mc command.
+MINIO_IMAGE="chainguard/minio@sha256:bd014394a80898e68c149f2311fdf8d5a2c2f3bb2c33b9327ae6d02b4b065ae1"
+MC_IMAGE="chainguard/minio-client@sha256:b8b144ab34694ecea25aa352c4be9de4c26ee2a02701521dce02ee5593c57338"
 
 if docker ps --format '{{.Names}}' | grep -q "^coolify-minio$"; then
   log "MinIO already running"
@@ -286,22 +291,16 @@ else
     --network coolify \
     -e MINIO_ROOT_USER=minioadmin \
     -e MINIO_ROOT_PASSWORD=minioadmin123 \
-    quay.io/minio/minio:latest server /data --console-address ":9001"
+    "$MINIO_IMAGE" server /tmp/data --console-address ":9001"
 fi
 sleep 3
-docker exec coolify-minio mc alias set local http://localhost:9000 minioadmin minioadmin123 || true
-docker exec coolify-minio mc mb local/coolify-backups || true
-if ! docker exec coolify-minio mc ls local/coolify-backups >/dev/null 2>&1; then
-  log "Server image has no mc client; creating bucket with quay.io/minio/mc"
-  docker run --rm --network coolify --entrypoint /bin/sh \
-    quay.io/minio/mc:latest -c \
-    'mc alias set local http://coolify-minio:9000 minioadmin minioadmin123 && mc mb --ignore-existing local/coolify-backups'
-fi
-if ! docker exec coolify-minio mc ls local/coolify-backups >/dev/null 2>&1 \
-  && ! docker run --rm --network coolify --entrypoint /bin/sh \
-    quay.io/minio/mc:latest -c \
-    'mc alias set local http://coolify-minio:9000 minioadmin minioadmin123 && mc ls local/coolify-backups' \
-    >/dev/null 2>&1; then
+mc_s3() {
+  docker run --rm --network coolify \
+    -e MC_HOST_local="http://minioadmin:minioadmin123@coolify-minio:9000" \
+    "$MC_IMAGE" "$@"
+}
+mc_s3 mb --ignore-existing local/coolify-backups
+if ! mc_s3 ls local/coolify-backups >/dev/null 2>&1; then
   log "ERROR: MinIO bucket coolify-backups does not exist; not registering minio-test"
   exit 1
 fi
