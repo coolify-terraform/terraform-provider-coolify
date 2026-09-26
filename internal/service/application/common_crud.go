@@ -9,8 +9,11 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -81,6 +84,35 @@ type updateAndReadBackArgs struct {
 	RedeployOnUpdate    bool
 	Plan, State         commonAppFields
 	TypeSpecificChanged bool
+	// ForceDomainOverride is force_domain_override as configured — see
+	// forceDomainOverrideConfigured.
+	ForceDomainOverride bool
+}
+
+// forceDomainOverrideConfigured reports whether the configuration sets
+// force_domain_override = true.
+//
+// Coolify evaluates the flag per request and never stores or returns it, so a
+// PATCH that writes domains must carry it every time, not only when the flag
+// itself changes. It is read from the configuration rather than the plan:
+// because Coolify never returns it, an imported application holds null in
+// state, and `lifecycle { ignore_changes = [force_domain_override] }` — the
+// usual way to keep that null from planning a change on every run — makes the
+// plan copy the prior state. The configuration is the one place that still
+// says the request must force the override.
+func forceDomainOverrideConfigured(ctx context.Context, config tfsdk.Config, diags *diag.Diagnostics) bool {
+	var v types.Bool
+	diags.Append(config.GetAttribute(ctx, path.Root("force_domain_override"), &v)...)
+	return !v.IsNull() && !v.IsUnknown() && v.ValueBool()
+}
+
+// withForceDomainOverride sets force_domain_override on a PATCH that writes
+// domains or docker_compose_domains, when the configuration asks for it.
+func withForceDomainOverride(input *client.UpdateApplicationInput, force bool) {
+	if force && (input.Domains != nil || input.DockerComposeDomains != nil) {
+		forced := true
+		input.ForceDomainOverride = &forced
+	}
 }
 
 // updateAndReadBack performs the shared update-then-read pattern for all
@@ -90,6 +122,7 @@ type updateAndReadBackArgs struct {
 // caller detects changes to type-specific runtime fields (e.g., docker_image
 // for docker image apps).
 func updateAndReadBack(ctx context.Context, c *client.Client, resp *resource.UpdateResponse, args updateAndReadBackArgs) {
+	withForceDomainOverride(&args.Input, args.ForceDomainOverride)
 	if _, err := c.UpdateApplication(ctx, args.UUID, args.Input); err != nil {
 		resp.Diagnostics.AddError("Error updating application",
 			fmt.Sprintf("application %s: %s%s", args.UUID, err, annotateDockerComposeDomainsError(err)))
