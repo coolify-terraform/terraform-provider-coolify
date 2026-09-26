@@ -466,6 +466,78 @@ enum ProxyTypes: string {
         self.assertEqual(result, {})
 
 
+# ── extract_request_gates ───────────────────────────────────────────
+
+
+class TestExtractRequestGates(unittest.TestCase):
+    def test_domain_conflict_gate_includes_callee_domains(self):
+        php = """<?php
+class ApplicationsController {
+    private function create_application(Request $request) {
+        $allowedFields = ['name', 'domains', 'docker_compose_domains', 'force_domain_override'];
+        $return = $this->validateDataApplications($request, $server);
+        if ($duplicates->isNotEmpty() && ! $request->boolean('force_domain_override')) {
+            $errors[] = 'Use force_domain_override=true to proceed.';
+        }
+        if ($request->has('docker_compose_domains')) {
+            $raw = $request->docker_compose_domains;
+        }
+    }
+    private function validateDataApplications(Request $request, Server $server) {
+        if ($request->has('domains')) {
+            $urls = $request->domains;
+            if ($result['hasConflicts'] && ! $request->boolean('force_domain_override')) {
+                return response()->json([
+                    'message' => 'Domain conflicts detected. Use force_domain_override=true to proceed.',
+                ], 409);
+            }
+        }
+    }
+    public function update_by_uuid(Request $request) {
+        $allowedFields = ['domains', 'force_domain_override'];
+        if ($request->has('domains') && ! $request->boolean('force_domain_override')) {
+            return response()->json([
+                'message' => 'Domain conflicts detected. Use force_domain_override=true to proceed.',
+            ], 409);
+        }
+    }
+}
+"""
+        allowed = ec.extract_allowed_fields(php)
+        gates = ec.extract_request_gates(php, allowed)
+        by_method = {g["method"]: g for g in gates}
+        self.assertEqual(
+            by_method["create_application"]["same_request_fields"],
+            ["docker_compose_domains", "domains"],
+        )
+        self.assertEqual(by_method["create_application"]["flag"], "force_domain_override")
+        self.assertEqual(by_method["update_by_uuid"]["same_request_fields"], ["domains"])
+        self.assertNotIn("validateDataApplications", by_method)
+
+    def test_unrelated_boolean_is_not_a_gate(self):
+        php = """<?php
+class ServicesController {
+    public function create_service(Request $request) {
+        $allowedFields = ['urls', 'force_domain_override', 'is_container_label_escape_enabled'];
+        if ($request->has('is_container_label_escape_enabled')) {
+            $service->is_container_label_escape_enabled = $request->boolean('is_container_label_escape_enabled');
+        }
+        if ($request->has('urls')) {
+            $urlResult = $this->applyServiceUrls($service, $request->urls, $teamId, $request->boolean('force_domain_override'));
+            return response()->json([
+                'message' => 'Domain conflicts detected. Use force_domain_override=true to proceed.',
+            ], 409);
+        }
+    }
+}
+"""
+        allowed = ec.extract_allowed_fields(php)
+        gates = ec.extract_request_gates(php, allowed)
+        self.assertEqual(len(gates), 1)
+        self.assertEqual(gates[0]["flag"], "force_domain_override")
+        self.assertEqual(gates[0]["same_request_fields"], ["urls"])
+
+
 # ── extract_allowed_fields ──────────────────────────────────────────
 
 

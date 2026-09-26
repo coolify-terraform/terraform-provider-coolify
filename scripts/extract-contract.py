@@ -382,6 +382,105 @@ def expand_allowed_field_list(
     return fields
 
 
+# Fields Coolify checks in the same request as a boolean gate. A gate is not a
+# stored column: the controller reads it, then drops it before save. The write
+# body that sends one of these fields must also send the gate.
+_REQUEST_GATE_COMPANIONS = ("domains", "docker_compose_domains", "urls")
+_NAMED_METHOD_RE = re.compile(
+    r"function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\("
+)
+_REQUEST_BOOLEAN_RE = re.compile(
+    r"\$request->boolean\(\s*'([A-Za-z_][A-Za-z0-9_]*)'\s*\)"
+)
+
+
+def _php_named_method_bodies(content: str) -> dict[str, str]:
+    """Return {method_name: body} for named functions, ignoring closures."""
+    bodies: dict[str, str] = {}
+    for match in _NAMED_METHOD_RE.finditer(content):
+        brace = content.find("{", match.end())
+        if brace < 0:
+            continue
+        body = _php_bracket_slice(content, brace)
+        if body is None:
+            continue
+        # First definition wins. Closures have no name, so they never match.
+        bodies.setdefault(match.group(1), body)
+    return bodies
+
+
+def _request_reads(body: str, field: str) -> bool:
+    """True when body reads field from the current request."""
+    return re.search(
+        rf"\$request(?:->{re.escape(field)}\b|->has\(\s*'{re.escape(field)}'\s*\))",
+        body,
+    ) is not None
+
+
+def _local_request_gates(body: str) -> list[tuple[str, list[str]]]:
+    """Gates whose 409 message and $request->boolean() call are both in body."""
+    found: list[tuple[str, list[str]]] = []
+    seen: set[str] = set()
+    for flag in _REQUEST_BOOLEAN_RE.findall(body):
+        if flag in seen:
+            continue
+        if f"Use {flag}=true" not in body:
+            continue
+        companions = [name for name in _REQUEST_GATE_COMPANIONS if _request_reads(body, name)]
+        if not companions:
+            continue
+        seen.add(flag)
+        found.append((flag, companions))
+    return found
+
+
+def extract_request_gates(content: str, allowed: dict[str, list[str]]) -> list[dict]:
+    """Find request-only boolean gates on methods that own an allow-list.
+
+    A gate qualifies when the method (or a method it calls) both reads
+    ``$request->boolean('flag')`` and tells the client ``Use flag=true`` on
+    the 409 path. ``same_request_fields`` are the companion allow-list fields
+    read on that path (``domains``, ``docker_compose_domains``, ``urls``).
+    The flag must itself be on the caller's allow-list. Private validators
+    such as ``validateDataApplications`` are folded into their callers.
+    """
+    bodies = _php_named_method_bodies(content)
+    local = {name: _local_request_gates(body) for name, body in bodies.items()}
+    gates: list[dict] = []
+    for method, allow in allowed.items():
+        body = bodies.get(method)
+        if body is None:
+            continue
+        allow_set = set(allow)
+        merged: dict[str, list[str]] = {}
+
+        def add(flag: str, companions: list[str]) -> None:
+            if flag not in allow_set:
+                return
+            kept = [name for name in companions if name in allow_set]
+            if not kept:
+                return
+            existing = merged.setdefault(flag, [])
+            for name in kept:
+                if name not in existing:
+                    existing.append(name)
+            existing.sort()
+
+        for flag, companions in local.get(method, []):
+            add(flag, companions)
+        for callee in re.findall(r"\$this->([A-Za-z_][A-Za-z0-9_]*)\s*\(", body):
+            for flag, companions in local.get(callee, []):
+                add(flag, companions)
+        for flag, companions in merged.items():
+            gates.append({
+                "method": method,
+                "flag": flag,
+                "same_request_fields": companions,
+            })
+    gates.sort(key=lambda g: (g["method"], g["flag"]))
+    return gates
+
+
 def extract_allowed_fields(content: str) -> dict[str, list[str]]:
     """Extract $allowedFields / $allowed / $backupConfigFields arrays.
 
@@ -795,6 +894,7 @@ def extract_contract(coolify_dir: str, version: str = "unknown") -> dict:
         "enums": {},
         "validation_patterns": {},
         "shared_validation_rules": {},
+        "request_gates": [],
     }
 
     # Model definitions
@@ -868,6 +968,12 @@ def extract_contract(coolify_dir: str, version: str = "unknown") -> dict:
             contract["endpoints"][endpoint_key] = {
                 "allowed_fields": fields,
             }
+        for gate in extract_request_gates(content, allowed):
+            contract["request_gates"].append({
+                "endpoint": f"{ctrl_file.stem}::{gate['method']}",
+                "flag": gate["flag"],
+                "same_request_fields": gate["same_request_fields"],
+            })
 
     # Enums
     contract["enums"] = extract_enums(app_dir)
@@ -882,6 +988,7 @@ def extract_contract(coolify_dir: str, version: str = "unknown") -> dict:
     routes_file = root / "routes" / "api.php"
     contract["routes"] = extract_routes(routes_file)
 
+    contract["request_gates"].sort(key=lambda g: (g["endpoint"], g["flag"]))
     return contract
 
 
