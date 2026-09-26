@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.24](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.23...v0.1.24) (2026-09-26)
+
+
+### Bug Fixes
+
+* **application:** send force_domain_override on every domains write ([#908](https://github.com/coolify-terraform/terraform-provider-coolify/issues/908)) ([1364ad8](https://github.com/coolify-terraform/terraform-provider-coolify/commit/1364ad872fb03fce7ac166cdf616c7c56f1fe601))
+* **ci:** pull MinIO from Chainguard for acceptance boot ([#905](https://github.com/coolify-terraform/terraform-provider-coolify/issues/905)) ([8df6dc3](https://github.com/coolify-terraform/terraform-provider-coolify/commit/8df6dc3acd2d39a62104315e8ba93ea82d7fd916))
+
 ## [0.1.23](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.22...v0.1.23) (2026-09-21)
 
 
