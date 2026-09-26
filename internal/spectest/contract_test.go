@@ -22,6 +22,16 @@ type contractFile struct {
 	Endpoints          map[string]contractEndpoint `json:"endpoints"`
 	Enums              map[string][]string         `json:"enums"`
 	ValidationPatterns map[string]string           `json:"validation_patterns"`
+	RequestGates       []contractRequestGate       `json:"request_gates"`
+}
+
+// contractRequestGate is a boolean Coolify reads on the request that writes
+// another field, then drops before save. The write struct that sends one of
+// SameRequestFields must also carry Flag.
+type contractRequestGate struct {
+	Endpoint          string   `json:"endpoint"`
+	Flag              string   `json:"flag"`
+	SameRequestFields []string `json:"same_request_fields"`
 }
 
 // contractEndpoint is a Coolify controller action with an allow list.
