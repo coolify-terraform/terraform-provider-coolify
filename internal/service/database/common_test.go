@@ -167,6 +167,33 @@ func TestFlattenDatabaseExtended_APIDefaultDoesNotOverwriteConfigured(t *testing
 	}
 }
 
+func TestFlattenDatabaseExtended_ReadOnlyStringsFollowAPI(t *testing.T) {
+	t.Parallel()
+	m := CommonModel{PortsMappings: types.StringNull(), CustomDockerRunOptions: types.StringNull()}
+	f := m.ExtFields()
+	FlattenDatabaseExtended(&client.Database{
+		PortsMappings:          "8080:5432",
+		CustomDockerRunOptions: "--memory=512m",
+	}, f)
+	if m.PortsMappings.ValueString() != "8080:5432" {
+		t.Fatalf("ports_mappings = %#v, want API value on null state", m.PortsMappings)
+	}
+	if m.CustomDockerRunOptions.ValueString() != "--memory=512m" {
+		t.Fatalf("custom_docker_run_options = %#v, want API value", m.CustomDockerRunOptions)
+	}
+
+	m.PortsMappings = types.StringValue("8080:5432")
+	m.CustomDockerRunOptions = types.StringValue("--memory=512m")
+	f = m.ExtFields()
+	FlattenDatabaseExtended(&client.Database{}, f)
+	if !m.PortsMappings.IsNull() {
+		t.Fatalf("ports_mappings = %#v, want null when API is empty", m.PortsMappings)
+	}
+	if !m.CustomDockerRunOptions.IsNull() {
+		t.Fatalf("custom_docker_run_options = %#v, want null when API is empty", m.CustomDockerRunOptions)
+	}
+}
+
 func TestHasExtendedFields_AllDefaults(t *testing.T) {
 	t.Parallel()
 	f := DatabaseExtendedPtrs{}

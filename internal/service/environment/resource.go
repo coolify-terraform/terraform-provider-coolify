@@ -70,7 +70,7 @@ func (r *environmentResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the environment. Coolify accepts in-place rename via PATCH.",
+				MarkdownDescription: "The name of the environment. Coolify accepts an in-place rename via PATCH. Applications, databases, and services that set `environment_name` from this name are replaced when it changes, because they store the name and that attribute forces a new resource. Coolify keeps those resources in the renamed environment.",
 				Required:            true,
 			},
 			"description": schema.StringAttribute{

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -587,10 +588,28 @@ func ApplyPostCreateCloudProviderSettings(ctx context.Context, c *client.Client,
 	if !HasNonDefaultCloudProviderSettings(p) {
 		return nil
 	}
-	if _, err := c.UpdateServer(ctx, uuid, BuildPostCreateCloudProviderInput(p)); err != nil {
+	input := BuildPostCreateCloudProviderInput(p)
+	omitDefaultServerRoleWrite(c, &input)
+	if _, err := c.UpdateServer(ctx, uuid, input); err != nil {
 		return fmt.Errorf("server %s: %w", uuid, err)
 	}
 	return nil
+}
+
+// omitDefaultServerRoleWrite drops a default is_build_server=false when this
+// Coolify maps that false to server_role=both. SupportsServerRole is true for
+// a 4.3.0 version string, and that allow-list rejects server_role. An explicit
+// role or a true build flag is unchanged. Matches serverResource.Create.
+func omitDefaultServerRoleWrite(c *client.Client, input *client.UpdateServerInput) {
+	if input == nil || c == nil || !c.SupportsServerRole() {
+		return
+	}
+	if input.ServerRole != nil && strings.TrimSpace(*input.ServerRole) != "" {
+		return
+	}
+	if input.IsBuildServer != nil && !*input.IsBuildServer {
+		input.IsBuildServer = nil
+	}
 }
 
 // AlignUnconfiguredServerRole sets the planned server_role from

@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -101,9 +100,7 @@ type updateAndReadBackArgs struct {
 // plan copy the prior state. The configuration is the one place that still
 // says the request must force the override.
 func forceDomainOverrideConfigured(ctx context.Context, config tfsdk.Config, diags *diag.Diagnostics) bool {
-	var v types.Bool
-	diags.Append(config.GetAttribute(ctx, path.Root("force_domain_override"), &v)...)
-	return !v.IsNull() && !v.IsUnknown() && v.ValueBool()
+	return flex.ConfigBoolTrue(ctx, config, path.Root("force_domain_override"), diags)
 }
 
 // withForceDomainOverride sets force_domain_override on a PATCH that writes

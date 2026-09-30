@@ -655,6 +655,29 @@ class VolumeBackupsController {
         self.assertEqual(result["validateUpsertRequest"], ["frequency", "enabled", "timeout"])
         self.assertEqual(result["upsert"], ["frequency", "enabled", "timeout"])
 
+    def test_default_parameter_does_not_swallow_validation_text(self):
+        # TagsController declares array $allowedFields = ['name'] on the
+        # helper signature. The next ]; in the function is a return, and a
+        # DOTALL match used to record validation sentences as fields.
+        php = """<?php
+class TagsController {
+    private function validateTagWriteRequest(Request $request, array $allowedFields = ['name']): array|JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|min:2|max:255',
+        ]);
+        $errors->add($field, 'This field is not allowed.');
+        return ['name' => $name];
+    }
+    public function create(Request $request) {
+        $this->validateTagWriteRequest($request);
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(result["validateTagWriteRequest"], ["name"])
+        self.assertEqual(result["create"], ["name"])
+
     def test_channel_config_rules_mapped_to_update_methods(self):
         # NotificationsController (v4.3+) puts write fields in channelConfig()
         # match arms, not $allowedFields.

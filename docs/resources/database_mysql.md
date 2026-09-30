@@ -40,14 +40,13 @@ resource "coolify_database_mysql" "example" {
 
 ### Required
 
-- `project_uuid` (String) The UUID of the project this database belongs to. Changing this forces a new resource.
-- `server_uuid` (String) The UUID of the server to deploy the database on. Changing this forces a new resource.
+- `project_uuid` (String) The UUID of the project this database belongs to. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.
+- `server_uuid` (String) The UUID of the server to deploy the database on. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.
 
 ### Optional
 
-- `custom_docker_run_options` (String) Custom Docker run options passed to the container. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
 - `description` (String) A description of the database.
-- `destination_uuid` (String) UUID of the Coolify destination (Docker network) on the server. Create-only; changing forces a new resource. Coolify requires this when the server has multiple destinations and ignores a mismatched value when only one destination exists. Supported on database create for all Coolify versions this provider supports (v4.1.0+). When omitted on a multi-destination server, the client may auto-resolve after Coolify returns the multi-destination error (prefers network `coolify`). Manage destinations with `coolify_destination`. Import cannot recover this value (GET does not return destination UUID); re-adding it after import forces replacement unless you set it in state or omit the attribute.
+- `destination_uuid` (String) UUID of the Coolify destination (Docker network) on the server. Create-only; changing forces a new resource. Coolify requires this when the server has multiple destinations and ignores a mismatched value when only one destination exists. Supported on database create for all Coolify versions this provider supports (v4.1.0+). When omitted on a multi-destination server, the client may auto-resolve after Coolify returns the multi-destination error (prefers network `coolify`). Manage destinations with `coolify_destination`. Import cannot recover this value (GET does not return destination UUID). Setting it after import stores the configuration value in place. Omit it unless you know the UUID: a wrong value is kept, and changing a known value forces a new resource.
 - `enable_ssl` (Boolean) When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
 - `environment_name` (String) The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.
 - `health_check_enabled` (Boolean) When `true`, enables the Docker health check probe for this database container. Defaults to `true`.
@@ -73,7 +72,6 @@ resource "coolify_database_mysql" "example" {
 - `mysql_root_password` (String, Sensitive) The MySQL root password (maps to `MYSQL_ROOT_PASSWORD`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `mysql_user` (String) The MySQL user name (maps to `MYSQL_USER`). If omitted, Coolify auto-generates a value readable from state after creation.
 - `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
-- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`). The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 - `public_port_timeout` (Number) Timeout in seconds for public port allocation.
 - `ssl_mode` (String) The SSL connection mode. Only applies when `enable_ssl` is `true`. Valid values: `PREFERRED`, `REQUIRED`, `VERIFY_CA`, `VERIFY_IDENTITY`. The Coolify public API does not accept `ssl_mode` on create or update; set it in the Coolify UI. The provider keeps the configured value.
@@ -81,8 +79,10 @@ resource "coolify_database_mysql" "example" {
 
 ### Read-Only
 
+- `custom_docker_run_options` (String) Custom Docker run options passed to the container, as stored by Coolify. Read-only. The public API does not accept this field on create or update; change it in the Coolify UI.
 - `internal_db_url` (String, Sensitive) Internal connection URL for the database, accessible from other containers on the same server. Contains credentials; requires an API token with sensitive-data read permission.
 - `max_restart_count` (Number) Maximum container restarts before Coolify stops the database. GET-only (not on DatabasesController create or update allow lists; set the limit in the Coolify UI). Requires Coolify >= v4.3.15 (not in tag v4.3.14). Defaults to `10` when the column exists.
+- `ports_mappings` (String) Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`), as stored by Coolify. Read-only. The public API does not accept this field on create or update; change it in the Coolify UI.
 - `restart_limit_reached` (Boolean) Whether Coolify has stopped the database because restart_count reached max_restart_count. Computed runtime status. Requires Coolify >= v4.3.15 (not in tag v4.3.14).
 - `status` (String) The current status of the database (e.g., `running`, `exited`).
 - `uuid` (String) The UUID of the database.

@@ -158,8 +158,8 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"uuid":         schema.StringAttribute{MarkdownDescription: "The UUID of the database.", Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"name":         schema.StringAttribute{MarkdownDescription: "The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"description":  schema.StringAttribute{MarkdownDescription: "A description of the database.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-		"project_uuid": schema.StringAttribute{MarkdownDescription: "The UUID of the project this database belongs to. Changing this forces a new resource.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
-		"server_uuid":  schema.StringAttribute{MarkdownDescription: "The UUID of the server to deploy the database on. Changing this forces a new resource.", Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
+		"project_uuid": schema.StringAttribute{MarkdownDescription: "The UUID of the project this database belongs to. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.", Required: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
+		"server_uuid":  schema.StringAttribute{MarkdownDescription: "The UUID of the server to deploy the database on. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.", Required: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
 		"destination_uuid": schema.StringAttribute{
 			MarkdownDescription: "UUID of the Coolify destination (Docker network) on the server. Create-only; " +
 				"changing forces a new resource. Coolify requires this when the server has multiple destinations " +
@@ -167,10 +167,11 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 				"all Coolify versions this provider supports (v4.1.0+). When omitted on a multi-destination server, " +
 				"the client may auto-resolve after Coolify returns the multi-destination error (prefers network " +
 				"`coolify`). Manage destinations with `coolify_destination`. " +
-				"Import cannot recover this value (GET does not return destination UUID); re-adding it after import " +
-				"forces replacement unless you set it in state or omit the attribute.",
+				"Import cannot recover this value (GET does not return destination UUID). Setting it after import " +
+				"stores the configuration value in place. Omit it unless you know the UUID: a wrong value is kept, " +
+				"and changing a known value forces a new resource.",
 			Optional:      true,
-			PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()},
 			Validators:    []validator.String{validate.UUID()},
 		},
 		"environment_name": schema.StringAttribute{MarkdownDescription: "The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.", Optional: true, Computed: true, Default: stringdefault.StaticString("production"), PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
@@ -189,13 +190,10 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 		"limits_cpu_shares":         schema.Int64Attribute{MarkdownDescription: "CPU shares (relative weight).", Optional: true, Computed: true, Default: int64default.StaticInt64(1024)},
 		// Container/network settings
 		"ports_mappings": schema.StringAttribute{
-			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`). The Coolify public API does not accept this field on create or update; set it in the Coolify UI.",
-			Optional:            true,
-			Validators: []validator.String{
-				validate.PortMappings(),
-			},
+			MarkdownDescription: "Port mappings in `host:container` format, comma-separated (e.g., `8080:5432`), as stored by Coolify. Read-only. The public API does not accept this field on create or update; change it in the Coolify UI.",
+			Computed:            true,
 		},
-		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.", Optional: true, Validators: []validator.String{validate.NoShellMetachars()}},
+		"custom_docker_run_options": schema.StringAttribute{MarkdownDescription: "Custom Docker run options passed to the container, as stored by Coolify. Read-only. The public API does not accept this field on create or update; change it in the Coolify UI.", Computed: true},
 		"public_port_timeout":       schema.Int64Attribute{MarkdownDescription: "Timeout in seconds for public port allocation.", Optional: true},
 		"is_log_drain_enabled":      schema.BoolAttribute{MarkdownDescription: "When `true`, sends container logs to the configured log drain. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"is_include_timestamps":     IsIncludeTimestampsAttr(),
@@ -515,6 +513,17 @@ func (f DatabaseExtendedPtrs) WithSSL(enableSSL *types.Bool, sslMode *types.Stri
 	return f
 }
 
+// flattenReadOnlyDatabaseStrings copies GET values for fields Coolify rejects
+// on create and update. An empty API value clears state so a UI change is visible.
+func flattenReadOnlyDatabaseStrings(db *client.Database, f DatabaseExtendedPtrs) {
+	if f.PortsMappings != nil {
+		*f.PortsMappings = flex.StringToFramework(db.PortsMappings)
+	}
+	if f.CustomDockerRunOptions != nil {
+		*f.CustomDockerRunOptions = flex.StringToFramework(db.CustomDockerRunOptions)
+	}
+}
+
 func preserveOrSetBool(dst *types.Bool, api bool) {
 	if dst == nil {
 		return
@@ -542,9 +551,7 @@ func FlattenDatabaseExtended(db *client.Database, f DatabaseExtendedPtrs) {
 	}
 	*f.LimitsMemorySwappiness = flex.Int64PtrToFramework(db.LimitsMemorySwappiness)
 	*f.LimitsCPUShares = flex.Int64PtrToFramework(db.LimitsCPUShares)
-	// Fields without defaults — only set when configured.
-	flex.SetStringOrClear(f.PortsMappings, db.PortsMappings)
-	flex.SetStringOrClear(f.CustomDockerRunOptions, db.CustomDockerRunOptions)
+	flattenReadOnlyDatabaseStrings(db, f)
 	flex.SetInt64IfConfigured(f.PublicPortTimeout, db.PublicPortTimeout)
 	// Logging / SSL bools are not on Coolify create or update allow lists.
 	// GET returns the column default, so keep a known plan value (#872).

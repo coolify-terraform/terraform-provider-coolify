@@ -100,20 +100,22 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"project_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the project this service belongs to. Changing this forces a new resource.",
-				Required:            true,
+				MarkdownDescription: "The UUID of the project this service belongs to. Changing a known value forces a new resource. " +
+					"After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.",
+				Required: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					flex.RequiresReplaceIfKnown(),
 				},
 				Validators: []validator.String{
 					validate.UUID(),
 				},
 			},
 			"server_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the server to deploy the service on. Changing this forces a new resource.",
-				Required:            true,
+				MarkdownDescription: "The UUID of the server to deploy the service on. Changing a known value forces a new resource. " +
+					"After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.",
+				Required: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					flex.RequiresReplaceIfKnown(),
 				},
 				Validators: []validator.String{
 					validate.UUID(),
@@ -126,11 +128,12 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 					"all Coolify versions this provider supports (v4.1.0+; field is in create `$allowedFields`, not " +
 					"update). When omitted on a multi-destination server, the client auto-resolves after Coolify " +
 					"returns the multi-destination error (prefers network `coolify`). Manage destinations with " +
-					"`coolify_destination`. Import cannot recover this value (GET does not return destination UUID); " +
-					"re-adding it after import forces replacement unless you set it in state or omit the attribute.",
+					"`coolify_destination`. Import cannot recover this value (GET does not return destination UUID). " +
+					"Setting it after import stores the configuration value in place. Omit it unless you know the UUID: " +
+					"a wrong value is kept, and changing a known value forces a new resource.",
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					flex.RequiresReplaceIfKnown(),
 				},
 				Validators: []validator.String{
 					validate.UUID(),
@@ -304,7 +307,13 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	input.ConnectToNetwork = flex.BoolValueOrNull(plan.ConnectToNetwork)
 	input.IsContainerLabelEscapeEnabled = flex.BoolValueOrNull(plan.IsContainerLabelEscapeEnabled)
 	input.URLs = expandServiceURLs(plan.URLs)
-	input.ForceDomainOverride = flex.BoolValueOrNull(plan.ForceDomainOverride)
+	if flex.ConfigBoolTrue(ctx, req.Config, path.Root("force_domain_override"), &resp.Diagnostics) && len(input.URLs) > 0 {
+		forced := true
+		input.ForceDomainOverride = &forced
+	}
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	created, err := r.client.CreateService(ctx, input)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating service",
@@ -403,8 +412,14 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 		DockerComposeRaw:              encodedComposeRaw,
 		ConnectToNetwork:              flex.BoolIfChanged(plan.ConnectToNetwork, state.ConnectToNetwork),
 		IsContainerLabelEscapeEnabled: flex.BoolIfChanged(plan.IsContainerLabelEscapeEnabled, state.IsContainerLabelEscapeEnabled),
-		URLs:                          expandServiceURLs(plan.URLs),
-		ForceDomainOverride:           flex.BoolValueOrNull(plan.ForceDomainOverride),
+		URLs:                          serviceURLsForUpdate(plan.URLs, state.URLs),
+	}
+	if flex.ConfigBoolTrue(ctx, req.Config, path.Root("force_domain_override"), &resp.Diagnostics) && len(input.URLs) > 0 {
+		forced := true
+		input.ForceDomainOverride = &forced
+	}
+	if resp.Diagnostics.HasError() {
+		return
 	}
 	if _, err := r.client.UpdateService(ctx, uuid, input); err != nil {
 		resp.Diagnostics.AddError("Error updating service", fmt.Sprintf("service %s: %s", uuid, err))
@@ -507,18 +522,7 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 		model.InstantDeploy = types.BoolValue(false)
 	}
 	model.DockerCompose = flex.StringToFramework(svc.DockerCompose)
-	// The API returns decoded YAML for docker_compose_raw, but the user may
-	// have provided raw YAML or base64. Preserve the user's original value
-	// when the decoded content matches, to avoid perpetual diffs.
-	if svc.DockerComposeRaw != "" {
-		if model.DockerComposeRaw.IsNull() || model.DockerComposeRaw.IsUnknown() {
-			model.DockerComposeRaw = types.StringValue(svc.DockerComposeRaw)
-		}
-		// else: keep the user's configured value in state
-	} else if model.DockerComposeRaw.IsUnknown() {
-		// API didn't return it (catalog service) and user didn't set it.
-		model.DockerComposeRaw = types.StringNull()
-	}
+	model.DockerComposeRaw = preserveDockerComposeRaw(model.DockerComposeRaw, svc.DockerComposeRaw)
 	model.ConfigHash = flex.StringToFramework(svc.ConfigHash)
 	if svc.ConnectToNetwork != nil {
 		model.ConnectToNetwork = types.BoolValue(*svc.ConnectToNetwork)

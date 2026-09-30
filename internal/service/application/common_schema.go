@@ -4,6 +4,7 @@ import (
 	"context"
 	"regexp"
 
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -171,15 +172,15 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"project_uuid": schema.StringAttribute{
-			MarkdownDescription: "The UUID of the project this application belongs to. Changing this forces a new resource.",
+			MarkdownDescription: "The UUID of the project this application belongs to. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.",
 			Required:            true,
-			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			PlanModifiers:       []planmodifier.String{flex.RequiresReplaceIfKnown()},
 			Validators:          []validator.String{validate.UUID()},
 		},
 		"server_uuid": schema.StringAttribute{
-			MarkdownDescription: "The UUID of the server to deploy the application on. Changing this forces a new resource.",
+			MarkdownDescription: "The UUID of the server to deploy the application on. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.",
 			Required:            true,
-			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			PlanModifiers:       []planmodifier.String{flex.RequiresReplaceIfKnown()},
 			Validators:          []validator.String{validate.UUID()},
 		},
 		"destination_uuid": schema.StringAttribute{
@@ -190,10 +191,11 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 				"is in `$allowedFields` on create, not update). When omitted on a multi-destination server, the " +
 				"provider auto-resolves after Coolify returns the multi-destination error (prefers network " +
 				"`coolify`). Manage destinations with `coolify_destination`. " +
-				"Import cannot recover this value (GET returns `destination_id`/`destination_type`, not UUID); " +
-				"re-adding it after import forces replacement unless you set it in state or omit the attribute.",
+				"Import cannot recover this value (GET returns `destination_id`/`destination_type`, not UUID). " +
+				"Setting it after import stores the configuration value in place. Omit it unless you know the UUID: " +
+				"a wrong value is kept, and changing a known value forces a new resource.",
 			Optional:      true,
-			PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
+			PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()},
 			Validators:    []validator.String{validate.UUID()},
 		},
 		"environment_name": schema.StringAttribute{

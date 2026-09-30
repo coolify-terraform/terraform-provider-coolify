@@ -6180,6 +6180,7 @@ func TestRedactJSON_DiscordSlackWebhookAndConnectionSecrets(t *testing.T) {
 		"discord_webhook_url":"https://discord.com/api/webhooks/1/secret-discord",
 		"slack_webhook_url":"https://hooks.slack.com/services/T/B/secret-slack",
 		"internal_db_url":"postgresql://user:password@host/db",
+		"external_db_url":"postgres://appuser:external-secret@db.example:5432/app",
 		"logdrain_custom_config":"authToken=drain-secret",
 		"webhook_enabled":true
 	}`
@@ -6192,6 +6193,8 @@ func TestRedactJSON_DiscordSlackWebhookAndConnectionSecrets(t *testing.T) {
 	assert.NotContains(t, got, "discord.com/api/webhooks")
 	assert.NotContains(t, got, "hooks.slack.com")
 	assert.NotContains(t, got, "postgresql://user:password@host/db")
+	assert.NotContains(t, got, "external-secret")
+	assert.NotContains(t, got, "appuser:external-secret")
 	assert.NotContains(t, got, "drain-secret")
 }
 
