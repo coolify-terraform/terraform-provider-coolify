@@ -127,6 +127,18 @@ Some fields force resource replacement when changed. These are marked with
 - `github_app_uuid` on `coolify_application_github_app`
 
 Plan output will show `# forces replacement` for these fields.
+`project_uuid` and `server_uuid` are null after a simple UUID import,
+because Coolify GET does not return them. The next apply stores the
+configuration value in place. A change from one known UUID to another
+still replaces the resource.
+
+Renaming `coolify_environment.name` updates Coolify in place. The
+applications, databases, and services in that environment stay where
+they are. Terraform replaces any of those resources whose
+`environment_name` is set from the renamed name, because they store the
+name and that attribute forces a new resource. Avoid renaming an
+environment that already has dependents, or expect those dependents to
+be recreated.
 
 ## Next steps
 

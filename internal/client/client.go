@@ -581,7 +581,8 @@ func isSensitiveField(name string) bool {
 		strings.Contains(lower, "api_key") ||
 		strings.Contains(lower, "license_key") ||
 		strings.Contains(lower, "user_key") ||
-		strings.Contains(lower, "webhook_url")
+		strings.Contains(lower, "webhook_url") ||
+		strings.HasSuffix(lower, "_db_url")
 }
 
 // mapHasKeyAndSecret reports whether m looks like an S3 credential object

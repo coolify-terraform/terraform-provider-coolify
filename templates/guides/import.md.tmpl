@@ -77,10 +77,18 @@ terraform import coolify_service.plausible \
   <project-uuid>:<server-uuid>:production:<service-uuid>
 ```
 
-This avoids post-import diffs for `project_uuid`, `server_uuid`, and
-`environment_name` (which the API may not return in GET responses). The simple
-UUID format still works but may require you to set these fields manually in
-your `.tf` configuration.
+This avoids a follow-up apply for `project_uuid`, `server_uuid`, and
+`environment_name` (Coolify GET does not return the UUIDs). The simple UUID
+format still imports. Setting `project_uuid` or `server_uuid` in configuration
+after that import stores the value in place. It does not destroy the resource.
+`environment_name` is set to `production` on a simple import. A different name
+still forces a new resource, which for a database deletes data. Use the
+compound form when the environment is not `production`.
+
+`destination_uuid` is not part of either import form. Coolify GET returns a
+numeric destination id, not the UUID. Leave the attribute unset unless you
+know the value. Setting it after import stores it in place. Changing a stored
+value later forces a new resource.
 
 -> **Warning:** The `server_uuid` segment must be the server that actually hosts
 the resource. Coolify GET responses often omit `server_uuid`, so a wrong value

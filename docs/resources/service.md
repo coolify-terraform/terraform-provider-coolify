@@ -66,14 +66,14 @@ resource "coolify_service" "custom" {
 
 ### Required
 
-- `project_uuid` (String) The UUID of the project this service belongs to. Changing this forces a new resource.
-- `server_uuid` (String) The UUID of the server to deploy the service on. Changing this forces a new resource.
+- `project_uuid` (String) The UUID of the project this service belongs to. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.
+- `server_uuid` (String) The UUID of the server to deploy the service on. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.
 
 ### Optional
 
 - `connect_to_docker_network` (Boolean) Whether the service containers connect to the Coolify Docker network.
 - `description` (String) A description of the service.
-- `destination_uuid` (String) UUID of the Coolify destination (Docker network) on the server. Create-only; changing forces a new resource. Coolify requires this when the server has multiple destinations and ignores a mismatched value when only one destination exists. Supported on service create for all Coolify versions this provider supports (v4.1.0+; field is in create `$allowedFields`, not update). When omitted on a multi-destination server, the client auto-resolves after Coolify returns the multi-destination error (prefers network `coolify`). Manage destinations with `coolify_destination`. Import cannot recover this value (GET does not return destination UUID); re-adding it after import forces replacement unless you set it in state or omit the attribute.
+- `destination_uuid` (String) UUID of the Coolify destination (Docker network) on the server. Create-only; changing forces a new resource. Coolify requires this when the server has multiple destinations and ignores a mismatched value when only one destination exists. Supported on service create for all Coolify versions this provider supports (v4.1.0+; field is in create `$allowedFields`, not update). When omitted on a multi-destination server, the client auto-resolves after Coolify returns the multi-destination error (prefers network `coolify`). Manage destinations with `coolify_destination`. Import cannot recover this value (GET does not return destination UUID). Setting it after import stores the configuration value in place. Omit it unless you know the UUID: a wrong value is kept, and changing a known value forces a new resource.
 - `docker_compose_raw` (String, Sensitive) The raw Docker Compose YAML content. Can be used instead of `type` to create a service from a custom compose file, or to customize a catalog service after creation. The provider accepts plain YAML or pre-encoded base64; encoding is handled automatically. Requires API token with `read:sensitive` permission.
 - `environment_name` (String) The environment name. Defaults to `production`. Changing this forces a new resource.
 - `force_domain_override` (Boolean) Force domain assignment even if conflicts with other resources are detected. Only relevant when `urls` is set.

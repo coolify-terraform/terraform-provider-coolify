@@ -72,8 +72,8 @@ func (r *postgresqlDatabaseResource) Schema(ctx context.Context, _ resource.Sche
 				Optional:            true,
 			},
 			"init_scripts": schema.StringAttribute{
-				MarkdownDescription: "Initialization scripts as a JSON array. The Coolify public API does not accept this field on create or update.",
-				Optional:            true,
+				MarkdownDescription: "Initialization scripts as a JSON array, as stored by Coolify. Read-only. The public API does not accept this field on create or update; change it in the Coolify UI.",
+				Computed:            true,
 			},
 			"enable_ssl": dbcommon.EnableSSLAttr(),
 			"ssl_mode":   dbcommon.SSLModePostgresqlAttr(),
@@ -236,6 +236,8 @@ func flattenDatabase(db *client.Database, m *postgresqlDatabaseResourceModel) {
 	flex.SetStringOrClear(&m.PostgresInitdbArgs, db.PostgresInitdbArgs)
 	flex.SetStringOrClear(&m.PostgresHostAuthMethod, db.PostgresHostAuthMethod)
 	if len(db.InitScripts) > 0 {
-		flex.SetStringOrClear(&m.InitScripts, string(db.InitScripts))
+		m.InitScripts = types.StringValue(string(db.InitScripts))
+	} else {
+		m.InitScripts = types.StringNull()
 	}
 }

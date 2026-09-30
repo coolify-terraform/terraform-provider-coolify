@@ -817,6 +817,43 @@ func TestNormalizeUnknownCloudServerPlanFields(t *testing.T) {
 	}
 }
 
+func TestOmitDefaultServerRoleWrite(t *testing.T) {
+	t.Parallel()
+	falseVal := false
+	trueVal := true
+	role := "build"
+	cases := []struct {
+		name    string
+		version string
+		build   *bool
+		role    *string
+		wantNil bool
+	}{
+		{name: "4.3.0 drops default false", version: "4.3.0", build: &falseVal, wantNil: true},
+		{name: "4.4.0 drops default false", version: "4.4.0", build: &falseVal, wantNil: true},
+		{name: "4.3.23 keeps false", version: "4.3.23", build: &falseVal, wantNil: false},
+		{name: "4.4-rc.1 keeps false", version: "4.4-rc.1", build: &falseVal, wantNil: false},
+		{name: "4.4.0 keeps true", version: "4.4.0", build: &trueVal, wantNil: false},
+		{name: "explicit role keeps false", version: "4.4.0", build: &falseVal, role: &role, wantNil: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			input := client.UpdateServerInput{IsBuildServer: tc.build, ServerRole: tc.role}
+			omitDefaultServerRoleWrite(&client.Client{CoolifyVersion: tc.version}, &input)
+			if tc.wantNil {
+				if input.IsBuildServer != nil {
+					t.Fatalf("IsBuildServer = %v, want nil", *input.IsBuildServer)
+				}
+				return
+			}
+			if input.IsBuildServer == nil || *input.IsBuildServer != *tc.build {
+				t.Fatalf("IsBuildServer = %v, want %v", input.IsBuildServer, *tc.build)
+			}
+		})
+	}
+}
+
 func TestApplyPostCreateCloudProviderSettings_SkipsDefaults(t *testing.T) {
 	t.Parallel()
 	// No HTTP client needed when all defaults: helper must no-op without calling Update.

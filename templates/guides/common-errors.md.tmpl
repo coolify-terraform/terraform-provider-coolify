@@ -482,22 +482,26 @@ to destroy and recreate the resource.
 server or project, accept the replacement. If this was accidental,
 revert the field value in your `.tf` file.
 
-### Import state mismatch
+### Import plans replacement
 
 ```
-Error: import - coolify_application.web attribute "project_uuid"
-expected "" got "abc-123"
+# coolify_database_postgresql.db must be replaced
 ```
 
-**Cause:** after `terraform import`, some fields are missing from state
-because the Coolify API does not return them in GET responses.
+**Cause:** a simple UUID import leaves `project_uuid` and `server_uuid`
+null. Coolify GET does not return them. Provider versions before this
+fix treated the null-to-value change as `RequiresReplace`, so the next
+apply destroyed the resource. For a database that deletes data.
 
-**Fix:** set the missing fields in your `.tf` configuration before
-running `terraform plan`. See the
-[Import Guide](import#known-limitations) for the full list of fields
-the API may not return.
+**Fix:** upgrade the provider. Setting those fields in configuration
+after import updates state in place. `environment_name` is still
+`production` after a simple import, and a different name still replaces
+the resource. Prefer the compound import format, which also checks that
+the resource is on that server:
 
--> **Tip:** Use the compound import format for applications, databases,
-and services to populate `project_uuid`, `server_uuid`, and
-`environment_name` automatically:
-`terraform import coolify_application.web <project-uuid>:<server-uuid>:production:<app-uuid>`
+```bash
+terraform import coolify_application.web <project-uuid>:<server-uuid>:production:<app-uuid>
+```
+
+Leave `destination_uuid` unset unless you know it. Import cannot read
+it back. A later change of a stored value forces a new resource.
