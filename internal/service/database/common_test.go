@@ -103,6 +103,72 @@ func TestSetUpdateExtended_OmitsDisallowedKeys(t *testing.T) {
 	}
 }
 
+func TestPopulateBaseCreateInput_EnvironmentUUIDOmitsName(t *testing.T) {
+	t.Parallel()
+	m := CommonModel{
+		ServerUUID:      types.StringValue("bbbb0001-0001-4000-8000-000000000001"),
+		ProjectUUID:     types.StringValue("aaaa0001-0001-4000-8000-000000000001"),
+		EnvironmentUUID: types.StringValue("eeee0001-0001-4000-8000-000000000001"),
+	}
+	var base client.CreateDatabaseBaseInput
+	PopulateBaseCreateInput(&base, &m)
+	if base.EnvironmentUUID != "eeee0001-0001-4000-8000-000000000001" {
+		t.Fatalf("EnvironmentUUID = %q", base.EnvironmentUUID)
+	}
+	if base.EnvironmentName != "" {
+		t.Fatalf("EnvironmentName = %q, want empty when only uuid is set", base.EnvironmentName)
+	}
+	raw, err := json.Marshal(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(raw, &body); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := body["environment_name"]; ok {
+		t.Fatalf("POST body included environment_name: %#v", body["environment_name"])
+	}
+	if body["environment_uuid"] != "eeee0001-0001-4000-8000-000000000001" {
+		t.Fatalf("environment_uuid = %#v", body["environment_uuid"])
+	}
+}
+
+func TestFlattenDatabaseCommon_EnvironmentName(t *testing.T) {
+	t.Parallel()
+	db := &client.Database{
+		UUID:            "dddd0001-0001-4000-8000-000000000001",
+		Name:            "db",
+		EnvironmentName: "staging",
+		ProjectUUID:     "aaaa0001-0001-4000-8000-000000000001",
+		ServerUUID:      "bbbb0001-0001-4000-8000-000000000001",
+	}
+	flatten := func(envUUID types.String) types.String {
+		t.Helper()
+		uuid := types.StringNull()
+		name := types.StringNull()
+		desc := types.StringNull()
+		image := types.StringNull()
+		project := types.StringNull()
+		server := types.StringNull()
+		env := types.StringNull()
+		isPublic := types.BoolNull()
+		port := types.Int64Null()
+		FlattenDatabaseCommon(db, DatabaseCommonPtrs{
+			UUID: &uuid, Name: &name, Description: &desc, Image: &image,
+			ProjectUUID: &project, ServerUUID: &server, EnvName: &env, EnvUUID: &envUUID,
+			IsPublic: &isPublic, PublicPort: &port,
+		})
+		return env
+	}
+	if got := flatten(types.StringNull()); got.ValueString() != "staging" {
+		t.Fatalf("environment_name = %s, want staging when uuid is unset", got)
+	}
+	if got := flatten(types.StringValue("eeee0001-0001-4000-8000-000000000001")); !got.IsNull() {
+		t.Fatalf("environment_name = %s, want null when environment_uuid is set", got)
+	}
+}
+
 func TestPopulateBaseCreateInput_LimitsMemory(t *testing.T) {
 	t.Parallel()
 	m := CommonModel{

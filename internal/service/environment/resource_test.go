@@ -20,6 +20,7 @@ import (
 // mockEnvironment stores environment data in the mock server.
 type mockEnvironment struct {
 	ID          int64  `json:"id"`
+	UUID        string `json:"uuid,omitempty"`
 	Name        string `json:"name"`
 	ProjectUUID string `json:"project_uuid"`
 	Description string `json:"description,omitempty"`
@@ -48,6 +49,7 @@ func (s *mockEnvironmentStore) Create(projectUUID, name, description string) *mo
 	s.counter++
 	env := &mockEnvironment{
 		ID:          s.counter,
+		UUID:        fmt.Sprintf("eeee%04d-0001-4000-8000-000000000001", s.counter),
 		Name:        name,
 		ProjectUUID: projectUUID,
 		Description: description,
@@ -236,6 +238,7 @@ resource "coolify_environment" "test" {
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coolify_environment.test", "id"),
+					resource.TestCheckResourceAttr("coolify_environment.test", "uuid", "eeee0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_environment.test", "project_uuid", "aaaa0001-0001-4000-8000-000000000001"),
 					resource.TestCheckResourceAttr("coolify_environment.test", "name", "staging"),
 					resource.TestCheckResourceAttr("coolify_environment.test", "description", "Staging environment"),

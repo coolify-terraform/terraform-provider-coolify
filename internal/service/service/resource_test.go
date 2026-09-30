@@ -406,6 +406,7 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 		ServerUUID                    types.String      `tfsdk:"server_uuid"`
 		DestinationUUID               types.String      `tfsdk:"destination_uuid"`
 		EnvironmentName               types.String      `tfsdk:"environment_name"`
+		EnvironmentUUID               types.String      `tfsdk:"environment_uuid"`
 		Type                          types.String      `tfsdk:"type"`
 		Status                        types.String      `tfsdk:"status"`
 		DockerCompose                 types.String      `tfsdk:"docker_compose"`
@@ -428,6 +429,7 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 		ServerUUID:                    types.StringNull(),
 		DestinationUUID:               types.StringNull(),
 		EnvironmentName:               types.StringNull(),
+		EnvironmentUUID:               types.StringNull(),
 		Type:                          types.StringNull(),
 		Status:                        types.StringNull(),
 		DockerCompose:                 types.StringNull(),
@@ -516,6 +518,7 @@ func TestDeleteService_ErrorsWhenGetReturnsEmptyBody(t *testing.T) {
 		ServerUUID                    types.String      `tfsdk:"server_uuid"`
 		DestinationUUID               types.String      `tfsdk:"destination_uuid"`
 		EnvironmentName               types.String      `tfsdk:"environment_name"`
+		EnvironmentUUID               types.String      `tfsdk:"environment_uuid"`
 		Type                          types.String      `tfsdk:"type"`
 		Status                        types.String      `tfsdk:"status"`
 		DockerCompose                 types.String      `tfsdk:"docker_compose"`
@@ -538,6 +541,7 @@ func TestDeleteService_ErrorsWhenGetReturnsEmptyBody(t *testing.T) {
 		ServerUUID:                    types.StringNull(),
 		DestinationUUID:               types.StringNull(),
 		EnvironmentName:               types.StringNull(),
+		EnvironmentUUID:               types.StringNull(),
 		Type:                          types.StringNull(),
 		Status:                        types.StringNull(),
 		DockerCompose:                 types.StringNull(),

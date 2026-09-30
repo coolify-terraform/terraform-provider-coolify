@@ -518,6 +518,67 @@ def _bracket_end(content: str, open_idx: int) -> int | None:
 _ALLOWED_ASSIGN_RE = re.compile(
     r"\$(?:allowedFields|allowed|backupConfigFields)\s*=\s*\["
 )
+_FIELD_IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+# Public write actions only. validate* helpers and channelConfig() are not
+# endpoints, and a validate() list must not replace an $allowedFields list.
+_WRITE_METHOD_RE = re.compile(
+    r"(?:^|_)(?:create|update|store|delete|destroy|upsert|run)(?:_|$)"
+)
+
+
+def _require_field_identifiers(method: str, fields: list[str]) -> None:
+    """Reject validation sentences that a loose regex once stored as fields."""
+    bad = [field for field in fields if not _FIELD_IDENT_RE.match(field)]
+    if bad:
+        raise ValueError(
+            f"{method} allow-list has non-identifier fields: {bad}"
+        )
+
+
+def _is_public_write_method(method: str) -> bool:
+    if not method or method == "unknown" or method.lower().startswith("validate"):
+        return False
+    return _WRITE_METHOD_RE.search(method) is not None
+
+
+def _validate_rule_keys(content: str) -> dict[str, list[str]]:
+    """Field names from $request->validate and customApiValidator rule arrays.
+
+    Coolify v4.3 controllers usually call customApiValidator($request->all(), [...])
+    rather than $request->validate. Keys only, not rule strings. The caller
+    skips methods that already own $allowedFields.
+    """
+    found: dict[str, list[str]] = {}
+    needles = ("$request->validate(", "customApiValidator(")
+    start = 0
+    while True:
+        positions = [(content.find(needle, start), needle) for needle in needles]
+        positions = [(idx, needle) for idx, needle in positions if idx >= 0]
+        if not positions:
+            break
+        idx, needle = min(positions, key=lambda item: item[0])
+        bracket = content.find("[", idx + len(needle))
+        if bracket < 0:
+            break
+        close = _bracket_end(content, bracket)
+        if close is None:
+            break
+        preceding = content[:idx]
+        methods = re.findall(r"function\s+(\w+)\s*\(", preceding)
+        method = methods[-1] if methods else "unknown"
+        keys: list[str] = []
+        seen: set[str] = set()
+        for key in re.findall(r"'([^']+)'\s*=>", content[bracket + 1 : close]):
+            if key not in seen:
+                seen.add(key)
+                keys.append(key)
+        if keys:
+            existing = found.setdefault(method, [])
+            for key in keys:
+                if key not in existing:
+                    existing.append(key)
+        start = close + 1
+    return found
 
 
 def extract_allowed_fields(content: str) -> dict[str, list[str]]:
@@ -581,6 +642,15 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
         else:
             result[method] = extra
 
+    # $request->validate / customApiValidator rule keys fill methods that
+    # never assign $allowedFields. Keep validate* helpers so the alias below
+    # can copy them onto public callers. Never replace an existing list.
+    for method, keys in _validate_rule_keys(content).items():
+        if method in result:
+            continue
+        if method.lower().startswith("validate") or _is_public_write_method(method):
+            result[method] = list(keys)
+
     # Alias private validate* helpers onto public methods that call them.
     # VolumeBackupsController::upsert calls validateUpsertRequest which owns
     # $allowedFields; without this, tip extracts lose the public write surface
@@ -599,6 +669,23 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
             for f in fields:
                 if f not in existing:
                     existing.append(f)
+
+    # Shared env public routes call createEnv/updateEnv, which call
+    # validateEnvPayload. Copy that list one hop out. Do not copy
+    # create_application onto the typed create_*_application wrappers.
+    for helper in ("createEnv", "updateEnv"):
+        fields = result.get(helper)
+        if not fields:
+            continue
+        call_pat = re.compile(rf"\$this->{helper}\s*\(")
+        for call in call_pat.finditer(content):
+            preceding = content[: call.start()]
+            methods = re.findall(r"function\s+(\w+)\s*\(", preceding)
+            caller = methods[-1] if methods else None
+            if not caller or caller == helper or caller in result:
+                continue
+            if _is_public_write_method(caller):
+                result[caller] = list(fields)
 
     # NotificationsController (v4.3+) owns write fields in channelConfig()'s
     # match arms (rules arrays), not $allowedFields. Map each channel to
@@ -620,6 +707,17 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
                 for f in constants["FIELDS"]:
                     if f not in existing:
                         existing.append(f)
+
+    # TeamController exposes only GET routes (teams, members). It has no
+    # request body and no allow-list. Do not invent write fields for it.
+    #
+    # ServerCloudflareTunnelController::enable and ::disable are path
+    # actions with no JSON body. ServerDockerCleanupController::run is a
+    # write: customApiValidator allows delete_unused_volumes and
+    # delete_unused_networks, and run is a public write method above.
+
+    for method, fields in result.items():
+        _require_field_identifiers(method, fields)
     return result
 
 

@@ -3,13 +3,13 @@
 page_title: "coolify_environment Resource - coolify"
 subcategory: ""
 description: |-
-  Manages a Coolify environment within a project. Every project auto-creates a production environment. Use this resource to create additional environments (e.g., staging, dev). Applications, databases, and services reference environments via their environment_name attribute.
+  Manages a Coolify environment within a project. Every project auto-creates a production environment. Use this resource to create additional environments (e.g., staging, dev). Applications, databases, and services can reference uuid so a later rename does not replace them. Referencing name still replaces those resources when the name changes.
   ~> Warning: Deleting an environment will cascade-delete all applications, databases, and services within it.
 ---
 
 # coolify_environment (Resource)
 
-Manages a Coolify environment within a project. Every project auto-creates a `production` environment. Use this resource to create additional environments (e.g., `staging`, `dev`). Applications, databases, and services reference environments via their `environment_name` attribute.
+Manages a Coolify environment within a project. Every project auto-creates a `production` environment. Use this resource to create additional environments (e.g., `staging`, `dev`). Applications, databases, and services can reference `uuid` so a later rename does not replace them. Referencing `name` still replaces those resources when the name changes.
 
 ~> **Warning:** Deleting an environment will cascade-delete all applications, databases, and services within it.
 
@@ -38,6 +38,7 @@ resource "coolify_environment" "example" {
 ### Read-Only
 
 - `id` (Number) The numeric ID of the environment.
+- `uuid` (String) The UUID of the environment. Reference this from `environment_uuid` on applications, databases, and services so renaming `name` does not replace those resources.
 
 ## Import
 

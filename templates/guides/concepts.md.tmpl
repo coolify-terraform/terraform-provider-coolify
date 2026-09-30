@@ -135,10 +135,16 @@ still replaces the resource.
 Renaming `coolify_environment.name` updates Coolify in place. The
 applications, databases, and services in that environment stay where
 they are. Terraform replaces any of those resources whose
-`environment_name` is set from the renamed name, because they store the
-name and that attribute forces a new resource. Avoid renaming an
-environment that already has dependents, or expect those dependents to
-be recreated.
+`environment_name` is set from the renamed name. Point them at
+`environment_uuid` instead:
+
+```hcl
+environment_uuid = coolify_environment.staging.uuid
+```
+
+Do not set `environment_name` on that same resource. Coolify looks up
+the name first, so a name would ignore the UUID. Changing a known
+`environment_uuid` still forces a new resource.
 
 ## Next steps
 

@@ -88,7 +88,7 @@ type CreateDatabaseBaseInput struct {
 	ServerUUID      string `json:"server_uuid"`
 	DestinationUUID string `json:"destination_uuid,omitempty"`
 	ProjectUUID     string `json:"project_uuid"`
-	EnvironmentName string `json:"environment_name"`
+	EnvironmentName string `json:"environment_name,omitempty"`
 	EnvironmentUUID string `json:"environment_uuid,omitempty"`
 	Name            string `json:"name,omitempty"`
 	Description     string `json:"description,omitempty"`

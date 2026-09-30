@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -46,6 +45,7 @@ type serviceResourceModel struct {
 	// from state after apply.
 	DestinationUUID               types.String      `tfsdk:"destination_uuid"`
 	EnvironmentName               types.String      `tfsdk:"environment_name"`
+	EnvironmentUUID               types.String      `tfsdk:"environment_uuid"`
 	Type                          types.String      `tfsdk:"type"`
 	Status                        types.String      `tfsdk:"status"`
 	DockerCompose                 types.String      `tfsdk:"docker_compose"`
@@ -139,15 +139,8 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 					validate.UUID(),
 				},
 			},
-			"environment_name": schema.StringAttribute{
-				MarkdownDescription: "The environment name. Defaults to `production`. Changing this forces a new resource.",
-				Optional:            true,
-				Computed:            true,
-				Default:             stringdefault.StaticString("production"),
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
+			"environment_name": schema.StringAttribute{MarkdownDescription: "Environment name. Defaults to `production` when `environment_uuid` is omitted. Set `environment_uuid` instead when the environment may be renamed. Changing a known name forces a new resource. Do not set both.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{flex.EnvironmentNamePlan()}},
+			"environment_uuid": schema.StringAttribute{MarkdownDescription: "Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this service. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.", Optional: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
 			"type": schema.StringAttribute{
 				MarkdownDescription: "The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). Mutually exclusive with `docker_compose_raw`. See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.",
 				Optional:            true,
@@ -288,10 +281,12 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_service"})
 
 	input := client.CreateServiceInput{
-		ServerUUID:      plan.ServerUUID.ValueString(),
-		ProjectUUID:     plan.ProjectUUID.ValueString(),
-		EnvironmentName: plan.EnvironmentName.ValueString(),
+		ServerUUID:  plan.ServerUUID.ValueString(),
+		ProjectUUID: plan.ProjectUUID.ValueString(),
 	}
+	// Null when the user set environment_uuid only. ValueString panics on null.
+	flex.SetIfKnown(&input.EnvironmentName, plan.EnvironmentName)
+	flex.SetIfKnown(&input.EnvironmentUUID, plan.EnvironmentUUID)
 	// Catalog type or custom compose (mutually exclusive, validated in ValidateConfig).
 	if !plan.Type.IsNull() && !plan.Type.IsUnknown() {
 		input.Type = plan.Type.ValueString()
@@ -546,7 +541,10 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 	if svc.ServerUUID != "" {
 		model.ServerUUID = types.StringValue(svc.ServerUUID)
 	}
-	if svc.EnvironmentName != "" {
+	// GET may include the environment's current name. Copy it only when this
+	// resource is not addressed by UUID. A stored name next to a UUID plans
+	// replacement on every refresh, and Coolify looks the name up first.
+	if svc.EnvironmentName != "" && !flex.KnownNonEmpty(model.EnvironmentUUID) {
 		model.EnvironmentName = flex.StringToFramework(svc.EnvironmentName)
 	}
 

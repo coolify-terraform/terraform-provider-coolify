@@ -13,7 +13,7 @@ var applicationAllowListSchemaRegistry = []SchemaCoverageEntry{
 	// Identity / placement
 	{ContractField: "project_uuid", SchemaAttribute: "project_uuid", Status: StatusCovered},
 	{ContractField: "environment_name", SchemaAttribute: "environment_name", Status: StatusCovered},
-	{ContractField: "environment_uuid", Status: SkipNA, Notes: "provider uses environment_name on create; Coolify accepts either"},
+	{ContractField: "environment_uuid", SchemaAttribute: "environment_uuid", Status: StatusCovered},
 	{ContractField: "server_uuid", SchemaAttribute: "server_uuid", Status: StatusCovered},
 	{ContractField: "destination_uuid", SchemaAttribute: "destination_uuid", Status: StatusCovered},
 	{ContractField: "type", Status: SkipNA, Notes: "Coolify create discriminator (public/private/github/dockerfile/dockerimage), not a Terraform attribute"},

@@ -7986,6 +7986,260 @@
         "cloud_init_script",
         "instant_validate"
       ]
+    },
+    "ApplicationsController::create_bulk_envs": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_preview",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "is_runtime",
+        "is_buildtime",
+        "comment"
+      ]
+    },
+    "ApplicationsController::update_storage": {
+      "allowed_fields": [
+        "uuid",
+        "id",
+        "type",
+        "is_preview_suffix_enabled",
+        "name",
+        "mount_path",
+        "content"
+      ]
+    },
+    "ApplicationsController::create_storage": {
+      "allowed_fields": [
+        "type",
+        "name",
+        "mount_path",
+        "content",
+        "is_directory",
+        "is_host_file",
+        "fs_path"
+      ]
+    },
+    "DatabasesController::update_env_by_uuid": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "DatabasesController::create_bulk_envs": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "DatabasesController::create_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "DatabasesController::create_storage": {
+      "allowed_fields": [
+        "type",
+        "name",
+        "mount_path",
+        "content",
+        "is_directory",
+        "is_host_file",
+        "fs_path"
+      ]
+    },
+    "DatabasesController::update_storage": {
+      "allowed_fields": [
+        "uuid",
+        "id",
+        "type",
+        "is_preview_suffix_enabled",
+        "name",
+        "mount_path",
+        "content"
+      ]
+    },
+    "SharedEnvironmentVariablesController::validateEnvPayload": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::createEnv": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::updateEnv": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::team_create_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::project_create_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::environment_create_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::server_create_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::team_update_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::project_update_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::environment_update_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "SharedEnvironmentVariablesController::server_update_env": {
+      "allowed_fields": [
+        "key",
+        "value",
+        "is_literal",
+        "is_multiline",
+        "is_shown_once",
+        "comment"
+      ]
+    },
+    "ServerSentinelController::update": {
+      "allowed_fields": [
+        "is_metrics_enabled",
+        "is_sentinel_debug_enabled",
+        "sentinel_token",
+        "sentinel_metrics_refresh_rate_seconds",
+        "sentinel_metrics_history_days",
+        "sentinel_push_interval_seconds",
+        "sentinel_custom_url"
+      ]
+    },
+    "ServerLogDrainsController::update": {
+      "allowed_fields": [
+        "is_logdrain_newrelic_enabled",
+        "logdrain_newrelic_license_key",
+        "logdrain_newrelic_base_uri",
+        "is_logdrain_axiom_enabled",
+        "logdrain_axiom_dataset_name",
+        "logdrain_axiom_api_key",
+        "is_logdrain_custom_enabled",
+        "logdrain_custom_config",
+        "logdrain_custom_config_parser"
+      ]
+    },
+    "ServerDockerCleanupController::update": {
+      "allowed_fields": [
+        "docker_cleanup_frequency",
+        "docker_cleanup_threshold",
+        "force_docker_cleanup",
+        "delete_unused_volumes",
+        "delete_unused_networks",
+        "disable_application_image_retention"
+      ]
+    },
+    "ServerDockerCleanupController::run": {
+      "allowed_fields": [
+        "delete_unused_volumes",
+        "delete_unused_networks"
+      ]
+    },
+    "ServerCloudflareTunnelController::update": {
+      "allowed_fields": [
+        "is_cloudflare_tunnel"
+      ]
+    },
+    "CloudInitScriptsController::store": {
+      "allowed_fields": [
+        "name",
+        "script"
+      ]
+    },
+    "CloudInitScriptsController::update": {
+      "allowed_fields": [
+        "name",
+        "script"
+      ]
     }
   },
   "enums": {
