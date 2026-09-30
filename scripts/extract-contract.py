@@ -481,6 +481,45 @@ def extract_request_gates(content: str, allowed: dict[str, list[str]]) -> list[d
     return gates
 
 
+def _bracket_end(content: str, open_idx: int) -> int | None:
+    """Index of the ] that matches content[open_idx], which must be '['.
+
+    Quoted strings are skipped so a ] inside a message cannot close the array.
+    """
+    if open_idx >= len(content) or content[open_idx] != "[":
+        return None
+    depth = 0
+    i = open_idx
+    quote = ""
+    while i < len(content):
+        c = content[i]
+        if quote:
+            if c == "\\" and i + 1 < len(content):
+                i += 2
+                continue
+            if c == quote:
+                quote = ""
+            i += 1
+            continue
+        if c in ("'", '"'):
+            quote = c
+            i += 1
+            continue
+        if c == "[":
+            depth += 1
+        elif c == "]":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return None
+
+
+_ALLOWED_ASSIGN_RE = re.compile(
+    r"\$(?:allowedFields|allowed|backupConfigFields)\s*=\s*\["
+)
+
+
 def extract_allowed_fields(content: str) -> dict[str, list[str]]:
     """Extract $allowedFields / $allowed / $backupConfigFields arrays.
 
@@ -495,13 +534,18 @@ def extract_allowed_fields(content: str) -> dict[str, list[str]]:
     """
     constants = extract_php_string_list_constants(content)
     result: dict[str, list[str]] = {}
-    pattern = re.compile(
-        r"\$(?:allowedFields|allowed|backupConfigFields)\s*=\s*\[(.*?)\];",
-        re.DOTALL,
-    )
-    # Find the enclosing method for context
-    for match in pattern.finditer(content):
-        fields = expand_allowed_field_list(match.group(1), constants)
+    # Find the enclosing method for context. The closing bracket is balanced,
+    # not "the next ];". A default parameter `= ['name'])` has no semicolon,
+    # and a non-greedy scan through `];` swallows later validation strings.
+    for match in _ALLOWED_ASSIGN_RE.finditer(content):
+        open_idx = match.end() - 1
+        close_idx = _bracket_end(content, open_idx)
+        if close_idx is None:
+            continue
+        rest = content[close_idx + 1 :].lstrip()
+        if not rest.startswith(";") and not rest.startswith(")"):
+            continue
+        fields = expand_allowed_field_list(content[open_idx + 1 : close_idx], constants)
         # Try to find the method name above this position
         preceding = content[:match.start()]
         method_matches = re.findall(r"function\s+(\w+)\s*\(", preceding)
