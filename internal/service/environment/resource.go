@@ -34,6 +34,7 @@ type environmentResource struct {
 // environmentResourceModel maps the resource schema data.
 type environmentResourceModel struct {
 	ID          types.Int64  `tfsdk:"id"`
+	UUID        types.String `tfsdk:"uuid"`
 	ProjectUUID types.String `tfsdk:"project_uuid"`
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
@@ -50,13 +51,20 @@ func (r *environmentResource) Metadata(_ context.Context, req resource.MetadataR
 
 func (r *environmentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Coolify environment within a project. Every project auto-creates a `production` environment. Use this resource to create additional environments (e.g., `staging`, `dev`). Applications, databases, and services reference environments via their `environment_name` attribute.\n\n~> **Warning:** Deleting an environment will cascade-delete all applications, databases, and services within it.",
+		MarkdownDescription: "Manages a Coolify environment within a project. Every project auto-creates a `production` environment. Use this resource to create additional environments (e.g., `staging`, `dev`). Applications, databases, and services can reference `uuid` so a later rename does not replace them. Referencing `name` still replaces those resources when the name changes.\n\n~> **Warning:** Deleting an environment will cascade-delete all applications, databases, and services within it.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				MarkdownDescription: "The numeric ID of the environment.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
+				},
+			},
+			"uuid": schema.StringAttribute{
+				MarkdownDescription: "The UUID of the environment. Reference this from `environment_uuid` on applications, databases, and services so renaming `name` does not replace those resources.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"project_uuid": schema.StringAttribute{
@@ -111,6 +119,9 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 
 	if plan.ID.IsUnknown() {
 		plan.ID = types.Int64Null()
+	}
+	if plan.UUID.IsUnknown() {
+		plan.UUID = types.StringNull()
 	}
 	if plan.Description.IsUnknown() {
 		plan.Description = types.StringNull()
@@ -177,6 +188,7 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	state.ID = types.Int64Value(env.ID)
+	state.UUID = environmentUUIDValue(env.UUID, state.UUID)
 	state.Name = types.StringValue(env.Name)
 	if env.Description != "" {
 		state.Description = types.StringValue(env.Description)
@@ -217,6 +229,7 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 	} else {
 		plan.ID = state.ID
 	}
+	plan.UUID = environmentUUIDValue(updated.UUID, state.UUID)
 	if updated.Name != "" {
 		plan.Name = types.StringValue(updated.Name)
 	}
@@ -270,6 +283,16 @@ func (r *environmentResource) ImportState(ctx context.Context, req resource.Impo
 }
 
 // readEnvironment fetches the environment from the API and updates the model in place.
+func environmentUUIDValue(api string, prior types.String) types.String {
+	if api != "" {
+		return types.StringValue(api)
+	}
+	if !prior.IsNull() && !prior.IsUnknown() {
+		return prior
+	}
+	return types.StringNull()
+}
+
 func (r *environmentResource) readEnvironment(ctx context.Context, projectUUID, name string, model *environmentResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -280,6 +303,7 @@ func (r *environmentResource) readEnvironment(ctx context.Context, projectUUID, 
 	}
 
 	model.ID = types.Int64Value(env.ID)
+	model.UUID = environmentUUIDValue(env.UUID, model.UUID)
 	model.Name = types.StringValue(env.Name)
 	if env.Description != "" {
 		model.Description = types.StringValue(env.Description)

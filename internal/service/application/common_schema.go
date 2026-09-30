@@ -198,13 +198,8 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()},
 			Validators:    []validator.String{validate.UUID()},
 		},
-		"environment_name": schema.StringAttribute{
-			MarkdownDescription: "The environment name for the application (defaults to `production`). Changing this forces a new resource.",
-			Optional:            true,
-			Computed:            true,
-			Default:             stringdefault.StaticString("production"),
-			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
-		},
+		"environment_name": schema.StringAttribute{MarkdownDescription: "Environment name. Defaults to `production` when `environment_uuid` is omitted. Set `environment_uuid` instead when the environment may be renamed. Changing a known name forces a new resource. Do not set both.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{flex.EnvironmentNamePlan()}},
+		"environment_uuid": schema.StringAttribute{MarkdownDescription: "Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this resource. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.", Optional: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
 		"domains": schema.StringAttribute{
 			MarkdownDescription: "Application URL(s) as a comma-separated list of http:// or https:// URLs. " +
 				"Empty string is allowed in Terraform (validator and PATCH body send `domains: \"\"`). " +
@@ -299,7 +294,7 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(true),
 		},
 		"redeploy_on_update": schema.BoolAttribute{
-			MarkdownDescription: "When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`, and `github_app_uuid` on `coolify_application_github_app`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.",
+			MarkdownDescription: "When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`, `environment_uuid`, and `github_app_uuid` on `coolify_application_github_app`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),

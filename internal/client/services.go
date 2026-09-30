@@ -46,7 +46,7 @@ type CreateServiceInput struct {
 	// and older installs unchanged when unset.
 	DestinationUUID               string       `json:"destination_uuid,omitempty"`
 	ProjectUUID                   string       `json:"project_uuid"`
-	EnvironmentName               string       `json:"environment_name"`
+	EnvironmentName               string       `json:"environment_name,omitempty"`
 	EnvironmentUUID               string       `json:"environment_uuid,omitempty"`
 	InstantDeploy                 *bool        `json:"instant_deploy,omitempty"`
 	DockerComposeRaw              *string      `json:"docker_compose_raw,omitempty"`

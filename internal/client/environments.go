@@ -10,6 +10,7 @@ import (
 // Environment represents a Coolify environment within a project.
 type Environment struct {
 	ID          int64  `json:"id"`
+	UUID        string `json:"uuid,omitempty"`
 	Name        string `json:"name"`
 	ProjectUUID string `json:"project_uuid"`
 	Description string `json:"description,omitempty"`

@@ -678,6 +678,54 @@ class TagsController {
         self.assertEqual(result["validateTagWriteRequest"], ["name"])
         self.assertEqual(result["create"], ["name"])
 
+    def test_validate_call_fills_method_without_allowed_fields(self):
+        php = """<?php
+class CloudInitScriptsController {
+    public function create(Request $request) {
+        $validated = $request->validate([
+            'script' => 'required|string',
+        ]);
+    }
+    public function update(Request $request) {
+        $allowedFields = ['name', 'description'];
+        $request->validate([
+            'script' => 'required|string',
+        ]);
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(result["create"], ["script"])
+        self.assertEqual(result["update"], ["name", "description"])
+
+    def test_run_keeps_custom_validator_keys(self):
+        php = """<?php
+class ServerDockerCleanupController {
+    public function run(Request $request) {
+        customApiValidator($request->all(), [
+            'delete_unused_volumes' => 'boolean',
+            'delete_unused_networks' => 'boolean',
+        ]);
+    }
+}
+"""
+        result = ec.extract_allowed_fields(php)
+        self.assertEqual(
+            result["run"],
+            ["delete_unused_volumes", "delete_unused_networks"],
+        )
+
+    def test_non_identifier_field_fails_extraction(self):
+        php = """<?php
+class TagsController {
+    public function update(Request $request) {
+        $allowedFields = ['name', 'This field is not allowed.'];
+    }
+}
+"""
+        with self.assertRaises(ValueError):
+            ec.extract_allowed_fields(php)
+
     def test_channel_config_rules_mapped_to_update_methods(self):
         # NotificationsController (v4.3+) puts write fields in channelConfig()
         # match arms, not $allowedFields.

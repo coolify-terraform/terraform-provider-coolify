@@ -13,6 +13,20 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
+// shouldCopyEnvironmentName reports whether GET's environment name should be
+// stored. Coolify may return the environment's current name. A UUID-addressed
+// resource must keep environment_name empty: a stored name next to a UUID
+// plans replacement on every refresh, and Coolify looks the name up first.
+func shouldCopyEnvironmentName(apiName string, uuid *types.String) bool {
+	if apiName == "" {
+		return false
+	}
+	if uuid != nil && flex.KnownNonEmpty(*uuid) {
+		return false
+	}
+	return true
+}
+
 // flattenApplicationCommon maps shared API fields into any application model
 // via field pointers. Nil pointers are skipped (allows partial models like
 // compose or docker image to omit inapplicable fields).
@@ -62,7 +76,7 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	if app.ServerUUID != "" {
 		*f.ServerUUID = types.StringValue(app.ServerUUID)
 	}
-	if app.EnvironmentName != "" {
+	if shouldCopyEnvironmentName(app.EnvironmentName, f.EnvironmentUUID) {
 		*f.EnvironmentName = flex.StringToFramework(app.EnvironmentName)
 	}
 	flattenLimitsAndHealth(app, f)

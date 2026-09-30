@@ -81,6 +81,7 @@ type commonAppFields struct {
 	ProjectUUID        *types.String
 	ServerUUID         *types.String
 	EnvironmentName    *types.String
+	EnvironmentUUID    *types.String
 	// Resource limits
 	LimitsMemory            *types.String
 	LimitsMemorySwap        *types.String
@@ -200,6 +201,7 @@ type applicationCommonModel struct {
 	// on the morph; GET does not return destination_uuid. Preserve from state.
 	DestinationUUID                  types.String   `tfsdk:"destination_uuid"`
 	EnvironmentName                  types.String   `tfsdk:"environment_name"`
+	EnvironmentUUID                  types.String   `tfsdk:"environment_uuid"`
 	PortsExposes                     types.String   `tfsdk:"ports_exposes"`
 	Domains                          types.String   `tfsdk:"domains"`
 	InstallCommand                   types.String   `tfsdk:"install_command"`
@@ -304,8 +306,8 @@ func (m *applicationCommonModel) common() commonAppFields {
 		PortsExposes: &m.PortsExposes, Domains: &m.Domains,
 		InstallCommand: &m.InstallCommand, StartCommand: &m.StartCommand,
 		Status: &m.Status, ProjectUUID: &m.ProjectUUID, ServerUUID: &m.ServerUUID,
-		EnvironmentName: &m.EnvironmentName,
-		LimitsMemory:    &m.LimitsMemory, LimitsMemorySwap: &m.LimitsMemorySwap,
+		EnvironmentName: &m.EnvironmentName, EnvironmentUUID: &m.EnvironmentUUID,
+		LimitsMemory: &m.LimitsMemory, LimitsMemorySwap: &m.LimitsMemorySwap,
 		LimitsMemorySwappiness: &m.LimitsMemorySwappiness, LimitsMemoryReservation: &m.LimitsMemoryReservation,
 		LimitsCPUs: &m.LimitsCPUs, LimitsCPUSet: &m.LimitsCPUSet, LimitsCPUShares: &m.LimitsCPUShares,
 		HealthCheckEnabled: &m.HealthCheckEnabled, HealthCheckPath: &m.HealthCheckPath,
@@ -409,6 +411,7 @@ func normalizeCommonAppCreateState(m *applicationCommonModel) {
 	flex.NormalizeUnknownString(&m.Name)
 	flex.NormalizeUnknownString(&m.Description)
 	flex.NormalizeUnknownString(&m.EnvironmentName)
+	flex.NormalizeUnknownString(&m.EnvironmentUUID)
 	flex.NormalizeUnknownString(&m.Domains)
 	flex.NormalizeUnknownString(&m.InstallCommand)
 	flex.NormalizeUnknownString(&m.StartCommand)

@@ -101,6 +101,7 @@ func (r *applicationResource) Create(ctx context.Context, req resource.CreateReq
 		PortsExposes:  plan.PortsExposes.ValueString(),
 	}
 	flex.SetIfKnown(&input.EnvironmentName, plan.EnvironmentName)
+	flex.SetIfKnown(&input.EnvironmentUUID, plan.EnvironmentUUID)
 	flex.SetIfKnown(&input.DestinationUUID, plan.DestinationUUID)
 	flex.SetIfKnown(&input.GitBranch, plan.GitBranch)
 	flex.SetIfKnown(&input.Name, plan.Name)

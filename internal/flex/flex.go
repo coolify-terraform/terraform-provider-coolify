@@ -68,6 +68,11 @@ func Int64PtrToFramework(v *int64) types.Int64 {
 	return types.Int64Value(*v)
 }
 
+// KnownNonEmpty reports whether v is a known, non-empty string.
+func KnownNonEmpty(v types.String) bool {
+	return !v.IsNull() && !v.IsUnknown() && v.ValueString() != ""
+}
+
 // SetIfKnown sets dst to the string value if v is known and non-null.
 func SetIfKnown(dst *string, v types.String) {
 	if !v.IsNull() && !v.IsUnknown() {

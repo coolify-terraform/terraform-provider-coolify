@@ -37,6 +37,7 @@ type CommonModel struct {
 	// GET does not return destination_uuid. Preserve from state after create.
 	DestinationUUID         types.String `tfsdk:"destination_uuid"`
 	EnvironmentName         types.String `tfsdk:"environment_name"`
+	EnvironmentUUID         types.String `tfsdk:"environment_uuid"`
 	Image                   types.String `tfsdk:"image"`
 	IsPublic                types.Bool   `tfsdk:"is_public"`
 	PublicPort              types.Int64  `tfsdk:"public_port"`
@@ -67,10 +68,10 @@ type CommonModel struct {
 // DatabaseCommonPtrs groups pointers to the core database model fields
 // used by FlattenDatabaseCommon.
 type DatabaseCommonPtrs struct {
-	UUID, Name, Description, Image   *types.String
-	ProjectUUID, ServerUUID, EnvName *types.String
-	IsPublic                         *types.Bool
-	PublicPort                       *types.Int64
+	UUID, Name, Description, Image            *types.String
+	ProjectUUID, ServerUUID, EnvName, EnvUUID *types.String
+	IsPublic                                  *types.Bool
+	PublicPort                                *types.Int64
 }
 
 // ExtFields returns a DatabaseExtendedPtrs pointing to the extended fields
@@ -108,7 +109,7 @@ func (m *CommonModel) CommonPtrs() DatabaseCommonPtrs {
 	return DatabaseCommonPtrs{
 		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
 		Image: &m.Image, ProjectUUID: &m.ProjectUUID,
-		ServerUUID: &m.ServerUUID, EnvName: &m.EnvironmentName,
+		ServerUUID: &m.ServerUUID, EnvName: &m.EnvironmentName, EnvUUID: &m.EnvironmentUUID,
 		IsPublic: &m.IsPublic, PublicPort: &m.PublicPort,
 	}
 }
@@ -118,7 +119,12 @@ func (m *CommonModel) CommonPtrs() DatabaseCommonPtrs {
 func PopulateBaseCreateInput(base *client.CreateDatabaseBaseInput, m *CommonModel) {
 	base.ServerUUID = m.ServerUUID.ValueString()
 	base.ProjectUUID = m.ProjectUUID.ValueString()
-	base.EnvironmentName = m.EnvironmentName.ValueString()
+	if !m.EnvironmentName.IsNull() && !m.EnvironmentName.IsUnknown() && m.EnvironmentName.ValueString() != "" {
+		base.EnvironmentName = m.EnvironmentName.ValueString()
+	}
+	if !m.EnvironmentUUID.IsNull() && !m.EnvironmentUUID.IsUnknown() && m.EnvironmentUUID.ValueString() != "" {
+		base.EnvironmentUUID = m.EnvironmentUUID.ValueString()
+	}
 	flex.SetIfKnown(&base.DestinationUUID, m.DestinationUUID)
 	flex.SetIfKnown(&base.Name, m.Name)
 	flex.SetIfKnown(&base.Description, m.Description)
@@ -174,7 +180,8 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 			PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()},
 			Validators:    []validator.String{validate.UUID()},
 		},
-		"environment_name": schema.StringAttribute{MarkdownDescription: "The name of the environment within the project to deploy into. Coolify auto-creates a `production` environment per project; for other environments, create one first with `coolify_environment`. Defaults to `production`. Changing this forces a new resource.", Optional: true, Computed: true, Default: stringdefault.StaticString("production"), PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+		"environment_name": schema.StringAttribute{MarkdownDescription: "Environment name. Defaults to `production` when `environment_uuid` is omitted. Set `environment_uuid` instead when the environment may be renamed. Changing a known name forces a new resource. Do not set both.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{flex.EnvironmentNamePlan()}},
+		"environment_uuid": schema.StringAttribute{MarkdownDescription: "Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this database. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.", Optional: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
 		"image":            schema.StringAttribute{MarkdownDescription: "The Docker image to use.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"is_public":        schema.BoolAttribute{MarkdownDescription: "When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"public_port": schema.Int64Attribute{MarkdownDescription: "The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{
@@ -391,6 +398,7 @@ func NormalizeCommonCreateState(m *CommonModel) {
 	flex.NormalizeUnknownString(&m.Name)
 	flex.NormalizeUnknownString(&m.Description)
 	flex.NormalizeUnknownString(&m.EnvironmentName)
+	flex.NormalizeUnknownString(&m.EnvironmentUUID)
 	flex.NormalizeUnknownString(&m.Image)
 	flex.NormalizeUnknownBool(&m.IsPublic)
 	flex.NormalizeUnknownInt64(&m.PublicPort)
@@ -667,7 +675,10 @@ func FlattenDatabaseCommon(db *client.Database, f DatabaseCommonPtrs) {
 	if db.ServerUUID != "" {
 		*f.ServerUUID = types.StringValue(db.ServerUUID)
 	}
-	if db.EnvironmentName != "" {
+	// GET may include the environment's current name. Copy it only when this
+	// resource is not addressed by UUID. A stored name next to a UUID plans
+	// replacement on every refresh, and Coolify looks the name up first.
+	if db.EnvironmentName != "" && (f.EnvUUID == nil || !flex.KnownNonEmpty(*f.EnvUUID)) {
 		*f.EnvName = flex.StringToFramework(db.EnvironmentName)
 	}
 }
