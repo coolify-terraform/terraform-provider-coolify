@@ -18,38 +18,59 @@ func TestAccServerDockerRegistry_CRUD(t *testing.T) {
 	acctest.TestAccPreCheck(t)
 	serverUUID := acctest.AccTestServerUUID(t)
 	skipIfNoRegistryAPI(t, serverUUID)
+	registry, username, password := registryCredentials(t)
 
 	config := func(user string) string {
 		return acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_server_docker_registry" "test" {
   server_uuid = %q
-  registry    = "ghcr.io"
+  registry    = %q
   username    = %q
-  password    = "change-me-in-production"
+  password    = %q
 }
-`, serverUUID, user)
+`, serverUUID, registry, user, password)
 	}
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: config("tf-acc-registry"),
-				Check:  resource.TestCheckResourceAttr("coolify_server_docker_registry.test", "registry", "ghcr.io"),
+				Config: config(username),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_docker_registry.test", "registry", registry),
+					resource.TestCheckResourceAttr("coolify_server_docker_registry.test", "username", username),
+				),
 			},
 			{
-				Config: config("tf-acc-registry-2"),
-				Check:  resource.TestCheckResourceAttr("coolify_server_docker_registry.test", "username", "tf-acc-registry-2"),
+				Config: config(username),
+				Check:  resource.TestCheckResourceAttr("coolify_server_docker_registry.test", "username", username),
 			},
 			{
 				ResourceName:            "coolify_server_docker_registry.test",
 				ImportState:             true,
-				ImportStateId:           serverUUID + ":ghcr.io",
+				ImportStateId:           serverUUID + ":" + registry,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"password"},
 			},
 		},
 	})
+}
+
+// registryCredentials skips when no real registry login is configured.
+// Coolify runs docker login on the server. A placeholder password returns
+// HTTP 400 once the route exists (CI edge).
+func registryCredentials(t *testing.T) (registry, username, password string) {
+	t.Helper()
+	username = os.Getenv("COOLIFY_DOCKER_REGISTRY_USERNAME")
+	password = os.Getenv("COOLIFY_DOCKER_REGISTRY_PASSWORD")
+	registry = os.Getenv("COOLIFY_DOCKER_REGISTRY")
+	if registry == "" {
+		registry = "ghcr.io"
+	}
+	if username == "" || password == "" {
+		t.Skip("COOLIFY_DOCKER_REGISTRY_USERNAME and COOLIFY_DOCKER_REGISTRY_PASSWORD not set; Coolify runs docker login on the server")
+	}
+	return registry, username, password
 }
 
 func TestAccServerDockerRegistriesDataSource(t *testing.T) {

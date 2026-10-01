@@ -420,7 +420,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_cloudflare_tunnel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
 | `coolify_server_sentinel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
 | `coolify_server_docker_cleanup` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves schedule |
-| `coolify_server_docker_registry` | Yes | Yes | Yes | Yes | Coolify 4.4 tip only; skips when the registry route is absent |
+| `coolify_server_docker_registry` | Yes | Yes | Yes | Yes | Coolify 4.4 tip only. Skips when the registry route is absent. Login steps also skip unless `COOLIFY_DOCKER_REGISTRY_USERNAME` and `COOLIFY_DOCKER_REGISTRY_PASSWORD` are set, because Coolify runs `docker login` on the server |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
 ### Data Sources (72 total)
