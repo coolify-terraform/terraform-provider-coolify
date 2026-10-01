@@ -31,14 +31,18 @@ type gitHubAppListDataSourceModel struct {
 
 // gitHubAppItemModel maps a single GitHub App in the list.
 type gitHubAppItemModel struct {
-	ID               types.Int64  `tfsdk:"id"`
-	UUID             types.String `tfsdk:"uuid"`
-	Name             types.String `tfsdk:"name"`
-	OrganizationName types.String `tfsdk:"organization_name"`
-	AppID            types.Int64  `tfsdk:"app_id"`
-	InstallationID   types.Int64  `tfsdk:"installation_id"`
-	ClientID         types.String `tfsdk:"client_id"`
-	WebhookSecret    types.String `tfsdk:"webhook_secret"`
+	ID                            types.Int64  `tfsdk:"id"`
+	UUID                          types.String `tfsdk:"uuid"`
+	Name                          types.String `tfsdk:"name"`
+	OrganizationName              types.String `tfsdk:"organization_name"`
+	AppID                         types.Int64  `tfsdk:"app_id"`
+	InstallationID                types.Int64  `tfsdk:"installation_id"`
+	ClientID                      types.String `tfsdk:"client_id"`
+	WebhookSecret                 types.String `tfsdk:"webhook_secret"`
+	Actions                       types.String `tfsdk:"actions"`
+	OrganizationSelfHostedRunners types.String `tfsdk:"organization_self_hosted_runners"`
+	WebhookEvents                 types.List   `tfsdk:"webhook_events"`
+	RunnerGroupID                 types.Int64  `tfsdk:"runner_group_id"`
 }
 
 // NewListDataSource returns a new GitHub Apps list data source instance.
@@ -87,6 +91,10 @@ func (d *gitHubAppListDataSource) Schema(_ context.Context, _ datasource.SchemaR
 							MarkdownDescription: "The GitHub App client ID.",
 							Computed:            true,
 						},
+						"actions":                          schema.StringAttribute{MarkdownDescription: "Repository Actions permission (`read` or `write`). " + runnerPermissionDescription, Computed: true},
+						"organization_self_hosted_runners": schema.StringAttribute{MarkdownDescription: "Organization self-hosted runners permission. " + runnerPermissionDescription, Computed: true},
+						"webhook_events":                   schema.ListAttribute{MarkdownDescription: "Webhook events configured on the GitHub App. " + runnerPermissionDescription, ElementType: types.StringType, Computed: true},
+						"runner_group_id":                  schema.Int64Attribute{MarkdownDescription: "GitHub Actions runner group id. " + runnerPermissionDescription, Computed: true},
 						"webhook_secret": schema.StringAttribute{
 							MarkdownDescription: "The GitHub App webhook secret, when returned by the Coolify API. Coolify may omit this value on read.",
 							Computed:            true,
@@ -155,6 +163,7 @@ func (d *gitHubAppListDataSource) Read(ctx context.Context, req datasource.ReadR
 			ClientID:         types.StringValue(a.ClientID),
 			WebhookSecret:    flex.StringToFramework(a.WebhookSecret),
 		}
+		applyGitHubRunnerPermissions(&a, &item.Actions, &item.OrganizationSelfHostedRunners, &item.WebhookEvents, &item.RunnerGroupID)
 		state.GitHubApps = append(state.GitHubApps, item)
 	}
 

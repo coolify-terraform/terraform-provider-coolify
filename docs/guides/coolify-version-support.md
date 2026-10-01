@@ -204,6 +204,14 @@ from a given version are **version-gated on write**:
 |---------------------|--------------|
 | `custom_container_name_prefix` | `custom_container_name_prefix` |
 
+`coolify_database_sqlite` and `coolify_server_docker_registry` exist only on
+Coolify 4.4 tip. `server_disk_usage_notification_interval_hours` on server
+resources uses the same floor (1-720 hours, Coolify default 24). Tag v4.3.23
+and `v4.4-rc.1` reject those writes. GitHub App `actions`,
+`organization_self_hosted_runners`, `webhook_events`, and `runner_group_id`
+are read-only on 4.4 tip. The public GitHub App create and update APIs do
+not accept them.
+
 `server_role` on `coolify_server` / cloud server resources and
 `traffic_topn`, `traffic_sample_threshold`, `traffic_retention_1h_days`,
 `traffic_retention_1d_days`, `is_geoip_enabled`, `geoip_refresh_days`,

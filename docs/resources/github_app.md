@@ -63,8 +63,12 @@ resource "coolify_github_app" "example" {
 
 ### Read-Only
 
+- `actions` (String) Repository Actions permission (`read` or `write`). Read-only GitHub App runner permission stored by Coolify 4.4 tip. The public create and update APIs do not accept this field. Empty on older Coolify versions.
 - `id` (Number) The numeric identifier of the GitHub App.
+- `organization_self_hosted_runners` (String) Organization self-hosted runners permission. Read-only GitHub App runner permission stored by Coolify 4.4 tip. The public create and update APIs do not accept this field. Empty on older Coolify versions.
+- `runner_group_id` (Number) GitHub Actions runner group id. Read-only GitHub App runner permission stored by Coolify 4.4 tip. The public create and update APIs do not accept this field. Empty on older Coolify versions.
 - `uuid` (String) The unique identifier of the GitHub App.
+- `webhook_events` (List of String) Webhook events configured on the GitHub App. Read-only GitHub App runner permission stored by Coolify 4.4 tip. The public create and update APIs do not accept this field. Empty on older Coolify versions.
 
 ## Import
 

@@ -29,9 +29,9 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 
 | Area | Coverage |
 |---|---|
-| Managed resources | 57 |
-| Data sources | 71 |
-| Tests | 1670+ unit and acceptance tests |
+| Managed resources | 59 |
+| Data sources | 72 |
+| Tests | 1760+ unit and acceptance tests |
 | Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
 
@@ -133,6 +133,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_database_clickhouse` | Provision ClickHouse databases |
 | `coolify_database_keydb` | Provision KeyDB databases (Redis-compatible) |
 | `coolify_database_dragonfly` | Provision DragonFly databases (Redis-compatible) |
+| `coolify_database_sqlite` | Provision SQLite databases (Coolify 4.4 tip, not v4.4-rc.1) |
 | `coolify_database_backup` | Schedule automated database backups |
 | `coolify_scheduled_task` | Manage scheduled tasks on applications/services |
 | `coolify_storage` | Manage persistent storage volumes |
@@ -150,6 +151,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_server_cloudflare_tunnel` | Manage server Cloudflare tunnel (Coolify >= v4.3.0) |
 | `coolify_server_sentinel` | Manage Sentinel host metrics settings (Coolify >= v4.3.0) |
 | `coolify_server_docker_cleanup` | Manage Docker cleanup schedule (Coolify >= v4.3.0) |
+| `coolify_server_docker_registry` | Log a server into a Docker registry (Coolify 4.4 tip, not v4.4-rc.1) |
 | `coolify_application_destination` | Attach an extra destination to an application (Coolify >= v4.2.0) |
 | `coolify_notification_email` | Team email notification settings (Coolify >= v4.3.0) |
 | `coolify_instance_email_settings` | Instance-wide SMTP/Resend settings (Coolify >= v4.3.10; root-team token) |

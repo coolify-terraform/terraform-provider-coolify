@@ -22,14 +22,18 @@ type gitHubAppDataSource struct {
 }
 
 type gitHubAppDataSourceModel struct {
-	ID               types.Int64  `tfsdk:"id"`
-	UUID             types.String `tfsdk:"uuid"`
-	Name             types.String `tfsdk:"name"`
-	OrganizationName types.String `tfsdk:"organization_name"`
-	AppID            types.Int64  `tfsdk:"app_id"`
-	InstallationID   types.Int64  `tfsdk:"installation_id"`
-	ClientID         types.String `tfsdk:"client_id"`
-	WebhookSecret    types.String `tfsdk:"webhook_secret"`
+	ID                            types.Int64  `tfsdk:"id"`
+	UUID                          types.String `tfsdk:"uuid"`
+	Name                          types.String `tfsdk:"name"`
+	OrganizationName              types.String `tfsdk:"organization_name"`
+	AppID                         types.Int64  `tfsdk:"app_id"`
+	InstallationID                types.Int64  `tfsdk:"installation_id"`
+	ClientID                      types.String `tfsdk:"client_id"`
+	WebhookSecret                 types.String `tfsdk:"webhook_secret"`
+	Actions                       types.String `tfsdk:"actions"`
+	OrganizationSelfHostedRunners types.String `tfsdk:"organization_self_hosted_runners"`
+	WebhookEvents                 types.List   `tfsdk:"webhook_events"`
+	RunnerGroupID                 types.Int64  `tfsdk:"runner_group_id"`
 }
 
 // NewDataSource returns a new singular GitHub App data source.
@@ -80,6 +84,31 @@ func (d *gitHubAppDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 			},
 		},
 	}
+	for k, v := range githubRunnerPermissionDataAttrs() {
+		resp.Schema.Attributes[k] = v
+	}
+}
+
+func githubRunnerPermissionDataAttrs() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"actions": schema.StringAttribute{
+			MarkdownDescription: "Repository Actions permission (`read` or `write`). " + runnerPermissionDescription,
+			Computed:            true,
+		},
+		"organization_self_hosted_runners": schema.StringAttribute{
+			MarkdownDescription: "Organization self-hosted runners permission. " + runnerPermissionDescription,
+			Computed:            true,
+		},
+		"webhook_events": schema.ListAttribute{
+			MarkdownDescription: "Webhook events configured on the GitHub App. " + runnerPermissionDescription,
+			ElementType:         types.StringType,
+			Computed:            true,
+		},
+		"runner_group_id": schema.Int64Attribute{
+			MarkdownDescription: "GitHub Actions runner group id. " + runnerPermissionDescription,
+			Computed:            true,
+		},
+	}
 }
 
 func (d *gitHubAppDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -109,6 +138,7 @@ func (d *gitHubAppDataSource) Read(ctx context.Context, req datasource.ReadReque
 	config.InstallationID = types.Int64Value(app.InstallationID)
 	config.ClientID = types.StringValue(app.ClientID)
 	config.WebhookSecret = flex.StringToFramework(app.WebhookSecret)
+	applyGitHubRunnerPermissions(app, &config.Actions, &config.OrganizationSelfHostedRunners, &config.WebhookEvents, &config.RunnerGroupID)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

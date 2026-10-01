@@ -314,7 +314,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	flattenDatabaseBackup(found, &plan)
+	flattenDatabaseBackup(r.client, found, &plan)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_database_backup", "uuid": created.UUID})
@@ -348,7 +348,7 @@ func (r *databaseBackupResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	flattenDatabaseBackup(b, &state)
+	flattenDatabaseBackup(r.client, b, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -402,7 +402,7 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	flattenDatabaseBackup(b, &plan)
+	flattenDatabaseBackup(r.client, b, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -598,7 +598,7 @@ func nullUnknownBackupComputed(plan *databaseBackupResourceModel) {
 	}
 }
 
-func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceModel) {
+func flattenDatabaseBackup(c *client.Client, b *client.DatabaseBackup, m *databaseBackupResourceModel) {
 	m.ID = types.Int64Value(int64(b.ID))
 	m.UUID = types.StringValue(b.UUID)
 	if b.DatabaseUUID != "" {
@@ -636,9 +636,13 @@ func flattenDatabaseBackup(b *client.DatabaseBackup, m *databaseBackupResourceMo
 	} else if m.LastExecutionAt.IsUnknown() {
 		m.LastExecutionAt = types.StringNull()
 	}
-	if b.MissingBackupNotificationSentAt != "" {
+	switch {
+	case b.MissingBackupNotificationSentAt != "":
 		m.MissingBackupNotificationSentAt = types.StringValue(b.MissingBackupNotificationSentAt)
-	} else if m.MissingBackupNotificationSentAt.IsUnknown() {
+	case c != nil && c.SupportsCoolify44Tip():
+		// Tip dropped this column. Clear it so a 4.3 state does not keep a stale timestamp.
+		m.MissingBackupNotificationSentAt = types.StringNull()
+	case m.MissingBackupNotificationSentAt.IsUnknown():
 		m.MissingBackupNotificationSentAt = types.StringNull()
 	}
 }

@@ -39,19 +39,23 @@ type gitHubAppResource struct {
 
 // gitHubAppResourceModel maps the resource schema data.
 type gitHubAppResourceModel struct {
-	ID               types.Int64  `tfsdk:"id"`
-	UUID             types.String `tfsdk:"uuid"`
-	Name             types.String `tfsdk:"name"`
-	OrganizationName types.String `tfsdk:"organization_name"`
-	CustomUser       types.String `tfsdk:"custom_user"`
-	CustomPort       types.Int64  `tfsdk:"custom_port"`
-	AppID            types.Int64  `tfsdk:"app_id"`
-	InstallationID   types.Int64  `tfsdk:"installation_id"`
-	ClientID         types.String `tfsdk:"client_id"`
-	ClientSecret     types.String `tfsdk:"client_secret"`
-	WebhookSecret    types.String `tfsdk:"webhook_secret"`
-	PrivateKeyUUID   types.String `tfsdk:"private_key_uuid"`
-	IsSystemWide     types.Bool   `tfsdk:"is_system_wide"`
+	ID                            types.Int64  `tfsdk:"id"`
+	UUID                          types.String `tfsdk:"uuid"`
+	Name                          types.String `tfsdk:"name"`
+	OrganizationName              types.String `tfsdk:"organization_name"`
+	CustomUser                    types.String `tfsdk:"custom_user"`
+	CustomPort                    types.Int64  `tfsdk:"custom_port"`
+	AppID                         types.Int64  `tfsdk:"app_id"`
+	InstallationID                types.Int64  `tfsdk:"installation_id"`
+	ClientID                      types.String `tfsdk:"client_id"`
+	ClientSecret                  types.String `tfsdk:"client_secret"`
+	WebhookSecret                 types.String `tfsdk:"webhook_secret"`
+	PrivateKeyUUID                types.String `tfsdk:"private_key_uuid"`
+	IsSystemWide                  types.Bool   `tfsdk:"is_system_wide"`
+	Actions                       types.String `tfsdk:"actions"`
+	OrganizationSelfHostedRunners types.String `tfsdk:"organization_self_hosted_runners"`
+	WebhookEvents                 types.List   `tfsdk:"webhook_events"`
+	RunnerGroupID                 types.Int64  `tfsdk:"runner_group_id"`
 }
 
 // NewResource returns a new GitHub App resource instance.
@@ -143,6 +147,9 @@ func (r *gitHubAppResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 			},
 		},
+	}
+	for k, v := range githubRunnerPermissionResourceAttrs() {
+		resp.Schema.Attributes[k] = v
 	}
 }
 
@@ -382,8 +389,12 @@ func (r *gitHubAppResource) UpgradeState(_ context.Context) map[int64]resource.S
 					ClientID: old.ClientID, ClientSecret: old.ClientSecret,
 					WebhookSecret: old.WebhookSecret,
 					// Cannot convert raw PEM content to UUID; user must update config.
-					PrivateKeyUUID: types.StringUnknown(),
-					IsSystemWide:   types.BoolValue(false),
+					PrivateKeyUUID:                types.StringUnknown(),
+					IsSystemWide:                  types.BoolValue(false),
+					Actions:                       types.StringNull(),
+					OrganizationSelfHostedRunners: types.StringNull(),
+					WebhookEvents:                 types.ListNull(types.StringType),
+					RunnerGroupID:                 types.Int64Null(),
 				})...)
 			},
 		},
@@ -412,6 +423,7 @@ func flattenGitHubApp(app *client.GitHubApp, model *gitHubAppResourceModel) {
 	model.InstallationID = types.Int64Value(app.InstallationID)
 	model.ClientID = types.StringValue(app.ClientID)
 	model.IsSystemWide = types.BoolValue(app.IsSystemWide)
+	applyGitHubRunnerPermissions(app, &model.Actions, &model.OrganizationSelfHostedRunners, &model.WebhookEvents, &model.RunnerGroupID)
 	if app.WebhookSecret != "" {
 		model.WebhookSecret = types.StringValue(app.WebhookSecret)
 	}

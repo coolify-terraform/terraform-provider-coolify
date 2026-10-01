@@ -54,19 +54,20 @@ type vultrServerResourceModel struct {
 	DisablePublicIPv4      types.Bool   `tfsdk:"disable_public_ipv4"`
 
 	// Shared server fields (updatable).
-	Name                                 types.String `tfsdk:"name"`
-	Description                          types.String `tfsdk:"description"`
-	Port                                 types.Int64  `tfsdk:"port"`
-	User                                 types.String `tfsdk:"user"`
-	PrivateKeyUUID                       types.String `tfsdk:"private_key_uuid"`
-	IsBuildServer                        types.Bool   `tfsdk:"is_build_server"`
-	ServerRole                           types.String `tfsdk:"server_role"`
-	ConcurrentBuilds                     types.Int64  `tfsdk:"concurrent_builds"`
-	DynamicTimeout                       types.Int64  `tfsdk:"dynamic_timeout"`
-	DeploymentQueueLimit                 types.Int64  `tfsdk:"deployment_queue_limit"`
-	ConnectionTimeout                    types.Int64  `tfsdk:"connection_timeout"`
-	ServerDiskUsageNotificationThreshold types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
-	ServerDiskUsageCheckFrequency        types.String `tfsdk:"server_disk_usage_check_frequency"`
+	Name                                     types.String `tfsdk:"name"`
+	Description                              types.String `tfsdk:"description"`
+	Port                                     types.Int64  `tfsdk:"port"`
+	User                                     types.String `tfsdk:"user"`
+	PrivateKeyUUID                           types.String `tfsdk:"private_key_uuid"`
+	IsBuildServer                            types.Bool   `tfsdk:"is_build_server"`
+	ServerRole                               types.String `tfsdk:"server_role"`
+	ConcurrentBuilds                         types.Int64  `tfsdk:"concurrent_builds"`
+	DynamicTimeout                           types.Int64  `tfsdk:"dynamic_timeout"`
+	DeploymentQueueLimit                     types.Int64  `tfsdk:"deployment_queue_limit"`
+	ConnectionTimeout                        types.Int64  `tfsdk:"connection_timeout"`
+	ServerDiskUsageNotificationThreshold     types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
+	ServerDiskUsageNotificationIntervalHours types.Int64  `tfsdk:"server_disk_usage_notification_interval_hours"`
+	ServerDiskUsageCheckFrequency            types.String `tfsdk:"server_disk_usage_check_frequency"`
 	// Read-only extended settings returned by GET responses.
 	WildcardDomain                    types.String `tfsdk:"wildcard_domain"`
 	IsCloudFlareTunnel                types.Bool   `tfsdk:"is_cloudflare_tunnel"`
@@ -246,7 +247,7 @@ func (r *vultrServerResource) Create(ctx context.Context, req resource.CreateReq
 
 	// Cloud create endpoints only accept provider-specific fields; shared
 	// settings/core fields need a follow-up PATCH when non-default.
-	if err := server.ApplyPostCreateCloudProviderSettings(ctx, r.client, created.UUID, plan.commonPtrs()); err != nil {
+	if err := server.ApplyPostCreateCloudProviderSettings(ctx, r.client, created.UUID, plan.commonPtrs(), &resp.Diagnostics); err != nil {
 		resp.Diagnostics.AddError("Error setting Vultr server settings", err.Error())
 		return
 	}
@@ -328,6 +329,7 @@ func (r *vultrServerResource) Update(ctx context.Context, req resource.UpdateReq
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server_vultr", "uuid": state.UUID.ValueString()})
 
+	server.WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
 	input := server.BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
 	if _, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input); err != nil {
@@ -378,11 +380,12 @@ func (m *vultrServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
 		IP: &m.IP, User: &m.User, PrivateKeyUUID: &m.PrivateKeyUUID,
 		Port: &m.Port, ConcurrentBuilds: &m.ConcurrentBuilds, DynamicTimeout: &m.DynamicTimeout,
-		DeploymentQueueLimit:                 &m.DeploymentQueueLimit,
-		ConnectionTimeout:                    &m.ConnectionTimeout,
-		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
-		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
-		IsBuildServer:                        &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
+		DeploymentQueueLimit:                     &m.DeploymentQueueLimit,
+		ConnectionTimeout:                        &m.ConnectionTimeout,
+		ServerDiskUsageNotificationThreshold:     &m.ServerDiskUsageNotificationThreshold,
+		ServerDiskUsageNotificationIntervalHours: &m.ServerDiskUsageNotificationIntervalHours,
+		ServerDiskUsageCheckFrequency:            &m.ServerDiskUsageCheckFrequency,
+		IsBuildServer:                            &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
 		WildcardDomain: &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
 		IsTerminalEnabled: &m.IsTerminalEnabled, IsSentinelEnabled: &m.IsSentinelEnabled,

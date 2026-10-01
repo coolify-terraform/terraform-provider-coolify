@@ -24,27 +24,28 @@ type serverDataSource struct {
 }
 
 type serverDataSourceModel struct {
-	UUID                                 types.String `tfsdk:"uuid"`
-	Name                                 types.String `tfsdk:"name"`
-	Description                          types.String `tfsdk:"description"`
-	IP                                   types.String `tfsdk:"ip"`
-	Port                                 types.Int64  `tfsdk:"port"`
-	User                                 types.String `tfsdk:"user"`
-	IsBuildServer                        types.Bool   `tfsdk:"is_build_server"`
-	ServerRole                           types.String `tfsdk:"server_role"`
-	IsReachable                          types.Bool   `tfsdk:"is_reachable"`
-	IsUsable                             types.Bool   `tfsdk:"is_usable"`
-	ConcurrentBuilds                     types.Int64  `tfsdk:"concurrent_builds"`
-	DynamicTimeout                       types.Int64  `tfsdk:"dynamic_timeout"`
-	DeploymentQueueLimit                 types.Int64  `tfsdk:"deployment_queue_limit"`
-	ConnectionTimeout                    types.Int64  `tfsdk:"connection_timeout"`
-	ServerDiskUsageNotificationThreshold types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
-	ServerDiskUsageCheckFrequency        types.String `tfsdk:"server_disk_usage_check_frequency"`
-	ComposeVersion                       types.String `tfsdk:"compose_version"`
-	ComposeVersionCheckedAt              types.String `tfsdk:"compose_version_checked_at"`
-	DockerVersion                        types.String `tfsdk:"docker_version"`
-	DockerVersionCheckedAt               types.String `tfsdk:"docker_version_checked_at"`
-	BackupCompressionCPUPercentage       types.Int64  `tfsdk:"backup_compression_cpu_percentage"`
+	UUID                                     types.String `tfsdk:"uuid"`
+	Name                                     types.String `tfsdk:"name"`
+	Description                              types.String `tfsdk:"description"`
+	IP                                       types.String `tfsdk:"ip"`
+	Port                                     types.Int64  `tfsdk:"port"`
+	User                                     types.String `tfsdk:"user"`
+	IsBuildServer                            types.Bool   `tfsdk:"is_build_server"`
+	ServerRole                               types.String `tfsdk:"server_role"`
+	IsReachable                              types.Bool   `tfsdk:"is_reachable"`
+	IsUsable                                 types.Bool   `tfsdk:"is_usable"`
+	ConcurrentBuilds                         types.Int64  `tfsdk:"concurrent_builds"`
+	DynamicTimeout                           types.Int64  `tfsdk:"dynamic_timeout"`
+	DeploymentQueueLimit                     types.Int64  `tfsdk:"deployment_queue_limit"`
+	ConnectionTimeout                        types.Int64  `tfsdk:"connection_timeout"`
+	ServerDiskUsageNotificationThreshold     types.Int64  `tfsdk:"server_disk_usage_notification_threshold"`
+	ServerDiskUsageNotificationIntervalHours types.Int64  `tfsdk:"server_disk_usage_notification_interval_hours"`
+	ServerDiskUsageCheckFrequency            types.String `tfsdk:"server_disk_usage_check_frequency"`
+	ComposeVersion                           types.String `tfsdk:"compose_version"`
+	ComposeVersionCheckedAt                  types.String `tfsdk:"compose_version_checked_at"`
+	DockerVersion                            types.String `tfsdk:"docker_version"`
+	DockerVersionCheckedAt                   types.String `tfsdk:"docker_version_checked_at"`
+	BackupCompressionCPUPercentage           types.Int64  `tfsdk:"backup_compression_cpu_percentage"`
 }
 
 func serverDataSourceAttributes() map[string]schema.Attribute {
@@ -113,6 +114,10 @@ func serverDataSourceAttributes() map[string]schema.Attribute {
 			MarkdownDescription: "Cron expression for how often disk usage is checked.",
 			Computed:            true,
 		},
+		"server_disk_usage_notification_interval_hours": schema.Int64Attribute{
+			MarkdownDescription: "Minimum hours between high disk usage notifications. Present on Coolify 4.4 tip. Empty on older instances.",
+			Computed:            true,
+		},
 		"compose_version": schema.StringAttribute{
 			MarkdownDescription: "Docker Compose version reported by Coolify for this server (host probe). " +
 				"Populated on Coolify >= v4.3.2 when the host has been probed. Empty on older instances.",
@@ -176,6 +181,11 @@ func flattenServerDataSourceModel(srv client.Server) serverDataSourceModel {
 	model.ConnectionTimeout = types.Int64Value(int64(connectionTimeout))
 	model.ServerDiskUsageNotificationThreshold = types.Int64Value(int64(srv.Settings.ServerDiskUsageNotificationThreshold))
 	model.ServerDiskUsageCheckFrequency = flex.StringToFramework(srv.Settings.ServerDiskUsageCheckFrequency)
+	if srv.Settings.ServerDiskUsageNotificationIntervalHours != nil {
+		model.ServerDiskUsageNotificationIntervalHours = types.Int64Value(int64(*srv.Settings.ServerDiskUsageNotificationIntervalHours))
+	} else {
+		model.ServerDiskUsageNotificationIntervalHours = types.Int64Null()
+	}
 	model.ComposeVersion = flex.StringToFramework(srv.Settings.ComposeVersion)
 	model.ComposeVersionCheckedAt = flex.StringToFramework(srv.Settings.ComposeVersionCheckedAt)
 	model.DockerVersion = flex.StringToFramework(srv.Settings.DockerVersion)

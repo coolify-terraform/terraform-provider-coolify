@@ -23,6 +23,13 @@ type GitHubApp struct {
 	ClientID         string `json:"client_id,omitempty"`
 	WebhookSecret    string `json:"webhook_secret,omitempty"`
 	IsSystemWide     bool   `json:"is_system_wide,omitempty"`
+	// Runner permission columns Coolify stores on the GitHub App. The public
+	// create and update allow lists do not accept them. GET returns them on
+	// 4.4 tip and omits them on older versions.
+	Actions                       string   `json:"actions,omitempty"`
+	OrganizationSelfHostedRunners string   `json:"organization_self_hosted_runners,omitempty"`
+	WebhookEvents                 []string `json:"webhook_events,omitempty"`
+	RunnerGroupID                 *int64   `json:"runner_group_id,omitempty"`
 }
 
 type CreateGitHubAppIntegrationInput struct {

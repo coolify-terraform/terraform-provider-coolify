@@ -363,7 +363,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (57 total)
+### Resources (59 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -401,6 +401,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_database_redis` | Yes | Yes | Yes | Yes | |
 | `coolify_database_dragonfly` | Yes | Yes | Yes | Yes | |
 | `coolify_database_keydb` | Yes | Yes | Yes | Yes | |
+| `coolify_database_sqlite` | Yes | Yes | Yes | Yes | Coolify 4.4 tip only; skips when POST /databases/sqlite is absent |
 | `coolify_application_preview` | Yes | Yes | N/A | N/A | Preview deployment lifecycle |
 | `coolify_api_settings` | Yes | Yes | Yes | N/A | Enable/disable API and MCP settings |
 | `coolify_backup_execution` | Yes | Yes | N/A | N/A | Trigger resource |
@@ -419,9 +420,10 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_cloudflare_tunnel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
 | `coolify_server_sentinel` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0 |
 | `coolify_server_docker_cleanup` | Unit | Yes | Yes | Yes | Requires Coolify >= v4.3.0; destroy leaves schedule |
+| `coolify_server_docker_registry` | Yes | Yes | Yes | Yes | Coolify 4.4 tip only. Skips when the registry route is absent. Login steps also skip unless `COOLIFY_DOCKER_REGISTRY_USERNAME` and `COOLIFY_DOCKER_REGISTRY_PASSWORD` are set, because Coolify runs `docker login` on the server |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
-### Data Sources (71 total)
+### Data Sources (72 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -486,12 +488,13 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_hetzner_ssh_keys` | Yes | Needs Hetzner token in Coolify |
 | `coolify_hetzner_firewalls` | Yes | Needs Hetzner token in Coolify; Coolify >= v4.2.0 |
 | `coolify_hetzner_networks` | Yes | Needs Hetzner token in Coolify; Coolify >= v4.2.0 |
+| `coolify_server_docker_registries` | Yes | Coolify 4.4 tip only; skips when the registry route is absent |
 
 ### Coverage Summary
 
-- **Resources**: 45/45 direct acceptance coverage
-- **Data Sources**: 44/44 direct acceptance coverage
-- **Total acceptance test functions**: 153
+- **Resources**: 47/47 direct acceptance coverage
+- **Data Sources**: 45/45 direct acceptance coverage
+- **Total acceptance test functions**: 156
 
 ### Primary-field update coverage
 
