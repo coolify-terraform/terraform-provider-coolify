@@ -99,6 +99,34 @@ func TestFlattenServiceURLs_PreservesEquivalentCommaOrder(t *testing.T) {
 	}
 }
 
+func TestFlattenServiceURLs_HostCaseKeepsConfigured(t *testing.T) {
+	t.Parallel()
+	current := []serviceURLModel{
+		{Name: types.StringValue("web"), URL: types.StringValue("https://Example.com/API")},
+	}
+	apps := []client.ServiceApplication{
+		{Name: "web", FQDN: "https://example.com/API"},
+	}
+	got := flattenServiceURLs(apps, current)
+	if got[0].URL.ValueString() != "https://Example.com/API" {
+		t.Fatalf("url = %q, want configured host case", got[0].URL.ValueString())
+	}
+}
+
+func TestFlattenServiceURLs_PathCaseUsesAPI(t *testing.T) {
+	t.Parallel()
+	current := []serviceURLModel{
+		{Name: types.StringValue("web"), URL: types.StringValue("https://example.com/API")},
+	}
+	apps := []client.ServiceApplication{
+		{Name: "web", FQDN: "https://example.com/api"},
+	}
+	got := flattenServiceURLs(apps, current)
+	if got[0].URL.ValueString() != "https://example.com/api" {
+		t.Fatalf("url = %q, want API path case", got[0].URL.ValueString())
+	}
+}
+
 func TestFlattenServiceURLs_UsesAPIWhenURLChanges(t *testing.T) {
 	t.Parallel()
 	current := []serviceURLModel{
