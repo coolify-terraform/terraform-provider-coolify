@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.25](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.24...v0.1.25) (2026-10-01)
+
+
+### Features
+
+* add Coolify 4.4 tip SQLite, registry logins, and disk interval ([#927](https://github.com/coolify-terraform/terraform-provider-coolify/issues/927)) ([9d11592](https://github.com/coolify-terraform/terraform-provider-coolify/commit/9d11592c4137b03c22d110d6f2ef7299e98f73eb))
+* address environments by uuid and extract validate allow-lists ([#926](https://github.com/coolify-terraform/terraform-provider-coolify/issues/926)) ([53a30a2](https://github.com/coolify-terraform/terraform-provider-coolify/commit/53a30a26e543e38d0a57a1b2a7b2274b04deace8))
+
+
+### Bug Fixes
+
+* keep equivalent application domain strings ([#935](https://github.com/coolify-terraform/terraform-provider-coolify/issues/935)) ([64a3679](https://github.com/coolify-terraform/terraform-provider-coolify/commit/64a367996ce851aec1db69172d8d59518adcc731))
+* keep equivalent compose domain URLs ([#936](https://github.com/coolify-terraform/terraform-provider-coolify/issues/936)) ([f33209f](https://github.com/coolify-terraform/terraform-provider-coolify/commit/f33209ff69f0572ffe62fc229bc6565ee65c1a7d))
+* keep imported environment uuid and failed database creates ([#932](https://github.com/coolify-terraform/terraform-provider-coolify/issues/932)) ([af9ebd4](https://github.com/coolify-terraform/terraform-provider-coolify/commit/af9ebd4f8e50f072b865bb2e6f3aba0073740718))
+* keep service URL ports Coolify returns ([#938](https://github.com/coolify-terraform/terraform-provider-coolify/issues/938)) ([20e3e8e](https://github.com/coolify-terraform/terraform-provider-coolify/commit/20e3e8e874f92ade1cb05a8595a25317c6853f75)), closes [#937](https://github.com/coolify-terraform/terraform-provider-coolify/issues/937)
+* null computed service fields before a failed create read-back ([#933](https://github.com/coolify-terraform/terraform-provider-coolify/issues/933)) ([8e02d77](https://github.com/coolify-terraform/terraform-provider-coolify/commit/8e02d771642e2f6bf5df36355e25fc9e9d0c795d))
+* send service URL path case changes ([#931](https://github.com/coolify-terraform/terraform-provider-coolify/issues/931)) ([dc65efe](https://github.com/coolify-terraform/terraform-provider-coolify/commit/dc65efeec54b5c0f60e783c75da2dc44bdf455fb))
+* stop import replacement and correct service writes ([#924](https://github.com/coolify-terraform/terraform-provider-coolify/issues/924)) ([5a5288b](https://github.com/coolify-terraform/terraform-provider-coolify/commit/5a5288bb782acb3d2eb10f3ad44995f493edaa4c))
+* tell users a failed create read-back replaces the resource ([#934](https://github.com/coolify-terraform/terraform-provider-coolify/issues/934)) ([8f59a18](https://github.com/coolify-terraform/terraform-provider-coolify/commit/8f59a18a8c2721b775334fca6a99fdfc911efb83))
+
 ## [0.1.24](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.23...v0.1.24) (2026-09-26)
 
 
