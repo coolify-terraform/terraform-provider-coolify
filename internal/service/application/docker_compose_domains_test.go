@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -185,9 +186,34 @@ func TestResolveDockerComposeDomains_PreservesEquivalentUserForm(t *testing.T) {
 	// API returns storage object as a JSON string value.
 	api := `{"grafana":{"domain":"http://grafana.example.com"}}`
 	dst := types.StringValue(user)
-	resolveDockerComposeDomains(&dst, api)
+	resolveDockerComposeDomains(&dst, api, nil)
 	if dst.ValueString() != user {
 		t.Errorf("should preserve user form when equivalent: got %s", dst.ValueString())
+	}
+}
+
+func TestResolveDockerComposeDomains_PreservesHostCaseAndMatchingPort(t *testing.T) {
+	t.Parallel()
+	user := `[{"name":"web","domain":"HTTPS://App.Example.com:8443/Path"}]`
+	api := `{"web":{"domain":"https://app.example.com/Path"}}`
+	dst := types.StringValue(user)
+	overrides := client.DomainPortOverridesMap{"https://app.example.com/Path": 8443}
+	resolveDockerComposeDomains(&dst, api, overrides)
+	if dst.ValueString() != user {
+		t.Errorf("got %s, want configured URL", dst.ValueString())
+	}
+}
+
+func TestResolveDockerComposeDomains_AdoptsAPIWhenPortDiffers(t *testing.T) {
+	t.Parallel()
+	user := `[{"name":"web","domain":"https://app.example.com:8443"}]`
+	api := `{"web":{"domain":"https://app.example.com"}}`
+	dst := types.StringValue(user)
+	overrides := client.DomainPortOverridesMap{"https://app.example.com": 9000}
+	resolveDockerComposeDomains(&dst, api, overrides)
+	want := `[{"name":"web","domain":"https://app.example.com"}]`
+	if dst.ValueString() != want {
+		t.Errorf("got %s, want %s", dst.ValueString(), want)
 	}
 }
 
@@ -195,7 +221,7 @@ func TestResolveDockerComposeDomains_ImportFromAPI(t *testing.T) {
 	t.Parallel()
 	api := `{"web":{"domain":"https://app.example.com"}}`
 	dst := types.StringNull()
-	resolveDockerComposeDomains(&dst, api)
+	resolveDockerComposeDomains(&dst, api, nil)
 	want := `[{"name":"web","domain":"https://app.example.com"}]`
 	if dst.ValueString() != want {
 		t.Errorf("import normalize = %s, want %s", dst.ValueString(), want)

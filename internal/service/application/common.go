@@ -33,6 +33,7 @@ const dockerComposeDomainsDescription = "Domain mappings for Docker Compose serv
 	"`jsonencode([{ name = \"web\", domain = \"https://app.example.com\" }])`. " +
 	"Coolify accepts only that array form on write, stores an object map keyed by service name, and returns the object form on GET; " +
 	"the provider normalizes both shapes so Terraform plans stay empty after apply. " +
+	"Each domain URL follows the same normalization as `domains`: host case and a port that still matches `domain_port_overrides` do not change the plan. " +
 	"Coolify rejects this field until `docker_compose_raw` is set. For git-sourced compose apps, Coolify only populates " +
 	"`docker_compose_raw` after a deployment loads the compose file from the repository; there is no separate load-compose API. " +
 	"This ordering is a Coolify API constraint on all Coolify versions supported by this provider (v4.1.0 and later). " +
