@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -204,8 +205,12 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 							Required:            true,
 						},
 						"url": schema.StringAttribute{
-							MarkdownDescription: "Comma-separated list of URLs to assign to this container (e.g., `https://app.example.com,https://www.example.com`).",
-							Optional:            true,
+							MarkdownDescription: "Comma-separated list of URLs to assign to this container (e.g., `https://app.example.com,https://www.example.com`). " +
+								"Coolify may store an explicit port separately and return it on the container URL. " +
+								"The provider keeps your string, including host case and comma order, when an explicit port is still that returned port. " +
+								"A URL written without a port matches even if Coolify still has a port, because sending it without a port leaves that port in place. " +
+								"A different port, path, query, or fragment is stored as Coolify returned it, so the next apply writes your value back.",
+							Optional: true,
 						},
 					},
 				},
@@ -602,12 +607,13 @@ func flattenServiceURLs(apps []client.ServiceApplication, current []serviceURLMo
 	out := make([]serviceURLModel, 0, len(current))
 	for _, cfg := range current {
 		app, ok := byName[cfg.Name.ValueString()]
-		if !ok || app.FQDN == "" {
+		apiURL := serviceApplicationURL(app)
+		if !ok || apiURL == "" {
 			out = append(out, cfg)
 			continue
 		}
-		url := types.StringValue(app.FQDN)
-		if serviceURLEquivalent(cfg.URL.ValueString(), app.FQDN) {
+		url := types.StringValue(apiURL)
+		if serviceURLEquivalent(cfg.URL.ValueString(), apiURL) {
 			url = cfg.URL
 		}
 		out = append(out, serviceURLModel{
@@ -618,15 +624,96 @@ func flattenServiceURLs(apps []client.ServiceApplication, current []serviceURLMo
 	return out
 }
 
-// serviceURLEquivalent matches Coolify's normalizeApplicationDomainUrl:
-// scheme and host are case-insensitive, and path, query, and fragment keep
-// their case. Comma-separated order is not a difference. Coolify's hasMany
-// read can return those hosts swapped, and a description update must not
-// re-check domains when only that order changed.
-func serviceURLEquivalent(configured, api string) bool {
-	return serviceURLTokenKey(configured) == serviceURLTokenKey(api)
+// serviceApplicationURL is the URL Coolify shows for the container.
+// On Coolify >= v4.3.15, fqdn has no explicit port and url puts it back.
+// Older responses omit url, so fqdn is the only value.
+func serviceApplicationURL(app client.ServiceApplication) string {
+	if app.URL != "" {
+		return app.URL
+	}
+	return app.FQDN
 }
 
+// serviceURLEquivalent reports whether the configured URL matches the
+// container URL Coolify returned. Scheme and host case and comma order are
+// not differences. Path, query, and fragment case are. An explicit configured
+// port matches only that same port. A configured URL with no port matches
+// even when the returned URL has one: Coolify keeps a stored port when the
+// written URL omits it, so planning that port back would never converge.
+func serviceURLEquivalent(configured, api string) bool {
+	left := serviceURLReadParts(configured)
+	right := serviceURLReadParts(api)
+	if len(left) != len(right) {
+		return false
+	}
+	sortServiceURLReadParts(left)
+	sortServiceURLReadParts(right)
+	for i := range left {
+		if left[i].key != right[i].key {
+			return false
+		}
+		if !left[i].hasPort {
+			continue
+		}
+		if !right[i].hasPort || left[i].port != right[i].port {
+			return false
+		}
+	}
+	return true
+}
+
+type serviceURLReadPart struct {
+	key     string
+	port    int64
+	hasPort bool
+}
+
+func serviceURLReadParts(raw string) []serviceURLReadPart {
+	out := make([]serviceURLReadPart, 0, strings.Count(raw, ",")+1)
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		out = append(out, serviceURLReadPartFrom(part))
+	}
+	return out
+}
+
+func serviceURLReadPartFrom(raw string) serviceURLReadPart {
+	u, err := url.Parse(raw)
+	if err != nil || u.Hostname() == "" {
+		return serviceURLReadPart{key: raw}
+	}
+	part := serviceURLReadPart{}
+	if rawPort := u.Port(); rawPort != "" {
+		parsed, err := strconv.ParseInt(rawPort, 10, 64)
+		if err != nil {
+			return serviceURLReadPart{key: raw}
+		}
+		part.port = parsed
+		part.hasPort = true
+	}
+	u.Scheme = strings.ToLower(u.Scheme)
+	u.Host = strings.ToLower(u.Hostname())
+	part.key = u.String()
+	return part
+}
+
+func sortServiceURLReadParts(parts []serviceURLReadPart) {
+	sort.Slice(parts, func(i, j int) bool {
+		if parts[i].key != parts[j].key {
+			return parts[i].key < parts[j].key
+		}
+		if parts[i].hasPort != parts[j].hasPort {
+			return !parts[i].hasPort
+		}
+		return parts[i].port < parts[j].port
+	})
+}
+
+// serviceURLTokenKey is the plan-versus-state key. The port stays in the
+// key so editing or removing a port still sends an update.
 func serviceURLTokenKey(s string) string {
 	parts := strings.Split(s, ",")
 	out := make([]string, 0, len(parts))

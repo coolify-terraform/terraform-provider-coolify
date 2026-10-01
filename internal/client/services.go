@@ -12,6 +12,10 @@ import (
 type ServiceApplication struct {
 	Name string `json:"name"`
 	FQDN string `json:"fqdn,omitempty"`
+	// URL is the public container URL. Coolify >= v4.3.15 hides
+	// domain_port_overrides and appends this attribute with that port
+	// restored. Older responses omit it and leave the port in FQDN.
+	URL string `json:"url,omitempty"`
 }
 
 type Service struct {

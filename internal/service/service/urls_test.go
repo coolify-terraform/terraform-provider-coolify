@@ -29,6 +29,16 @@ func TestServiceURLsForUpdate_HostCaseOmits(t *testing.T) {
 	}
 }
 
+func TestServiceURLsForUpdate_PortChangeSends(t *testing.T) {
+	t.Parallel()
+	plan := []serviceURLModel{urlEntry("web", "https://app.example.com:9443")}
+	state := []serviceURLModel{urlEntry("web", "https://app.example.com:8443")}
+	got := serviceURLsForUpdate(plan, state)
+	if len(got) != 1 || got[0].URL != "https://app.example.com:9443" {
+		t.Fatalf("got %#v, want edited port sent", got)
+	}
+}
+
 func TestServiceURLsForUpdate_PathCaseSends(t *testing.T) {
 	t.Parallel()
 	plan := []serviceURLModel{urlEntry("web", "https://example.com/api")}

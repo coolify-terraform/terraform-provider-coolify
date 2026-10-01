@@ -110,7 +110,7 @@ Required:
 
 Optional:
 
-- `url` (String) Comma-separated list of URLs to assign to this container (e.g., `https://app.example.com,https://www.example.com`).
+- `url` (String) Comma-separated list of URLs to assign to this container (e.g., `https://app.example.com,https://www.example.com`). Coolify may store an explicit port separately and return it on the container URL. The provider keeps your string, including host case and comma order, when an explicit port is still that returned port. A URL written without a port matches even if Coolify still has a port, because sending it without a port leaves that port in place. A different port, path, query, or fragment is stored as Coolify returned it, so the next apply writes your value back.
 
 ## Import
 
