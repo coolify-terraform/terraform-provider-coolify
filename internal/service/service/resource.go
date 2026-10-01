@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -595,12 +596,12 @@ func flattenServiceURLs(apps []client.ServiceApplication, current []serviceURLMo
 	return out
 }
 
-// serviceURLEquivalent treats comma-separated FQDN lists as the same when they
-// contain the same URLs after trim and case fold, regardless of list order.
+// serviceURLEquivalent matches Coolify's normalizeApplicationDomainUrl:
+// scheme and host are case-insensitive, and path, query, and fragment keep
+// their case. Comma-separated order is not a difference. Coolify's hasMany
+// read can return those hosts swapped, and a description update must not
+// re-check domains when only that order changed.
 func serviceURLEquivalent(configured, api string) bool {
-	if configured == api || strings.EqualFold(configured, api) {
-		return true
-	}
 	return serviceURLTokenKey(configured) == serviceURLTokenKey(api)
 }
 
@@ -612,10 +613,25 @@ func serviceURLTokenKey(s string) string {
 		if p == "" {
 			continue
 		}
-		out = append(out, strings.ToLower(p))
+		out = append(out, normalizeServiceURL(p))
 	}
 	sort.Strings(out)
 	return strings.Join(out, ",")
+}
+
+func normalizeServiceURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Hostname() == "" {
+		return raw
+	}
+	u.Scheme = strings.ToLower(u.Scheme)
+	host := strings.ToLower(u.Hostname())
+	if port := u.Port(); port != "" {
+		u.Host = host + ":" + port
+	} else {
+		u.Host = host
+	}
+	return u.String()
 }
 
 // expandServiceURLs converts the Terraform model to the client input format.

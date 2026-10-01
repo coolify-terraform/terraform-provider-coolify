@@ -20,6 +20,25 @@ func TestServiceURLsForUpdate_UnchangedOmits(t *testing.T) {
 	}
 }
 
+func TestServiceURLsForUpdate_HostCaseOmits(t *testing.T) {
+	t.Parallel()
+	plan := []serviceURLModel{urlEntry("web", "https://Example.com/API")}
+	state := []serviceURLModel{urlEntry("web", "https://example.com/API")}
+	if got := serviceURLsForUpdate(plan, state); got != nil {
+		t.Fatalf("got %#v, want nil for host case only", got)
+	}
+}
+
+func TestServiceURLsForUpdate_PathCaseSends(t *testing.T) {
+	t.Parallel()
+	plan := []serviceURLModel{urlEntry("web", "https://example.com/api")}
+	state := []serviceURLModel{urlEntry("web", "https://example.com/API")}
+	got := serviceURLsForUpdate(plan, state)
+	if len(got) != 1 || got[0].URL != "https://example.com/api" {
+		t.Fatalf("got %#v, want path case sent", got)
+	}
+}
+
 func TestServiceURLsForUpdate_ClearRemovedName(t *testing.T) {
 	t.Parallel()
 	plan := []serviceURLModel{urlEntry("web", "https://web.example")}
