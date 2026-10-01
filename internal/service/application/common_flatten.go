@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -12,6 +13,55 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
+
+// assignApplicationDomains writes the API domain list. A known configured
+// value is left in place when it matches Coolify's stored form.
+func assignApplicationDomains(dst *types.String, api string) {
+	if api == "" {
+		*dst = types.StringValue("")
+		return
+	}
+	if dst != nil && !dst.IsNull() && !dst.IsUnknown() && applicationDomainsEquivalent(dst.ValueString(), api) {
+		return
+	}
+	*dst = types.StringValue(api)
+}
+
+// applicationDomainsEquivalent reports whether two domain lists match after
+// ValidationPatterns::normalizeApplicationDomainUrl (Coolify v4.3.23).
+// Scheme and host are case-insensitive. Path, query, and fragment keep
+// their case. Comma order is significant. Spaces around commas are not.
+func applicationDomainsEquivalent(configured, api string) bool {
+	return applicationDomainKey(configured) == applicationDomainKey(api)
+}
+
+func applicationDomainKey(raw string) string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		out = append(out, normalizeApplicationDomainURL(part))
+	}
+	return strings.Join(out, ",")
+}
+
+func normalizeApplicationDomainURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Hostname() == "" {
+		return raw
+	}
+	u.Scheme = strings.ToLower(u.Scheme)
+	host := strings.ToLower(u.Hostname())
+	if port := u.Port(); port != "" {
+		u.Host = host + ":" + port
+	} else {
+		u.Host = host
+	}
+	return u.String()
+}
 
 // shouldCopyEnvironmentName reports whether GET's environment name should be
 // stored. Coolify may return the environment's current name. A UUID-addressed
@@ -52,11 +102,10 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	}
 	// Empty FQDN is a real state (internal apps / cleared domains), not "unset".
 	// Prefer "" over null so clear and autogenerate_domain=false round-trip cleanly.
-	if app.Domains == "" {
-		*f.Domains = types.StringValue("")
-	} else {
-		*f.Domains = types.StringValue(app.Domains)
-	}
+	// Coolify stores the normalized list (lowercase scheme and host, trimmed
+	// comma spacing, path case kept). Keep the configured string when that
+	// normalized form matches, so host case alone does not plan an update.
+	assignApplicationDomains(f.Domains, app.Domains)
 	// Coolify does not return dockerfile_location on GET for most app types.
 	// Preserve the user's configured value to avoid "inconsistent result after apply".
 	// The value IS sent on Create/Update, just not returned on read-back.
