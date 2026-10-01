@@ -318,18 +318,7 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	plan.UUID = types.StringValue(created.UUID)
-	if plan.Name.IsUnknown() {
-		plan.Name = types.StringNull()
-	}
-	if plan.Description.IsUnknown() {
-		plan.Description = types.StringNull()
-	}
-	if plan.Type.IsUnknown() {
-		plan.Type = types.StringNull()
-	}
-	if plan.DockerComposeRaw.IsUnknown() {
-		plan.DockerComposeRaw = types.StringNull()
-	}
+	nullUnknownServiceCreate(&plan)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
@@ -356,6 +345,33 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	flattenService(svc, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_service", "uuid": created.UUID})
+}
+
+// nullUnknownServiceCreate nulls unknown plan values before partial state is
+// saved. Terraform rejects unknown values when the read after create fails.
+// Known values, including fields the user configured, stay unchanged.
+func nullUnknownServiceCreate(plan *serviceResourceModel) {
+	if plan.Name.IsUnknown() {
+		plan.Name = types.StringNull()
+	}
+	if plan.Description.IsUnknown() {
+		plan.Description = types.StringNull()
+	}
+	if plan.Type.IsUnknown() {
+		plan.Type = types.StringNull()
+	}
+	if plan.DockerComposeRaw.IsUnknown() {
+		plan.DockerComposeRaw = types.StringNull()
+	}
+	if plan.Status.IsUnknown() {
+		plan.Status = types.StringNull()
+	}
+	if plan.DockerCompose.IsUnknown() {
+		plan.DockerCompose = types.StringNull()
+	}
+	if plan.ConfigHash.IsUnknown() {
+		plan.ConfigHash = types.StringNull()
+	}
 }
 
 func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
