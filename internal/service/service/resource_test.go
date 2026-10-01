@@ -343,8 +343,10 @@ func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config:      serviceConfig(srv.URL),
-				ExpectError: regexp.MustCompile(`Service created but refresh failed`),
+				Config: serviceConfig(srv.URL),
+				// Terraform prints unknown-state errors before the provider
+				// diagnostic. A substring match stays green when both appear.
+				ExpectError: regexp.MustCompile(`(?s)\AError running apply: exit status 1\s+Error: Service created but refresh failed\b`),
 			},
 		},
 	})

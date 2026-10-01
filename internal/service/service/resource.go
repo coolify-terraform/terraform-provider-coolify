@@ -372,6 +372,12 @@ func nullUnknownServiceCreate(plan *serviceResourceModel) {
 	if plan.ConfigHash.IsUnknown() {
 		plan.ConfigHash = types.StringNull()
 	}
+	if plan.ConnectToNetwork.IsUnknown() {
+		plan.ConnectToNetwork = types.BoolNull()
+	}
+	if plan.IsContainerLabelEscapeEnabled.IsUnknown() {
+		plan.IsContainerLabelEscapeEnabled = types.BoolNull()
+	}
 }
 
 func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
