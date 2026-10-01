@@ -83,7 +83,11 @@ format still imports. Setting `project_uuid` or `server_uuid` in configuration
 after that import stores the value in place. It does not destroy the resource.
 `environment_name` is set to `production` on a simple import. A different name
 still forces a new resource, which for a database deletes data. Use the
-compound form when the environment is not `production`.
+compound form when the environment is not `production`. Setting
+`environment_uuid` after either import form stores that UUID in place and
+clears `environment_name` from state. It does not destroy the resource, and
+it does not move the resource to another environment. Changing a stored
+`environment_uuid` later forces a new resource.
 
 `destination_uuid` is not part of either import form. Coolify GET returns a
 numeric destination id, not the UUID. Leave the attribute unset unless you

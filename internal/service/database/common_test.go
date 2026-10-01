@@ -260,6 +260,30 @@ func TestFlattenDatabaseExtended_ReadOnlyStringsFollowAPI(t *testing.T) {
 	}
 }
 
+func TestNormalizeExtendedCreateUnknowns_ReadOnlyStrings(t *testing.T) {
+	t.Parallel()
+	ports := types.StringUnknown()
+	opts := types.StringUnknown()
+	known := types.StringValue("8080:5432")
+	NormalizeExtendedCreateUnknowns(DatabaseExtendedPtrs{
+		PortsMappings:          &ports,
+		CustomDockerRunOptions: &opts,
+	})
+	if !ports.IsNull() {
+		t.Fatalf("ports_mappings = %#v, want null", ports)
+	}
+	if !opts.IsNull() {
+		t.Fatalf("custom_docker_run_options = %#v, want null", opts)
+	}
+	NormalizeExtendedCreateUnknowns(DatabaseExtendedPtrs{
+		PortsMappings:          &known,
+		CustomDockerRunOptions: &known,
+	})
+	if known.ValueString() != "8080:5432" {
+		t.Fatalf("known value changed to %#v", known)
+	}
+}
+
 func TestHasExtendedFields_AllDefaults(t *testing.T) {
 	t.Parallel()
 	f := DatabaseExtendedPtrs{}

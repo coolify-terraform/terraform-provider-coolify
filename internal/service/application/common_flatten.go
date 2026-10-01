@@ -15,8 +15,8 @@ import (
 
 // shouldCopyEnvironmentName reports whether GET's environment name should be
 // stored. Coolify may return the environment's current name. A UUID-addressed
-// resource must keep environment_name empty: a stored name next to a UUID
-// plans replacement on every refresh, and Coolify looks the name up first.
+// resource must keep environment_name empty. Copying the name back would
+// clear it again on every plan.
 func shouldCopyEnvironmentName(apiName string, uuid *types.String) bool {
 	if apiName == "" {
 		return false
