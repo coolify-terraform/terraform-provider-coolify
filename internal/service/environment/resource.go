@@ -141,7 +141,7 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 	if diags.HasError() {
 		resp.Diagnostics.AddError(
 			"Environment created but refresh failed",
-			fmt.Sprintf("Coolify created environment %s/%s, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", projectUUID, name, diags.Errors()[0].Detail()),
+			fmt.Sprintf("Coolify created environment %s/%s, but the provider could not read it back: %s. %s", projectUUID, name, diags.Errors()[0].Detail(), flex.CreateReadBackTaintedReplace),
 		)
 		return
 	}

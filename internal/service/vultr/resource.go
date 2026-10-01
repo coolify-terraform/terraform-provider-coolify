@@ -257,7 +257,7 @@ func (r *vultrServerResource) Create(ctx context.Context, req resource.CreateReq
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Vultr server created but refresh failed",
-			fmt.Sprintf("Coolify created Vultr server %s, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, err),
+			fmt.Sprintf("Coolify created Vultr server %s, but the provider could not read it back: %s. %s", created.UUID, err, flex.CreateReadBackTaintedReplace),
 		)
 		return
 	}

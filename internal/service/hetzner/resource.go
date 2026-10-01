@@ -298,7 +298,7 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Hetzner server created but refresh failed",
-			fmt.Sprintf("Coolify created Hetzner server %s, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, err),
+			fmt.Sprintf("Coolify created Hetzner server %s, but the provider could not read it back: %s. %s", created.UUID, err, flex.CreateReadBackTaintedReplace),
 		)
 		return
 	}

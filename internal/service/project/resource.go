@@ -129,7 +129,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	if diags.HasError() {
 		resp.Diagnostics.AddError(
 			"Project created but refresh failed",
-			fmt.Sprintf("Coolify created project %s, but the provider could not read it back: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", project.UUID, diags.Errors()[0].Detail()),
+			fmt.Sprintf("Coolify created project %s, but the provider could not read it back: %s. %s", project.UUID, diags.Errors()[0].Detail(), flex.CreateReadBackTaintedReplace),
 		)
 		return
 	}

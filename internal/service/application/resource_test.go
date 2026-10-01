@@ -1530,7 +1530,7 @@ func TestApplicationResource_CreateReadBackFailurePreservesState(t *testing.T) {
 					build_pack     = "nixpacks"
 					ports_exposes  = "3000"
 				`),
-				ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*partial Terraform state was saved.*becomes readable through the API`),
+				ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*partial Terraform state was saved.*next\s+terraform\s+apply\s+replaces`),
 			},
 		},
 	})
