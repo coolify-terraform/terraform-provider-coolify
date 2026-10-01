@@ -127,6 +127,120 @@ func TestFlattenServiceURLs_PathCaseUsesAPI(t *testing.T) {
 	}
 }
 
+func TestFlattenServiceURLs_PreservesMatchingPort(t *testing.T) {
+	t.Parallel()
+	configured := "HTTPS://App.Example.com:8443/Path"
+	current := []serviceURLModel{
+		{Name: types.StringValue("web"), URL: types.StringValue(configured)},
+	}
+	apps := []client.ServiceApplication{{
+		Name: "web",
+		FQDN: "https://app.example.com/Path",
+		URL:  "https://app.example.com:8443/Path",
+	}}
+	got := flattenServiceURLs(apps, current)
+	if len(got) != 1 || got[0].URL.ValueString() != configured {
+		t.Fatalf("url = %#v, want configured port and host case", got)
+	}
+}
+
+func TestFlattenServiceURLs_AdoptsAPIWhenPortDiffers(t *testing.T) {
+	t.Parallel()
+	current := []serviceURLModel{
+		{Name: types.StringValue("web"), URL: types.StringValue("https://app.example.com:8443")},
+	}
+	apps := []client.ServiceApplication{{
+		Name: "web",
+		FQDN: "https://app.example.com",
+		URL:  "https://app.example.com:9000",
+	}}
+	got := flattenServiceURLs(apps, current)
+	if len(got) != 1 || got[0].URL.ValueString() != "https://app.example.com:9000" {
+		t.Fatalf("url = %#v, want API url with Coolify's port", got)
+	}
+}
+
+func TestFlattenServiceURLs_AdoptsPortlessURLWhenNoPortReturned(t *testing.T) {
+	t.Parallel()
+	current := []serviceURLModel{
+		{Name: types.StringValue("web"), URL: types.StringValue("https://app.example.com:8443")},
+	}
+	apps := []client.ServiceApplication{{
+		Name: "web",
+		FQDN: "https://app.example.com",
+		URL:  "https://app.example.com",
+	}}
+	got := flattenServiceURLs(apps, current)
+	if len(got) != 1 || got[0].URL.ValueString() != "https://app.example.com" {
+		t.Fatalf("url = %#v, want portless API URL", got)
+	}
+}
+
+func TestFlattenServiceURLs_PreservesCommaOrderWhenReturnedPortsMatch(t *testing.T) {
+	t.Parallel()
+	configured := "https://Qbt.Example.com:8080,https://prowlarr.example.com:9696"
+	current := []serviceURLModel{
+		{Name: types.StringValue("gluetun"), URL: types.StringValue(configured)},
+	}
+	apps := []client.ServiceApplication{{
+		Name: "gluetun",
+		FQDN: "https://prowlarr.example.com,https://qbt.example.com",
+		URL:  "https://prowlarr.example.com:9696,https://qbt.example.com:8080",
+	}}
+	got := flattenServiceURLs(apps, current)
+	if len(got) != 1 || got[0].URL.ValueString() != configured {
+		t.Fatalf("url = %#v, want configured order", got)
+	}
+}
+
+func TestFlattenServiceURLs_PathCaseUsesReturnedURL(t *testing.T) {
+	t.Parallel()
+	current := []serviceURLModel{
+		{Name: types.StringValue("web"), URL: types.StringValue("https://example.com:8443/API")},
+	}
+	apps := []client.ServiceApplication{{
+		Name: "web",
+		FQDN: "https://example.com/api",
+		URL:  "https://example.com:8443/api",
+	}}
+	got := flattenServiceURLs(apps, current)
+	if len(got) != 1 || got[0].URL.ValueString() != "https://example.com:8443/api" {
+		t.Fatalf("url = %#v, want API path case", got)
+	}
+}
+
+func TestFlattenServiceURLs_OmitsPortWhenConfigHasNone(t *testing.T) {
+	t.Parallel()
+	configured := "https://app.example.com/Path"
+	current := []serviceURLModel{
+		{Name: types.StringValue("web"), URL: types.StringValue(configured)},
+	}
+	apps := []client.ServiceApplication{{
+		Name: "web",
+		FQDN: "https://app.example.com/Path",
+		URL:  "https://app.example.com:8443/Path",
+	}}
+	got := flattenServiceURLs(apps, current)
+	if len(got) != 1 || got[0].URL.ValueString() != configured {
+		t.Fatalf("url = %#v, want configured URL without a port", got)
+	}
+}
+
+func TestFlattenServiceURLs_FallsBackToFQDNWhenURLMissing(t *testing.T) {
+	t.Parallel()
+	current := []serviceURLModel{
+		{Name: types.StringValue("web"), URL: types.StringValue("https://Example.com:8080")},
+	}
+	apps := []client.ServiceApplication{{
+		Name: "web",
+		FQDN: "https://example.com:8080",
+	}}
+	got := flattenServiceURLs(apps, current)
+	if len(got) != 1 || got[0].URL.ValueString() != "https://Example.com:8080" {
+		t.Fatalf("url = %#v, want configured when fqdn still has the port", got)
+	}
+}
+
 func TestFlattenServiceURLs_UsesAPIWhenURLChanges(t *testing.T) {
 	t.Parallel()
 	current := []serviceURLModel{

@@ -203,3 +203,135 @@ resource "coolify_service" "test" {
 		t.Fatalf("urls = %#v", fix.patches[0]["urls"])
 	}
 }
+
+// servicePortRead serves the Coolify service GET shape: fqdn has no port,
+// url has the port, and a domain_port_overrides object is ignored.
+type servicePortRead struct {
+	mu          sync.Mutex
+	returned    string
+	description string
+	patches     []map[string]any
+	deleted     bool
+}
+
+func (f *servicePortRead) handler(uuid string) http.Handler {
+	const fqdn = "https://app.example.com/Path"
+	const matched = "https://app.example.com:8443/Path"
+	return acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		body, _ := io.ReadAll(r.Body)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]string{"uuid": uuid})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/services/"+uuid:
+			if f.deleted {
+				http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+				return
+			}
+			payload := map[string]any{
+				"uuid":             uuid,
+				"name":             "urls-svc",
+				"type":             "plausible",
+				"project_uuid":     "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":      "bbbb0001-0001-4000-8000-000000000001",
+				"environment_name": "production",
+				"applications": []any{map[string]any{
+					"name": "web",
+					"fqdn": fqdn,
+					"url":  f.returned,
+					"domain_port_overrides": map[string]int{
+						fqdn: 8443,
+					},
+				}},
+			}
+			if f.description != "" {
+				payload["description"] = f.description
+			}
+			_ = json.NewEncoder(w).Encode(payload)
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v1/services/"+uuid:
+			var decoded map[string]any
+			_ = json.Unmarshal(body, &decoded)
+			f.patches = append(f.patches, decoded)
+			if desc, ok := decoded["description"].(string); ok {
+				f.description = desc
+			}
+			if _, ok := decoded["urls"]; ok {
+				f.returned = matched
+			}
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]string{"uuid": uuid})
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/services/"+uuid:
+			f.deleted = true
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+}
+
+func TestServiceResource_ExplicitPortRoundTripsFromReturnedURL(t *testing.T) {
+	t.Parallel()
+	const svcUUID = "svc-url-port-001"
+	const configured = "HTTPS://App.example.com:8443/Path"
+	fix := &servicePortRead{returned: "https://app.example.com:8443/Path"}
+	srv := httptest.NewServer(fix.handler(svcUUID))
+	defer srv.Close()
+
+	provider := acctest.ProviderBlockForURL(srv.URL)
+	config := func(description string) string {
+		desc := ""
+		if description != "" {
+			desc = "\n  description = \"" + description + "\""
+		}
+		return provider + `
+resource "coolify_service" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
+  type         = "plausible"` + desc + `
+  urls = [{ name = "web", url = "` + configured + `" }]
+}
+`
+	}
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config(""),
+				Check:  resource.TestCheckResourceAttr("coolify_service.test", "urls.0.url", configured),
+			},
+			{
+				Config: config("note"),
+				Check:  resource.TestCheckResourceAttr("coolify_service.test", "urls.0.url", configured),
+			},
+			{
+				PreConfig: func() {
+					fix.mu.Lock()
+					fix.returned = "https://app.example.com:9000/Path"
+					fix.mu.Unlock()
+				},
+				Config: config("note"),
+				Check:  resource.TestCheckResourceAttr("coolify_service.test", "urls.0.url", configured),
+			},
+		},
+	})
+
+	fix.mu.Lock()
+	defer fix.mu.Unlock()
+	if len(fix.patches) != 2 {
+		t.Fatalf("patches = %d, want description update then port restore", len(fix.patches))
+	}
+	if _, ok := fix.patches[0]["urls"]; ok {
+		t.Fatalf("description update sent urls: %#v", fix.patches[0]["urls"])
+	}
+	urls, ok := fix.patches[1]["urls"].([]any)
+	if !ok || len(urls) != 1 {
+		t.Fatalf("port restore urls = %#v", fix.patches[1]["urls"])
+	}
+	entry, _ := urls[0].(map[string]any)
+	if entry["name"] != "web" || entry["url"] != configured {
+		t.Fatalf("port restore entry = %#v", entry)
+	}
+}
