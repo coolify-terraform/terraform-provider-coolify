@@ -247,7 +247,7 @@ func flattenExtendedFields(app *client.Application, f commonAppFields) {
 	flex.SetStringOrClear(f.DockerRegistryImageTag, app.DockerRegistryImageTag)
 	// Coolify stores/returns an object map; Terraform config uses the write
 	// array shape. Normalize on read so plan stays empty (#652).
-	resolveDockerComposeDomains(f.DockerComposeDomains, app.DockerComposeDomains.String())
+	resolveDockerComposeDomains(f.DockerComposeDomains, app.DockerComposeDomains.String(), app.DomainPortOverrides)
 	flex.SetStringSeedOrClear(f.WatchPaths, app.WatchPaths)
 	flex.SetStringOrClear(f.CustomDockerRunOptions, app.CustomDockerRunOptions)
 	flex.SetStringOrClear(f.CustomNetworkAliases, app.CustomNetworkAliases)

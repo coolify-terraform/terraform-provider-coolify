@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -39,12 +40,7 @@ func normalizeDockerComposeDomains(raw string) string {
 	if len(items) == 0 {
 		return ""
 	}
-	sort.Slice(items, func(i, j int) bool {
-		if items[i].Name != items[j].Name {
-			return items[i].Name < items[j].Name
-		}
-		return items[i].Domain < items[j].Domain
-	})
+	sortComposeDomainItems(items)
 	b, err := json.Marshal(items)
 	if err != nil {
 		return raw
@@ -109,10 +105,45 @@ func wireDockerComposeDomains(raw string) json.RawMessage {
 	return json.RawMessage(n)
 }
 
+// composeDomainsURLEquivalent reports whether two compose domain documents
+// are the same mapping after Coolify stores each URL. Service names must
+// match. Each domain uses the application domain rules: host case, comma
+// spacing, and a port that domain_port_overrides still records.
+func composeDomainsURLEquivalent(configured, api string, overrides client.DomainPortOverridesMap) bool {
+	configuredItems, configuredOK := parseDockerComposeDomains(configured)
+	apiItems, apiOK := parseDockerComposeDomains(api)
+	if !configuredOK || !apiOK {
+		return strings.TrimSpace(configured) == strings.TrimSpace(api)
+	}
+	if len(configuredItems) != len(apiItems) {
+		return false
+	}
+	sortComposeDomainItems(configuredItems)
+	sortComposeDomainItems(apiItems)
+	for i := range configuredItems {
+		if configuredItems[i].Name != apiItems[i].Name {
+			return false
+		}
+		if !applicationDomainsEquivalent(configuredItems[i].Domain, apiItems[i].Domain, overrides) {
+			return false
+		}
+	}
+	return true
+}
+
+func sortComposeDomainItems(items []composeDomainItem) {
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Name != items[j].Name {
+			return items[i].Name < items[j].Name
+		}
+		return items[i].Domain < items[j].Domain
+	})
+}
+
 // resolveDockerComposeDomains sets state from the API while preserving the
 // user's config string when it is semantically equal (avoids perpetual diffs
 // from jsonencode spacing vs our canonical marshal).
-func resolveDockerComposeDomains(dst *types.String, api string) {
+func resolveDockerComposeDomains(dst *types.String, api string, overrides client.DomainPortOverridesMap) {
 	if dst == nil {
 		return
 	}
@@ -125,7 +156,7 @@ func resolveDockerComposeDomains(dst *types.String, api string) {
 		}
 		return
 	}
-	if dockerComposeDomainsEquivalent(dst.ValueString(), api) {
+	if dockerComposeDomainsEquivalent(dst.ValueString(), api) || composeDomainsURLEquivalent(dst.ValueString(), api, overrides) {
 		return
 	}
 	n := normalizeDockerComposeDomains(api)
