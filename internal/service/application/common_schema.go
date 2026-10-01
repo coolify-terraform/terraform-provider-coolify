@@ -202,6 +202,7 @@ func coreAppAttrs(ctx context.Context) map[string]schema.Attribute {
 		"environment_uuid": schema.StringAttribute{MarkdownDescription: "Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this resource. Setting this when `environment_name` is already stored, including after import, keeps the resource and drops the name from state. It does not move the resource. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.", Optional: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
 		"domains": schema.StringAttribute{
 			MarkdownDescription: "Application URL(s) as a comma-separated list of http:// or https:// URLs. " +
+				"Coolify lowercases the scheme and host, removes spaces around commas, and stores an explicit port in `domain_port_overrides`. The provider keeps your string when only that normalization differs and any port still matches the override map. A path, query, fragment, list-order, or different port is stored as Coolify returned it. " +
 				"Empty string is allowed in Terraform (validator and PATCH body send `domains: \"\"`). " +
 				"When omitted on create, Coolify may auto-generate a domain unless `autogenerate_domain` is false. " +
 				"Clearing an existing FQDN with `domains = \"\"` depends on Coolify persisting empty domains as null fqdn " +

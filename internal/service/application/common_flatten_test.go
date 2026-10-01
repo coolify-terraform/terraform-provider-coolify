@@ -892,6 +892,95 @@ func TestFlattenApplicationCommon_DomainPortOverrides(t *testing.T) {
 	})
 }
 
+func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		configured string
+		known      bool
+		api        string
+		overrides  client.DomainPortOverridesMap
+		want       string
+	}{
+		{
+			name:       "host and scheme case",
+			configured: "HTTPS://App.Example.com/Path",
+			known:      true,
+			api:        "https://app.example.com/Path",
+			want:       "HTTPS://App.Example.com/Path",
+		},
+		{
+			name:       "comma spacing",
+			configured: "https://a.example.com, https://b.example.com",
+			known:      true,
+			api:        "https://a.example.com,https://b.example.com",
+			want:       "https://a.example.com, https://b.example.com",
+		},
+		{
+			name:       "path case is a real change",
+			configured: "https://app.example.com/Old",
+			known:      true,
+			api:        "https://app.example.com/New",
+			want:       "https://app.example.com/New",
+		},
+		{
+			name:       "order is a real change",
+			configured: "https://a.example.com,https://b.example.com",
+			known:      true,
+			api:        "https://b.example.com,https://a.example.com",
+			want:       "https://b.example.com,https://a.example.com",
+		},
+		{
+			name: "import adopts the API list",
+			api:  "https://app.example.com",
+			want: "https://app.example.com",
+		},
+		{
+			name:       "cleared domains",
+			configured: "https://app.example.com",
+			known:      true,
+			api:        "",
+			want:       "",
+		},
+		{
+			name:       "port kept when override matches",
+			configured: "https://App.Example.com:8443/Path",
+			known:      true,
+			api:        "https://app.example.com/Path",
+			overrides:  client.DomainPortOverridesMap{"https://app.example.com/Path": 8443},
+			want:       "https://App.Example.com:8443/Path",
+		},
+		{
+			name:       "port dropped when override differs",
+			configured: "https://app.example.com:8443",
+			known:      true,
+			api:        "https://app.example.com",
+			overrides:  client.DomainPortOverridesMap{"https://app.example.com": 9000},
+			want:       "https://app.example.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			f, _ := newDefaultFields()
+			if tt.known {
+				*f.Domains = types.StringValue(tt.configured)
+			}
+			flattenApplicationCommon(&client.Application{
+				UUID:                "uuid-1",
+				Name:                "app",
+				Domains:             tt.api,
+				DomainPortOverrides: tt.overrides,
+			}, f)
+			if f.Domains.ValueString() != tt.want {
+				t.Errorf("domains = %q, want %q", f.Domains.ValueString(), tt.want)
+			}
+		})
+	}
+}
+
 func TestFlattenApplicationCommon_BasicFields(t *testing.T) {
 	t.Parallel()
 	f, _ := newDefaultFields()

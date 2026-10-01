@@ -3,6 +3,8 @@ package application
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -12,6 +14,89 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
+
+// assignApplicationDomains writes the API domain list. A known configured
+// value is left in place when it matches Coolify's stored form.
+func assignApplicationDomains(dst *types.String, api string, overrides client.DomainPortOverridesMap) {
+	if api == "" {
+		*dst = types.StringValue("")
+		return
+	}
+	if dst != nil && !dst.IsNull() && !dst.IsUnknown() && applicationDomainsEquivalent(dst.ValueString(), api, overrides) {
+		return
+	}
+	*dst = types.StringValue(api)
+}
+
+// applicationDomainsEquivalent reports whether two domain lists match after
+// ValidationPatterns::normalizeApplicationDomainUrl and
+// DomainPortOverrides::normalize (Coolify v4.3.23). Scheme and host are
+// case-insensitive. Path, query, and fragment keep their case. Comma order
+// is significant. Spaces around commas are not. An explicit port matches
+// only when domain_port_overrides stores that port for the portless URL.
+func applicationDomainsEquivalent(configured, api string, overrides client.DomainPortOverridesMap) bool {
+	configuredParts := splitDomainList(configured)
+	apiParts := splitDomainList(api)
+	if len(configuredParts) != len(apiParts) {
+		return false
+	}
+	for i := range configuredParts {
+		configuredKey, configuredPort, configuredHasPort, configuredOK := domainURLParts(configuredParts[i])
+		apiKey, _, _, apiOK := domainURLParts(apiParts[i])
+		if !configuredOK || !apiOK || configuredKey != apiKey {
+			return false
+		}
+		if !configuredHasPort {
+			continue
+		}
+		got, ok := overrides[configuredKey]
+		if !ok || got != configuredPort {
+			return false
+		}
+	}
+	return true
+}
+
+func splitDomainList(raw string) []string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		out = append(out, part)
+	}
+	return out
+}
+
+func normalizeApplicationDomainURL(raw string) string {
+	key, _, _, ok := domainURLParts(raw)
+	if !ok {
+		return raw
+	}
+	return key
+}
+
+// domainURLParts returns the portless URL Coolify stores and any explicit port.
+// Saving an application moves that port into domain_port_overrides.
+func domainURLParts(raw string) (key string, port int64, hasPort, ok bool) {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Hostname() == "" {
+		return "", 0, false, false
+	}
+	if rawPort := u.Port(); rawPort != "" {
+		parsed, err := strconv.ParseInt(rawPort, 10, 64)
+		if err != nil {
+			return "", 0, false, false
+		}
+		port = parsed
+		hasPort = true
+	}
+	u.Scheme = strings.ToLower(u.Scheme)
+	u.Host = strings.ToLower(u.Hostname())
+	return u.String(), port, hasPort, true
+}
 
 // shouldCopyEnvironmentName reports whether GET's environment name should be
 // stored. Coolify may return the environment's current name. A UUID-addressed
@@ -52,11 +137,10 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	}
 	// Empty FQDN is a real state (internal apps / cleared domains), not "unset".
 	// Prefer "" over null so clear and autogenerate_domain=false round-trip cleanly.
-	if app.Domains == "" {
-		*f.Domains = types.StringValue("")
-	} else {
-		*f.Domains = types.StringValue(app.Domains)
-	}
+	// Coolify stores the normalized list (lowercase scheme and host, trimmed
+	// comma spacing, path case kept). Keep the configured string when that
+	// normalized form matches, so host case alone does not plan an update.
+	assignApplicationDomains(f.Domains, app.Domains, app.DomainPortOverrides)
 	// Coolify does not return dockerfile_location on GET for most app types.
 	// Preserve the user's configured value to avoid "inconsistent result after apply".
 	// The value IS sent on Create/Update, just not returned on read-back.
@@ -756,8 +840,9 @@ func flattenNoindexDomains(api []string, dst *types.List) {
 		*dst = stringListValue(api)
 		return
 	}
-	// Coolify stores a JSON array and may unique/normalize URLs. Keep the
-	// configured list order (and original casing) when the set matches.
+	// Coolify normalizes each URL like application domains, then uniques the
+	// set, so list order can change. Keep the configured order and host
+	// casing when that set matches. Path case is significant.
 	if stringListEquivalent(stringListFromTypes(*dst), api) {
 		return
 	}
@@ -770,10 +855,10 @@ func stringListEquivalent(configured, api []string) bool {
 	}
 	counts := make(map[string]int, len(api))
 	for _, s := range api {
-		counts[strings.ToLower(s)]++
+		counts[normalizeApplicationDomainURL(s)]++
 	}
 	for _, s := range configured {
-		k := strings.ToLower(s)
+		k := normalizeApplicationDomainURL(s)
 		n := counts[k]
 		if n == 0 {
 			return false
