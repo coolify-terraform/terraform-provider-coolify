@@ -141,7 +141,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"environment_name": schema.StringAttribute{MarkdownDescription: "Environment name. Defaults to `production` when `environment_uuid` is omitted. Set `environment_uuid` instead when the environment may be renamed. Changing a known name forces a new resource. Do not set both.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{flex.EnvironmentNamePlan()}},
-			"environment_uuid": schema.StringAttribute{MarkdownDescription: "Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this service. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.", Optional: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
+			"environment_uuid": schema.StringAttribute{MarkdownDescription: "Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this service. Setting this when `environment_name` is already stored, including after import, keeps the service and drops the name from state. It does not move the service. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.", Optional: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
 			"type": schema.StringAttribute{
 				MarkdownDescription: "The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). Mutually exclusive with `docker_compose_raw`. See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.",
 				Optional:            true,
@@ -543,8 +543,8 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 		model.ServerUUID = types.StringValue(svc.ServerUUID)
 	}
 	// GET may include the environment's current name. Copy it only when this
-	// resource is not addressed by UUID. A stored name next to a UUID plans
-	// replacement on every refresh, and Coolify looks the name up first.
+	// resource is not addressed by UUID. Copying the name back while a UUID
+	// is stored would clear it again on every plan.
 	if svc.EnvironmentName != "" && !flex.KnownNonEmpty(model.EnvironmentUUID) {
 		model.EnvironmentName = flex.StringToFramework(svc.EnvironmentName)
 	}

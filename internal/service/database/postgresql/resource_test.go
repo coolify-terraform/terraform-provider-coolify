@@ -14,7 +14,10 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/dbtest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestPostgresqlDatabaseResource_CreateUpdateImport(t *testing.T) {
@@ -385,6 +388,36 @@ resource "coolify_database_postgresql" "test" {
 }
 `,
 			ExpectError: regexp.MustCompile(`PostgreSQL database created but refresh failed`),
+		}},
+	})
+}
+
+func TestPostgresqlDatabaseResource_EmptyEnvironmentNamePlans(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_database_postgresql" "test" {
+  project_uuid     = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid      = "bbbb0001-0001-4000-8000-000000000001"
+  environment_name = ""
+}
+`,
+			PlanOnly:           true,
+			ExpectNonEmptyPlan: true,
+			ConfigPlanChecks: resource.ConfigPlanChecks{
+				PostApplyPreRefresh: []plancheck.PlanCheck{
+					plancheck.ExpectKnownValue(
+						"coolify_database_postgresql.test",
+						tfjsonpath.New("environment_name"),
+						knownvalue.StringExact(""),
+					),
+				},
+			},
 		}},
 	})
 }

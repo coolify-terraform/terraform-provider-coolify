@@ -496,8 +496,9 @@ apply destroyed the resource. For a database that deletes data.
 **Fix:** upgrade the provider. Setting those fields in configuration
 after import updates state in place. `environment_name` is still
 `production` after a simple import, and a different name still replaces
-the resource. Prefer the compound import format, which also checks that
-the resource is on that server:
+the resource. Setting `environment_uuid` after import also updates state
+in place and does not destroy the resource. Prefer the compound import
+format, which also checks that the resource is on that server:
 
 ```bash
 terraform import coolify_application.web <project-uuid>:<server-uuid>:production:<app-uuid>

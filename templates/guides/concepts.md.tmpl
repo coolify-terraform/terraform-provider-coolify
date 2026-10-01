@@ -143,8 +143,11 @@ environment_uuid = coolify_environment.staging.uuid
 ```
 
 Do not set `environment_name` on that same resource. Coolify looks up
-the name first, so a name would ignore the UUID. Changing a known
-`environment_uuid` still forces a new resource.
+the name first, so a name would ignore the UUID. Switching an existing
+resource from `environment_name` to `environment_uuid` updates state in
+place. The Coolify resource stays where it is. Changing a known
+`environment_uuid`, or changing `environment_name` from one known name
+to another, still forces a new resource.
 
 ## Next steps
 

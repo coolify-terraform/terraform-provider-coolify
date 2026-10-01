@@ -19,7 +19,7 @@ func EnvironmentNamePlan() planmodifier.String {
 type environmentNameModifier struct{}
 
 func (environmentNameModifier) Description(context.Context) string {
-	return "Defaults environment_name to production unless environment_uuid is set. Setting both is an error. Changing a known name forces a new resource."
+	return "Defaults environment_name to production unless environment_uuid is set. Setting both is an error. Changing a known name forces a new resource. A stored name can switch to environment_uuid without replacement."
 }
 
 func (m environmentNameModifier) MarkdownDescription(ctx context.Context) string {
@@ -52,7 +52,7 @@ func (environmentNameModifier) PlanModifyString(ctx context.Context, req planmod
 		return
 	}
 	if uuidSet {
-		planUUIDOnlyEnvironment(req, resp)
+		planUUIDOnlyEnvironment(resp)
 		return
 	}
 	if nameCfg.IsUnknown() {
@@ -69,13 +69,13 @@ func (environmentNameModifier) PlanModifyString(ctx context.Context, req planmod
 	markKnownEnvironmentNameReplace(req, resp)
 }
 
-// planUUIDOnlyEnvironment clears the name. A stored name means this resource
-// was addressed by name before, and Coolify will not move it in place.
-func planUUIDOnlyEnvironment(req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+// planUUIDOnlyEnvironment clears the name. Import and a name-addressed
+// resource both store a name. Update does not send either environment
+// field, so dropping the name does not move the Coolify resource.
+// RequiresReplaceIfKnown on environment_uuid still replaces when a stored
+// UUID changes.
+func planUUIDOnlyEnvironment(resp *planmodifier.StringResponse) {
 	resp.PlanValue = types.StringNull()
-	if knownString(req.StateValue) && !req.State.Raw.IsNull() {
-		resp.RequiresReplace = true
-	}
 }
 
 // planUnknownEnvironmentName keeps an unknown name. Update cannot send
@@ -102,16 +102,12 @@ func markKnownEnvironmentNameReplace(req planmodifier.StringRequest, resp *planm
 	}
 }
 
-// configPresent is true when the attribute is in configuration, including an
-// unknown interpolation. A known empty string is treated as omitted.
+// configPresent reports whether configuration sets the attribute. Unknown
+// values count as set so an interpolated UUID does not pick up the production
+// default. A known empty string also counts as set. Rewriting it would make
+// the plan disagree with configuration, and Terraform rejects that plan.
 func configPresent(v types.String) bool {
-	if v.IsNull() {
-		return false
-	}
-	if v.IsUnknown() {
-		return true
-	}
-	return v.ValueString() != ""
+	return !v.IsNull()
 }
 
 func knownString(v types.String) bool {

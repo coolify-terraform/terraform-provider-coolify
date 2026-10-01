@@ -36,7 +36,7 @@ resource "coolify_database_dragonfly" "example" {
 - `dragonfly_password` (String, Sensitive) The Dragonfly password. If omitted, Coolify auto-generates a value readable from state after creation.
 - `enable_ssl` (Boolean) When `true`, enables SSL/TLS encryption for database connections. Defaults to `false`. The Coolify public API does not accept this field on create or update; set it in the Coolify UI.
 - `environment_name` (String) Environment name. Defaults to `production` when `environment_uuid` is omitted. Set `environment_uuid` instead when the environment may be renamed. Changing a known name forces a new resource. Do not set both.
-- `environment_uuid` (String) Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this database. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.
+- `environment_uuid` (String) Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this database. Setting this when `environment_name` is already stored, including after import, keeps the database and drops the name from state. It does not move the database. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.
 - `health_check_enabled` (Boolean) When `true`, enables the Docker health check probe for this database container. Defaults to `true`.
 - `health_check_interval` (Number) Health check interval in seconds. Minimum `1`. Defaults to `15`.
 - `health_check_retries` (Number) Number of consecutive health check failures before the container is considered unhealthy. Minimum `1`. Defaults to `5`.

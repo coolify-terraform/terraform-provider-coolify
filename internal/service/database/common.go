@@ -181,7 +181,7 @@ func CommonDatabaseAttrs(ctx context.Context, extra map[string]schema.Attribute)
 			Validators:    []validator.String{validate.UUID()},
 		},
 		"environment_name": schema.StringAttribute{MarkdownDescription: "Environment name. Defaults to `production` when `environment_uuid` is omitted. Set `environment_uuid` instead when the environment may be renamed. Changing a known name forces a new resource. Do not set both.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{flex.EnvironmentNamePlan()}},
-		"environment_uuid": schema.StringAttribute{MarkdownDescription: "Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this database. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.", Optional: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
+		"environment_uuid": schema.StringAttribute{MarkdownDescription: "Environment UUID from `coolify_environment.uuid`. Create-only. Use this instead of `environment_name` so renaming the environment does not replace this database. Setting this when `environment_name` is already stored, including after import, keeps the database and drops the name from state. It does not move the database. Changing a known UUID forces a new resource. Do not set both this and `environment_name`.", Optional: true, PlanModifiers: []planmodifier.String{flex.RequiresReplaceIfKnown()}, Validators: []validator.String{validate.UUID()}},
 		"image":            schema.StringAttribute{MarkdownDescription: "The Docker image to use.", Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 		"is_public":        schema.BoolAttribute{MarkdownDescription: "When `true`, exposes the database on a port accessible via the server's IP address. When `false` (default), the database is only reachable from other containers on the same Docker network. Set `public_port` to choose a specific port.", Optional: true, Computed: true, Default: booldefault.StaticBool(false)},
 		"public_port": schema.Int64Attribute{MarkdownDescription: "The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.", Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}, Validators: []validator.Int64{
@@ -439,6 +439,14 @@ func NormalizeExtendedCreateUnknowns(f DatabaseExtendedPtrs) {
 	if f.RestartLimitReached != nil {
 		flex.NormalizeUnknownBool(f.RestartLimitReached)
 	}
+	// Computed-only. The create plan leaves them unknown until read-back.
+	// A failed read must still store null, or Terraform rejects the partial state.
+	if f.PortsMappings != nil {
+		flex.NormalizeUnknownString(f.PortsMappings)
+	}
+	if f.CustomDockerRunOptions != nil {
+		flex.NormalizeUnknownString(f.CustomDockerRunOptions)
+	}
 }
 
 // RecoverCreateAfterExtendedError GETs the database after a failed post-create
@@ -676,8 +684,8 @@ func FlattenDatabaseCommon(db *client.Database, f DatabaseCommonPtrs) {
 		*f.ServerUUID = types.StringValue(db.ServerUUID)
 	}
 	// GET may include the environment's current name. Copy it only when this
-	// resource is not addressed by UUID. A stored name next to a UUID plans
-	// replacement on every refresh, and Coolify looks the name up first.
+	// resource is not addressed by UUID. Copying the name back while a UUID
+	// is stored would clear it again on every plan.
 	if db.EnvironmentName != "" && (f.EnvUUID == nil || !flex.KnownNonEmpty(*f.EnvUUID)) {
 		*f.EnvName = flex.StringToFramework(db.EnvironmentName)
 	}
