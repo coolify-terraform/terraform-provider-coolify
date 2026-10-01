@@ -295,7 +295,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	if listErr != nil {
 		resp.Diagnostics.AddError(
 			"Database backup created but refresh failed",
-			fmt.Sprintf("Coolify created database backup %s for database %s, but the provider could not read it back: Could not list database backups for %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, dbUUID, dbUUID, listErr),
+			fmt.Sprintf("Coolify created database backup %s for database %s, but the provider could not read it back: Could not list database backups for %s after create: %s. %s", created.UUID, dbUUID, dbUUID, listErr, flex.CreateReadBackTaintedReplace),
 		)
 		return
 	}
@@ -309,7 +309,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	if found == nil {
 		resp.Diagnostics.AddError(
 			"Database backup created but refresh failed",
-			fmt.Sprintf("Coolify created database backup %s for database %s, but the provider could not read it back: Could not resolve backup %s from the database %s backup list after create. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.", created.UUID, dbUUID, created.UUID, dbUUID),
+			fmt.Sprintf("Coolify created database backup %s for database %s, but the provider could not read it back: Could not resolve backup %s from the database %s backup list after create. %s", created.UUID, dbUUID, created.UUID, dbUUID, flex.CreateReadBackTaintedReplace),
 		)
 		return
 	}

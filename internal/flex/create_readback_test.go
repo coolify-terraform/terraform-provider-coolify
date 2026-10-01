@@ -27,11 +27,14 @@ func TestAddCreateReadBackError(t *testing.T) {
 	for _, want := range []string{
 		"Coolify created S3 storage uuid-1",
 		"Could not read S3 storage uuid-1 after create: boom",
-		"partial Terraform state was saved",
+		flex.CreateReadBackTaintedReplace,
 	} {
 		if !strings.Contains(detail, want) {
 			t.Fatalf("detail missing %q:\n%s", want, detail)
 		}
+	}
+	if strings.Contains(detail, "rerun terraform apply") {
+		t.Fatalf("detail still tells the user to rerun apply:\n%s", detail)
 	}
 }
 
@@ -53,11 +56,14 @@ func TestAddCreateReadBackNotFoundError(t *testing.T) {
 	for _, want := range []string{
 		"Coolify created application uuid-2",
 		"API returned 404 on the immediate read-back",
-		"after the application becomes readable through the API",
+		flex.CreateReadBackTaintedReplace,
 	} {
 		if !strings.Contains(detail, want) {
 			t.Fatalf("detail missing %q:\n%s", want, detail)
 		}
+	}
+	if strings.Contains(detail, "becomes readable") || strings.Contains(detail, "rerun terraform apply") {
+		t.Fatalf("detail still tells the user to wait and rerun apply:\n%s", detail)
 	}
 }
 

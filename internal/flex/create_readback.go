@@ -6,6 +6,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
+// CreateReadBackTaintedReplace is the recovery clause after Create saved
+// partial state and then returned an error. Terraform taints that object,
+// so the next apply destroys it and creates a new one. Refresh does not
+// clear the taint.
+const CreateReadBackTaintedReplace = "The partial Terraform state was saved and Terraform marked the resource tainted, so the next terraform apply replaces it by destroying the existing object and creating a new one, and terraform refresh does not clear that mark."
+
 // CreateReadBackFailedSummary is the diagnostic summary when create succeeded
 // but the immediate read-back failed.
 func CreateReadBackFailedSummary(label string) string {
@@ -16,12 +22,13 @@ func CreateReadBackFailedSummary(label string) string {
 // error after create. label appears in both "created" and "Could not read" clauses.
 func CreateReadBackFailedDetail(label, identifier string, err error) string {
 	return fmt.Sprintf(
-		"Coolify created %s %s, but the provider could not read it back: Could not read %s %s after create: %s. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the API becomes reachable again.",
+		"Coolify created %s %s, but the provider could not read it back: Could not read %s %s after create: %s. %s",
 		label,
 		identifier,
 		label,
 		identifier,
 		err,
+		CreateReadBackTaintedReplace,
 	)
 }
 
@@ -29,10 +36,10 @@ func CreateReadBackFailedDetail(label, identifier string, err error) string {
 // after create returns 404 (create/read race).
 func CreateReadBackNotFoundDetail(label, identifier string) string {
 	return fmt.Sprintf(
-		"Coolify created %s %s, but the provider could not read it back because the API returned 404 on the immediate read-back. The partial Terraform state was saved, so rerun terraform apply or terraform refresh after the %s becomes readable through the API.",
+		"Coolify created %s %s, but the provider could not read it back because the API returned 404 on the immediate read-back. %s",
 		label,
 		identifier,
-		label,
+		CreateReadBackTaintedReplace,
 	)
 }
 
