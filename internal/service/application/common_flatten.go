@@ -805,8 +805,9 @@ func flattenNoindexDomains(api []string, dst *types.List) {
 		*dst = stringListValue(api)
 		return
 	}
-	// Coolify stores a JSON array and may unique/normalize URLs. Keep the
-	// configured list order (and original casing) when the set matches.
+	// Coolify normalizes each URL like application domains, then uniques the
+	// set, so list order can change. Keep the configured order and host
+	// casing when that set matches. Path case is significant.
 	if stringListEquivalent(stringListFromTypes(*dst), api) {
 		return
 	}
@@ -819,10 +820,10 @@ func stringListEquivalent(configured, api []string) bool {
 	}
 	counts := make(map[string]int, len(api))
 	for _, s := range api {
-		counts[strings.ToLower(s)]++
+		counts[applicationDomainKey(s)]++
 	}
 	for _, s := range configured {
-		k := strings.ToLower(s)
+		k := applicationDomainKey(s)
 		n := counts[k]
 		if n == 0 {
 			return false

@@ -32,6 +32,18 @@ func TestFlattenNoindexDomains_PreservesEquivalentCase(t *testing.T) {
 	}
 }
 
+func TestFlattenNoindexDomains_PathCaseAdoptsAPI(t *testing.T) {
+	t.Parallel()
+	configured := types.ListValueMust(types.StringType, []attr.Value{
+		types.StringValue("https://app.example.com/Old"),
+	})
+	flattenNoindexDomains([]string{"https://app.example.com/old"}, &configured)
+	got := stringListFromTypes(configured)
+	if len(got) != 1 || got[0] != "https://app.example.com/old" {
+		t.Fatalf("got %v, want API path case", got)
+	}
+}
+
 func TestFlattenNoindexDomains_UsesAPIWhenSetChanges(t *testing.T) {
 	t.Parallel()
 	configured := types.ListValueMust(types.StringType, []attr.Value{
