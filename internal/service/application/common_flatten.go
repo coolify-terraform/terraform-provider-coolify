@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
@@ -16,26 +17,47 @@ import (
 
 // assignApplicationDomains writes the API domain list. A known configured
 // value is left in place when it matches Coolify's stored form.
-func assignApplicationDomains(dst *types.String, api string) {
+func assignApplicationDomains(dst *types.String, api string, overrides client.DomainPortOverridesMap) {
 	if api == "" {
 		*dst = types.StringValue("")
 		return
 	}
-	if dst != nil && !dst.IsNull() && !dst.IsUnknown() && applicationDomainsEquivalent(dst.ValueString(), api) {
+	if dst != nil && !dst.IsNull() && !dst.IsUnknown() && applicationDomainsEquivalent(dst.ValueString(), api, overrides) {
 		return
 	}
 	*dst = types.StringValue(api)
 }
 
 // applicationDomainsEquivalent reports whether two domain lists match after
-// ValidationPatterns::normalizeApplicationDomainUrl (Coolify v4.3.23).
-// Scheme and host are case-insensitive. Path, query, and fragment keep
-// their case. Comma order is significant. Spaces around commas are not.
-func applicationDomainsEquivalent(configured, api string) bool {
-	return applicationDomainKey(configured) == applicationDomainKey(api)
+// ValidationPatterns::normalizeApplicationDomainUrl and
+// DomainPortOverrides::normalize (Coolify v4.3.23). Scheme and host are
+// case-insensitive. Path, query, and fragment keep their case. Comma order
+// is significant. Spaces around commas are not. An explicit port matches
+// only when domain_port_overrides stores that port for the portless URL.
+func applicationDomainsEquivalent(configured, api string, overrides client.DomainPortOverridesMap) bool {
+	configuredParts := splitDomainList(configured)
+	apiParts := splitDomainList(api)
+	if len(configuredParts) != len(apiParts) {
+		return false
+	}
+	for i := range configuredParts {
+		configuredKey, configuredPort, configuredHasPort, configuredOK := domainURLParts(configuredParts[i])
+		apiKey, _, _, apiOK := domainURLParts(apiParts[i])
+		if !configuredOK || !apiOK || configuredKey != apiKey {
+			return false
+		}
+		if !configuredHasPort {
+			continue
+		}
+		got, ok := overrides[configuredKey]
+		if !ok || got != configuredPort {
+			return false
+		}
+	}
+	return true
 }
 
-func applicationDomainKey(raw string) string {
+func splitDomainList(raw string) []string {
 	parts := strings.Split(raw, ",")
 	out := make([]string, 0, len(parts))
 	for _, part := range parts {
@@ -43,24 +65,37 @@ func applicationDomainKey(raw string) string {
 		if part == "" {
 			continue
 		}
-		out = append(out, normalizeApplicationDomainURL(part))
+		out = append(out, part)
 	}
-	return strings.Join(out, ",")
+	return out
 }
 
 func normalizeApplicationDomainURL(raw string) string {
-	u, err := url.Parse(raw)
-	if err != nil || u.Hostname() == "" {
+	key, _, _, ok := domainURLParts(raw)
+	if !ok {
 		return raw
 	}
-	u.Scheme = strings.ToLower(u.Scheme)
-	host := strings.ToLower(u.Hostname())
-	if port := u.Port(); port != "" {
-		u.Host = host + ":" + port
-	} else {
-		u.Host = host
+	return key
+}
+
+// domainURLParts returns the portless URL Coolify stores and any explicit port.
+// Saving an application moves that port into domain_port_overrides.
+func domainURLParts(raw string) (key string, port int64, hasPort, ok bool) {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Hostname() == "" {
+		return "", 0, false, false
 	}
-	return u.String()
+	if rawPort := u.Port(); rawPort != "" {
+		parsed, err := strconv.ParseInt(rawPort, 10, 64)
+		if err != nil {
+			return "", 0, false, false
+		}
+		port = parsed
+		hasPort = true
+	}
+	u.Scheme = strings.ToLower(u.Scheme)
+	u.Host = strings.ToLower(u.Hostname())
+	return u.String(), port, hasPort, true
 }
 
 // shouldCopyEnvironmentName reports whether GET's environment name should be
@@ -105,7 +140,7 @@ func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	// Coolify stores the normalized list (lowercase scheme and host, trimmed
 	// comma spacing, path case kept). Keep the configured string when that
 	// normalized form matches, so host case alone does not plan an update.
-	assignApplicationDomains(f.Domains, app.Domains)
+	assignApplicationDomains(f.Domains, app.Domains, app.DomainPortOverrides)
 	// Coolify does not return dockerfile_location on GET for most app types.
 	// Preserve the user's configured value to avoid "inconsistent result after apply".
 	// The value IS sent on Create/Update, just not returned on read-back.
@@ -820,10 +855,10 @@ func stringListEquivalent(configured, api []string) bool {
 	}
 	counts := make(map[string]int, len(api))
 	for _, s := range api {
-		counts[applicationDomainKey(s)]++
+		counts[normalizeApplicationDomainURL(s)]++
 	}
 	for _, s := range configured {
-		k := applicationDomainKey(s)
+		k := normalizeApplicationDomainURL(s)
 		n := counts[k]
 		if n == 0 {
 			return false

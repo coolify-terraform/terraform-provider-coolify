@@ -900,6 +900,7 @@ func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
 		configured string
 		known      bool
 		api        string
+		overrides  client.DomainPortOverridesMap
 		want       string
 	}{
 		{
@@ -942,6 +943,22 @@ func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
 			api:        "",
 			want:       "",
 		},
+		{
+			name:       "port kept when override matches",
+			configured: "https://App.Example.com:8443/Path",
+			known:      true,
+			api:        "https://app.example.com/Path",
+			overrides:  client.DomainPortOverridesMap{"https://app.example.com/Path": 8443},
+			want:       "https://App.Example.com:8443/Path",
+		},
+		{
+			name:       "port dropped when override differs",
+			configured: "https://app.example.com:8443",
+			known:      true,
+			api:        "https://app.example.com",
+			overrides:  client.DomainPortOverridesMap{"https://app.example.com": 9000},
+			want:       "https://app.example.com",
+		},
 	}
 
 	for _, tt := range tests {
@@ -952,9 +969,10 @@ func TestFlattenApplicationCommon_PreservesEquivalentDomains(t *testing.T) {
 				*f.Domains = types.StringValue(tt.configured)
 			}
 			flattenApplicationCommon(&client.Application{
-				UUID:    "uuid-1",
-				Name:    "app",
-				Domains: tt.api,
+				UUID:                "uuid-1",
+				Name:                "app",
+				Domains:             tt.api,
+				DomainPortOverrides: tt.overrides,
 			}, f)
 			if f.Domains.ValueString() != tt.want {
 				t.Errorf("domains = %q, want %q", f.Domains.ValueString(), tt.want)
