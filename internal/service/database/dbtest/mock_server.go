@@ -46,6 +46,7 @@ var databaseUpdateAllowed = map[string]struct{}{
 	"mongo_initdb_database": {},
 	"mysql_root_password":   {}, "mysql_password": {}, "mysql_user": {},
 	"mysql_database": {}, "mysql_conf": {},
+	"sqlite_databases":     {},
 	"health_check_enabled": {}, "health_check_interval": {},
 	"health_check_timeout": {}, "health_check_retries": {},
 	"health_check_start_period": {},
@@ -161,7 +162,8 @@ func validateCreateBody(w http.ResponseWriter, r *http.Request) (map[string]inte
 // NewMockServer creates an httptest.Server that simulates the Coolify database
 // API for the given database type. extraFields are db-specific fields included
 // in GET responses and updatable via PATCH (e.g., {"redis_password": "pass"}).
-func NewMockServer(dbType, name, image string, extraFields map[string]interface{}) (*httptest.Server, *MockState) {
+// NewMockServerVersion is NewMockServer with an explicit GET /version string.
+func NewMockServerVersion(dbType, name, image string, extraFields map[string]interface{}, version string) (*httptest.Server, *MockState) {
 	// Seed common fields as defaults so applyPatch can update them.
 	merged := map[string]interface{}{
 		"is_log_drain_enabled":      false,
@@ -185,7 +187,7 @@ func NewMockServer(dbType, name, image string, extraFields map[string]interface{
 	}
 
 	dbPath := fmt.Sprintf("/api/v1/databases/%s", state.UUID)
-	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		state.mu.Lock()
 		defer state.mu.Unlock()
@@ -226,8 +228,35 @@ func NewMockServer(dbType, name, image string, extraFields map[string]interface{
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	})))
+	}), version))
 	return srv, state
+}
+
+// NewMockServer creates an httptest.Server that simulates the Coolify database
+// API for the given database type. extraFields are db-specific fields included
+// in GET responses and updatable via PATCH (e.g., {"redis_password": "pass"}).
+func NewMockServer(dbType, name, image string, extraFields map[string]interface{}) (*httptest.Server, *MockState) {
+	return NewMockServerVersion(dbType, name, image, extraFields, acctest.DefaultTestCoolifyVersion)
+}
+
+func (s *MockState) CreateBody() map[string]interface{} {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make(map[string]interface{}, len(s.LastCreate))
+	for k, v := range s.LastCreate {
+		out[k] = v
+	}
+	return out
+}
+
+func (s *MockState) PatchBody() map[string]interface{} {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make(map[string]interface{}, len(s.LastPatch))
+	for k, v := range s.LastPatch {
+		out[k] = v
+	}
+	return out
 }
 
 // writeServerResources answers GET /servers/{uuid}/resources for compound import.

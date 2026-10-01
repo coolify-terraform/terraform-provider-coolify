@@ -19,11 +19,12 @@ func newTestPtrs() (ServerCommonPtrs, *testModel) {
 		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
 		IP: &m.IP, User: &m.User, PrivateKeyUUID: &m.PrivateKeyUUID,
 		Port: &m.Port, ConcurrentBuilds: &m.ConcurrentBuilds, DynamicTimeout: &m.DynamicTimeout,
-		DeploymentQueueLimit:                 &m.DeploymentQueueLimit,
-		ConnectionTimeout:                    &m.ConnectionTimeout,
-		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
-		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
-		IsBuildServer:                        &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
+		DeploymentQueueLimit:                     &m.DeploymentQueueLimit,
+		ConnectionTimeout:                        &m.ConnectionTimeout,
+		ServerDiskUsageNotificationThreshold:     &m.ServerDiskUsageNotificationThreshold,
+		ServerDiskUsageNotificationIntervalHours: &m.ServerDiskUsageNotificationIntervalHours,
+		ServerDiskUsageCheckFrequency:            &m.ServerDiskUsageCheckFrequency,
+		IsBuildServer:                            &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
 		InstantValidate: &m.InstantValidate,
 		WildcardDomain:  &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
@@ -44,6 +45,7 @@ type testModel struct {
 	Port, ConcurrentBuilds, DynamicTimeout            types.Int64
 	DeploymentQueueLimit, ConnectionTimeout           types.Int64
 	ServerDiskUsageNotificationThreshold              types.Int64
+	ServerDiskUsageNotificationIntervalHours          types.Int64
 	ServerDiskUsageCheckFrequency                     types.String
 	IsBuildServer, IsReachable, IsUsable              types.Bool
 	ServerRole                                        types.String
@@ -107,6 +109,7 @@ var expectedWritableServerUpdateKeys = []string{
 	"port",
 	"private_key_uuid",
 	"server_disk_usage_check_frequency",
+	"server_disk_usage_notification_interval_hours",
 	"server_disk_usage_notification_threshold",
 	"server_role",
 	"user",
@@ -468,6 +471,8 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	*state.ConnectionTimeout = types.Int64Value(10)
 	*plan.ServerDiskUsageNotificationThreshold = types.Int64Value(95)
 	*state.ServerDiskUsageNotificationThreshold = types.Int64Value(80)
+	*plan.ServerDiskUsageNotificationIntervalHours = types.Int64Value(12)
+	*state.ServerDiskUsageNotificationIntervalHours = types.Int64Value(24)
 
 	// Bool field: plan != state.
 	*plan.IsBuildServer = types.BoolValue(true)
@@ -858,7 +863,7 @@ func TestApplyPostCreateCloudProviderSettings_SkipsDefaults(t *testing.T) {
 	t.Parallel()
 	// No HTTP client needed when all defaults: helper must no-op without calling Update.
 	ptrs, _ := cloudProviderDefaultPtrs()
-	if err := ApplyPostCreateCloudProviderSettings(context.Background(), nil, "uuid", ptrs); err != nil {
+	if err := ApplyPostCreateCloudProviderSettings(context.Background(), nil, "uuid", ptrs, nil); err != nil {
 		t.Fatalf("expected nil error on defaults, got %v", err)
 	}
 }

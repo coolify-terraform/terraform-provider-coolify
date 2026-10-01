@@ -202,6 +202,14 @@ func (c *Client) SupportsServerRole() bool {
 	return c.supports44Tip()
 }
 
+// SupportsCoolify44Tip reports whether the connected instance is Coolify 4.4
+// tip (not v4.4-rc.1 and not the v4.3.23 pin). Empty CoolifyVersion reports
+// true. A 4.3.0 version string reports true because CI edge has used that
+// string while shipping later tip APIs.
+func (c *Client) SupportsCoolify44Tip() bool {
+	return c.supports44Tip()
+}
+
 // SupportsSentinelTrafficSettings reports whether PATCH /servers/{uuid}/sentinel
 // accepts GeoIP and traffic retention fields (Coolify 4.4 tip, not v4.4-rc.1).
 func (c *Client) SupportsSentinelTrafficSettings() bool {

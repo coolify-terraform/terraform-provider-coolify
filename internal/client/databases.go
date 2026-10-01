@@ -81,6 +81,9 @@ type Database struct {
 	KeydbConf              string          `json:"keydb_conf,omitempty"`
 	KeydbPassword          string          `json:"keydb_password,omitempty"`
 	DragonflyPassword      string          `json:"dragonfly_password,omitempty"`
+	// SqliteDatabases is the comma-separated file list on standalone SQLite
+	// (Coolify 4.4 tip). Absent on v4.3.23 and v4.4-rc.1.
+	SqliteDatabases string `json:"sqlite_databases,omitempty"`
 }
 
 // CreateDatabaseBaseInput contains fields shared by all database Create endpoints.
@@ -157,6 +160,14 @@ type CreateDragonflyInput struct {
 	DragonflyPassword string `json:"dragonfly_password,omitempty"`
 }
 
+// CreateSqliteInput is POST /databases/sqlite. Coolify rejects is_public,
+// public_port, and public_port_timeout on this type. Callers must leave
+// those base pointers nil.
+type CreateSqliteInput struct {
+	CreateDatabaseBaseInput
+	SqliteDatabases string `json:"sqlite_databases,omitempty"`
+}
+
 type UpdateDatabaseInput struct {
 	Name                    *string `json:"name,omitempty"`
 	Description             *string `json:"description,omitempty"`
@@ -217,6 +228,7 @@ type UpdateDatabaseInput struct {
 	KeydbConf              *string `json:"keydb_conf,omitempty"`
 	KeydbPassword          *string `json:"keydb_password,omitempty"`
 	DragonflyPassword      *string `json:"dragonfly_password,omitempty"`
+	SqliteDatabases        *string `json:"sqlite_databases,omitempty"`
 }
 
 func (c *Client) ListDatabases(ctx context.Context) ([]Database, error) {
@@ -238,7 +250,7 @@ func (c *Client) GetDatabase(ctx context.Context, uuid string) (*Database, error
 }
 
 // CreateDatabase creates a database of the given type (postgresql, mysql,
-// mariadb, redis, mongodb, clickhouse, keydb, dragonfly). The input struct
+// mariadb, redis, mongodb, clickhouse, keydb, dragonfly, sqlite). The input struct
 // is type-specific but serialized as JSON.
 func (c *Client) CreateDatabase(ctx context.Context, dbType string, input any) (*Database, error) {
 	var d Database

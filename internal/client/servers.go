@@ -62,6 +62,10 @@ type ServerSettings struct {
 	BackupCompressionCPUPercentage *int `json:"backup_compression_cpu_percentage,omitempty"`
 	// ServerRole is Coolify >= 4.4 (deployment, build, both). Empty on 4.3.x GET.
 	ServerRole string `json:"server_role,omitempty"`
+	// ServerDiskUsageNotificationIntervalHours is Coolify 4.4 tip
+	// (update_server allow list, 1-720, default 24). Pointer so a 4.3 GET
+	// that omits the key stays null.
+	ServerDiskUsageNotificationIntervalHours *int `json:"server_disk_usage_notification_interval_hours,omitempty"`
 }
 
 type Server struct {
@@ -99,22 +103,23 @@ type CreateServerInput struct {
 // Extended settings returned under ServerSettings are omitted unless they
 // appear on ServersController::update_server $allowedFields.
 type UpdateServerInput struct {
-	Name                                 *string `json:"name,omitempty"`
-	Description                          *string `json:"description,omitempty"`
-	IP                                   *string `json:"ip,omitempty"`
-	Port                                 *int    `json:"port,omitempty"`
-	User                                 *string `json:"user,omitempty"`
-	PrivateKeyUUID                       *string `json:"private_key_uuid,omitempty"`
-	IsBuildServer                        *bool   `json:"is_build_server,omitempty"`
-	ServerRole                           *string `json:"server_role,omitempty"`
-	InstantValidate                      *bool   `json:"instant_validate,omitempty"`
-	IsTerminalEnabled                    *bool   `json:"is_terminal_enabled,omitempty"`
-	ConcurrentBuilds                     *int    `json:"concurrent_builds,omitempty"`
-	DynamicTimeout                       *int    `json:"dynamic_timeout,omitempty"`
-	DeploymentQueueLimit                 *int    `json:"deployment_queue_limit,omitempty"`
-	ServerDiskUsageNotificationThreshold *int    `json:"server_disk_usage_notification_threshold,omitempty"`
-	ServerDiskUsageCheckFrequency        *string `json:"server_disk_usage_check_frequency,omitempty"`
-	ConnectionTimeout                    *int    `json:"connection_timeout,omitempty"`
+	Name                                     *string `json:"name,omitempty"`
+	Description                              *string `json:"description,omitempty"`
+	IP                                       *string `json:"ip,omitempty"`
+	Port                                     *int    `json:"port,omitempty"`
+	User                                     *string `json:"user,omitempty"`
+	PrivateKeyUUID                           *string `json:"private_key_uuid,omitempty"`
+	IsBuildServer                            *bool   `json:"is_build_server,omitempty"`
+	ServerRole                               *string `json:"server_role,omitempty"`
+	InstantValidate                          *bool   `json:"instant_validate,omitempty"`
+	IsTerminalEnabled                        *bool   `json:"is_terminal_enabled,omitempty"`
+	ConcurrentBuilds                         *int    `json:"concurrent_builds,omitempty"`
+	DynamicTimeout                           *int    `json:"dynamic_timeout,omitempty"`
+	DeploymentQueueLimit                     *int    `json:"deployment_queue_limit,omitempty"`
+	ServerDiskUsageNotificationThreshold     *int    `json:"server_disk_usage_notification_threshold,omitempty"`
+	ServerDiskUsageCheckFrequency            *string `json:"server_disk_usage_check_frequency,omitempty"`
+	ServerDiskUsageNotificationIntervalHours *int    `json:"server_disk_usage_notification_interval_hours,omitempty"`
+	ConnectionTimeout                        *int    `json:"connection_timeout,omitempty"`
 }
 
 func (c *Client) ListServers(ctx context.Context) ([]Server, error) {
@@ -141,6 +146,7 @@ func (c *Client) CreateServer(ctx context.Context, input CreateServerInput) (*Se
 }
 func (c *Client) UpdateServer(ctx context.Context, uuid string, input UpdateServerInput) (*Server, error) {
 	input.IsBuildServer, input.ServerRole = applyServerRoleWrite(c, input.IsBuildServer, input.ServerRole)
+	input.ServerDiskUsageNotificationIntervalHours = applyDiskIntervalWrite(c, input.ServerDiskUsageNotificationIntervalHours)
 	var s Server
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s", url.PathEscape(uuid)), input, &s); err != nil {
 		return nil, fmt.Errorf("updating server %s: %w", uuid, err)
@@ -175,6 +181,16 @@ func applyServerRoleWrite(c *Client, isBuild *bool, role *string) (*bool, *strin
 	}
 	return nil, &mapped
 }
+
+// applyDiskIntervalWrite drops server_disk_usage_notification_interval_hours
+// unless the instance is Coolify 4.4 tip. v4.3.23 and v4.4-rc.1 422 the key.
+func applyDiskIntervalWrite(c *Client, hours *int) *int {
+	if c == nil || c.SupportsCoolify44Tip() {
+		return hours
+	}
+	return nil
+}
+
 func (c *Client) DeleteServer(ctx context.Context, uuid string) error {
 	path := fmt.Sprintf("/api/v1/servers/%s?force=true", url.PathEscape(uuid))
 	if err := c.do(ctx, http.MethodDelete, path, nil, nil); err != nil {

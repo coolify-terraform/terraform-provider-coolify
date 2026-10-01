@@ -11,10 +11,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -29,6 +31,7 @@ type ServerCommonPtrs struct {
 	Port, ConcurrentBuilds, DynamicTimeout            *types.Int64
 	DeploymentQueueLimit, ConnectionTimeout           *types.Int64
 	ServerDiskUsageNotificationThreshold              *types.Int64
+	ServerDiskUsageNotificationIntervalHours          *types.Int64
 	ServerDiskUsageCheckFrequency                     *types.String
 	IsBuildServer, IsReachable, IsUsable              *types.Bool
 	ServerRole                                        *types.String
@@ -188,6 +191,14 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			Validators:          []validator.String{validate.CoolifyFrequency()},
+		},
+		"server_disk_usage_notification_interval_hours": schema.Int64Attribute{
+			MarkdownDescription: "Minimum hours between high disk usage notifications (1-720). Coolify's default is 24. " +
+				"Requires Coolify 4.4 tip (not v4.3.23 and not v4.4-rc.1). On older instances the value stays in state and is not sent.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+			Validators:    []validator.Int64{int64validator.Between(1, 720)},
 		},
 	}
 	addExtendedSettingsAttrs(attrs)
@@ -430,6 +441,7 @@ func FlattenServerCommon(srv *client.Server, f ServerCommonPtrs) {
 		*f.ConnectionTimeout = types.Int64Value(int64(connectionTimeout))
 		*f.ServerDiskUsageNotificationThreshold = types.Int64Value(int64(srv.Settings.ServerDiskUsageNotificationThreshold))
 		*f.ServerDiskUsageCheckFrequency = flex.StringToFramework(srv.Settings.ServerDiskUsageCheckFrequency)
+		flattenDiskInterval(srv.Settings.ServerDiskUsageNotificationIntervalHours, f.ServerDiskUsageNotificationIntervalHours)
 		flattenExtendedSettings(srv.Settings, f)
 	}
 }
@@ -477,6 +489,19 @@ func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
 	setIntPtr(f.BackupCompressionCPUPercentage, s.BackupCompressionCPUPercentage)
 }
 
+func flattenDiskInterval(api *int, dst *types.Int64) {
+	if dst == nil {
+		return
+	}
+	if api != nil {
+		*dst = types.Int64Value(int64(*api))
+		return
+	}
+	if dst.IsUnknown() || dst.IsNull() {
+		*dst = types.Int64Null()
+	}
+}
+
 func setBoolPtr(dst *types.Bool, v bool) {
 	if dst == nil {
 		return
@@ -512,7 +537,8 @@ func HasNonDefaultSettings(p ServerCommonPtrs) bool {
 		flex.Int64ValueNonDefault(*p.ConnectionTimeout, 10) ||
 		flex.Int64ValueNonDefault(*p.ServerDiskUsageNotificationThreshold, 80) ||
 		flex.StringValueNonDefault(*p.ServerDiskUsageCheckFrequency, "") ||
-		flex.BoolPtrNonDefault(p.IsTerminalEnabled, true)
+		flex.BoolPtrNonDefault(p.IsTerminalEnabled, true) ||
+		diskIntervalConfigured(p)
 }
 
 // BuildPostCreateSettingsInput returns an UpdateServerInput populated with
@@ -520,12 +546,13 @@ func HasNonDefaultSettings(p ServerCommonPtrs) bool {
 // Callers can extend the returned input with additional fields before sending.
 func BuildPostCreateSettingsInput(p ServerCommonPtrs) client.UpdateServerInput {
 	input := client.UpdateServerInput{
-		ConcurrentBuilds:                     flex.IntIfNonDefault(*p.ConcurrentBuilds, 2),
-		DynamicTimeout:                       flex.IntIfNonDefault(*p.DynamicTimeout, 3600),
-		DeploymentQueueLimit:                 flex.IntIfNonDefault(*p.DeploymentQueueLimit, 25),
-		ConnectionTimeout:                    flex.IntIfNonDefault(*p.ConnectionTimeout, 10),
-		ServerDiskUsageNotificationThreshold: flex.IntIfNonDefault(*p.ServerDiskUsageNotificationThreshold, 80),
-		ServerDiskUsageCheckFrequency:        flex.StringValueOrNull(*p.ServerDiskUsageCheckFrequency),
+		ConcurrentBuilds:                         flex.IntIfNonDefault(*p.ConcurrentBuilds, 2),
+		DynamicTimeout:                           flex.IntIfNonDefault(*p.DynamicTimeout, 3600),
+		DeploymentQueueLimit:                     flex.IntIfNonDefault(*p.DeploymentQueueLimit, 25),
+		ConnectionTimeout:                        flex.IntIfNonDefault(*p.ConnectionTimeout, 10),
+		ServerDiskUsageNotificationThreshold:     flex.IntIfNonDefault(*p.ServerDiskUsageNotificationThreshold, 80),
+		ServerDiskUsageCheckFrequency:            flex.StringValueOrNull(*p.ServerDiskUsageCheckFrequency),
+		ServerDiskUsageNotificationIntervalHours: diskIntervalPtr(p),
 	}
 	if p.IsTerminalEnabled != nil {
 		input.IsTerminalEnabled = flex.BoolIfNonDefault(*p.IsTerminalEnabled, true)
@@ -580,11 +607,17 @@ func NormalizeUnknownCloudServerPlanFields(p ServerCommonPtrs) {
 	if p.ServerDiskUsageCheckFrequency != nil && p.ServerDiskUsageCheckFrequency.IsUnknown() {
 		*p.ServerDiskUsageCheckFrequency = types.StringNull()
 	}
+	if p.ServerDiskUsageNotificationIntervalHours != nil && p.ServerDiskUsageNotificationIntervalHours.IsUnknown() {
+		*p.ServerDiskUsageNotificationIntervalHours = types.Int64Null()
+	}
 }
 
 // ApplyPostCreateCloudProviderSettings sends the shared post-create PATCH
 // when HasNonDefaultCloudProviderSettings is true. No-op when all defaults.
-func ApplyPostCreateCloudProviderSettings(ctx context.Context, c *client.Client, uuid string, p ServerCommonPtrs) error {
+func ApplyPostCreateCloudProviderSettings(ctx context.Context, c *client.Client, uuid string, p ServerCommonPtrs, diags *diag.Diagnostics) error {
+	if p.ServerDiskUsageNotificationIntervalHours != nil {
+		WarnDiskUsageInterval(c, *p.ServerDiskUsageNotificationIntervalHours, diags)
+	}
 	if !HasNonDefaultCloudProviderSettings(p) {
 		return nil
 	}
@@ -610,6 +643,38 @@ func omitDefaultServerRoleWrite(c *client.Client, input *client.UpdateServerInpu
 	if input.IsBuildServer != nil && !*input.IsBuildServer {
 		input.IsBuildServer = nil
 	}
+}
+
+func diskIntervalConfigured(p ServerCommonPtrs) bool {
+	return p.ServerDiskUsageNotificationIntervalHours != nil &&
+		flex.Int64PtrConfigured(p.ServerDiskUsageNotificationIntervalHours)
+}
+
+func diskIntervalPtr(p ServerCommonPtrs) *int {
+	if !diskIntervalConfigured(p) {
+		return nil
+	}
+	v := int(p.ServerDiskUsageNotificationIntervalHours.ValueInt64())
+	return &v
+}
+
+func diskIntervalIfChanged(plan, state ServerCommonPtrs) *int {
+	if plan.ServerDiskUsageNotificationIntervalHours == nil || state.ServerDiskUsageNotificationIntervalHours == nil {
+		return nil
+	}
+	return flex.IntIfChanged(*plan.ServerDiskUsageNotificationIntervalHours, *state.ServerDiskUsageNotificationIntervalHours)
+}
+
+// WarnDiskUsageInterval tells the user when a configured interval will not
+// be sent because the connected Coolify is older than 4.4 tip.
+func WarnDiskUsageInterval(c *client.Client, v types.Int64, diags *diag.Diagnostics) {
+	if c == nil || c.SupportsCoolify44Tip() || v.IsNull() || v.IsUnknown() || diags == nil {
+		return
+	}
+	diags.AddWarning(
+		"Disk usage notification interval was not sent",
+		fmt.Sprintf("server_disk_usage_notification_interval_hours stays in state and is not sent to Coolify %s. The field requires Coolify 4.4 or later (not v4.4-rc.1).", c.CoolifyVersion),
+	)
 }
 
 // AlignUnconfiguredServerRole sets the planned server_role from
@@ -653,19 +718,20 @@ func AlignUnconfiguredServerRole(c *client.Client, configRole, planRole *types.S
 // between plan and state for the shared server fields.
 func BuildServerUpdateInput(plan, state ServerCommonPtrs) client.UpdateServerInput {
 	input := client.UpdateServerInput{
-		Name:                                 flex.StringIfChanged(*plan.Name, *state.Name),
-		Description:                          flex.StringIfChanged(*plan.Description, *state.Description),
-		IP:                                   flex.StringIfChanged(*plan.IP, *state.IP),
-		Port:                                 flex.IntIfChanged(*plan.Port, *state.Port),
-		User:                                 flex.StringIfChanged(*plan.User, *state.User),
-		PrivateKeyUUID:                       flex.StringIfChanged(*plan.PrivateKeyUUID, *state.PrivateKeyUUID),
-		IsBuildServer:                        flex.BoolIfChanged(*plan.IsBuildServer, *state.IsBuildServer),
-		ConcurrentBuilds:                     flex.IntIfChanged(*plan.ConcurrentBuilds, *state.ConcurrentBuilds),
-		DynamicTimeout:                       flex.IntIfChanged(*plan.DynamicTimeout, *state.DynamicTimeout),
-		DeploymentQueueLimit:                 flex.IntIfChanged(*plan.DeploymentQueueLimit, *state.DeploymentQueueLimit),
-		ConnectionTimeout:                    flex.IntIfChanged(*plan.ConnectionTimeout, *state.ConnectionTimeout),
-		ServerDiskUsageNotificationThreshold: flex.IntIfChanged(*plan.ServerDiskUsageNotificationThreshold, *state.ServerDiskUsageNotificationThreshold),
-		ServerDiskUsageCheckFrequency:        flex.StringIfChanged(*plan.ServerDiskUsageCheckFrequency, *state.ServerDiskUsageCheckFrequency),
+		Name:                                     flex.StringIfChanged(*plan.Name, *state.Name),
+		Description:                              flex.StringIfChanged(*plan.Description, *state.Description),
+		IP:                                       flex.StringIfChanged(*plan.IP, *state.IP),
+		Port:                                     flex.IntIfChanged(*plan.Port, *state.Port),
+		User:                                     flex.StringIfChanged(*plan.User, *state.User),
+		PrivateKeyUUID:                           flex.StringIfChanged(*plan.PrivateKeyUUID, *state.PrivateKeyUUID),
+		IsBuildServer:                            flex.BoolIfChanged(*plan.IsBuildServer, *state.IsBuildServer),
+		ConcurrentBuilds:                         flex.IntIfChanged(*plan.ConcurrentBuilds, *state.ConcurrentBuilds),
+		DynamicTimeout:                           flex.IntIfChanged(*plan.DynamicTimeout, *state.DynamicTimeout),
+		DeploymentQueueLimit:                     flex.IntIfChanged(*plan.DeploymentQueueLimit, *state.DeploymentQueueLimit),
+		ConnectionTimeout:                        flex.IntIfChanged(*plan.ConnectionTimeout, *state.ConnectionTimeout),
+		ServerDiskUsageNotificationThreshold:     flex.IntIfChanged(*plan.ServerDiskUsageNotificationThreshold, *state.ServerDiskUsageNotificationThreshold),
+		ServerDiskUsageCheckFrequency:            flex.StringIfChanged(*plan.ServerDiskUsageCheckFrequency, *state.ServerDiskUsageCheckFrequency),
+		ServerDiskUsageNotificationIntervalHours: diskIntervalIfChanged(plan, state),
 	}
 	if plan.IsTerminalEnabled != nil && state.IsTerminalEnabled != nil {
 		input.IsTerminalEnabled = flex.BoolIfChanged(*plan.IsTerminalEnabled, *state.IsTerminalEnabled)

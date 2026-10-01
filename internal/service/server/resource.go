@@ -31,25 +31,26 @@ type serverResource struct {
 }
 
 type serverResourceModel struct {
-	Timeouts                             timeouts.Value `tfsdk:"timeouts"`
-	UUID                                 types.String   `tfsdk:"uuid"`
-	Name                                 types.String   `tfsdk:"name"`
-	Description                          types.String   `tfsdk:"description"`
-	IP                                   types.String   `tfsdk:"ip"`
-	Port                                 types.Int64    `tfsdk:"port"`
-	User                                 types.String   `tfsdk:"user"`
-	PrivateKeyUUID                       types.String   `tfsdk:"private_key_uuid"`
-	IsBuildServer                        types.Bool     `tfsdk:"is_build_server"`
-	ServerRole                           types.String   `tfsdk:"server_role"`
-	IsReachable                          types.Bool     `tfsdk:"is_reachable"`
-	IsUsable                             types.Bool     `tfsdk:"is_usable"`
-	ConcurrentBuilds                     types.Int64    `tfsdk:"concurrent_builds"`
-	DynamicTimeout                       types.Int64    `tfsdk:"dynamic_timeout"`
-	DeploymentQueueLimit                 types.Int64    `tfsdk:"deployment_queue_limit"`
-	ConnectionTimeout                    types.Int64    `tfsdk:"connection_timeout"`
-	ServerDiskUsageNotificationThreshold types.Int64    `tfsdk:"server_disk_usage_notification_threshold"`
-	ServerDiskUsageCheckFrequency        types.String   `tfsdk:"server_disk_usage_check_frequency"`
-	InstantValidate                      types.Bool     `tfsdk:"instant_validate"`
+	Timeouts                                 timeouts.Value `tfsdk:"timeouts"`
+	UUID                                     types.String   `tfsdk:"uuid"`
+	Name                                     types.String   `tfsdk:"name"`
+	Description                              types.String   `tfsdk:"description"`
+	IP                                       types.String   `tfsdk:"ip"`
+	Port                                     types.Int64    `tfsdk:"port"`
+	User                                     types.String   `tfsdk:"user"`
+	PrivateKeyUUID                           types.String   `tfsdk:"private_key_uuid"`
+	IsBuildServer                            types.Bool     `tfsdk:"is_build_server"`
+	ServerRole                               types.String   `tfsdk:"server_role"`
+	IsReachable                              types.Bool     `tfsdk:"is_reachable"`
+	IsUsable                                 types.Bool     `tfsdk:"is_usable"`
+	ConcurrentBuilds                         types.Int64    `tfsdk:"concurrent_builds"`
+	DynamicTimeout                           types.Int64    `tfsdk:"dynamic_timeout"`
+	DeploymentQueueLimit                     types.Int64    `tfsdk:"deployment_queue_limit"`
+	ConnectionTimeout                        types.Int64    `tfsdk:"connection_timeout"`
+	ServerDiskUsageNotificationThreshold     types.Int64    `tfsdk:"server_disk_usage_notification_threshold"`
+	ServerDiskUsageNotificationIntervalHours types.Int64    `tfsdk:"server_disk_usage_notification_interval_hours"`
+	ServerDiskUsageCheckFrequency            types.String   `tfsdk:"server_disk_usage_check_frequency"`
+	InstantValidate                          types.Bool     `tfsdk:"instant_validate"`
 	// Read-only extended settings returned by GET responses.
 	WildcardDomain                    types.String `tfsdk:"wildcard_domain"`
 	IsCloudFlareTunnel                types.Bool   `tfsdk:"is_cloudflare_tunnel"`
@@ -205,6 +206,10 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 	if plan.ServerDiskUsageCheckFrequency.IsUnknown() {
 		plan.ServerDiskUsageCheckFrequency = types.StringNull()
 	}
+	if plan.ServerDiskUsageNotificationIntervalHours.IsUnknown() {
+		plan.ServerDiskUsageNotificationIntervalHours = types.Int64Null()
+	}
+	WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
 	resolveInstantValidate(&plan.InstantValidate)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
@@ -280,6 +285,7 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": state.UUID.ValueString()})
+	WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
 
 	input := BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
@@ -338,11 +344,12 @@ func (m *serverResourceModel) commonPtrs() ServerCommonPtrs {
 		UUID: &m.UUID, Name: &m.Name, Description: &m.Description,
 		IP: &m.IP, User: &m.User, PrivateKeyUUID: &m.PrivateKeyUUID,
 		Port: &m.Port, ConcurrentBuilds: &m.ConcurrentBuilds, DynamicTimeout: &m.DynamicTimeout,
-		DeploymentQueueLimit:                 &m.DeploymentQueueLimit,
-		ConnectionTimeout:                    &m.ConnectionTimeout,
-		ServerDiskUsageNotificationThreshold: &m.ServerDiskUsageNotificationThreshold,
-		ServerDiskUsageCheckFrequency:        &m.ServerDiskUsageCheckFrequency,
-		IsBuildServer:                        &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
+		DeploymentQueueLimit:                     &m.DeploymentQueueLimit,
+		ConnectionTimeout:                        &m.ConnectionTimeout,
+		ServerDiskUsageNotificationThreshold:     &m.ServerDiskUsageNotificationThreshold,
+		ServerDiskUsageNotificationIntervalHours: &m.ServerDiskUsageNotificationIntervalHours,
+		ServerDiskUsageCheckFrequency:            &m.ServerDiskUsageCheckFrequency,
+		IsBuildServer:                            &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
 		InstantValidate: &m.InstantValidate,
 		WildcardDomain:  &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,

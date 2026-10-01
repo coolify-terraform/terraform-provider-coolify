@@ -14,7 +14,7 @@ func TestDatabaseCRUDFiles_SetLimitsMemory(t *testing.T) {
 	t.Parallel()
 	engines := []string{
 		"postgresql", "mysql", "mariadb", "mongodb",
-		"redis", "keydb", "dragonfly", "clickhouse",
+		"redis", "keydb", "dragonfly", "clickhouse", "sqlite",
 	}
 	for _, engine := range engines {
 		engine := engine

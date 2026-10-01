@@ -62,6 +62,7 @@ resource "coolify_server" "example" {
 - `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server. Requires Coolify >= v4.3.0. Coolify defaults to true.
 - `port` (Number) The SSH port of the server.
 - `server_disk_usage_check_frequency` (String) Cron or Coolify human schedule for how often disk usage is checked (e.g., `*/5 * * * *`, `daily`, `@daily`).
+- `server_disk_usage_notification_interval_hours` (Number) Minimum hours between high disk usage notifications (1-720). Coolify's default is 24. Requires Coolify 4.4 tip (not v4.3.23 and not v4.4-rc.1). On older instances the value stays in state and is not sent.
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
 - `server_role` (String) Server role: `deployment`, `build`, or `both`. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write. When set, this value is sent instead of mapping `is_build_server`.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))

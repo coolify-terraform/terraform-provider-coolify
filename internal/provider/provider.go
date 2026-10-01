@@ -29,6 +29,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/mysql"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/postgresql"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/redis"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/database/sqlite"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/deployment"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/destination"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/digitalocean"
@@ -59,6 +60,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverdockercleanup"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverlogdrain"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverproxy"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serverregistry"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serversentinel"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/servervalidate"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/service"
@@ -233,6 +235,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		mysql.NewResource,
 		postgresql.NewResource,
 		redis.NewResource,
+		sqlite.NewResource,
 		// Other resources (sorted alphabetically by type name).
 		apisettings.NewResource,            // coolify_api_settings
 		applicationdestination.NewResource, // coolify_application_destination
@@ -267,6 +270,7 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		servercftunnel.NewResource,         // coolify_server_cloudflare_tunnel
 		digitalocean.NewResource,           // coolify_server_digitalocean
 		serverdockercleanup.NewResource,    // coolify_server_docker_cleanup
+		serverregistry.NewResource,         // coolify_server_docker_registry
 		hetzner.NewResource,                // coolify_server_hetzner
 		serverlogdrain.NewResource,         // coolify_server_log_drain
 		serverproxy.NewResource,            // coolify_server_proxy
@@ -340,6 +344,7 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		server.NewListDataSource,
 		server.NewResourcesDataSource,
 		server.NewValidateDataSource,
+		serverregistry.NewDataSource,
 		service.NewDataSource,
 		service.NewListDataSource,
 		storage.NewDataSource,
