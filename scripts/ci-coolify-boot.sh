@@ -19,7 +19,8 @@
 #   COOLIFY_DATA_DIR     default /home/runner/coolify-data
 #   COOLIFY_IMAGE_TAG    default edge
 #   COOLIFY_PULL_DIR     marker dir, default /tmp/coolify-pull
-#   COOLIFY_READY_TRIES  default 90 (2s each => 3 minutes)
+#   COOLIFY_READY_TRIES  default 90 (sleep 2s). curl --max-time 10,
+#                        so a stuck accept can take about 18 minutes.
 set -euo pipefail
 
 STEP="${1:-}"
@@ -42,15 +43,39 @@ compose() {
     "$@"
 }
 
-# GNU timeout on Linux CI; no-op on macOS unless coreutils is installed.
+# GNU timeout on Linux CI. Python kills the child process group when
+# timeout is missing, so a stock macOS bootstrap still hits the cap.
 run_limited() {
   local secs="$1"
   shift
   if command -v timeout >/dev/null 2>&1; then
     timeout --foreground "$secs" "$@"
-  else
-    "$@"
+    return
   fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    log "FAIL: need timeout or python3 to cap: $*"
+    return 1
+  fi
+  python3 - "$secs" "$@" <<'PY'
+import os
+import signal
+import subprocess
+import sys
+
+secs = int(sys.argv[1])
+proc = subprocess.Popen(sys.argv[2:], start_new_session=True)
+try:
+    code = proc.wait(timeout=secs)
+except subprocess.TimeoutExpired:
+    os.killpg(proc.pid, signal.SIGTERM)
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.wait()
+    raise SystemExit(124)
+raise SystemExit(code)
+PY
 }
 
 step_prepare() {
@@ -206,7 +231,8 @@ step_wait_ready() {
   log "PLAN: poll Coolify /register until HTTP 200 or 302"
   local i
   for i in $(seq 1 "$READY_TRIES"); do
-    if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/register 2>/dev/null | grep -qE "200|302"; then
+    # --max-time so one accepted connection cannot freeze the attempt counter.
+    if curl -s --max-time 10 -o /dev/null -w "%{http_code}" http://localhost:8000/register 2>/dev/null | grep -qE "200|302"; then
       log "OK: Coolify is ready (attempt $i)"
       return 0
     fi

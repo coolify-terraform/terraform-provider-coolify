@@ -18,7 +18,9 @@ class TestSetupCoolifyTestTimeouts(unittest.TestCase):
         self.assertIn("set_default_timeout(30000)", src)
         self.assertNotIn('wait_for_load_state("networkidle")', src)
         self.assertNotIn("install chromium 2>/dev/null", src)
-        self.assertIn("timeout --foreground 180", src)
+        self.assertIn('run_limited 180 "$PW_VENV/bin/playwright" install chromium', src)
+        self.assertIn("--max-time 10", src)
+        self.assertIn("TimeoutExpired", src)
 
     def test_ci_bootstrap_step_has_hard_cap(self) -> None:
         src = ACTION.read_text()
