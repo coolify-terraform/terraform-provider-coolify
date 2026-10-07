@@ -14406,6 +14406,12 @@
                         "default": "UTC",
                         "maxLength": 255
                     },
+                    "traffic_ip_mode": {
+                        "type": "string",
+                        "description": "Traffic ip mode.",
+                        "default": "full",
+                        "maxLength": 255
+                    },
                     "traffic_retention_1d_days": {
                         "type": "integer",
                         "description": "Traffic retention 1d days.",

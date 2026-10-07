@@ -13,16 +13,16 @@ Coolify contract extracted from the real application code.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
-Contract version: `v4.4.1` | Extracted from: `coollabsio/coolify@v4.4.1`
+Contract version: `v4.4.2` | Extracted from: `coollabsio/coolify@v4.4.2`
 
 ## Summary
 
 | Metric | Count |
 |--------|------:|
-| Public schema fields compared | 333 |
-| Public schema type matches | 333/333 |
-| Public schema nullable matches | 263/333 |
-| Public schema client JSON mappings | 262/333 |
+| Public schema fields compared | 334 |
+| Public schema type matches | 334/334 |
+| Public schema nullable matches | 264/334 |
+| Public schema client JSON mappings | 263/334 |
 | Reusable public schemas compared | 10 |
 | Contract-only / inline-only models documented | 12 |
 
@@ -342,7 +342,7 @@ Fields: 31 | Type matches: 31/31 | Nullable matches: 17/31 | Client JSON mapping
 
 ## ServerSetting
 
-Fields: 64 | Type matches: 64/64 | Nullable matches: 48/64 | Client JSON mappings: 61/64
+Fields: 65 | Type matches: 65/65 | Nullable matches: 49/65 | Client JSON mappings: 62/65
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -401,6 +401,7 @@ Fields: 64 | Type matches: 64/64 | Nullable matches: 48/64 | Client JSON mapping
 | server_id | integer | integer | yes | yes | - | n/a |
 | server_role | string | string | yes | **WRONG** | ServerRole::BOTH->value | mapped |
 | server_timezone | string | string | yes | yes | UTC | mapped |
+| traffic_ip_mode | string | string | yes | yes | full | mapped |
 | traffic_retention_1d_days | integer | integer | yes | yes | 395 | mapped |
 | traffic_retention_1h_days | integer | integer | yes | yes | 30 | mapped |
 | traffic_sample_threshold | integer | integer | yes | yes | 0 | mapped |

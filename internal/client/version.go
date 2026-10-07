@@ -278,6 +278,30 @@ func (c *Client) SupportsVolumeBackupMissingNotificationDays() bool {
 	return IsVersionAtLeast(c.CoolifyVersion, minVolumeBackupMissingNotificationDaysVersion)
 }
 
+// minTrafficIPModeVersion is the first Coolify git tag whose Sentinel
+// update allow list includes traffic_ip_mode. Tag v4.4.0 and v4.4.1 do not.
+// Tag v4.4.2 does. Those earlier 4.4 tags still accept the other traffic fields.
+const minTrafficIPModeVersion = "4.4.2"
+
+// SupportsTrafficIPMode reports whether PATCH /servers/{uuid}/sentinel
+// accepts traffic_ip_mode (full, anonymized, or off).
+//
+// Empty CoolifyVersion reports true. A 4.3.0 version string reports true
+// because CI edge has used that string while shipping later tip APIs.
+// 4.4-rc.* and releases before v4.4.2 report false.
+func (c *Client) SupportsTrafficIPMode() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionIs44Prerelease(c.CoolifyVersion) {
+		return false
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minTrafficIPModeVersion)
+}
+
 // IsVersionAtLeast compares two semver-like version strings (e.g. "4.0.0").
 // Returns true if actual >= minimum. Non-parseable versions return true
 // to avoid blocking on unexpected version formats.

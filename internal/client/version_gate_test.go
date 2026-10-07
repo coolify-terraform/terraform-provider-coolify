@@ -339,6 +339,38 @@ func TestSupportsVolumeBackupMissingNotificationDays(t *testing.T) {
 	}
 }
 
+func TestSupportsTrafficIPMode(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.3.18", false},
+		{"4.3.23", false},
+		{"4.3.0", true}, // CI edge version lie
+		{"4.4-rc.1", false},
+		{"4.4.0", false},
+		{"v4.4.0", false},
+		{"4.4.1", false},
+		{"v4.4.1", false},
+		{"4.4.2", true},
+		{"v4.4.2", true},
+		{"", true},
+		{"not-a-version", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsTrafficIPMode(); got != tt.want {
+			t.Errorf("SupportsTrafficIPMode(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsTrafficIPMode() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
 func TestSupportsPreviewDomainUpdate(t *testing.T) {
 	t.Parallel()
 

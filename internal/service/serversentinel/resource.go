@@ -8,6 +8,8 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -44,6 +46,7 @@ type model struct {
 	IsGeoIPEnabled                    types.Bool   `tfsdk:"is_geoip_enabled"`
 	GeoIPRefreshDays                  types.Int64  `tfsdk:"geoip_refresh_days"`
 	GeoIPMaxMindLicenseKey            types.String `tfsdk:"geoip_maxmind_license_key"`
+	TrafficIPMode                     types.String `tfsdk:"traffic_ip_mode"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -137,7 +140,22 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 					"Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write. " +
 					"After import, keep the key in configuration; GET typically hides it unless the token has read:sensitive.",
 			},
+			"traffic_ip_mode": trafficIPModeAttribute(),
 		},
+	}
+}
+
+func trafficIPModeAttribute() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		MarkdownDescription: "How Sentinel stores client IPs for the Top IPs breakdown. " +
+			"`full` keeps the visitor IP, `anonymized` stores /24 and /48 networks, " +
+			"`off` drops the IP dimension. Coolify default when omitted is `full`. " +
+			"Requires Coolify >= v4.4.2. v4.4.0, v4.4.1, and v4.4-rc.1 reject the key. " +
+			"Import on those versions leaves the attribute unset.",
+		PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Validators:    []validator.String{stringvalidator.OneOf("full", "anonymized", "off")},
 	}
 }
 
@@ -187,6 +205,9 @@ func toInput(m model) client.ServerSentinel {
 		in.GeoIPRefreshDays = &v
 	}
 	in.GeoIPMaxMindLicenseKey = m.GeoIPMaxMindLicenseKey.ValueString()
+	if !m.TrafficIPMode.IsNull() && !m.TrafficIPMode.IsUnknown() && m.TrafficIPMode.ValueString() != "" {
+		in.TrafficIPMode = m.TrafficIPMode.ValueString()
+	}
 	return in
 }
 
@@ -242,6 +263,37 @@ func flatten(s *client.ServerSentinel, m *model) {
 	if s.GeoIPMaxMindLicenseKey != "" && !m.GeoIPMaxMindLicenseKey.IsNull() {
 		m.GeoIPMaxMindLicenseKey = types.StringValue(s.GeoIPMaxMindLicenseKey)
 	}
+	flattenStringKeep(s.TrafficIPMode, &m.TrafficIPMode)
+}
+
+func flattenStringKeep(src string, dst *types.String) {
+	if src != "" {
+		*dst = types.StringValue(src)
+	} else if dst.IsUnknown() {
+		*dst = types.StringNull()
+	}
+}
+
+func warnUnsupportedTrafficIPMode(c *client.Client, plan model, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsTrafficIPMode() {
+		return
+	}
+	if plan.TrafficIPMode.IsNull() || plan.TrafficIPMode.IsUnknown() || plan.TrafficIPMode.ValueString() == "" {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write traffic_ip_mode",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept traffic_ip_mode on Sentinel settings (added in Coolify v4.4.2). "+
+				"The provider will keep the value in Terraform state but will not send it. "+
+				"Upgrade to Coolify v4.4.2 or later, or remove traffic_ip_mode from configuration.",
+			ver,
+		),
+	)
 }
 
 func flattenInt64(src *int64, dst *types.Int64) {
@@ -258,6 +310,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	warnUnsupportedTrafficIPMode(r.client, plan, &resp.Diagnostics)
 	got, err := r.client.UpdateServerSentinel(ctx, plan.ServerUUID.ValueString(), toInput(plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error applying Sentinel settings", err.Error())
@@ -300,6 +353,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	warnUnsupportedTrafficIPMode(r.client, plan, &resp.Diagnostics)
 	got, err := r.client.UpdateServerSentinel(ctx, plan.ServerUUID.ValueString(), toInput(plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating Sentinel settings", err.Error())

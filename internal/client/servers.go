@@ -77,6 +77,8 @@ type ServerSettings struct {
 	GeoIPRefreshDays          *int64 `json:"geoip_refresh_days,omitempty"`
 	GeoIPMaxMindLicenseKey    string `json:"geoip_maxmind_license_key,omitempty"`
 	IsTrafficAnalyticsEnabled *bool  `json:"is_traffic_analytics_enabled,omitempty"`
+	// TrafficIPMode is Coolify >= v4.4.2. Older 4.4 tags reject the key.
+	TrafficIPMode string `json:"traffic_ip_mode,omitempty"`
 }
 
 type Server struct {
