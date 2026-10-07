@@ -132,10 +132,7 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	case !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://"):
 		resp.Diagnostics.AddError("Invalid Coolify Endpoint", "Endpoint must start with http:// or https://.")
 	case strings.HasPrefix(endpoint, "http://"):
-		host := strings.TrimPrefix(endpoint, "http://")
-		host = strings.SplitN(host, "/", 2)[0]
-		host = strings.SplitN(host, ":", 2)[0]
-		if host != "localhost" && host != "127.0.0.1" && host != "::1" {
+		if httpEndpointWarnsCleartext(endpoint) {
 			resp.Diagnostics.AddWarning(
 				"Insecure Coolify Endpoint",
 				"The endpoint uses plain HTTP. The API token will be sent in cleartext. Use https:// for non-local endpoints.",
@@ -203,6 +200,25 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 	resp.DataSourceData = c
 	resp.ResourceData = c
+}
+
+// httpEndpointWarnsCleartext is true for plain HTTP whose host is not
+// localhost, 127.0.0.1, or ::1. Hostname drops userinfo and IPv6
+// brackets. Unparsable URLs warn. Private LAN addresses still warn.
+func httpEndpointWarnsCleartext(endpoint string) bool {
+	if !strings.HasPrefix(endpoint, "http://") {
+		return false
+	}
+	parsed, err := url.Parse(endpoint)
+	if err != nil {
+		return true
+	}
+	switch parsed.Hostname() {
+	case "localhost", "127.0.0.1", "::1":
+		return false
+	default:
+		return true
+	}
 }
 
 func redactEndpointForDiagnostics(endpoint string) string {
