@@ -42,10 +42,9 @@ output "coolify_version" {
 | **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. Recommended for the full feature set. |
 
-Pinned API contract today: Coolify **v4.4.1** (`testdata/contracts/coolify-v4.json`).
-Tag extracts `coolify-v4.4.0.json` and `coolify-v4.4.1.json` match those git
-tags. Nightly CDN `4.5-rc.1` is a channel string with no git tag. Source tip
-`config/constants.php` says `4.4.2` and is not tagged.
+Pinned API contract today: Coolify **v4.4.2** (`testdata/contracts/coolify-v4.json`).
+Tag extracts `coolify-v4.4.0.json`, `coolify-v4.4.1.json`, and `coolify-v4.4.2.json` match those git
+tags. Nightly CDN `4.5-rc.1` is a channel string with no git tag.
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
 That route stays `nested-service` (use `coolify_service` for the stack).
@@ -221,7 +220,8 @@ not accept them.
 `traffic_topn`, `traffic_sample_threshold`, `traffic_retention_1h_days`,
 `traffic_retention_1d_days`, `is_geoip_enabled`, `geoip_refresh_days`,
 and `geoip_maxmind_license_key` on `coolify_server_sentinel` use the same
-4.4-tip floor. On 4.4, `is_build_server = true` is sent as
+4.4-tip floor. `coolify_server_sentinel.traffic_ip_mode` needs Coolify >= v4.4.2.
+On 4.4, `is_build_server = true` is sent as
 `server_role = build`. Turning that flag off sends `server_role = both`.
 A create that leaves the flag false omits `server_role` (Coolify's
 default is `both`, and some version strings still 422 the key).

@@ -246,6 +246,65 @@ func TestClient_UpdateServerSentinel_VersionGatesTraffic(t *testing.T) {
 	})
 }
 
+func TestClient_UpdateServerSentinel_VersionGatesTrafficIPMode(t *testing.T) {
+	t.Parallel()
+
+	topn := int64(25)
+	input := ServerSentinel{TrafficTopN: &topn, TrafficIPMode: "anonymized"}
+
+	run := func(t *testing.T, version string) map[string]any {
+		t.Helper()
+		var body map[string]any
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(ServerSentinel{})
+		}))
+		t.Cleanup(srv.Close)
+		c := New(srv.URL, "test-token")
+		c.CoolifyVersion = version
+		_, err := c.UpdateServerSentinel(context.Background(), testServerUUID, input)
+		require.NoError(t, err)
+		return body
+	}
+
+	t.Run("omits mode on 4.4.1", func(t *testing.T) {
+		t.Parallel()
+		body := run(t, "4.4.1")
+		assert.Equal(t, float64(25), body["traffic_topn"])
+		if _, ok := body["traffic_ip_mode"]; ok {
+			t.Fatalf("4.4.1 must omit traffic_ip_mode, got %v", body)
+		}
+	})
+
+	t.Run("omits mode on 4.4.0", func(t *testing.T) {
+		t.Parallel()
+		body := run(t, "4.4.0")
+		assert.Equal(t, float64(25), body["traffic_topn"])
+		if _, ok := body["traffic_ip_mode"]; ok {
+			t.Fatalf("4.4.0 must omit traffic_ip_mode, got %v", body)
+		}
+	})
+
+	t.Run("omits both on 4.3.23", func(t *testing.T) {
+		t.Parallel()
+		body := run(t, "4.3.23")
+		if _, ok := body["traffic_topn"]; ok {
+			t.Fatalf("4.3.23 must omit traffic_topn, got %v", body)
+		}
+		if _, ok := body["traffic_ip_mode"]; ok {
+			t.Fatalf("4.3.23 must omit traffic_ip_mode, got %v", body)
+		}
+	})
+
+	t.Run("sends both on 4.4.2", func(t *testing.T) {
+		t.Parallel()
+		body := run(t, "4.4.2")
+		assert.Equal(t, float64(25), body["traffic_topn"])
+		assert.Equal(t, "anonymized", body["traffic_ip_mode"])
+	})
+}
+
 func TestClient_UpdateServerSentinel_RetriesWithoutEnableFlag(t *testing.T) {
 	t.Parallel()
 	var patches []map[string]any

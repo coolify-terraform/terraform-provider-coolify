@@ -118,6 +118,9 @@ type ServerSentinel struct {
 	IsGeoIPEnabled         *bool  `json:"is_geoip_enabled,omitempty"`
 	GeoIPRefreshDays       *int64 `json:"geoip_refresh_days,omitempty"`
 	GeoIPMaxMindLicenseKey string `json:"geoip_maxmind_license_key,omitempty"`
+	// TrafficIPMode is Coolify >= v4.4.2 (full, anonymized, off). v4.4.0 and
+	// v4.4.1 accept the other traffic fields and reject this key.
+	TrafficIPMode string `json:"traffic_ip_mode,omitempty"`
 }
 
 func (c *Client) GetServerSentinel(ctx context.Context, serverUUID string) (*ServerSentinel, error) {
@@ -151,7 +154,8 @@ func sentinelWriteEmpty(in ServerSentinel) bool {
 		in.TrafficRetention1dDays == nil &&
 		in.IsGeoIPEnabled == nil &&
 		in.GeoIPRefreshDays == nil &&
-		in.GeoIPMaxMindLicenseKey == ""
+		in.GeoIPMaxMindLicenseKey == "" &&
+		in.TrafficIPMode == ""
 }
 
 func (s *ServerSentinel) clearTrafficSettings() {
@@ -167,6 +171,11 @@ func (s *ServerSentinel) clearTrafficSettings() {
 func (c *Client) UpdateServerSentinel(ctx context.Context, serverUUID string, input ServerSentinel) (*ServerSentinel, error) {
 	if !c.SupportsSentinelTrafficSettings() {
 		input.clearTrafficSettings()
+	}
+	// traffic_ip_mode landed in v4.4.2. v4.4.0 and v4.4.1 still accept
+	// traffic_topn and the other traffic settings, so do not clear those here.
+	if !c.SupportsTrafficIPMode() {
+		input.TrafficIPMode = ""
 	}
 	path := fmt.Sprintf("/api/v1/servers/%s/sentinel", url.PathEscape(serverUUID))
 	var r ServerSentinel

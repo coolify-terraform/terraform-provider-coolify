@@ -296,3 +296,63 @@ resource "coolify_server_sentinel" "test" {
 		},
 	})
 }
+
+func TestServerSentinelResource_TrafficIPMode(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	config := func(url string) string {
+		return acctest.ProviderBlockForURL(url) + `
+resource "coolify_server_sentinel" "test" {
+  server_uuid     = "` + serverUUID + `"
+  traffic_topn    = 25
+  traffic_ip_mode = "anonymized"
+}`
+	}
+
+	t.Run("sends on v4.4.2", func(t *testing.T) {
+		t.Parallel()
+		store := map[string]any{"is_sentinel_enabled": true}
+		srv, _ := newSentinelServerVersion(t, "v4.4.2", store, func(_ http.ResponseWriter, body map[string]any) bool {
+			if _, disableOnly := body["is_sentinel_enabled"]; disableOnly && body["traffic_topn"] == nil {
+				return false
+			}
+			if body["traffic_topn"] != float64(25) || body["traffic_ip_mode"] != "anonymized" {
+				t.Errorf("v4.4.2 sentinel PATCH missing traffic_ip_mode: %#v", body)
+			}
+			return false
+		})
+		defer srv.Close()
+		resource.UnitTest(t, resource.TestCase{
+			ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+			Steps: []resource.TestStep{{
+				Config: config(srv.URL),
+				Check:  resource.TestCheckResourceAttr("coolify_server_sentinel.test", "traffic_ip_mode", "anonymized"),
+			}},
+		})
+	})
+
+	t.Run("omits on v4.4.1", func(t *testing.T) {
+		t.Parallel()
+		store := map[string]any{"is_sentinel_enabled": true}
+		srv, _ := newSentinelServerVersion(t, "v4.4.1", store, func(_ http.ResponseWriter, body map[string]any) bool {
+			if _, disableOnly := body["is_sentinel_enabled"]; disableOnly && body["traffic_topn"] == nil {
+				return false
+			}
+			if _, ok := body["traffic_ip_mode"]; ok {
+				t.Errorf("v4.4.1 sentinel PATCH must omit traffic_ip_mode: %#v", body)
+			}
+			if body["traffic_topn"] != float64(25) {
+				t.Errorf("v4.4.1 sentinel PATCH must still send traffic_topn: %#v", body)
+			}
+			return false
+		})
+		defer srv.Close()
+		resource.UnitTest(t, resource.TestCase{
+			ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+			Steps: []resource.TestStep{{
+				Config: config(srv.URL),
+				Check:  resource.TestCheckResourceAttr("coolify_server_sentinel.test", "traffic_ip_mode", "anonymized"),
+			}},
+		})
+	})
+}

@@ -120,6 +120,10 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
     "VolumeBackupsController::validateUpsertRequest": {
         "missing_backup_notification_days",
     },
+    # Sentinel traffic_ip_mode landed in tag v4.4.2. Absent on v4.4.0 and v4.4.1.
+    "ServerSentinelController::update": {
+        "traffic_ip_mode",
+    },
     "ServicesController::create_service": {
         "tags",
     },

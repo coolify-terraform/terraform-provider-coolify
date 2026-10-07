@@ -91,7 +91,7 @@ Volume backup schedules, `noindex_domains`, notifications, and S3 need
 **≥ v4.3.10**. Preview domain PATCH, GET `domain_port_overrides`, and
 restart-limit fields need **≥ v4.3.15**. Missing-backup notifications on
 `coolify_database_backup` need **≥ v4.3.18**. Volume-backup missing-backup
-alerts need **≥ v4.4.1**. The pinned API contract is Coolify **v4.4.1**
+alerts need **≥ v4.4.1**. The pinned API contract is Coolify **v4.4.2**
 (extract provenance), not a new feature floor.
 
 For a full resource and attribute matrix (what works on 4.1 vs 4.2 vs 4.3 vs 4.4,
