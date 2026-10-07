@@ -2,7 +2,7 @@
 page_title: "Coolify Version Support"
 subcategory: "Getting Started"
 description: |-
-  What works on Coolify 4.1, 4.2, and 4.3 with this provider: resources, fields, and version-gate behavior.
+  What works on Coolify 4.1, 4.2, 4.3, and 4.4 with this provider: resources, fields, and version-gate behavior.
 ---
 
 # Coolify Version Support
@@ -42,7 +42,10 @@ output "coolify_version" {
 | **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. Recommended for the full feature set. |
 
-Pinned API contract today: Coolify **v4.3.23** (`testdata/contracts/coolify-v4.json`).
+Pinned API contract today: Coolify **v4.4.1** (`testdata/contracts/coolify-v4.json`).
+Tag extracts `coolify-v4.4.0.json` and `coolify-v4.4.1.json` match those git
+tags. Nightly CDN `4.5-rc.1` is a channel string with no git tag. Source tip
+`config/constants.php` says `4.4.2` and is not tagged.
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
 That route stays `nested-service` (use `coolify_service` for the stack).
@@ -207,7 +210,9 @@ from a given version are **version-gated on write**:
 `coolify_database_sqlite` and `coolify_server_docker_registry` exist only on
 Coolify 4.4 tip. `server_disk_usage_notification_interval_hours` on server
 resources uses the same floor (1-720 hours, Coolify default 24). Tag v4.3.23
-and `v4.4-rc.1` reject those writes. GitHub App `actions`,
+and `v4.4-rc.1` reject those writes. `missing_backup_notification_days` on
+`coolify_storage_backup` needs Coolify >= v4.4.1 (tag v4.4.0 does not accept
+the key). GitHub App `actions`,
 `organization_self_hosted_runners`, `webhook_events`, and `runner_group_id`
 are read-only on 4.4 tip. The public GitHub App create and update APIs do
 not accept them.

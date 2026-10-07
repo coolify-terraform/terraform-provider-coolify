@@ -157,6 +157,7 @@ var cloudTokenCoverageSkips = skipMap(
 var storageCoverageSkips = skipMap(
 	skipInternal("container_id", "internal Docker container ID"),
 	skipNA("resource_id", "numeric FK; provider uses resource_uuid"),
+	skipInternal("standalone_sqlite_id", "FK to the SQLite database row that owns this volume"),
 	// is_preview_suffix_enabled covered on client + coolify_storage schema.
 )
 

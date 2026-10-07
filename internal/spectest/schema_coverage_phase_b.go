@@ -25,6 +25,7 @@ var applicationSettingsSchemaRegistry = []SchemaCoverageEntry{
 	// Internal / not schema surface
 	{ContractField: "application_id", Status: SkipInternal, Notes: "settings FK"},
 	// Public APPLICATION_SETTING_FIELDS (v4.2.0+) and v4.3.0 additions.
+	{ContractField: "custom_container_name_prefix", SchemaAttribute: "custom_container_name_prefix", Status: StatusCovered},
 	{ContractField: "custom_internal_name", SchemaAttribute: "custom_internal_name", Status: StatusCovered},
 	{ContractField: "disable_build_cache", SchemaAttribute: "disable_build_cache", Status: StatusCovered},
 	{ContractField: "docker_images_to_keep", SchemaAttribute: "docker_images_to_keep", Status: StatusCovered},

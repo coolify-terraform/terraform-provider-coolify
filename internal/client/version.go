@@ -253,6 +253,31 @@ func (c *Client) SupportsMissingBackupNotificationDays() bool {
 	return IsVersionAtLeast(c.CoolifyVersion, minMissingBackupNotificationDaysVersion)
 }
 
+// minVolumeBackupMissingNotificationDaysVersion is the first Coolify git tag
+// whose volume-backup upsert allow list includes missing_backup_notification_days.
+// Tag v4.4.0 does not. Tag v4.4.1 does. Database backups gained the same
+// column earlier (v4.3.18); this gate is only the volume-backup write.
+const minVolumeBackupMissingNotificationDaysVersion = "4.4.1"
+
+// SupportsVolumeBackupMissingNotificationDays reports whether PUT
+// .../storages/{uuid}/backups accepts missing_backup_notification_days.
+//
+// Empty CoolifyVersion reports true. A 4.3.0 version string reports true
+// because CI edge has used that string while shipping later tip APIs.
+// 4.4-rc.* and v4.4.0 report false.
+func (c *Client) SupportsVolumeBackupMissingNotificationDays() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionIs44Prerelease(c.CoolifyVersion) {
+		return false
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minVolumeBackupMissingNotificationDaysVersion)
+}
+
 // IsVersionAtLeast compares two semver-like version strings (e.g. "4.0.0").
 // Returns true if actual >= minimum. Non-parseable versions return true
 // to avoid blocking on unexpected version formats.

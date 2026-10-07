@@ -31,23 +31,27 @@ type VolumeBackupSchedule struct {
 	RetentionDaysS3          int64   `json:"retention_days_s3"`
 	RetentionMaxStorageS3    float64 `json:"retention_max_storage_s3"`
 	Timeout                  int64   `json:"timeout"`
+	// MissingBackupNotificationDays is Coolify >= v4.4.1 (0 disables alerts).
+	// Nil when the API omits the key (v4.4.0 and older).
+	MissingBackupNotificationDays *int64 `json:"missing_backup_notification_days,omitempty"`
 }
 
 // UpsertVolumeBackupInput is the body for PUT .../storages/{storage_uuid}/backups.
 type UpsertVolumeBackupInput struct {
-	Frequency                string   `json:"frequency"`
-	Enabled                  *bool    `json:"enabled,omitempty"`
-	SaveS3                   *bool    `json:"save_s3,omitempty"`
-	DisableLocalBackup       *bool    `json:"disable_local_backup,omitempty"`
-	StopDuringBackup         *bool    `json:"stop_during_backup,omitempty"`
-	S3StorageUUID            string   `json:"s3_storage_uuid,omitempty"`
-	RetentionAmountLocally   *int64   `json:"retention_amount_locally,omitempty"`
-	RetentionDaysLocally     *int64   `json:"retention_days_locally,omitempty"`
-	RetentionMaxStorageLocal *float64 `json:"retention_max_storage_locally,omitempty"`
-	RetentionAmountS3        *int64   `json:"retention_amount_s3,omitempty"`
-	RetentionDaysS3          *int64   `json:"retention_days_s3,omitempty"`
-	RetentionMaxStorageS3    *float64 `json:"retention_max_storage_s3,omitempty"`
-	Timeout                  *int64   `json:"timeout,omitempty"`
+	Frequency                     string   `json:"frequency"`
+	Enabled                       *bool    `json:"enabled,omitempty"`
+	SaveS3                        *bool    `json:"save_s3,omitempty"`
+	DisableLocalBackup            *bool    `json:"disable_local_backup,omitempty"`
+	StopDuringBackup              *bool    `json:"stop_during_backup,omitempty"`
+	S3StorageUUID                 string   `json:"s3_storage_uuid,omitempty"`
+	RetentionAmountLocally        *int64   `json:"retention_amount_locally,omitempty"`
+	RetentionDaysLocally          *int64   `json:"retention_days_locally,omitempty"`
+	RetentionMaxStorageLocal      *float64 `json:"retention_max_storage_locally,omitempty"`
+	RetentionAmountS3             *int64   `json:"retention_amount_s3,omitempty"`
+	RetentionDaysS3               *int64   `json:"retention_days_s3,omitempty"`
+	RetentionMaxStorageS3         *float64 `json:"retention_max_storage_s3,omitempty"`
+	Timeout                       *int64   `json:"timeout,omitempty"`
+	MissingBackupNotificationDays *int64   `json:"missing_backup_notification_days,omitempty"`
 }
 
 // UpsertVolumeBackup creates or replaces the backup schedule for a storage volume.

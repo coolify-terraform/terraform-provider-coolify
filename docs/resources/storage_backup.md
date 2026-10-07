@@ -45,6 +45,7 @@ resource "coolify_storage_backup" "app_data" {
 - `database_uuid` (String) UUID of the database that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid`. Changing this forces a new resource.
 - `disable_local_backup` (Boolean) Skip local archives. Only valid when `save_s3` is true. Defaults to false.
 - `enabled` (Boolean) Whether the schedule is enabled. Defaults to true.
+- `missing_backup_notification_days` (Number) Days without a backup execution before Coolify sends a missing-backup notification. `0` disables alerts. Valid range is 0-365. Requires Coolify >= v4.4.1. Tag v4.4.0 and `v4.4-rc.1` reject the key. On older instances the provider keeps the value in state and does not send it.
 - `retention_amount_locally` (Number) Number of local backups to retain. Defaults to 7.
 - `retention_amount_s3` (Number) Number of S3 backups to retain. Defaults to 7.
 - `retention_days_locally` (Number) Days to retain local backups. Defaults to 0 (unlimited by age).

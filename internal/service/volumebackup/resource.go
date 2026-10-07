@@ -11,12 +11,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -36,25 +38,26 @@ type storageBackupResource struct {
 }
 
 type storageBackupResourceModel struct {
-	UUID                     types.String  `tfsdk:"uuid"`
-	ApplicationUUID          types.String  `tfsdk:"application_uuid"`
-	ServiceUUID              types.String  `tfsdk:"service_uuid"`
-	DatabaseUUID             types.String  `tfsdk:"database_uuid"`
-	StorageUUID              types.String  `tfsdk:"storage_uuid"`
-	StorageType              types.String  `tfsdk:"storage_type"`
-	Frequency                types.String  `tfsdk:"frequency"`
-	Enabled                  types.Bool    `tfsdk:"enabled"`
-	SaveS3                   types.Bool    `tfsdk:"save_s3"`
-	DisableLocalBackup       types.Bool    `tfsdk:"disable_local_backup"`
-	StopDuringBackup         types.Bool    `tfsdk:"stop_during_backup"`
-	S3StorageUUID            types.String  `tfsdk:"s3_storage_uuid"`
-	RetentionAmountLocally   types.Int64   `tfsdk:"retention_amount_locally"`
-	RetentionDaysLocally     types.Int64   `tfsdk:"retention_days_locally"`
-	RetentionMaxStorageLocal types.Float64 `tfsdk:"retention_max_storage_locally"`
-	RetentionAmountS3        types.Int64   `tfsdk:"retention_amount_s3"`
-	RetentionDaysS3          types.Int64   `tfsdk:"retention_days_s3"`
-	RetentionMaxStorageS3    types.Float64 `tfsdk:"retention_max_storage_s3"`
-	Timeout                  types.Int64   `tfsdk:"timeout"`
+	UUID                          types.String  `tfsdk:"uuid"`
+	ApplicationUUID               types.String  `tfsdk:"application_uuid"`
+	ServiceUUID                   types.String  `tfsdk:"service_uuid"`
+	DatabaseUUID                  types.String  `tfsdk:"database_uuid"`
+	StorageUUID                   types.String  `tfsdk:"storage_uuid"`
+	StorageType                   types.String  `tfsdk:"storage_type"`
+	Frequency                     types.String  `tfsdk:"frequency"`
+	Enabled                       types.Bool    `tfsdk:"enabled"`
+	SaveS3                        types.Bool    `tfsdk:"save_s3"`
+	DisableLocalBackup            types.Bool    `tfsdk:"disable_local_backup"`
+	StopDuringBackup              types.Bool    `tfsdk:"stop_during_backup"`
+	S3StorageUUID                 types.String  `tfsdk:"s3_storage_uuid"`
+	RetentionAmountLocally        types.Int64   `tfsdk:"retention_amount_locally"`
+	RetentionDaysLocally          types.Int64   `tfsdk:"retention_days_locally"`
+	RetentionMaxStorageLocal      types.Float64 `tfsdk:"retention_max_storage_locally"`
+	RetentionAmountS3             types.Int64   `tfsdk:"retention_amount_s3"`
+	RetentionDaysS3               types.Int64   `tfsdk:"retention_days_s3"`
+	RetentionMaxStorageS3         types.Float64 `tfsdk:"retention_max_storage_s3"`
+	Timeout                       types.Int64   `tfsdk:"timeout"`
+	MissingBackupNotificationDays types.Int64   `tfsdk:"missing_backup_notification_days"`
 }
 
 func NewResource() resource.Resource { return &storageBackupResource{} }
@@ -195,6 +198,16 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				Default:             int64default.StaticInt64(3600),
 				Validators:          []validator.Int64{int64validator.Between(60, 36000)},
 			},
+			"missing_backup_notification_days": schema.Int64Attribute{
+				MarkdownDescription: "Days without a backup execution before Coolify sends a missing-backup notification. " +
+					"`0` disables alerts. Valid range is 0-365. " +
+					"Requires Coolify >= v4.4.1. Tag v4.4.0 and `v4.4-rc.1` reject the key. " +
+					"On older instances the provider keeps the value in state and does not send it.",
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+				Validators:    []validator.Int64{int64validator.Between(0, 365)},
+			},
 		},
 	}
 }
@@ -245,7 +258,7 @@ func resolveParent(m *storageBackupResourceModel) (parentType, parentUUID string
 	return "", "", false
 }
 
-func buildInput(plan storageBackupResourceModel) client.UpsertVolumeBackupInput {
+func buildInput(c *client.Client, plan storageBackupResourceModel) client.UpsertVolumeBackupInput {
 	input := client.UpsertVolumeBackupInput{
 		Frequency: plan.Frequency.ValueString(),
 	}
@@ -284,6 +297,11 @@ func buildInput(plan storageBackupResourceModel) client.UpsertVolumeBackupInput 
 		v := plan.Timeout.ValueInt64()
 		input.Timeout = &v
 	}
+	if c != nil && c.SupportsVolumeBackupMissingNotificationDays() &&
+		!plan.MissingBackupNotificationDays.IsNull() && !plan.MissingBackupNotificationDays.IsUnknown() {
+		v := plan.MissingBackupNotificationDays.ValueInt64()
+		input.MissingBackupNotificationDays = &v
+	}
 	return input
 }
 
@@ -308,6 +326,33 @@ func flatten(got *client.VolumeBackupSchedule, m *storageBackupResourceModel) {
 	m.RetentionDaysS3 = types.Int64Value(got.RetentionDaysS3)
 	m.RetentionMaxStorageS3 = types.Float64Value(got.RetentionMaxStorageS3)
 	m.Timeout = types.Int64Value(got.Timeout)
+	if got.MissingBackupNotificationDays != nil {
+		m.MissingBackupNotificationDays = types.Int64Value(*got.MissingBackupNotificationDays)
+	} else if m.MissingBackupNotificationDays.IsUnknown() {
+		m.MissingBackupNotificationDays = types.Int64Null()
+	}
+}
+
+func warnUnsupportedVolumeBackupMissingDays(c *client.Client, plan storageBackupResourceModel, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsVolumeBackupMissingNotificationDays() {
+		return
+	}
+	if plan.MissingBackupNotificationDays.IsNull() || plan.MissingBackupNotificationDays.IsUnknown() {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write missing_backup_notification_days",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept missing_backup_notification_days on volume backup schedules (added in Coolify v4.4.1). "+
+				"The provider will keep the value in Terraform state but will not send it. "+
+				"Upgrade to Coolify v4.4.1 or later, or remove missing_backup_notification_days from configuration.",
+			ver,
+		),
+	)
 }
 
 func (r *storageBackupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -322,8 +367,9 @@ func (r *storageBackupResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_storage_backup"})
+	warnUnsupportedVolumeBackupMissingDays(r.client, plan, &resp.Diagnostics)
 
-	got, err := r.client.UpsertVolumeBackup(ctx, parentType, parentUUID, plan.StorageUUID.ValueString(), buildInput(plan))
+	got, err := r.client.UpsertVolumeBackup(ctx, parentType, parentUUID, plan.StorageUUID.ValueString(), buildInput(r.client, plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating storage backup schedule",
 			fmt.Sprintf("storage %s on %s %s: %s", plan.StorageUUID.ValueString(), parentType, parentUUID, err))
@@ -392,7 +438,8 @@ func (r *storageBackupResource) Update(ctx context.Context, req resource.UpdateR
 		"resource_type": "coolify_storage_backup", "uuid": plan.UUID.ValueString(),
 	})
 
-	got, err := r.client.UpsertVolumeBackup(ctx, parentType, parentUUID, plan.StorageUUID.ValueString(), buildInput(plan))
+	warnUnsupportedVolumeBackupMissingDays(r.client, plan, &resp.Diagnostics)
+	got, err := r.client.UpsertVolumeBackup(ctx, parentType, parentUUID, plan.StorageUUID.ValueString(), buildInput(r.client, plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating storage backup schedule",
 			fmt.Sprintf("storage %s: %s", plan.StorageUUID.ValueString(), err))

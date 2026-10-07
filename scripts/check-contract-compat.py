@@ -113,6 +113,13 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
     "DatabasesController::update_backup": {
         "missing_backup_notification_days",
     },
+    # Volume-backup upsert gained the field in tag v4.4.1. Absent on v4.4.0.
+    "VolumeBackupsController::upsert": {
+        "missing_backup_notification_days",
+    },
+    "VolumeBackupsController::validateUpsertRequest": {
+        "missing_backup_notification_days",
+    },
     "ServicesController::create_service": {
         "tags",
     },

@@ -58,7 +58,7 @@ provider "coolify" {
 
 - **[Quick Start](guides/quickstart)** - Deploy your first application in under 5 minutes
 - **[Installation](guides/installation)** - Detailed setup and configuration options
-- **[Coolify Version Support](guides/coolify-version-support)** - What works on Coolify 4.1, 4.2, and 4.3
+- **[Coolify Version Support](guides/coolify-version-support)** - What works on Coolify 4.1, 4.2, 4.3, and 4.4
 - **[API Coverage](https://github.com/coolify-terraform/terraform-provider-coolify/blob/main/API_COVERAGE.md)** - Coolify HTTP routes the provider wraps, and what to use when it does not
 - **[Concepts](guides/concepts)** - How Coolify resources map to Terraform
 - **[Choosing an Application Type](guides/choosing-application-type)** - Pick the right resource for your deployment method

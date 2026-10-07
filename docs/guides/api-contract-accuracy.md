@@ -13,16 +13,16 @@ Coolify contract extracted from the real application code.
 > `reviewed drift` means the pinned spec and source contract disagree on nullability, but the provider already handles the field safely and no runtime fix is needed.
 > `mapped` means the field name appears in the provider's internal client JSON structs. It does not guarantee Terraform schema exposure, read-after-write round trips, or full CRUD behavior.
 
-Contract version: `v4.3.23` | Extracted from: `coollabsio/coolify@v4.3.23`
+Contract version: `v4.4.1` | Extracted from: `coollabsio/coolify@v4.4.1`
 
 ## Summary
 
 | Metric | Count |
 |--------|------:|
-| Public schema fields compared | 321 |
-| Public schema type matches | 321/321 |
-| Public schema nullable matches | 254/321 |
-| Public schema client JSON mappings | 251/321 |
+| Public schema fields compared | 333 |
+| Public schema type matches | 333/333 |
+| Public schema nullable matches | 263/333 |
+| Public schema client JSON mappings | 262/333 |
 | Reusable public schemas compared | 10 |
 | Contract-only / inline-only models documented | 12 |
 
@@ -32,7 +32,7 @@ Contract version: `v4.3.23` | Extracted from: `coollabsio/coolify@v4.3.23`
 
 ## Application
 
-Fields: 139 | Type matches: 139/139 | Nullable matches: 120/139 | Client JSON mappings: 110/139
+Fields: 140 | Type matches: 140/140 | Nullable matches: 120/140 | Client JSON mappings: 111/140
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -44,6 +44,7 @@ Fields: 139 | Type matches: 139/139 | Nullable matches: 120/139 | Client JSON ma
 | config_hash | string | string | yes | **WRONG** | - | mapped |
 | connect_to_docker_network | boolean | boolean | yes | yes | false | mapped |
 | container_present | boolean | boolean | yes | **WRONG** | - | mapped |
+| custom_container_name_prefix | string | string | yes | **WRONG** | - | mapped |
 | custom_docker_run_options | string | string | yes | yes | - | mapped |
 | custom_healthcheck_found | boolean | boolean | yes | yes | false | n/a |
 | custom_internal_name | string | string | yes | **WRONG** | - | mapped |
@@ -255,7 +256,7 @@ This section compares the internal source-derived backup model against the publi
 Coolify stores the relation as `s3_storage_id` internally, while the public API accepts `s3_storage_uuid` on request bodies.
 That identifier translation is expected and does not imply a missing top-level S3 CRUD API.
 
-Fields: 22 | Type matches: 22/22 | Nullable matches: 20/22 | Client JSON mappings: 19/22
+Fields: 22 | Type matches: 22/22 | Nullable matches: 21/22 | Client JSON mappings: 19/22
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -275,12 +276,12 @@ Fields: 22 | Type matches: 22/22 | Nullable matches: 20/22 | Client JSON mapping
 | frequency | string | string | yes | yes | - | mapped |
 | last_execution_at | string | string | yes | **WRONG** | - | mapped |
 | missing_backup_notification_days | string | string | yes | yes | - | mapped |
-| missing_backup_notification_sent_at | string | string | yes | **WRONG** | - | mapped |
 | number_of_backups_locally | integer | integer | yes | yes | 7 | n/a |
 | s3_storage_id | integer | integer | yes | yes | - | n/a |
 | save_s3 | boolean | boolean | yes | yes | true | mapped |
 | timeout | integer | integer | yes | yes | 3600 | mapped |
 | uuid | string | string | yes | yes | - | mapped |
+| missing_backup_notification_sent_at | - | string | - | - | - | mapped |
 
 ## ScheduledTask
 
@@ -303,7 +304,7 @@ Fields: 12 | Type matches: 12/12 | Nullable matches: 10/12 | Client JSON mapping
 
 ## Server
 
-Fields: 30 | Type matches: 30/30 | Nullable matches: 17/30 | Client JSON mappings: 14/30
+Fields: 31 | Type matches: 31/31 | Nullable matches: 17/31 | Client JSON mappings: 14/31
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -322,6 +323,7 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 17/30 | Client JSON mapping
 | name | string | string | yes | yes | - | mapped |
 | port | integer | integer | yes | yes | 22 | mapped |
 | private_key_id | integer | integer | yes | yes | - | n/a |
+| sentinel_waiting_since | string | string | yes | **WRONG** | - | n/a |
 | server_metadata | object | object | yes | **WRONG** | - | n/a |
 | swarm_cluster | integer | integer | yes | **WRONG** | - | n/a |
 | traefik_outdated_info | object | object | yes | **WRONG** | - | n/a |
@@ -340,7 +342,7 @@ Fields: 30 | Type matches: 30/30 | Nullable matches: 17/30 | Client JSON mapping
 
 ## ServerSetting
 
-Fields: 54 | Type matches: 54/54 | Nullable matches: 40/54 | Client JSON mappings: 51/54
+Fields: 64 | Type matches: 64/64 | Nullable matches: 48/64 | Client JSON mappings: 61/64
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -361,8 +363,11 @@ Fields: 54 | Type matches: 54/54 | Nullable matches: 40/54 | Client JSON mapping
 | force_disabled | boolean | boolean | yes | yes | false | mapped |
 | force_docker_cleanup | boolean | boolean | yes | yes | true | mapped |
 | generate_exact_labels | boolean | boolean | yes | yes | false | mapped |
+| geoip_maxmind_license_key | string | string | yes | **WRONG** | - | mapped |
+| geoip_refresh_days | integer | integer | yes | yes | 30 | mapped |
 | is_build_server | boolean | boolean | yes | yes | false | mapped |
 | is_cloudflare_tunnel | boolean | boolean | yes | yes | false | mapped |
+| is_geoip_enabled | boolean | boolean | yes | yes | true | mapped |
 | is_jump_server | boolean | boolean | yes | yes | false | mapped |
 | is_logdrain_axiom_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_logdrain_custom_enabled | boolean | boolean | yes | yes | false | mapped |
@@ -376,6 +381,7 @@ Fields: 54 | Type matches: 54/54 | Nullable matches: 40/54 | Client JSON mapping
 | is_swarm_manager | string | string | yes | yes | - | mapped |
 | is_swarm_worker | boolean | boolean | yes | yes | false | mapped |
 | is_terminal_enabled | boolean | boolean | yes | yes | true | mapped |
+| is_traffic_analytics_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_usable | boolean | boolean | yes | yes | false | mapped |
 | logdrain_axiom_api_key | string | string | yes | **WRONG** | - | mapped |
 | logdrain_axiom_dataset_name | string | string | yes | **WRONG** | - | mapped |
@@ -390,9 +396,15 @@ Fields: 54 | Type matches: 54/54 | Nullable matches: 40/54 | Client JSON mapping
 | sentinel_push_interval_seconds | integer | integer | yes | yes | 60 | mapped |
 | sentinel_token | string | string | yes | **WRONG** | - | mapped |
 | server_disk_usage_check_frequency | string | string | yes | yes | 0 23 * * * | mapped |
+| server_disk_usage_notification_interval_hours | integer | integer | yes | yes | 24 | mapped |
 | server_disk_usage_notification_threshold | integer | integer | yes | yes | 80 | mapped |
 | server_id | integer | integer | yes | yes | - | n/a |
+| server_role | string | string | yes | **WRONG** | ServerRole::BOTH->value | mapped |
 | server_timezone | string | string | yes | yes | UTC | mapped |
+| traffic_retention_1d_days | integer | integer | yes | yes | 395 | mapped |
+| traffic_retention_1h_days | integer | integer | yes | yes | 30 | mapped |
+| traffic_sample_threshold | integer | integer | yes | yes | 0 | mapped |
+| traffic_topn | integer | integer | yes | yes | 50 | mapped |
 | wildcard_domain | string | string | yes | **WRONG** | - | mapped |
 | created_at | - | string | - | - | - | mapped |
 | force_server_cleanup | - | boolean | - | - | - | n/a |
@@ -449,10 +461,11 @@ Fields: 5 | Type matches: 5/5 | Nullable matches: 5/5 | Client JSON mappings: 5/
 This model exists in the extracted source contract but not as a reusable public OpenAPI schema.
 Treat it as implementation detail coverage, not proof of a standalone public API surface.
 
-Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mappings: 14/19
+Fields: 23 | Type matches: 23/23 | Nullable matches: 23/23 | Client JSON mappings: 18/23
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
+| actions | string | - | - | - | - | mapped |
 | administration | string | - | - | - | - | n/a |
 | api_url | string | - | - | - | - | mapped |
 | app_id | integer | - | - | - | - | mapped |
@@ -468,24 +481,29 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 19/19 | Client JSON mapping
 | metadata | string | - | - | - | - | n/a |
 | name | string | - | - | - | - | mapped |
 | organization | string | - | - | - | - | mapped |
+| organization_self_hosted_runners | string | - | - | - | - | mapped |
 | private_key_id | integer | - | - | - | - | n/a |
 | pull_requests | string | - | - | - | - | n/a |
+| runner_group_id | integer | - | - | - | - | mapped |
 | uuid | string | - | - | - | - | mapped |
+| webhook_events | object | - | - | - | - | mapped |
 | webhook_secret | string | - | - | - | - | mapped |
 
 ## LocalPersistentVolume
 
-Fields: 8 | Type matches: 8/8 | Nullable matches: 8/8 | Client JSON mappings: 6/8
+Fields: 10 | Type matches: 10/10 | Nullable matches: 10/10 | Client JSON mappings: 6/10
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
 | container_id | string | - | - | - | - | n/a |
 | host_path | string | - | - | - | - | mapped |
+| ignores_compose_driver_options | boolean | - | - | - | false | n/a |
 | is_preview_suffix_enabled | boolean | - | - | - | true | mapped |
 | mount_path | string | - | - | - | - | mapped |
 | name | string | - | - | - | - | mapped |
 | resource_id | integer | - | - | - | - | n/a |
 | resource_type | string | - | - | - | - | mapped |
+| standalone_sqlite_id | integer | - | - | - | - | n/a |
 | uuid | string | - | - | - | - | mapped |
 
 ## S3Storage
@@ -836,7 +854,7 @@ Fields: 44 | Type matches: 44/44 | Nullable matches: 44/44 | Client JSON mapping
 
 ## StandaloneRedis
 
-Fields: 37 | Type matches: 37/37 | Nullable matches: 37/37 | Client JSON mappings: 29/37
+Fields: 38 | Type matches: 38/38 | Nullable matches: 38/38 | Client JSON mappings: 29/38
 
 | Field | Contract Type | Spec Type | Type Match | Nullable Match | Default | Client JSON Mapping |
 |-------|:---:|:---:|:---:|:---:|---------|:---:|
@@ -859,6 +877,7 @@ Fields: 37 | Type matches: 37/37 | Nullable matches: 37/37 | Client JSON mapping
 | last_online_at | string | - | - | - | now( | n/a |
 | last_restart_at | string | - | - | - | - | n/a |
 | last_restart_type | string | - | - | - | - | n/a |
+| legacy_password_quoting | boolean | - | - | - | false | n/a |
 | limits_cpu_shares | integer | - | - | - | 1024 | mapped |
 | limits_cpus | string | - | - | - | 0 | mapped |
 | limits_cpuset | string | - | - | - | - | mapped |

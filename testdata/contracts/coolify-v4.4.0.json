@@ -1,7 +1,7 @@
 {
-  "version": "v4.4.1",
-  "extracted_from": "coollabsio/coolify@v4.4.1",
-  "extracted_at": "2026-10-07T13:34:23.121288+00:00",
+  "version": "v4.4.0",
+  "extracted_from": "coollabsio/coolify@v4.4.0",
+  "extracted_at": "2026-10-07T13:34:22.099826+00:00",
   "models": {
     "Application": {
       "table": "applications",
@@ -8460,8 +8460,7 @@
         "retention_amount_s3",
         "retention_days_s3",
         "retention_max_storage_s3",
-        "timeout",
-        "missing_backup_notification_days"
+        "timeout"
       ]
     },
     "VolumeBackupsController::upsert": {
@@ -8478,8 +8477,7 @@
         "retention_amount_s3",
         "retention_days_s3",
         "retention_max_storage_s3",
-        "timeout",
-        "missing_backup_notification_days"
+        "timeout"
       ]
     },
     "VultrController::createServer": {

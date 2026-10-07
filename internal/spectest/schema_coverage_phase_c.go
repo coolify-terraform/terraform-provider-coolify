@@ -136,6 +136,7 @@ var applicationAllowListSchemaRegistry = []SchemaCoverageEntry{
 	{ContractField: "gpu_device_ids", SchemaAttribute: "gpu_device_ids", Status: StatusCovered},
 	{ContractField: "gpu_options", SchemaAttribute: "gpu_options", Status: StatusCovered},
 	{ContractField: "is_consistent_container_name_enabled", SchemaAttribute: "is_consistent_container_name_enabled", Status: StatusCovered},
+	{ContractField: "custom_container_name_prefix", SchemaAttribute: "custom_container_name_prefix", Status: StatusCovered},
 	{ContractField: "custom_internal_name", SchemaAttribute: "custom_internal_name", Status: StatusCovered},
 
 	// Wrong surface

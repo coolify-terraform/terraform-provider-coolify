@@ -17,16 +17,18 @@ type coverageStatus struct {
 
 // Skip class IDs used by skipped() in coveredEndpoints().
 const (
-	skipCloneMove     = "clone-move"
-	skipRunNow        = "run-now"
-	skipRollback      = "rollback"
-	skipLogs          = "logs"
-	skipNestedService = "nested-service"
-	skipControlPlane  = "control-plane"
-	skipEnableDisable = "enable-disable"
-	skipAlias         = "alias"
-	skipDeprecated    = "deprecated"
-	skipFeedback      = "not-infra"
+	skipCloneMove      = "clone-move"
+	skipRunNow         = "run-now"
+	skipRollback       = "rollback"
+	skipLogs           = "logs"
+	skipNestedService  = "nested-service"
+	skipControlPlane   = "control-plane"
+	skipEnableDisable  = "enable-disable"
+	skipAlias          = "alias"
+	skipDeprecated     = "deprecated"
+	skipFeedback       = "not-infra"
+	skipDatabaseImport = "database-import"
+	skipOperator       = "operator"
 )
 
 type skipKind struct {
@@ -114,6 +116,25 @@ var skipKindCatalog = []skipKind{
 		why:     "`POST /feedback` is a Coolify product endpoint, not infrastructure.",
 		instead: "Nothing in Terraform. Send feedback through Coolify.",
 		order:   10,
+	},
+	{
+		id:    skipDatabaseImport,
+		title: "Database backup import",
+		why:   "Upload and import routes restore a dump into an existing database. They are a one-time operation, not a schedule Terraform can keep.",
+		instead: "`coolify_database_backup` or `coolify_storage_backup` for the schedule. " +
+			"Restore a dump from the Coolify UI. Nested service databases stay on `coolify_service`.",
+		order: 11,
+	},
+	{
+		id:    skipOperator,
+		title: "Operator reads and one-shot actions",
+		why: "Preview list, get, and create are owned by Coolify when a pull request opens. " +
+			"Audit events, secret-manager configuration, integration tokens, a live registry login check, " +
+			"and PATCH /team (current team profile) are operator actions, not resource settings.",
+		instead: "`coolify_application_preview` to track a preview, patch its domains, and delete it. " +
+			"`coolify_server_docker_registry` for saved registry logins. " +
+			"`data.coolify_team` to read the current team. Use the Coolify UI for imports, audit, and team profile edits.",
+		order: 12,
 	},
 }
 
