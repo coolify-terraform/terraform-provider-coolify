@@ -66,6 +66,17 @@ type ServerSettings struct {
 	// (update_server allow list, 1-720, default 24). Pointer so a 4.3 GET
 	// that omits the key stays null.
 	ServerDiskUsageNotificationIntervalHours *int `json:"server_disk_usage_notification_interval_hours,omitempty"`
+	// GeoIP and traffic columns live on ServerSetting from Coolify 4.4.
+	// Writes go through PATCH /servers/{uuid}/sentinel (ServerSentinel),
+	// not the server PATCH body. is_traffic_analytics_enabled is GET-only.
+	TrafficTopN               *int64 `json:"traffic_topn,omitempty"`
+	TrafficSampleThreshold    *int64 `json:"traffic_sample_threshold,omitempty"`
+	TrafficRetention1hDays    *int64 `json:"traffic_retention_1h_days,omitempty"`
+	TrafficRetention1dDays    *int64 `json:"traffic_retention_1d_days,omitempty"`
+	IsGeoIPEnabled            *bool  `json:"is_geoip_enabled,omitempty"`
+	GeoIPRefreshDays          *int64 `json:"geoip_refresh_days,omitempty"`
+	GeoIPMaxMindLicenseKey    string `json:"geoip_maxmind_license_key,omitempty"`
+	IsTrafficAnalyticsEnabled *bool  `json:"is_traffic_analytics_enabled,omitempty"`
 }
 
 type Server struct {

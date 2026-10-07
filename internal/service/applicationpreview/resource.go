@@ -136,7 +136,9 @@ func (r *applicationPreviewResource) Create(ctx context.Context, req resource.Cr
 }
 
 func (r *applicationPreviewResource) Read(_ context.Context, _ resource.ReadRequest, _ *resource.ReadResponse) {
-	// No read endpoint for individual previews. Preserve state.
+	// Coolify >= v4.4.0 has GET /applications/{uuid}/previews/{pull_request_id}.
+	// This resource stays state-only: Coolify creates the preview, and the
+	// provider only PATCHes domains and deletes. Preserve state.
 }
 
 func (r *applicationPreviewResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

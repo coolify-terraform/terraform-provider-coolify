@@ -199,6 +199,81 @@ resource "coolify_storage_backup" "test" {
 	})
 }
 
+func TestStorageBackupResource_MissingBackupNotificationDays(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		version  string
+		wantSent bool
+	}{
+		{version: "4.4.1", wantSent: true},
+		{version: "4.4.0", wantSent: false},
+	} {
+		t.Run(tc.version, func(t *testing.T) {
+			t.Parallel()
+			var sent *int64
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch {
+				case r.Method == http.MethodPut && r.URL.Path == "/api/v1/applications/"+appUUID+"/storages/"+storUUID+"/backups":
+					var input client.UpsertVolumeBackupInput
+					if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+						http.Error(w, `{"error":"bad json"}`, http.StatusBadRequest)
+						return
+					}
+					sent = input.MissingBackupNotificationDays
+					w.WriteHeader(http.StatusCreated)
+					_ = json.NewEncoder(w).Encode(client.VolumeBackupSchedule{
+						UUID:                          schedUUID,
+						StorageUUID:                   storUUID,
+						StorageType:                   "persistent",
+						Frequency:                     input.Frequency,
+						Enabled:                       true,
+						Timeout:                       3600,
+						RetentionAmountLocally:        7,
+						RetentionAmountS3:             7,
+						MissingBackupNotificationDays: input.MissingBackupNotificationDays,
+					})
+				case r.Method == http.MethodGet && r.URL.Path == "/api/v1/applications/"+appUUID+"/storages":
+					_ = json.NewEncoder(w).Encode(map[string]interface{}{
+						"persistent_storages": []client.Storage{{UUID: storUUID, Name: "data", MountPath: "/data"}},
+						"file_storages":       []client.Storage{},
+					})
+				case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/applications/"+appUUID+"/storages/"+storUUID+"/backups":
+					w.WriteHeader(http.StatusOK)
+					_ = json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+				default:
+					http.Error(w, `{}`, http.StatusNotFound)
+				}
+			})
+			srv := httptest.NewServer(acctest.WithVersionEndpointVersion(handler, tc.version))
+			defer srv.Close()
+
+			resource.UnitTest(t, resource.TestCase{
+				ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+				Steps: []resource.TestStep{{
+					Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_storage_backup" "test" {
+  application_uuid                  = "` + appUUID + `"
+  storage_uuid                      = "` + storUUID + `"
+  frequency                         = "0 2 * * *"
+  missing_backup_notification_days  = 5
+}`,
+					Check: resource.TestCheckResourceAttr("coolify_storage_backup.test", "missing_backup_notification_days", "5"),
+				}},
+			})
+			if tc.wantSent {
+				if sent == nil || *sent != 5 {
+					t.Fatalf("Coolify %s: sent missing_backup_notification_days = %v, want 5", tc.version, sent)
+				}
+				return
+			}
+			if sent != nil {
+				t.Fatalf("Coolify %s: sent missing_backup_notification_days = %v, want omitted", tc.version, *sent)
+			}
+		})
+	}
+}
+
 func TestStorageBackupResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()

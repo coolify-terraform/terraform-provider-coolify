@@ -12988,6 +12988,11 @@
                         "format": "date-time",
                         "description": "The date and time when the application was created."
                     },
+                    "custom_container_name_prefix": {
+                        "type": "string",
+                        "description": "Custom container name prefix.",
+                        "maxLength": 255
+                    },
                     "custom_docker_run_options": {
                         "type": "string",
                         "nullable": true,
@@ -13483,7 +13488,8 @@
                     },
                     "max_restart_count": {
                         "type": "string",
-                        "description": "Max restart count."
+                        "description": "Max restart count.",
+                        "default": 0
                     },
                     "name": {
                         "type": "string",
@@ -14093,6 +14099,11 @@
                         ],
                         "description": "The proxy type."
                     },
+                    "sentinel_waiting_since": {
+                        "type": "string",
+                        "description": "Sentinel waiting since.",
+                        "format": "date-time"
+                    },
                     "server_metadata": {
                         "type": "object",
                         "description": "Server metadata."
@@ -14235,6 +14246,15 @@
                         "description": "Generate exact labels.",
                         "default": false
                     },
+                    "geoip_maxmind_license_key": {
+                        "type": "string",
+                        "description": "Geoip maxmind license key."
+                    },
+                    "geoip_refresh_days": {
+                        "type": "integer",
+                        "description": "Geoip refresh days.",
+                        "default": 30
+                    },
                     "id": {
                         "type": "integer"
                     },
@@ -14245,6 +14265,11 @@
                     "is_cloudflare_tunnel": {
                         "type": "boolean",
                         "default": false
+                    },
+                    "is_geoip_enabled": {
+                        "type": "boolean",
+                        "description": "Is geoip enabled.",
+                        "default": true
                     },
                     "is_jump_server": {
                         "type": "boolean",
@@ -14299,6 +14324,11 @@
                         "type": "boolean",
                         "default": true
                     },
+                    "is_traffic_analytics_enabled": {
+                        "type": "boolean",
+                        "description": "Is traffic analytics enabled.",
+                        "default": false
+                    },
                     "is_usable": {
                         "type": "boolean",
                         "default": false
@@ -14351,6 +14381,11 @@
                         "default": "0 23 * * *",
                         "maxLength": 255
                     },
+                    "server_disk_usage_notification_interval_hours": {
+                        "type": "integer",
+                        "description": "Server disk usage notification interval hours.",
+                        "default": 24
+                    },
                     "server_disk_usage_notification_threshold": {
                         "type": "integer",
                         "description": "Server disk usage notification threshold.",
@@ -14359,11 +14394,37 @@
                     "server_id": {
                         "type": "integer"
                     },
+                    "server_role": {
+                        "type": "string",
+                        "description": "Server role.",
+                        "default": "ServerRole::BOTH->value",
+                        "maxLength": 255
+                    },
                     "server_timezone": {
                         "type": "string",
                         "description": "Server timezone.",
                         "default": "UTC",
                         "maxLength": 255
+                    },
+                    "traffic_retention_1d_days": {
+                        "type": "integer",
+                        "description": "Traffic retention 1d days.",
+                        "default": 395
+                    },
+                    "traffic_retention_1h_days": {
+                        "type": "integer",
+                        "description": "Traffic retention 1h days.",
+                        "default": 30
+                    },
+                    "traffic_sample_threshold": {
+                        "type": "integer",
+                        "description": "Traffic sample threshold.",
+                        "default": 0
+                    },
+                    "traffic_topn": {
+                        "type": "integer",
+                        "description": "Traffic topn.",
+                        "default": 50
                     },
                     "updated_at": {
                         "type": "string"
@@ -15626,6 +15687,11 @@
                         "type": "string",
                         "description": "Last restart type."
                     },
+                    "legacy_password_quoting": {
+                        "type": "boolean",
+                        "description": "Legacy password quoting.",
+                        "default": false
+                    },
                     "limits_cpu_shares": {
                         "type": "integer",
                         "description": "Limits cpu shares.",
@@ -16305,6 +16371,11 @@
             "GithubApp": {
                 "type": "object",
                 "properties": {
+                    "actions": {
+                        "type": "string",
+                        "description": "Actions.",
+                        "maxLength": 255
+                    },
                     "administration": {
                         "type": "string",
                         "description": "Administration.",
@@ -16386,6 +16457,11 @@
                         "maxLength": 255,
                         "nullable": true
                     },
+                    "organization_self_hosted_runners": {
+                        "type": "string",
+                        "description": "Organization self hosted runners.",
+                        "maxLength": 255
+                    },
                     "private_key_id": {
                         "type": "integer",
                         "description": "Private key id.",
@@ -16397,10 +16473,18 @@
                         "maxLength": 255,
                         "nullable": true
                     },
+                    "runner_group_id": {
+                        "type": "integer",
+                        "description": "Runner group id."
+                    },
                     "uuid": {
                         "type": "string",
                         "description": "Uuid.",
                         "maxLength": 255
+                    },
+                    "webhook_events": {
+                        "type": "object",
+                        "description": "Webhook events."
                     },
                     "webhook_secret": {
                         "type": "string",
@@ -16477,6 +16561,11 @@
                         "maxLength": 255,
                         "nullable": true
                     },
+                    "ignores_compose_driver_options": {
+                        "type": "boolean",
+                        "description": "Ignores compose driver options.",
+                        "default": false
+                    },
                     "is_preview_suffix_enabled": {
                         "type": "boolean",
                         "description": "Is preview suffix enabled.",
@@ -16501,6 +16590,10 @@
                         "type": "string",
                         "description": "Resource type.",
                         "nullable": true
+                    },
+                    "standalone_sqlite_id": {
+                        "type": "integer",
+                        "description": "Standalone sqlite id."
                     },
                     "uuid": {
                         "type": "string",

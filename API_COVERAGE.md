@@ -11,9 +11,9 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 247 covered / 300 registry entries (82.3%)  
-**Planned**: 0 | **Skipped**: 53  
-**Registry size**: 300 (contract routes + allowlisted extras)
+**Coverage**: 251 covered / 318 registry entries (78.9%)  
+**Planned**: 0 | **Skipped**: 67  
+**Registry size**: 318 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
 
@@ -161,6 +161,38 @@ Coolify also has POST enable/disable routes. The provider writes tunnel settings
 | Route |
 |-------|
 | `POST /feedback` |
+
+### Database backup import
+
+Upload and import routes restore a dump into an existing database. They are a one-time operation, not a schedule Terraform can keep.
+
+**Use this instead:** `coolify_database_backup` or `coolify_storage_backup` for the schedule. Restore a dump from the Coolify UI. Nested service databases stay on `coolify_service`.
+
+| Route |
+|-------|
+| `GET /databases/{uuid}/imports/{activity_id}` |
+| `GET /services/{uuid}/databases/{database_uuid}/imports/{activity_id}` |
+| `POST /databases/{uuid}/imports` |
+| `POST /databases/{uuid}/imports/uploads` |
+| `POST /services/{uuid}/databases/{database_uuid}/imports` |
+| `POST /services/{uuid}/databases/{database_uuid}/imports/uploads` |
+
+### Operator reads and one-shot actions
+
+Preview list, get, and create are owned by Coolify when a pull request opens. Audit events, secret-manager configuration, integration tokens, a live registry login check, and PATCH /team (current team profile) are operator actions, not resource settings.
+
+**Use this instead:** `coolify_application_preview` to track a preview, patch its domains, and delete it. `coolify_server_docker_registry` for saved registry logins. `data.coolify_team` to read the current team. Use the Coolify UI for imports, audit, and team profile edits.
+
+| Route |
+|-------|
+| `GET /applications/{uuid}/previews` |
+| `GET /applications/{uuid}/previews/{pull_request_id}` |
+| `GET /audit-events` |
+| `PATCH /applications/{uuid}/secret-manager` |
+| `PATCH /team` |
+| `POST /applications/{uuid}/previews` |
+| `POST /security/integration-tokens` |
+| `POST /servers/{uuid}/registries/{registry}/check` |
 
 ## Routes by Terraform resource
 
@@ -369,6 +401,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `POST /databases/redis` | v0.1.0 |
 
+### `coolify_database_sqlite`
+
+| Route | Since |
+|-------|-------|
+| `POST /databases/sqlite` | v0.1.25 |
+
 ### `coolify_deployment`
 
 | Route | Since |
@@ -562,6 +600,14 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `GET /servers/{uuid}/docker-cleanup` | v0.1.15 |
 | `PATCH /servers/{uuid}/docker-cleanup` | v0.1.15 |
+
+### `coolify_server_docker_registry`
+
+| Route | Since |
+|-------|-------|
+| `DELETE /servers/{uuid}/registries/{registry}` | v0.1.25 |
+| `GET /servers/{uuid}/registries` | v0.1.25 |
+| `POST /servers/{uuid}/registries` | v0.1.25 |
 
 ### `coolify_server_hetzner`
 
@@ -1037,6 +1083,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `DELETE /security/keys/{uuid}` | covered | `coolify_private_key` |
 | `DELETE /servers/{uuid}` | covered | `coolify_server` |
 | `DELETE /servers/{uuid}/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
+| `DELETE /servers/{uuid}/registries/{registry}` | covered | `coolify_server_docker_registry` |
 | `DELETE /services/{uuid}` | covered | `coolify_service` |
 | `DELETE /services/{uuid}/envs/{env_uuid}` | covered | `coolify_environment_variable` |
 | `DELETE /services/{uuid}/scheduled-tasks/{task_uuid}` | covered | `coolify_scheduled_task` |
@@ -1050,6 +1097,8 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /applications/{uuid}/destinations` | covered | `coolify_application_destination` |
 | `GET /applications/{uuid}/envs` | covered | `data.coolify_environment_variables` |
 | `GET /applications/{uuid}/logs` | covered | `data.coolify_application_logs` |
+| `GET /applications/{uuid}/previews` | skipped | `operator` |
+| `GET /applications/{uuid}/previews/{pull_request_id}` | skipped | `operator` |
 | `GET /applications/{uuid}/previews/{pull_request_id}/logs` | skipped | `logs` |
 | `GET /applications/{uuid}/restart` | covered | `coolify_deployment` |
 | `GET /applications/{uuid}/rollback-images` | skipped | `rollback` |
@@ -1059,6 +1108,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /applications/{uuid}/stop` | covered | `coolify_resource_action` |
 | `GET /applications/{uuid}/storages` | covered | `data.coolify_storages` |
 | `GET /applications/{uuid}/tags` | covered | `coolify_tag + coolify_resource_tag` |
+| `GET /audit-events` | skipped | `operator` |
 | `GET /cloud-init-scripts` | covered | `coolify_cloud_init_scripts` |
 | `GET /cloud-init-scripts/{uuid}` | covered | `coolify_cloud_init_script` |
 | `GET /cloud-tokens` | covered | `data.coolify_cloud_tokens` |
@@ -1068,6 +1118,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /databases/{uuid}/backups` | covered | `coolify_database_backup` |
 | `GET /databases/{uuid}/backups/{scheduled_backup_uuid}/executions` | covered | `data.coolify_backup_executions` |
 | `GET /databases/{uuid}/envs` | covered | `data.coolify_environment_variables` |
+| `GET /databases/{uuid}/imports/{activity_id}` | skipped | `database-import` |
 | `GET /databases/{uuid}/logs` | skipped | `logs` |
 | `GET /databases/{uuid}/restart` | covered | `coolify_resource_action` |
 | `GET /databases/{uuid}/start` | covered | `coolify_resource_action` |
@@ -1125,6 +1176,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /servers/{uuid}/export` | skipped | `control-plane` |
 | `GET /servers/{uuid}/log-drains` | covered | `coolify_server_log_drain` |
 | `GET /servers/{uuid}/proxy` | covered | `coolify_server_proxy` |
+| `GET /servers/{uuid}/registries` | covered | `coolify_server_docker_registry` |
 | `GET /servers/{uuid}/resources` | covered | `data.coolify_server_resources` |
 | `GET /servers/{uuid}/sentinel` | covered | `coolify_server_sentinel` |
 | `GET /servers/{uuid}/validate` | covered | `data.coolify_server_validation` |
@@ -1138,6 +1190,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /services/{uuid}/applications/{app_uuid}/stop` | skipped | `nested-service` |
 | `GET /services/{uuid}/databases` | skipped | `nested-service` |
 | `GET /services/{uuid}/databases/{database_uuid}` | skipped | `nested-service` |
+| `GET /services/{uuid}/databases/{database_uuid}/imports/{activity_id}` | skipped | `database-import` |
 | `GET /services/{uuid}/databases/{database_uuid}/logs` | skipped | `logs` |
 | `GET /services/{uuid}/envs` | covered | `data.coolify_environment_variables` |
 | `GET /services/{uuid}/logs` | skipped | `logs` |
@@ -1168,6 +1221,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `PATCH /applications/{uuid}/envs/bulk` | covered | `client.BulkUpdateEnvVars` |
 | `PATCH /applications/{uuid}/previews/{pull_request_id}` | covered | `coolify_application_preview` |
 | `PATCH /applications/{uuid}/scheduled-tasks/{task_uuid}` | covered | `coolify_scheduled_task` |
+| `PATCH /applications/{uuid}/secret-manager` | skipped | `operator` |
 | `PATCH /applications/{uuid}/storages` | covered | `coolify_storage` |
 | `PATCH /cloud-init-scripts/{uuid}` | covered | `coolify_cloud_init_script` |
 | `PATCH /cloud-tokens/{uuid}` | covered | `coolify_cloud_token` |
@@ -1207,6 +1261,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `PATCH /services/{uuid}/storages` | covered | `coolify_storage` |
 | `PATCH /settings/email` | covered | `coolify_instance_email_settings` |
 | `PATCH /tags/{uuid}` | covered | `coolify_tag + coolify_resource_tag` |
+| `PATCH /team` | skipped | `operator` |
 | `PATCH /team/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
 | `POST /applications/dockercompose` | skipped | `deprecated` |
 | `POST /applications/dockerfile` | covered | `coolify_application_dockerfile` |
@@ -1219,6 +1274,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `POST /applications/{uuid}/envs` | covered | `coolify_environment_variable` |
 | `POST /applications/{uuid}/migrate` | skipped | `clone-move` |
 | `POST /applications/{uuid}/move` | skipped | `clone-move` |
+| `POST /applications/{uuid}/previews` | skipped | `operator` |
 | `POST /applications/{uuid}/restart` | covered | `coolify_resource_action` |
 | `POST /applications/{uuid}/rollback` | skipped | `rollback` |
 | `POST /applications/{uuid}/scheduled-tasks` | covered | `coolify_scheduled_task` |
@@ -1239,9 +1295,12 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `POST /databases/mysql` | covered | `coolify_database_mysql` |
 | `POST /databases/postgresql` | covered | `coolify_database_postgresql` |
 | `POST /databases/redis` | covered | `coolify_database_redis` |
+| `POST /databases/sqlite` | covered | `coolify_database_sqlite` |
 | `POST /databases/{uuid}/backups` | covered | `coolify_database_backup` |
 | `POST /databases/{uuid}/clone` | skipped | `clone-move` |
 | `POST /databases/{uuid}/envs` | covered | `coolify_environment_variable` |
+| `POST /databases/{uuid}/imports` | skipped | `database-import` |
+| `POST /databases/{uuid}/imports/uploads` | skipped | `database-import` |
 | `POST /databases/{uuid}/migrate` | skipped | `clone-move` |
 | `POST /databases/{uuid}/move` | skipped | `clone-move` |
 | `POST /databases/{uuid}/restart` | covered | `coolify_resource_action` |
@@ -1265,6 +1324,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `POST /projects/{uuid}/envs` | covered | `coolify_shared_environment_variable` |
 | `POST /s3-storages` | covered | `coolify_s3_storage` |
 | `POST /s3-storages/{uuid}/validate` | covered | `coolify_s3_storage_validate` |
+| `POST /security/integration-tokens` | skipped | `operator` |
 | `POST /security/keys` | covered | `coolify_private_key` |
 | `POST /sentinel/push` | skipped | `control-plane` |
 | `POST /servers` | covered | `coolify_server` |
@@ -1281,6 +1341,8 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `POST /servers/{uuid}/export/mailbox` | skipped | `control-plane` |
 | `POST /servers/{uuid}/migrate` | skipped | `clone-move` |
 | `POST /servers/{uuid}/proxy/restart` | skipped | `control-plane` |
+| `POST /servers/{uuid}/registries` | covered | `coolify_server_docker_registry` |
+| `POST /servers/{uuid}/registries/{registry}/check` | skipped | `operator` |
 | `POST /servers/{uuid}/transfer/complete` | skipped | `control-plane` |
 | `POST /servers/{uuid}/validate` | covered | `coolify_server_validate` |
 | `POST /services` | covered | `coolify_service` |
@@ -1289,6 +1351,8 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `POST /services/{uuid}/applications/{app_uuid}/start` | skipped | `nested-service` |
 | `POST /services/{uuid}/applications/{app_uuid}/stop` | skipped | `nested-service` |
 | `POST /services/{uuid}/clone` | skipped | `clone-move` |
+| `POST /services/{uuid}/databases/{database_uuid}/imports` | skipped | `database-import` |
+| `POST /services/{uuid}/databases/{database_uuid}/imports/uploads` | skipped | `database-import` |
 | `POST /services/{uuid}/databases/{database_uuid}/restart` | skipped | `nested-service` |
 | `POST /services/{uuid}/databases/{database_uuid}/start` | skipped | `nested-service` |
 | `POST /services/{uuid}/databases/{database_uuid}/stop` | skipped | `nested-service` |
