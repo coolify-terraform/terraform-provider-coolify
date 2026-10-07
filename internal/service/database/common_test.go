@@ -396,7 +396,10 @@ func TestDeleteDatabase_AddsWarningWhenPollingTimesOut(t *testing.T) {
 	defer srv.Close()
 
 	c := client.New(srv.URL, "test-token")
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	// The deadline has to outlive DELETE when the machine is busy.
+	// GET keeps returning the database, and the first poll wait is 500ms,
+	// so this still expires while the resource is present.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	resp := &resource.DeleteResponse{}
 
