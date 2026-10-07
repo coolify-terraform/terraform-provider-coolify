@@ -356,6 +356,12 @@ func IsBadRequest(err error) bool {
 	return errors.As(err, &apiErr) && apiErr.Status == http.StatusBadRequest
 }
 
+// IsConflict reports whether err is an APIStatusError with HTTP 409.
+func IsConflict(err error) bool {
+	var apiErr *APIStatusError
+	return errors.As(err, &apiErr) && apiErr.Status == http.StatusConflict
+}
+
 // APIMessageContains reports whether err is an APIStatusError whose Message
 // contains substr. It does not inspect outer wrap text.
 func APIMessageContains(err error, substr string) bool {
