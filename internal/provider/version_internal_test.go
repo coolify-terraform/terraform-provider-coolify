@@ -26,6 +26,31 @@ func TestRedactEndpointForDiagnostics(t *testing.T) {
 	}
 }
 
+func TestHTTPEndpointWarnsCleartext(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		input string
+		warns bool
+	}{
+		{"bracketed ipv6 loopback with port", "http://[::1]:8000", false},
+		{"bracketed ipv6 loopback", "http://[::1]", false},
+		{"userinfo on loopback", "http://user:pass@127.0.0.1:8000", false},
+		{"loopback with path", "http://127.0.0.1:8000/api", false},
+		{"localhost", "http://localhost:8000", false},
+		{"public name", "http://example.com:8000", true},
+		{"non-loopback ipv6", "http://[2001:db8::1]:8000", true},
+		{"https loopback", "https://[::1]:8000", false},
+		{"unparsable http", "http://[::1", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.warns, httpEndpointWarnsCleartext(tt.input))
+		})
+	}
+}
+
 func TestIsVersionAtLeast(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
