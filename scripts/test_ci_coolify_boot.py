@@ -55,6 +55,13 @@ class TestCICoolifyBoot(unittest.TestCase):
         src = SCRIPT.read_text()
         self.assertIn("run_limited 180", src)
         self.assertIn("timeout --foreground", src)
+        self.assertIn("TimeoutExpired", src)
+
+    def test_wait_ready_curl_has_max_time(self) -> None:
+        src = SCRIPT.read_text()
+        ready = src[src.index("step_wait_ready"): src.index("step_prepare_pull_bg")]
+        self.assertIn("curl", ready)
+        self.assertIn("--max-time 10", ready)
 
 
 if __name__ == "__main__":

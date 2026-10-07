@@ -34,6 +34,41 @@ psql_exec() {
 
 log() { echo "--- $1"; }
 
+# GNU timeout on Linux. Python kills the child process group when timeout
+# is missing, so the first macOS bootstrap cannot hang on Chromium install.
+run_limited() {
+  local secs="$1"
+  shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout --foreground "$secs" "$@"
+    return
+  fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "FAIL: need timeout or python3 to cap: $*" >&2
+    return 1
+  fi
+  python3 - "$secs" "$@" <<'PY'
+import os
+import signal
+import subprocess
+import sys
+
+secs = int(sys.argv[1])
+proc = subprocess.Popen(sys.argv[2:], start_new_session=True)
+try:
+    code = proc.wait(timeout=secs)
+except subprocess.TimeoutExpired:
+    os.killpg(proc.pid, signal.SIGTERM)
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.wait()
+    raise SystemExit(124)
+raise SystemExit(code)
+PY
+}
+
 # --- Preflight ---
 
 log "Checking Coolify containers"
@@ -47,11 +82,12 @@ done
 # Wait for Coolify web to be ready
 log "Waiting for Coolify web interface"
 for i in $(seq 1 24); do
-  if curl -s -o /dev/null -w "%{http_code}" "$COOLIFY_ENDPOINT/register" 2>/dev/null | grep -qE "200|302"; then
+  # --max-time so one accepted connection cannot freeze the attempt counter.
+  if curl -s --max-time 10 -o /dev/null -w "%{http_code}" "$COOLIFY_ENDPOINT/register" 2>/dev/null | grep -qE "200|302"; then
     break
   fi
   if [[ $i -eq 24 ]]; then
-    echo "ERROR: Coolify not ready after 2 minutes" >&2
+    echo "ERROR: Coolify not ready after 24 attempts" >&2
     exit 1
   fi
   sleep 5
@@ -83,11 +119,7 @@ if [[ "$USER_COUNT" == "0" ]]; then
     fi
     if ! "$PW_VENV/bin/python3" -c "from playwright.sync_api import sync_playwright" 2>/dev/null; then
       "$PW_VENV/bin/pip" install -q playwright
-      if command -v timeout >/dev/null 2>&1; then
-        timeout --foreground 180 "$PW_VENV/bin/playwright" install chromium
-      else
-        "$PW_VENV/bin/playwright" install chromium
-      fi
+      run_limited 180 "$PW_VENV/bin/playwright" install chromium
     fi
     PW_PYTHON="$PW_VENV/bin/python3"
   fi
