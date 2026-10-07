@@ -26,6 +26,7 @@ type volumeBackupMock struct {
 	server   *httptest.Server
 	mu       sync.Mutex
 	schedule *client.VolumeBackupSchedule
+	puts     int
 }
 
 func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
@@ -47,6 +48,7 @@ func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
 				http.Error(w, `{"message":"validation failed"}`, http.StatusUnprocessableEntity)
 				return
 			}
+			m.puts++
 			created := m.schedule == nil
 			enabled := true
 			if input.Enabled != nil {
@@ -587,6 +589,87 @@ resource "coolify_storage_backup" "test" {
 					},
 				),
 				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func TestStorageBackupResource_ImportDoesNotApplyDefaults(t *testing.T) {
+	t.Parallel()
+	mock := newVolumeBackupMock(t)
+	defer mock.Close()
+	mock.schedule = &client.VolumeBackupSchedule{
+		UUID: schedUUID, StorageUUID: storUUID, StorageType: "persistent",
+		Frequency: "0 2 * * *", Enabled: true, RetentionAmountLocally: 30,
+		RetentionAmountS3: 7, Timeout: 1800,
+	}
+	cfg := acctest.ProviderBlockForURL(mock.URL()) + `
+resource "coolify_storage_backup" "test" {
+  application_uuid = "` + appUUID + `"
+  storage_uuid     = "` + storUUID + `"
+  frequency        = "0 2 * * *"
+}
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config:             cfg,
+				ResourceName:       "coolify_storage_backup.test",
+				ImportState:        true,
+				ImportStateId:      "application:" + appUUID + ":" + storUUID,
+				ImportStatePersist: true,
+			},
+			{
+				Config:      cfg,
+				ExpectError: regexp.MustCompile(`Storage backup schedule is incomplete`),
+			},
+		},
+	})
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+	if mock.puts != 0 {
+		t.Fatalf("upsert calls = %d, want 0", mock.puts)
+	}
+}
+
+func TestStorageBackupResource_UpdateKeepsOmittedRetention(t *testing.T) {
+	t.Parallel()
+	mock := newVolumeBackupMock(t)
+	defer mock.Close()
+	provider := acctest.ProviderBlockForURL(mock.URL())
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: provider + `
+resource "coolify_storage_backup" "test" {
+  application_uuid         = "` + appUUID + `"
+  storage_uuid             = "` + storUUID + `"
+  frequency                = "0 2 * * *"
+  retention_amount_locally = 30
+}
+`,
+			},
+			{
+				Config: provider + `
+resource "coolify_storage_backup" "test" {
+  application_uuid = "` + appUUID + `"
+  storage_uuid     = "` + storUUID + `"
+  frequency        = "0 4 * * *"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_storage_backup.test", "retention_amount_locally", "30"),
+					func(*terraform.State) error {
+						mock.mu.Lock()
+						defer mock.mu.Unlock()
+						if mock.schedule == nil || mock.schedule.RetentionAmountLocally != 30 || mock.schedule.Frequency != "0 4 * * *" {
+							return fmt.Errorf("schedule = %+v, want frequency 0 4 * * * and retention 30", mock.schedule)
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})

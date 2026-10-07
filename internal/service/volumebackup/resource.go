@@ -15,9 +15,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -121,28 +120,28 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				Validators:          []validator.String{validate.CoolifyFrequency()},
 			},
 			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "Whether the schedule is enabled. Defaults to true.",
+				MarkdownDescription: "Whether the schedule is enabled. Create uses true when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(true),
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"save_s3": schema.BoolAttribute{
-				MarkdownDescription: "Upload backups to S3. When true, `s3_storage_uuid` is required. Defaults to false.",
+				MarkdownDescription: "Upload backups to S3. When true, `s3_storage_uuid` is required. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"disable_local_backup": schema.BoolAttribute{
-				MarkdownDescription: "Skip local archives. Only valid when `save_s3` is true. Defaults to false.",
+				MarkdownDescription: "Skip local archives. Only valid when `save_s3` is true. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"stop_during_backup": schema.BoolAttribute{
-				MarkdownDescription: "Stop the resource while the backup runs. Defaults to false.",
+				MarkdownDescription: "Stop the resource while the backup runs. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"s3_storage_uuid": schema.StringAttribute{
 				MarkdownDescription: "UUID of a usable team S3 storage when `save_s3` is true.",
@@ -150,52 +149,52 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				Validators:          []validator.String{validate.UUID()},
 			},
 			"retention_amount_locally": schema.Int64Attribute{
-				MarkdownDescription: "Number of local backups to retain. Defaults to 7.",
+				MarkdownDescription: "Number of local backups to retain. Create uses 7 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             int64default.StaticInt64(7),
+				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.Between(0, 10000)},
 			},
 			"retention_days_locally": schema.Int64Attribute{
-				MarkdownDescription: "Days to retain local backups. Defaults to 0 (unlimited by age).",
+				MarkdownDescription: "Days to retain local backups. Create uses 0 (unlimited by age) when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             int64default.StaticInt64(0),
+				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"retention_max_storage_locally": schema.Float64Attribute{
-				MarkdownDescription: "Max local backup storage (Coolify units). Defaults to 0 (unlimited).",
+				MarkdownDescription: "Max local backup storage (Coolify units). Create uses 0 (unlimited) when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             float64default.StaticFloat64(0),
+				PlanModifiers:       []planmodifier.Float64{float64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Float64{float64validator.AtLeast(0)},
 			},
 			"retention_amount_s3": schema.Int64Attribute{
-				MarkdownDescription: "Number of S3 backups to retain. Defaults to 7.",
+				MarkdownDescription: "Number of S3 backups to retain. Create uses 7 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             int64default.StaticInt64(7),
+				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.Between(0, 10000)},
 			},
 			"retention_days_s3": schema.Int64Attribute{
-				MarkdownDescription: "Days to retain S3 backups. Defaults to 0.",
+				MarkdownDescription: "Days to retain S3 backups. Create uses 0 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             int64default.StaticInt64(0),
+				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"retention_max_storage_s3": schema.Float64Attribute{
-				MarkdownDescription: "Max S3 backup storage. Defaults to 0.",
+				MarkdownDescription: "Max S3 backup storage. Create uses 0 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
-				Default:             float64default.StaticFloat64(0),
+				PlanModifiers:       []planmodifier.Float64{float64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Float64{float64validator.AtLeast(0)},
 			},
 			"timeout": schema.Int64Attribute{
-				MarkdownDescription: "Backup timeout in seconds (60-36000). Defaults to 3600.",
+				MarkdownDescription: "Backup timeout in seconds (60-36000). Create uses 3600 when this is omitted. Coolify keeps the stored timeout when the key is absent, so import does not require it.",
 				Optional:            true,
 				Computed:            true,
-				Default:             int64default.StaticInt64(3600),
+				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.Between(60, 36000)},
 			},
 			"missing_backup_notification_days": schema.Int64Attribute{
@@ -368,6 +367,7 @@ func (r *storageBackupResource) Create(ctx context.Context, req resource.CreateR
 	}
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_storage_backup"})
 	warnUnsupportedVolumeBackupMissingDays(r.client, plan, &resp.Diagnostics)
+	fillCreateDefaults(&plan)
 
 	got, err := r.client.UpsertVolumeBackup(ctx, parentType, parentUUID, plan.StorageUUID.ValueString(), buildInput(r.client, plan))
 	if err != nil {
@@ -439,6 +439,15 @@ func (r *storageBackupResource) Update(ctx context.Context, req resource.UpdateR
 	})
 
 	warnUnsupportedVolumeBackupMissingDays(r.client, plan, &resp.Diagnostics)
+	if missing := unsetDestructiveFields(plan); len(missing) > 0 {
+		resp.Diagnostics.AddError(
+			"Storage backup schedule is incomplete",
+			"Coolify replaces omitted enabled, save_s3, disable_local_backup, stop_during_backup, and retention fields. "+
+				"Set "+strings.Join(missing, ", ")+" before apply. Import does not know the live values. "+
+				"timeout and missing_backup_notification_days can stay omitted.",
+		)
+		return
+	}
 	got, err := r.client.UpsertVolumeBackup(ctx, parentType, parentUUID, plan.StorageUUID.ValueString(), buildInput(r.client, plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating storage backup schedule",
@@ -497,4 +506,75 @@ func (r *storageBackupResource) ImportState(ctx context.Context, req resource.Im
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(parentKey+"_uuid"), parts[1])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("storage_uuid"), parts[2])...)
+	resp.Diagnostics.AddWarning(
+		"Set schedule fields before the next apply",
+		"Coolify has no GET for this schedule and replaces omitted enabled and retention fields. "+
+			"Set enabled, save_s3, disable_local_backup, stop_during_backup, and every retention attribute before the next apply. "+
+			"timeout and missing_backup_notification_days can stay omitted.",
+	)
+}
+
+// fillCreateDefaults supplies the values Coolify uses when a create omits
+// them. Schema defaults cannot do this: Default runs before plan modifiers,
+// so an import would plan those defaults and overwrite the live schedule.
+func fillCreateDefaults(plan *storageBackupResourceModel) {
+	setBoolDefault(&plan.Enabled, true)
+	setBoolDefault(&plan.SaveS3, false)
+	setBoolDefault(&plan.DisableLocalBackup, false)
+	setBoolDefault(&plan.StopDuringBackup, false)
+	setIntDefault(&plan.RetentionAmountLocally, 7)
+	setIntDefault(&plan.RetentionDaysLocally, 0)
+	setFloatDefault(&plan.RetentionMaxStorageLocal, 0)
+	setIntDefault(&plan.RetentionAmountS3, 7)
+	setIntDefault(&plan.RetentionDaysS3, 0)
+	setFloatDefault(&plan.RetentionMaxStorageS3, 0)
+	setIntDefault(&plan.Timeout, 3600)
+}
+
+func setBoolDefault(v *types.Bool, def bool) {
+	if v.IsNull() || v.IsUnknown() {
+		*v = types.BoolValue(def)
+	}
+}
+
+func setIntDefault(v *types.Int64, def int64) {
+	if v.IsNull() || v.IsUnknown() {
+		*v = types.Int64Value(def)
+	}
+}
+
+func setFloatDefault(v *types.Float64, def float64) {
+	if v.IsNull() || v.IsUnknown() {
+		*v = types.Float64Value(def)
+	}
+}
+
+func unsetDestructiveFields(plan storageBackupResourceModel) []string {
+	var missing []string
+	checkBool := func(name string, v types.Bool) {
+		if v.IsNull() || v.IsUnknown() {
+			missing = append(missing, name)
+		}
+	}
+	checkInt := func(name string, v types.Int64) {
+		if v.IsNull() || v.IsUnknown() {
+			missing = append(missing, name)
+		}
+	}
+	checkFloat := func(name string, v types.Float64) {
+		if v.IsNull() || v.IsUnknown() {
+			missing = append(missing, name)
+		}
+	}
+	checkBool("enabled", plan.Enabled)
+	checkBool("save_s3", plan.SaveS3)
+	checkBool("disable_local_backup", plan.DisableLocalBackup)
+	checkBool("stop_during_backup", plan.StopDuringBackup)
+	checkInt("retention_amount_locally", plan.RetentionAmountLocally)
+	checkInt("retention_days_locally", plan.RetentionDaysLocally)
+	checkFloat("retention_max_storage_locally", plan.RetentionMaxStorageLocal)
+	checkInt("retention_amount_s3", plan.RetentionAmountS3)
+	checkInt("retention_days_s3", plan.RetentionDaysS3)
+	checkFloat("retention_max_storage_s3", plan.RetentionMaxStorageS3)
+	return missing
 }

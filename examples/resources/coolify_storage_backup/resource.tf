@@ -7,4 +7,7 @@ resource "coolify_storage_backup" "app_data" {
   enabled          = true
   save_s3          = false
   timeout          = 3600
+
+  # Omitted retention and stop/disable flags are filled only on create.
+  # After import, set them before the next apply.
 }

@@ -28,6 +28,9 @@ resource "coolify_storage_backup" "app_data" {
   enabled          = true
   save_s3          = false
   timeout          = 3600
+
+  # Omitted retention and stop/disable flags are filled only on create.
+  # After import, set them before the next apply.
 }
 ```
 
@@ -43,20 +46,20 @@ resource "coolify_storage_backup" "app_data" {
 
 - `application_uuid` (String) UUID of the application that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid`. Changing this forces a new resource.
 - `database_uuid` (String) UUID of the database that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid`. Changing this forces a new resource.
-- `disable_local_backup` (Boolean) Skip local archives. Only valid when `save_s3` is true. Defaults to false.
-- `enabled` (Boolean) Whether the schedule is enabled. Defaults to true.
+- `disable_local_backup` (Boolean) Skip local archives. Only valid when `save_s3` is true. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `enabled` (Boolean) Whether the schedule is enabled. Create uses true when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
 - `missing_backup_notification_days` (Number) Days without a backup execution before Coolify sends a missing-backup notification. `0` disables alerts. Valid range is 0-365. Requires Coolify >= v4.4.1. Tag v4.4.0 and `v4.4-rc.1` reject the key. On older instances the provider keeps the value in state and does not send it.
-- `retention_amount_locally` (Number) Number of local backups to retain. Defaults to 7.
-- `retention_amount_s3` (Number) Number of S3 backups to retain. Defaults to 7.
-- `retention_days_locally` (Number) Days to retain local backups. Defaults to 0 (unlimited by age).
-- `retention_days_s3` (Number) Days to retain S3 backups. Defaults to 0.
-- `retention_max_storage_locally` (Number) Max local backup storage (Coolify units). Defaults to 0 (unlimited).
-- `retention_max_storage_s3` (Number) Max S3 backup storage. Defaults to 0.
+- `retention_amount_locally` (Number) Number of local backups to retain. Create uses 7 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `retention_amount_s3` (Number) Number of S3 backups to retain. Create uses 7 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `retention_days_locally` (Number) Days to retain local backups. Create uses 0 (unlimited by age) when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `retention_days_s3` (Number) Days to retain S3 backups. Create uses 0 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `retention_max_storage_locally` (Number) Max local backup storage (Coolify units). Create uses 0 (unlimited) when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `retention_max_storage_s3` (Number) Max S3 backup storage. Create uses 0 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
 - `s3_storage_uuid` (String) UUID of a usable team S3 storage when `save_s3` is true.
-- `save_s3` (Boolean) Upload backups to S3. When true, `s3_storage_uuid` is required. Defaults to false.
+- `save_s3` (Boolean) Upload backups to S3. When true, `s3_storage_uuid` is required. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
 - `service_uuid` (String) UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid`. Changing this forces a new resource.
-- `stop_during_backup` (Boolean) Stop the resource while the backup runs. Defaults to false.
-- `timeout` (Number) Backup timeout in seconds (60-36000). Defaults to 3600.
+- `stop_during_backup` (Boolean) Stop the resource while the backup runs. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `timeout` (Number) Backup timeout in seconds (60-36000). Create uses 3600 when this is omitted. Coolify keeps the stored timeout when the key is absent, so import does not require it.
 
 ### Read-Only
 
@@ -71,5 +74,8 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 # Format: application|service|database:<parent_uuid>:<storage_uuid>
+# Coolify has no GET for the schedule. Before the next apply, set enabled,
+# save_s3, disable_local_backup, stop_during_backup, and every retention
+# attribute. timeout and missing_backup_notification_days can stay omitted.
 terraform import coolify_storage_backup.app_data 'application:00000000-0000-4000-8000-000000000001:00000000-0000-4000-8000-000000000002'
 ```
