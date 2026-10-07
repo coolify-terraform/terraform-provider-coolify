@@ -9,7 +9,7 @@ import (
 
 func defaultHetznerPlan() hetznerServerResourceModel {
 	return hetznerServerResourceModel{
-		Description:                          types.StringValue(""),
+		Description:                          types.StringNull(),
 		Port:                                 types.Int64Value(22),
 		User:                                 types.StringValue("root"),
 		IsBuildServer:                        types.BoolValue(false),
@@ -61,6 +61,7 @@ func TestHasNonDefaultCloudProviderSettings_EachHetznerField(t *testing.T) {
 		mutate func(*hetznerServerResourceModel)
 	}{
 		{"Description", func(m *hetznerServerResourceModel) { m.Description = types.StringValue("custom") }},
+		{"EmptyDescription", func(m *hetznerServerResourceModel) { m.Description = types.StringValue("") }},
 		{"Port", func(m *hetznerServerResourceModel) { m.Port = types.Int64Value(2222) }},
 		{"User", func(m *hetznerServerResourceModel) { m.User = types.StringValue("deploy") }},
 		{"IsBuildServer", func(m *hetznerServerResourceModel) { m.IsBuildServer = types.BoolValue(true) }},
