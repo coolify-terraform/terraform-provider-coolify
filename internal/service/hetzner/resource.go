@@ -195,16 +195,22 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(true),
 		},
 		"enable_ipv4": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv4 on the server.",
+			MarkdownDescription: "Whether to enable IPv4 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). Changing it forces a new resource. Defaults to true. The API does not return this field; after import, state uses true.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
+			PlanModifiers: []planmodifier.Bool{
+				boolplanmodifier.RequiresReplace(),
+			},
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the server.",
+			MarkdownDescription: "Whether to enable IPv6 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). Changing it forces a new resource. Defaults to true. The API does not return this field; after import, state uses true.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
+			PlanModifiers: []planmodifier.Bool{
+				boolplanmodifier.RequiresReplace(),
+			},
 		},
 		"enable_backups": schema.BoolAttribute{
 			MarkdownDescription: "Whether to enable Hetzner Cloud server backups after creation. Adds about 20% to the monthly Hetzner server fee. Requires Coolify >= v4.2.0. Changing this forces a new resource. The Coolify API does not return this field; after import it is `false` in state.",
@@ -453,6 +459,15 @@ func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 
 func flattenHetznerServer(srv *client.Server, model *hetznerServerResourceModel) {
 	server.FlattenServerCommon(srv, model.commonPtrs())
+	// Create-only flags are not on GET. Keep a known state value.
+	// Import leaves them null; store the schema default so the next
+	// plan does not replace a server the configuration did not change.
+	if model.EnableIPv4.IsNull() || model.EnableIPv4.IsUnknown() {
+		model.EnableIPv4 = types.BoolValue(true)
+	}
+	if model.EnableIPv6.IsNull() || model.EnableIPv6.IsUnknown() {
+		model.EnableIPv6 = types.BoolValue(true)
+	}
 	// enable_backups is create-only; GET never returns it.
 	if model.EnableBackups.IsNull() || model.EnableBackups.IsUnknown() {
 		model.EnableBackups = types.BoolValue(false)

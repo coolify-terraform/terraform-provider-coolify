@@ -6,10 +6,11 @@ resource "coolify_server_hetzner" "example" {
   image                     = "ubuntu-24.04"
   private_key_uuid          = coolify_private_key.example.uuid
 
-  # Optional Hetzner settings:
+  # Optional Hetzner settings.
+  # enable_ipv4 and enable_ipv6 are create-only. Changing either value recreates the server.
   # enable_ipv4       = true
   # enable_ipv6       = true
-  # enable_backups    = true   # Requires Coolify >= v4.2.0; adds ~20% to the Hetzner monthly fee
+  # enable_backups    = true   # Requires Coolify >= v4.2.0; adds ~20% to the Hetzner monthly fee. Changing it recreates the server.
   # hetzner_ssh_key_ids = "12345,67890"
   # Look up IDs with data.coolify_hetzner_firewalls / data.coolify_hetzner_networks.
   # hetzner_firewall_ids = [38, 39]   # Requires Coolify >= v4.2.0

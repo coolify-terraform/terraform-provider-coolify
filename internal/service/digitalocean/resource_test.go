@@ -2,6 +2,7 @@ package digitalocean_test
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -13,6 +14,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 const (
@@ -150,8 +152,17 @@ func newDOServerMock(t *testing.T) *httptest.Server {
 				http.Error(w, `{}`, http.StatusNotFound)
 				return
 			}
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			if strings.Contains(string(body), `"enable_ipv6"`) || strings.Contains(string(body), `"monitoring"`) {
+				http.Error(w, `{"error":"create-only network flag"}`, http.StatusBadRequest)
+				return
+			}
 			var update client.UpdateServerInput
-			if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			if err := json.Unmarshal(body, &update); err != nil {
 				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
 				return
 			}
@@ -456,6 +467,48 @@ func TestDigitalOceanServerResource_CreateReadBackFailurePreservesState(t *testi
 			{
 				Config:      acctest.ProviderBlockForURL(srv.URL) + doBaseConfig("readback-failure"),
 				ExpectError: regexp.MustCompile(`(?s)DigitalOcean server created but refresh failed.*partial Terraform state was saved`),
+			},
+		},
+	})
+}
+
+func doConfigWith(name, extra string) string {
+	base := doBaseConfig(name)
+	return strings.TrimSuffix(strings.TrimRight(base, "\n"), "}") + extra + "}\n"
+}
+
+func TestDigitalOceanServerResource_NetworkFlagsRequireReplace(t *testing.T) {
+	t.Parallel()
+	srv := newDOServerMock(t)
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + doBaseConfig("do-node"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "enable_ipv6", "true"),
+					resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "monitoring", "true"),
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + doConfigWith("do-node", "  enable_ipv6 = false\n"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_server_digitalocean.test", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "enable_ipv6", "false"),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + doConfigWith("do-node", "  enable_ipv6 = false\n  monitoring = false\n"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_server_digitalocean.test", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "monitoring", "false"),
 			},
 		},
 	})

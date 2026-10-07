@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -173,16 +174,22 @@ func vultrSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(false),
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the Vultr instance. Defaults to true to match Coolify.",
+			MarkdownDescription: "Whether to enable IPv6 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
+			PlanModifiers: []planmodifier.Bool{
+				boolplanmodifier.RequiresReplace(),
+			},
 		},
 		"disable_public_ipv4": schema.BoolAttribute{
-			MarkdownDescription: "Whether to disable public IPv4 on the Vultr instance.",
+			MarkdownDescription: "Whether to disable public IPv4 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to false. The API does not return this field; after import, state uses false.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(false),
+			PlanModifiers: []planmodifier.Bool{
+				boolplanmodifier.RequiresReplace(),
+			},
 		},
 	}
 }
@@ -412,4 +419,13 @@ func (m *vultrServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 
 func flattenVultrServer(srv *client.Server, model *vultrServerResourceModel) {
 	server.FlattenServerCommon(srv, model.commonPtrs())
+	// Create-only flags are not on GET. Keep a known state value.
+	// Import leaves them null; store the schema default so the next
+	// plan does not replace a server the configuration did not change.
+	if model.EnableIPv6.IsNull() || model.EnableIPv6.IsUnknown() {
+		model.EnableIPv6 = types.BoolValue(true)
+	}
+	if model.DisablePublicIPv4.IsNull() || model.DisablePublicIPv4.IsUnknown() {
+		model.DisablePublicIPv4 = types.BoolValue(false)
+	}
 }

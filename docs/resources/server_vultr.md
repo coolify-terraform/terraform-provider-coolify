@@ -32,6 +32,10 @@ resource "coolify_server_vultr" "app" {
   plan                      = "vc2-1c-1gb"
   os_id                     = 1743
   private_key_uuid          = coolify_private_key.main.uuid
+
+  # enable_ipv6 and disable_public_ipv4 are create-only. Changing either value recreates the server.
+  # enable_ipv6          = true
+  # disable_public_ipv4 = false
 }
 
 variable "vultr_token" {
@@ -59,9 +63,9 @@ variable "vultr_token" {
 - `connection_timeout` (Number) SSH connection timeout in seconds.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
 - `description` (String) A description of the server.
-- `disable_public_ipv4` (Boolean) Whether to disable public IPv4 on the Vultr instance.
+- `disable_public_ipv4` (Boolean) Whether to disable public IPv4 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to false. The API does not return this field; after import, state uses false.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
-- `enable_ipv6` (Boolean) Whether to enable IPv6 on the Vultr instance. Defaults to true to match Coolify.
+- `enable_ipv6` (Boolean) Whether to enable IPv6 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.
 - `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation. Defaults to false to match Coolify.
 - `is_build_server` (Boolean) Whether this server is used only for building applications. On Coolify >= 4.4 the API replaced this field with `server_role`; the provider sends `server_role = build` when this is true and `server_role = both` when it changes to false. A create that leaves this false omits `server_role`. An explicit `server_role` wins over this mapping. Keep this attribute for 4.3.x and for existing HCL.
 - `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server. Requires Coolify >= v4.3.0. Coolify defaults to true.
