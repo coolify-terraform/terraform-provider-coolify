@@ -153,7 +153,7 @@ func trafficIPModeAttribute() schema.StringAttribute {
 			"`full` keeps the visitor IP, `anonymized` stores /24 and /48 networks, " +
 			"`off` drops the IP dimension. Coolify default when omitted is `full`. " +
 			"Requires Coolify >= v4.4.2. v4.4.0, v4.4.1, and v4.4-rc.1 reject the key. " +
-			"No Default (import on older Coolify must stay null).",
+			"Import on those versions leaves the attribute unset.",
 		PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		Validators:    []validator.String{stringvalidator.OneOf("full", "anonymized", "off")},
 	}

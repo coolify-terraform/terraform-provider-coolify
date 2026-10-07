@@ -39,7 +39,7 @@ resource "coolify_server_sentinel" "example" {
 - `sentinel_metrics_refresh_rate_seconds` (Number)
 - `sentinel_push_interval_seconds` (Number)
 - `sentinel_token` (String, Sensitive) Sentinel agent token. Preserved on refresh when GET omits it. After import, keep the token in configuration; GET typically hides it so import cannot seed state.
-- `traffic_ip_mode` (String) How Sentinel stores client IPs for the Top IPs breakdown. `full` keeps the visitor IP, `anonymized` stores /24 and /48 networks, `off` drops the IP dimension. Coolify default when omitted is `full`. Requires Coolify >= v4.4.2. v4.4.0, v4.4.1, and v4.4-rc.1 reject the key. No Default (import on older Coolify must stay null).
+- `traffic_ip_mode` (String) How Sentinel stores client IPs for the Top IPs breakdown. `full` keeps the visitor IP, `anonymized` stores /24 and /48 networks, `off` drops the IP dimension. Coolify default when omitted is `full`. Requires Coolify >= v4.4.2. v4.4.0, v4.4.1, and v4.4-rc.1 reject the key. Import on those versions leaves the attribute unset.
 - `traffic_retention_1d_days` (Number) Days to retain 1-day traffic buckets. Coolify default is `395`. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.
 - `traffic_retention_1h_days` (Number) Days to retain 1-hour traffic buckets. Coolify default is `30`. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.
 - `traffic_sample_threshold` (Number) Minimum bytes before a flow is sampled. Coolify default is `0`. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.
