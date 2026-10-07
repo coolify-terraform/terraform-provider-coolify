@@ -3,12 +3,12 @@
 page_title: "coolify_resource_action Resource - coolify"
 subcategory: ""
 description: |-
-  Triggers a start, stop, or restart action on a Coolify application, database, or service. Changing the triggers map forces the action to run again.
+  Triggers a start, stop, or restart action on a Coolify application, database, or service. Changing the triggers map forces the action to run again. A start succeeds when the target is already running. On Coolify >= v4.4.0, a database start also succeeds when Coolify reports that another start, restart, or import of that database is already in progress.
 ---
 
 # coolify_resource_action (Resource)
 
-Triggers a start, stop, or restart action on a Coolify application, database, or service. Changing the `triggers` map forces the action to run again.
+Triggers a start, stop, or restart action on a Coolify application, database, or service. Changing the `triggers` map forces the action to run again. A start succeeds when the target is already running. On Coolify >= v4.4.0, a database start also succeeds when Coolify reports that another start, restart, or import of that database is already in progress.
 
 ## Example Usage
 

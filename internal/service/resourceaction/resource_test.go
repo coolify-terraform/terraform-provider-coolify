@@ -389,6 +389,86 @@ resource "coolify_resource_action" "start_svc" {
 	})
 }
 
+func TestResourceActionResource_StartAlreadyInProgress(t *testing.T) {
+	t.Parallel()
+	dbUUID := "aaaa0006-0006-4000-8000-000000000006"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/start", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != dbUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		fmt.Fprint(w, `{"message":"Another start, restart or import of this database is already in progress."}`)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_resource_action" "start_db" {
+  resource_uuid = %q
+  resource_type = "database"
+  action        = "start"
+}
+`, srv.URL, dbUUID),
+				Check: resource.TestCheckResourceAttr("coolify_resource_action.start_db", "action", "start"),
+			},
+		},
+	})
+}
+
+func TestResourceActionResource_RestartWhileOperationInProgress(t *testing.T) {
+	t.Parallel()
+	dbUUID := "aaaa0007-0007-4000-8000-000000000007"
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/databases/{uuid}/restart", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != dbUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		fmt.Fprint(w, `{"message":"Another start, restart or import of this database is already in progress."}`)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+}
+
+resource "coolify_resource_action" "restart_db" {
+  resource_uuid = %q
+  resource_type = "database"
+  action        = "restart"
+}
+`, srv.URL, dbUUID),
+				ExpectError: regexp.MustCompile(`Error performing restart on database`),
+			},
+		},
+	})
+}
+
 func TestResourceActionResource_InvalidResourceType(t *testing.T) {
 	t.Parallel()
 

@@ -44,7 +44,7 @@ func (r *resourceActionResource) Metadata(_ context.Context, req resource.Metada
 
 func (r *resourceActionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Triggers a start, stop, or restart action on a Coolify application, database, or service. Changing the `triggers` map forces the action to run again.",
+		MarkdownDescription: "Triggers a start, stop, or restart action on a Coolify application, database, or service. Changing the `triggers` map forces the action to run again. A start succeeds when the target is already running. On Coolify >= v4.4.0, a database start also succeeds when Coolify reports that another start, restart, or import of that database is already in progress.",
 		Attributes: map[string]schema.Attribute{
 			"resource_uuid": schema.StringAttribute{
 				MarkdownDescription: "The UUID of the target resource (application, database, or service).",
@@ -160,18 +160,24 @@ func (r *resourceActionResource) executeAction(ctx context.Context, resType, act
 	return err
 }
 
-// isAlreadyInDesiredState returns true when Coolify reports a 400 because
-// the resource is already in the target state (e.g. "Database is already
-// stopped." when action is "stop"). These are idempotent successes.
+// isAlreadyInDesiredState reports when Coolify rejected the call because
+// the requested outcome is already underway.
+//
+// Start is idempotent in two cases. HTTP 400 with "already running" means
+// the target is up. Since Coolify v4.4.0, database start, restart, and
+// import share one lock and a second start returns HTTP 409 with
+// "already in progress" (DatabasesController::action_deploy). Coolify does
+// not queue that second start. Restart and stop still fail on 409, because
+// those actions did not run.
 func isAlreadyInDesiredState(err error, action string) bool {
-	if !client.IsBadRequest(err) {
-		return false
-	}
 	switch action {
 	case "start":
-		return client.APIMessageContains(err, "already running")
+		if client.IsBadRequest(err) && client.APIMessageContains(err, "already running") {
+			return true
+		}
+		return client.IsConflict(err) && client.APIMessageContains(err, "already in progress")
 	case "stop":
-		return client.APIMessageContains(err, "already stopped")
+		return client.IsBadRequest(err) && client.APIMessageContains(err, "already stopped")
 	default:
 		return false
 	}

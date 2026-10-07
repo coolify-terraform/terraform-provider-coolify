@@ -2714,6 +2714,16 @@ func TestIsBadRequest(t *testing.T) {
 	assert.False(t, IsBadRequest(nil))
 }
 
+func TestIsConflict(t *testing.T) {
+	t.Parallel()
+	assert.True(t, IsConflict(&APIStatusError{Status: http.StatusConflict, Message: "busy"}))
+	assert.True(t, IsConflict(fmt.Errorf("starting database: %w", &APIStatusError{Status: http.StatusConflict})))
+	assert.False(t, IsConflict(&APIStatusError{Status: http.StatusBadRequest, Message: "busy"}))
+	assert.False(t, IsConflict(&NotFoundError{Message: "gone"}))
+	assert.False(t, IsConflict(io.EOF))
+	assert.False(t, IsConflict(nil))
+}
+
 func TestAPIMessageContains(t *testing.T) {
 	t.Parallel()
 	wrapped := fmt.Errorf("already stopped wrapper: %w", &APIStatusError{Status: http.StatusBadRequest, Message: "validation failed"})
