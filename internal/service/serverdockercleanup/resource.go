@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -42,20 +44,41 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 
 func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages the Coolify Docker cleanup schedule on a server. Requires Coolify >= v4.3.0. Destroy leaves the remote schedule in place.",
+		MarkdownDescription: "Manages the Coolify Docker cleanup schedule on a server. Requires Coolify >= v4.3.0. Destroy leaves the remote schedule in place. An omitted setting keeps the last applied value and does not show as known after apply.",
 		Attributes: map[string]schema.Attribute{
 			"server_uuid": schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
 			"docker_cleanup_frequency": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "Cleanup frequency. Coolify accepts cron or human strings such as `@daily` or `daily`.",
+				MarkdownDescription: "Cleanup frequency. Coolify accepts cron or human strings such as `@daily` or `daily`. An omitted value keeps the last applied value.",
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				Validators:          []validator.String{validate.CoolifyFrequency()},
 			},
-			"docker_cleanup_threshold":            schema.Int64Attribute{Optional: true, Computed: true},
-			"force_docker_cleanup":                schema.BoolAttribute{Optional: true, Computed: true},
-			"delete_unused_volumes":               schema.BoolAttribute{Optional: true, Computed: true},
-			"delete_unused_networks":              schema.BoolAttribute{Optional: true, Computed: true},
-			"disable_application_image_retention": schema.BoolAttribute{Optional: true, Computed: true},
+			"docker_cleanup_threshold": schema.Int64Attribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+			},
+			"force_docker_cleanup": schema.BoolAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"delete_unused_volumes": schema.BoolAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"delete_unused_networks": schema.BoolAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"disable_application_image_retention": schema.BoolAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
 		},
 	}
 }

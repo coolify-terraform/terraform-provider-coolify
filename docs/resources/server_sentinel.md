@@ -3,12 +3,12 @@
 page_title: "coolify_server_sentinel Resource - coolify"
 subcategory: ""
 description: |-
-  Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH /servers/{uuid}/sentinel). Destroy tries to set is_sentinel_enabled to false; newer Coolify extra-key 422s that field (Sentinel is mandatory on regular servers) and destroy then only drops state.
+  Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH /servers/{uuid}/sentinel). Destroy tries to set is_sentinel_enabled to false; newer Coolify extra-key 422s that field (Sentinel is mandatory on regular servers) and destroy then only drops state. An omitted setting keeps the last applied value and does not show as known after apply.
 ---
 
 # coolify_server_sentinel (Resource)
 
-Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy tries to set is_sentinel_enabled to false; newer Coolify extra-key 422s that field (Sentinel is mandatory on regular servers) and destroy then only drops state.
+Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy tries to set is_sentinel_enabled to false; newer Coolify extra-key 422s that field (Sentinel is mandatory on regular servers) and destroy then only drops state. An omitted setting keeps the last applied value and does not show as known after apply.
 
 ## Example Usage
 
@@ -16,6 +16,9 @@ Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Co
 resource "coolify_server_sentinel" "example" {
   server_uuid        = coolify_server.example.uuid
   is_metrics_enabled = true
+
+  # Other Sentinel settings are left as Coolify stored them.
+  # An omitted value keeps the last applied value.
 }
 ```
 
@@ -33,7 +36,7 @@ resource "coolify_server_sentinel" "example" {
 - `is_geoip_enabled` (Boolean) Whether GeoIP lookup is enabled for Sentinel traffic. Coolify default is `true`. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write.
 - `is_metrics_enabled` (Boolean)
 - `is_sentinel_debug_enabled` (Boolean)
-- `is_sentinel_enabled` (Boolean) Whether Sentinel is enabled. Coolify tip after 2026-09-15 treats Sentinel as mandatory on regular servers, so PATCH extra-key 422s this field (GET remains). Writable on Coolify 4.3.x before that change.
+- `is_sentinel_enabled` (Boolean) Whether Sentinel is enabled. Coolify tip after 2026-09-15 treats Sentinel as mandatory on regular servers, so PATCH extra-key 422s this field (GET remains). Writable on Coolify 4.3.x before that change. An omitted value keeps the last applied value.
 - `sentinel_custom_url` (String) Custom Sentinel push URL. Writable on GET/PATCH `/servers/{uuid}/sentinel` (unlike the read-only copy on `coolify_server`). Max 255 characters. Seeded from GET when Coolify returns a non-empty value; keep it in configuration after import if GET still omits it.
 - `sentinel_metrics_history_days` (Number)
 - `sentinel_metrics_refresh_rate_seconds` (Number)

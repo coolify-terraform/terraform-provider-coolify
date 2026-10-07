@@ -3,12 +3,12 @@
 page_title: "coolify_server_docker_cleanup Resource - coolify"
 subcategory: ""
 description: |-
-  Manages the Coolify Docker cleanup schedule on a server. Requires Coolify >= v4.3.0. Destroy leaves the remote schedule in place.
+  Manages the Coolify Docker cleanup schedule on a server. Requires Coolify >= v4.3.0. Destroy leaves the remote schedule in place. An omitted setting keeps the last applied value and does not show as known after apply.
 ---
 
 # coolify_server_docker_cleanup (Resource)
 
-Manages the Coolify Docker cleanup schedule on a server. Requires Coolify >= v4.3.0. Destroy leaves the remote schedule in place.
+Manages the Coolify Docker cleanup schedule on a server. Requires Coolify >= v4.3.0. Destroy leaves the remote schedule in place. An omitted setting keeps the last applied value and does not show as known after apply.
 
 ## Example Usage
 
@@ -33,7 +33,7 @@ resource "coolify_server_docker_cleanup" "example" {
 - `delete_unused_networks` (Boolean)
 - `delete_unused_volumes` (Boolean)
 - `disable_application_image_retention` (Boolean)
-- `docker_cleanup_frequency` (String) Cleanup frequency. Coolify accepts cron or human strings such as `@daily` or `daily`.
+- `docker_cleanup_frequency` (String) Cleanup frequency. Coolify accepts cron or human strings such as `@daily` or `daily`. An omitted value keeps the last applied value.
 - `docker_cleanup_threshold` (Number)
 - `force_docker_cleanup` (Boolean)
 

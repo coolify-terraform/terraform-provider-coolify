@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -45,10 +46,14 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 
 func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages Coolify server log drain settings (New Relic, Axiom, or custom). Requires Coolify >= v4.3.0. Destroy disables all drains.",
+		MarkdownDescription: "Manages Coolify server log drain settings (New Relic, Axiom, or custom). Requires Coolify >= v4.3.0. Destroy disables all drains. An omitted setting keeps the last applied value and does not show as known after apply.",
 		Attributes: map[string]schema.Attribute{
-			"server_uuid":                  schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
-			"is_logdrain_newrelic_enabled": schema.BoolAttribute{Optional: true, Computed: true},
+			"server_uuid": schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
+			"is_logdrain_newrelic_enabled": schema.BoolAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
 			"logdrain_newrelic_license_key": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -62,7 +67,11 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				MarkdownDescription: "New Relic log API base URI. Omitting the attribute later does not clear the stored Coolify value.",
 			},
-			"is_logdrain_axiom_enabled": schema.BoolAttribute{Optional: true, Computed: true},
+			"is_logdrain_axiom_enabled": schema.BoolAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
 			"logdrain_axiom_dataset_name": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -76,7 +85,11 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				MarkdownDescription: "Axiom API key. Omitting the attribute later does not clear the stored Coolify value.",
 			},
-			"is_logdrain_custom_enabled": schema.BoolAttribute{Optional: true, Computed: true},
+			"is_logdrain_custom_enabled": schema.BoolAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
 			"logdrain_custom_config": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,

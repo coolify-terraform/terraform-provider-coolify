@@ -57,7 +57,7 @@ func (r *res) Metadata(_ context.Context, req resource.MetadataRequest, resp *re
 
 func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy tries to set is_sentinel_enabled to false; newer Coolify extra-key 422s that field (Sentinel is mandatory on regular servers) and destroy then only drops state.",
+		MarkdownDescription: "Manages Coolify Sentinel (host metrics agent) settings for a server. Requires Coolify >= v4.3.0 (GET/PATCH `/servers/{uuid}/sentinel`). Destroy tries to set is_sentinel_enabled to false; newer Coolify extra-key 422s that field (Sentinel is mandatory on regular servers) and destroy then only drops state. An omitted setting keeps the last applied value and does not show as known after apply.",
 		Attributes: map[string]schema.Attribute{
 			"server_uuid": schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
 			"is_sentinel_enabled": schema.BoolAttribute{
@@ -65,18 +65,40 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 				Computed: true,
 				MarkdownDescription: "Whether Sentinel is enabled. Coolify tip after 2026-09-15 " +
 					"treats Sentinel as mandatory on regular servers, so PATCH extra-key 422s " +
-					"this field (GET remains). Writable on Coolify 4.3.x before that change.",
+					"this field (GET remains). Writable on Coolify 4.3.x before that change. " +
+					"An omitted value keeps the last applied value.",
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
-			"is_metrics_enabled":        schema.BoolAttribute{Optional: true, Computed: true},
-			"is_sentinel_debug_enabled": schema.BoolAttribute{Optional: true, Computed: true},
+			"is_metrics_enabled": schema.BoolAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"is_sentinel_debug_enabled": schema.BoolAttribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
 			"sentinel_token": schema.StringAttribute{
 				Optional:            true,
 				Sensitive:           true,
 				MarkdownDescription: "Sentinel agent token. Preserved on refresh when GET omits it. After import, keep the token in configuration; GET typically hides it so import cannot seed state.",
 			},
-			"sentinel_metrics_refresh_rate_seconds": schema.Int64Attribute{Optional: true, Computed: true},
-			"sentinel_metrics_history_days":         schema.Int64Attribute{Optional: true, Computed: true},
-			"sentinel_push_interval_seconds":        schema.Int64Attribute{Optional: true, Computed: true},
+			"sentinel_metrics_refresh_rate_seconds": schema.Int64Attribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+			},
+			"sentinel_metrics_history_days": schema.Int64Attribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+			},
+			"sentinel_push_interval_seconds": schema.Int64Attribute{
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+			},
 			"sentinel_custom_url": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
