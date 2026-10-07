@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -173,16 +174,22 @@ func digitaloceanSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(false),
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the droplet. Defaults to true to match Coolify.",
+			MarkdownDescription: "Whether to enable IPv6 on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
+			PlanModifiers: []planmodifier.Bool{
+				boolplanmodifier.RequiresReplace(),
+			},
 		},
 		"monitoring": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable DigitalOcean monitoring on the droplet. Defaults to true to match Coolify.",
+			MarkdownDescription: "Whether to enable DigitalOcean monitoring on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
+			PlanModifiers: []planmodifier.Bool{
+				boolplanmodifier.RequiresReplace(),
+			},
 		},
 	}
 }
@@ -410,6 +417,15 @@ func (m *digitalOceanServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 
 func flattenDigitalOceanServer(srv *client.Server, model *digitalOceanServerResourceModel) {
 	server.FlattenServerCommon(srv, model.commonPtrs())
+	// Create-only flags are not on GET. Keep a known state value.
+	// Import leaves them null; store the schema default so the next
+	// plan does not replace a server the configuration did not change.
+	if model.EnableIPv6.IsNull() || model.EnableIPv6.IsUnknown() {
+		model.EnableIPv6 = types.BoolValue(true)
+	}
+	if model.Monitoring.IsNull() || model.Monitoring.IsUnknown() {
+		model.Monitoring = types.BoolValue(true)
+	}
 }
 
 func parseDigitalOceanSSHKeyIDs(raw types.String) ([]int64, error) {

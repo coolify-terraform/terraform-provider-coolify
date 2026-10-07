@@ -3,6 +3,7 @@ package hetzner_test
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -74,8 +76,17 @@ func newHetznerServerMockServer() *httptest.Server {
 				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			if strings.Contains(string(body), `"enable_ipv4"`) || strings.Contains(string(body), `"enable_ipv6"`) {
+				http.Error(w, `{"error":"create-only network flag"}`, http.StatusBadRequest)
+				return
+			}
 			var update client.UpdateServerInput
-			if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			if err := json.Unmarshal(body, &update); err != nil {
 				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 				return
 			}
@@ -926,6 +937,63 @@ resource "coolify_server_hetzner" "test" {
   image                      = "ubuntu-24.04"
   private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
 }`,
+			},
+		},
+	})
+}
+
+func hetznerNetworkConfig(extra string) string {
+	return `
+resource "coolify_server_hetzner" "test" {
+  name                      = "my-hetzner"
+  cloud_provider_token_uuid = "cccc0001-0001-4000-8000-000000000001"
+  server_type               = "cx22"
+  location                  = "fsn1"
+  image                     = "ubuntu-24.04"
+  private_key_uuid          = "dddd0002-0002-4000-8000-000000000002"
+` + extra + `}`
+}
+
+func TestHetznerServerResource_NetworkFlagsRequireReplace(t *testing.T) {
+	t.Parallel()
+	srv := newHetznerServerMockServer()
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + hetznerNetworkConfig(""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv4", "true"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv6", "true"),
+				),
+			},
+			{
+				Config:             acctest.ProviderBlockForURL(srv.URL) + hetznerNetworkConfig(""),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + hetznerNetworkConfig("  enable_ipv6 = false\n"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_server_hetzner.test", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv6", "false"),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + hetznerNetworkConfig("  enable_ipv6 = false\n  enable_ipv4 = false\n"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_server_hetzner.test", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv4", "false"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv6", "false"),
+				),
 			},
 		},
 	})

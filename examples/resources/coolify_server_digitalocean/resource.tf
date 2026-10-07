@@ -11,6 +11,10 @@ resource "coolify_server_digitalocean" "app" {
   size                      = "s-1vcpu-1gb"
   image                     = "ubuntu-24-04-x64"
   private_key_uuid          = coolify_private_key.main.uuid
+
+  # enable_ipv6 and monitoring are create-only. Changing either value recreates the server.
+  # enable_ipv6 = true
+  # monitoring  = true
 }
 
 variable "digitalocean_token" {
