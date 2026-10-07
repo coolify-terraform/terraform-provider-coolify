@@ -62,7 +62,7 @@ variable "vultr_token" {
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
-- `description` (String) A description of the server.
+- `description` (String) A description of the server. An empty string is stored as empty. Omitting the attribute leaves it unset.
 - `disable_public_ipv4` (Boolean) Whether to disable public IPv4 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to false. The API does not return this field; after import, state uses false.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `enable_ipv6` (Boolean) Whether to enable IPv6 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.

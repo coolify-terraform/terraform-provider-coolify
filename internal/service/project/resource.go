@@ -63,7 +63,7 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "A description of the project.",
+				MarkdownDescription: "A description of the project. An empty string is stored as empty. Omitting the attribute leaves it unset.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -109,6 +109,15 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating project", fmt.Sprintf("project %q: %s", plan.Name.ValueString(), err))
 		return
+	}
+	// Create encodes description as a Go string with omitempty, so "" is
+	// dropped. Send it on a follow-up update when the user set it.
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() && plan.Description.ValueString() == "" {
+		empty := ""
+		if _, err := r.client.UpdateProject(ctx, project.UUID, client.UpdateProjectInput{Description: &empty}); err != nil {
+			resp.Diagnostics.AddError("Error setting project description", fmt.Sprintf("project %s: %s", project.UUID, err))
+			return
+		}
 	}
 
 	plan.UUID = types.StringValue(project.UUID)
@@ -251,7 +260,7 @@ func (r *projectResource) readProject(ctx context.Context, uuid string, model *p
 func flattenProject(p *client.Project, model *projectResourceModel) {
 	model.UUID = types.StringValue(p.UUID)
 	model.Name = types.StringValue(p.Name)
-	model.Description = flex.StringToFramework(p.Description)
+	model.Description = flex.StringFromAPI(p.Description, model.Description)
 	model.IconPath = flex.StringToFramework(p.IconPath)
 	model.IconStorageType = flex.StringToFramework(p.IconStorageType)
 }

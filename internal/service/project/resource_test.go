@@ -3,9 +3,11 @@ package project_test
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -64,8 +66,8 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockProjectS
 	mux.HandleFunc("PATCH /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		uuid := r.PathValue("uuid")
 		var body struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
+			Name        *string `json:"name"`
+			Description *string `json:"description"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
@@ -136,15 +138,19 @@ func (s *mockProjectStore) Get(uuid string) (*mockProject, bool) {
 	return p, ok
 }
 
-func (s *mockProjectStore) Update(uuid, name, description string) (*mockProject, bool) {
+func (s *mockProjectStore) Update(uuid string, name, description *string) (*mockProject, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	p, ok := s.projects[uuid]
 	if !ok {
 		return nil, false
 	}
-	p.Name = name
-	p.Description = description
+	if name != nil {
+		p.Name = *name
+	}
+	if description != nil {
+		p.Description = *description
+	}
 	return p, true
 }
 
@@ -347,8 +353,8 @@ func TestProjectResource_UpdateUsesPatchResponse(t *testing.T) {
 		}
 		uuid := r.PathValue("uuid")
 		var body struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
+			Name        *string `json:"name"`
+			Description *string `json:"description"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
@@ -709,4 +715,59 @@ resource "coolify_project" "test" {
 			},
 		},
 	})
+}
+
+func TestProjectResource_EmptyDescription(t *testing.T) {
+	t.Parallel()
+	var sawEmptyDescription atomic.Bool
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if strings.Contains(string(body), `"description":""`) {
+			sawEmptyDescription.Store(true)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/projects":
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"uuid":"cccc0001-0001-4000-8000-000000000001"}`))
+		case r.Method == http.MethodPatch:
+			_, _ = w.Write([]byte(`{"uuid":"cccc0001-0001-4000-8000-000000000001","name":"empty-desc","description":""}`))
+		case r.Method == http.MethodGet:
+			_, _ = w.Write([]byte(`{"uuid":"cccc0001-0001-4000-8000-000000000001","name":"empty-desc","description":""}`))
+		case r.Method == http.MethodDelete:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"message":"deleted"}`))
+		default:
+			http.Error(w, `{}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_project" "test" {
+  name        = "empty-desc"
+  description = ""
+}
+`,
+				Check: resource.TestCheckResourceAttr("coolify_project.test", "description", ""),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_project" "test" {
+  name        = "empty-desc"
+  description = ""
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+	if !sawEmptyDescription.Load() {
+		t.Fatal("expected a request body to contain an empty description")
+	}
 }

@@ -676,7 +676,7 @@ func FlattenDatabaseCommon(db *client.Database, f DatabaseCommonPtrs) {
 	*f.Image = flex.StringToFramework(db.Image)
 	*f.IsPublic = types.BoolValue(db.IsPublic)
 	*f.PublicPort = flex.Int64PtrToFramework(db.PublicPort)
-	*f.Description = flex.StringToFramework(db.Description)
+	*f.Description = flex.StringFromAPI(db.Description, *f.Description)
 	if db.ProjectUUID != "" {
 		*f.ProjectUUID = types.StringValue(db.ProjectUUID)
 	}

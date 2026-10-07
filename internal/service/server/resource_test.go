@@ -3,6 +3,7 @@ package server_test
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -1079,4 +1080,62 @@ resource "coolify_server" "test" {
 			},
 		},
 	})
+}
+
+func TestServerResource_EmptyDescription(t *testing.T) {
+	t.Parallel()
+	var sawEmptyDescription atomic.Bool
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if strings.Contains(string(body), `"description":""`) {
+			sawEmptyDescription.Store(true)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers":
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"uuid":"bbbb0001-0001-4000-8000-000000000001","name":"empty-desc","ip":"10.0.0.1","port":22,"user":"root"}`))
+		case r.Method == http.MethodPatch:
+			_, _ = w.Write([]byte(`{"uuid":"bbbb0001-0001-4000-8000-000000000001","name":"empty-desc","description":"","ip":"10.0.0.1","port":22,"user":"root"}`))
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			_, _ = w.Write([]byte(`{"uuid":"bbbb0001-0001-4000-8000-000000000001","name":"empty-desc","description":"","ip":"10.0.0.1","port":22,"user":"root","is_reachable":true,"is_usable":true,"settings":{"concurrent_builds":2,"dynamic_timeout":3600,"deployment_queue_limit":25,"connection_timeout":10,"server_disk_usage_notification_threshold":80,"server_disk_usage_check_frequency":"*/5 * * * *","is_terminal_enabled":true}}`))
+		case r.Method == http.MethodDelete:
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, `{}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "empty-desc"
+  description      = ""
+  ip               = "10.0.0.1"
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
+}
+`,
+				Check: resource.TestCheckResourceAttr("coolify_server.test", "description", ""),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "empty-desc"
+  description      = ""
+  ip               = "10.0.0.1"
+  private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+	if !sawEmptyDescription.Load() {
+		t.Fatal("expected a request body to contain an empty description")
+	}
 }
