@@ -73,6 +73,17 @@ resource "coolify_server_log_drain" "test" {
 resource "coolify_server_log_drain" "test" {
   server_uuid                 = "` + serverUUID + `"
   is_logdrain_axiom_enabled   = true
+  logdrain_axiom_dataset_name = "coolify"
+  logdrain_axiom_api_key      = "axiom-key"
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_log_drain" "test" {
+  server_uuid                 = "` + serverUUID + `"
+  is_logdrain_axiom_enabled   = true
   logdrain_axiom_dataset_name = "coolify-prod"
   logdrain_axiom_api_key      = "axiom-key"
 }`,

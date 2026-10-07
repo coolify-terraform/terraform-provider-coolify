@@ -95,6 +95,16 @@ resource "coolify_server_sentinel" "test" {
 resource "coolify_server_sentinel" "test" {
   server_uuid         = "` + serverUUID + `"
   is_sentinel_enabled = true
+  is_metrics_enabled  = true
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_sentinel" "test" {
+  server_uuid         = "` + serverUUID + `"
+  is_sentinel_enabled = true
   is_metrics_enabled  = false
 }`,
 				Check: resource.TestCheckResourceAttr("coolify_server_sentinel.test", "is_metrics_enabled", "false"),

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -43,27 +44,37 @@ func (r *serverProxyResource) Metadata(_ context.Context, req resource.MetadataR
 
 func (r *serverProxyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages Coolify proxy settings and optional raw configuration for a server. Requires Coolify >= v4.3.0. Destroy leaves the remote proxy configuration in place.",
+		MarkdownDescription: "Manages Coolify proxy settings and optional raw configuration for a server. Requires Coolify >= v4.3.0. Destroy leaves the remote proxy configuration in place. An omitted setting keeps the last applied value and does not show as known after apply.",
 		Attributes: map[string]schema.Attribute{
 			"server_uuid": schema.StringAttribute{Required: true, MarkdownDescription: "Server UUID.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}, Validators: []validator.String{validate.UUID()}},
 			"redirect_enabled": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
 				MarkdownDescription: "Whether HTTP to HTTPS redirect is enabled. Coolify defaults this to `true`. " +
-					"Setting `false` is ignored by Coolify today (`$request->has('redirect_enabled')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.",
+					"Setting `false` is ignored by Coolify today (`$request->has('redirect_enabled')` treats JSON `false` as absent). Requires Coolify >= v4.3.0. " +
+					"An omitted value keeps the last applied value.",
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"redirect_url": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "HTTPS redirect target URL. Coolify persists this field (`$request->exists('redirect_url')`). Use a resolvable host; reserved names such as `example.invalid` return 422.",
+				MarkdownDescription: "HTTPS redirect target URL. Coolify persists this field (`$request->exists('redirect_url')`). Use a resolvable host; reserved names such as `example.invalid` return 422. An omitted value keeps the last applied value.",
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"generate_exact_labels": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
 				MarkdownDescription: "Whether to generate exact Docker labels (removes extra labels from containers). " +
-					"Setting `false` is ignored by Coolify today (`$request->has('generate_exact_labels')` treats JSON `false` as absent). Requires Coolify >= v4.3.0.",
+					"Setting `false` is ignored by Coolify today (`$request->has('generate_exact_labels')` treats JSON `false` as absent). Requires Coolify >= v4.3.0. " +
+					"An omitted value keeps the last applied value.",
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
-			"proxy_type": schema.StringAttribute{Optional: true, Computed: true, MarkdownDescription: "Proxy type (for example traefik or caddy)."},
+			"proxy_type": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Proxy type (for example traefik or caddy). An omitted value keeps the last applied value.",
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
 			"configuration": schema.StringAttribute{
 				Optional: true,
 				MarkdownDescription: "Raw proxy Docker Compose written with PUT .../proxy/configuration. " +

@@ -3,12 +3,12 @@
 page_title: "coolify_server_log_drain Resource - coolify"
 subcategory: ""
 description: |-
-  Manages Coolify server log drain settings (New Relic, Axiom, or custom). Requires Coolify >= v4.3.0. Destroy disables all drains.
+  Manages Coolify server log drain settings (New Relic, Axiom, or custom). Requires Coolify >= v4.3.0. Destroy disables all drains. An omitted setting keeps the last applied value and does not show as known after apply.
 ---
 
 # coolify_server_log_drain (Resource)
 
-Manages Coolify server log drain settings (New Relic, Axiom, or custom). Requires Coolify >= v4.3.0. Destroy disables all drains.
+Manages Coolify server log drain settings (New Relic, Axiom, or custom). Requires Coolify >= v4.3.0. Destroy disables all drains. An omitted setting keeps the last applied value and does not show as known after apply.
 
 ## Example Usage
 

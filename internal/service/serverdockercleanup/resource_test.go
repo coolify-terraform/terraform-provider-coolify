@@ -76,6 +76,17 @@ resource "coolify_server_docker_cleanup" "test" {
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_server_docker_cleanup" "test" {
   server_uuid              = "` + serverUUID + `"
+  docker_cleanup_frequency = "@daily"
+  docker_cleanup_threshold = 70
+  force_docker_cleanup     = true
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_docker_cleanup" "test" {
+  server_uuid              = "` + serverUUID + `"
   docker_cleanup_frequency = "daily"
   docker_cleanup_threshold = 80
   force_docker_cleanup     = true

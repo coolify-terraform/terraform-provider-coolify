@@ -78,6 +78,16 @@ resource "coolify_server_proxy" "test" {
 			{
 				Config: acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_server_proxy" "test" {
+  server_uuid  = "` + serverUUID + `"
+  proxy_type   = "caddy"
+  redirect_url = "https://example.com"
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
   server_uuid     = "` + serverUUID + `"
   proxy_type      = "traefik"
   redirect_url    = "https://example.com"
