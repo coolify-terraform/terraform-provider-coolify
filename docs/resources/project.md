@@ -28,7 +28,7 @@ resource "coolify_project" "example" {
 
 ### Optional
 
-- `description` (String) A description of the project.
+- `description` (String) A description of the project. An empty string is stored as empty. Omitting the attribute leaves it unset.
 
 ### Read-Only
 

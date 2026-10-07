@@ -537,7 +537,7 @@ func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportSt
 func flattenService(svc *client.Service, model *serviceResourceModel) {
 	model.UUID = types.StringValue(svc.UUID)
 	model.Name = flex.StringToFramework(svc.Name)
-	model.Description = flex.StringToFramework(svc.Description)
+	model.Description = flex.StringFromAPI(svc.Description, model.Description)
 	model.Status = flex.StringToFramework(svc.Status)
 	// instant_deploy is create-only and never returned by the API.
 	// Preserve state value when set; default to false otherwise (import).

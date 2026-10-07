@@ -96,7 +96,7 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 			Required:            true,
 		},
 		"description": schema.StringAttribute{
-			MarkdownDescription: "A description of the server.",
+			MarkdownDescription: "A description of the server. An empty string is stored as empty. Omitting the attribute leaves it unset.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
@@ -402,7 +402,7 @@ func addBackupCompressionAttrs(attrs map[string]schema.Attribute) {
 func FlattenServerCommon(srv *client.Server, f ServerCommonPtrs) {
 	*f.UUID = types.StringValue(srv.UUID)
 	*f.Name = types.StringValue(srv.Name)
-	*f.Description = flex.StringToFramework(srv.Description)
+	*f.Description = flex.StringFromAPI(srv.Description, *f.Description)
 	*f.IP = types.StringValue(srv.IP)
 	*f.Port = types.Int64Value(int64(srv.Port))
 	*f.User = types.StringValue(srv.User)
@@ -565,7 +565,9 @@ func BuildPostCreateSettingsInput(p ServerCommonPtrs) client.UpdateServerInput {
 // endpoints only accept provider-specific fields, so description/port/user/
 // is_build_server and extended settings must be applied afterward when non-default.
 func HasNonDefaultCloudProviderSettings(p ServerCommonPtrs) bool {
-	return flex.StringValueNonDefault(*p.Description, "") ||
+	descriptionSetEmpty := p.Description != nil && !p.Description.IsNull() && !p.Description.IsUnknown() && p.Description.ValueString() == ""
+	return descriptionSetEmpty ||
+		flex.StringValueNonDefault(*p.Description, "") ||
 		flex.Int64ValueNonDefault(*p.Port, 22) ||
 		flex.StringValueNonDefault(*p.User, "root") ||
 		flex.BoolValueNonDefault(*p.IsBuildServer, false) ||

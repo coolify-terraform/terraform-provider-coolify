@@ -715,7 +715,7 @@ func TestHasNonDefaultSettings_ViaCommonPtrs(t *testing.T) {
 
 func cloudProviderDefaultPtrs() (ServerCommonPtrs, *testModel) {
 	ptrs, m := newTestPtrs()
-	m.Description = types.StringValue("")
+	m.Description = types.StringNull()
 	m.Port = types.Int64Value(22)
 	m.User = types.StringValue("root")
 	m.IsBuildServer = types.BoolValue(false)
@@ -743,6 +743,7 @@ func TestHasNonDefaultCloudProviderSettings_CoreFields(t *testing.T) {
 		mutate func(*testModel)
 	}{
 		{"Description", func(m *testModel) { m.Description = types.StringValue("prod") }},
+		{"EmptyDescription", func(m *testModel) { m.Description = types.StringValue("") }},
 		{"Port", func(m *testModel) { m.Port = types.Int64Value(2222) }},
 		{"User", func(m *testModel) { m.User = types.StringValue("deploy") }},
 		{"IsBuildServer", func(m *testModel) { m.IsBuildServer = types.BoolValue(true) }},

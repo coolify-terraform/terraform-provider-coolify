@@ -62,7 +62,7 @@ variable "digitalocean_token" {
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
-- `description` (String) A description of the server.
+- `description` (String) A description of the server. An empty string is stored as empty. Omitting the attribute leaves it unset.
 - `digitalocean_ssh_key_ids` (String) Comma-separated list of DigitalOcean SSH key numeric IDs. Use `coolify_digitalocean_ssh_keys` to list available keys. Changing this forces a new resource.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `enable_ipv6` (Boolean) Whether to enable IPv6 on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.

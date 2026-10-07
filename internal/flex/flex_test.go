@@ -114,6 +114,22 @@ func TestStringToFramework(t *testing.T) {
 	}
 }
 
+func TestStringFromAPI(t *testing.T) {
+	t.Parallel()
+	if got := flex.StringFromAPI("", types.StringValue("")); got.IsNull() || got.ValueString() != "" {
+		t.Fatalf("prior empty: got %#v", got)
+	}
+	if got := flex.StringFromAPI("", types.StringNull()); !got.IsNull() {
+		t.Fatalf("prior null: got %#v", got)
+	}
+	if got := flex.StringFromAPI("", types.StringUnknown()); !got.IsNull() {
+		t.Fatalf("prior unknown: got %#v", got)
+	}
+	if got := flex.StringFromAPI("kept", types.StringValue("")); got.IsNull() || got.ValueString() != "kept" {
+		t.Fatalf("non-empty api: got %#v", got)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Int64PtrToFramework
 // ---------------------------------------------------------------------------

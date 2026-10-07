@@ -64,7 +64,7 @@ resource "coolify_server_hetzner" "example" {
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
-- `description` (String) A description of the server.
+- `description` (String) A description of the server. An empty string is stored as empty. Omitting the attribute leaves it unset.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `enable_backups` (Boolean) Whether to enable Hetzner Cloud server backups after creation. Adds about 20% to the monthly Hetzner server fee. Requires Coolify >= v4.2.0. Changing this forces a new resource. The Coolify API does not return this field; after import it is `false` in state.
 - `enable_ipv4` (Boolean) Whether to enable IPv4 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). Changing it forces a new resource. Defaults to true. The API does not return this field; after import, state uses true.

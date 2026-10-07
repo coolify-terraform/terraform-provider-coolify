@@ -118,7 +118,7 @@ func shouldCopyEnvironmentName(apiName string, uuid *types.String) bool {
 func flattenApplicationCommon(app *client.Application, f commonAppFields) {
 	*f.UUID = types.StringValue(app.UUID)
 	*f.Name = types.StringValue(app.Name)
-	*f.Description = flex.StringToFramework(app.Description)
+	*f.Description = flex.StringFromAPI(app.Description, *f.Description)
 	if f.GitRepository != nil {
 		*f.GitRepository = resolveGitRepository(*f.GitRepository, app.GitRepository)
 	}

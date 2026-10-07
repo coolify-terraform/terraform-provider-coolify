@@ -51,6 +51,19 @@ func StringToFramework(s string) types.String {
 	return types.StringValue(s)
 }
 
+// StringFromAPI copies an API string into a framework value. A configured
+// empty string stays empty when the API returns "". A null or unknown prior
+// value stays null, so an omitted attribute or an import does not become "".
+func StringFromAPI(api string, prior types.String) types.String {
+	if api != "" {
+		return types.StringValue(api)
+	}
+	if !prior.IsNull() && !prior.IsUnknown() && prior.ValueString() == "" {
+		return types.StringValue("")
+	}
+	return types.StringNull()
+}
+
 // StringValueOrDefault converts a Go string to a Terraform String value.
 // If the string is empty, returns the default value instead of null.
 func StringValueOrDefault(s, def string) types.String {
