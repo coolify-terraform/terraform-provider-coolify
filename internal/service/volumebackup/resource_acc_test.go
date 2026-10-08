@@ -39,7 +39,7 @@ func TestAccStorageBackupResource_CRUD(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "enabled", "true"),
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "storage_type", "persistent"),
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "retention_amount_locally", "7"),
-					resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "3600"),
+					resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "120"),
 				),
 			},
 			// Idempotency
@@ -156,6 +156,9 @@ resource "coolify_storage_backup" "test" {
   storage_uuid     = coolify_storage.test.uuid
   frequency        = %[3]q
   enabled          = true
+  # Pin timeout. An omitted value follows the server column default,
+  # which is 3600 on v4.4.2 and 36000 after Coolify's 2026-08-15 migration.
+  timeout          = 120
 }
 `, name, serverUUID, frequency)
 }
