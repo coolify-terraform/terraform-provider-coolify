@@ -93,6 +93,7 @@ docs: check-tfplugindocs ## Regenerate documentation via tfplugindocs
 
 validate: ## Check HCL formatting in examples/
 	terraform fmt -check -recursive examples/
+	@if command -v tofu >/dev/null 2>&1; then tofu fmt -check -recursive examples/; else echo "tofu not installed; skipped (CI runs tofu fmt when setup succeeds)"; fi
 
 python-test: check-python3 ## Run Python unit tests for scripts/
 	$(PYTHON) -m unittest discover -s scripts -p '*test*.py' -v
@@ -147,6 +148,7 @@ ci: build lint test validate actionlint-check zizmor-check python-test docs-chec
 
 modverify: ## Verify module cache integrity against go.sum
 	go mod verify
+	cd tools && go mod verify
 
 docs-check: check-tfplugindocs ## Check generated docs are up to date
 	@before=$$(mktemp); after=$$(mktemp); \
