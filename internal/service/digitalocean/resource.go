@@ -174,7 +174,7 @@ func digitaloceanSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(false),
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
+			MarkdownDescription: "Whether to enable IPv6 on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{
@@ -183,7 +183,7 @@ func digitaloceanSchemaAttributes() map[string]schema.Attribute {
 			},
 		},
 		"monitoring": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable DigitalOcean monitoring on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
+			MarkdownDescription: "Whether to enable DigitalOcean monitoring on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{

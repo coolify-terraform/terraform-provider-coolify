@@ -195,7 +195,7 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(true),
 		},
 		"enable_ipv4": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv4 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
+			MarkdownDescription: "Whether to enable IPv4 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{
@@ -204,7 +204,7 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			},
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
+			MarkdownDescription: "Whether to enable IPv6 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{
@@ -213,7 +213,7 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			},
 		},
 		"enable_backups": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable Hetzner Cloud server backups after creation. Adds about 20% to the monthly Hetzner server fee. Requires Coolify >= v4.2.0. Coolify accepts this only when creating the server. The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (false).",
+			MarkdownDescription: "Whether to enable Hetzner Cloud server backups after creation. Adds about 20% to the monthly Hetzner server fee. Requires Coolify >= v4.2.0. Coolify accepts this only when creating the server. The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (false).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{
