@@ -72,9 +72,12 @@ func (r *cloudTokenResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"token": schema.StringAttribute{
-				MarkdownDescription: "The cloud provider token. Coolify validates this against the cloud provider's API on creation; placeholder values will be rejected.",
+				MarkdownDescription: "The cloud provider API token. Coolify validates it on creation and rejects it on update (`CloudProviderTokensController::update` allows `name` only). Changing this forces a new resource.",
 				Required:            true,
 				Sensitive:           true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}
@@ -187,9 +190,9 @@ func (r *cloudTokenResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_cloud_token", "uuid": state.UUID.ValueString()})
 
+	// Coolify rejects token on this route. A token change replaces the resource.
 	input := client.UpdateCloudTokenInput{
-		Name:  flex.StringIfChanged(plan.Name, state.Name),
-		Token: flex.StringIfChanged(plan.Token, state.Token),
+		Name: flex.StringIfChanged(plan.Name, state.Name),
 	}
 
 	_, err := r.client.UpdateCloudToken(ctx, state.UUID.ValueString(), input)

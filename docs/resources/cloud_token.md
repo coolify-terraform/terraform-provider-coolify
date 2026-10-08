@@ -32,7 +32,7 @@ resource "coolify_cloud_token" "example" {
 
 - `cloud_provider` (String) The cloud provider type (e.g., `hetzner`, `digitalocean`, `vultr`). Changing this forces a new resource.
 - `name` (String) The name of the cloud token.
-- `token` (String, Sensitive) The cloud provider token. Coolify validates this against the cloud provider's API on creation; placeholder values will be rejected.
+- `token` (String, Sensitive) The cloud provider API token. Coolify validates it on creation and rejects it on update (`CloudProviderTokensController::update` allows `name` only). Changing this forces a new resource.
 
 ### Read-Only
 

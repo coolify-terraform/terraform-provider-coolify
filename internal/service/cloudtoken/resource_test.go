@@ -1,8 +1,10 @@
 package cloudtoken_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -69,16 +71,29 @@ func newMockCoolifyServerWithReadFailure(forceReadFailure bool, auditT ...testin
 
 	mux.HandleFunc("PATCH /api/v1/cloud-tokens/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		uuid := r.PathValue("uuid")
-		var body struct {
-			Name  *string `json:"name"`
-			Token *string `json:"token"`
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
 		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		obj, err := acctest.DecodeObject(bytes.NewReader(raw))
+		if err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		// Coolify update allows name only. A present token key is rejected
+		// even when the value is empty.
+		if _, ok := obj["token"]; ok {
+			http.Error(w, `{"message":"This field is not allowed."}`, http.StatusUnprocessableEntity)
+			return
+		}
+		namePtr, err := acctest.DecodeOptional[string](obj, "name", nil)
+		if err != nil {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 			return
 		}
 
-		ct, ok := store.Update(uuid, body.Name, body.Token)
+		ct, ok := store.Update(uuid, namePtr, nil)
 		if !ok {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
@@ -291,12 +306,25 @@ resource "coolify_cloud_token" "test" {
 resource "coolify_cloud_token" "test" {
   name           = "updated-name"
   cloud_provider = "aws"
-  token          = "updated-token"
+  token          = "original-token"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_cloud_token.test", "name", "updated-name"),
 					resource.TestCheckResourceAttr("coolify_cloud_token.test", "cloud_provider", "aws"),
+					resource.TestCheckResourceAttr("coolify_cloud_token.test", "token", "original-token"),
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_cloud_token" "test" {
+  name           = "updated-name"
+  cloud_provider = "aws"
+  token          = "updated-token"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_cloud_token.test", "name", "updated-name"),
 					resource.TestCheckResourceAttr("coolify_cloud_token.test", "token", "updated-token"),
 				),
 			},

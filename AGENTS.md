@@ -91,7 +91,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - Extract contract from Coolify source: `make contract-extract VERSION=v4.1.2`
 - Verify client structs cover contract: `make contract-check`
 - Cross-version endpoint field compatibility: `make contract-compat`
-- Schema rules versus the contract (create-only RequiresReplace, no Default on volume backups, import ignore list): `make schema-contract`
+- Schema rules versus the contract (create-only replace modifiers, Default plus RequiresReplace must be restored on read, no Default on volume backups, import ignore list, request mocks must not treat a missing JSON key as zero): `make schema-contract`
 - Release gate (CI plus edge, stable, and 4.1.2 acceptance on origin/main): `make release-check`
 - Regenerate OpenAPI spec from contract: `make spec-generate`
 - Scaffold a new resource: `make scaffold NAME=myresource`
