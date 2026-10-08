@@ -51,7 +51,7 @@ func (r *serverProxyResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Optional: true,
 				Computed: true,
 				MarkdownDescription: "Whether HTTP to HTTPS redirect is enabled. Coolify defaults this to `true`. " +
-					"Setting `false` is ignored by Coolify today (`$request->has('redirect_enabled')` treats JSON `false` as absent). Requires Coolify >= v4.3.0. " +
+					"Requires Coolify >= v4.3.0. JSON `false` is stored: Laravel 12 `$request->has` sees the key. " +
 					"An omitted value keeps the last applied value.",
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -65,7 +65,7 @@ func (r *serverProxyResource) Schema(_ context.Context, _ resource.SchemaRequest
 				Optional: true,
 				Computed: true,
 				MarkdownDescription: "Whether to generate exact Docker labels (removes extra labels from containers). " +
-					"Setting `false` is ignored by Coolify today (`$request->has('generate_exact_labels')` treats JSON `false` as absent). Requires Coolify >= v4.3.0. " +
+					"Requires Coolify >= v4.3.0. JSON `false` is stored: Laravel 12 `$request->has` sees the key. " +
 					"An omitted value keeps the last applied value.",
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},

@@ -3,6 +3,7 @@ package serverproxy_test
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -26,6 +27,7 @@ func TestServerProxyResource_CRUD(t *testing.T) {
 		"configuration":         "",
 	}
 	var mu sync.Mutex
+	var lastPatch string
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -42,8 +44,13 @@ func TestServerProxyResource_CRUD(t *testing.T) {
 			store["configuration"] = body["configuration"]
 			w.WriteHeader(http.StatusOK)
 		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch:
+			raw, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Errorf("read proxy patch: %v", err)
+			}
+			lastPatch = string(raw)
 			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			if err := json.Unmarshal(raw, &body); err != nil {
 				t.Errorf("decode proxy patch: %v", err)
 			}
 			if len(body) == 0 {
@@ -94,6 +101,40 @@ resource "coolify_server_proxy" "test" {
   redirect_enabled = true
 }`,
 				Check: resource.TestCheckResourceAttr("coolify_server_proxy.test", "proxy_type", "traefik"),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid           = "` + serverUUID + `"
+  proxy_type            = "traefik"
+  redirect_url          = "https://example.com"
+  redirect_enabled      = false
+  generate_exact_labels = false
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "redirect_enabled", "false"),
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "generate_exact_labels", "false"),
+					func(*terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if !strings.Contains(lastPatch, `"redirect_enabled":false`) || !strings.Contains(lastPatch, `"generate_exact_labels":false`) {
+							return fmt.Errorf("patch = %s, want both flags false", lastPatch)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid           = "` + serverUUID + `"
+  proxy_type            = "traefik"
+  redirect_url          = "https://example.com"
+  redirect_enabled      = false
+  generate_exact_labels = false
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 			{
 				ResourceName:                         "coolify_server_proxy.test",

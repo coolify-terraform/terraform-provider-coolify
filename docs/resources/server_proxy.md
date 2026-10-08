@@ -31,9 +31,9 @@ resource "coolify_server_proxy" "example" {
 ### Optional
 
 - `configuration` (String) Raw proxy Docker Compose written with PUT .../proxy/configuration. The provider sends the planned value. Coolify GET/PATCH may also return the previously stored compose when the token can read sensitive data; that response is not used as the PUT body.
-- `generate_exact_labels` (Boolean) Whether to generate exact Docker labels (removes extra labels from containers). Setting `false` is ignored by Coolify today (`$request->has('generate_exact_labels')` treats JSON `false` as absent). Requires Coolify >= v4.3.0. An omitted value keeps the last applied value.
+- `generate_exact_labels` (Boolean) Whether to generate exact Docker labels (removes extra labels from containers). Requires Coolify >= v4.3.0. JSON `false` is stored: Laravel 12 `$request->has` sees the key. An omitted value keeps the last applied value.
 - `proxy_type` (String) Proxy type (for example traefik or caddy). An omitted value keeps the last applied value.
-- `redirect_enabled` (Boolean) Whether HTTP to HTTPS redirect is enabled. Coolify defaults this to `true`. Setting `false` is ignored by Coolify today (`$request->has('redirect_enabled')` treats JSON `false` as absent). Requires Coolify >= v4.3.0. An omitted value keeps the last applied value.
+- `redirect_enabled` (Boolean) Whether HTTP to HTTPS redirect is enabled. Coolify defaults this to `true`. Requires Coolify >= v4.3.0. JSON `false` is stored: Laravel 12 `$request->has` sees the key. An omitted value keeps the last applied value.
 - `redirect_url` (String) HTTPS redirect target URL. Coolify persists this field (`$request->exists('redirect_url')`). Use a resolvable host; reserved names such as `example.invalid` return 422. An omitted value keeps the last applied value.
 
 ## Import

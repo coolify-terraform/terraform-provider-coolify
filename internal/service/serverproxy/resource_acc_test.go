@@ -28,22 +28,22 @@ resource "coolify_server_proxy" "test" {
 				Check: resource.TestCheckResourceAttr("coolify_server_proxy.test", "server_uuid", serverUUID),
 			},
 			{
-				// Do not set redirect_enabled = false. Coolify's PATCH uses
-				// $request->has('redirect_enabled'); Laravel has() is false
-				// for JSON false, so the write is ignored and GET stays true
-				// (default). Same class as empty domains (#647).
 				// redirect_url uses exists() and persists, but SafeExternalUrl
 				// requires a resolvable host (example.invalid 422s).
+				// redirect_enabled = false is stored. Coolify >= 4.3.0 uses
+				// Laravel 12, and has() sees a JSON false key.
 				Config: acctest.ConfigProviderBlock() + fmt.Sprintf(`
 resource "coolify_server_proxy" "test" {
-  server_uuid  = %q
-  proxy_type   = "traefik"
-  redirect_url = "https://example.com"
+  server_uuid      = %q
+  proxy_type       = "traefik"
+  redirect_url     = "https://example.com"
+  redirect_enabled = false
 }
 `, serverUUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_server_proxy.test", "proxy_type", "traefik"),
 					resource.TestCheckResourceAttr("coolify_server_proxy.test", "redirect_url", "https://example.com"),
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "redirect_enabled", "false"),
 				),
 			},
 			{
