@@ -12,6 +12,8 @@
 #
 # Scenarios run only on tip-edge (expensive; tip-shaped demos).
 # Tip-only APIs (S3 storage, volume backups) skip via AccTestSkipIf* on older images.
+# The stable image (latest) runs TestAcc packages one at a time. -parallel=1
+# does not do that; go test still overlaps packages and latest returns 429.
 #
 # The Nightly gate job opens (or replaces) an assigned nightly-failure
 # issue when the matrix is red, and closes it when the run is green.
@@ -131,7 +133,9 @@ jobs:
     name: Acc (${{ matrix.label }})
     needs: prepare
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # latest serializes packages (-p 1, 55m test budget). Boot plus that
+    # run does not fit in 60m.
+    timeout-minutes: 80
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
@@ -201,6 +205,8 @@ jobs:
           # tip-edge must expose claimed tip APIs (S3, volume backup, S3 UUID).
           # stable/floor keep skip-if-missing so older images stay soft.
           COOLIFY_REQUIRE_TIP_APIS: ${{ matrix.coolify_image == 'edge' && '1' || '0' }}
+          COOLIFY_IMAGE_TAG: ${{ matrix.coolify_image }}
+          COOLIFY_ACC_LABEL: ${{ matrix.label }}
         run: |
           set -euo pipefail
           set -a
@@ -209,12 +215,15 @@ jobs:
           set +a
           export TF_ACC=1
 
+          mapfile -t go_args < <(bash scripts/ci-acc-go-args.sh "$COOLIFY_IMAGE_TAG" "$COOLIFY_ACC_LABEL")
+          echo "go test args: -run TestAcc -race ${go_args[*]}"
+
           mkdir -p test-results
           gotestsum \
             --format pkgname \
             --junitfile "test-results/acceptance-${{ matrix.label }}.xml" \
             --packages ./internal/service/... \
-            -- -run TestAcc -race -count=1 -timeout=40m -parallel=1
+            -- -run TestAcc -race "${go_args[@]}"
 
       - name: Upload acceptance test results
         if: always()
