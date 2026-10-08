@@ -118,8 +118,9 @@ contract-check: ## Verify contract client/schema coverage and skip taxonomy
 contract-compat: check-python3 ## Check endpoint field compatibility across Coolify versions
 	python3 scripts/check-contract-compat.py --ci
 
-schema-contract: check-python3 ## Check schema rules against the Coolify contract
+schema-contract: check-python3 ## Check schema rules and request-decode mocks against the contract
 	python3 scripts/check-schema-contract.py
+	python3 scripts/check-request-decode.py
 
 release-check: check-python3 ## Require green CI and edge/stable/floor acceptance on origin/main
 	python3 scripts/release-check.py

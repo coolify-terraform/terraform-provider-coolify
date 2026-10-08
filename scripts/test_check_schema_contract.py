@@ -44,6 +44,50 @@ class TestCreateOnly(unittest.TestCase):
             [],
         )
 
+    def test_custom_replace_modifier_counts(self):
+        src = '''
+        "environment_name": schema.StringAttribute{
+            PlanModifiers: []planmodifier.String{flex.EnvironmentNamePlan()},
+        },
+        '''
+        self.assertEqual(sc.missing_requires_replace(src, ["environment_name"]), [])
+
+    def test_no_replace_phrase_is_exempt(self):
+        src = '''
+        "autogenerate_domain": schema.BoolAttribute{
+            Default: booldefault.StaticBool(true),
+            MarkdownDescription: "changing this after create has no effect and does not force replacement.",
+        },
+        '''
+        self.assertEqual(sc.missing_requires_replace(src, ["autogenerate_domain"]), [])
+
+
+class TestDefaultReplace(unittest.TestCase):
+    def test_missing_read_fill_fails(self):
+        schema = '''
+        "enable_ipv4": schema.BoolAttribute{
+            Default: booldefault.StaticBool(true),
+            PlanModifiers: []planmodifier.Bool{boolplanmodifier.RequiresReplace()},
+        },
+        '''
+        package = 'EnableIPv4 types.Bool `tfsdk:"enable_ipv4"`\n'
+        self.assertNotEqual(sc.default_replace_gaps(schema, package), [])
+
+    def test_matching_null_fill_passes(self):
+        schema = '''
+        "enable_ipv4": schema.BoolAttribute{
+            Default: booldefault.StaticBool(true),
+            PlanModifiers: []planmodifier.Bool{boolplanmodifier.RequiresReplace()},
+        },
+        '''
+        package = '''
+        EnableIPv4 types.Bool `tfsdk:"enable_ipv4"`
+        if model.EnableIPv4.IsNull() {
+            model.EnableIPv4 = types.BoolValue(true)
+        }
+        '''
+        self.assertEqual(sc.default_replace_gaps(schema, package), [])
+
 
 class TestVolumeBackup(unittest.TestCase):
     def test_schema_default_is_forbidden(self):
