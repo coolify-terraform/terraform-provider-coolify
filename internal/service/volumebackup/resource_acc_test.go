@@ -12,6 +12,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
+// volumeBackupImportVerifyIgnore lists schedule fields Coolify does not
+// return on import. There is no GET for one schedule. Stable images can
+// still return missing_backup_notification_days as 0 on create.
+var volumeBackupImportVerifyIgnore = []string{
+	"uuid", "frequency", "enabled", "save_s3", "disable_local_backup",
+	"stop_during_backup", "s3_storage_uuid", "storage_type",
+	"retention_amount_locally", "retention_days_locally", "retention_max_storage_locally",
+	"retention_amount_s3", "retention_days_s3", "retention_max_storage_s3", "timeout",
+	"missing_backup_notification_days",
+}
+
 // TestAccStorageBackupResource_CRUD exercises coolify_storage_backup against a
 // real Coolify instance with VolumeBackupsController (Coolify >= v4.3.0;
 // coollabsio/coolify#10946). CI boots coollabsio/coolify:edge.
@@ -66,12 +77,7 @@ func TestAccStorageBackupResource_CRUD(t *testing.T) {
 					"coolify_application_dockerfile.test",
 					"coolify_storage.test",
 				),
-				ImportStateVerifyIgnore: []string{
-					"uuid", "frequency", "enabled", "save_s3", "disable_local_backup",
-					"stop_during_backup", "s3_storage_uuid", "storage_type",
-					"retention_amount_locally", "retention_days_locally", "retention_max_storage_locally",
-					"retention_amount_s3", "retention_days_s3", "retention_max_storage_s3", "timeout",
-				},
+				ImportStateVerifyIgnore: volumeBackupImportVerifyIgnore,
 			},
 		},
 	})
@@ -117,12 +123,7 @@ func TestAccStorageBackupResource_S3(t *testing.T) {
 					"coolify_application_dockerfile.test",
 					"coolify_storage.test",
 				),
-				ImportStateVerifyIgnore: []string{
-					"uuid", "frequency", "enabled", "save_s3", "disable_local_backup",
-					"stop_during_backup", "s3_storage_uuid", "storage_type",
-					"retention_amount_locally", "retention_days_locally", "retention_max_storage_locally",
-					"retention_amount_s3", "retention_days_s3", "retention_max_storage_s3", "timeout",
-				},
+				ImportStateVerifyIgnore: volumeBackupImportVerifyIgnore,
 			},
 		},
 	})
