@@ -7123,9 +7123,9 @@
           "flatten_hint": "or_clear"
         },
         "missing_backup_notification_days": {
-          "type": "string",
+          "type": "integer",
           "nullable": false,
-          "default": null,
+          "default": 0,
           "cast": "integer",
           "sensitive": false,
           "fillable": true,
@@ -7163,6 +7163,190 @@
           "nullable": false,
           "default": 3600,
           "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "uuid": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        }
+      }
+    },
+    "ScheduledVolumeBackup": {
+      "table": "scheduled_volume_backups",
+      "fillable": [
+        "uuid",
+        "backupable_type",
+        "backupable_id",
+        "team_id",
+        "s3_storage_id",
+        "frequency",
+        "enabled",
+        "save_s3",
+        "disable_local_backup",
+        "stop_during_backup",
+        "retention_amount_locally",
+        "retention_days_locally",
+        "retention_max_storage_locally",
+        "retention_amount_s3",
+        "retention_days_s3",
+        "retention_max_storage_s3",
+        "timeout",
+        "missing_backup_notification_days"
+      ],
+      "guarded": [],
+      "hidden": [],
+      "appends": [],
+      "fields": {
+        "backupable_id": {
+          "type": "bigInteger",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "backupable_type": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "disable_local_backup": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "enabled": {
+          "type": "boolean",
+          "nullable": false,
+          "default": true,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "frequency": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional",
+          "max_length": 255
+        },
+        "missing_backup_notification_days": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "retention_amount_locally": {
+          "type": "integer",
+          "nullable": false,
+          "default": 7,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "retention_amount_s3": {
+          "type": "integer",
+          "nullable": false,
+          "default": 7,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "retention_days_locally": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "retention_days_s3": {
+          "type": "integer",
+          "nullable": false,
+          "default": 0,
+          "cast": "integer",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "retention_max_storage_locally": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "float",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "retention_max_storage_s3": {
+          "type": "string",
+          "nullable": false,
+          "default": null,
+          "cast": "float",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "s3_storage_id": {
+          "type": "bigInteger",
+          "nullable": true,
+          "default": null,
+          "cast": null,
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "or_clear"
+        },
+        "save_s3": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "stop_during_backup": {
+          "type": "boolean",
+          "nullable": false,
+          "default": false,
+          "cast": "boolean",
+          "sensitive": false,
+          "fillable": true,
+          "flatten_hint": "unconditional"
+        },
+        "timeout": {
+          "type": "integer",
+          "nullable": false,
+          "default": 36000,
+          "cast": "integer",
           "sensitive": false,
           "fillable": true,
           "flatten_hint": "unconditional"

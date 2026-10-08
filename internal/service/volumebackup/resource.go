@@ -191,7 +191,7 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				Validators:          []validator.Float64{float64validator.AtLeast(0)},
 			},
 			"timeout": schema.Int64Attribute{
-				MarkdownDescription: "Backup timeout in seconds (60-36000). When this is omitted, Coolify stores its column default (3600 on v4.4.2, 36000 after the 2026-08-15 migration) and the provider keeps the value from the create response. Import does not require it, because Coolify keeps the stored timeout when the key is absent.",
+				MarkdownDescription: "Backup timeout in seconds (60-36000). When this is omitted, the provider does not send the key and Coolify stores the column default. The v4.4.2 migrations end at 36000 (`2026_08_15_000000_increase_default_volume_backup_timeout`). State keeps the value from the create response. Import does not require it, because Coolify keeps the stored timeout when the key is absent.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},

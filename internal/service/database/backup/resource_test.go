@@ -1,9 +1,11 @@
 package backup_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -36,6 +38,7 @@ type mockBackupState struct {
 	retainDays        *int64
 	missingDays       *int64
 	sawMissingDays    bool
+	timeout           *int64
 	lastExecutionAt   string
 	deleted           bool
 }
@@ -61,8 +64,26 @@ func newMockBackupServerVersion(version string) (*httptest.Server, *mockBackupSt
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", state.dbUUID):
+			raw, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			obj, err := acctest.DecodeObject(bytes.NewReader(raw))
+			if err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			timeoutPtr, err := acctest.DecodeOptional[int64](obj, "timeout", nil)
+			if err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			// Do not invent a timeout when the key is absent. Coolify's
+			// column default is not a value the provider sent.
+			state.timeout = timeoutPtr
 			var body map[string]interface{}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			if err := json.Unmarshal(raw, &body); err != nil {
 				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
 				return
 			}
@@ -113,8 +134,24 @@ func newMockBackupServerVersion(version string) (*httptest.Server, *mockBackupSt
 
 		case r.Method == http.MethodPatch && (r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%d", state.dbUUID, state.id) ||
 			r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%s", state.dbUUID, state.uuid)):
+			raw, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			obj, err := acctest.DecodeObject(bytes.NewReader(raw))
+			if err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			if timeoutPtr, err := acctest.DecodeOptional[int64](obj, "timeout", nil); err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			} else if timeoutPtr != nil {
+				state.timeout = timeoutPtr
+			}
 			var body map[string]interface{}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			if err := json.Unmarshal(raw, &body); err != nil {
 				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
 				return
 			}
@@ -188,6 +225,9 @@ func backupResponse(s *mockBackupState) map[string]interface{} {
 	}
 	if s.missingDays != nil {
 		resp["missing_backup_notification_days"] = *s.missingDays
+	}
+	if s.timeout != nil {
+		resp["timeout"] = *s.timeout
 	}
 	if s.lastExecutionAt != "" {
 		resp["last_execution_at"] = s.lastExecutionAt

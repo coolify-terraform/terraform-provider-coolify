@@ -111,6 +111,7 @@ From [GNUmakefile](GNUmakefile), `make ci` runs these local targets:
 - `api-coverage-check`
 - `counts-check`
 - `contract-compat`
+- `schema-contract`
 - `vulncheck`
 - `goreleaser-check`
 - `modverify`
