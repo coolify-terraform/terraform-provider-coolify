@@ -23,10 +23,11 @@ const (
 )
 
 type volumeBackupMock struct {
-	server   *httptest.Server
-	mu       sync.Mutex
-	schedule *client.VolumeBackupSchedule
-	puts     int
+	server            *httptest.Server
+	mu                sync.Mutex
+	schedule          *client.VolumeBackupSchedule
+	puts              int
+	createSentTimeout bool
 }
 
 func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
@@ -50,6 +51,9 @@ func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
 			}
 			m.puts++
 			created := m.schedule == nil
+			if created {
+				m.createSentTimeout = input.Timeout != nil
+			}
 			enabled := true
 			if input.Enabled != nil {
 				enabled = *input.Enabled
@@ -673,4 +677,30 @@ resource "coolify_storage_backup" "test" {
 			},
 		},
 	})
+}
+
+func TestStorageBackupResource_CreateOmitsTimeout(t *testing.T) {
+	t.Parallel()
+	mock := newVolumeBackupMock(t)
+	defer mock.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(mock.URL()) + `
+resource "coolify_storage_backup" "test" {
+  application_uuid = "` + appUUID + `"
+  storage_uuid     = "` + storUUID + `"
+  frequency        = "0 2 * * *"
+}
+`,
+				Check: resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "3600"),
+			},
+		},
+	})
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+	if mock.createSentTimeout {
+		t.Fatal("create PUT included timeout; an omitted timeout must stay off the request")
+	}
 }
