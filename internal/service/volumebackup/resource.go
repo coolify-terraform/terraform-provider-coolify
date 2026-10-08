@@ -257,6 +257,17 @@ func resolveParent(m *storageBackupResourceModel) (parentType, parentUUID string
 	return "", "", false
 }
 
+func scheduleWhere(storageUUID, parentType, parentUUID string) string {
+	switch {
+	case storageUUID != "" && parentUUID != "":
+		return fmt.Sprintf("storage %s on %s %s", storageUUID, parentType, parentUUID)
+	case storageUUID != "":
+		return "storage " + storageUUID
+	default:
+		return "storage backup"
+	}
+}
+
 func buildInput(c *client.Client, plan storageBackupResourceModel) client.UpsertVolumeBackupInput {
 	input := client.UpsertVolumeBackupInput{
 		Frequency: plan.Frequency.ValueString(),
@@ -362,7 +373,9 @@ func (r *storageBackupResource) Create(ctx context.Context, req resource.CreateR
 	}
 	parentType, parentUUID, ok := resolveParent(&plan)
 	if !ok {
-		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error",
+			fmt.Sprintf("%s: one of application_uuid, service_uuid, or database_uuid must be set",
+				scheduleWhere(plan.StorageUUID.ValueString(), "", "")))
 		return
 	}
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_storage_backup"})
@@ -372,7 +385,7 @@ func (r *storageBackupResource) Create(ctx context.Context, req resource.CreateR
 	got, err := r.client.UpsertVolumeBackup(ctx, parentType, parentUUID, plan.StorageUUID.ValueString(), buildInput(r.client, plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating storage backup schedule",
-			fmt.Sprintf("storage %s on %s %s: %s", plan.StorageUUID.ValueString(), parentType, parentUUID, err))
+			fmt.Sprintf("%s: %s", scheduleWhere(plan.StorageUUID.ValueString(), parentType, parentUUID), err))
 		return
 	}
 	flatten(got, &plan)
@@ -387,7 +400,9 @@ func (r *storageBackupResource) Read(ctx context.Context, req resource.ReadReque
 	}
 	parentType, parentUUID, ok := resolveParent(&state)
 	if !ok {
-		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error",
+			fmt.Sprintf("%s: one of application_uuid, service_uuid, or database_uuid must be set",
+				scheduleWhere(state.StorageUUID.ValueString(), "", "")))
 		return
 	}
 	tflog.Debug(ctx, "reading resource", map[string]interface{}{
@@ -431,7 +446,9 @@ func (r *storageBackupResource) Update(ctx context.Context, req resource.UpdateR
 	}
 	parentType, parentUUID, ok := resolveParent(&plan)
 	if !ok {
-		resp.Diagnostics.AddError("Configuration Error", "One of application_uuid, service_uuid, or database_uuid must be set")
+		resp.Diagnostics.AddError("Configuration Error",
+			fmt.Sprintf("%s: one of application_uuid, service_uuid, or database_uuid must be set",
+				scheduleWhere(plan.StorageUUID.ValueString(), "", "")))
 		return
 	}
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{
@@ -442,16 +459,18 @@ func (r *storageBackupResource) Update(ctx context.Context, req resource.UpdateR
 	if missing := unsetDestructiveFields(plan); len(missing) > 0 {
 		resp.Diagnostics.AddError(
 			"Storage backup schedule is incomplete",
-			"Coolify replaces omitted enabled, save_s3, disable_local_backup, stop_during_backup, and retention fields. "+
-				"Set "+strings.Join(missing, ", ")+" before apply. Import does not know the live values. "+
+			fmt.Sprintf("%s. Coolify replaces omitted enabled, save_s3, disable_local_backup, stop_during_backup, and retention fields. "+
+				"Set %s before apply. Import does not know the live values. "+
 				"timeout and missing_backup_notification_days can stay omitted.",
+				scheduleWhere(plan.StorageUUID.ValueString(), parentType, parentUUID),
+				strings.Join(missing, ", ")),
 		)
 		return
 	}
 	got, err := r.client.UpsertVolumeBackup(ctx, parentType, parentUUID, plan.StorageUUID.ValueString(), buildInput(r.client, plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating storage backup schedule",
-			fmt.Sprintf("storage %s: %s", plan.StorageUUID.ValueString(), err))
+			fmt.Sprintf("%s: %s", scheduleWhere(plan.StorageUUID.ValueString(), parentType, parentUUID), err))
 		return
 	}
 	flatten(got, &plan)
@@ -466,6 +485,9 @@ func (r *storageBackupResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 	parentType, parentUUID, ok := resolveParent(&state)
 	if !ok {
+		resp.Diagnostics.AddError("Error deleting storage backup schedule",
+			fmt.Sprintf("%s: one of application_uuid, service_uuid, or database_uuid must be set",
+				scheduleWhere(state.StorageUUID.ValueString(), "", "")))
 		return
 	}
 	tflog.Debug(ctx, "deleting resource", map[string]interface{}{
@@ -476,7 +498,7 @@ func (r *storageBackupResource) Delete(ctx context.Context, req resource.DeleteR
 			return
 		}
 		resp.Diagnostics.AddError("Error deleting storage backup schedule",
-			fmt.Sprintf("storage %s: %s", state.StorageUUID.ValueString(), err))
+			fmt.Sprintf("%s: %s", scheduleWhere(state.StorageUUID.ValueString(), parentType, parentUUID), err))
 	}
 }
 
@@ -485,7 +507,7 @@ func (r *storageBackupResource) ImportState(ctx context.Context, req resource.Im
 	parts := strings.SplitN(req.ID, ":", 3)
 	if len(parts) != 3 {
 		resp.Diagnostics.AddError("Invalid import ID format",
-			`Expected "application|service|database:<parent_uuid>:<storage_uuid>"`)
+			fmt.Sprintf("Import ID %q. Expected \"application|service|database:<parent_uuid>:<storage_uuid>\"", req.ID))
 		return
 	}
 	parentKey := parts[0]
@@ -493,7 +515,7 @@ func (r *storageBackupResource) ImportState(ctx context.Context, req resource.Im
 	case "application", "service", "database":
 	default:
 		resp.Diagnostics.AddError("Invalid import ID",
-			fmt.Sprintf("parent type %q must be application, service, or database", parentKey))
+			fmt.Sprintf("parent type %q must be application, service, or database (import ID %q)", parentKey, req.ID))
 		return
 	}
 	if err := validate.ImportUUID(parts[1]); err != nil {
@@ -508,9 +530,10 @@ func (r *storageBackupResource) ImportState(ctx context.Context, req resource.Im
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("storage_uuid"), parts[2])...)
 	resp.Diagnostics.AddWarning(
 		"Set schedule fields before the next apply",
-		"Coolify has no GET for this schedule and replaces omitted enabled and retention fields. "+
+		fmt.Sprintf("Imported %s. Coolify has no GET for this schedule and replaces omitted enabled and retention fields. "+
 			"Set enabled, save_s3, disable_local_backup, stop_during_backup, and every retention attribute before the next apply. "+
 			"timeout and missing_backup_notification_days can stay omitted.",
+			scheduleWhere(parts[2], parentKey, parts[1])),
 	)
 }
 
