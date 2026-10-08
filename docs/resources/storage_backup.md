@@ -59,7 +59,7 @@ resource "coolify_storage_backup" "app_data" {
 - `save_s3` (Boolean) Upload backups to S3. When true, `s3_storage_uuid` is required. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
 - `service_uuid` (String) UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid`. Changing this forces a new resource.
 - `stop_during_backup` (Boolean) Stop the resource while the backup runs. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
-- `timeout` (Number) Backup timeout in seconds (60-36000). When this is omitted, Coolify stores its column default (3600 on v4.4.2, 36000 after the 2026-08-15 migration) and the provider keeps the value from the create response. Import does not require it, because Coolify keeps the stored timeout when the key is absent.
+- `timeout` (Number) Backup timeout in seconds (60-36000). When this is omitted, the provider does not send the key and Coolify stores the column default. The v4.4.2 migrations end at 36000 (`2026_08_15_000000_increase_default_volume_backup_timeout`). State keeps the value from the create response. Import does not require it, because Coolify keeps the stored timeout when the key is absent.
 
 ### Read-Only
 

@@ -15,8 +15,8 @@ This script compares:
   - latest_release: newest non-draft GitHub release tag (stable or pre)
   - tip_version: version string from Coolify source config/constants.php
     on the default branch (earliest "next line" signal)
-  - tip_contract: optional extracted contract from tip vs pin (API drift
-    even when version strings still match)
+  - tip_contract: optional extracted contract from tip vs pin (API field
+    and column-default drift, even when version strings still match)
 
 It prints a machine-readable decision and can create/update a GitHub
 issue when the pin lags any of those signals.
@@ -168,18 +168,29 @@ def newest_prerelease(tags: list[str]) -> Optional[str]:
 
 
 def contract_field_signature(contract: dict[str, Any]) -> dict[str, Any]:
-    """Build a stable signature of model fields + endpoint allow-lists."""
+    """Build a stable signature of model fields, column defaults, and allow-lists.
+
+    allowed_fields diffs miss a migration that only changes ->default().
+    Column defaults are part of the signature so that change is counted.
+    """
     models: dict[str, list[str]] = {}
+    defaults: dict[str, dict[str, Any]] = {}
     for name, model in (contract.get("models") or {}).items():
         fields = model.get("fields") or {}
         if isinstance(fields, dict):
             models[name] = sorted(fields.keys())
+            defaults[name] = {
+                fname: spec.get("default")
+                for fname, spec in fields.items()
+                if isinstance(spec, dict)
+            }
         else:
             models[name] = sorted(model.get("fillable") or [])
+            defaults[name] = {}
     endpoints: dict[str, list[str]] = {}
     for name, ep in (contract.get("endpoints") or {}).items():
         endpoints[name] = sorted(ep.get("allowed_fields") or [])
-    return {"models": models, "endpoints": endpoints}
+    return {"models": models, "defaults": defaults, "endpoints": endpoints}
 
 
 def diff_contract_signatures(
@@ -225,6 +236,18 @@ def diff_contract_signatures(
                 detail.append(f"-{len(removed)} allow fields")
             sample = (added or removed)[:6]
             lines.append(f"~ {name}: {', '.join(detail)} ({', '.join(sample)})")
+
+    pin_defaults = a.get("defaults") or {}
+    tip_defaults = b.get("defaults") or {}
+    for name in sorted(set(pin_defaults) | set(tip_defaults)):
+        old_d = pin_defaults.get(name) or {}
+        new_d = tip_defaults.get(name) or {}
+        for fname in sorted(set(old_d) & set(new_d)):
+            if old_d[fname] != new_d[fname]:
+                changes += 1
+                lines.append(
+                    f"~ {name}.{fname} default: {old_d[fname]!r} -> {new_d[fname]!r}"
+                )
 
     summary = "\n".join(f"  {ln}" for ln in lines[:40])
     if len(lines) > 40:
@@ -411,7 +434,7 @@ def decide(
         )
     if pin_behind_tip_api:
         reasons.append(
-            f"**Tip contract API drift**: {snap.tip_contract_diff_count} field/endpoint "
+            f"**Tip contract API drift**: {snap.tip_contract_diff_count} field, default, or endpoint "
             "change(s) vs pin even when CDN version strings match. Extract tip and implement "
             "before stable ships."
         )

@@ -91,6 +91,8 @@ mismatches, and zero validation rules when we compared it against the source.
 - Extract contract from Coolify source: `make contract-extract VERSION=v4.1.2`
 - Verify client structs cover contract: `make contract-check`
 - Cross-version endpoint field compatibility: `make contract-compat`
+- Schema rules versus the contract (create-only RequiresReplace, no Default on volume backups, import ignore list): `make schema-contract`
+- Release gate (CI plus edge, stable, and 4.1.2 acceptance on origin/main): `make release-check`
 - Regenerate OpenAPI spec from contract: `make spec-generate`
 - Scaffold a new resource: `make scaffold NAME=myresource`
 - Merge a PR (sole maintainer): `make merge PR=123`
@@ -223,7 +225,7 @@ values, causing 422 errors on Coolify < v4.1.2 after importing a database.
 - Framework: `hashicorp/terraform-plugin-testing` with `httptest` mock servers
 - 1770+ tests (unit + acceptance)
 - Acceptance tests are skipped unless `TF_ACC=1` is set
-- Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, actionlint-check, zizmor-check, python-test, docs-check, api-coverage-check, counts-check, contract-compat, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
+- Run `make ci && make testacc` before pushing (ci = build, lint, test, validate, actionlint-check, zizmor-check, python-test, docs-check, api-coverage-check, counts-check, contract-compat, schema-contract, vulncheck, goreleaser-check, modverify; testacc = acceptance tests against real Coolify)
 - Before adding a test function, grep for its name to avoid duplicates
 - **Test counts use floor rounding**: `counts-check` rounds down to the nearest 10 (e.g., 857 tests -> "850+"). When updating test counts in AGENTS.md or README.md, use the floor value, not the exact count. Setting "855+" when the actual count is 857 will fail `make ci` because 855 > floor(857/10)*10 = 850.
 
@@ -282,8 +284,12 @@ After apply, `git ls-remote --heads origin 'release-note-*'` is empty.
 
 The correct sequence for curated releases:
 1. Write `RELEASE_NOTES.md` and push it on orphan `release-note-<semver>`
-2. Optional but recommended: Actions → **Coolify Nightly Acc** → Run workflow
-   (profile `tip-and-stable` or `all`) on `main` and wait for green
+2. Run `make release-check` on current main. It requires a product `ci.yml`
+   run (Test, acceptance, and scenarios; a Monday schedule run does not count)
+   and green nightly acceptance for edge, stable (`latest`), and `4.1.2`.
+   A failure that is only HTTP 429, or a deadline on `/api/v1/version`, is a flake:
+   `python3 scripts/release-check.py --rerun-once` dispatches one stable rerun
+   and stops. Do not treat that flake as a pass.
 3. Merge the release-please PR (explicit human yes)
 4. Approve the `release` environment so GoReleaser publishes
 5. Confirm apply succeeded and the notes branch is gone

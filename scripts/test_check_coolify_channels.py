@@ -116,6 +116,28 @@ class TestContractDiff(unittest.TestCase):
         count, _ = cc.diff_contract_signatures(c, c)
         self.assertEqual(count, 0)
 
+    def test_column_default_change_counts(self):
+        pin = {
+            "models": {
+                "ScheduledVolumeBackup": {
+                    "fields": {"timeout": {"default": 3600}, "enabled": {"default": True}}
+                }
+            },
+            "endpoints": {},
+        }
+        tip = {
+            "models": {
+                "ScheduledVolumeBackup": {
+                    "fields": {"timeout": {"default": 36000}, "enabled": {"default": True}}
+                }
+            },
+            "endpoints": {},
+        }
+        count, summary = cc.diff_contract_signatures(pin, tip)
+        self.assertEqual(count, 1)
+        self.assertIn("ScheduledVolumeBackup.timeout", summary)
+        self.assertIn("36000", summary)
+
 
 class TestDecide(unittest.TestCase):
     def test_pin_behind_nightly(self):

@@ -1,8 +1,10 @@
 package volumebackup_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -39,8 +41,24 @@ func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == http.MethodPut && r.URL.Path == "/api/v1/applications/"+appUUID+"/storages/"+storUUID+"/backups":
+			raw, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, `{"error":"bad json"}`, http.StatusBadRequest)
+				return
+			}
+			body, err := acctest.DecodeObject(bytes.NewReader(raw))
+			if err != nil {
+				http.Error(w, `{"error":"bad json"}`, http.StatusBadRequest)
+				return
+			}
+			var absentTimeout int
+			timeoutPtr, err := acctest.DecodeOptional[int64](body, "timeout", &absentTimeout)
+			if err != nil {
+				http.Error(w, `{"error":"bad json"}`, http.StatusBadRequest)
+				return
+			}
 			var input client.UpsertVolumeBackupInput
-			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			if err := json.Unmarshal(raw, &input); err != nil {
 				http.Error(w, `{"error":"bad json"}`, http.StatusBadRequest)
 				return
 			}
@@ -52,7 +70,10 @@ func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
 			m.puts++
 			created := m.schedule == nil
 			if created {
-				m.createSentTimeout = input.Timeout != nil
+				m.createSentTimeout = timeoutPtr != nil
+				if absentTimeout == 0 && timeoutPtr == nil {
+					t.Errorf("omitted timeout was not counted as absent")
+				}
 			}
 			enabled := true
 			if input.Enabled != nil {
@@ -62,9 +83,12 @@ func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
 			if input.SaveS3 != nil {
 				saveS3 = *input.SaveS3
 			}
-			timeout := int64(3600)
-			if input.Timeout != nil {
-				timeout = *input.Timeout
+			// 36000 is scheduled_volume_backups.timeout after the migrations
+			// in Coolify v4.4.2. It is the response when the key is absent.
+			// It is not evidence the provider sent timeout.
+			timeout := int64(36000)
+			if timeoutPtr != nil {
+				timeout = *timeoutPtr
 			}
 			retLocal := int64(7)
 			if input.RetentionAmountLocally != nil {
@@ -170,7 +194,7 @@ resource "coolify_storage_backup" "test" {
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "frequency", "0 2 * * *"),
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "storage_type", "persistent"),
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "3600"),
+					resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "36000"),
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "retention_amount_locally", "7"),
 				),
 			},
@@ -694,7 +718,7 @@ resource "coolify_storage_backup" "test" {
   frequency        = "0 2 * * *"
 }
 `,
-				Check: resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "3600"),
+				Check: resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "36000"),
 			},
 		},
 	})

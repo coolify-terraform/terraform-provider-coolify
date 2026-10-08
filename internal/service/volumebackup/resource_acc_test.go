@@ -157,8 +157,8 @@ resource "coolify_storage_backup" "test" {
   storage_uuid     = coolify_storage.test.uuid
   frequency        = %[3]q
   enabled          = true
-  # Pin timeout. An omitted value follows the server column default,
-  # which is 3600 on v4.4.2 and 36000 after Coolify's 2026-08-15 migration.
+  # Pin timeout. An omitted value follows the server column default.
+  # The v4.4.2 migrations end at 36000.
   timeout          = 120
 }
 `, name, serverUUID, frequency)

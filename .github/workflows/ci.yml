@@ -502,6 +502,9 @@ jobs:
       - name: Check contract compatibility
         if: ${{ !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: make contract-compat
+      - name: Check schema against contract
+        if: ${{ !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+        run: make schema-contract
       - name: Run Python script tests
         if: ${{ !cancelled() && (needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: |

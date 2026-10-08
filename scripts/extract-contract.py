@@ -218,6 +218,7 @@ def _extract_column_defs(block: str, columns: dict):
             "longText": "longText",
             "boolean": "boolean",
             "integer": "integer",
+            "unsignedInteger": "integer",
             "bigInteger": "bigInteger",
             "unsignedBigInteger": "bigInteger",
             "timestamp": "timestamp",
@@ -1063,6 +1064,7 @@ def extract_contract(coolify_dir: str, version: str = "unknown") -> dict:
         "S3Storage": "s3_storages",
         "CloudProviderToken": "cloud_provider_tokens",
         "ScheduledDatabaseBackup": "scheduled_database_backups",
+        "ScheduledVolumeBackup": "scheduled_volume_backups",
     }
 
     # Fields hidden by controller removeSensitiveData / ApiSensitiveData
