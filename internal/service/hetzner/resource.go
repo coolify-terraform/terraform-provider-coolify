@@ -195,21 +195,21 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(true),
 		},
 		"enable_ipv4": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv4 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). Changing it forces a new resource. Defaults to true. The API does not return this field; after import, state uses true.",
+			MarkdownDescription: "Whether to enable IPv4 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
-			Default:             booldefault.StaticBool(true),
 			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.RequiresReplace(),
+				boolplanmodifier.UseStateForUnknown(),
+				flex.BoolRequiresReplaceIfKnown(),
 			},
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). Changing it forces a new resource. Defaults to true. The API does not return this field; after import, state uses true.",
+			MarkdownDescription: "Whether to enable IPv6 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
-			Default:             booldefault.StaticBool(true),
 			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.RequiresReplace(),
+				boolplanmodifier.UseStateForUnknown(),
+				flex.BoolRequiresReplaceIfKnown(),
 			},
 		},
 		"enable_backups": schema.BoolAttribute{
@@ -244,6 +244,9 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 	defer cancel()
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server_hetzner"})
+
+	plan.EnableIPv4 = flex.BoolIfNull(plan.EnableIPv4, true)
+	plan.EnableIPv6 = flex.BoolIfNull(plan.EnableIPv6, true)
 
 	input := client.CreateHetznerServerInput{
 		Name:                   plan.Name.ValueString(),
@@ -459,15 +462,9 @@ func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 
 func flattenHetznerServer(srv *client.Server, model *hetznerServerResourceModel) {
 	server.FlattenServerCommon(srv, model.commonPtrs())
-	// Create-only flags are not on GET. Keep a known state value.
-	// Import leaves them null; store the schema default so the next
-	// plan does not replace a server the configuration did not change.
-	if model.EnableIPv4.IsNull() || model.EnableIPv4.IsUnknown() {
-		model.EnableIPv4 = types.BoolValue(true)
-	}
-	if model.EnableIPv6.IsNull() || model.EnableIPv6.IsUnknown() {
-		model.EnableIPv6 = types.BoolValue(true)
-	}
+	// enable_ipv4 and enable_ipv6 are not on GET. Keep a known state
+	// value. Do not invent true: a server created with the flag off
+	// would then plan a replace.
 	// enable_backups is create-only; GET never returns it.
 	if model.EnableBackups.IsNull() || model.EnableBackups.IsUnknown() {
 		model.EnableBackups = types.BoolValue(false)

@@ -174,21 +174,21 @@ func digitaloceanSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(false),
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.",
+			MarkdownDescription: "Whether to enable IPv6 on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
-			Default:             booldefault.StaticBool(true),
 			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.RequiresReplace(),
+				boolplanmodifier.UseStateForUnknown(),
+				flex.BoolRequiresReplaceIfKnown(),
 			},
 		},
 		"monitoring": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable DigitalOcean monitoring on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.",
+			MarkdownDescription: "Whether to enable DigitalOcean monitoring on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
-			Default:             booldefault.StaticBool(true),
 			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.RequiresReplace(),
+				boolplanmodifier.UseStateForUnknown(),
+				flex.BoolRequiresReplaceIfKnown(),
 			},
 		},
 	}
@@ -214,6 +214,9 @@ func (r *digitalOceanServerResource) Create(ctx context.Context, req resource.Cr
 	defer cancel()
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server_digitalocean"})
+
+	plan.EnableIPv6 = flex.BoolIfNull(plan.EnableIPv6, true)
+	plan.Monitoring = flex.BoolIfNull(plan.Monitoring, true)
 
 	input := client.CreateDigitalOceanServerInput{
 		Name:                   plan.Name.ValueString(),
@@ -417,15 +420,8 @@ func (m *digitalOceanServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 
 func flattenDigitalOceanServer(srv *client.Server, model *digitalOceanServerResourceModel) {
 	server.FlattenServerCommon(srv, model.commonPtrs())
-	// Create-only flags are not on GET. Keep a known state value.
-	// Import leaves them null; store the schema default so the next
-	// plan does not replace a server the configuration did not change.
-	if model.EnableIPv6.IsNull() || model.EnableIPv6.IsUnknown() {
-		model.EnableIPv6 = types.BoolValue(true)
-	}
-	if model.Monitoring.IsNull() || model.Monitoring.IsUnknown() {
-		model.Monitoring = types.BoolValue(true)
-	}
+	// enable_ipv6 and monitoring are not on GET. Keep a known state
+	// value. Do not invent true after import.
 }
 
 func parseDigitalOceanSSHKeyIDs(raw types.String) ([]int64, error) {

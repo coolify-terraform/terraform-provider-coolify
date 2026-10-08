@@ -2,6 +2,7 @@ package vultr_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +16,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 const (
@@ -82,18 +84,36 @@ func applyVultrServerPatch(srv *client.Server, update client.UpdateServerInput) 
 	}
 }
 
+var vultrCreateBodies sync.Map
+
+func vultrLastCreate(srv *httptest.Server) string {
+	v, ok := vultrCreateBodies.Load(srv)
+	if !ok {
+		return ""
+	}
+	raw, _ := v.(*atomic.Value).Load().(string)
+	return raw
+}
+
 func newVultrServerMock(t *testing.T) *httptest.Server {
 	t.Helper()
 	servers := map[string]*client.Server{}
 	var mu sync.Mutex
-	return httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	createBody := &atomic.Value{}
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers/vultr":
+			raw, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			createBody.Store(string(raw))
 			var input client.CreateVultrServerInput
-			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			if err := json.Unmarshal(raw, &input); err != nil {
 				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
 				return
 			}
@@ -180,6 +200,8 @@ func newVultrServerMock(t *testing.T) *httptest.Server {
 			http.Error(w, `{}`, http.StatusNotFound)
 		}
 	})))
+	vultrCreateBodies.Store(srv, createBody)
+	return srv
 }
 
 func vultrBaseConfig(name string) string {
@@ -465,6 +487,13 @@ func TestVultrServerResource_NetworkFlagsRequireReplace(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_server_vultr.test", "enable_ipv6", "true"),
 					resource.TestCheckResourceAttr("coolify_server_vultr.test", "disable_public_ipv4", "false"),
+					func(*terraform.State) error {
+						body := vultrLastCreate(srv)
+						if !strings.Contains(body, `"enable_ipv6":true`) || !strings.Contains(body, `"disable_public_ipv4":false`) {
+							return fmt.Errorf("create body = %s, want Coolify defaults", body)
+						}
+						return nil
+					},
 				),
 			},
 			{
@@ -484,6 +513,37 @@ func TestVultrServerResource_NetworkFlagsRequireReplace(t *testing.T) {
 					},
 				},
 				Check: resource.TestCheckResourceAttr("coolify_server_vultr.test", "disable_public_ipv4", "true"),
+			},
+		},
+	})
+}
+
+func TestVultrServerResource_NonDefaultPublicIPv4Stays(t *testing.T) {
+	t.Parallel()
+	srv := newVultrServerMock(t)
+	defer srv.Close()
+	cfg := acctest.ProviderBlockForURL(srv.URL) + vultrConfigWith("vultr-node", "  disable_public_ipv4 = true\n")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_vultr.test", "disable_public_ipv4", "true"),
+					func(*terraform.State) error {
+						body := vultrLastCreate(srv)
+						if !strings.Contains(body, `"disable_public_ipv4":true`) {
+							return fmt.Errorf("create body = %s, want disable_public_ipv4 true", body)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config:             cfg,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})

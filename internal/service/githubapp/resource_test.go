@@ -211,8 +211,8 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 			HTMLURL          string `json:"html_url"`
 			CustomUser       string `json:"custom_user"`
 			CustomPort       *int64 `json:"custom_port"`
-			AppID            int64  `json:"app_id"`
-			InstallationID   int64  `json:"installation_id"`
+			AppID            *int64 `json:"app_id"`
+			InstallationID   *int64 `json:"installation_id"`
 			ClientID         string `json:"client_id"`
 			ClientSecret     string `json:"client_secret"`
 			WebhookSecret    string `json:"webhook_secret"`
@@ -232,11 +232,19 @@ func newMockCoolifyServer(auditT ...testing.TB) (*httptest.Server, *mockGitHubAp
 		if body.CustomPort != nil {
 			port = *body.CustomPort
 		}
+		var appID int64
+		if body.AppID != nil {
+			appID = *body.AppID
+		}
+		var installID int64
+		if body.InstallationID != nil {
+			installID = *body.InstallationID
+		}
 		var systemWide bool
 		if body.IsSystemWide != nil {
 			systemWide = *body.IsSystemWide
 		}
-		app := store.Create(body.Name, body.OrganizationName, body.CustomUser, port, body.AppID, body.InstallationID, body.ClientID, body.ClientSecret, body.WebhookSecret, body.PrivateKeyUUID, systemWide)
+		app := store.Create(body.Name, body.OrganizationName, body.CustomUser, port, appID, installID, body.ClientID, body.ClientSecret, body.WebhookSecret, body.PrivateKeyUUID, systemWide)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)

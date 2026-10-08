@@ -30,6 +30,7 @@ var (
 	_ resource.ResourceWithConfigure      = (*storageBackupResource)(nil)
 	_ resource.ResourceWithImportState    = (*storageBackupResource)(nil)
 	_ resource.ResourceWithValidateConfig = (*storageBackupResource)(nil)
+	_ resource.ResourceWithModifyPlan     = (*storageBackupResource)(nil)
 )
 
 type storageBackupResource struct {
@@ -75,7 +76,9 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 			"**Coolify >= v4.3.0** (stable CDN). It is **not** present in git tag `v4.2.0` or older stable lines.\n\n" +
 			"~> **API note:** Coolify only exposes create/replace (PUT) and delete. There is no GET for the schedule. " +
 			"Read verifies the parent storage still exists via list and keeps schedule attributes from state. " +
-			"Out-of-band schedule edits may not appear until the next apply.",
+			"Out-of-band schedule edits may not appear until the next apply. " +
+			"After import, terraform plan fails until enabled, save_s3, disable_local_backup, stop_during_backup, and every retention attribute are set. " +
+			"timeout and missing_backup_notification_days can stay omitted.",
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
 				MarkdownDescription: "UUID of the scheduled volume backup.",
@@ -120,25 +123,25 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				Validators:          []validator.String{validate.CoolifyFrequency()},
 			},
 			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "Whether the schedule is enabled. Create uses true when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Whether the schedule is enabled. Create uses true when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"save_s3": schema.BoolAttribute{
-				MarkdownDescription: "Upload backups to S3. When true, `s3_storage_uuid` is required. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Upload backups to S3. When true, `s3_storage_uuid` is required. Create uses false when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"disable_local_backup": schema.BoolAttribute{
-				MarkdownDescription: "Skip local archives. Only valid when `save_s3` is true. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Skip local archives. Only valid when `save_s3` is true. Create uses false when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"stop_during_backup": schema.BoolAttribute{
-				MarkdownDescription: "Stop the resource while the backup runs. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Stop the resource while the backup runs. Create uses false when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
@@ -149,49 +152,49 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				Validators:          []validator.String{validate.UUID()},
 			},
 			"retention_amount_locally": schema.Int64Attribute{
-				MarkdownDescription: "Number of local backups to retain. Create uses 7 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Number of local backups to retain. Create uses 7 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.Between(0, 10000)},
 			},
 			"retention_days_locally": schema.Int64Attribute{
-				MarkdownDescription: "Days to retain local backups. Create uses 0 (unlimited by age) when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Days to retain local backups. Create uses 0 (unlimited by age) when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"retention_max_storage_locally": schema.Float64Attribute{
-				MarkdownDescription: "Max local backup storage (Coolify units). Create uses 0 (unlimited) when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Max local backup storage (Coolify units). Create uses 0 (unlimited) when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Float64{float64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Float64{float64validator.AtLeast(0)},
 			},
 			"retention_amount_s3": schema.Int64Attribute{
-				MarkdownDescription: "Number of S3 backups to retain. Create uses 7 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Number of S3 backups to retain. Create uses 7 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.Between(0, 10000)},
 			},
 			"retention_days_s3": schema.Int64Attribute{
-				MarkdownDescription: "Days to retain S3 backups. Create uses 0 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Days to retain S3 backups. Create uses 0 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"retention_max_storage_s3": schema.Float64Attribute{
-				MarkdownDescription: "Max S3 backup storage. Create uses 0 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.",
+				MarkdownDescription: "Max S3 backup storage. Create uses 0 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Float64{float64planmodifier.UseStateForUnknown()},
 				Validators:          []validator.Float64{float64validator.AtLeast(0)},
 			},
 			"timeout": schema.Int64Attribute{
-				MarkdownDescription: "Backup timeout in seconds (60-36000). When this is omitted, the provider does not send the key and Coolify stores the column default. The v4.4.2 migrations end at 36000 (`2026_08_15_000000_increase_default_volume_backup_timeout`). State keeps the value from the create response. Import does not require it, because Coolify keeps the stored timeout when the key is absent.",
+				MarkdownDescription: "Backup timeout in seconds (60-36000). When this is omitted, the provider does not send the key. Coolify's create response is JSON null for that column (the model has no attribute default and create does not refresh the row), so state keeps timeout unset. The provider does not store or send 0. The v4.4.2 column default is 36000 (`2026_08_15_000000_increase_default_volume_backup_timeout`). Import does not require it, because Coolify keeps the stored timeout when the key is absent.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
@@ -335,7 +338,11 @@ func flatten(got *client.VolumeBackupSchedule, m *storageBackupResourceModel) {
 	m.RetentionAmountS3 = types.Int64Value(got.RetentionAmountS3)
 	m.RetentionDaysS3 = types.Int64Value(got.RetentionDaysS3)
 	m.RetentionMaxStorageS3 = types.Float64Value(got.RetentionMaxStorageS3)
-	m.Timeout = types.Int64Value(got.Timeout)
+	if got.Timeout != nil {
+		m.Timeout = types.Int64Value(*got.Timeout)
+	} else if m.Timeout.IsNull() || m.Timeout.IsUnknown() {
+		m.Timeout = types.Int64Null()
+	}
 	if got.MissingBackupNotificationDays != nil {
 		m.MissingBackupNotificationDays = types.Int64Value(*got.MissingBackupNotificationDays)
 	} else if m.MissingBackupNotificationDays.IsUnknown() {
@@ -438,6 +445,25 @@ func (r *storageBackupResource) Read(ctx context.Context, req resource.ReadReque
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
+func (r *storageBackupResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// Create fills omitted retention in fillCreateDefaults. Destroy has a null plan.
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
+	var plan storageBackupResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if missing := unsetDestructiveFields(plan); len(missing) > 0 {
+		parentType, parentUUID, _ := resolveParent(&plan)
+		resp.Diagnostics.AddError(
+			"Storage backup schedule is incomplete",
+			incompleteScheduleDetail(plan.StorageUUID.ValueString(), parentType, parentUUID, missing),
+		)
+	}
+}
+
 func (r *storageBackupResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan storageBackupResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -459,11 +485,7 @@ func (r *storageBackupResource) Update(ctx context.Context, req resource.UpdateR
 	if missing := unsetDestructiveFields(plan); len(missing) > 0 {
 		resp.Diagnostics.AddError(
 			"Storage backup schedule is incomplete",
-			fmt.Sprintf("%s. Coolify replaces omitted enabled, save_s3, disable_local_backup, stop_during_backup, and retention fields. "+
-				"Set %s before apply. Import does not know the live values. "+
-				"timeout and missing_backup_notification_days can stay omitted.",
-				scheduleWhere(plan.StorageUUID.ValueString(), parentType, parentUUID),
-				strings.Join(missing, ", ")),
+			incompleteScheduleDetail(plan.StorageUUID.ValueString(), parentType, parentUUID, missing),
 		)
 		return
 	}
@@ -529,12 +551,20 @@ func (r *storageBackupResource) ImportState(ctx context.Context, req resource.Im
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(parentKey+"_uuid"), parts[1])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("storage_uuid"), parts[2])...)
 	resp.Diagnostics.AddWarning(
-		"Set schedule fields before the next apply",
+		"Set schedule fields before the next plan",
 		fmt.Sprintf("Imported %s. Coolify has no GET for this schedule and replaces omitted enabled and retention fields. "+
-			"Set enabled, save_s3, disable_local_backup, stop_during_backup, and every retention attribute before the next apply. "+
+			"terraform plan fails until enabled, save_s3, disable_local_backup, stop_during_backup, and every retention attribute are set. "+
 			"timeout and missing_backup_notification_days can stay omitted.",
 			scheduleWhere(parts[2], parentKey, parts[1])),
 	)
+}
+
+func incompleteScheduleDetail(storageUUID, parentType, parentUUID string, missing []string) string {
+	return fmt.Sprintf("%s. Coolify replaces omitted enabled, save_s3, disable_local_backup, stop_during_backup, and retention fields. "+
+		"terraform plan fails until %s are set. Import does not know the live values. "+
+		"timeout and missing_backup_notification_days can stay omitted.",
+		scheduleWhere(storageUUID, parentType, parentUUID),
+		strings.Join(missing, ", "))
 }
 
 // fillCreateDefaults supplies the values Coolify uses when a create omits

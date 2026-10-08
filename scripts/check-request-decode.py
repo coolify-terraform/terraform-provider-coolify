@@ -4,8 +4,11 @@
 Coolify omits keys instead of sending the column default. A mock that
 decodes the HTTP body into a non-pointer bool or number stores zero when
 the provider omitted the key, then treats that zero as a sent value.
+omitempty changes encoding, not decoding, so the tag is not required
+for this finding.
 
 Pointers, map decodes, and acctest.DecodeOptional keep the distinction.
+Response fixtures that are not decoded from r.Body are ignored.
 """
 
 from __future__ import annotations
@@ -54,7 +57,7 @@ def struct_fields(src: str) -> dict[str, str]:
 
 
 def bad_scalar_fields(body: str) -> list[str]:
-    """Non-pointer bools and numbers tagged omitempty cannot show a missing key."""
+    """Non-pointer bools and numbers cannot show a missing JSON key."""
     bad = []
     for match in FIELD_RE.finditer(body):
         go_name, star, typ, raw = match.group(1), match.group(2), match.group(3), match.group(4)
@@ -62,7 +65,7 @@ def bad_scalar_fields(body: str) -> list[str]:
             continue
         parts = raw.split(",")
         json_name = parts[0]
-        if json_name in ("", "-") or "omitempty" not in parts:
+        if json_name in ("", "-"):
             continue
         bad.append(f"{go_name} ({json_name})")
     return bad
@@ -79,6 +82,23 @@ def functions(src: str) -> list[str]:
     return chunks
 
 
+def declaration_body(chunk: str, target: str, at: int, file_types: dict[str, str]) -> str:
+    """Struct body for the variable declaration closest before a decode."""
+    prefix = chunk[:at]
+    found = None
+    for match in re.finditer(
+        rf"\b(?:var\s+)?{re.escape(target)}\s*(?::=|=)?\s*(struct\s*\{{|[A-Za-z0-9_.]+)",
+        prefix,
+    ):
+        found = match
+    if found is None:
+        return file_types.get(target, "")
+    kind = found.group(1)
+    if kind.startswith("struct"):
+        return brace_body(chunk, found.end() - 1)
+    return file_types.get(kind.split(".")[-1], "")
+
+
 def problems_in_source(src: str, label: str) -> list[str]:
     if "r.Body" not in src:
         return []
@@ -93,10 +113,9 @@ def problems_in_source(src: str, label: str) -> list[str]:
             continue
         if "DecodeOptional" in chunk or "DecodeObject" in chunk:
             continue
-        local_structs = struct_fields(chunk)
         for match in DECODE_RE.finditer(chunk):
             target = match.group(1) or match.group(2) or ""
-            body = local_structs.get(target) or file_types.get(target)
+            body = declaration_body(chunk, target, match.start(), file_types)
             if not body:
                 continue
             for field in bad_scalar_fields(body):

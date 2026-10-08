@@ -5,7 +5,7 @@ subcategory: ""
 description: |-
   Manages a Coolify scheduled backup for a persistent volume or directory storage attached to an application, database, or service.
   Coolify version requirement: needs PUT/DELETE .../storages/{storage_uuid}/backups (VolumeBackupsController). That API landed in coollabsio/coolify#10946 https://github.com/coollabsio/coolify/pull/10946 and ships in Coolify >= v4.3.0 (stable CDN). It is not present in git tag v4.2.0 or older stable lines.
-  ~> API note: Coolify only exposes create/replace (PUT) and delete. There is no GET for the schedule. Read verifies the parent storage still exists via list and keeps schedule attributes from state. Out-of-band schedule edits may not appear until the next apply.
+  ~> API note: Coolify only exposes create/replace (PUT) and delete. There is no GET for the schedule. Read verifies the parent storage still exists via list and keeps schedule attributes from state. Out-of-band schedule edits may not appear until the next apply. After import, terraform plan fails until enabled, save_s3, disable_local_backup, stop_during_backup, and every retention attribute are set. timeout and missing_backup_notification_days can stay omitted.
 ---
 
 # coolify_storage_backup (Resource)
@@ -14,7 +14,7 @@ Manages a Coolify scheduled backup for a persistent volume or directory storage 
 
 **Coolify version requirement:** needs `PUT/DELETE .../storages/{storage_uuid}/backups` (VolumeBackupsController). That API landed in [coollabsio/coolify#10946](https://github.com/coollabsio/coolify/pull/10946) and ships in **Coolify >= v4.3.0** (stable CDN). It is **not** present in git tag `v4.2.0` or older stable lines.
 
-~> **API note:** Coolify only exposes create/replace (PUT) and delete. There is no GET for the schedule. Read verifies the parent storage still exists via list and keeps schedule attributes from state. Out-of-band schedule edits may not appear until the next apply.
+~> **API note:** Coolify only exposes create/replace (PUT) and delete. There is no GET for the schedule. Read verifies the parent storage still exists via list and keeps schedule attributes from state. Out-of-band schedule edits may not appear until the next apply. After import, terraform plan fails until enabled, save_s3, disable_local_backup, stop_during_backup, and every retention attribute are set. timeout and missing_backup_notification_days can stay omitted.
 
 ## Example Usage
 
@@ -30,7 +30,7 @@ resource "coolify_storage_backup" "app_data" {
   timeout          = 3600
 
   # Omitted retention and stop/disable flags are filled only on create.
-  # After import, set them before the next apply.
+  # After import, terraform plan fails until they are set.
 }
 ```
 
@@ -46,20 +46,20 @@ resource "coolify_storage_backup" "app_data" {
 
 - `application_uuid` (String) UUID of the application that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid`. Changing this forces a new resource.
 - `database_uuid` (String) UUID of the database that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid`. Changing this forces a new resource.
-- `disable_local_backup` (Boolean) Skip local archives. Only valid when `save_s3` is true. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
-- `enabled` (Boolean) Whether the schedule is enabled. Create uses true when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `disable_local_backup` (Boolean) Skip local archives. Only valid when `save_s3` is true. Create uses false when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
+- `enabled` (Boolean) Whether the schedule is enabled. Create uses true when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
 - `missing_backup_notification_days` (Number) Days without a backup execution before Coolify sends a missing-backup notification. `0` disables alerts. Valid range is 0-365. Requires Coolify >= v4.4.1. Tag v4.4.0 and `v4.4-rc.1` reject the key. On older instances the provider keeps the value in state and does not send it.
-- `retention_amount_locally` (Number) Number of local backups to retain. Create uses 7 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
-- `retention_amount_s3` (Number) Number of S3 backups to retain. Create uses 7 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
-- `retention_days_locally` (Number) Days to retain local backups. Create uses 0 (unlimited by age) when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
-- `retention_days_s3` (Number) Days to retain S3 backups. Create uses 0 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
-- `retention_max_storage_locally` (Number) Max local backup storage (Coolify units). Create uses 0 (unlimited) when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
-- `retention_max_storage_s3` (Number) Max S3 backup storage. Create uses 0 when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `retention_amount_locally` (Number) Number of local backups to retain. Create uses 7 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
+- `retention_amount_s3` (Number) Number of S3 backups to retain. Create uses 7 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
+- `retention_days_locally` (Number) Days to retain local backups. Create uses 0 (unlimited by age) when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
+- `retention_days_s3` (Number) Days to retain S3 backups. Create uses 0 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
+- `retention_max_storage_locally` (Number) Max local backup storage (Coolify units). Create uses 0 (unlimited) when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
+- `retention_max_storage_s3` (Number) Max S3 backup storage. Create uses 0 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
 - `s3_storage_uuid` (String) UUID of a usable team S3 storage when `save_s3` is true.
-- `save_s3` (Boolean) Upload backups to S3. When true, `s3_storage_uuid` is required. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
+- `save_s3` (Boolean) Upload backups to S3. When true, `s3_storage_uuid` is required. Create uses false when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
 - `service_uuid` (String) UUID of the service that owns the storage. Exactly one of `application_uuid`, `service_uuid`, or `database_uuid`. Changing this forces a new resource.
-- `stop_during_backup` (Boolean) Stop the resource while the backup runs. Create uses false when this is omitted. After import, set it before the next apply. Coolify replaces an omitted value.
-- `timeout` (Number) Backup timeout in seconds (60-36000). When this is omitted, the provider does not send the key and Coolify stores the column default. The v4.4.2 migrations end at 36000 (`2026_08_15_000000_increase_default_volume_backup_timeout`). State keeps the value from the create response. Import does not require it, because Coolify keeps the stored timeout when the key is absent.
+- `stop_during_backup` (Boolean) Stop the resource while the backup runs. Create uses false when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.
+- `timeout` (Number) Backup timeout in seconds (60-36000). When this is omitted, the provider does not send the key. Coolify's create response is JSON null for that column (the model has no attribute default and create does not refresh the row), so state keeps timeout unset. The provider does not store or send 0. The v4.4.2 column default is 36000 (`2026_08_15_000000_increase_default_volume_backup_timeout`). Import does not require it, because Coolify keeps the stored timeout when the key is absent.
 
 ### Read-Only
 
@@ -74,8 +74,8 @@ The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/c
 
 ```shell
 # Format: application|service|database:<parent_uuid>:<storage_uuid>
-# Coolify has no GET for the schedule. Before the next apply, set enabled,
+# Coolify has no GET for the schedule. terraform plan fails until enabled,
 # save_s3, disable_local_backup, stop_during_backup, and every retention
-# attribute. timeout and missing_backup_notification_days can stay omitted.
+# attribute are set. timeout and missing_backup_notification_days can stay omitted.
 terraform import coolify_storage_backup.app_data 'application:00000000-0000-4000-8000-000000000001:00000000-0000-4000-8000-000000000002'
 ```

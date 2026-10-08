@@ -72,11 +72,11 @@ func (r *cloudTokenResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"token": schema.StringAttribute{
-				MarkdownDescription: "The cloud provider API token. Coolify validates it on creation and rejects it on update (`CloudProviderTokensController::update` allows `name` only). Changing this forces a new resource.",
+				MarkdownDescription: "The cloud provider API token. Coolify returns it only for tokens with permission to read sensitive values. Import does not recreate the resource when GET omits it. Changing a known token forces a new resource. Updates cannot send the token (`CloudProviderTokensController::update` allows `name` only).",
 				Required:            true,
 				Sensitive:           true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					flex.RequiresReplaceIfKnown(),
 				},
 			},
 		},

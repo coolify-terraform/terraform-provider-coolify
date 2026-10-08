@@ -96,7 +96,7 @@ func CommonServerAttrs(ctx context.Context, extra map[string]schema.Attribute) m
 			Required:            true,
 		},
 		"description": schema.StringAttribute{
-			MarkdownDescription: "A description of the server. An empty string is stored as empty. Omitting the attribute leaves it unset.",
+			MarkdownDescription: "A description of the server. An empty string stays empty in Terraform state. Coolify stores null because empty strings are converted before validation. Omitting the attribute leaves it unset.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},

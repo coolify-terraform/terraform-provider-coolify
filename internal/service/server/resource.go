@@ -192,16 +192,9 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 			fmt.Sprintf("server %q (IP %s): %s", plan.Name.ValueString(), plan.IP.ValueString(), err))
 		return
 	}
-	// Create encodes description as a Go string with omitempty, so "" is
-	// dropped. Send it when the user configured an empty description.
-	if !plan.Description.IsNull() && !plan.Description.IsUnknown() && plan.Description.ValueString() == "" {
-		empty := ""
-		if _, err := r.client.UpdateServer(ctx, created.UUID, client.UpdateServerInput{Description: &empty}); err != nil {
-			resp.Diagnostics.AddError("Error setting server description",
-				fmt.Sprintf("server %s: %s", created.UUID, err))
-			return
-		}
-	}
+	// Do not PATCH description "". Coolify's ConvertEmptyStringsToNull
+	// turns that body into null, and a failed call before State.Set
+	// would leave the new server untracked.
 
 	plan.UUID = types.StringValue(created.UUID)
 	if plan.Description.IsUnknown() {

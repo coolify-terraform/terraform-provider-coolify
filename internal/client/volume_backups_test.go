@@ -28,7 +28,7 @@ func TestClient_UpsertVolumeBackup_Create(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(VolumeBackupSchedule{
 			UUID: "vb-1", StorageUUID: "stor-1", StorageType: "persistent",
 			Frequency: "0 2 * * *", Enabled: true, SaveS3: true,
-			S3StorageUUID: "s3-1", RetentionAmountLocally: 7, Timeout: 3600,
+			S3StorageUUID: "s3-1", RetentionAmountLocally: 7, Timeout: i64p(3600),
 		})
 	})
 	srv := httptest.NewServer(mux)
@@ -58,7 +58,7 @@ func TestClient_UpsertVolumeBackup_Replace200(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(VolumeBackupSchedule{
 			UUID: "vb-2", StorageUUID: "stor-2", StorageType: "directory",
-			Frequency: "hourly", Enabled: false, SaveS3: true, Timeout: 600,
+			Frequency: "hourly", Enabled: false, SaveS3: true, Timeout: i64p(600),
 		})
 	})
 	srv := httptest.NewServer(mux)
@@ -75,7 +75,11 @@ func TestClient_UpsertVolumeBackup_Replace200(t *testing.T) {
 	assert.Equal(t, "directory", got.StorageType)
 	assert.False(t, got.Enabled)
 	assert.True(t, got.SaveS3)
+	require.NotNil(t, got.Timeout)
+	assert.Equal(t, int64(600), *got.Timeout)
 }
+
+func i64p(v int64) *int64 { return &v }
 
 func TestClient_UpsertVolumeBackup_EmptyUUID(t *testing.T) {
 	t.Parallel()

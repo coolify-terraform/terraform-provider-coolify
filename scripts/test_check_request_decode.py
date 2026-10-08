@@ -33,7 +33,22 @@ func handler(w http.ResponseWriter, r *http.Request) {
 '''
 
 
+NO_OMITEMPTY_BOOL = '''
+func handler(w http.ResponseWriter, r *http.Request) {
+    var body struct {
+        Enabled bool `json:"enabled"`
+    }
+    if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+        return
+    }
+}
+'''
+
+
 class TestRequestDecode(unittest.TestCase):
+    def test_bool_without_omitempty_is_rejected(self):
+        self.assertTrue(rd.problems_in_source(NO_OMITEMPTY_BOOL, "example_test.go"))
+
     def test_omitempty_value_is_rejected(self):
         self.assertTrue(rd.problems_in_source(OMITTED_INT, "example_test.go"))
 

@@ -42,6 +42,16 @@ func BoolValueOrNull(v types.Bool) *bool {
 	return &b
 }
 
+// BoolIfNull returns def when v is null or unknown. Create uses this to
+// send a Coolify default without putting that default in the schema.
+// Schema Default plus RequiresReplace plans a replace after import.
+func BoolIfNull(v types.Bool, def bool) types.Bool {
+	if v.IsNull() || v.IsUnknown() {
+		return types.BoolValue(def)
+	}
+	return v
+}
+
 // StringToFramework converts a Go string to a Terraform String value.
 // Empty strings become null.
 func StringToFramework(s string) types.String {

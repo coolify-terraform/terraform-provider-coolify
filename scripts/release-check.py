@@ -6,10 +6,14 @@ Ready means, on that commit:
 - the CI workflow succeeded (unit tests, edge acceptance, scenarios)
 - nightly acceptance succeeded for edge, stable (latest), and 4.1.2
 
-A failed acceptance test is a flake only when every failure is HTTP 429
-or a `/api/v1/version` deadline. A Monday `ci.yml` schedule run does not
-count: it skips Test, acceptance, and scenarios. Pass --rerun-once to
-dispatch one fresh stable run and then stop. This command does not merge.
+A failed acceptance test is a flake only when every failure is an HTTP
+status 429 or "Too Many Attempts", or a `/api/v1/version` deadline.
+Digits inside a log timestamp are not a 429. A Monday `ci.yml` schedule
+run does not count: it skips Test, acceptance, and scenarios.
+Pass --rerun-once to dispatch one nightly rerun of the flaked slot on
+the commit being checked, then stop. Stable uses image latest, edge
+uses profile tip-only, floor uses profile floor-only, and more than one
+slot uses profile all. This command does not merge.
 
 Usage:
     python3 scripts/release-check.py
@@ -21,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -93,11 +98,23 @@ def _fail_blocks(log: str) -> list[str]:
     return ["--- FAIL:" + part for part in log.split("--- FAIL:")[1:]]
 
 
+_TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z")
+_HTTP_429 = re.compile(r"(?<!\d)429(?!\d)")
+
+
+def _has_http_429(text: str) -> bool:
+    """True for an HTTP 429 status, not for 429 digits inside a timestamp."""
+    if "Too Many Attempts" in text:
+        return True
+    stripped = _TIMESTAMP.sub(" ", text)
+    return _HTTP_429.search(stripped) is not None
+
+
 def _block_is_flake(block: str) -> bool:
     """True when this failed test is only Coolify 429 or a version-endpoint deadline."""
     if any(marker in block for marker in _PRODUCT_MARKERS):
         return False
-    has_429 = "429" in block or "Too Many Attempts" in block
+    has_429 = _has_http_429(block)
     has_deadline = "deadline exceeded" in block
     version_deadline = has_deadline and "/api/v1/version" in block
     if has_deadline and not version_deadline:
@@ -108,9 +125,10 @@ def _block_is_flake(block: str) -> bool:
 def classify_log(log: str) -> str:
     """Return product, flake, or unknown for a failed acceptance log.
 
-    go test prints `--- FAIL:`. A 429 or `/api/v1/version` deadline is a
-    flake only when every failed test is that. Any other failure, including
-    a resource deadline, stays product.
+    go test prints `--- FAIL:`. An HTTP status 429, "Too Many Attempts",
+    or a `/api/v1/version` deadline is a flake only when every failed test
+    is that. A timestamp that contains the digits 429 is not a 429. Any
+    other failure, including a resource deadline, stays product.
     """
     if any(marker in log for marker in _PRODUCT_MARKERS):
         return "product"
@@ -119,7 +137,7 @@ def classify_log(log: str) -> str:
         if all(_block_is_flake(block) for block in blocks):
             return "flake"
         return "product"
-    if "429" in log or "Too Many Attempts" in log:
+    if _has_http_429(log):
         return "flake"
     if "deadline exceeded" in log and "/api/v1/version" in log:
         return "flake"
@@ -268,30 +286,45 @@ def job_log(job_id: int) -> str:
         return ""
 
 
-def rerun_stable(sha: str) -> str:
+def rerun_workflow_args(sha: str, flaked_slots: list[str]) -> list[str]:
+    """gh argv for one nightly rerun. Does not call gh.
+
+    Stable uses image latest. Edge uses profile tip-only. Floor uses
+    profile floor-only (Coolify 4.1.2). More than one slot uses profile all.
+    --ref is the commit being checked.
+    """
+    slots = set(flaked_slots)
+    args = [
+        "gh",
+        "workflow",
+        "run",
+        "coolify-nightly.yml",
+        "--repo",
+        REPO,
+        "--ref",
+        sha,
+        "-f",
+        "run_scenarios=false",
+    ]
+    if slots == {"stable"}:
+        args.extend(["-f", "profile=custom", "-f", "custom_image=latest"])
+    elif slots == {"edge"}:
+        args.extend(["-f", "profile=tip-only"])
+    elif slots == {"floor"}:
+        args.extend(["-f", "profile=floor-only"])
+    else:
+        args.extend(["-f", "profile=all"])
+    return args
+
+
+def rerun_flaked(sha: str, flaked_slots: list[str]) -> str:
     marker = Path(f"/tmp/release-check-rerun-{sha}")
     if marker.exists():
-        return f"stable flake already rerun once ({marker.read_text().strip()})"
-    subprocess.check_call(
-        [
-            "gh",
-            "workflow",
-            "run",
-            "coolify-nightly.yml",
-            "--repo",
-            REPO,
-            "--ref",
-            "main",
-            "-f",
-            "profile=custom",
-            "-f",
-            "custom_image=latest",
-            "-f",
-            "run_scenarios=false",
-        ]
-    )
+        return f"flake already rerun once ({marker.read_text().strip()})"
+    args = rerun_workflow_args(sha, flaked_slots)
+    subprocess.check_call(args)
     marker.write_text("dispatched\n")
-    return "dispatched one stable acceptance rerun (profile=custom, image=latest)"
+    return "dispatched one acceptance rerun: " + " ".join(args)
 
 
 def main() -> int:
@@ -300,7 +333,7 @@ def main() -> int:
     parser.add_argument(
         "--rerun-once",
         action="store_true",
-        help="If the latest stable failure is only 429 or a version deadline, dispatch one rerun and stop",
+        help="If a nightly failure is only status 429 or a version deadline, dispatch one rerun of that slot on this SHA and stop",
     )
     args = parser.parse_args()
     sha = args.sha or git_sha("origin/main")
@@ -311,7 +344,7 @@ def main() -> int:
         print(f"release-check: {exc}", file=sys.stderr)
         return 1
 
-    flake = False
+    flaked: list[str] = []
     product = False
     for name, jobs in slotted.items():
         if slot_state.get(name) != "fail":
@@ -322,7 +355,7 @@ def main() -> int:
             kind = classify_log(job_log(int(job_id)))
         lines.append(f"nightly {name} failure class: {kind}")
         if kind == "flake":
-            flake = True
+            flaked.append(name)
         else:
             product = True
 
@@ -338,8 +371,8 @@ def main() -> int:
         print("release-check: ready")
         return 0
 
-    if args.rerun_once and flake and not product:
-        print(rerun_stable(sha))
+    if args.rerun_once and flaked and not product:
+        print(rerun_flaked(sha, flaked))
         print("release-check: not ready (flake rerun dispatched once)")
         return 2
 

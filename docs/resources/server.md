@@ -55,7 +55,7 @@ resource "coolify_server" "example" {
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
-- `description` (String) A description of the server. An empty string is stored as empty. Omitting the attribute leaves it unset.
+- `description` (String) A description of the server. An empty string stays empty in Terraform state. Coolify stores null because empty strings are converted before validation. Omitting the attribute leaves it unset.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
 - `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation or update. Coolify defaults to false. The API does not return this field; it only triggers a validation job when true.
 - `is_build_server` (Boolean) Whether this server is used only for building applications. On Coolify >= 4.4 the API replaced this field with `server_role`; the provider sends `server_role = build` when this is true and `server_role = both` when it changes to false. A create that leaves this false omits `server_role`. An explicit `server_role` wins over this mapping. Keep this attribute for 4.3.x and for existing HCL.

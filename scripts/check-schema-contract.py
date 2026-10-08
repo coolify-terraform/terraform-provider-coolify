@@ -150,9 +150,43 @@ def fill_assignment(kind: str, go_name: str, value: str) -> str:
     return f'{go_name} = types.StringValue("{value}")'
 
 
+def _brace_body(src: str, open_at: int) -> str:
+    depth = 0
+    for index in range(open_at, len(src)):
+        if src[index] == "{":
+            depth += 1
+        elif src[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return src[open_at : index + 1]
+    return ""
+
+
+def read_function_bodies(src: str) -> list[str]:
+    """Bodies of Read or flatten functions. Create does not count."""
+    bodies = []
+    for match in re.finditer(r"(?m)^[ \t]*func(?:\s+\([^)]*\))?\s+(\w+)", src):
+        if not re.search(r"(?i)(read|flatten)", match.group(1)):
+            continue
+        brace = src.find("{", match.end())
+        if brace < 0:
+            continue
+        body = _brace_body(src, brace)
+        if body:
+            bodies.append(body)
+    return bodies
+
+
 def default_replace_gaps(schema_src: str, package_src: str) -> list[str]:
-    """Default plus RequiresReplace() must be restored on read when null."""
+    """Default plus RequiresReplace() must be restored on the read path.
+
+    The assignment has to sit in a Read or flatten function, and that
+    same function must guard it with IsNull or IsUnknown. A fill that
+    only exists in Create, or a bare IsNull in another function, does
+    not count.
+    """
     gaps = []
+    readers = read_function_bodies(package_src)
     for name, body in attribute_bodies(schema_src).items():
         if "RequiresReplace()" not in body:
             continue
@@ -165,8 +199,11 @@ def default_replace_gaps(schema_src: str, package_src: str) -> list[str]:
             gaps.append(f"{name}: Default and RequiresReplace() but no tfsdk field")
             continue
         assignment = fill_assignment(kind, go_name, value)
-        restores_null = "IsNull()" in package_src or "IsUnknown()" in package_src
-        if assignment not in package_src or not restores_null:
+        guarded = any(
+            assignment in reader and ("IsNull()" in reader or "IsUnknown()" in reader)
+            for reader in readers
+        )
+        if not guarded:
             gaps.append(
                 f"{name}: Default {value} plus RequiresReplace() is not copied "
                 f"when Read sees null ({assignment})"
