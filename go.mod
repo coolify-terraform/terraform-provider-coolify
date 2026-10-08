@@ -1,6 +1,6 @@
 module github.com/coolify-terraform/terraform-provider-coolify
 
-go 1.26.6
+go 1.26.9
 
 require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
@@ -64,7 +64,7 @@ require (
 	github.com/zclconf/go-cty v1.18.1 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.58.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
