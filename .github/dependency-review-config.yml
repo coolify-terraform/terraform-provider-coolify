@@ -21,9 +21,12 @@ allow-licenses:
   - MIT-0
   - MPL-2.0
   - Unlicense
-# golang.org/x/exp and golang.org/x/sys are BSD-3-Clause. ClearlyDefined
-# also attaches LicenseRef-scancode-google-patent-license-golang on some
-# versions (x/sys v0.48.0). Do not add that LicenseRef to allow-licenses.
+# golang.org/x/exp, golang.org/x/sys, and golang.org/x/net are
+# BSD-3-Clause. ClearlyDefined also attaches
+# LicenseRef-scancode-google-patent-license-golang on some versions
+# (x/sys v0.48.0, x/net v0.60.0). v0.60.0 is the GO-2026-6617 fix.
+# Do not add that LicenseRef to allow-licenses.
 allow-dependencies-licenses:
   - pkg:golang/golang.org/x/exp@*
+  - pkg:golang/golang.org/x/net@*
   - pkg:golang/golang.org/x/sys@*
