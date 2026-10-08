@@ -441,7 +441,7 @@ resource "coolify_storage_backup" "test" {
 				ResourceName:  "coolify_storage_backup.test",
 				ImportState:   true,
 				ImportStateId: "widget:" + appUUID + ":" + storUUID,
-				ExpectError:   regexp.MustCompile(`must be application, service, or database`),
+				ExpectError:   regexp.MustCompile(`must be application, service, or database[\s\S]*` + regexp.QuoteMeta(storUUID)),
 			},
 		},
 	})
@@ -626,7 +626,7 @@ resource "coolify_storage_backup" "test" {
 			},
 			{
 				Config:      cfg,
-				ExpectError: regexp.MustCompile(`Storage backup schedule is incomplete`),
+				ExpectError: regexp.MustCompile(`Storage backup schedule is incomplete[\s\S]*` + regexp.QuoteMeta(storUUID)),
 			},
 		},
 	})
