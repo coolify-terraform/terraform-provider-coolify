@@ -257,8 +257,10 @@ one instead of stacking comments. Weekly `contract-freshness` (Monday
 leftover freshness issues as duplicates of that watch.
 A **Coolify Nightly Acc** workflow (`.github/workflows/coolify-nightly.yml`)
 runs full acceptance on Coolify `edge`, `latest` (stable), and `4.1.2` (floor),
-plus tip scenarios on `edge`. Schedule: daily 06:00 UTC. Also
-`workflow_dispatch` for pre-release checks (not a required PR status).
+plus tip scenarios on `edge`. The `latest` cell passes `-p 1` so packages
+do not share one Coolify (`-parallel=1` does not serialize packages).
+Schedule: daily 06:00 UTC. Also `workflow_dispatch` for pre-release checks
+(not a required PR status).
 A red run opens (or replaces) an assigned `nightly-failure` issue so the
 maintainer is notified; a green run closes it.
 

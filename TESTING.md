@@ -219,8 +219,12 @@ fixture variables because Coolify verifies repository access during
 
 **Important**: Running acceptance tests in parallel can overwhelm the
 Coolify API and cause false timeout failures. Serialize both packages and
-in-package tests. The Make targets above already do that for full-suite and
-package-scoped runs. These are the lower-level `go test` equivalents:
+in-package tests. `-parallel=1` only serializes tests inside one package;
+`go test` still runs several packages at once unless you also pass `-p 1`.
+The Make targets above already do both for full-suite and package-scoped
+runs. Nightly acceptance on Coolify `latest` passes `-p 1` for the same
+reason (`scripts/ci-acc-go-args.sh`). These are the lower-level `go test`
+equivalents:
 
 ```bash
 # Run all acceptance tests (sequential packages and in-package tests, avoids API overload and TSAN/fork crashes)
