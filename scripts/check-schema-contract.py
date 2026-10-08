@@ -198,6 +198,36 @@ def missing_import_ignores(schema_src: str, ignored: list[str], identity: set[st
     ]
 
 
+def description_string_to_framework_lines(src: str) -> list[int]:
+    """Line numbers where a non-comment assigns Description via StringToFramework."""
+    hits = []
+    for lineno, line in enumerate(src.splitlines(), 1):
+        stripped = line.lstrip()
+        if stripped.startswith("//"):
+            continue
+        if "StringToFramework" in line and "Description" in line:
+            hits.append(lineno)
+    return hits
+
+
+def description_string_to_framework(root: Path) -> list[str]:
+    """Resource flattens must not turn a configured empty description into null."""
+    problems = []
+    service = root / "internal" / "service"
+    if not service.is_dir():
+        return problems
+    for path in sorted(service.rglob("*.go")):
+        name = path.name
+        if name.endswith("_test.go") or "data_source" in name:
+            continue
+        for lineno in description_string_to_framework_lines(path.read_text()):
+            problems.append(
+                f"{path.relative_to(root)}:{lineno}: Description uses StringToFramework. "
+                "Use StringFromAPI so a configured empty string stays empty."
+            )
+    return problems
+
+
 def forbidden_schema_defaults(schema_src: str) -> bool:
     return DEFAULT_RE.search(schema_src) is not None
 
@@ -280,6 +310,7 @@ def check_repo(root: Path | None = None, contract_path: Path | None = None) -> l
                 f"{VOLUME_BACKUP_IGNORE_VAR} is missing {field}. "
                 "Import cannot read it back (no GET for one schedule)."
             )
+    problems.extend(description_string_to_framework(root))
     return problems
 
 

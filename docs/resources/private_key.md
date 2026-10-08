@@ -30,7 +30,7 @@ resource "coolify_private_key" "example" {
 
 ### Optional
 
-- `description` (String) A description of the private key.
+- `description` (String) A description of the private key. An empty string stays empty when Coolify returns `""`. Omitting the attribute leaves it null.
 
 ### Read-Only
 

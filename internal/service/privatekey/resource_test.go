@@ -495,3 +495,31 @@ resource "coolify_private_key" "test" {
 		},
 	})
 }
+
+func TestPrivateKeyResource_EmptyDescription(t *testing.T) {
+	t.Parallel()
+	srv := newPrivateKeyMockServer()
+	defer srv.Close()
+
+	config := acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_private_key" "test" {
+  name        = "empty-desc"
+  description = ""
+  private_key = "ssh-ed25519 AAAA-test-key"
+}
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check:  resource.TestCheckResourceAttr("coolify_private_key.test", "description", ""),
+			},
+			{
+				Config:             config,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}

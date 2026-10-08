@@ -608,7 +608,7 @@ func flattenDatabaseBackup(c *client.Client, b *client.DatabaseBackup, m *databa
 		m.Frequency = types.StringValue(b.Frequency)
 	}
 	m.Enabled = types.BoolValue(b.Enabled)
-	m.Description = flex.StringToFramework(b.Description)
+	m.Description = flex.StringFromAPI(b.Description, m.Description)
 	m.DisableLocalBackup = types.BoolValue(b.DisableLocalBackup)
 	m.SaveS3 = types.BoolValue(b.SaveS3)
 	// The API may return s3_storage_id as a numeric FK, not the UUID the
