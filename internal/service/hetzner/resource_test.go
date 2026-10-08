@@ -19,11 +19,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
+var hetznerCreateBodies sync.Map
+
+func hetznerLastCreate(srv *httptest.Server) string {
+	v, ok := hetznerCreateBodies.Load(srv)
+	if !ok {
+		return ""
+	}
+	raw, _ := v.(*atomic.Value).Load().(string)
+	return raw
+}
+
 func newHetznerServerMockServer() *httptest.Server {
 	servers := make(map[string]*client.Server)
 	var mu sync.Mutex
+	createBody := &atomic.Value{}
 
-	return httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
 
@@ -31,8 +43,14 @@ func newHetznerServerMockServer() *httptest.Server {
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers/hetzner":
+			raw, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			createBody.Store(string(raw))
 			var input client.CreateHetznerServerInput
-			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			if err := json.Unmarshal(raw, &input); err != nil {
 				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 				return
 			}
@@ -151,6 +169,8 @@ func newHetznerServerMockServer() *httptest.Server {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 		}
 	})))
+	hetznerCreateBodies.Store(srv, createBody)
+	return srv
 }
 
 func TestHetznerServerResource_Create(t *testing.T) {
@@ -967,6 +987,13 @@ func TestHetznerServerResource_NetworkFlagsRequireReplace(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv4", "true"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv6", "true"),
+					func(*terraform.State) error {
+						body := hetznerLastCreate(srv)
+						if !strings.Contains(body, `"enable_ipv4":true`) || !strings.Contains(body, `"enable_ipv6":true`) {
+							return fmt.Errorf("create body = %s, want omitted flags sent as true", body)
+						}
+						return nil
+					},
 				),
 			},
 			{
@@ -994,6 +1021,45 @@ func TestHetznerServerResource_NetworkFlagsRequireReplace(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv4", "false"),
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv6", "false"),
 				),
+			},
+		},
+	})
+}
+
+func TestHetznerServerResource_NonDefaultIPv6Stays(t *testing.T) {
+	t.Parallel()
+	srv := newHetznerServerMockServer()
+	defer srv.Close()
+	cfg := acctest.ProviderBlockForURL(srv.URL) + hetznerNetworkConfig("  enable_ipv6 = false\n")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv6", "false"),
+					func(*terraform.State) error {
+						body := hetznerLastCreate(srv)
+						if !strings.Contains(body, `"enable_ipv6":false`) {
+							return fmt.Errorf("create body = %s, want enable_ipv6 false", body)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config:             cfg,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + hetznerNetworkConfig("  enable_ipv6 = true\n"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_server_hetzner.test", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
 			},
 		},
 	})

@@ -14,6 +14,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/spectest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
@@ -323,6 +324,11 @@ resource "coolify_cloud_token" "test" {
   token          = "updated-token"
 }
 `,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("coolify_cloud_token.test", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_cloud_token.test", "name", "updated-name"),
 					resource.TestCheckResourceAttr("coolify_cloud_token.test", "token", "updated-token"),
@@ -388,6 +394,55 @@ resource "coolify_cloud_token" "test" {
 				ImportState:   true,
 				ImportStateId: "not-a-uuid",
 				ExpectError:   regexp.MustCompile(`Invalid Import ID`),
+			},
+		},
+	})
+}
+
+func TestCloudTokenResource_ImportOmitsToken(t *testing.T) {
+	t.Parallel()
+	server, store := newMockCoolifyServer()
+	defer server.Close()
+	seeded := store.Create("import-omit", "hetzner", "import-secret")
+	if !store.OmitTokenOnRead(seeded.UUID) {
+		t.Fatal("seeded cloud token missing from store")
+	}
+	cfg := acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_cloud_token" "test" {
+  name           = "import-omit"
+  cloud_provider = "hetzner"
+  token          = "import-secret"
+}
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config:             cfg,
+				ResourceName:       "coolify_cloud_token.test",
+				ImportState:        true,
+				ImportStateId:      seeded.UUID,
+				ImportStatePersist: true,
+			},
+			{
+				Config: cfg,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_cloud_token.test", "uuid", seeded.UUID),
+					resource.TestCheckResourceAttr("coolify_cloud_token.test", "token", "import-secret"),
+					func(*terraform.State) error {
+						store.mu.RLock()
+						defer store.mu.RUnlock()
+						if store.counter != 1 {
+							return fmt.Errorf("creates = %d, want 1", store.counter)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config:             cfg,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})

@@ -63,7 +63,7 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "A description of the project. An empty string is stored as empty. Omitting the attribute leaves it unset.",
+				MarkdownDescription: "A description of the project. An empty string stays empty in Terraform state. Coolify stores null because empty strings are converted before validation. Omitting the attribute leaves it unset.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -110,15 +110,9 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Error creating project", fmt.Sprintf("project %q: %s", plan.Name.ValueString(), err))
 		return
 	}
-	// Create encodes description as a Go string with omitempty, so "" is
-	// dropped. Send it on a follow-up update when the user set it.
-	if !plan.Description.IsNull() && !plan.Description.IsUnknown() && plan.Description.ValueString() == "" {
-		empty := ""
-		if _, err := r.client.UpdateProject(ctx, project.UUID, client.UpdateProjectInput{Description: &empty}); err != nil {
-			resp.Diagnostics.AddError("Error setting project description", fmt.Sprintf("project %s: %s", project.UUID, err))
-			return
-		}
-	}
+	// Do not PATCH description "". Coolify's ConvertEmptyStringsToNull
+	// turns that body into null, and a failed call before State.Set
+	// would leave the new project untracked.
 
 	plan.UUID = types.StringValue(project.UUID)
 	if plan.Description.IsUnknown() {

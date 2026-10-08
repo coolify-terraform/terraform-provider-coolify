@@ -62,14 +62,14 @@ variable "digitalocean_token" {
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
-- `description` (String) A description of the server. An empty string is stored as empty. Omitting the attribute leaves it unset.
+- `description` (String) A description of the server. An empty string stays empty in Terraform state. Coolify stores null because empty strings are converted before validation. Omitting the attribute leaves it unset.
 - `digitalocean_ssh_key_ids` (String) Comma-separated list of DigitalOcean SSH key numeric IDs. Use `coolify_digitalocean_ssh_keys` to list available keys. Changing this forces a new resource.
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
-- `enable_ipv6` (Boolean) Whether to enable IPv6 on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.
+- `enable_ipv6` (Boolean) Whether to enable IPv6 on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).
 - `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation. Defaults to false to match Coolify.
 - `is_build_server` (Boolean) Whether this server is used only for building applications. On Coolify >= 4.4 the API replaced this field with `server_role`; the provider sends `server_role = build` when this is true and `server_role = both` when it changes to false. A create that leaves this false omits `server_role`. An explicit `server_role` wins over this mapping. Keep this attribute for 4.3.x and for existing HCL.
 - `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server. Requires Coolify >= v4.3.0. Coolify defaults to true.
-- `monitoring` (Boolean) Whether to enable DigitalOcean monitoring on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.
+- `monitoring` (Boolean) Whether to enable DigitalOcean monitoring on the droplet. Coolify accepts this only when creating the server (`DigitalOceanController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).
 - `port` (Number) The SSH port of the server.
 - `server_disk_usage_check_frequency` (String) Cron or Coolify human schedule for how often disk usage is checked (e.g., `*/5 * * * *`, `daily`, `@daily`).
 - `server_disk_usage_notification_interval_hours` (Number) Minimum hours between high disk usage notifications (1-720). Coolify's default is 24. Requires Coolify 4.4 tip (not v4.3.23 and not v4.4-rc.1). On older instances the value stays in state and is not sent.

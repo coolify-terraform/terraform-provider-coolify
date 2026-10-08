@@ -3,11 +3,9 @@ package project_test
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -719,13 +717,16 @@ resource "coolify_project" "test" {
 
 func TestProjectResource_EmptyDescription(t *testing.T) {
 	t.Parallel()
-	var sawEmptyDescription atomic.Bool
+	var posts atomic.Int32
+	var patches atomic.Int32
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		if strings.Contains(string(body), `"description":""`) {
-			sawEmptyDescription.Store(true)
-		}
 		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/projects" {
+			posts.Add(1)
+		}
+		if r.Method == http.MethodPatch {
+			patches.Add(1)
+		}
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/projects":
 			w.WriteHeader(http.StatusCreated)
@@ -767,7 +768,10 @@ resource "coolify_project" "test" {
 			},
 		},
 	})
-	if !sawEmptyDescription.Load() {
-		t.Fatal("expected a request body to contain an empty description")
+	if posts.Load() != 1 {
+		t.Fatalf("project creates = %d, want 1", posts.Load())
+	}
+	if patches.Load() != 0 {
+		t.Fatalf("empty description follow-up updates = %d, want 0", patches.Load())
 	}
 }

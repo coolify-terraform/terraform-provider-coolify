@@ -30,7 +30,11 @@ type VolumeBackupSchedule struct {
 	RetentionAmountS3        int64   `json:"retention_amount_s3"`
 	RetentionDaysS3          int64   `json:"retention_days_s3"`
 	RetentionMaxStorageS3    float64 `json:"retention_max_storage_s3"`
-	Timeout                  int64   `json:"timeout"`
+	// Timeout is nil when Coolify returns JSON null. Create does not
+	// refresh the row, and the model has no attribute default, so an
+	// omitted timeout comes back null rather than 36000. A non-pointer
+	// would store 0 and the next update would send 0.
+	Timeout *int64 `json:"timeout"`
 	// MissingBackupNotificationDays is Coolify >= v4.4.1 (0 disables alerts).
 	// Nil when the API omits the key (v4.4.0 and older).
 	MissingBackupNotificationDays *int64 `json:"missing_backup_notification_days,omitempty"`

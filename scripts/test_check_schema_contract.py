@@ -82,11 +82,33 @@ class TestDefaultReplace(unittest.TestCase):
         '''
         package = '''
         EnableIPv4 types.Bool `tfsdk:"enable_ipv4"`
-        if model.EnableIPv4.IsNull() {
-            model.EnableIPv4 = types.BoolValue(true)
+        func flattenServer(model *model) {
+            if model.EnableIPv4.IsNull() {
+                model.EnableIPv4 = types.BoolValue(true)
+            }
         }
         '''
         self.assertEqual(sc.default_replace_gaps(schema, package), [])
+
+    def test_create_fill_does_not_count(self):
+        schema = '''
+        "enable_ipv6": schema.BoolAttribute{
+            Default: booldefault.StaticBool(true),
+            PlanModifiers: []planmodifier.Bool{boolplanmodifier.RequiresReplace()},
+        },
+        '''
+        package = '''
+        EnableIPv6 types.Bool `tfsdk:"enable_ipv6"`
+        func (r *res) Create() {
+            plan.EnableIPv6 = types.BoolValue(true)
+        }
+        func unrelated() {
+            if plan.Name.IsNull() {
+                plan.Name = types.StringValue("")
+            }
+        }
+        '''
+        self.assertNotEqual(sc.default_replace_gaps(schema, package), [])
 
 
 class TestVolumeBackup(unittest.TestCase):

@@ -136,7 +136,7 @@ make validate          # Check HCL formatting in examples/
 make goreleaser-check  # Validate .goreleaser.yml (requires goreleaser v2.x)
 ```
 
-**Required local tools:** Run `make tools` to install `golangci-lint`, `goreleaser`, `actionlint`, and `tfplugindocs` automatically. You also need `terraform` >= 1.6 (for `terraform fmt` on examples).
+**Required local tools:** Run `make tools` to install `golangci-lint`, `goreleaser`, `actionlint`, and `tfplugindocs` automatically. You also need `terraform` >= 1.6 (for `terraform fmt` on examples). If `tofu` is installed, `make validate` also runs `tofu fmt`, which CI runs when OpenTofu setup succeeds. `make modverify` checks both the root module and `tools/`.
 
 ## Project Structure
 

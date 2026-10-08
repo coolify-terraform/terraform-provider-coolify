@@ -174,21 +174,21 @@ func vultrSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(false),
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.",
+			MarkdownDescription: "Whether to enable IPv6 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
-			Default:             booldefault.StaticBool(true),
 			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.RequiresReplace(),
+				boolplanmodifier.UseStateForUnknown(),
+				flex.BoolRequiresReplaceIfKnown(),
 			},
 		},
 		"disable_public_ipv4": schema.BoolAttribute{
-			MarkdownDescription: "Whether to disable public IPv4 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to false. The API does not return this field; after import, state uses false.",
+			MarkdownDescription: "Whether to disable public IPv4 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (false).",
 			Optional:            true,
 			Computed:            true,
-			Default:             booldefault.StaticBool(false),
 			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.RequiresReplace(),
+				boolplanmodifier.UseStateForUnknown(),
+				flex.BoolRequiresReplaceIfKnown(),
 			},
 		},
 	}
@@ -214,6 +214,9 @@ func (r *vultrServerResource) Create(ctx context.Context, req resource.CreateReq
 	defer cancel()
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_server_vultr"})
+
+	plan.EnableIPv6 = flex.BoolIfNull(plan.EnableIPv6, true)
+	plan.DisablePublicIPv4 = flex.BoolIfNull(plan.DisablePublicIPv4, false)
 
 	input := client.CreateVultrServerInput{
 		Name:                   plan.Name.ValueString(),
@@ -419,13 +422,6 @@ func (m *vultrServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 
 func flattenVultrServer(srv *client.Server, model *vultrServerResourceModel) {
 	server.FlattenServerCommon(srv, model.commonPtrs())
-	// Create-only flags are not on GET. Keep a known state value.
-	// Import leaves them null; store the schema default so the next
-	// plan does not replace a server the configuration did not change.
-	if model.EnableIPv6.IsNull() || model.EnableIPv6.IsUnknown() {
-		model.EnableIPv6 = types.BoolValue(true)
-	}
-	if model.DisablePublicIPv4.IsNull() || model.DisablePublicIPv4.IsUnknown() {
-		model.DisablePublicIPv4 = types.BoolValue(false)
-	}
+	// enable_ipv6 and disable_public_ipv4 are not on GET. Keep a known
+	// state value. Do not invent the Coolify default after import.
 }

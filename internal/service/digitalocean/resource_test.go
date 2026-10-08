@@ -2,6 +2,7 @@ package digitalocean_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +16,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 const (
@@ -82,18 +84,36 @@ func applyServerPatch(srv *client.Server, update client.UpdateServerInput) {
 	}
 }
 
+var doCreateBodies sync.Map
+
+func doLastCreate(srv *httptest.Server) string {
+	v, ok := doCreateBodies.Load(srv)
+	if !ok {
+		return ""
+	}
+	raw, _ := v.(*atomic.Value).Load().(string)
+	return raw
+}
+
 func newDOServerMock(t *testing.T) *httptest.Server {
 	t.Helper()
 	servers := map[string]*client.Server{}
 	var mu sync.Mutex
-	return httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	createBody := &atomic.Value{}
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers/digitalocean":
+			raw, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+				return
+			}
+			createBody.Store(string(raw))
 			var input client.CreateDigitalOceanServerInput
-			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			if err := json.Unmarshal(raw, &input); err != nil {
 				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
 				return
 			}
@@ -180,6 +200,8 @@ func newDOServerMock(t *testing.T) *httptest.Server {
 			http.Error(w, `{}`, http.StatusNotFound)
 		}
 	})))
+	doCreateBodies.Store(srv, createBody)
+	return srv
 }
 
 func doBaseConfig(name string) string {
@@ -490,6 +512,13 @@ func TestDigitalOceanServerResource_NetworkFlagsRequireReplace(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "enable_ipv6", "true"),
 					resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "monitoring", "true"),
+					func(*terraform.State) error {
+						body := doLastCreate(srv)
+						if !strings.Contains(body, `"enable_ipv6":true`) || !strings.Contains(body, `"monitoring":true`) {
+							return fmt.Errorf("create body = %s, want omitted flags sent as true", body)
+						}
+						return nil
+					},
 				),
 			},
 			{
@@ -509,6 +538,28 @@ func TestDigitalOceanServerResource_NetworkFlagsRequireReplace(t *testing.T) {
 					},
 				},
 				Check: resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "monitoring", "false"),
+			},
+		},
+	})
+}
+
+func TestDigitalOceanServerResource_NonDefaultIPv6Stays(t *testing.T) {
+	t.Parallel()
+	srv := newDOServerMock(t)
+	defer srv.Close()
+	cfg := acctest.ProviderBlockForURL(srv.URL) + doConfigWith("do-node", "  enable_ipv6 = false\n")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: cfg,
+				Check:  resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "enable_ipv6", "false"),
+			},
+			{
+				Config:             cfg,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})

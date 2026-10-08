@@ -62,10 +62,10 @@ variable "vultr_token" {
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
-- `description` (String) A description of the server. An empty string is stored as empty. Omitting the attribute leaves it unset.
-- `disable_public_ipv4` (Boolean) Whether to disable public IPv4 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to false. The API does not return this field; after import, state uses false.
+- `description` (String) A description of the server. An empty string stays empty in Terraform state. Coolify stores null because empty strings are converted before validation. Omitting the attribute leaves it unset.
+- `disable_public_ipv4` (Boolean) Whether to disable public IPv4 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (false).
 - `dynamic_timeout` (Number) Timeout in seconds for Docker operations (pull, build, health check) during deployment.
-- `enable_ipv6` (Boolean) Whether to enable IPv6 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). Changing it forces a new resource. Defaults to true to match Coolify. The API does not return this field; after import, state uses true.
+- `enable_ipv6` (Boolean) Whether to enable IPv6 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).
 - `instant_validate` (Boolean) Whether to validate server connectivity immediately after creation. Defaults to false to match Coolify.
 - `is_build_server` (Boolean) Whether this server is used only for building applications. On Coolify >= 4.4 the API replaced this field with `server_role`; the provider sends `server_role = build` when this is true and `server_role = both` when it changes to false. A create that leaves this false omits `server_role`. An explicit `server_role` wins over this mapping. Keep this attribute for 4.3.x and for existing HCL.
 - `is_terminal_enabled` (Boolean) Whether the web terminal is enabled for this server. Requires Coolify >= v4.3.0. Coolify defaults to true.

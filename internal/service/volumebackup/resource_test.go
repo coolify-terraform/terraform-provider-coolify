@@ -24,12 +24,15 @@ const (
 	schedUUID = "cccc0003-0003-4000-8000-000000000003"
 )
 
+func i64p(v int64) *int64 { return &v }
+
 type volumeBackupMock struct {
-	server            *httptest.Server
-	mu                sync.Mutex
-	schedule          *client.VolumeBackupSchedule
-	puts              int
-	createSentTimeout bool
+	server                 *httptest.Server
+	mu                     sync.Mutex
+	schedule               *client.VolumeBackupSchedule
+	puts                   int
+	createSentTimeout      bool
+	lastPutIncludedTimeout bool
 }
 
 func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
@@ -83,13 +86,15 @@ func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
 			if input.SaveS3 != nil {
 				saveS3 = *input.SaveS3
 			}
-			// 36000 is scheduled_volume_backups.timeout after the migrations
-			// in Coolify v4.4.2. It is the response when the key is absent.
-			// It is not evidence the provider sent timeout.
-			timeout := int64(36000)
+			// An omitted timeout key is JSON null. Coolify create does not
+			// refresh the row, so the response is null, not the column default.
+			// Do not invent 36000 here: that hid the provider storing 0.
+			var timeout *int64
 			if timeoutPtr != nil {
-				timeout = *timeoutPtr
+				copied := *timeoutPtr
+				timeout = &copied
 			}
+			m.lastPutIncludedTimeout = timeoutPtr != nil
 			retLocal := int64(7)
 			if input.RetentionAmountLocally != nil {
 				retLocal = *input.RetentionAmountLocally
@@ -194,7 +199,7 @@ resource "coolify_storage_backup" "test" {
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "frequency", "0 2 * * *"),
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "storage_type", "persistent"),
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "36000"),
+					resource.TestCheckNoResourceAttr("coolify_storage_backup.test", "timeout"),
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "retention_amount_locally", "7"),
 				),
 			},
@@ -205,12 +210,23 @@ resource "coolify_storage_backup" "test" {
   storage_uuid     = "` + storUUID + `"
   frequency        = "0 3 * * *"
   enabled          = false
-  timeout          = 600
+  timeout          = 120
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "frequency", "0 3 * * *"),
 					resource.TestCheckResourceAttr("coolify_storage_backup.test", "enabled", "false"),
-					resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "600"),
+					resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "120"),
+					func(*terraform.State) error {
+						mock.mu.Lock()
+						defer mock.mu.Unlock()
+						if mock.schedule == nil || mock.schedule.Timeout == nil || *mock.schedule.Timeout != 120 {
+							return fmt.Errorf("stored timeout = %v, want 120", mock.schedule)
+						}
+						if !mock.lastPutIncludedTimeout {
+							return fmt.Errorf("explicit timeout = 120 was not sent")
+						}
+						return nil
+					},
 				),
 			},
 			{
@@ -220,7 +236,7 @@ resource "coolify_storage_backup" "test" {
   storage_uuid     = "` + storUUID + `"
   frequency        = "0 3 * * *"
   enabled          = false
-  timeout          = 600
+  timeout          = 120
 }`,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
@@ -258,7 +274,7 @@ func TestStorageBackupResource_MissingBackupNotificationDays(t *testing.T) {
 						StorageType:                   "persistent",
 						Frequency:                     input.Frequency,
 						Enabled:                       true,
-						Timeout:                       3600,
+						Timeout:                       i64p(3600),
 						RetentionAmountLocally:        7,
 						RetentionAmountS3:             7,
 						MissingBackupNotificationDays: input.MissingBackupNotificationDays,
@@ -480,7 +496,7 @@ func TestStorageBackupResource_Delete400NotFoundIsError(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(client.VolumeBackupSchedule{
 			UUID: schedUUID, StorageUUID: storUUID, StorageType: "persistent",
-			Frequency: "0 2 * * *", Enabled: true, Timeout: 3600,
+			Frequency: "0 2 * * *", Enabled: true, Timeout: i64p(3600),
 			RetentionAmountLocally: 7, RetentionAmountS3: 7,
 		})
 	})
@@ -530,7 +546,7 @@ func TestStorageBackupResource_DeleteNotFound(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(client.VolumeBackupSchedule{
 			UUID: schedUUID, StorageUUID: storUUID, StorageType: "persistent",
-			Frequency: "0 2 * * *", Enabled: true, Timeout: 3600,
+			Frequency: "0 2 * * *", Enabled: true, Timeout: i64p(3600),
 			RetentionAmountLocally: 7, RetentionAmountS3: 7,
 		})
 	})
@@ -573,7 +589,7 @@ func TestStorageBackupResource_DisappearsStorage(t *testing.T) {
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(client.VolumeBackupSchedule{
 				UUID: schedUUID, StorageUUID: storUUID, StorageType: "persistent",
-				Frequency: "0 2 * * *", Enabled: true, Timeout: 3600,
+				Frequency: "0 2 * * *", Enabled: true, Timeout: i64p(3600),
 				RetentionAmountLocally: 7, RetentionAmountS3: 7,
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/applications/"+appUUID+"/storages":
@@ -629,7 +645,7 @@ func TestStorageBackupResource_ImportDoesNotApplyDefaults(t *testing.T) {
 	mock.schedule = &client.VolumeBackupSchedule{
 		UUID: schedUUID, StorageUUID: storUUID, StorageType: "persistent",
 		Frequency: "0 2 * * *", Enabled: true, RetentionAmountLocally: 30,
-		RetentionAmountS3: 7, Timeout: 1800,
+		RetentionAmountS3: 7, Timeout: i64p(1800),
 	}
 	cfg := acctest.ProviderBlockForURL(mock.URL()) + `
 resource "coolify_storage_backup" "test" {
@@ -650,7 +666,8 @@ resource "coolify_storage_backup" "test" {
 			},
 			{
 				Config:      cfg,
-				ExpectError: regexp.MustCompile(`Storage backup schedule is incomplete[\s\S]*` + regexp.QuoteMeta(storUUID)),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Storage backup schedule is incomplete[\s\S]*` + regexp.QuoteMeta(storUUID) + `[\s\S]*terraform plan fails`),
 			},
 		},
 	})
@@ -718,7 +735,31 @@ resource "coolify_storage_backup" "test" {
   frequency        = "0 2 * * *"
 }
 `,
-				Check: resource.TestCheckResourceAttr("coolify_storage_backup.test", "timeout", "36000"),
+				Check: resource.TestCheckNoResourceAttr("coolify_storage_backup.test", "timeout"),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(mock.URL()) + `
+resource "coolify_storage_backup" "test" {
+  application_uuid = "` + appUUID + `"
+  storage_uuid     = "` + storUUID + `"
+  frequency        = "0 4 * * *"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_storage_backup.test", "frequency", "0 4 * * *"),
+					resource.TestCheckNoResourceAttr("coolify_storage_backup.test", "timeout"),
+					func(*terraform.State) error {
+						mock.mu.Lock()
+						defer mock.mu.Unlock()
+						if mock.lastPutIncludedTimeout {
+							return fmt.Errorf("frequency-only update sent timeout")
+						}
+						if mock.schedule != nil && mock.schedule.Timeout != nil {
+							return fmt.Errorf("stored timeout = %d, want null", *mock.schedule.Timeout)
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
@@ -726,5 +767,61 @@ resource "coolify_storage_backup" "test" {
 	defer mock.mu.Unlock()
 	if mock.createSentTimeout {
 		t.Fatal("create PUT included timeout; an omitted timeout must stay off the request")
+	}
+}
+
+func TestStorageBackupResource_CompleteSchedulePlan(t *testing.T) {
+	t.Parallel()
+	mock := newVolumeBackupMock(t)
+	defer mock.Close()
+	provider := acctest.ProviderBlockForURL(mock.URL())
+	full := provider + `
+resource "coolify_storage_backup" "test" {
+  application_uuid              = "` + appUUID + `"
+  storage_uuid                  = "` + storUUID + `"
+  frequency                     = "0 2 * * *"
+  enabled                       = true
+  save_s3                       = false
+  disable_local_backup          = false
+  stop_during_backup            = false
+  retention_amount_locally      = 7
+  retention_days_locally        = 0
+  retention_max_storage_locally = 0
+  retention_amount_s3           = 7
+  retention_days_s3             = 0
+  retention_max_storage_s3      = 0
+}
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{Config: full},
+			{
+				Config: provider + `
+resource "coolify_storage_backup" "test" {
+  application_uuid              = "` + appUUID + `"
+  storage_uuid                  = "` + storUUID + `"
+  frequency                     = "0 5 * * *"
+  enabled                       = true
+  save_s3                       = false
+  disable_local_backup          = false
+  stop_during_backup            = false
+  retention_amount_locally      = 7
+  retention_days_locally        = 0
+  retention_max_storage_locally = 0
+  retention_amount_s3           = 7
+  retention_days_s3             = 0
+  retention_max_storage_s3      = 0
+}
+`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+	if mock.puts != 1 {
+		t.Fatalf("upsert calls = %d, want 1 (plan must not PUT)", mock.puts)
 	}
 }

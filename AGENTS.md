@@ -289,9 +289,13 @@ The correct sequence for curated releases:
 2. Run `make release-check` on current main. It requires a product `ci.yml`
    run (Test, acceptance, and scenarios; a Monday schedule run does not count)
    and green nightly acceptance for edge, stable (`latest`), and `4.1.2`.
-   A failure that is only HTTP 429, or a deadline on `/api/v1/version`, is a flake:
-   `python3 scripts/release-check.py --rerun-once` dispatches one stable rerun
-   and stops. Do not treat that flake as a pass.
+   A failure that is an HTTP status 429 or `Too Many Attempts`, or a deadline
+   on `/api/v1/version`, is a flake. Digits inside a log timestamp are not a 429.
+   `python3 scripts/release-check.py --rerun-once` dispatches one nightly rerun
+   of the flaked slot on the commit being checked and stops. A stable flake
+   uses image `latest`. An edge flake uses profile `tip-only`. A floor flake
+   uses profile `floor-only` (Coolify 4.1.2). More than one flaked slot uses
+   profile `all`. Do not treat that flake as a pass.
 3. Merge the release-please PR (explicit human yes)
 4. Approve the `release` environment so GoReleaser publishes
 5. Confirm apply succeeded and the notes branch is gone

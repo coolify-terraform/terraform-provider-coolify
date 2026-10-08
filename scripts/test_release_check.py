@@ -51,6 +51,46 @@ class TestClassify(unittest.TestCase):
 """
         self.assertEqual(rc.classify_log(log), "product")
 
+    def test_timestamp_429_is_product(self):
+        log = """
+2026-10-08T12:34:56.1429871Z --- FAIL: TestAccApplicationResource_CRUD (1.00s)
+    Error: status 422: The given data was invalid.
+"""
+        self.assertEqual(rc.classify_log(log), "product")
+
+    def test_too_many_attempts_is_flake(self):
+        log = """
+--- FAIL: TestAccDestinationDataSource (0.10s)
+    Error: Too Many Attempts.
+"""
+        self.assertEqual(rc.classify_log(log), "flake")
+
+
+class TestRerunArgs(unittest.TestCase):
+    def test_stable_uses_sha_and_latest(self):
+        args = rc.rerun_workflow_args("abc", ["stable"])
+        self.assertIn("--ref", args)
+        self.assertEqual(args[args.index("--ref") + 1], "abc")
+        self.assertIn("custom_image=latest", args)
+        self.assertIn("profile=custom", args)
+        self.assertIn("run_scenarios=false", args)
+
+    def test_edge_does_not_use_latest_only(self):
+        args = rc.rerun_workflow_args("abc", ["edge"])
+        self.assertIn("profile=tip-only", args)
+        self.assertNotIn("custom_image=latest", args)
+        self.assertEqual(args[args.index("--ref") + 1], "abc")
+
+    def test_floor_requests_floor_profile(self):
+        args = rc.rerun_workflow_args("abc", ["floor"])
+        self.assertIn("profile=floor-only", args)
+        self.assertNotIn("custom_image=latest", args)
+
+    def test_two_slots_use_all(self):
+        args = rc.rerun_workflow_args("abc", ["edge", "stable"])
+        self.assertIn("profile=all", args)
+        self.assertNotIn("custom_image=latest", args)
+
 
 class TestCI(unittest.TestCase):
     def test_schedule_success_is_not_a_product_pass(self):
