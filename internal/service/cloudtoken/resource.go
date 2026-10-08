@@ -129,7 +129,7 @@ func (r *cloudTokenResource) Create(ctx context.Context, req resource.CreateRequ
 
 	plan.UUID = types.StringValue(ct.UUID)
 	plan.Name = types.StringValue(ct.Name)
-	plan.Description = flex.StringToFramework(ct.Description)
+	plan.Description = flex.StringFromAPI(ct.Description, plan.Description)
 	plan.CloudProvider = types.StringValue(ct.Provider)
 	if ct.Token != "" {
 		plan.Token = types.StringValue(ct.Token)
@@ -162,10 +162,8 @@ func (r *cloudTokenResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	state.UUID = types.StringValue(ct.UUID)
 	state.Name = types.StringValue(ct.Name)
-	// Preserve description when older Coolify omits the field entirely.
-	if ct.Description != "" || state.Description.IsNull() || state.Description.IsUnknown() {
-		state.Description = flex.StringToFramework(ct.Description)
-	}
+	// Empty API description stays null on import. A configured "" stays "".
+	state.Description = flex.StringFromAPI(ct.Description, state.Description)
 	state.CloudProvider = types.StringValue(ct.Provider)
 	// Preserve token from state if API does not return it (sensitive field).
 	if ct.Token != "" {
@@ -212,9 +210,7 @@ func (r *cloudTokenResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	plan.UUID = types.StringValue(ct.UUID)
 	plan.Name = types.StringValue(ct.Name)
-	if ct.Description != "" || plan.Description.IsNull() || plan.Description.IsUnknown() {
-		plan.Description = flex.StringToFramework(ct.Description)
-	}
+	plan.Description = flex.StringFromAPI(ct.Description, plan.Description)
 	plan.CloudProvider = types.StringValue(ct.Provider)
 	if ct.Token != "" {
 		plan.Token = types.StringValue(ct.Token)

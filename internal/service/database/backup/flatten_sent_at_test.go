@@ -23,3 +23,20 @@ func TestFlattenDatabaseBackup_ClearsMissingSentAtOn44Tip(t *testing.T) {
 		t.Fatalf("4.3.23 stored %s", stable.MissingBackupNotificationSentAt)
 	}
 }
+
+func TestFlattenDatabaseBackup_EmptyDescription(t *testing.T) {
+	t.Parallel()
+	clientStub := &client.Client{CoolifyVersion: "4.4.2"}
+
+	kept := databaseBackupResourceModel{Description: types.StringValue("")}
+	flattenDatabaseBackup(clientStub, &client.DatabaseBackup{Description: ""}, &kept)
+	if kept.Description.IsNull() || kept.Description.ValueString() != "" {
+		t.Fatalf("configured empty description = %#v, want empty string", kept.Description)
+	}
+
+	imported := databaseBackupResourceModel{Description: types.StringNull()}
+	flattenDatabaseBackup(clientStub, &client.DatabaseBackup{Description: ""}, &imported)
+	if !imported.Description.IsNull() {
+		t.Fatalf("null prior with empty API description = %#v, want null", imported.Description)
+	}
+}

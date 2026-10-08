@@ -68,7 +68,7 @@ func (r *privateKeyResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				MarkdownDescription: "A description of the private key.",
+				MarkdownDescription: "A description of the private key. An empty string stays empty when Coolify returns `\"\"`. Omitting the attribute leaves it null.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
@@ -278,7 +278,7 @@ func isPrivateKeyDeleteRetryable(err error) bool {
 func flattenPrivateKey(key *client.PrivateKey, model *privateKeyResourceModel) {
 	model.UUID = types.StringValue(key.UUID)
 	model.Name = types.StringValue(key.Name)
-	model.Description = flex.StringToFramework(key.Description)
+	model.Description = flex.StringFromAPI(key.Description, model.Description)
 	// Preserve private key from state if the API does not return it (sensitive field).
 	if key.PrivateKey != "" {
 		model.PrivateKey = types.StringValue(key.PrivateKey)

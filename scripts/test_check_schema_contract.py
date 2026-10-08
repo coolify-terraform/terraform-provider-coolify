@@ -109,6 +109,23 @@ class TestVolumeBackup(unittest.TestCase):
         )
 
 
+class TestDescriptionFlatten(unittest.TestCase):
+    def test_string_to_framework_on_description_fails(self):
+        src = 'model.Description = flex.StringToFramework(key.Description)\n'
+        self.assertEqual(
+            sc.description_string_to_framework_lines(src),
+            [1],
+        )
+
+    def test_string_from_api_and_comments_pass(self):
+        src = '''
+// Description uses StringToFramework in older code.
+model.Description = flex.StringFromAPI(key.Description, model.Description)
+model.PublicKey = flex.StringToFramework(key.PublicKey)
+'''
+        self.assertEqual(sc.description_string_to_framework_lines(src), [])
+
+
 class TestRepo(unittest.TestCase):
     def test_current_tree_passes(self):
         self.assertEqual(sc.check_repo(), [])
