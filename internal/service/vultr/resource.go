@@ -174,7 +174,7 @@ func vultrSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(false),
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
+			MarkdownDescription: "Whether to enable IPv6 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{
@@ -183,7 +183,7 @@ func vultrSchemaAttributes() map[string]schema.Attribute {
 			},
 		},
 		"disable_public_ipv4": schema.BoolAttribute{
-			MarkdownDescription: "Whether to disable public IPv4 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (false).",
+			MarkdownDescription: "Whether to disable public IPv4 on the Vultr instance. Coolify accepts this only when creating the server (`VultrController::createServer`). The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (false).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{

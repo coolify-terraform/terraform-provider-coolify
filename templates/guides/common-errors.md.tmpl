@@ -427,20 +427,19 @@ instances still ignore that empty PATCH (provider #647,
 If apply leaves the old URL, recreate the application without `domains`
 (and with `autogenerate_domain = false`).
 
-### Server proxy `false` flags stay `true`
+### Server proxy `false` flags
 
-**Symptom:** `coolify_server_proxy` plan sets `redirect_enabled = false`
-or `generate_exact_labels = false`, apply succeeds, and the next plan
-shows the value still `true`.
+**Symptom:** an older provider guide said `redirect_enabled = false` or
+`generate_exact_labels = false` would stick as `true` after apply.
 
-**Cause:** Coolify's proxy PATCH uses Laravel `$request->has()` for those
-bools. JSON `false` is treated as absent, so the stored default (`true`)
-stays. `redirect_url` uses `exists()` and does persist.
+**Cause:** that note assumed Laravel `$request->has()` treats JSON
+`false` as absent. Coolify >= 4.3.0, which is the minimum for
+`coolify_server_proxy`, uses Laravel 12. `has()` sees the key, and
+Coolify stores `false`.
 
-**Fix:** leave `redirect_enabled` and `generate_exact_labels` unset or
-`true` until Coolify switches those gates to `exists()`. Prove the update
-path with `redirect_url` (use a resolvable host such as
-`https://example.com`; reserved names like `example.invalid` return 422).
+**Fix:** set the flag to `false` in configuration. `redirect_url` still
+needs a resolvable host such as `https://example.com`. Reserved names
+like `example.invalid` return 422.
 
 ### Server proxy configuration apply writes the stored compose
 

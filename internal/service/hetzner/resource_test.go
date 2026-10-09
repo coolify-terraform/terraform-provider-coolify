@@ -989,8 +989,8 @@ func TestHetznerServerResource_NetworkFlagsRequireReplace(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "enable_ipv6", "true"),
 					func(*terraform.State) error {
 						body := hetznerLastCreate(srv)
-						if !strings.Contains(body, `"enable_ipv4":true`) || !strings.Contains(body, `"enable_ipv6":true`) {
-							return fmt.Errorf("create body = %s, want omitted flags sent as true", body)
+						if !strings.Contains(body, `"enable_ipv4":true`) || !strings.Contains(body, `"enable_ipv6":true`) || !strings.Contains(body, `"enable_backups":false`) {
+							return fmt.Errorf("create body = %s, want ipv flags true and enable_backups false", body)
 						}
 						return nil
 					},

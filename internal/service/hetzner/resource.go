@@ -127,7 +127,7 @@ func (r *hetznerServerResource) Metadata(_ context.Context, req resource.Metadat
 
 func (r *hetznerServerResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Provisions a Hetzner Cloud server and registers it with Coolify.\n\n~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.\n\n~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `hetzner_firewall_ids`, `hetzner_network_ids`, `cloud_init_script`, `enable_backups`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields will be empty in state (`enable_backups` becomes `false`). Set them in your configuration before running `terraform plan` to avoid a forced replacement.",
+		MarkdownDescription: "Provisions a Hetzner Cloud server and registers it with Coolify.\n\n~> **Warning:** Deleting this resource will delete the server from Coolify and cascade-delete all applications, databases, and services deployed on it. The underlying Hetzner Cloud server is not destroyed; manage its lifecycle separately.\n\n~> **Import note:** Hetzner-specific fields (`cloud_provider_token_uuid`, `server_type`, `location`, `image`, `hetzner_ssh_key_ids`, `hetzner_firewall_ids`, `hetzner_network_ids`, `cloud_init_script`) are only sent at creation time and are not returned by the Coolify API. After `terraform import`, these fields are empty in state. Set them in your configuration before `terraform plan` to avoid a forced replacement. `enable_backups` is also create-only and not returned; import keeps the configured value instead of guessing `false`.",
 		Attributes:          server.CommonServerAttrs(ctx, hetznerSchemaAttributes()),
 	}
 }
@@ -195,7 +195,7 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			Default:             booldefault.StaticBool(true),
 		},
 		"enable_ipv4": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv4 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
+			MarkdownDescription: "Whether to enable IPv4 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{
@@ -204,7 +204,7 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			},
 		},
 		"enable_ipv6": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable IPv6 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps the configured value and does not recreate the server. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
+			MarkdownDescription: "Whether to enable IPv6 on the server. Coolify accepts this only when creating the server (`HetznerController::createServer`). The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (true).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{
@@ -213,12 +213,12 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			},
 		},
 		"enable_backups": schema.BoolAttribute{
-			MarkdownDescription: "Whether to enable Hetzner Cloud server backups after creation. Adds about 20% to the monthly Hetzner server fee. Requires Coolify >= v4.2.0. Changing this forces a new resource. The Coolify API does not return this field; after import it is `false` in state.",
+			MarkdownDescription: "Whether to enable Hetzner Cloud server backups after creation. Adds about 20% to the monthly Hetzner server fee. Requires Coolify >= v4.2.0. Coolify accepts this only when creating the server. The API does not return this flag. Import keeps a configured value for this flag. Other create-only fields can still force a new server. See the import note. Changing a known value forces a new server. Omitting it on create sends Coolify's default (false).",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.RequiresReplace(),
 				boolplanmodifier.UseStateForUnknown(),
+				flex.BoolRequiresReplaceIfKnown(),
 			},
 		},
 	}
@@ -247,6 +247,7 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 
 	plan.EnableIPv4 = flex.BoolIfNull(plan.EnableIPv4, true)
 	plan.EnableIPv6 = flex.BoolIfNull(plan.EnableIPv6, true)
+	plan.EnableBackups = flex.BoolIfNull(plan.EnableBackups, false)
 
 	input := client.CreateHetznerServerInput{
 		Name:                   plan.Name.ValueString(),
@@ -462,13 +463,9 @@ func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 
 func flattenHetznerServer(srv *client.Server, model *hetznerServerResourceModel) {
 	server.FlattenServerCommon(srv, model.commonPtrs())
-	// enable_ipv4 and enable_ipv6 are not on GET. Keep a known state
-	// value. Do not invent true: a server created with the flag off
-	// would then plan a replace.
-	// enable_backups is create-only; GET never returns it.
-	if model.EnableBackups.IsNull() || model.EnableBackups.IsUnknown() {
-		model.EnableBackups = types.BoolValue(false)
-	}
+	// enable_ipv4, enable_ipv6, and enable_backups are not on GET.
+	// Keep a known state value. Do not invent the Coolify default:
+	// a server created with the other value would then plan a replace.
 }
 
 // int64IDsFromList copies a Terraform list of integers into a Go slice.
