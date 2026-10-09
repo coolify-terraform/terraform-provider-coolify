@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.26](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.25...v0.1.26) (2026-10-09)
+
+
+### Features
+
+* pin the Coolify contract to v4.4.1 ([#946](https://github.com/coolify-terraform/terraform-provider-coolify/issues/946)) ([b844c05](https://github.com/coolify-terraform/terraform-provider-coolify/commit/b844c0539878553744f4584ae5817c38e0548aae)), closes [#942](https://github.com/coolify-terraform/terraform-provider-coolify/issues/942)
+* send Sentinel traffic_ip_mode on Coolify 4.4.2 ([#948](https://github.com/coolify-terraform/terraform-provider-coolify/issues/948)) ([c15ac92](https://github.com/coolify-terraform/terraform-provider-coolify/commit/c15ac9252c7dd4d63ad2f3cd932a927cb1a216ad))
+
+
+### Bug Fixes
+
+* accept in-progress database starts ([#944](https://github.com/coolify-terraform/terraform-provider-coolify/issues/944)) ([7260c5d](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7260c5d21bd042605b612ba8e0218116b32496d3)), closes [#943](https://github.com/coolify-terraform/terraform-provider-coolify/issues/943)
+* bound Coolify ready polls and Playwright install ([#958](https://github.com/coolify-terraform/terraform-provider-coolify/issues/958)) ([6dbc208](https://github.com/coolify-terraform/terraform-provider-coolify/commit/6dbc208e779bad62609734b0d29fadc2cc412250)), closes [#953](https://github.com/coolify-terraform/terraform-provider-coolify/issues/953)
+* do not guess Hetzner enable_backups after import ([#983](https://github.com/coolify-terraform/terraform-provider-coolify/issues/983)) ([3c26828](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3c268282b2e088a97f9bc2e47449e90be7aad553))
+* do not overwrite a volume backup schedule on import ([#961](https://github.com/coolify-terraform/terraform-provider-coolify/issues/961)) ([8aacbc8](https://github.com/coolify-terraform/terraform-provider-coolify/commit/8aacbc8c4f9465a579225e84e4d533a815033d7b)), closes [#955](https://github.com/coolify-terraform/terraform-provider-coolify/issues/955)
+* keep a configured empty description ([#960](https://github.com/coolify-terraform/terraform-provider-coolify/issues/960)) ([10e3fe9](https://github.com/coolify-terraform/terraform-provider-coolify/commit/10e3fe990c7e2fe76396161217358329306eb26d))
+* keep a configured empty description ([#972](https://github.com/coolify-terraform/terraform-provider-coolify/issues/972)) ([dadb930](https://github.com/coolify-terraform/terraform-provider-coolify/commit/dadb93093817bc3de6703b00de493c61636597f2)), closes [#971](https://github.com/coolify-terraform/terraform-provider-coolify/issues/971)
+* keep import and omitted values from forcing replacement ([#982](https://github.com/coolify-terraform/terraform-provider-coolify/issues/982)) ([16ac0ec](https://github.com/coolify-terraform/terraform-provider-coolify/commit/16ac0ecebf325dc9bf379c00d17dc292d379f2e0))
+* keep omitted server settings stable across plans ([#959](https://github.com/coolify-terraform/terraform-provider-coolify/issues/959)) ([1f4fb00](https://github.com/coolify-terraform/terraform-provider-coolify/commit/1f4fb00003951eb39bba1e67f96ca76b70f91747)), closes [#951](https://github.com/coolify-terraform/terraform-provider-coolify/issues/951)
+* let Coolify choose an omitted volume backup timeout ([#962](https://github.com/coolify-terraform/terraform-provider-coolify/issues/962)) ([63727ba](https://github.com/coolify-terraform/terraform-provider-coolify/commit/63727ba9c31a26f328d7d933cc0fd97e8f3d93bb))
+* name the volume backup schedule in errors ([#964](https://github.com/coolify-terraform/terraform-provider-coolify/issues/964)) ([6387b8a](https://github.com/coolify-terraform/terraform-provider-coolify/commit/6387b8a945e24eec5dd2d7fae2ace7229b58fbb5))
+* parse HTTP endpoint hosts before the cleartext warning ([#957](https://github.com/coolify-terraform/terraform-provider-coolify/issues/957)) ([7d090c6](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7d090c67bb70a0c174aba46e0247cc04be9a5ea8)), closes [#954](https://github.com/coolify-terraform/terraform-provider-coolify/issues/954)
+* reject cloud token updates and widen contract checks ([#970](https://github.com/coolify-terraform/terraform-provider-coolify/issues/970)) ([db38b54](https://github.com/coolify-terraform/terraform-provider-coolify/commit/db38b54aa84550924fc99106cc10a76fe3629f50))
+* replace cloud servers when create-only network flags change ([#956](https://github.com/coolify-terraform/terraform-provider-coolify/issues/956)) ([9cb7f51](https://github.com/coolify-terraform/terraform-provider-coolify/commit/9cb7f51a9f5a2b0be3cee9f9cdc1a749f82b037e)), closes [#950](https://github.com/coolify-terraform/terraform-provider-coolify/issues/950)
+
 ## [0.1.25](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.24...v0.1.25) (2026-10-01)
 
 
