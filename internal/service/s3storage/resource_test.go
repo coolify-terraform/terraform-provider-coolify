@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -296,15 +297,88 @@ func TestS3StorageResource_Create(t *testing.T) {
 
 func TestS3StorageResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServerWithReadFailure(true)
+	store := &mockS3StorageStore{
+		storages:        make(map[string]*mockS3Storage),
+		omitSecretsRead: make(map[string]bool),
+	}
+	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/s3-storages", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Name     string `json:"name"`
+			Endpoint string `json:"endpoint"`
+			Bucket   string `json:"bucket"`
+			Region   string `json:"region"`
+			Key      string `json:"key"`
+			Secret   string `json:"secret"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		if body.Name != "readback-failure" {
+			http.Error(w, `{"error":"unexpected name"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		if posts.Add(1) == 1 {
+			forceReadFailure.Store(true)
+		}
+		s := store.Create(body.Name, "test storage", body.Endpoint, body.Bucket, body.Region, body.Key, body.Secret, false)
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": s.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/s3-storages/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if forceReadFailure.Load() {
+			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+			return
+		}
+		s, ok := store.Get(r.PathValue("uuid"))
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(s)
+	})
+	mux.HandleFunc("DELETE /api/v1/s3-storages/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		deletes.Add(1)
+		if !store.Delete(r.PathValue("uuid")) {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "S3 storage deleted."})
+	})
+
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{{
-			Config:      testS3StorageConfig(server.URL, "readback-failure"),
-			ExpectError: regexp.MustCompile(`(?s)S3 storage created but refresh failed.*Could not read s3 storage.*partial Terraform state was saved`),
-		}},
+		Steps: []resource.TestStep{
+			{
+				Config:      testS3StorageConfig(server.URL, "readback-failure"),
+				ExpectError: regexp.MustCompile(`(?s)S3 storage created but refresh failed.*Could not read s3 storage.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config:    testS3StorageConfig(server.URL, "readback-failure"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_s3_storage.test", "name", "readback-failure"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
+			},
+		},
 	})
 }
 
