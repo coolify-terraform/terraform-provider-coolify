@@ -16,6 +16,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // ---------------------------------------------------------------------------
@@ -807,6 +808,8 @@ func TestDockerImageApplicationResource_CreateReadBackFailurePreservesState(t *t
 	const appUUID = "docker-readback-fail-uuid"
 
 	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 	mu := sync.Mutex{}
 	deleted := false
 
@@ -823,10 +826,23 @@ func TestDockerImageApplicationResource_CreateReadBackFailurePreservesState(t *t
 				return
 			}
 		}
-		forceReadFailure.Store(true)
+		if body["docker_registry_image_name"] != "nginx:latest" || body["ports_exposes"] != "80" {
+			http.Error(w, `{"error":"unexpected application"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		// Arm only the first create. Retries must keep failing, and the
+		// tainted replace must be readable. Clear deleted so that replace
+		// is not a 404 left over from destroy. Delete polls until GET is
+		// not found.
+		if posts.Add(1) == 1 {
+			forceReadFailure.Store(true)
+		}
+		mu.Lock()
+		deleted = false
+		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != appUUID {
@@ -859,27 +875,47 @@ func TestDockerImageApplicationResource_CreateReadBackFailurePreservesState(t *t
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		deletes.Add(1)
 		mu.Lock()
 		deleted = true
 		mu.Unlock()
-		forceReadFailure.Store(false)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
+	config := testDockerImageResourceConfig(srv.URL, `
+		project_uuid  = "aaaa0002-0002-4000-8000-000000000002"
+		server_uuid   = "bbbb0002-0002-4000-8000-000000000002"
+		docker_image  = "nginx:latest"
+		ports_exposes = "80"
+	`)
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{{
-			Config: testDockerImageResourceConfig(srv.URL, `
-				project_uuid  = "aaaa0002-0002-4000-8000-000000000002"
-				server_uuid   = "bbbb0002-0002-4000-8000-000000000002"
-				docker_image  = "nginx:latest"
-				ports_exposes = "80"
-			`),
-			ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*Could not read application.*partial Terraform state was saved`),
-		}},
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
+				ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*Could not read application.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config:    config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "docker_image", "nginx:latest"),
+					resource.TestCheckResourceAttr("coolify_application_docker_image.test", "ports_exposes", "80"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
+			},
+		},
 	})
 }
 
