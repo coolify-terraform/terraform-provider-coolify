@@ -297,6 +297,8 @@ func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	t.Parallel()
 	state := &mockServiceState{uuid: "dddd0009-0009-4000-8000-000000000009", name: "plausible-svc"}
 	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -305,8 +307,26 @@ func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			var body struct {
+				Type string `json:"type"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			if body.Type != "plausible" {
+				http.Error(w, `{"error":"unexpected type"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			// The first create arms a read failure that stays up through HTTP
+			// retries. Later creates (the tainted replace) must be readable.
+			// Clear deleted so the post-create GET is not a 404 from the
+			// destroy that just ran. Delete polls until GET is not found.
+			if posts.Add(1) == 1 {
+				forceReadFailure.Store(true)
+			}
+			state.deleted = false
 			w.WriteHeader(http.StatusCreated)
-			forceReadFailure.Store(true)
 			json.NewEncoder(w).Encode(map[string]string{"uuid": state.uuid})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
@@ -329,6 +349,7 @@ func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
 			})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/services/%s", state.uuid):
+			deletes.Add(1)
 			state.deleted = true
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
@@ -347,6 +368,23 @@ func TestServiceResource_CreateReadBackFailurePreservesState(t *testing.T) {
 				// Terraform prints unknown-state errors before the provider
 				// diagnostic. A substring match stays green when both appear.
 				ExpectError: regexp.MustCompile(`(?s)\AError running apply: exit status 1\s+Error: Service created but refresh failed\b`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config:    serviceConfig(srv.URL),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_service.test", "type", "plausible"),
+					resource.TestCheckResourceAttr("coolify_service.test", "name", "plausible-svc"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
