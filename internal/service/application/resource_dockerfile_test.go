@@ -226,6 +226,8 @@ func TestDockerfileApplicationResource_CreateReadBackFailurePreservesState(t *te
 	}
 
 	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 	mu := sync.Mutex{}
 	deleted := false
 
@@ -242,10 +244,23 @@ func TestDockerfileApplicationResource_CreateReadBackFailurePreservesState(t *te
 				return
 			}
 		}
+		if body["ports_exposes"] != "80" {
+			http.Error(w, `{"error":"unexpected application"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		// Arm only the first create. Retries must keep failing, and the
+		// tainted replace must be readable. Clear deleted so that replace
+		// is not a 404 left over from destroy. Delete polls until GET is
+		// not found.
+		if posts.Add(1) == 1 {
+			forceReadFailure.Store(true)
+		}
+		mu.Lock()
+		deleted = false
+		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		forceReadFailure.Store(true)
-		json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": app.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != app.UUID {
@@ -270,27 +285,45 @@ func TestDockerfileApplicationResource_CreateReadBackFailurePreservesState(t *te
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		deletes.Add(1)
 		mu.Lock()
 		deleted = true
 		mu.Unlock()
-		forceReadFailure.Store(false)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
+	config := testDockerfileResourceConfig(srv.URL, `
+		project_uuid        = "aaaa0009-0009-4000-8000-000000000009"
+		server_uuid         = "bbbb0009-0009-4000-8000-000000000009"
+		dockerfile_location = "RlJPTSBuZ2lueA=="
+		ports_exposes       = "80"
+	`)
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: testDockerfileResourceConfig(srv.URL, `
-					project_uuid        = "aaaa0009-0009-4000-8000-000000000009"
-					server_uuid         = "bbbb0009-0009-4000-8000-000000000009"
-					dockerfile_location = "RlJPTSBuZ2lueA=="
-					ports_exposes       = "80"
-				`),
+				Config:      config,
 				ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*Could not read application.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config:    config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "ports_exposes", "80"),
+					resource.TestCheckResourceAttr("coolify_application_dockerfile.test", "dockerfile_location", "RlJPTSBuZ2lueA=="),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
