@@ -173,29 +173,57 @@ func TestMysqlDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 	const mysqlUUID = "aaaa0009-0009-4000-8000-000000000009"
 
 	var forceReadFailure atomic.Bool
+	var deleted atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/databases/mysql":
-			forceReadFailure.Store(true)
+			var body struct {
+				ProjectUUID string `json:"project_uuid"`
+				ServerUUID  string `json:"server_uuid"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			if body.ProjectUUID != "aaaa0001-0001-4000-8000-000000000001" || body.ServerUUID != "bbbb0001-0001-4000-8000-000000000001" {
+				http.Error(w, `{"error":"unexpected identity"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			// Arm only the first create. Retries must keep failing, and the
+			// tainted replace must be readable. Clear deleted so that replace
+			// is not a 404 left over from destroy. Delete polls until GET is
+			// not found.
+			if posts.Add(1) == 1 {
+				forceReadFailure.Store(true)
+			}
+			deleted.Store(false)
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(map[string]string{"uuid": mysqlUUID})
+			_ = json.NewEncoder(w).Encode(map[string]string{"uuid": mysqlUUID})
 
 		case r.Method == http.MethodGet && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mysqlUUID):
-			if forceReadFailure.Load() {
+			if deleted.Load() {
 				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			if forceReadFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":                      mysqlUUID,
 				"name":                      "mysql-readback-db",
+				"description":               "",
 				"project_uuid":              "aaaa0001-0001-4000-8000-000000000001",
 				"server_uuid":               "bbbb0001-0001-4000-8000-000000000001",
 				"environment_name":          "production",
 				"image":                     "mysql:8",
 				"is_public":                 false,
+				"public_port":               nil,
 				"mysql_user":                "mysqluser",
 				"mysql_password":            "mysqlpass",
 				"mysql_database":            "mydb",
@@ -207,20 +235,19 @@ func TestMysqlDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 				"limits_cpus":               "0",
 				"limits_cpuset":             "0",
 				"limits_cpu_shares":         1024,
-				"health_check_enabled":      true,
-				"health_check_interval":     15,
-				"health_check_timeout":      5,
-				"health_check_retries":      5,
-				"health_check_start_period": 5,
+				"status":                    "running",
+				"internal_db_url":           "",
 			})
 
 		case r.Method == http.MethodPatch && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mysqlUUID):
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s", mysqlUUID):
+			deletes.Add(1)
+			deleted.Store(true)
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -228,17 +255,37 @@ func TestMysqlDatabaseResource_CreateReadBackFailurePreservesState(t *testing.T)
 	})))
 	defer srv.Close()
 
-	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{{
-			Config: acctest.ProviderBlockForURL(srv.URL) + `
+	config := acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_database_mysql" "test" {
   project_uuid = "aaaa0001-0001-4000-8000-000000000001"
   server_uuid  = "bbbb0001-0001-4000-8000-000000000001"
 }
-`,
-			ExpectError: regexp.MustCompile(`MySQL database created but refresh failed`),
-		}},
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
+				ExpectError: regexp.MustCompile(`(?s)MySQL database created but refresh failed.*Could not read MySQL database.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config:    config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "name", "mysql-readback-db"),
+					resource.TestCheckResourceAttr("coolify_database_mysql.test", "image", "mysql:8"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
+			},
+		},
 	})
 }
 
