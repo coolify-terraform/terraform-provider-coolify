@@ -1479,7 +1479,23 @@ func TestApplicationResource_CreateReadBackFailurePreservesState(t *testing.T) {
 
 	const createdAppUUID = "create-readback-404-uuid"
 
+	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 	var deleteCalledForCreatedUUID atomic.Bool
+	mu := sync.Mutex{}
+	deleted := false
+	app := client.Application{
+		UUID:            createdAppUUID,
+		Name:            "public-readback",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
@@ -1494,25 +1510,65 @@ func TestApplicationResource_CreateReadBackFailurePreservesState(t *testing.T) {
 				return
 			}
 		}
+		if body["git_repository"] != "https://github.com/example/repo" || body["build_pack"] != "nixpacks" || body["ports_exposes"] != "3000" {
+			http.Error(w, `{"error":"unexpected application"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		// Arm only the first create. Retries must keep failing, and the
+		// tainted replace must be readable. Clear deleted so that replace
+		// is not a 404 left over from destroy. Delete polls until GET is
+		// not found.
+		if posts.Add(1) == 1 {
+			forceReadFailure.Store(true)
+		}
+		mu.Lock()
+		deleted = false
+		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"uuid": createdAppUUID})
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": createdAppUUID})
 	})
-	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, _ *http.Request) {
-		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != createdAppUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		if forceReadFailure.Load() {
+			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(app)
 	})
 	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if r.PathValue("uuid") != createdAppUUID {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
+		deletes.Add(1)
 		deleteCalledForCreatedUUID.Store(true)
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer srv.Close()
 
+	config := testApplicationResourceConfig(srv.URL, `
+		project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+		server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+		git_repository = "https://github.com/example/repo"
+		build_pack     = "nixpacks"
+		ports_exposes  = "3000"
+	`)
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		CheckDestroy: func(*terraform.State) error {
@@ -1523,14 +1579,26 @@ func TestApplicationResource_CreateReadBackFailurePreservesState(t *testing.T) {
 		},
 		Steps: []resource.TestStep{
 			{
-				Config: testApplicationResourceConfig(srv.URL, `
-					project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
-					server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
-					git_repository = "https://github.com/example/repo"
-					build_pack     = "nixpacks"
-					ports_exposes  = "3000"
-				`),
-				ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*partial Terraform state was saved.*next\s+terraform\s+apply\s+replaces`),
+				Config:      config,
+				ExpectError: regexp.MustCompile(`(?s)Application created but refresh failed.*Could not read application.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config:    config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "git_repository", "https://github.com/example/repo"),
+					resource.TestCheckResourceAttr("coolify_application.test", "build_pack", "nixpacks"),
+					resource.TestCheckResourceAttr("coolify_application.test", "ports_exposes", "3000"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
