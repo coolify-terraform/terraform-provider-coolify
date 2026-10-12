@@ -217,6 +217,8 @@ func TestProjectResource_CreateReadBackFailurePreservesState(t *testing.T) {
 		counter:  0,
 	}
 
+	var posts atomic.Int32
+	var deletes atomic.Int32
 	var forceReadFailure atomic.Bool
 
 	mux := http.NewServeMux()
@@ -229,10 +231,18 @@ func TestProjectResource_CreateReadBackFailurePreservesState(t *testing.T) {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 			return
 		}
+		if body.Name != "readback-failure" {
+			http.Error(w, `{"error":"unexpected name"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		if posts.Add(1) == 1 {
+			// Retries of the failed read-back must keep failing. The
+			// replacement create on the next apply must be readable.
+			forceReadFailure.Store(true)
+		}
 		p := store.Create(body.Name, body.Description)
-		forceReadFailure.Store(true)
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]string{"uuid": p.UUID})
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": p.UUID})
 	})
 	mux.HandleFunc("GET /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 		if forceReadFailure.Load() {
@@ -245,13 +255,14 @@ func TestProjectResource_CreateReadBackFailurePreservesState(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
-		json.NewEncoder(w).Encode(p)
+		_ = json.NewEncoder(w).Encode(p)
 	})
 	mux.HandleFunc("DELETE /api/v1/projects/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		deletes.Add(1)
 		uuid := r.PathValue("uuid")
 		store.Delete(uuid)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 	})
 
 	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -267,6 +278,29 @@ resource "coolify_project" "test" {
 }
 `,
 				ExpectError: regexp.MustCompile(`(?s)Project created but refresh failed.*Could not read project.*partial Terraform state was saved`),
+			},
+			{
+				// The failed create saved state and tainted the project.
+				// The next apply must destroy that object. Zero deletes means
+				// the uuid was never stored.
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_project" "test" {
+  name = "readback-failure"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_project.test", "name", "readback-failure"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
