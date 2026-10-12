@@ -318,13 +318,13 @@ func TestDatabaseBackupResource_CreateListFailurePreservesState(t *testing.T) {
 		case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
 			var body struct {
 				Frequency string `json:"frequency"`
-				Enabled   bool   `json:"enabled"`
+				Enabled   *bool  `json:"enabled"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 				return
 			}
-			if body.Frequency != "0 2 * * *" || !body.Enabled {
+			if body.Frequency != "0 2 * * *" || body.Enabled == nil || !*body.Enabled {
 				http.Error(w, `{"error":"unexpected backup"}`, http.StatusUnprocessableEntity)
 				return
 			}
