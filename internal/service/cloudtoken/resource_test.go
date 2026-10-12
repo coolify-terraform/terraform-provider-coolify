@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
@@ -262,21 +263,97 @@ resource "coolify_cloud_token" "test" {
 
 func TestCloudTokenResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	t.Parallel()
-	server, _ := newMockCoolifyServerWithReadFailure(true)
+	store := &mockCloudTokenStore{
+		cloudTokens:     make(map[string]*mockCloudToken),
+		omitTokenOnRead: make(map[string]bool),
+	}
+	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/cloud-tokens", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Name     string `json:"name"`
+			Provider string `json:"provider"`
+			Token    string `json:"token"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		if body.Name != "readback-failure" {
+			http.Error(w, `{"error":"unexpected name"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		if posts.Add(1) == 1 {
+			forceReadFailure.Store(true)
+		}
+		ct := store.Create(body.Name, body.Provider, body.Token)
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": ct.UUID})
+	})
+	mux.HandleFunc("GET /api/v1/cloud-tokens/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if forceReadFailure.Load() {
+			http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+			return
+		}
+		ct, ok := store.Get(r.PathValue("uuid"))
+		if !ok {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(ct)
+	})
+	mux.HandleFunc("DELETE /api/v1/cloud-tokens/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		deletes.Add(1)
+		if !store.Delete(r.PathValue("uuid")) {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+	})
+
+	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	defer server.Close()
 
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{{
-			Config: acctest.ProviderBlockForURL(server.URL) + `
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(server.URL) + `
 resource "coolify_cloud_token" "test" {
   name           = "readback-failure"
   cloud_provider = "aws"
   token          = "secret-token-value"
 }
 `,
-			ExpectError: regexp.MustCompile(`(?s)Cloud token created but refresh failed.*Could not read cloud token.*partial Terraform state was saved`),
-		}},
+				ExpectError: regexp.MustCompile(`(?s)Cloud token created but refresh failed.*Could not read cloud token.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_cloud_token" "test" {
+  name           = "readback-failure"
+  cloud_provider = "aws"
+  token          = "secret-token-value"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_cloud_token.test", "name", "readback-failure"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
+			},
+		},
 	})
 }
 
