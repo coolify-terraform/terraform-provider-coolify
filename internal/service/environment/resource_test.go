@@ -263,6 +263,8 @@ func TestEnvironmentResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	t.Parallel()
 	store := newMockEnvironmentStore()
 	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/projects/{projectUUID}/environments", func(w http.ResponseWriter, r *http.Request) {
@@ -274,10 +276,16 @@ func TestEnvironmentResource_CreateReadBackFailurePreservesState(t *testing.T) {
 			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 			return
 		}
+		if body.Name != "readback-failure" {
+			http.Error(w, `{"error":"unexpected name"}`, http.StatusUnprocessableEntity)
+			return
+		}
+		if posts.Add(1) == 1 {
+			forceReadFailure.Store(true)
+		}
 		env := store.Create(projectUUID, body.Name, "")
-		forceReadFailure.Store(true)
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(env)
+		_ = json.NewEncoder(w).Encode(env)
 	})
 	mux.HandleFunc("GET /api/v1/projects/{projectUUID}/{envName}", func(w http.ResponseWriter, r *http.Request) {
 		if forceReadFailure.Load() {
@@ -291,14 +299,15 @@ func TestEnvironmentResource_CreateReadBackFailurePreservesState(t *testing.T) {
 			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 			return
 		}
-		json.NewEncoder(w).Encode(env)
+		_ = json.NewEncoder(w).Encode(env)
 	})
 	mux.HandleFunc("DELETE /api/v1/projects/{projectUUID}/environments/{envName}", func(w http.ResponseWriter, r *http.Request) {
+		deletes.Add(1)
 		projectUUID := r.PathValue("projectUUID")
 		envName := r.PathValue("envName")
 		store.Delete(projectUUID, envName)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 	})
 
 	server := httptest.NewServer(acctest.WithVersionEndpoint(mux))
@@ -315,6 +324,27 @@ resource "coolify_environment" "test" {
 }
 `,
 				ExpectError: regexp.MustCompile(`Environment created but refresh failed`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config: acctest.ProviderBlockForURL(server.URL) + `
+resource "coolify_environment" "test" {
+  project_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  name         = "readback-failure"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_environment.test", "name", "readback-failure"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
