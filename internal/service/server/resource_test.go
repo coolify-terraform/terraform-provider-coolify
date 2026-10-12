@@ -206,6 +206,8 @@ func TestServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	servers := make(map[string]*client.Server)
 	var mu sync.Mutex
 	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
@@ -220,11 +222,42 @@ func TestServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 				return
 			}
-			created := &client.Server{UUID: "bbbb0009-0009-4000-8000-000000000009"}
+			if input.Name != "readback-failure" || input.IP != "10.0.0.1" {
+				http.Error(w, `{"error":"unexpected server"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			// Same settings object the successful create mock returns.
+			// A GET without settings leaves dozens of computed attributes
+			// unknown and the second apply is rejected.
+			created := &client.Server{
+				UUID:           "bbbb0009-0009-4000-8000-000000000009",
+				Name:           input.Name,
+				Description:    input.Description,
+				IP:             input.IP,
+				Port:           input.Port,
+				User:           input.User,
+				PrivateKeyUUID: input.PrivateKeyUUID,
+				IsBuildServer:  input.IsBuildServer != nil && *input.IsBuildServer,
+				IsReachable:    true,
+				IsUsable:       true,
+				Settings: &client.ServerSettings{
+					ConcurrentBuilds:                     2,
+					DynamicTimeout:                       3600,
+					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
+					ServerDiskUsageNotificationThreshold: 80,
+					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+					IsTerminalEnabled:                    true,
+				},
+			}
 			servers[created.UUID] = created
-			forceReadFailure.Store(true)
+			// Arm only the first create. Retries must keep failing, and the
+			// tainted replace must be readable.
+			if posts.Add(1) == 1 {
+				forceReadFailure.Store(true)
+			}
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(created)
+			_ = json.NewEncoder(w).Encode(created)
 
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
 			if forceReadFailure.Load() {
@@ -237,11 +270,16 @@ func TestServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
-			json.NewEncoder(w).Encode(server)
+			resp := *server
+			resp.PrivateKeyUUID = ""
+			_ = json.NewEncoder(w).Encode(resp)
 
 		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
 			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
-			delete(servers, uuid)
+			if _, ok := servers[uuid]; ok {
+				deletes.Add(1)
+				delete(servers, uuid)
+			}
 			w.WriteHeader(http.StatusOK)
 
 		default:
@@ -250,18 +288,36 @@ func TestServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	})))
 	defer srv.Close()
 
-	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{
-			{
-				Config: acctest.ProviderBlockForURL(srv.URL) + `
+	config := acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_server" "test" {
   name             = "readback-failure"
   ip               = "10.0.0.1"
   private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
 }
-`,
+`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
 				ExpectError: regexp.MustCompile(`(?s)Server created but refresh failed.*Could not read server.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config:    config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server.test", "name", "readback-failure"),
+					resource.TestCheckResourceAttr("coolify_server.test", "ip", "10.0.0.1"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
