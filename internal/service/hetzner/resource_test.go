@@ -737,6 +737,8 @@ func TestHetznerServerResource_CreateReadBackFailurePreservesState(t *testing.T)
 	servers := make(map[string]*client.Server)
 	var mu sync.Mutex
 	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
@@ -746,11 +748,41 @@ func TestHetznerServerResource_CreateReadBackFailurePreservesState(t *testing.T)
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers/hetzner":
-			created := &client.Server{UUID: "aaaa0009-0009-4000-8000-000000000009"}
+			var input client.CreateHetznerServerInput
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			if input.Name != "readback-failure" || input.ServerType != "cx22" || input.Location != "fsn1" {
+				http.Error(w, `{"error":"unexpected server"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			created := &client.Server{
+				UUID:           "aaaa0009-0009-4000-8000-000000000009",
+				Name:           input.Name,
+				IP:             "203.0.113.42",
+				Port:           22,
+				User:           "root",
+				PrivateKeyUUID: input.PrivateKeyUUID,
+				IsReachable:    true,
+				IsUsable:       true,
+				Settings: &client.ServerSettings{
+					ConcurrentBuilds:                     2,
+					DynamicTimeout:                       3600,
+					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
+					ServerDiskUsageNotificationThreshold: 80,
+					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+				},
+			}
 			servers[created.UUID] = created
-			forceReadFailure.Store(true)
+			// Arm only the first create. Retries must keep failing, and the
+			// tainted replace must be readable.
+			if posts.Add(1) == 1 {
+				forceReadFailure.Store(true)
+			}
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(created)
+			_ = json.NewEncoder(w).Encode(created)
 
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
 			if forceReadFailure.Load() {
@@ -763,11 +795,26 @@ func TestHetznerServerResource_CreateReadBackFailurePreservesState(t *testing.T)
 				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
-			json.NewEncoder(w).Encode(server)
+			resp := *server
+			resp.PrivateKeyUUID = ""
+			_ = json.NewEncoder(w).Encode(resp)
+
+		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			server, ok := servers[uuid]
+			if !ok {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(server)
 
 		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
 			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
-			delete(servers, uuid)
+			if _, ok := servers[uuid]; ok {
+				deletes.Add(1)
+				delete(servers, uuid)
+			}
 			w.WriteHeader(http.StatusOK)
 
 		default:
@@ -776,11 +823,7 @@ func TestHetznerServerResource_CreateReadBackFailurePreservesState(t *testing.T)
 	})))
 	defer srv.Close()
 
-	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{
-			{
-				Config: acctest.ProviderBlockForURL(srv.URL) + `
+	config := acctest.ProviderBlockForURL(srv.URL) + `
 resource "coolify_server_hetzner" "test" {
   name                       = "readback-failure"
   cloud_provider_token_uuid  = "cccc0001-0001-4000-8000-000000000001"
@@ -788,8 +831,30 @@ resource "coolify_server_hetzner" "test" {
   location                   = "fsn1"
   image                      = "ubuntu-24.04"
   private_key_uuid           = "dddd0002-0002-4000-8000-000000000002"
-}`,
-				ExpectError: regexp.MustCompile(`(?s)Hetzner server created but refresh failed.*partial Terraform state was saved`),
+}`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
+				ExpectError: regexp.MustCompile(`(?s)Hetzner server created but refresh failed.*could not read it back.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config:    config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "name", "readback-failure"),
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "ip", "203.0.113.42"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
