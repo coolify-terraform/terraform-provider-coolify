@@ -236,6 +236,14 @@ An explicit `server_role` wins. Tag v4.3.23 and `v4.4-rc.1` still write
 | 4.2 settings / preview / build secrets (table above) | State only; no write | Yes | Yes | Yes |
 | 4.3 settings + `noindex_domains` | State only; no write | State only; no write | Yes | Yes |
 | `custom_container_name_prefix` | State only; no write | State only; no write | State only; no write | Yes |
+| `traefik_certificate_resolver` | Omitted unless set | Omitted unless set | Omitted unless set | Omitted unless set |
+
+`traefik_certificate_resolver` on application resources and
+`coolify_server_proxy` landed on Coolify main after tag v4.4.6. That tag
+and current main both report version 4.4.6, so the provider cannot tell
+them apart from the version string. The JSON key is left out unless you
+set the attribute. Setting it on tag v4.4.6 or older returns 422. On an
+application, null uses the server setting. `none` turns the resolver off.
 
 ## What "does not work" means in practice
 

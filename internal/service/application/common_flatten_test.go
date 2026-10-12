@@ -568,6 +568,66 @@ func TestBuildPostCreatePatch_MaxRestartCount(t *testing.T) {
 	}
 }
 
+func TestBuildPostCreatePatch_TraefikCertificateResolver(t *testing.T) {
+	t.Parallel()
+	unset := buildPostCreatePatch(commonAppFields{})
+	if unset.TraefikCertificateResolver != nil {
+		t.Fatal("unset resolver was included")
+	}
+	null := types.StringNull()
+	if in := buildPostCreatePatch(commonAppFields{TraefikCertificateResolver: &null}); in.TraefikCertificateResolver != nil {
+		t.Fatal("null resolver was included")
+	}
+	cloudflare := types.StringValue("cloudflare")
+	in := buildPostCreatePatch(commonAppFields{TraefikCertificateResolver: &cloudflare})
+	if in.TraefikCertificateResolver == nil || *in.TraefikCertificateResolver != "cloudflare" {
+		t.Fatalf("cloudflare: %#v", in.TraefikCertificateResolver)
+	}
+	none := types.StringValue("none")
+	in = buildPostCreatePatch(commonAppFields{TraefikCertificateResolver: &none})
+	if in.TraefikCertificateResolver == nil || *in.TraefikCertificateResolver != "none" {
+		t.Fatalf("none: %#v", in.TraefikCertificateResolver)
+	}
+}
+
+func TestAddApplicationSettingUpdateFields_TraefikCertificateResolver(t *testing.T) {
+	t.Parallel()
+	cloudflare := types.StringValue("cloudflare")
+	same := types.StringValue("cloudflare")
+	none := types.StringValue("none")
+	null := types.StringNull()
+
+	var unchanged client.UpdateApplicationInput
+	addApplicationSettingUpdateFields(
+		commonAppFields{TraefikCertificateResolver: &cloudflare},
+		commonAppFields{TraefikCertificateResolver: &same},
+		&unchanged,
+	)
+	if unchanged.TraefikCertificateResolver != nil {
+		t.Fatal("unchanged resolver was sent")
+	}
+
+	var changed client.UpdateApplicationInput
+	addApplicationSettingUpdateFields(
+		commonAppFields{TraefikCertificateResolver: &none},
+		commonAppFields{TraefikCertificateResolver: &cloudflare},
+		&changed,
+	)
+	if changed.TraefikCertificateResolver == nil || *changed.TraefikCertificateResolver != "none" {
+		t.Fatalf("changed: %#v", changed.TraefikCertificateResolver)
+	}
+
+	var bothNull client.UpdateApplicationInput
+	addApplicationSettingUpdateFields(
+		commonAppFields{TraefikCertificateResolver: &null},
+		commonAppFields{TraefikCertificateResolver: &null},
+		&bothNull,
+	)
+	if bothNull.TraefikCertificateResolver != nil {
+		t.Fatal("null resolver was sent")
+	}
+}
+
 func TestBuildPostCreatePatch_NullField(t *testing.T) {
 	t.Parallel()
 	null := types.StringNull()

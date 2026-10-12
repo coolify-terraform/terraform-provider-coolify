@@ -147,6 +147,132 @@ resource "coolify_server_proxy" "test" {
 	})
 }
 
+func TestServerProxyResource_CertificateResolverOmittedUnlessSet(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	store := map[string]any{
+		"proxy_type": "traefik",
+	}
+	var mu sync.Mutex
+	var patches []string
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodPatch:
+			raw, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Errorf("read proxy patch: %v", err)
+			}
+			patches = append(patches, string(raw))
+			var body map[string]any
+			if err := json.Unmarshal(raw, &body); err != nil {
+				t.Errorf("decode proxy patch: %v", err)
+			}
+			for k, v := range body {
+				store[k] = v
+			}
+			_ = json.NewEncoder(w).Encode(store)
+		case strings.HasSuffix(r.URL.Path, "/proxy") && r.Method == http.MethodGet:
+			_ = json.NewEncoder(w).Encode(store)
+		default:
+			http.Error(w, r.URL.Path, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid = "` + serverUUID + `"
+  proxy_type  = "caddy"
+}`,
+				Check: func(*terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if len(patches) == 0 {
+						return fmt.Errorf("expected a proxy PATCH")
+					}
+					for _, raw := range patches {
+						if strings.Contains(raw, "traefik_certificate_resolver") {
+							return fmt.Errorf("unset resolver was sent: %s", raw)
+						}
+					}
+					return nil
+				},
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid                   = "` + serverUUID + `"
+  proxy_type                    = "caddy"
+  traefik_certificate_resolver  = "cloudflare"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "traefik_certificate_resolver", "cloudflare"),
+					func(*terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if !strings.Contains(patches[len(patches)-1], `"traefik_certificate_resolver":"cloudflare"`) {
+							return fmt.Errorf("last patch = %s", patches[len(patches)-1])
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid                   = "` + serverUUID + `"
+  proxy_type                    = "caddy"
+  traefik_certificate_resolver  = "none"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_proxy.test", "traefik_certificate_resolver", "none"),
+					func(*terraform.State) error {
+						mu.Lock()
+						defer mu.Unlock()
+						if !strings.Contains(patches[len(patches)-1], `"traefik_certificate_resolver":"none"`) {
+							return fmt.Errorf("last patch = %s", patches[len(patches)-1])
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
+func TestServerProxyResource_CertificateResolverRejectsSpace(t *testing.T) {
+	t.Parallel()
+	const serverUUID = "aaaa0001-0001-4000-8000-000000000001"
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(r.URL.Path, "/proxy") {
+			_, _ = w.Write([]byte(`{"proxy_type":"traefik"}`))
+			return
+		}
+		http.Error(w, r.URL.Path, http.StatusNotFound)
+	})))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server_proxy" "test" {
+  server_uuid                  = "` + serverUUID + `"
+  traefik_certificate_resolver = "bad resolver"
+}`,
+				ExpectError: regexp.MustCompile("bad resolver"),
+			},
+		},
+	})
+}
+
 // Destroy leaves remote proxy configuration in place (no DELETE API).
 func TestServerProxyResource_DestroyLeavesRemote(t *testing.T) {
 	t.Parallel()

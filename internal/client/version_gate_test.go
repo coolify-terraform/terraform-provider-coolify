@@ -589,3 +589,50 @@ func TestFullSettingsInput_CoversExportedKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestTraefikCertificateResolver_SentWhenSetOnAnyVersion(t *testing.T) {
+	t.Parallel()
+	resolver := "cloudflare"
+	configured := UpdateApplicationInput{TraefikCertificateResolver: &resolver}
+	configured.clearApplicationSettingsV44()
+	raw, err := json.Marshal(configured)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var cleared map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &cleared); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if _, ok := cleared["traefik_certificate_resolver"]; !ok {
+		t.Fatal("clearApplicationSettingsV44 stripped traefik_certificate_resolver")
+	}
+
+	for _, version := range []string{"4.4.6", "4.1.2"} {
+		var body map[string]json.RawMessage
+		srv := capturingServer(t, &body)
+		c := New(srv.URL, "token")
+		c.CoolifyVersion = version
+		if _, err := c.UpdateApplication(context.Background(), "app-1", configured); err != nil {
+			srv.Close()
+			t.Fatalf("UpdateApplication %s: %v", version, err)
+		}
+		if _, ok := body["traefik_certificate_resolver"]; !ok {
+			srv.Close()
+			t.Fatalf("Coolify %s omitted a configured resolver", version)
+		}
+		srv.Close()
+	}
+
+	name := "plain"
+	var omitted map[string]json.RawMessage
+	srv := capturingServer(t, &omitted)
+	defer srv.Close()
+	c := New(srv.URL, "token")
+	c.CoolifyVersion = "4.4.6"
+	if _, err := c.UpdateApplication(context.Background(), "app-1", UpdateApplicationInput{Name: &name}); err != nil {
+		t.Fatalf("UpdateApplication omit: %v", err)
+	}
+	if _, ok := omitted["traefik_certificate_resolver"]; ok {
+		t.Fatal("unset resolver was sent to Coolify 4.4.6")
+	}
+}

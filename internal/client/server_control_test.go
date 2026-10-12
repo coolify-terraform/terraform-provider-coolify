@@ -33,6 +33,21 @@ func TestServerProxyUpdate_JSONTags(t *testing.T) {
 	assert.Equal(t, "https://example.com", got["redirect_url"])
 	assert.Equal(t, true, got["generate_exact_labels"])
 	assert.Equal(t, "caddy", got["proxy_type"])
+	if _, ok := got["traefik_certificate_resolver"]; ok {
+		t.Fatal("nil resolver was encoded")
+	}
+	resolver := "cloudflare"
+	input.TraefikCertificateResolver = &resolver
+	raw, err = json.Marshal(input)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(raw, &got))
+	assert.Equal(t, "cloudflare", got["traefik_certificate_resolver"])
+	none := "none"
+	input.TraefikCertificateResolver = &none
+	raw, err = json.Marshal(input)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(raw, &got))
+	assert.Equal(t, "none", got["traefik_certificate_resolver"])
 
 	empty, err := json.Marshal(ServerProxyUpdateInput{})
 	require.NoError(t, err)

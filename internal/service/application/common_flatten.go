@@ -569,6 +569,7 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.BoolPtrNonDefault(f.IsConsistentContainerNameEnabled, false) ||
 		flex.StringPtrNonDefault(f.CustomInternalName, "") ||
 		flex.StringPtrNonDefault(f.CustomContainerNamePrefix, "") ||
+		flex.StringPtrNonDefault(f.TraefikCertificateResolver, "") ||
 		listPtrConfigured(f.NoindexDomains) ||
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
@@ -820,6 +821,7 @@ func flattenApplicationSettingFields(app *client.Application, f commonAppFields)
 	setBoolDefault(f.IsConsistentContainerNameEnabled, app.IsConsistentContainerNameEnabled, false)
 	flex.SetStringSeedOrClear(f.CustomInternalName, app.CustomInternalName)
 	flex.SetStringSeedOrClear(f.CustomContainerNamePrefix, app.CustomContainerNamePrefix)
+	flex.SetStringPreserveEmpty(f.TraefikCertificateResolver, app.TraefikCertificateResolver)
 	flattenNoindexDomains(app.NoindexDomains, f.NoindexDomains)
 }
 
@@ -929,6 +931,7 @@ func addApplicationSettingUpdateFields(plan, state commonAppFields, input *clien
 	setBoolDiff(&input.IsConsistentContainerNameEnabled, plan.IsConsistentContainerNameEnabled, state.IsConsistentContainerNameEnabled)
 	setStrDiff(&input.CustomInternalName, plan.CustomInternalName, state.CustomInternalName)
 	setStrDiff(&input.CustomContainerNamePrefix, plan.CustomContainerNamePrefix, state.CustomContainerNamePrefix)
+	setStrDiff(&input.TraefikCertificateResolver, plan.TraefikCertificateResolver, state.TraefikCertificateResolver)
 	if plan.NoindexDomains != nil && state.NoindexDomains != nil && !plan.NoindexDomains.Equal(*state.NoindexDomains) {
 		if plan.NoindexDomains.IsNull() {
 			empty := []string{}
@@ -974,6 +977,9 @@ func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f com
 	}
 	if f.CustomContainerNamePrefix != nil {
 		flex.SetStrPtr(&input.CustomContainerNamePrefix, *f.CustomContainerNamePrefix)
+	}
+	if f.TraefikCertificateResolver != nil {
+		flex.SetStrPtr(&input.TraefikCertificateResolver, *f.TraefikCertificateResolver)
 	}
 	if listPtrConfigured(f.NoindexDomains) {
 		list := stringListFromTypes(*f.NoindexDomains)

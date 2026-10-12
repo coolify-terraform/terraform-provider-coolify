@@ -3,12 +3,14 @@ package serverproxy
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -28,12 +30,13 @@ var (
 type serverProxyResource struct{ client *client.Client }
 
 type serverProxyModel struct {
-	ServerUUID          types.String `tfsdk:"server_uuid"`
-	RedirectEnabled     types.Bool   `tfsdk:"redirect_enabled"`
-	RedirectURL         types.String `tfsdk:"redirect_url"`
-	GenerateExactLabels types.Bool   `tfsdk:"generate_exact_labels"`
-	ProxyType           types.String `tfsdk:"proxy_type"`
-	Configuration       types.String `tfsdk:"configuration"`
+	ServerUUID                 types.String `tfsdk:"server_uuid"`
+	RedirectEnabled            types.Bool   `tfsdk:"redirect_enabled"`
+	RedirectURL                types.String `tfsdk:"redirect_url"`
+	GenerateExactLabels        types.Bool   `tfsdk:"generate_exact_labels"`
+	ProxyType                  types.String `tfsdk:"proxy_type"`
+	Configuration              types.String `tfsdk:"configuration"`
+	TraefikCertificateResolver types.String `tfsdk:"traefik_certificate_resolver"`
 }
 
 func NewResource() resource.Resource { return &serverProxyResource{} }
@@ -80,6 +83,23 @@ func (r *serverProxyResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "Raw proxy Docker Compose written with PUT .../proxy/configuration. " +
 					"The provider sends the planned value. Coolify GET/PATCH may also return the previously stored compose when the token can read sensitive data; that response is not used as the PUT body.",
 			},
+			"traefik_certificate_resolver": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "Traefik certificate resolver for generated HTTPS routers on this server. " +
+					"Null lets the proxy use its own certificates. \"none\" turns the resolver off. " +
+					"Letters, digits, underscore, and hyphen only, at most 255 characters. " +
+					"Coolify tag v4.4.6 does not accept this key (it landed on main after that tag, and that main still reports version 4.4.6). " +
+					"Leave it unset on v4.4.6 and older. Setting it on those servers returns 422.",
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(255),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^[A-Za-z0-9_-]+$`),
+						"must contain only letters, digits, underscores, and hyphens",
+					),
+				},
+			},
 		},
 	}
 }
@@ -106,6 +126,10 @@ func proxyUpdateFromPlan(plan serverProxyModel) client.ServerProxyUpdateInput {
 		v := plan.ProxyType.ValueString()
 		in.ProxyType = &v
 	}
+	if !plan.TraefikCertificateResolver.IsNull() && !plan.TraefikCertificateResolver.IsUnknown() {
+		v := plan.TraefikCertificateResolver.ValueString()
+		in.TraefikCertificateResolver = &v
+	}
 	return in
 }
 
@@ -127,6 +151,11 @@ func flattenProxy(got *client.ServerProxy, plan *serverProxyModel) {
 	}
 	if got.ProxyType != "" {
 		plan.ProxyType = types.StringValue(strings.ToLower(got.ProxyType))
+	}
+	if got.TraefikCertificateResolver != nil && *got.TraefikCertificateResolver != "" {
+		plan.TraefikCertificateResolver = types.StringValue(*got.TraefikCertificateResolver)
+	} else if plan.TraefikCertificateResolver.IsUnknown() {
+		plan.TraefikCertificateResolver = types.StringNull()
 	}
 	if got.Configuration != "" && !plan.Configuration.IsNull() && !plan.Configuration.IsUnknown() {
 		plan.Configuration = types.StringValue(got.Configuration)
@@ -172,7 +201,7 @@ func (r *serverProxyResource) apply(ctx context.Context, plan *serverProxyModel)
 		}
 		flattenProxy(got, plan)
 	}
-	if input.RedirectEnabled != nil || input.RedirectURL != nil || input.GenerateExactLabels != nil {
+	if input.RedirectEnabled != nil || input.RedirectURL != nil || input.GenerateExactLabels != nil || input.TraefikCertificateResolver != nil {
 		got, err := r.client.UpdateServerProxy(ctx, uuid, input)
 		if err != nil {
 			return err

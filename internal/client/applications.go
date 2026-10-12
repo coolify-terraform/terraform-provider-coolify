@@ -135,6 +135,9 @@ type Application struct {
 	IsConsistentContainerNameEnabled *bool  `json:"is_consistent_container_name_enabled,omitempty"`
 	CustomInternalName               string `json:"custom_internal_name,omitempty"`
 	CustomContainerNamePrefix        string `json:"custom_container_name_prefix,omitempty"`
+	// TraefikCertificateResolver is absent on Coolify tag v4.4.6. Main after
+	// that tag accepts it and still reports version 4.4.6.
+	TraefikCertificateResolver string `json:"traefik_certificate_resolver,omitempty"`
 	// NoindexDomains is the subset of domains served with X-Robots-Tag noindex
 	// (Coolify >= v4.3.0). JSON array on the wire; empty means none.
 	NoindexDomains  []string `json:"noindex_domains,omitempty"`
@@ -242,6 +245,7 @@ type ApplicationSettings struct {
 	IsConsistentContainerNameEnabled *bool  `json:"is_consistent_container_name_enabled,omitempty"`
 	CustomInternalName               string `json:"custom_internal_name,omitempty"`
 	CustomContainerNamePrefix        string `json:"custom_container_name_prefix,omitempty"`
+	TraefikCertificateResolver       string `json:"traefik_certificate_resolver,omitempty"`
 }
 
 // PromoteSettings copies nested settings onto top-level Application fields when unset.
@@ -288,6 +292,9 @@ func (a *Application) PromoteSettings() {
 	}
 	if a.CustomContainerNamePrefix == "" && s.CustomContainerNamePrefix != "" {
 		a.CustomContainerNamePrefix = s.CustomContainerNamePrefix
+	}
+	if a.TraefikCertificateResolver == "" && s.TraefikCertificateResolver != "" {
+		a.TraefikCertificateResolver = s.TraefikCertificateResolver
 	}
 }
 
@@ -448,6 +455,7 @@ type UpdateApplicationInput struct {
 	IsConsistentContainerNameEnabled *bool   `json:"is_consistent_container_name_enabled,omitempty"`
 	CustomInternalName               *string `json:"custom_internal_name,omitempty"`
 	CustomContainerNamePrefix        *string `json:"custom_container_name_prefix,omitempty"`
+	TraefikCertificateResolver       *string `json:"traefik_certificate_resolver,omitempty"`
 	// NoindexDomains is a JSON array on the wire. Use a non-nil empty slice to
 	// clear when the attribute is configured empty (Coolify >= v4.3.0).
 	NoindexDomains *[]string `json:"noindex_domains,omitempty"`

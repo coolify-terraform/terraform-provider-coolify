@@ -77,6 +77,15 @@ var ApplicationSettingsV44WriteJSONKeys = []string{
 	"custom_container_name_prefix",
 }
 
+// ApplicationSettingsAheadOfPinWriteJSONKeys are public application write
+// keys that exist on Coolify main after tag v4.4.6. That tag and main both
+// report version 4.4.6, so a version check cannot tell them apart. Callers
+// omit these keys unless the user set the attribute. clearApplicationSettingsV44
+// must not strip them.
+var ApplicationSettingsAheadOfPinWriteJSONKeys = []string{
+	"traefik_certificate_resolver",
+}
+
 // SupportsApplicationSettings reports whether the connected instance accepts
 // Coolify >= v4.2.0 application write fields (APPLICATION_SETTING_FIELDS plus
 // is_preview_deployments_enabled and use_build_secrets, which landed as

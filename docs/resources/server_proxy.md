@@ -35,6 +35,7 @@ resource "coolify_server_proxy" "example" {
 - `proxy_type` (String) Proxy type (for example traefik or caddy). An omitted value keeps the last applied value.
 - `redirect_enabled` (Boolean) Whether HTTP to HTTPS redirect is enabled. Coolify defaults this to `true`. Requires Coolify >= v4.3.0. JSON `false` is stored: Laravel 12 `$request->has` sees the key. An omitted value keeps the last applied value.
 - `redirect_url` (String) HTTPS redirect target URL. Coolify persists this field (`$request->exists('redirect_url')`). Use a resolvable host; reserved names such as `example.invalid` return 422. An omitted value keeps the last applied value.
+- `traefik_certificate_resolver` (String) Traefik certificate resolver for generated HTTPS routers on this server. Null lets the proxy use its own certificates. "none" turns the resolver off. Letters, digits, underscore, and hyphen only, at most 255 characters. Coolify tag v4.4.6 does not accept this key (it landed on main after that tag, and that main still reports version 4.4.6). Leave it unset on v4.4.6 and older. Setting it on those servers returns 422.
 
 ## Import
 

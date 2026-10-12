@@ -8,18 +8,20 @@ import (
 )
 
 type ServerProxy struct {
-	RedirectEnabled     *bool  `json:"redirect_enabled,omitempty"`
-	RedirectURL         string `json:"redirect_url,omitempty"`
-	GenerateExactLabels *bool  `json:"generate_exact_labels,omitempty"`
-	ProxyType           string `json:"proxy_type,omitempty"`
-	Configuration       string `json:"configuration,omitempty"`
+	RedirectEnabled            *bool   `json:"redirect_enabled,omitempty"`
+	RedirectURL                string  `json:"redirect_url,omitempty"`
+	GenerateExactLabels        *bool   `json:"generate_exact_labels,omitempty"`
+	ProxyType                  string  `json:"proxy_type,omitempty"`
+	Configuration              string  `json:"configuration,omitempty"`
+	TraefikCertificateResolver *string `json:"traefik_certificate_resolver,omitempty"`
 }
 
 type ServerProxyUpdateInput struct {
-	RedirectEnabled     *bool   `json:"redirect_enabled,omitempty"`
-	RedirectURL         *string `json:"redirect_url,omitempty"`
-	GenerateExactLabels *bool   `json:"generate_exact_labels,omitempty"`
-	ProxyType           *string `json:"proxy_type,omitempty"`
+	RedirectEnabled            *bool   `json:"redirect_enabled,omitempty"`
+	RedirectURL                *string `json:"redirect_url,omitempty"`
+	GenerateExactLabels        *bool   `json:"generate_exact_labels,omitempty"`
+	ProxyType                  *string `json:"proxy_type,omitempty"`
+	TraefikCertificateResolver *string `json:"traefik_certificate_resolver,omitempty"`
 }
 
 type ServerProxyConfigInput struct {

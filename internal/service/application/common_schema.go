@@ -635,6 +635,9 @@ func applicationSettingAttrs() map[string]schema.Attribute {
 	for k, v := range applicationSettingAttrsV44() {
 		attrs[k] = v
 	}
+	for k, v := range applicationSettingAttrsAheadOfPin() {
+		attrs[k] = v
+	}
 	return attrs
 }
 
@@ -820,6 +823,30 @@ func applicationSettingAttrsV44() map[string]schema.Attribute {
 				stringvalidator.RegexMatches(
 					regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`),
 					"must be a lowercase slug (letters, digits, hyphens), e.g. \"my-api\"",
+				),
+			},
+		},
+	}
+}
+
+// applicationSettingAttrsAheadOfPin is traefik_certificate_resolver.
+// Coolify tag v4.4.6 rejects the key. Main after that tag accepts it and
+// still reports version 4.4.6, so this attribute is not version-gated.
+func applicationSettingAttrsAheadOfPin() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"traefik_certificate_resolver": schema.StringAttribute{
+			MarkdownDescription: "Traefik certificate resolver for this application. Null uses the server setting. " +
+				"\"none\" turns the resolver off. Letters, digits, underscore, and hyphen only, at most 255 characters. " +
+				"Coolify tag v4.4.6 does not accept this key (it landed on main after that tag, and that main still reports version 4.4.6). " +
+				"Leave it unset on v4.4.6 and older. Setting it on those servers returns 422.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			Validators: []validator.String{
+				stringvalidator.LengthAtMost(255),
+				stringvalidator.RegexMatches(
+					regexp.MustCompile(`^[A-Za-z0-9_-]+$`),
+					"must contain only letters, digits, underscores, and hyphens",
 				),
 			},
 		},
