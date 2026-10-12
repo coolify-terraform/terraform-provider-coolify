@@ -425,6 +425,8 @@ func TestVultrServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	servers := map[string]*client.Server{}
 	var mu sync.Mutex
 	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
@@ -432,9 +434,32 @@ func TestVultrServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers/vultr":
-			created := &client.Server{UUID: "aaaa0009-0009-4000-8000-000000000009"}
+			var input client.CreateVultrServerInput
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			if input.Name != "readback-failure" || input.Region != "ewr" || input.Plan != "vc2-1c-1gb" || input.OsID != 1743 {
+				http.Error(w, `{"error":"unexpected server"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			created := &client.Server{
+				UUID:           "aaaa0009-0009-4000-8000-000000000009",
+				Name:           input.Name,
+				IP:             "203.0.113.60",
+				Port:           22,
+				User:           "root",
+				PrivateKeyUUID: input.PrivateKeyUUID,
+				IsReachable:    true,
+				IsUsable:       true,
+				Settings:       defaultVultrServerSettings(),
+			}
 			servers[created.UUID] = created
-			forceReadFailure.Store(true)
+			// Arm only the first create. Retries must keep failing, and the
+			// tainted replace must be readable.
+			if posts.Add(1) == 1 {
+				forceReadFailure.Store(true)
+			}
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(created)
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
@@ -448,9 +473,24 @@ func TestVultrServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 				http.Error(w, `{}`, http.StatusNotFound)
 				return
 			}
+			resp := *server
+			resp.PrivateKeyUUID = ""
+			_ = json.NewEncoder(w).Encode(resp)
+		case r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			server, ok := servers[uuid]
+			if !ok {
+				http.Error(w, `{}`, http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(server)
-		case r.Method == http.MethodDelete:
-			delete(servers, strings.TrimPrefix(r.URL.Path, "/api/v1/servers/"))
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/servers/"):
+			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/servers/")
+			if _, ok := servers[uuid]; ok {
+				deletes.Add(1)
+				delete(servers, uuid)
+			}
 			w.WriteHeader(http.StatusOK)
 		default:
 			http.Error(w, `{}`, http.StatusNotFound)
@@ -458,12 +498,30 @@ func TestVultrServerResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	})))
 	defer srv.Close()
 
+	config := acctest.ProviderBlockForURL(srv.URL) + vultrBaseConfig("readback-failure")
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config:      acctest.ProviderBlockForURL(srv.URL) + vultrBaseConfig("readback-failure"),
-				ExpectError: regexp.MustCompile(`(?s)Vultr server created but refresh failed.*partial Terraform state was saved`),
+				Config:      config,
+				ExpectError: regexp.MustCompile(`(?s)Vultr server created but refresh failed.*could not read it back.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config:    config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_vultr.test", "name", "readback-failure"),
+					resource.TestCheckResourceAttr("coolify_server_vultr.test", "ip", "203.0.113.60"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
