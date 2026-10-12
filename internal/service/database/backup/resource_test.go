@@ -308,15 +308,33 @@ func TestDatabaseBackupResource_CreateListFailurePreservesState(t *testing.T) {
 	const backupUUID = "bkp-readback-uuid-001"
 
 	var forceListFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups", dbUUID):
-			forceListFailure.Store(true)
+			var body struct {
+				Frequency string `json:"frequency"`
+				Enabled   bool   `json:"enabled"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			if body.Frequency != "0 2 * * *" || !body.Enabled {
+				http.Error(w, `{"error":"unexpected backup"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			// The first create keeps the list failing through HTTP retries.
+			// The tainted replace must be able to list the backup.
+			if posts.Add(1) == 1 {
+				forceListFailure.Store(true)
+			}
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"uuid":    backupUUID,
 				"message": "Backup configuration created successfully.",
 			})
@@ -326,31 +344,53 @@ func TestDatabaseBackupResource_CreateListFailurePreservesState(t *testing.T) {
 				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
 				return
 			}
-			json.NewEncoder(w).Encode([]map[string]interface{}{{
-				"id": 42, "uuid": backupUUID, "database_uuid": dbUUID, "frequency": "0 2 * * *", "enabled": true,
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{{
+				"id": 42, "uuid": backupUUID, "database_uuid": dbUUID, "frequency": "0 2 * * *", "enabled": true, "save_s3": false,
 			}})
 
 		case r.Method == http.MethodDelete && r.URL.Path == fmt.Sprintf("/api/v1/databases/%s/backups/%s", dbUUID, backupUUID):
+			deletes.Add(1)
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
 
 		default:
 			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
 		}
 	})))
 	defer srv.Close()
 
+	config := testBackupConfig(srv.URL, `
+		database_uuid = "eeee0001-0001-4000-8000-000000000001"
+		frequency     = "0 2 * * *"
+		enabled       = true
+	`)
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
-		Steps: []resource.TestStep{{
-			Config: testBackupConfig(srv.URL, `
-				database_uuid = "eeee0001-0001-4000-8000-000000000001"
-				frequency     = "0 2 * * *"
-				enabled       = true
-			`),
-			ExpectError: regexp.MustCompile(`(?s)Database backup created but refresh failed.*Could not list database backups.*partial Terraform state was saved`),
-		}},
+		Steps: []resource.TestStep{
+			{
+				Config:      config,
+				ExpectError: regexp.MustCompile(`(?s)Database backup created but refresh failed.*Could not list database backups.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceListFailure.Store(false) },
+				Config:    config,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "frequency", "0 2 * * *"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "enabled", "true"),
+					resource.TestCheckResourceAttr("coolify_database_backup.test", "uuid", backupUUID),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
+			},
+		},
 	})
 }
 
