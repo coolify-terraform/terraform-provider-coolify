@@ -132,6 +132,8 @@ func TestPrivateKeyResource_CreateReadBackFailurePreservesState(t *testing.T) {
 	keys := make(map[string]*client.PrivateKey)
 	var mu sync.Mutex
 	var forceReadFailure atomic.Bool
+	var posts atomic.Int32
+	var deletes atomic.Int32
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
@@ -145,11 +147,21 @@ func TestPrivateKeyResource_CreateReadBackFailurePreservesState(t *testing.T) {
 				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 				return
 			}
-			key := &client.PrivateKey{UUID: "cccc0009-0009-4000-8000-000000000009"}
+			if input.Name != "readback-failure" {
+				http.Error(w, `{"error":"unexpected name"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			if posts.Add(1) == 1 {
+				forceReadFailure.Store(true)
+			}
+			key := &client.PrivateKey{
+				UUID:       "cccc0009-0009-4000-8000-000000000009",
+				Name:       input.Name,
+				PrivateKey: input.PrivateKey,
+			}
 			keys[key.UUID] = key
-			forceReadFailure.Store(true)
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(key)
+			_ = json.NewEncoder(w).Encode(key)
 
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/"):
 			if forceReadFailure.Load() {
@@ -162,9 +174,10 @@ func TestPrivateKeyResource_CreateReadBackFailurePreservesState(t *testing.T) {
 				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 				return
 			}
-			json.NewEncoder(w).Encode(key)
+			_ = json.NewEncoder(w).Encode(key)
 
 		case r.Method == http.MethodDelete && strings.HasPrefix(r.URL.Path, "/api/v1/security/keys/"):
+			deletes.Add(1)
 			uuid := strings.TrimPrefix(r.URL.Path, "/api/v1/security/keys/")
 			delete(keys, uuid)
 			w.WriteHeader(http.StatusOK)
@@ -186,6 +199,27 @@ resource "coolify_private_key" "test" {
 }
 `,
 				ExpectError: regexp.MustCompile(`(?s)Private key created but refresh failed.*Could not read private key.*partial Terraform state was saved`),
+			},
+			{
+				PreConfig: func() { forceReadFailure.Store(false) },
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_private_key" "test" {
+  name        = "readback-failure"
+  private_key = "ssh-ed25519 AAAA-test-key"
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_private_key.test", "name", "readback-failure"),
+					func(*terraform.State) error {
+						if posts.Load() != 2 {
+							return fmt.Errorf("posts = %d, want 2", posts.Load())
+						}
+						if deletes.Load() != 1 {
+							return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})
