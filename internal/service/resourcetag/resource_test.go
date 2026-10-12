@@ -2,15 +2,18 @@ package resourcetag_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestResourceTag_Attach(t *testing.T) {
@@ -127,6 +130,74 @@ resource "coolify_resource_tag" "test" {
   tag_name      = "frontend"
 }`,
 			ExpectError: regexp.MustCompile(`Error attaching tag`),
+		}},
+	})
+}
+
+func TestResourceTag_ListFailureKeepsState(t *testing.T) {
+	t.Parallel()
+	const (
+		appUUID = "aaaa0001-0001-4000-8000-000000000001"
+		tagUUID = "tttt0001-0001-4000-8000-000000000001"
+	)
+	var posts atomic.Int32
+	var deletes atomic.Int32
+	var forceListFailure atomic.Bool
+	forceListFailure.Store(true)
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/tags"):
+			posts.Add(1)
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]string{"message": "ok"})
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/tags"):
+			// Stay failed through client retries. The check clears the flag
+			// before destroy, which lists again and detaches by name.
+			if forceListFailure.Load() {
+				http.Error(w, `{"error":"boom"}`, http.StatusInternalServerError)
+				return
+			}
+			_ = json.NewEncoder(w).Encode([]map[string]string{{"uuid": tagUUID, "name": "frontend"}})
+		case r.Method == http.MethodDelete && strings.HasSuffix(r.URL.Path, "/tags/"+tagUUID):
+			deletes.Add(1)
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy: func(*terraform.State) error {
+			if posts.Load() != 1 {
+				return fmt.Errorf("posts = %d, want 1", posts.Load())
+			}
+			if deletes.Load() != 1 {
+				return fmt.Errorf("deletes = %d, want 1 (state was not saved if this is 0)", deletes.Load())
+			}
+			return nil
+		},
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_resource_tag" "test" {
+  resource_type = "application"
+  resource_uuid = "` + appUUID + `"
+  tag_name      = "frontend"
+}`,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				func(*terraform.State) error {
+					forceListFailure.Store(false)
+					return nil
+				},
+				resource.TestCheckResourceAttr(
+					"coolify_resource_tag.test",
+					"id",
+					"application:"+appUUID+":frontend",
+				),
+			),
 		}},
 	})
 }

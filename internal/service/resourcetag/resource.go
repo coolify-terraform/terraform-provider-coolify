@@ -87,24 +87,26 @@ func (r *resourceTagResource) Create(ctx context.Context, req resource.CreateReq
 		resp.Diagnostics.AddError("Error attaching tag", err.Error())
 		return
 	}
+	// The attach is already stored in Coolify. Keep that in state even when
+	// the follow-up list fails, or the tag is attached and Terraform will
+	// not remove it. The name is enough for a later delete.
+	plan.TagUUID = types.StringNull()
+	plan.ID = types.StringValue(tagResourceID(rt, ru, name))
 	tags, err := r.client.ListResourceTags(ctx, rt, ru)
 	if err != nil {
-		resp.Diagnostics.AddError("Error listing resource tags after attach", err.Error())
-		return
-	}
-	var uuid string
-	for _, t := range tags {
-		if strings.EqualFold(t.Name, name) {
-			uuid = t.UUID
-			break
+		resp.Diagnostics.AddWarning(
+			"Tag attached but its UUID was not read",
+			"Coolify attached the tag and Terraform saved that attachment. The tag UUID is filled on the next refresh. Destroy removes the tag by name while the UUID is empty.",
+		)
+	} else {
+		uuid := tagUUIDByName(tags, name)
+		if uuid == "" {
+			resp.Diagnostics.AddError("Error attaching tag", "tag was not present on the resource after attach")
+			return
 		}
+		plan.TagUUID = types.StringValue(uuid)
+		plan.ID = types.StringValue(tagResourceID(rt, ru, uuid))
 	}
-	if uuid == "" {
-		resp.Diagnostics.AddError("Error attaching tag", "tag was not present on the resource after attach")
-		return
-	}
-	plan.TagUUID = types.StringValue(uuid)
-	plan.ID = types.StringValue(rt + ":" + ru + ":" + uuid)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -125,9 +127,10 @@ func (r *resourceTagResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 	found := false
 	for _, t := range tags {
-		if t.UUID == state.TagUUID.ValueString() || t.Name == state.TagName.ValueString() {
+		if t.UUID == state.TagUUID.ValueString() || strings.EqualFold(t.Name, state.TagName.ValueString()) {
 			state.TagUUID = types.StringValue(t.UUID)
 			state.TagName = types.StringValue(t.Name)
+			state.ID = types.StringValue(tagResourceID(state.ResourceType.ValueString(), state.ResourceUUID.ValueString(), t.UUID))
 			found = true
 			break
 		}
@@ -154,9 +157,34 @@ func (r *resourceTagResource) Delete(ctx context.Context, req resource.DeleteReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if err := r.client.DetachResourceTag(ctx, state.ResourceType.ValueString(), state.ResourceUUID.ValueString(), state.TagUUID.ValueString()); err != nil && !client.IsNotFound(err) {
+	tagUUID := state.TagUUID.ValueString()
+	if tagUUID == "" {
+		tags, err := r.client.ListResourceTags(ctx, state.ResourceType.ValueString(), state.ResourceUUID.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Error detaching tag", err.Error())
+			return
+		}
+		tagUUID = tagUUIDByName(tags, state.TagName.ValueString())
+		if tagUUID == "" {
+			return
+		}
+	}
+	if err := r.client.DetachResourceTag(ctx, state.ResourceType.ValueString(), state.ResourceUUID.ValueString(), tagUUID); err != nil && !client.IsNotFound(err) {
 		resp.Diagnostics.AddError("Error detaching tag", err.Error())
 	}
+}
+
+func tagResourceID(resourceType, resourceUUID, tagID string) string {
+	return resourceType + ":" + resourceUUID + ":" + tagID
+}
+
+func tagUUIDByName(tags []client.Tag, name string) string {
+	for _, tag := range tags {
+		if strings.EqualFold(tag.Name, name) {
+			return tag.UUID
+		}
+	}
+	return ""
 }
 
 func (r *resourceTagResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
