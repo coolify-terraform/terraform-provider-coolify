@@ -117,8 +117,13 @@ func (r *storageResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:            true,
 			},
 			"host_path": schema.StringAttribute{
-				MarkdownDescription: "The host path to mount (optional; leave empty for a Docker volume).",
-				Optional:            true,
+				MarkdownDescription: "Not accepted by the Coolify storage API. Persistent volume create and update " +
+					"reject `host_path` with HTTP 422. Omit this attribute. Coolify creates a Docker volume. " +
+					"Data sources can still read a host path that was set in the Coolify UI.",
+				Optional: true,
+				Validators: []validator.String{
+					hostPathNotAcceptedValidator{},
+				},
 			},
 			"is_preview_suffix_enabled": schema.BoolAttribute{
 				MarkdownDescription: "Whether Coolify appends a `-pr-N` suffix for preview deployments. " +
@@ -175,15 +180,14 @@ func (r *storageResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// is_preview_suffix_enabled is accepted on PATCH only (create_storage
-	// allow-list is type/name/mount_path/host_path/content/…). Never send it
-	// on POST or Coolify returns 422 "This field is not allowed."
+	// is_preview_suffix_enabled and host_path are not on the create allow-list
+	// (type, name, mount_path, content, and file-storage fields). Sending
+	// either one returns 422 "This field is not allowed."
 	input := client.CreateStorageInput{
 		Type:      "persistent",
 		Name:      plan.Name.ValueString(),
 		MountPath: plan.MountPath.ValueString(),
 	}
-	flex.SetIfKnown(&input.HostPath, plan.HostPath)
 	flex.SetIfKnown(&input.ResourceUUID, plan.ResourceUUID)
 
 	createResp, err := r.client.CreateStorage(ctx, parentType, parentUUID, input)
@@ -315,7 +319,6 @@ func (r *storageResource) Update(ctx context.Context, req resource.UpdateRequest
 		Type:                   "persistent",
 		Name:                   flex.StringIfChanged(plan.Name, state.Name),
 		MountPath:              flex.StringIfChanged(plan.MountPath, state.MountPath),
-		HostPath:               flex.StringPtrForUpdate(plan.HostPath, state.HostPath),
 		IsPreviewSuffixEnabled: flex.BoolIfChanged(plan.IsPreviewSuffixEnabled, state.IsPreviewSuffixEnabled),
 	}
 
@@ -383,12 +386,9 @@ func flattenStorageFromList(storages []client.Storage, state *storageResourceMod
 		}
 		state.Name = types.StringValue(apiName)
 		state.MountPath = types.StringValue(s.MountPath)
-		//nolint:gocritic // preserves null vs empty distinction for optional field
-		if s.HostPath != "" {
-			state.HostPath = types.StringValue(s.HostPath)
-		} else if !state.HostPath.IsNull() {
-			state.HostPath = types.StringNull()
-		}
+		// The storage API does not accept host_path. Keep resource state null
+		// so a path set in the UI does not plan a change the API would reject.
+		state.HostPath = types.StringNull()
 		if s.IsPreviewSuffixEnabled != nil {
 			state.IsPreviewSuffixEnabled = types.BoolValue(*s.IsPreviewSuffixEnabled)
 		} else if state.IsPreviewSuffixEnabled.IsNull() || state.IsPreviewSuffixEnabled.IsUnknown() {
@@ -400,6 +400,32 @@ func flattenStorageFromList(storages []client.Storage, state *storageResourceMod
 		return true
 	}
 	return false
+}
+
+// hostPathNotAcceptedValidator rejects a configured host_path. Coolify
+// v4.4.2 persistent storage create and update both return 422 for that key.
+type hostPathNotAcceptedValidator struct{}
+
+func (hostPathNotAcceptedValidator) Description(context.Context) string {
+	return "host_path is not accepted by the Coolify storage API"
+}
+
+func (hostPathNotAcceptedValidator) MarkdownDescription(context.Context) string {
+	return "host_path is not accepted by the Coolify storage API"
+}
+
+func (hostPathNotAcceptedValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if req.ConfigValue.ValueString() == "" {
+		return
+	}
+	resp.Diagnostics.AddAttributeError(
+		req.Path,
+		"host_path is not accepted",
+		"Coolify persistent storage create and update reject host_path with HTTP 422 (this field is not allowed). Omit host_path. Coolify creates a Docker volume.",
+	)
 }
 
 func (r *storageResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

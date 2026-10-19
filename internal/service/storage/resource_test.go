@@ -27,7 +27,6 @@ func TestStorageResource_Create(t *testing.T) {
 		UUID:      "stor-create-uuid",
 		Name:      "app-data",
 		MountPath: "/data",
-		HostPath:  "/host/data",
 	}
 
 	mu := sync.Mutex{}
@@ -44,8 +43,13 @@ func TestStorageResource_Create(t *testing.T) {
 			http.Error(w, `{"error":"bad request body"}`, http.StatusBadRequest)
 			return
 		}
-		if body["name"] != "app-data" || body["mount_path"] != "/data" || body["host_path"] != "/host/data" {
+		if body["name"] != "app-data" || body["mount_path"] != "/data" {
 			t.Errorf("POST body mismatch: got %v", body)
+			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
+			return
+		}
+		if _, ok := body["host_path"]; ok {
+			t.Errorf("POST must not send host_path, got %v", body["host_path"])
 			http.Error(w, `{"error":"unexpected fields"}`, http.StatusBadRequest)
 			return
 		}
@@ -86,7 +90,6 @@ func TestStorageResource_Create(t *testing.T) {
 					application_uuid = "cccc0001-0001-4000-8000-000000000001"
 					name             = "app-data"
 					mount_path       = "/data"
-					host_path        = "/host/data"
 				`)
 
 	resource.UnitTest(t, resource.TestCase{
@@ -99,7 +102,6 @@ func TestStorageResource_Create(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_storage.test", "uuid", "stor-create-uuid"),
 					resource.TestCheckResourceAttr("coolify_storage.test", "name", "app-data"),
 					resource.TestCheckResourceAttr("coolify_storage.test", "mount_path", "/data"),
-					resource.TestCheckResourceAttr("coolify_storage.test", "host_path", "/host/data"),
 				),
 			},
 			// Plan idempotency
@@ -163,10 +165,10 @@ func TestStorageResource_Update(t *testing.T) {
 		if v, ok := body["mount_path"].(string); ok {
 			currentStor.MountPath = v
 		}
-		if v, ok := body["host_path"]; ok {
-			if s, ok := v.(string); ok {
-				currentStor.HostPath = s
-			}
+		if _, ok := body["host_path"]; ok {
+			t.Errorf("PATCH must not send host_path, got %#v", body["host_path"])
+			http.Error(w, `{"error":"host_path is not allowed"}`, http.StatusUnprocessableEntity)
+			return
 		}
 		w.WriteHeader(http.StatusOK)
 	})
@@ -206,7 +208,6 @@ func TestStorageResource_Update(t *testing.T) {
 					resource.TestCheckResourceAttr("coolify_storage.test", "mount_path", "/data/new"),
 				),
 			},
-			// Add host_path
 			{
 				Config: testStorageResourceConfig(srv.URL, `
 					application_uuid = "cccc0001-0001-4000-8000-000000000001"
@@ -214,18 +215,9 @@ func TestStorageResource_Update(t *testing.T) {
 					mount_path       = "/data/new"
 					host_path        = "/host/data"
 				`),
-				Check: resource.TestCheckResourceAttr("coolify_storage.test", "host_path", "/host/data"),
+				ExpectError: regexp.MustCompile(`host_path is not accepted`),
 			},
-			// Remove host_path: should clear, not perpetual diff
-			{
-				Config: testStorageResourceConfig(srv.URL, `
-					application_uuid = "cccc0001-0001-4000-8000-000000000001"
-					name             = "app-data-updated"
-					mount_path       = "/data/new"
-				`),
-				Check: resource.TestCheckNoResourceAttr("coolify_storage.test", "host_path"),
-			},
-			// Plan idempotency after removal
+			// Plan idempotency after the rejected host_path config is removed
 			{
 				Config: testStorageResourceConfig(srv.URL, `
 					application_uuid = "cccc0001-0001-4000-8000-000000000001"
