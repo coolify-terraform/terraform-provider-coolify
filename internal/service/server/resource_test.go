@@ -154,6 +154,106 @@ func newServerMockServer() *httptest.Server {
 	})))
 }
 
+func TestServerResource_IPv6ReadBackKeepsConfigText(t *testing.T) {
+	t.Parallel()
+	const (
+		configured = "2A01:04F8::0001"
+		stored     = "2a01:4f8::1"
+		serverUUID = "bbbb0001-0001-4000-8000-000000000001"
+		keyUUID    = "dddd0002-0002-4000-8000-000000000002"
+	)
+	var mu sync.Mutex
+	var created *client.Server
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/servers":
+			var input client.CreateServerInput
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+				return
+			}
+			if input.IP != configured {
+				http.Error(w, `{"message":"unexpected ip"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			created = &client.Server{
+				UUID:           serverUUID,
+				Name:           input.Name,
+				IP:             stored,
+				Port:           input.Port,
+				User:           input.User,
+				PrivateKeyUUID: input.PrivateKeyUUID,
+				IsReachable:    true,
+				IsUsable:       true,
+				Settings: &client.ServerSettings{
+					ConcurrentBuilds:                     2,
+					DynamicTimeout:                       3600,
+					DeploymentQueueLimit:                 25,
+					ConnectionTimeout:                    10,
+					ServerDiskUsageNotificationThreshold: 80,
+					ServerDiskUsageCheckFrequency:        "*/5 * * * *",
+					IsTerminalEnabled:                    true,
+				},
+			}
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(created)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/servers/"+serverUUID:
+			if created == nil {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			resp := *created
+			resp.PrivateKeyUUID = ""
+			_ = json.NewEncoder(w).Encode(&resp)
+		case r.Method == http.MethodPatch && r.URL.Path == "/api/v1/servers/"+serverUUID:
+			if created == nil {
+				http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(created)
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/v1/servers/"+serverUUID:
+			created = nil
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		}
+	})))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		CheckDestroy:             acctest.CheckDestroy(srv.URL, "coolify_server", "/api/v1/servers/"),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "ipv6-server"
+  ip               = "` + configured + `"
+  private_key_uuid = "` + keyUUID + `"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server.test", "ip", configured),
+					resource.TestCheckResourceAttr("coolify_server.test", "uuid", serverUUID),
+				),
+			},
+			{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_server" "test" {
+  name             = "ipv6-server"
+  ip               = "` + configured + `"
+  private_key_uuid = "` + keyUUID + `"
+}`,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestServerResource_Create(t *testing.T) {
 	t.Parallel()
 	srv := newServerMockServer()

@@ -46,7 +46,7 @@ resource "coolify_server" "example" {
 
 ### Required
 
-- `ip` (String) The IP address of the server.
+- `ip` (String) The IP address of the server. Coolify stores IPv6 in short lowercase form (for example `2A01:04F8::0001` is stored as `2a01:4f8::1`). When that stored address is the same as this value, Terraform keeps the config text.
 - `name` (String) The name of the server.
 - `private_key_uuid` (String) The UUID of the private key used for SSH authentication. Coolify GET often omits this field, so import leaves it empty. Set the same UUID that is already on the server in HCL, or the next apply will PATCH a new SSH key.
 

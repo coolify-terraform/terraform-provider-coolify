@@ -107,8 +107,10 @@ func (r *serverResource) Schema(ctx context.Context, _ resource.SchemaRequest, r
 		MarkdownDescription: "Manages a Coolify server.\n\n~> **Warning:** Deleting a server will cascade-delete all applications, databases, and services deployed on it.",
 		Attributes: CommonServerAttrs(ctx, map[string]schema.Attribute{
 			"ip": schema.StringAttribute{
-				MarkdownDescription: "The IP address of the server.",
-				Required:            true,
+				MarkdownDescription: "The IP address of the server. Coolify stores IPv6 in short lowercase form " +
+					"(for example `2A01:04F8::0001` is stored as `2a01:4f8::1`). " +
+					"When that stored address is the same as this value, Terraform keeps the config text.",
+				Required: true,
 			},
 			"instant_validate": schema.BoolAttribute{
 				MarkdownDescription: "Whether to validate server connectivity immediately after creation or update. " +

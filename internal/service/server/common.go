@@ -403,7 +403,11 @@ func FlattenServerCommon(srv *client.Server, f ServerCommonPtrs) {
 	*f.UUID = types.StringValue(srv.UUID)
 	*f.Name = types.StringValue(srv.Name)
 	*f.Description = flex.StringFromAPI(srv.Description, *f.Description)
-	*f.IP = types.StringValue(srv.IP)
+	priorIP := types.StringNull()
+	if f.IP != nil {
+		priorIP = *f.IP
+	}
+	*f.IP = types.StringValue(keepEquivalentServerIP(priorIP, srv.IP))
 	*f.Port = types.Int64Value(int64(srv.Port))
 	*f.User = types.StringValue(srv.User)
 	// Only overwrite private_key_uuid when the API returns a non-empty
