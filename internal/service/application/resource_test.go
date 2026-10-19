@@ -2469,6 +2469,117 @@ func TestApplicationResource_InvalidPortsExposes(t *testing.T) {
 	})
 }
 
+func TestApplicationResource_UpdateSendsCertificateResolver(t *testing.T) {
+	t.Parallel()
+
+	const appUUID = "resolver-update-app-uuid"
+	mu := sync.Mutex{}
+	var sawResolver atomic.Bool
+	deleted := false
+	currentApp := client.Application{
+		UUID:            appUUID,
+		Name:            "my-app",
+		GitRepository:   "https://github.com/example/repo",
+		GitBranch:       "main",
+		BuildPack:       "nixpacks",
+		PortsExposes:    "3000",
+		ProjectUUID:     "aaaa0002-0002-4000-8000-000000000002",
+		ServerUUID:      "bbbb0002-0002-4000-8000-000000000002",
+		EnvironmentName: "production",
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/applications/public", func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := decodeRequestBodyMap(t, w, r); !ok {
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": appUUID})
+	})
+	mux.HandleFunc("GET /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if deleted {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		body, ok := decodeRequestBodyMap(t, w, r)
+		if !ok {
+			return
+		}
+		if v, exists := body["traefik_certificate_resolver"]; exists {
+			s, _ := v.(string)
+			if s != "cloudflare" {
+				t.Errorf("PATCH traefik_certificate_resolver = %#v, want cloudflare", v)
+				http.Error(w, `{"error":"bad resolver"}`, http.StatusUnprocessableEntity)
+				return
+			}
+			mu.Lock()
+			currentApp.TraefikCertificateResolver = s
+			mu.Unlock()
+			sawResolver.Store(true)
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(currentApp)
+	})
+	mux.HandleFunc("DELETE /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("uuid") != appUUID {
+			http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+			return
+		}
+		mu.Lock()
+		deleted = true
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	defer srv.Close()
+
+	base := `
+		project_uuid   = "aaaa0002-0002-4000-8000-000000000002"
+		server_uuid    = "bbbb0002-0002-4000-8000-000000000002"
+		git_repository = "https://github.com/example/repo"
+		build_pack     = "nixpacks"
+		ports_exposes  = "3000"
+	`
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{Config: testApplicationResourceConfig(srv.URL, base)},
+			{
+				Config: testApplicationResourceConfig(srv.URL, base+`
+					traefik_certificate_resolver = "cloudflare"
+				`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_application.test", "traefik_certificate_resolver", "cloudflare"),
+					func(*terraform.State) error {
+						if !sawResolver.Load() {
+							return fmt.Errorf("Update PATCH did not send traefik_certificate_resolver")
+						}
+						return nil
+					},
+				),
+			},
+		},
+	})
+}
+
 func TestApplicationResource_CertificateResolverRejectsSpace(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
