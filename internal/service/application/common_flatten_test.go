@@ -628,6 +628,40 @@ func TestAddApplicationSettingUpdateFields_TraefikCertificateResolver(t *testing
 	}
 }
 
+// Update calls buildUpdateInput. The helper test above stays green if that call is removed.
+func TestBuildUpdateInput_TraefikCertificateResolver(t *testing.T) {
+	t.Parallel()
+	cloudflare := types.StringValue("cloudflare")
+	same := types.StringValue("cloudflare")
+	none := types.StringValue("none")
+	null := types.StringNull()
+
+	unchangedPlan := commonAppFields{TraefikCertificateResolver: &cloudflare}
+	unchangedState := commonAppFields{TraefikCertificateResolver: &same}
+	fillNilFields(&unchangedPlan)
+	fillNilFields(&unchangedState)
+	if got := buildUpdateInput(unchangedPlan, unchangedState); got.TraefikCertificateResolver != nil {
+		t.Fatal("unchanged resolver was sent")
+	}
+
+	changedPlan := commonAppFields{TraefikCertificateResolver: &none}
+	changedState := commonAppFields{TraefikCertificateResolver: &cloudflare}
+	fillNilFields(&changedPlan)
+	fillNilFields(&changedState)
+	got := buildUpdateInput(changedPlan, changedState)
+	if got.TraefikCertificateResolver == nil || *got.TraefikCertificateResolver != "none" {
+		t.Fatalf("changed: %#v", got.TraefikCertificateResolver)
+	}
+
+	nullPlan := commonAppFields{TraefikCertificateResolver: &null}
+	nullState := commonAppFields{TraefikCertificateResolver: &null}
+	fillNilFields(&nullPlan)
+	fillNilFields(&nullState)
+	if got := buildUpdateInput(nullPlan, nullState); got.TraefikCertificateResolver != nil {
+		t.Fatal("null resolver was sent")
+	}
+}
+
 func TestBuildPostCreatePatch_NullField(t *testing.T) {
 	t.Parallel()
 	null := types.StringNull()

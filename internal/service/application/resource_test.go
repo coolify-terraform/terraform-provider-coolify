@@ -2469,6 +2469,29 @@ func TestApplicationResource_InvalidPortsExposes(t *testing.T) {
 	})
 }
 
+func TestApplicationResource_CertificateResolverRejectsSpace(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
+	defer srv.Close()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: testApplicationResourceConfig(srv.URL, `
+					project_uuid                  = "aaaa0002-0002-4000-8000-000000000002"
+					server_uuid                   = "bbbb0002-0002-4000-8000-000000000002"
+					git_repository                = "https://github.com/example/repo"
+					build_pack                    = "nixpacks"
+					ports_exposes                 = "3000"
+					traefik_certificate_resolver  = "bad resolver"
+				`),
+				ExpectError: regexp.MustCompile(`bad resolver`),
+			},
+		},
+	})
+}
+
 func TestApplicationResource_InvalidDomains(t *testing.T) {
 	t.Parallel()
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.NotFoundHandler()))
