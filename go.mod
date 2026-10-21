@@ -1,6 +1,6 @@
 module github.com/coolify-terraform/terraform-provider-coolify
 
-go 1.26.9
+go 1.26.10
 
 require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
