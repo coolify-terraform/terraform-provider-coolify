@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.27](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.26...v0.1.27) (2026-10-21)
+
+
+### Features
+
+* send Traefik certificate resolver only when set ([#987](https://github.com/coolify-terraform/terraform-provider-coolify/issues/987)) ([6e232cd](https://github.com/coolify-terraform/terraform-provider-coolify/commit/6e232cd146a0d129f3785ceda808620a98b56cf4))
+
+
+### Bug Fixes
+
+* bump Go 1.26.9 to 1.26.10 for GO-2026-6809 ([#994](https://github.com/coolify-terraform/terraform-provider-coolify/issues/994)) ([9020c14](https://github.com/coolify-terraform/terraform-provider-coolify/commit/9020c14b19f3517513c581f03d551928103823c8))
+* keep configured server IP when Coolify shortens IPv6 ([#991](https://github.com/coolify-terraform/terraform-provider-coolify/issues/991)) ([1f1c7c7](https://github.com/coolify-terraform/terraform-provider-coolify/commit/1f1c7c7789ce7edd030a7a3a76f1cc0d64974947))
+* stop sending storage host_path to Coolify ([#992](https://github.com/coolify-terraform/terraform-provider-coolify/issues/992)) ([972c5cc](https://github.com/coolify-terraform/terraform-provider-coolify/commit/972c5cc5520d77c1cf53fa6b7cb86a1af48e64cd))
+
 ## [0.1.26](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.25...v0.1.26) (2026-10-09)
 
 
