@@ -73,8 +73,7 @@ resource "coolify_application_docker_image" "worker" {
 }
 
 # --- Environment Variables ---
-# In Coolify, the resource 'name' is also the Docker container name,
-# which serves as the internal hostname for service-to-service communication.
+# A database name is the container hostname on the destination network.
 
 resource "coolify_environment_variable" "api_db_url" {
   application_uuid = coolify_application_dockerfile.api.uuid

@@ -91,16 +91,17 @@ resource "coolify_database_backup" "daily" {
 # --- Applications ---
 
 resource "coolify_application" "api" {
-  name             = "ecommerce-api"
-  project_uuid     = coolify_project.ecommerce.uuid
-  server_uuid      = var.server_uuid
-  environment_name = "production"
-  git_repository   = "https://github.com/coollabsio/coolify-examples"
-  git_branch       = "v4.x"
-  base_directory   = "/nodejs"
-  build_pack       = "nixpacks"
-  ports_exposes    = "3000"
-  domains          = var.domain != "" ? "https://${var.domain}" : null
+  name                 = "ecommerce-api"
+  project_uuid         = coolify_project.ecommerce.uuid
+  server_uuid          = var.server_uuid
+  environment_name     = "production"
+  git_repository       = "https://github.com/coollabsio/coolify-examples"
+  git_branch           = "v4.x"
+  base_directory       = "/nodejs"
+  build_pack           = "nixpacks"
+  ports_exposes        = "3000"
+  domains              = var.domain != "" ? "https://${var.domain}" : null
+  custom_internal_name = "ecommerce-api"
 }
 
 resource "coolify_application_docker_image" "worker" {
@@ -113,8 +114,8 @@ resource "coolify_application_docker_image" "worker" {
 }
 
 # --- Environment Variables ---
-# In Coolify, the resource 'name' is also the Docker container name,
-# which serves as the internal hostname for service-to-service communication.
+# A database name is the container hostname. An application's Terraform
+# name is not. custom_internal_name is the stable DNS name (Coolify >= 4.3.0).
 
 resource "coolify_environment_variable" "api_database_url" {
   application_uuid = coolify_application.api.uuid
@@ -143,7 +144,7 @@ resource "coolify_environment_variable" "worker_redis_url" {
 resource "coolify_environment_variable" "worker_api_url" {
   application_uuid = coolify_application_docker_image.worker.uuid
   key              = "API_URL"
-  value            = var.domain != "" ? "https://${var.domain}" : "http://${coolify_application.api.name}:3000"
+  value            = var.domain != "" ? "https://${var.domain}" : "http://${coolify_application.api.custom_internal_name}:3000"
 }
 
 # --- Outputs ---

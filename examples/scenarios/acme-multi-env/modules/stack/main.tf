@@ -33,8 +33,7 @@ resource "coolify_application" "app" {
 }
 
 # Wire the database to the application via DATABASE_URL.
-# In Coolify the resource 'name' is also the Docker container name,
-# which serves as the internal hostname for service-to-service communication.
+# A database name is the container hostname on the destination network.
 resource "coolify_environment_variable" "database_url" {
   application_uuid = coolify_application.app.uuid
   key              = "DATABASE_URL"
