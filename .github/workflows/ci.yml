@@ -974,7 +974,11 @@ jobs:
     timeout-minutes: 2
     # coverage is best-effort for the GitHub code-quality upload; do not gate
     # merge on it (upload already uses fail-on-error: false).
-    needs: [dco, test, lint, validate, scenario-tests, acceptance-tests, workflow-lint]
+    # changes is included so a failed path filter fails this check. Product
+    # jobs skip when that filter does not succeed, and skipped is not a
+    # failure. The Monday schedule skips changes on purpose; skipped stays
+    # allowed.
+    needs: [changes, dco, test, lint, validate, scenario-tests, acceptance-tests, workflow-lint]
     steps:
       - name: Harden runner
         if: runner.os == 'Linux'
