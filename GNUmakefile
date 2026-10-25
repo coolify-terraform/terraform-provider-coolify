@@ -236,10 +236,14 @@ actionlint-check: check-actionlint-version ## Lint GitHub Actions workflows
 
 zizmor-check: check-python3 ## Lint workflows and composite actions with zizmor (matches CI)
 	@venv="$(BIN_DIR)/zizmor-venv"; \
+	req=".github/requirements/zizmor.txt"; \
 	mkdir -p "$(BIN_DIR)"; \
-	if [ ! -x "$$venv/bin/zizmor" ]; then \
+	hash="$$(python3 -c 'import hashlib,pathlib; print(hashlib.sha256(pathlib.Path(".github/requirements/zizmor.txt").read_bytes()).hexdigest())')"; \
+	stamp="$$venv/.requirements.sha256"; \
+	if [ ! -x "$$venv/bin/zizmor" ] || [ ! -f "$$stamp" ] || [ "$$(cat "$$stamp")" != "$$hash" ]; then \
 	  python3 -m venv "$$venv"; \
-	  "$$venv/bin/pip" install --require-hashes -r .github/requirements/zizmor.txt; \
+	  "$$venv/bin/pip" install --require-hashes -r "$$req"; \
+	  echo "$$hash" > "$$stamp"; \
 	fi; \
 	"$$venv/bin/zizmor" --config .github/zizmor.yml .github/workflows .github/actions
 

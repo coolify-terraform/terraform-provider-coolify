@@ -500,7 +500,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: make counts-check
       - name: Check contract compatibility
-        if: ${{ !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+        if: ${{ !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
         run: make contract-compat
       - name: Check schema against contract
         if: ${{ !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.scripts == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
