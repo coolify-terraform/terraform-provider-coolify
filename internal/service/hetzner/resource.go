@@ -189,7 +189,7 @@ func hetznerSchemaAttributes() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 		},
 		"instant_validate": schema.BoolAttribute{
-			MarkdownDescription: "Whether to validate server connectivity immediately after creation.",
+			MarkdownDescription: "Whether to validate server connectivity after creation or when this value changes. Defaults to true. The API does not return this field; it only triggers a validation job when true.",
 			Optional:            true,
 			Computed:            true,
 			Default:             booldefault.StaticBool(true),
@@ -437,7 +437,8 @@ func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 		ServerDiskUsageNotificationIntervalHours: &m.ServerDiskUsageNotificationIntervalHours,
 		ServerDiskUsageCheckFrequency:            &m.ServerDiskUsageCheckFrequency,
 		IsBuildServer:                            &m.IsBuildServer, ServerRole: &m.ServerRole, IsReachable: &m.IsReachable, IsUsable: &m.IsUsable,
-		WildcardDomain: &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
+		InstantValidate: &m.InstantValidate,
+		WildcardDomain:  &m.WildcardDomain, IsCloudFlareTunnel: &m.IsCloudFlareTunnel,
 		ServerTimezone: &m.ServerTimezone, IsMetricsEnabled: &m.IsMetricsEnabled,
 		IsTerminalEnabled: &m.IsTerminalEnabled, IsSentinelEnabled: &m.IsSentinelEnabled,
 		SentinelMetricsHistoryDays: &m.SentinelMetricsHistoryDays, SentinelMetricsRefreshRateSeconds: &m.SentinelMetricsRefreshRateSeconds,

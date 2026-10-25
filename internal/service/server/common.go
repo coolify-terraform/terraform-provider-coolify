@@ -35,8 +35,9 @@ type ServerCommonPtrs struct {
 	ServerDiskUsageCheckFrequency                     *types.String
 	IsBuildServer, IsReachable, IsUsable              *types.Bool
 	ServerRole                                        *types.String
-	// InstantValidate is optional: set on coolify_server only (cloud types
-	// own their own extra-attr field and must not share this pointer).
+	// InstantValidate is per model. Each cloud commonPtrs must pass its own
+	// InstantValidate pointer or update drops the change. Do not share
+	// another struct's field.
 	InstantValidate *types.Bool
 	// Read-only extended settings returned by GET responses.
 	WildcardDomain                    *types.String

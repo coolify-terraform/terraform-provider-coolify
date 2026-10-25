@@ -86,6 +86,8 @@ func applyVultrServerPatch(srv *client.Server, update client.UpdateServerInput) 
 
 var vultrCreateBodies sync.Map
 
+var vultrPatchBodies sync.Map
+
 func vultrLastCreate(srv *httptest.Server) string {
 	v, ok := vultrCreateBodies.Load(srv)
 	if !ok {
@@ -95,11 +97,25 @@ func vultrLastCreate(srv *httptest.Server) string {
 	return raw
 }
 
+func vultrLastPatch(srv *httptest.Server) client.UpdateServerInput {
+	v, ok := vultrPatchBodies.Load(srv)
+	if !ok {
+		return client.UpdateServerInput{}
+	}
+	raw := v.(*atomic.Value).Load()
+	if raw == nil {
+		return client.UpdateServerInput{}
+	}
+	in, _ := raw.(client.UpdateServerInput)
+	return in
+}
+
 func newVultrServerMock(t *testing.T) *httptest.Server {
 	t.Helper()
 	servers := map[string]*client.Server{}
 	var mu sync.Mutex
 	createBody := &atomic.Value{}
+	patchBody := &atomic.Value{}
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -186,6 +202,7 @@ func newVultrServerMock(t *testing.T) *httptest.Server {
 				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
 				return
 			}
+			patchBody.Store(update)
 			applyVultrServerPatch(srv, update)
 			_ = json.NewEncoder(w).Encode(srv)
 
@@ -201,6 +218,7 @@ func newVultrServerMock(t *testing.T) *httptest.Server {
 		}
 	})))
 	vultrCreateBodies.Store(srv, createBody)
+	vultrPatchBodies.Store(srv, patchBody)
 	return srv
 }
 
@@ -600,6 +618,50 @@ func TestVultrServerResource_NonDefaultPublicIPv4Stays(t *testing.T) {
 			},
 			{
 				Config:             cfg,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestVultrServerResource_UpdateInstantValidate(t *testing.T) {
+	t.Parallel()
+	srv := newVultrServerMock(t)
+	defer srv.Close()
+
+	// Schema default is false, so omit is already false. Turn it on, then
+	// off. The off step must PATCH instant_validate false.
+	omit := acctest.ProviderBlockForURL(srv.URL) + vultrBaseConfig("vu-validate")
+	on := acctest.ProviderBlockForURL(srv.URL) + vultrConfigWith("vu-validate", "  instant_validate = true\n")
+	off := acctest.ProviderBlockForURL(srv.URL) + vultrConfigWith("vu-validate", "  instant_validate = false\n")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: omit,
+				Check:  resource.TestCheckResourceAttr("coolify_server_vultr.test", "instant_validate", "false"),
+			},
+			{
+				Config: on,
+				Check:  resource.TestCheckResourceAttr("coolify_server_vultr.test", "instant_validate", "true"),
+			},
+			{
+				Config: off,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_vultr.test", "instant_validate", "false"),
+					func(*terraform.State) error {
+						got := vultrLastPatch(srv)
+						if got.InstantValidate == nil || *got.InstantValidate {
+							return fmt.Errorf("PATCH instant_validate = %v, want false", got.InstantValidate)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config:             off,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},

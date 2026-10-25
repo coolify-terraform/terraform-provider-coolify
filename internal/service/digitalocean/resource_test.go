@@ -86,6 +86,8 @@ func applyServerPatch(srv *client.Server, update client.UpdateServerInput) {
 
 var doCreateBodies sync.Map
 
+var doPatchBodies sync.Map
+
 func doLastCreate(srv *httptest.Server) string {
 	v, ok := doCreateBodies.Load(srv)
 	if !ok {
@@ -95,11 +97,25 @@ func doLastCreate(srv *httptest.Server) string {
 	return raw
 }
 
+func doLastPatch(srv *httptest.Server) client.UpdateServerInput {
+	v, ok := doPatchBodies.Load(srv)
+	if !ok {
+		return client.UpdateServerInput{}
+	}
+	raw := v.(*atomic.Value).Load()
+	if raw == nil {
+		return client.UpdateServerInput{}
+	}
+	in, _ := raw.(client.UpdateServerInput)
+	return in
+}
+
 func newDOServerMock(t *testing.T) *httptest.Server {
 	t.Helper()
 	servers := map[string]*client.Server{}
 	var mu sync.Mutex
 	createBody := &atomic.Value{}
+	patchBody := &atomic.Value{}
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -186,6 +202,7 @@ func newDOServerMock(t *testing.T) *httptest.Server {
 				http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
 				return
 			}
+			patchBody.Store(update)
 			applyServerPatch(srv, update)
 			_ = json.NewEncoder(w).Encode(srv)
 
@@ -201,6 +218,7 @@ func newDOServerMock(t *testing.T) *httptest.Server {
 		}
 	})))
 	doCreateBodies.Store(srv, createBody)
+	doPatchBodies.Store(srv, patchBody)
 	return srv
 }
 
@@ -616,6 +634,50 @@ func TestDigitalOceanServerResource_NonDefaultIPv6Stays(t *testing.T) {
 			},
 			{
 				Config:             cfg,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestDigitalOceanServerResource_UpdateInstantValidate(t *testing.T) {
+	t.Parallel()
+	srv := newDOServerMock(t)
+	defer srv.Close()
+
+	// Schema default is false, so omit is already false. Turn it on, then
+	// off. The off step must PATCH instant_validate false.
+	omit := acctest.ProviderBlockForURL(srv.URL) + doBaseConfig("do-validate")
+	on := acctest.ProviderBlockForURL(srv.URL) + doConfigWith("do-validate", "  instant_validate = true\n")
+	off := acctest.ProviderBlockForURL(srv.URL) + doConfigWith("do-validate", "  instant_validate = false\n")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: omit,
+				Check:  resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "instant_validate", "false"),
+			},
+			{
+				Config: on,
+				Check:  resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "instant_validate", "true"),
+			},
+			{
+				Config: off,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_digitalocean.test", "instant_validate", "false"),
+					func(*terraform.State) error {
+						got := doLastPatch(srv)
+						if got.InstantValidate == nil || *got.InstantValidate {
+							return fmt.Errorf("PATCH instant_validate = %v, want false", got.InstantValidate)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config:             off,
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},

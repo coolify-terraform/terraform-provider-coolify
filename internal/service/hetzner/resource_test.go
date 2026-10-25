@@ -21,6 +21,8 @@ import (
 
 var hetznerCreateBodies sync.Map
 
+var hetznerPatchBodies sync.Map
+
 func hetznerLastCreate(srv *httptest.Server) string {
 	v, ok := hetznerCreateBodies.Load(srv)
 	if !ok {
@@ -30,10 +32,24 @@ func hetznerLastCreate(srv *httptest.Server) string {
 	return raw
 }
 
+func hetznerLastPatch(srv *httptest.Server) client.UpdateServerInput {
+	v, ok := hetznerPatchBodies.Load(srv)
+	if !ok {
+		return client.UpdateServerInput{}
+	}
+	raw := v.(*atomic.Value).Load()
+	if raw == nil {
+		return client.UpdateServerInput{}
+	}
+	in, _ := raw.(client.UpdateServerInput)
+	return in
+}
+
 func newHetznerServerMockServer() *httptest.Server {
 	servers := make(map[string]*client.Server)
 	var mu sync.Mutex
 	createBody := &atomic.Value{}
+	patchBody := &atomic.Value{}
 
 	srv := httptest.NewServer(acctest.WithVersionEndpoint(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
@@ -108,6 +124,7 @@ func newHetznerServerMockServer() *httptest.Server {
 				http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 				return
 			}
+			patchBody.Store(update)
 			if update.Name != nil {
 				srv.Name = *update.Name
 			}
@@ -170,6 +187,7 @@ func newHetznerServerMockServer() *httptest.Server {
 		}
 	})))
 	hetznerCreateBodies.Store(srv, createBody)
+	hetznerPatchBodies.Store(srv, patchBody)
 	return srv
 }
 
@@ -1125,6 +1143,43 @@ func TestHetznerServerResource_NonDefaultIPv6Stays(t *testing.T) {
 						plancheck.ExpectResourceAction("coolify_server_hetzner.test", plancheck.ResourceActionDestroyBeforeCreate),
 					},
 				},
+			},
+		},
+	})
+}
+
+func TestHetznerServerResource_UpdateInstantValidate(t *testing.T) {
+	t.Parallel()
+	srv := newHetznerServerMockServer()
+	defer srv.Close()
+
+	omit := acctest.ProviderBlockForURL(srv.URL) + hetznerNetworkConfig("")
+	off := acctest.ProviderBlockForURL(srv.URL) + hetznerNetworkConfig("  instant_validate = false\n")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: omit,
+				Check:  resource.TestCheckResourceAttr("coolify_server_hetzner.test", "instant_validate", "true"),
+			},
+			{
+				Config: off,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coolify_server_hetzner.test", "instant_validate", "false"),
+					func(*terraform.State) error {
+						got := hetznerLastPatch(srv)
+						if got.InstantValidate == nil || *got.InstantValidate {
+							return fmt.Errorf("PATCH instant_validate = %v, want false", got.InstantValidate)
+						}
+						return nil
+					},
+				),
+			},
+			{
+				Config:             off,
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
