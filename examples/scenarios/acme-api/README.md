@@ -142,8 +142,8 @@ health checks) without deploying a separate cron container.
 
 ### Cross-Service Communication
 
-In Coolify, a resource's `name` doubles as its Docker container name and
-internal DNS hostname. Services on the same server can reach each other
-using `<name>:<port>`, so no public exposure is needed. This scenario connects
-the API and worker to PostgreSQL and Redis entirely through internal
-environment variables.
+Database `name` is the Docker container name and the internal DNS hostname.
+Applications are different: the default container name is `{uuid}-{timestamp}`
+unless `custom_internal_name` is set. This scenario connects the API and
+worker to PostgreSQL and Redis by database name, on the same destination,
+so those databases stay private.

@@ -7,16 +7,17 @@ description: |-
 
 # Connecting Resources
 
-Coolify places all resources within the same project on a shared Docker
-network. This guide explains how that networking works and how to wire
+Coolify attaches each resource to a server destination. A destination is a
+Docker network. This guide explains that network and how to wire
 applications to databases and other services.
 
 ## How Coolify Networking Works
 
-Every Coolify project gets its own Docker network. All resources (apps,
-databases, services) within that project are attached to the same network.
+A destination belongs to a server, not to a project. The usual default
+network is named `coolify`. Applications, databases, and services on that
+destination share it, even when they live in different projects.
 
-On Coolify **>= v4.2.0**, a server can also have **multiple destinations**
+On Coolify **>= v4.2.0**, a server can have **multiple destinations**
 (extra Docker networks managed with `coolify_destination`). When more than
 one destination exists, create calls require `destination_uuid` on the
 application, database, or service (create-only). If you omit it, the
@@ -25,14 +26,21 @@ See the Common Errors guide for the multi-destination API message.
 
 This means:
 
-- **Containers can reach each other by resource name.** If your database
-  is named `my-postgres`, other containers in the same project can connect
-  to it at hostname `my-postgres`.
-- **No port exposure needed.** Databases stay private (`is_public = false`)
-  and applications connect over the internal network.
-- **Cross-project networking is not supported.** Resources in different
-  projects cannot reach each other by hostname. If two resources need to
-  communicate, place them in the same project.
+- **Databases are reached by resource name.** If the database is named
+  `my-postgres`, other containers on the same destination connect to
+  hostname `my-postgres`. That name is also the container name.
+- **Applications are not reached by Terraform name.** The default container
+  name is `{uuid}-{timestamp}` and changes on every deploy. Set
+  `custom_internal_name` (Coolify >= 4.3.0) before another container calls
+  the app. Sending that field turns on consistent container names. With
+  only `is_consistent_container_name_enabled = true`, the stable hostname
+  is the application UUID.
+- **No port exposure needed on the same destination.** Databases stay
+  private (`is_public = false`) and applications connect over the Docker
+  network.
+- **A different destination is a different network.** Containers on two
+  destinations cannot reach each other by hostname. Put them on the same
+  destination, or publish the database.
 
 ```
 ┌─────────────────── Project: "my-app" ──────────────────┐
@@ -45,7 +53,7 @@ This means:
 │  │   false        │       │                        │     │
 │  └───────────────┘       └────────────────────────┘     │
 │         ▲                                               │
-│         │ Docker network: hostname = resource name      │
+│         │ same destination: database hostname = name     │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -67,7 +75,7 @@ resource "coolify_database_postgresql" "db" {
   postgres_user     = "app"
   postgres_password = var.db_password
   postgres_db       = "myapp"
-  is_public         = false  # only reachable within the project network
+  is_public         = false  # only reachable on the destination network
 }
 
 resource "coolify_application" "web" {
@@ -167,11 +175,11 @@ value = "clickhouse://${coolify_database_clickhouse.analytics.clickhouse_admin_u
 
 | Setting | `is_public = false` (default) | `is_public = true` |
 |---------|------------------------------|-------------------|
-| Internal access | Yes, via resource name | Yes, via resource name |
+| Internal access | Yes, on the same destination | Yes, on the same destination |
 | External access | No | Yes, via server IP + `public_port` |
 | Security | Recommended for production | Use when external tools need direct access |
 
-Set `is_public = true` only when something outside the Coolify project
+Set `is_public = true` only when something outside the destination network
 needs direct database access (monitoring tools, database GUIs, migration
 scripts running on your laptop):
 
@@ -185,14 +193,24 @@ resource "coolify_database_postgresql" "db" {
 
 ## Apps Talking to Apps
 
-Applications within the same project can also reach each other by name.
-For example, a frontend app calling a backend API:
+Do not use an application's Terraform `name` as the hostname. Coolify's
+default container name is `{uuid}-{timestamp}` and changes on every deploy,
+so that URL fails after the next deployment.
+
+Set `custom_internal_name` on the backend (Coolify >= 4.3.0). Coolify then
+keeps that name as the container DNS name:
 
 ```hcl
+resource "coolify_application" "backend" {
+  name                 = "backend"
+  custom_internal_name = "backend"
+  # other required arguments omitted
+}
+
 resource "coolify_environment_variable" "api_url" {
   application_uuid = coolify_application.frontend.uuid
   key              = "API_URL"
-  value            = "http://${coolify_application.backend.name}:8080"
+  value            = "http://backend:8080"
   is_build         = false
 }
 ```
@@ -212,12 +230,13 @@ value = "postgresql://app:pass@192.168.1.100:5432/myapp"
 value = "postgresql://app:pass@${coolify_database_postgresql.db.name}:5432/myapp"
 ```
 
-### Database in a different project
+### Database on a different destination
 
-Resources in different projects are on different Docker networks. They
-cannot reach each other by hostname. Move both resources into the same
-project, or set `is_public = true` on the database and connect via the
-server's public IP (less secure).
+Resources on different destinations are on different Docker networks. They
+cannot reach each other by hostname. Attach both to the same destination,
+or set `is_public = true` on the database and connect via the server's
+public IP (less secure). Two projects on the same destination can still
+use the internal hostname.
 
 ### Forgetting the environment variable
 
