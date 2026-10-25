@@ -2,7 +2,7 @@
 page_title: "Coolify Version Support"
 subcategory: "Getting Started"
 description: |-
-  What works on Coolify 4.1, 4.2, 4.3, and 4.4 with this provider: resources, fields, and version-gate behavior.
+  What works on Coolify 4.1, 4.2, 4.3, 4.4, and 4.5 with this provider: resources, fields, and version-gate behavior.
 ---
 
 # Coolify Version Support
@@ -41,10 +41,11 @@ output "coolify_version" {
 | **≥ 4.3.10** | Instance email settings and `smtp_ehlo_domain` on team email notifications (email/SMTP floor). |
 | **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. Recommended for the full feature set. |
+| **≥ 4.5.0** | `POST /api/v1/enable` is gone. `coolify_api_settings` with `enabled = true` leaves the API unchanged. `enabled = false` still disables it. Turn the API back on in the Coolify UI. Destroy does not re-enable the API. |
 
 Pinned API contract today: Coolify **v4.4.2** (`testdata/contracts/coolify-v4.json`).
 Tag extracts `coolify-v4.4.0.json`, `coolify-v4.4.1.json`, and `coolify-v4.4.2.json` match those git
-tags. Nightly CDN `4.5-rc.1` is a channel string with no git tag.
+tags. Tag v4.5.0 removed `POST /api/v1/enable`. The contract pin stays on v4.4.2. This provider still configures against Coolify 4.1.0 and later.
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
 That route stays `nested-service` (use `coolify_service` for the stack).
@@ -99,13 +100,24 @@ teams, and most list/single data sources.
 |------------------------|------|
 | `coolify_destination` / `coolify_destinations` | Docker network destinations |
 | `coolify_server_validate`, `coolify_server_validation` | Provider uses POST validate; 4.1.x only exposes GET |
-| `coolify_api_settings` | Provider uses POST `/enable`; 4.1.x only exposes GET (MCP enable alone is older) |
+| `coolify_api_settings` | Needs Coolify >= 4.2.0. Before 4.5.0 the provider posts `/enable` (4.1.x only exposes GET). On 4.5.0 and later, `enabled = true` does not call that route. `enabled = false` still posts `/disable`. MCP enable alone is older. |
 | `coolify_server_digitalocean` | Provision DO droplets into Coolify |
 | `coolify_server_vultr` | Provision Vultr instances into Coolify |
 | `coolify_digitalocean_*` data sources | regions, sizes, images, ssh_keys |
 | `coolify_vultr_*` data sources | regions, plans, os, ssh_keys |
 | `coolify_hetzner_firewalls` / `coolify_hetzner_networks` | List existing Hetzner firewalls and private networks |
 | `hetzner_firewall_ids` / `hetzner_network_ids` on `coolify_server_hetzner` | Attach existing Hetzner firewalls and networks at create time |
+
+On Coolify 4.5.0 and later, `coolify_api_settings` cannot turn the REST API on.
+Coolify removed `POST /api/v1/enable`. `enabled = true` leaves the API as it is.
+`enabled = false` still disables the API. Turning it back on is done in the
+Coolify UI. Changing `enabled` from false to true returns an error and does
+not save `enabled = true`. After the API is on again, remove the resource
+from state and apply with `enabled = true`. Destroy re-enables the API only
+on Coolify before 4.5.0. On 4.5.0 and later, destroy leaves a disabled API off.
+
+A provider release from before this change still posts `/enable` when
+`enabled` is true, including the default. That call fails on Coolify 4.5.0.
 
 `destination_uuid` on app, database, or service create works on Coolify 4.1.0+.
 Managing destinations as `coolify_destination` (and multi-destination servers)

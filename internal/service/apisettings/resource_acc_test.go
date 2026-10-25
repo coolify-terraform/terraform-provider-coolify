@@ -12,6 +12,10 @@ func TestAccAPISettings_Enable(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	// POST /api/v1/enable is Coolify >= v4.2.0 (4.1.x only has GET post_required).
+	// Coolify 4.5.0 removed that route. enabled = true is then a no-op
+	// because Configure already proved the API is on. Do not set
+	// enabled = false here: that posts /disable and turns off the shared
+	// acceptance instance. The false-to-true error is a unit test.
 	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
 
 	resource.Test(t, resource.TestCase{
@@ -45,6 +49,8 @@ func TestAccAPISettings_MCPEnableDisable(t *testing.T) {
 	acctest.AccTestSkipIfNoTFAcc(t)
 	acctest.TestAccPreCheck(t)
 	// POST /api/v1/enable (API on) needs Coolify >= v4.2.0; MCP enable alone is older.
+	// On Coolify 4.5.0 the same enabled = true config skips /enable.
+	// Do not set enabled = false against the shared instance.
 	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
 
 	resource.Test(t, resource.TestCase{

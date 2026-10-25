@@ -3,17 +3,18 @@
 page_title: "coolify_api_settings Resource - coolify"
 subcategory: ""
 description: |-
-  Manages Coolify instance-level settings: the REST API and the MCP server. Requires a root team (team 0) API token. On destroy, the API is re-enabled (to prevent lockout) and the MCP server is disabled.
+  Manages Coolify instance-level settings: the REST API and the MCP server. Requires a root team (team 0) API token. On destroy, the MCP server is disabled. On Coolify before 4.5.0, destroy also re-enables the API. Coolify 4.5.0 removed POST /api/v1/enable, so destroy cannot turn the API back on.
 ---
 
 # coolify_api_settings (Resource)
 
-Manages Coolify instance-level settings: the REST API and the MCP server. Requires a root team (team 0) API token. On destroy, the API is re-enabled (to prevent lockout) and the MCP server is disabled.
+Manages Coolify instance-level settings: the REST API and the MCP server. Requires a root team (team 0) API token. On destroy, the MCP server is disabled. On Coolify before 4.5.0, destroy also re-enables the API. Coolify 4.5.0 removed POST /api/v1/enable, so destroy cannot turn the API back on.
 
 ## Example Usage
 
 ```terraform
-# Enable the Coolify REST API and MCP server.
+# Turns the REST API and MCP server on.
+# On Coolify 4.5.0 and later, enabled = true leaves the API unchanged.
 resource "coolify_api_settings" "main" {
   enabled     = true
   mcp_enabled = true
@@ -25,5 +26,5 @@ resource "coolify_api_settings" "main" {
 
 ### Optional
 
-- `enabled` (Boolean) Whether the Coolify REST API is enabled.
+- `enabled` (Boolean) Whether the Coolify REST API is enabled. On Coolify 4.5.0 and later, Terraform cannot turn the API on (Coolify removed `POST /api/v1/enable`). `true` leaves the API unchanged when it is already on. `false` still disables it. To record `true` again after it was `false`, turn the API on in the Coolify UI, remove this resource from state, and apply again. Destroy does not re-enable the API on those versions.
 - `mcp_enabled` (Boolean) Whether the Coolify MCP server is enabled.

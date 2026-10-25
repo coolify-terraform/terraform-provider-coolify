@@ -261,6 +261,170 @@ func TestAPISettingsResource_DestroyRestoreWarning(t *testing.T) {
 	}
 }
 
+// serveAPISettings pins the Coolify version the provider reads at
+// Configure. getStatus 0 leaves GET /api/v1/enable unregistered. Go's
+// ServeMux then answers 405, because POST /api/v1/enable is registered.
+// A probe test that needs a real 404 must pass http.StatusNotFound.
+func serveAPISettings(t *testing.T, version string, getStatus int) (*httptest.Server, *apiRouteObs) {
+	t.Helper()
+	obs := &apiRouteObs{}
+	var apiEnabled, mcpEnabled atomic.Bool
+	mux := apiSettingsMux(&apiEnabled, &mcpEnabled)
+	if getStatus != 0 {
+		mux.HandleFunc("GET /api/v1/enable", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(getStatus)
+			_, _ = w.Write([]byte(`{"message":"post required"}`))
+		})
+	}
+	wrapped := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/enable":
+			obs.enablePosts.Add(1)
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/disable":
+			obs.disablePosts.Add(1)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/enable":
+			obs.getEnable.Add(1)
+		}
+		mux.ServeHTTP(w, r)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(wrapped, version))
+	t.Cleanup(srv.Close)
+	return srv, obs
+}
+
+type apiRouteObs struct {
+	enablePosts  atomic.Int32
+	disablePosts atomic.Int32
+	getEnable    atomic.Int32
+}
+
+func TestAPISettingsResource_Coolify447PostsEnable(t *testing.T) {
+	t.Parallel()
+	srv, obs := serveAPISettings(t, "4.4.7", 0)
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+				enabled = true
+			`),
+			Check: resource.TestCheckResourceAttr("coolify_api_settings.test", "enabled", "true"),
+		}},
+	})
+	// Create posts /enable, and destroy posts it again to restore the API.
+	if got := obs.enablePosts.Load(); got != 2 {
+		t.Fatalf("POST /api/v1/enable = %d, want 2", got)
+	}
+	if obs.getEnable.Load() != 0 {
+		t.Fatal("honest 4.4.7 must not probe GET /api/v1/enable")
+	}
+}
+
+func TestAPISettingsResource_Coolify45EnabledTrueSkipsEnable(t *testing.T) {
+	t.Parallel()
+	srv, obs := serveAPISettings(t, "4.5.0", 0)
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+				enabled = true
+			`),
+			Check: resource.TestCheckResourceAttr("coolify_api_settings.test", "enabled", "true"),
+		}},
+	})
+	// Destroy of an already-on API must not post /enable either.
+	if got := obs.enablePosts.Load(); got != 0 {
+		t.Fatalf("POST /api/v1/enable = %d, want 0", got)
+	}
+}
+
+func TestAPISettingsResource_Coolify45DisableStillPosts(t *testing.T) {
+	t.Parallel()
+	srv, obs := serveAPISettings(t, "4.5.1", 0)
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+				enabled = false
+			`),
+			Check: resource.TestCheckResourceAttr("coolify_api_settings.test", "enabled", "false"),
+		}},
+	})
+	if obs.enablePosts.Load() != 0 {
+		t.Fatalf("POST /api/v1/enable = %d, want 0", obs.enablePosts.Load())
+	}
+	if got := obs.disablePosts.Load(); got != 1 {
+		t.Fatalf("POST /api/v1/disable = %d, want 1", got)
+	}
+}
+
+func TestAPISettingsResource_Coolify45ReenableErrors(t *testing.T) {
+	t.Parallel()
+	srv, obs := serveAPISettings(t, "4.5.0", 0)
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+					enabled = false
+				`),
+				Check: resource.TestCheckResourceAttr("coolify_api_settings.test", "enabled", "false"),
+			},
+			{
+				Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+					enabled = true
+				`),
+				ExpectError: regexp.MustCompile(`Coolify 4\.5\.0 removed POST /api/v1/enable[\s\S]*remove this resource from state`),
+			},
+		},
+	})
+	if obs.enablePosts.Load() != 0 {
+		t.Fatalf("POST /api/v1/enable = %d, want 0", obs.enablePosts.Load())
+	}
+	if got := obs.disablePosts.Load(); got != 1 {
+		t.Fatalf("POST /api/v1/disable = %d, want 1", got)
+	}
+}
+
+func TestAPISettingsResource_EdgeProbe405PostsEnable(t *testing.T) {
+	t.Parallel()
+	srv, obs := serveAPISettings(t, "4.3.0", http.StatusMethodNotAllowed)
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+				enabled = true
+			`),
+			Check: resource.TestCheckResourceAttr("coolify_api_settings.test", "enabled", "true"),
+		}},
+	})
+	if obs.getEnable.Load() < 1 {
+		t.Fatal("expected GET /api/v1/enable probe")
+	}
+	if got := obs.enablePosts.Load(); got != 2 {
+		t.Fatalf("POST /api/v1/enable = %d, want 2", got)
+	}
+}
+
+func TestAPISettingsResource_EdgeProbe404SkipsEnable(t *testing.T) {
+	t.Parallel()
+	srv, obs := serveAPISettings(t, "4.3.0", http.StatusNotFound)
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.TestResourceConfig(srv.URL, "coolify_api_settings", "test", `
+				enabled = true
+			`),
+			Check: resource.TestCheckResourceAttr("coolify_api_settings.test", "enabled", "true"),
+		}},
+	})
+	if obs.getEnable.Load() < 1 {
+		t.Fatal("expected GET /api/v1/enable probe")
+	}
+	if got := obs.enablePosts.Load(); got != 0 {
+		t.Fatalf("POST /api/v1/enable = %d, want 0", got)
+	}
+}
+
 func TestAPISettingsResource_CreateAPIError(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()

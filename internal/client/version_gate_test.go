@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // fullSettingsInput sets every ApplicationSetting field plus one ordinary field,
@@ -587,6 +589,149 @@ func TestFullSettingsInput_CoversExportedKeys(t *testing.T) {
 		if _, ok := v44Body[key]; !ok {
 			t.Errorf("clearApplicationSettingsV44 dropped v4.3 key %q", key)
 		}
+	}
+}
+
+func TestAPIEnableRouteAvailableVersion(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"", true},
+		{"4.1.2", true},
+		{"4.4.2", true},
+		{"4.4.7", true},
+		{"v4.2.0-test", true},
+		{"4.4-rc.1", true},
+		{"v4.4-rc.1", true},
+		{"4.5.0", false},
+		{"v4.5.0", false},
+		{"4.5.1", false},
+		{"4.5.0-rc.1", false},
+		{"4.6-rc.1", false},
+		{"4.6.0", false},
+		{"not-a-version", false},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		got, err := c.APIEnableRouteAvailable(context.Background())
+		if err != nil {
+			t.Errorf("APIEnableRouteAvailable(%q) error: %v", tt.version, err)
+			continue
+		}
+		if got != tt.want {
+			t.Errorf("APIEnableRouteAvailable(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	got, err := nilClient.APIEnableRouteAvailable(context.Background())
+	if err != nil || !got {
+		t.Fatalf("nil client = %v, %v; want true, nil", got, err)
+	}
+}
+
+func TestAPIEnableRouteAvailableProbe(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		status int
+		want   bool
+	}{
+		{"method not allowed", http.StatusMethodNotAllowed, true},
+		{"forbidden", http.StatusForbidden, true},
+		{"ok", http.StatusOK, true},
+		{"missing", http.StatusNotFound, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var hits atomic.Int32
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodGet && r.URL.Path == "/api/v1/enable" {
+					hits.Add(1)
+					w.WriteHeader(tt.status)
+					_, _ = w.Write([]byte(`{"message":"probe"}`))
+					return
+				}
+				http.NotFound(w, r)
+			}))
+			t.Cleanup(srv.Close)
+
+			c := New(srv.URL, "test-token")
+			c.CoolifyVersion = "4.3.0"
+			got, err := c.APIEnableRouteAvailable(context.Background())
+			if err != nil {
+				t.Fatalf("probe: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("probe = %v, want %v", got, tt.want)
+			}
+			if _, err := c.APIEnableRouteAvailable(context.Background()); err != nil {
+				t.Fatalf("cached probe: %v", err)
+			}
+			if hits.Load() != 1 {
+				t.Fatalf("GET /api/v1/enable hits = %d, want 1", hits.Load())
+			}
+		})
+	}
+}
+
+func TestAPIEnableRouteAvailableProbeErrorNotCached(t *testing.T) {
+	t.Parallel()
+	var hits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		http.Error(w, `{"message":"unavailable"}`, http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New(srv.URL, "test-token", RetryConfig{
+		Attempts: 1,
+		MinWait:  time.Millisecond,
+		MaxWait:  time.Millisecond,
+	})
+	c.CoolifyVersion = "v4.3.0-edge"
+	if _, err := c.APIEnableRouteAvailable(context.Background()); err == nil {
+		t.Fatal("expected probe error")
+	}
+	first := hits.Load()
+	if first < 1 {
+		t.Fatal("expected a probe request")
+	}
+	if _, err := c.APIEnableRouteAvailable(context.Background()); err == nil {
+		t.Fatal("5xx probe result was cached")
+	}
+	if hits.Load() <= first {
+		t.Fatal("5xx probe was not retried on the next call")
+	}
+}
+
+func TestAPIEnableRouteAvailableHonestVersionSkipsProbe(t *testing.T) {
+	t.Parallel()
+	var hits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits.Add(1)
+		http.Error(w, `{"message":"unavailable"}`, http.StatusInternalServerError)
+	}))
+	t.Cleanup(srv.Close)
+
+	for _, version := range []string{"", "4.4.7", "4.5.0", "4.6-rc.1"} {
+		c := New(srv.URL, "test-token")
+		c.CoolifyVersion = version
+		got, err := c.APIEnableRouteAvailable(context.Background())
+		if err != nil {
+			t.Fatalf("%q: %v", version, err)
+		}
+		want := version == "" || version == "4.4.7"
+		if got != want {
+			t.Fatalf("%q = %v, want %v", version, got, want)
+		}
+	}
+	if hits.Load() != 0 {
+		t.Fatalf("honest versions issued %d requests", hits.Load())
 	}
 }
 

@@ -32,12 +32,22 @@ type Client struct {
 	UserAgent  string
 	// CoolifyVersion is the connected instance's version, read once during
 	// provider Configure. Empty when unknown (unit tests, or a Configure that
-	// never ran); callers must treat empty as "assume the newest behaviour"
-	// rather than gating features off.
+	// never ran). Most gates treat empty as "assume the newest behaviour".
+	// APIEnableRouteAvailable is the exception: empty still reports that
+	// POST /api/v1/enable exists, so older unit mocks keep posting it.
 	CoolifyVersion    string
 	cfAccessClientID  string // Cloudflare Access CF-Access-Client-Id header
 	cfAccessClientSec string // Cloudflare Access CF-Access-Client-Secret header
 	listCache         listCache
+	apiEnableRoute    apiEnableRouteCache
+}
+
+// apiEnableRouteCache stores one GET /api/v1/enable probe. Only the CI
+// edge version string uses it. Honest versions never read it.
+type apiEnableRouteCache struct {
+	mu    sync.Mutex
+	ready bool
+	found bool
 }
 
 // listCache is a short-lived, thread-safe cache for GET list responses.
@@ -244,12 +254,65 @@ func (c *Client) doText(ctx context.Context, path string) (string, error) {
 	return strings.TrimSpace(string(body)), nil
 }
 
-// EnableAPI enables the Coolify API.
+// EnableAPI enables the Coolify API. Coolify 4.5.0 removed this route.
+// Call APIEnableRouteAvailable first.
 func (c *Client) EnableAPI(ctx context.Context) error {
 	if err := c.do(ctx, http.MethodPost, "/api/v1/enable", nil, nil); err != nil {
 		return fmt.Errorf("enabling API: %w", err)
 	}
 	return nil
+}
+
+// APIEnableRouteAvailable reports whether POST /api/v1/enable exists on
+// the connected Coolify.
+//
+// Coolify 4.5.0 removed that route. An empty version still reports true
+// and does not send a request. Honest versions at or above 4.5.0 report
+// false and do not send a request. The CI edge string "4.3.0" is probed
+// with one GET /api/v1/enable: 405, 403, and any 2xx mean the route
+// exists; 404 means it is gone. That result is cached. Transport errors
+// and any other status, including 5xx, are returned and not cached.
+func (c *Client) APIEnableRouteAvailable(ctx context.Context) (bool, error) {
+	if c == nil {
+		return true, nil
+	}
+	available, needsProbe := apiEnableRouteWithoutProbe(c.CoolifyVersion)
+	if !needsProbe {
+		return available, nil
+	}
+	return c.probeAPIEnableRoute(ctx)
+}
+
+func (c *Client) probeAPIEnableRoute(ctx context.Context) (bool, error) {
+	c.apiEnableRoute.mu.Lock()
+	defer c.apiEnableRoute.mu.Unlock()
+	if c.apiEnableRoute.ready {
+		return c.apiEnableRoute.found, nil
+	}
+	found, err := classifyAPIEnableProbe(c.do(ctx, http.MethodGet, "/api/v1/enable", nil, nil))
+	if err != nil {
+		return false, err
+	}
+	c.apiEnableRoute.ready = true
+	c.apiEnableRoute.found = found
+	return found, nil
+}
+
+func classifyAPIEnableProbe(err error) (bool, error) {
+	if err == nil {
+		return true, nil
+	}
+	if IsNotFound(err) {
+		return false, nil
+	}
+	var status *APIStatusError
+	if errors.As(err, &status) {
+		switch status.Status {
+		case http.StatusMethodNotAllowed, http.StatusForbidden:
+			return true, nil
+		}
+	}
+	return false, fmt.Errorf("probing whether POST /api/v1/enable exists: %w", err)
 }
 
 // DisableAPI disables the Coolify API.

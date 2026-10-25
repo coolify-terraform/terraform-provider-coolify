@@ -159,6 +159,37 @@ func versionStringLagsTip(ver string) bool {
 	return strings.HasPrefix(v, "4.3.0")
 }
 
+// minAPIEnableRemovedVersion is the first Coolify release that deleted
+// GET and POST /api/v1/enable (coollabsio/coolify#12163, tag v4.5.0).
+// v4.4.7 and v4.4-rc.1 still register the route. POST /disable remains.
+const minAPIEnableRemovedVersion = "4.5.0"
+
+// apiEnableRouteWithoutProbe decides whether POST /api/v1/enable exists
+// from the version string alone.
+//
+// available is meaningful only when needsProbe is false. needsProbe is
+// set for the CI edge version string "4.3.0": that image has shipped
+// both the old route and, once rebuilt from main, the 4.5 removal.
+// Honest versions at or above 4.5.0 report the route absent. An empty
+// version reports it present so callers that never ran Configure keep
+// posting /enable. A string that does not parse is treated as newest,
+// so the route is reported absent.
+func apiEnableRouteWithoutProbe(ver string) (available, needsProbe bool) {
+	if ver == "" {
+		return true, false
+	}
+	if versionStringLagsTip(ver) {
+		return false, true
+	}
+	if versionIs44Prerelease(ver) {
+		return true, false
+	}
+	if IsVersionAtLeast(ver, minAPIEnableRemovedVersion) {
+		return false, false
+	}
+	return true, false
+}
+
 // minPreviewDomainUpdateVersion is the first Coolify git tag whose API
 // exposes PATCH /applications/{uuid}/previews/{pull_request_id}.
 // Absent from tag v4.3.14; present in v4.3.15 and later.
