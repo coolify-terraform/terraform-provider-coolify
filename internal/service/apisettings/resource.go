@@ -14,11 +14,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// errAPIEnableRemoved is returned when an apply would turn the API from
-// off to on on a Coolify that no longer has POST /api/v1/enable.
+// errAPIEnableRemoved is returned when an update would switch the API
+// from disabled to enabled on a Coolify that no longer has POST /api/v1/enable.
 // The text must not contain "403" or "not allowed": acceptance tests
-// treat those as a non-root token skip.
-var errAPIEnableRemoved = errors.New("Coolify 4.5.0 removed POST /api/v1/enable, so Terraform cannot turn the API on. Turn it back on in the Coolify UI, remove this resource from state, and apply again to record enabled = true. Set enabled = false to keep the current state")
+// treat those as a non-root token skip. errors.New text must start
+// lowercase (staticcheck ST1005).
+var errAPIEnableRemoved = errors.New("cannot turn the API on: Coolify 4.5.0 removed POST /api/v1/enable. Turn it back on in the Coolify UI, remove this resource from state, and apply again to record enabled = true. Set enabled = false to keep the current state")
 
 var (
 	_ resource.Resource              = (*apiSettingsResource)(nil)
