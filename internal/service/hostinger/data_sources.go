@@ -10,6 +10,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -24,6 +25,17 @@ func tokenAttribute(label string) schema.StringAttribute {
 
 func configure(req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) *client.Client {
 	return flex.ConfigureDataSourceClient(req, &resp.Diagnostics)
+}
+
+func requireHostingerAPI(c *client.Client, diags *diag.Diagnostics) bool {
+	if c == nil || c.SupportsCoolify45() {
+		return true
+	}
+	diags.AddError(
+		"Hostinger needs Coolify >= v4.5.0",
+		fmt.Sprintf("This Coolify instance (%s) has no Hostinger API. Upgrade Coolify before listing data centers, catalog items, templates, SSH keys, or post-install scripts.", c.CoolifyVersion),
+	)
+	return false
 }
 
 type dataCentersDataSource struct{ client *client.Client }
@@ -77,6 +89,9 @@ func (d *dataCentersDataSource) Read(ctx context.Context, req datasource.ReadReq
 	var config dataCentersModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !requireHostingerAPI(d.client, &resp.Diagnostics) {
 		return
 	}
 	items, ok := flex.ReadFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
@@ -183,6 +198,9 @@ func (d *catalogDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if !requireHostingerAPI(d.client, &resp.Diagnostics) {
+		return
+	}
 	items, ok := flex.ReadFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
 		"coolify_hostinger_catalog", "Error listing Hostinger catalog", resp, d.client.ListHostingerCatalog,
 		func(item client.HostingerCatalogItem, field string) (string, bool) {
@@ -266,6 +284,9 @@ func (d *templatesDataSource) Read(ctx context.Context, req datasource.ReadReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if !requireHostingerAPI(d.client, &resp.Diagnostics) {
+		return
+	}
 	items, ok := flex.ReadFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
 		"coolify_hostinger_templates", "Error listing Hostinger templates", resp, d.client.ListHostingerTemplates,
 		func(item client.HostingerTemplate, field string) (string, bool) {
@@ -337,6 +358,9 @@ func (d *sshKeysDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	var config sshKeysModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !requireHostingerAPI(d.client, &resp.Diagnostics) {
 		return
 	}
 	items, ok := flex.ReadFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,
@@ -412,6 +436,9 @@ func (d *scriptsDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	var config scriptsModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !requireHostingerAPI(d.client, &resp.Diagnostics) {
 		return
 	}
 	items, ok := flex.ReadFilteredTokenList(ctx, config.CloudProviderTokenUUID.ValueString(), config.Filters,

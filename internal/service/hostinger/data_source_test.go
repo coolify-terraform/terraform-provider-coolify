@@ -3,11 +3,38 @@ package hostinger_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
+
+func TestHostingerDataCentersDataSource_OldCoolify(t *testing.T) {
+	t.Parallel()
+	called := false
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/hostinger/data-centers", func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusNotFound)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.4.2"))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+data "coolify_hostinger_data_centers" "test" {
+  cloud_provider_token_uuid = "cccc0001-0001-4000-8000-000000000001"
+}
+`,
+			ExpectError: regexp.MustCompile(`Coolify >= v4\.5\.0`),
+		}},
+	})
+	if called {
+		t.Fatal("old Coolify called the Hostinger list route")
+	}
+}
 
 func TestHostingerDataCentersDataSource(t *testing.T) {
 	t.Parallel()
@@ -19,7 +46,7 @@ func TestHostingerDataCentersDataSource(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`[{"id":1,"name":"New York","location":"United States","city":"New York","continent":"North America"}]`))
 	})
-	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.5.0"))
 	defer srv.Close()
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
@@ -72,7 +99,7 @@ func testHostingerList(t *testing.T, dataType, path, attr, want, body string) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(body))
 	})
-	srv := httptest.NewServer(acctest.WithVersionEndpoint(mux))
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.5.0"))
 	defer srv.Close()
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
