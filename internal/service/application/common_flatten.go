@@ -863,6 +863,12 @@ func setBoolIfPresent(dst *types.Bool, api *bool) {
 	*dst = types.BoolValue(*api)
 }
 
+// FlattenNoindexDomains keeps a configured noindex list when Coolify's
+// normalized set matches, including host case and an explicit port.
+func FlattenNoindexDomains(api []string, dst *types.List) {
+	flattenNoindexDomains(api, dst)
+}
+
 func flattenNoindexDomains(api []string, dst *types.List) {
 	if dst == nil {
 		return

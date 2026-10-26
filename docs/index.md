@@ -11,7 +11,7 @@ Define your entire [Coolify](https://coolify.io/) infrastructure as code. Deploy
 
 Coolify gives you a self-hosted PaaS with a great UI. This provider adds what the UI cannot: reproducible environments, pull-request-based infrastructure reviews, disaster recovery from state, and CI/CD integration. Whether you run a single VPS or manage Coolify for a team, Terraform turns your infrastructure into a reviewable, testable, git-tracked configuration.
 
-**59 resources, 72 data sources.** Route coverage is tracked against the Coolify source contract (not upstream OpenAPI).
+**61 resources, 78 data sources.** Route coverage is tracked against the Coolify source contract (not upstream OpenAPI).
 
 ## Requirements
 
@@ -80,10 +80,10 @@ provider "coolify" {
 
 | Category | Resources |
 |----------|-----------|
-| Infrastructure | `coolify_project`, `coolify_environment`, `coolify_server`, `coolify_server_hetzner`, `coolify_private_key`, `coolify_cloud_token`, `coolify_github_app` |
+| Infrastructure | `coolify_project`, `coolify_environment`, `coolify_server`, `coolify_server_hetzner`, `coolify_server_hostinger`, `coolify_private_key`, `coolify_cloud_token`, `coolify_github_app` |
 | Applications | `coolify_application`, `coolify_application_dockerfile`, `coolify_application_docker_image`, `coolify_application_private_git`, `coolify_application_github_app` |
 | Databases | `coolify_database_postgresql`, `coolify_database_mysql`, `coolify_database_mariadb`, `coolify_database_redis`, `coolify_database_mongodb`, `coolify_database_clickhouse`, `coolify_database_keydb`, `coolify_database_dragonfly` |
-| Services | `coolify_service` |
+| Services | `coolify_service`, `coolify_service_application` |
 | Operations | `coolify_environment_variable`, `coolify_envs_bulk`, `coolify_storage`, `coolify_scheduled_task`, `coolify_deployment`, `coolify_resource_action`, `coolify_database_backup`, `coolify_backup_execution`, `coolify_application_preview` |
 | Validation | `coolify_server_validate`, `coolify_cloud_token_validate`, `coolify_s3_storage_validate`, `coolify_api_settings` |
 

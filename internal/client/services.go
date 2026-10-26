@@ -10,12 +10,27 @@ import (
 // ServiceApplication represents a container within a service (from the
 // applications relation loaded by GET /services/{uuid}).
 type ServiceApplication struct {
-	Name string `json:"name"`
-	FQDN string `json:"fqdn,omitempty"`
+	UUID      string `json:"uuid,omitempty"`
+	Name      string `json:"name"`
+	HumanName string `json:"human_name,omitempty"`
+	// Description is returned by the service-application endpoints.
+	Description string `json:"description,omitempty"`
+	FQDN        string `json:"fqdn,omitempty"`
 	// URL is the public container URL. Coolify >= v4.3.15 hides
 	// domain_port_overrides and appends this attribute with that port
 	// restored. Older responses omit it and leave the port in FQDN.
-	URL string `json:"url,omitempty"`
+	URL                        string   `json:"url,omitempty"`
+	Status                     string   `json:"status,omitempty"`
+	Image                      string   `json:"image,omitempty"`
+	NoindexDomains             []string `json:"noindex_domains,omitempty"`
+	ExcludeFromStatus          *bool    `json:"exclude_from_status,omitempty"`
+	IsLogDrainEnabled          *bool    `json:"is_log_drain_enabled,omitempty"`
+	IsGzipEnabled              *bool    `json:"is_gzip_enabled,omitempty"`
+	IsStripPrefixEnabled       *bool    `json:"is_stripprefix_enabled,omitempty"`
+	IsForceHTTPSEnabled        *bool    `json:"is_force_https_enabled,omitempty"`
+	IsPermanentRedirectEnabled *bool    `json:"is_permanent_redirect_enabled,omitempty"`
+	TraefikCertificateResolver string   `json:"traefik_certificate_resolver,omitempty"`
+	MaxRestartCount            *int64   `json:"max_restart_count,omitempty"`
 }
 
 type Service struct {

@@ -11,9 +11,9 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 251 covered / 318 registry entries (78.9%)  
-**Planned**: 0 | **Skipped**: 67  
-**Registry size**: 318 (contract routes + allowlisted extras)
+**Coverage**: 260 covered / 324 registry entries (80.2%)  
+**Planned**: 0 | **Skipped**: 64  
+**Registry size**: 324 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
 
@@ -78,22 +78,19 @@ Log endpoints stream runtime output. That is not durable Terraform state.
 | `GET /services/{uuid}/logs` |
 | `POST /services/{uuid}/applications/{app_uuid}/logs` |
 
-### Nested compose service apps and databases
+### Nested compose service databases and actions
 
-A catalog `coolify_service` owns the whole compose stack. Coolify also exposes each inner app and database as its own API object.
+A catalog `coolify_service` owns the whole compose stack. Coolify also exposes each inner database, plus start, stop, and restart, as separate routes.
 
-**Use this instead:** `coolify_service` for the stack. Do not manage inner `/services/{uuid}/applications/...` or `/services/{uuid}/databases/...` as separate resources.
+**Use this instead:** `coolify_service` for the stack and `coolify_service_application` for one compose application's settings. Logs and start/stop/restart stay in the Coolify UI. Do not manage `/services/{uuid}/databases/...` as separate resources.
 
 | Route |
 |-------|
-| `GET /services/{uuid}/applications` |
-| `GET /services/{uuid}/applications/{app_uuid}` |
 | `GET /services/{uuid}/applications/{app_uuid}/restart` |
 | `GET /services/{uuid}/applications/{app_uuid}/start` |
 | `GET /services/{uuid}/applications/{app_uuid}/stop` |
 | `GET /services/{uuid}/databases` |
 | `GET /services/{uuid}/databases/{database_uuid}` |
-| `PATCH /services/{uuid}/applications/{app_uuid}` |
 | `PATCH /services/{uuid}/databases/{database_uuid}` |
 | `POST /services/{uuid}/applications/{app_uuid}/restart` |
 | `POST /services/{uuid}/applications/{app_uuid}/start` |
@@ -615,6 +612,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `POST /servers/hetzner` | v0.2.0 |
 
+### `coolify_server_hostinger`
+
+| Route | Since |
+|-------|-------|
+| `POST /servers/hostinger` | v0.1.28 |
+
 ### `coolify_server_log_drain`
 
 | Route | Since |
@@ -656,6 +659,13 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | `DELETE /services/{uuid}` | v0.1.0 |
 | `PATCH /services/{uuid}` | v0.1.0 |
 | `POST /services` | v0.1.0 |
+
+### `coolify_service_application`
+
+| Route | Since |
+|-------|-------|
+| `GET /services/{uuid}/applications/{app_uuid}` | v0.1.28 |
+| `PATCH /services/{uuid}/applications/{app_uuid}` | v0.1.28 |
 
 ### `coolify_shared_environment_variable`
 
@@ -893,6 +903,36 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `GET /hetzner/ssh-keys` | v0.2.0 |
 
+### `data.coolify_hostinger_catalog`
+
+| Route | Since |
+|-------|-------|
+| `GET /hostinger/catalog` | v0.1.28 |
+
+### `data.coolify_hostinger_data_centers`
+
+| Route | Since |
+|-------|-------|
+| `GET /hostinger/data-centers` | v0.1.28 |
+
+### `data.coolify_hostinger_post_install_scripts`
+
+| Route | Since |
+|-------|-------|
+| `GET /hostinger/post-install-scripts` | v0.1.28 |
+
+### `data.coolify_hostinger_ssh_keys`
+
+| Route | Since |
+|-------|-------|
+| `GET /hostinger/ssh-keys` | v0.1.28 |
+
+### `data.coolify_hostinger_templates`
+
+| Route | Since |
+|-------|-------|
+| `GET /hostinger/templates` | v0.1.28 |
+
 ### `data.coolify_private_key`
 
 | Route | Since |
@@ -977,6 +1017,12 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 | Route | Since |
 |-------|-------|
 | `GET /services/{uuid}` | v0.1.0 |
+
+### `data.coolify_service_applications`
+
+| Route | Since |
+|-------|-------|
+| `GET /services/{uuid}/applications` | v0.1.28 |
 
 ### `data.coolify_services`
 
@@ -1148,6 +1194,11 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /hetzner/networks` | covered | `data.coolify_hetzner_networks` |
 | `GET /hetzner/server-types` | covered | `data.coolify_hetzner_server_types` |
 | `GET /hetzner/ssh-keys` | covered | `data.coolify_hetzner_ssh_keys` |
+| `GET /hostinger/catalog` | covered | `data.coolify_hostinger_catalog` |
+| `GET /hostinger/data-centers` | covered | `data.coolify_hostinger_data_centers` |
+| `GET /hostinger/post-install-scripts` | covered | `data.coolify_hostinger_post_install_scripts` |
+| `GET /hostinger/ssh-keys` | covered | `data.coolify_hostinger_ssh_keys` |
+| `GET /hostinger/templates` | covered | `data.coolify_hostinger_templates` |
 | `GET /notifications/discord` | covered | `coolify_notification_discord` |
 | `GET /notifications/email` | covered | `coolify_notification_email` |
 | `GET /notifications/pushover` | covered | `coolify_notification_pushover` |
@@ -1182,8 +1233,8 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /servers/{uuid}/validate` | covered | `data.coolify_server_validation` |
 | `GET /services` | covered | `data.coolify_services` |
 | `GET /services/{uuid}` | covered | `data.coolify_service` |
-| `GET /services/{uuid}/applications` | skipped | `nested-service` |
-| `GET /services/{uuid}/applications/{app_uuid}` | skipped | `nested-service` |
+| `GET /services/{uuid}/applications` | covered | `data.coolify_service_applications` |
+| `GET /services/{uuid}/applications/{app_uuid}` | covered | `coolify_service_application` |
 | `GET /services/{uuid}/applications/{app_uuid}/logs` | skipped | `logs` |
 | `GET /services/{uuid}/applications/{app_uuid}/restart` | skipped | `nested-service` |
 | `GET /services/{uuid}/applications/{app_uuid}/start` | skipped | `nested-service` |
@@ -1253,7 +1304,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `PATCH /servers/{uuid}/proxy` | covered | `coolify_server_proxy` |
 | `PATCH /servers/{uuid}/sentinel` | covered | `coolify_server_sentinel` |
 | `PATCH /services/{uuid}` | covered | `coolify_service` |
-| `PATCH /services/{uuid}/applications/{app_uuid}` | skipped | `nested-service` |
+| `PATCH /services/{uuid}/applications/{app_uuid}` | covered | `coolify_service_application` |
 | `PATCH /services/{uuid}/databases/{database_uuid}` | skipped | `nested-service` |
 | `PATCH /services/{uuid}/envs` | covered | `coolify_environment_variable` |
 | `PATCH /services/{uuid}/envs/bulk` | covered | `client.BulkUpdateEnvVars` |
@@ -1330,6 +1381,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `POST /servers` | covered | `coolify_server` |
 | `POST /servers/digitalocean` | covered | `coolify_server_digitalocean` |
 | `POST /servers/hetzner` | covered | `coolify_server_hetzner` |
+| `POST /servers/hostinger` | covered | `coolify_server_hostinger` |
 | `POST /servers/import` | skipped | `control-plane` |
 | `POST /servers/vultr` | covered | `coolify_server_vultr` |
 | `POST /servers/{server_uuid}/destinations` | covered | `coolify_destination` |

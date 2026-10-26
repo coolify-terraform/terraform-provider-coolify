@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 )
@@ -24,6 +26,38 @@ func RequiresReplaceIfKnown() planmodifier.String {
 		},
 		"Changing a known value forces a new resource. A null or unknown value adopts the configuration.",
 		"Changing a known value forces a new resource. A null or unknown value adopts the configuration.",
+	)
+}
+
+const replaceIfKnownDesc = "Changing a known value forces a new resource. A null or unknown value adopts the configuration."
+
+// Int64RequiresReplaceIfKnown is RequiresReplaceIfKnown for int64 attributes.
+func Int64RequiresReplaceIfKnown() planmodifier.Int64 {
+	return int64planmodifier.RequiresReplaceIf(
+		func(_ context.Context, req planmodifier.Int64Request, resp *int64planmodifier.RequiresReplaceIfFuncResponse) {
+			if req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+				resp.RequiresReplace = false
+				return
+			}
+			resp.RequiresReplace = true
+		},
+		replaceIfKnownDesc,
+		replaceIfKnownDesc,
+	)
+}
+
+// ListRequiresReplaceIfKnown is RequiresReplaceIfKnown for list attributes.
+func ListRequiresReplaceIfKnown() planmodifier.List {
+	return listplanmodifier.RequiresReplaceIf(
+		func(_ context.Context, req planmodifier.ListRequest, resp *listplanmodifier.RequiresReplaceIfFuncResponse) {
+			if req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+				resp.RequiresReplace = false
+				return
+			}
+			resp.RequiresReplace = true
+		},
+		replaceIfKnownDesc,
+		replaceIfKnownDesc,
 	)
 }
 

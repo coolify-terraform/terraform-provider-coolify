@@ -688,6 +688,12 @@ func serviceApplicationURL(app client.ServiceApplication) string {
 // port matches only that same port. A configured URL with no port matches
 // even when the returned URL has one: Coolify keeps a stored port when the
 // written URL omits it, so planning that port back would never converge.
+// ServiceURLEquivalent reports whether a configured service URL matches the
+// URL Coolify returned. See serviceURLEquivalent.
+func ServiceURLEquivalent(configured, api string) bool {
+	return serviceURLEquivalent(configured, api)
+}
+
 func serviceURLEquivalent(configured, api string) bool {
 	left := serviceURLReadParts(configured)
 	right := serviceURLReadParts(api)

@@ -29,8 +29,8 @@ Provision Coolify with Terraform. Manage applications, databases, servers, backu
 
 | Area | Coverage |
 |---|---|
-| Managed resources | 59 |
-| Data sources | 72 |
+| Managed resources | 61 |
+| Data sources | 78 |
 | Tests | 1770+ unit and acceptance tests |
 | Scenario examples | 18 ACME Corp setups |
 | Adoption path | New stacks and incremental import of existing Coolify resources |
@@ -114,6 +114,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_server_hetzner` | Provision Hetzner Cloud servers via Coolify |
 | `coolify_server_digitalocean` | Provision DigitalOcean droplets via Coolify (Coolify >= v4.2.0) |
 | `coolify_server_vultr` | Provision Vultr instances via Coolify (Coolify >= v4.2.0) |
+| `coolify_server_hostinger` | Purchase a Hostinger VPS via Coolify (Coolify >= v4.5.0). Destroy does not cancel the Hostinger subscription |
 | `coolify_destination` | Manage Docker network destinations (Coolify >= v4.2.0) |
 | `coolify_private_key` | Manage SSH keys for server access |
 | `coolify_application` | Deploy apps from public Git repositories |
@@ -125,6 +126,7 @@ For a working end-to-end setup, start with the [Quick Start](docs/guides/quickst
 | `coolify_environment_variable` | Manage env vars for applications, services, and databases |
 | `coolify_deployment` | Trigger application deployments |
 | `coolify_service` | Deploy catalog services or custom Docker Compose stacks |
+| `coolify_service_application` | Configure one application inside a compose service. Destroy removes Terraform state only |
 | `coolify_database_postgresql` | Provision PostgreSQL databases |
 | `coolify_database_mysql` | Provision MySQL databases |
 | `coolify_database_mariadb` | Provision MariaDB databases |

@@ -40,6 +40,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/gitlabapp"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/health"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/hetzner"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/hostinger"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/instanceemail"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationdiscord"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/notificationemail"
@@ -64,6 +65,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serversentinel"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/servervalidate"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/service"
+	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/serviceapplication"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/sharedenv"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/storage"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/tag"
@@ -288,12 +290,14 @@ func (p *coolifyProvider) Resources(_ context.Context) []func() resource.Resourc
 		serverdockercleanup.NewResource,    // coolify_server_docker_cleanup
 		serverregistry.NewResource,         // coolify_server_docker_registry
 		hetzner.NewResource,                // coolify_server_hetzner
+		hostinger.NewResource,              // coolify_server_hostinger
 		serverlogdrain.NewResource,         // coolify_server_log_drain
 		serverproxy.NewResource,            // coolify_server_proxy
 		serversentinel.NewResource,         // coolify_server_sentinel
 		vultr.NewResource,                  // coolify_server_vultr
 		servervalidate.NewResource,         // coolify_server_validate
 		service.NewResource,                // coolify_service
+		serviceapplication.NewResource,     // coolify_service_application
 		sharedenv.NewResource,              // coolify_shared_environment_variable
 		storage.NewResource,                // coolify_storage
 		volumebackup.NewResource,           // coolify_storage_backup
@@ -338,6 +342,11 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		hetzner.NewNetworksDataSource,
 		hetzner.NewServerTypesDataSource,
 		hetzner.NewSSHKeysDataSource,
+		hostinger.NewCatalogDataSource,
+		hostinger.NewDataCentersDataSource,
+		hostinger.NewPostInstallScriptsDataSource,
+		hostinger.NewSSHKeysDataSource,
+		hostinger.NewTemplatesDataSource,
 		instanceemail.NewDataSource,
 		notificationdiscord.NewDataSource,
 		notificationemail.NewDataSource,
@@ -362,6 +371,7 @@ func (p *coolifyProvider) DataSources(_ context.Context) []func() datasource.Dat
 		server.NewValidateDataSource,
 		serverregistry.NewDataSource,
 		service.NewDataSource,
+		serviceapplication.NewListDataSource,
 		service.NewListDataSource,
 		storage.NewDataSource,
 		storage.NewListDataSource,

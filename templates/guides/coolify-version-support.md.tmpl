@@ -41,22 +41,24 @@ output "coolify_version" {
 | **≥ 4.3.10** | Instance email settings and `smtp_ehlo_domain` on team email notifications (email/SMTP floor). |
 | **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. Recommended for the full feature set. |
-| **≥ 4.5.0** | `POST /api/v1/enable` is gone. `coolify_api_settings` with `enabled = true` leaves the API unchanged. `enabled = false` still disables it. Turn the API back on in the Coolify UI. Destroy does not re-enable the API. |
+| **≥ 4.5.0** | `POST /api/v1/enable` is gone. `coolify_api_settings` with `enabled = true` leaves the API unchanged. `enabled = false` still disables it. Turn the API back on in the Coolify UI. Destroy does not re-enable the API. `coolify_server_hostinger` and the Hostinger catalog data sources require this version. `coolify_service_application` can send `is_permanent_redirect_enabled` and `traefik_certificate_resolver`. |
 
 Pinned API contract today: Coolify **v4.4.2** (`testdata/contracts/coolify-v4.json`).
 Tag extracts `coolify-v4.4.0.json`, `coolify-v4.4.1.json`, and `coolify-v4.4.2.json` match those git
 tags. Tag v4.5.0 removed `POST /api/v1/enable`. The contract pin stays on v4.4.2. This provider still configures against Coolify 4.1.0 and later.
 Coolify 4.3.6 and 4.3.7 match 4.3.5. From 4.3.8, nested compose service apps
 accept `is_force_https_enabled` on `PATCH /services/{uuid}/applications/{app_uuid}`.
-That route stays `nested-service` (use `coolify_service` for the stack).
+`coolify_service_application` configures that application and omits
+`is_force_https_enabled` before v4.3.8. Databases, logs, and
+start/stop/restart on the same prefix stay out of Terraform.
 v4.3.10 adds instance-wide SMTP settings (`GET`/`PATCH /settings/email`) and
 `smtp_ehlo_domain` on team email notifications. Tags v4.3.15 through v4.3.17
 add restart-limit GET fields, GET-only `domain_port_overrides`, notification
 `restart_limit_reached_*` writes, and `PATCH` preview domains on
 `coolify_application_preview`. Tag v4.3.18 adds
 `missing_backup_notification_days` on database backup create/update.
-Tag v4.3.19 adds `max_restart_count` on that same nested service-application
-PATCH (still `nested-service`). Tags v4.3.20 and v4.3.21 add no public routes
+Tag v4.3.19 adds `max_restart_count` on that same service-application
+PATCH. The provider omits it before v4.3.19 and on v4.4-rc.1. Tags v4.3.20 and v4.3.21 add no public routes
 or allow-list fields. v4.3.21 sets the Application `max_restart_count` model
 default to `0` (disable the limit); tags through v4.3.20 keep the column
 default of `10`. Tag v4.3.23 adds Server `sentinel_waiting_since` (runtime,
@@ -256,6 +258,16 @@ and current main both report version 4.4.6, so the provider cannot tell
 them apart from the version string. The JSON key is left out unless you
 set the attribute. Setting it on tag v4.4.6 or older returns 422. On an
 application, null uses the server setting. `none` turns the resolver off.
+
+### Requires Coolify ≥ 4.5.0
+
+| Resource / attribute | Role |
+|----------------------|------|
+| `coolify_server_hostinger` | Purchase a Hostinger VPS and register it. On an older reported version, create fails before POST. An empty provider version still sends the request. Destroy deletes the Coolify server only. The VPS keeps billing in hPanel. |
+| `coolify_hostinger_data_centers`, `coolify_hostinger_catalog`, `coolify_hostinger_templates`, `coolify_hostinger_ssh_keys`, `coolify_hostinger_post_install_scripts` | Read Hostinger locations, plans, templates, SSH keys, and post-install scripts through Coolify. |
+| `is_permanent_redirect_enabled` and `traefik_certificate_resolver` on `coolify_service_application` | Sent on Coolify >= 4.5.0. Older instances keep the values in state and do not send them. |
+
+`coolify_service_application` configures an application the compose service already created. Fields that older Coolify accepts, such as `url` and `description`, are still sent. There is no DELETE for this object. Destroy drops Terraform state and leaves the container and its URL in place.
 
 ## What "does not work" means in practice
 

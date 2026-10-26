@@ -16,8 +16,8 @@ This guide helps you migrate from the
 This provider is a complete rewrite using the Terraform Plugin Framework
 (not the older SDK v2). It offers:
 
-- **59 resources** vs. ~10 in the community provider
-- **72 data sources** with filtering support
+- **61 resources** vs. ~10 in the community provider
+- **78 data sources** with filtering support
 - **1180+ tests** (unit + acceptance + scenario)
 - Database backup management, scheduled tasks, storage volumes,
   cloud tokens, GitHub App sources, and resource actions (start/stop/restart)
@@ -159,7 +159,7 @@ available in the community provider:
 | Databases | `coolify_database_mysql`, `coolify_database_mariadb`, `coolify_database_mongodb`, `coolify_database_redis`, `coolify_database_clickhouse`, `coolify_database_dragonfly`, `coolify_database_keydb` |
 | Backups | `coolify_database_backup`, `data.coolify_backup_executions` |
 | Operations | `coolify_resource_action` (start/stop/restart), `coolify_scheduled_task`, `coolify_deployment` |
-| Infrastructure | `coolify_server_hetzner`, `coolify_cloud_token`, `coolify_storage` |
+| Infrastructure | `coolify_server_hetzner`, `coolify_server_hostinger`, `coolify_cloud_token`, `coolify_storage`, `coolify_service_application` |
 | Git sources | `coolify_github_app`, `coolify_application_github_app`, `coolify_application_preview` |
 | Configuration | `coolify_api_settings`, `coolify_envs_bulk`, `coolify_environment` |
 

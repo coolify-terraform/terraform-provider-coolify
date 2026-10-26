@@ -75,10 +75,11 @@ var skipKindCatalog = []skipKind{
 	},
 	{
 		id:    skipNestedService,
-		title: "Nested compose service apps and databases",
-		why:   "A catalog `coolify_service` owns the whole compose stack. Coolify also exposes each inner app and database as its own API object.",
-		instead: "`coolify_service` for the stack. Do not manage inner " +
-			"`/services/{uuid}/applications/...` or `/services/{uuid}/databases/...` as separate resources.",
+		title: "Nested compose service databases and actions",
+		why:   "A catalog `coolify_service` owns the whole compose stack. Coolify also exposes each inner database, plus start, stop, and restart, as separate routes.",
+		instead: "`coolify_service` for the stack and `coolify_service_application` for one " +
+			"compose application's settings. Logs and start/stop/restart stay in the Coolify UI. " +
+			"Do not manage `/services/{uuid}/databases/...` as separate resources.",
 		order: 5,
 	},
 	{

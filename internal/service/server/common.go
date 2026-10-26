@@ -581,7 +581,7 @@ func HasNonDefaultCloudProviderSettings(p ServerCommonPtrs) bool {
 }
 
 // BuildPostCreateCloudProviderInput builds the follow-up PATCH body for
-// Hetzner/DigitalOcean/Vultr servers after provider-specific create.
+// Hetzner, DigitalOcean, Vultr, and Hostinger servers after provider-specific create.
 func BuildPostCreateCloudProviderInput(p ServerCommonPtrs) client.UpdateServerInput {
 	input := BuildPostCreateSettingsInput(p)
 	// Core fields the cloud create endpoints do not accept.

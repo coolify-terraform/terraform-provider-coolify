@@ -32,8 +32,9 @@ The Terraform provider maps each level to a resource or data source.
 | `coolify_environment` | Environment within a project (production, staging) |
 | `coolify_server` | A Docker host registered with Coolify |
 | `coolify_server_hetzner` | Provision a Hetzner Cloud server and register it with Coolify |
+| `coolify_server_hostinger` | Purchase a Hostinger VPS and register it with Coolify (Coolify >= v4.5.0). Deleting the resource does not cancel the Hostinger subscription |
 | `coolify_private_key` | SSH key for server access or Git clone |
-| `coolify_cloud_token` | Hetzner/cloud provider API token |
+| `coolify_cloud_token` | Hetzner, DigitalOcean, Vultr, or Hostinger API token |
 | `coolify_github_app` | GitHub App integration for repository access |
 
 ### Applications
@@ -79,6 +80,7 @@ returns them on read.
 | `coolify_resource_action` | Start, stop, or restart an application, database, or service |
 | `coolify_database_backup` | Schedule automated backups with cron syntax |
 | `coolify_service` | Deploy one-click services from the Coolify catalog |
+| `coolify_service_application` | Configure one application that the compose service already created. Destroy removes Terraform state and leaves the container in place |
 
 ## Data sources
 

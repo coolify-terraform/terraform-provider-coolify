@@ -82,23 +82,25 @@ type ServerSettings struct {
 }
 
 type Server struct {
-	UUID                      string          `json:"uuid,omitempty"`
-	Name                      string          `json:"name"`
-	Description               string          `json:"description,omitempty"`
-	IP                        string          `json:"ip"`
-	Port                      int             `json:"port,omitempty"`
-	User                      string          `json:"user,omitempty"`
-	PrivateKeyUUID            string          `json:"private_key_uuid,omitempty"`
-	IsBuildServer             bool            `json:"is_build_server"`
-	ServerRole                string          `json:"server_role,omitempty"`
-	IsReachable               bool            `json:"is_reachable"`
-	IsUsable                  bool            `json:"is_usable"`
-	DigitalOceanDropletID     *int64          `json:"digitalocean_droplet_id,omitempty"`
-	DigitalOceanDropletStatus string          `json:"digitalocean_droplet_status,omitempty"`
-	VultrInstanceID           string          `json:"vultr_instance_id,omitempty"`
-	VultrInstanceStatus       string          `json:"vultr_instance_status,omitempty"`
-	ValidationLogs            string          `json:"validation_logs,omitempty"`
-	Settings                  *ServerSettings `json:"settings,omitempty"`
+	UUID                          string          `json:"uuid,omitempty"`
+	Name                          string          `json:"name"`
+	Description                   string          `json:"description,omitempty"`
+	IP                            string          `json:"ip"`
+	Port                          int             `json:"port,omitempty"`
+	User                          string          `json:"user,omitempty"`
+	PrivateKeyUUID                string          `json:"private_key_uuid,omitempty"`
+	IsBuildServer                 bool            `json:"is_build_server"`
+	ServerRole                    string          `json:"server_role,omitempty"`
+	IsReachable                   bool            `json:"is_reachable"`
+	IsUsable                      bool            `json:"is_usable"`
+	DigitalOceanDropletID         *int64          `json:"digitalocean_droplet_id,omitempty"`
+	DigitalOceanDropletStatus     string          `json:"digitalocean_droplet_status,omitempty"`
+	VultrInstanceID               string          `json:"vultr_instance_id,omitempty"`
+	VultrInstanceStatus           string          `json:"vultr_instance_status,omitempty"`
+	HostingerVirtualMachineID     *int64          `json:"hostinger_virtual_machine_id,omitempty"`
+	HostingerVirtualMachineStatus string          `json:"hostinger_virtual_machine_status,omitempty"`
+	ValidationLogs                string          `json:"validation_logs,omitempty"`
+	Settings                      *ServerSettings `json:"settings,omitempty"`
 }
 type CreateServerInput struct {
 	Name            string  `json:"name"`

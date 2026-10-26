@@ -22,6 +22,13 @@ var registryExtrasNotInContract = map[string]bool{
 	// Removed from the public route list in Coolify v4.4.0. Kept so older
 	// extracts still have a classification.
 	"POST /servers/{uuid}/claim": true,
+	// Coolify 4.5.0 Hostinger routes. The pin contract is still v4.4.2.
+	"GET /hostinger/catalog":              true,
+	"GET /hostinger/data-centers":         true,
+	"GET /hostinger/post-install-scripts": true,
+	"GET /hostinger/ssh-keys":             true,
+	"GET /hostinger/templates":            true,
+	"POST /servers/hostinger":             true,
 }
 
 // coveredEndpoints returns the provider's route coverage registry.
@@ -253,6 +260,11 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /gitlab-apps":                                                              covered("coolify_gitlab_app", "v0.1.15"),
 		"GET /hetzner/firewalls":                                                        covered("data.coolify_hetzner_firewalls", "v0.1.16"),
 		"GET /hetzner/networks":                                                         covered("data.coolify_hetzner_networks", "v0.1.16"),
+		"GET /hostinger/catalog":                                                        covered("data.coolify_hostinger_catalog", "v0.1.28"),
+		"GET /hostinger/data-centers":                                                   covered("data.coolify_hostinger_data_centers", "v0.1.28"),
+		"GET /hostinger/post-install-scripts":                                           covered("data.coolify_hostinger_post_install_scripts", "v0.1.28"),
+		"GET /hostinger/ssh-keys":                                                       covered("data.coolify_hostinger_ssh_keys", "v0.1.28"),
+		"GET /hostinger/templates":                                                      covered("data.coolify_hostinger_templates", "v0.1.28"),
 		"GET /notifications/discord":                                                    covered("coolify_notification_discord", "v0.1.14"),
 		"GET /notifications/email":                                                      covered("coolify_notification_email", "v0.1.14"),
 		"GET /settings/email":                                                           covered("coolify_instance_email_settings", "v0.1.18"),
@@ -273,8 +285,8 @@ func coveredEndpoints() map[string]coverageStatus {
 		"GET /servers/{uuid}/log-drains":                                                covered("coolify_server_log_drain", "v0.1.15"),
 		"GET /servers/{uuid}/proxy":                                                     covered("coolify_server_proxy", "v0.1.15"),
 		"GET /servers/{uuid}/sentinel":                                                  covered("coolify_server_sentinel", "v0.1.15"),
-		"GET /services/{uuid}/applications":                                             skipped(skipNestedService),
-		"GET /services/{uuid}/applications/{app_uuid}":                                  skipped(skipNestedService),
+		"GET /services/{uuid}/applications":                                             covered("data.coolify_service_applications", "v0.1.28"),
+		"GET /services/{uuid}/applications/{app_uuid}":                                  covered("coolify_service_application", "v0.1.28"),
 		"GET /services/{uuid}/applications/{app_uuid}/logs":                             skipped(skipLogs),
 		"GET /services/{uuid}/applications/{app_uuid}/restart":                          skipped(skipNestedService),
 		"GET /services/{uuid}/applications/{app_uuid}/start":                            skipped(skipNestedService),
@@ -312,7 +324,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"PATCH /servers/{uuid}/log-drains":                                             covered("coolify_server_log_drain", "v0.1.15"),
 		"PATCH /servers/{uuid}/proxy":                                                  covered("coolify_server_proxy", "v0.1.15"),
 		"PATCH /servers/{uuid}/sentinel":                                               covered("coolify_server_sentinel", "v0.1.15"),
-		"PATCH /services/{uuid}/applications/{app_uuid}":                               skipped(skipNestedService),
+		"PATCH /services/{uuid}/applications/{app_uuid}":                               covered("coolify_service_application", "v0.1.28"),
 		"PATCH /services/{uuid}/databases/{database_uuid}":                             skipped(skipNestedService),
 		"PATCH /tags/{uuid}":                                                           covered("coolify_tag + coolify_resource_tag", "v0.1.15"),
 		"PATCH /team/envs/{env_id}":                                                    covered("coolify_shared_environment_variable", "v0.1.15"),
@@ -347,6 +359,7 @@ func coveredEndpoints() map[string]coverageStatus {
 		"POST /s3-storages/{uuid}/validate":                                            covered("coolify_s3_storage_validate", "v0.1.14"),
 		"POST /sentinel/push":                                                          skipped(skipControlPlane),
 		"POST /servers/digitalocean":                                                   covered("coolify_server_digitalocean", "v0.2.0"),
+		"POST /servers/hostinger":                                                      covered("coolify_server_hostinger", "v0.1.28"),
 		"POST /servers/import":                                                         skipped(skipControlPlane),
 		"POST /servers/vultr":                                                          covered("coolify_server_vultr", "v0.2.0"),
 		"POST /servers/{server_uuid}/destinations":                                     covered("coolify_destination", "v0.2.0"),

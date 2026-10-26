@@ -367,7 +367,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 
 ## Acceptance Test Coverage
 
-### Resources (59 total)
+### Resources (61 total)
 
 | Resource | Acc Test | Create | Update | Import | Notes |
 |----------|----------|--------|--------|--------|-------|
@@ -377,6 +377,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_application_dockerfile` | Yes | Yes | Yes | Yes | |
 | `coolify_database_postgresql` | Yes | Yes | Yes | Yes | |
 | `coolify_service` | Yes | Yes | N/A | Yes | All fields RequiresReplace |
+| `coolify_service_application` | Yes | Yes | Yes | Yes | Adopts an application the service already created. Destroy does not delete the container |
 | `coolify_deployment` | Yes | Yes | N/A | Yes | Trigger resource, no update |
 | `coolify_environment_variable` | Yes | Yes | Yes | Yes | |
 | `coolify_database_backup` | Yes | Yes | Yes | Yes | |
@@ -399,6 +400,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_notification_webhook` | Yes | Yes | Yes | Yes | Team singleton; requires Coolify >= v4.3.0 |
 | `coolify_server` | Yes | Yes | Yes | Yes | RFC 5737 IP (192.0.2.1), not reachable |
 | `coolify_server_hetzner` | Yes | Yes | Yes | Yes | Needs `COOLIFY_HETZNER_TOKEN` |
+| `coolify_server_hostinger` | Yes | Yes | Yes | Yes | Needs `COOLIFY_HOSTINGER_TOKEN` and `COOLIFY_HOSTINGER_ACC_PURCHASE`. The test buys a real VPS. Destroy deletes the Coolify server only; the subscription keeps billing in hPanel |
 | `coolify_database_clickhouse` | Yes | Yes | Yes | Yes | |
 | `coolify_database_mariadb` | Yes | Yes | Yes | Yes | |
 | `coolify_database_mongodb` | Yes | Yes | Yes | Yes | |
@@ -427,7 +429,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_docker_registry` | Yes | Yes | Yes | Yes | Coolify 4.4 tip only. Skips when the registry route is absent. Login steps also skip unless `COOLIFY_DOCKER_REGISTRY_USERNAME` and `COOLIFY_DOCKER_REGISTRY_PASSWORD` are set, because Coolify runs `docker login` on the server |
 | `coolify_application_destination` | Unit | Yes | N/A | Yes | Extra destination only; requires Coolify >= v4.2.0 |
 
-### Data Sources (72 total)
+### Data Sources (78 total)
 
 | Data Source | Acc Test | Notes |
 |-------------|----------|-------|
@@ -470,6 +472,7 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_server_validation` | Yes | |
 | `coolify_service` | Yes | Via service test |
 | `coolify_services` | Yes | Via service test |
+| `coolify_service_applications` | Yes | Via service application test |
 | `coolify_storage` | Yes | Via storage test |
 | `coolify_storages` | Yes | Via storage test |
 | `coolify_s3_storage` | Yes | Via s3_storage test; requires Coolify >= v4.3.0 |
@@ -492,13 +495,18 @@ ImportStateVerifyIgnore: []string{"private_key", "postgres_password"},
 | `coolify_hetzner_ssh_keys` | Yes | Needs Hetzner token in Coolify |
 | `coolify_hetzner_firewalls` | Yes | Needs Hetzner token in Coolify; Coolify >= v4.2.0 |
 | `coolify_hetzner_networks` | Yes | Needs Hetzner token in Coolify; Coolify >= v4.2.0 |
+| `coolify_hostinger_data_centers` | Yes | Needs `COOLIFY_HOSTINGER_TOKEN`; Coolify >= v4.5.0 |
+| `coolify_hostinger_catalog` | Yes | Needs `COOLIFY_HOSTINGER_TOKEN`; Coolify >= v4.5.0 |
+| `coolify_hostinger_templates` | Yes | Needs `COOLIFY_HOSTINGER_TOKEN`; Coolify >= v4.5.0 |
+| `coolify_hostinger_ssh_keys` | Yes | Needs `COOLIFY_HOSTINGER_TOKEN`; Coolify >= v4.5.0 |
+| `coolify_hostinger_post_install_scripts` | Yes | Needs `COOLIFY_HOSTINGER_TOKEN`; Coolify >= v4.5.0 |
 | `coolify_server_docker_registries` | Yes | Coolify 4.4 tip only; skips when the registry route is absent |
 
 ### Coverage Summary
 
 - **Resources**: 47/47 direct acceptance coverage
 - **Data Sources**: 45/45 direct acceptance coverage
-- **Total acceptance test functions**: 156
+- **Total acceptance test functions**: 159
 
 ### Primary-field update coverage
 

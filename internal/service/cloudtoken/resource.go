@@ -65,7 +65,7 @@ func (r *cloudTokenResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Computed:            true,
 			},
 			"cloud_provider": schema.StringAttribute{
-				MarkdownDescription: "The cloud provider type (e.g., `hetzner`, `digitalocean`, `vultr`). Changing this forces a new resource.",
+				MarkdownDescription: "The cloud provider type (e.g., `hetzner`, `digitalocean`, `vultr`, `hostinger`). Changing this forces a new resource.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
