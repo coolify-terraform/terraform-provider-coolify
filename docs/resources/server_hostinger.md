@@ -26,7 +26,9 @@ resource "coolify_cloud_token" "hostinger" {
 }
 
 resource "coolify_server_hostinger" "app" {
-  name                      = "app-node"
+  # Hostinger uses this as the VPS hostname only when it contains a dot.
+  # A single label is stored on the Coolify server, and Hostinger picks the machine hostname.
+  name                      = "app-node.example.com"
   cloud_provider_token_uuid = coolify_cloud_token.hostinger.uuid
   item_id                   = "hostingercom-vps-kvm2"
   data_center_id            = 1
@@ -54,7 +56,7 @@ variable "hostinger_token" {
 - `cloud_provider_token_uuid` (String) UUID of a `coolify_cloud_token` whose provider is `hostinger`. Changing a known value forces a new server. A value missing after import is adopted and does not purchase another VPS.
 - `data_center_id` (Number) Hostinger data center id. Use `coolify_hostinger_data_centers`. Changing a known value forces a new server. A value missing after import is adopted and does not purchase another VPS.
 - `item_id` (String) Hostinger catalog item id, for example `hostingercom-vps-kvm2`. Use `coolify_hostinger_catalog`. Changing a known value forces a new server. A value missing after import is adopted and does not purchase another VPS.
-- `name` (String) The name of the server.
+- `name` (String) Name stored on the Coolify server. Coolify lowercases it. Hostinger uses that name as the VPS hostname only when it contains a dot, such as `app.example.com`. A single label such as `app-node` stays on the Coolify server, and Hostinger chooses the machine hostname.
 - `private_key_uuid` (String) The UUID of the private key used for SSH authentication. Coolify GET often omits this field, so import leaves it empty. Set the same UUID that is already on the server in HCL, or the next apply will PATCH a new SSH key.
 - `template_id` (Number) Hostinger OS template id. Use `coolify_hostinger_templates`. Changing a known value forces a new server. A value missing after import is adopted and does not purchase another VPS.
 

@@ -5,7 +5,9 @@ resource "coolify_cloud_token" "hostinger" {
 }
 
 resource "coolify_server_hostinger" "app" {
-  name                      = "app-node"
+  # Hostinger uses this as the VPS hostname only when it contains a dot.
+  # A single label is stored on the Coolify server, and Hostinger picks the machine hostname.
+  name                      = "app-node.example.com"
   cloud_provider_token_uuid = coolify_cloud_token.hostinger.uuid
   item_id                   = "hostingercom-vps-kvm2"
   data_center_id            = 1

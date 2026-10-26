@@ -127,6 +127,10 @@ func (r *hostingerServerResource) Schema(ctx context.Context, _ resource.SchemaR
 
 func hostingerSchemaAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
+		"name": schema.StringAttribute{
+			MarkdownDescription: "Name stored on the Coolify server. Coolify lowercases it. Hostinger uses that name as the VPS hostname only when it contains a dot, such as `app.example.com`. A single label such as `app-node` stays on the Coolify server, and Hostinger chooses the machine hostname.",
+			Required:            true,
+		},
 		"ip": schema.StringAttribute{
 			MarkdownDescription: "Public IP Coolify stored for this server. `1.2.3.4` means Hostinger has not published an address yet.",
 			Computed:            true,
@@ -317,7 +321,22 @@ func (r *hostingerServerResource) ModifyPlan(ctx context.Context, req resource.M
 		stateBuild = &state.IsBuildServer
 	}
 	server.AlignUnconfiguredServerRole(r.client, &cfg.ServerRole, &plan.ServerRole, &plan.IsBuildServer, stateBuild)
+	warnHostingerHostname(plan.Name, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
+}
+
+// warnHostingerHostname reports that Coolify drops a single-label name
+// before the Hostinger purchase. HostingerService::purchaseVirtualMachine
+// unsets setup.hostname when it does not contain a dot, then Hostinger
+// picks a hostname. The Coolify server name is still saved.
+func warnHostingerHostname(name types.String, diags *diag.Diagnostics) {
+	if diags == nil || name.IsNull() || name.IsUnknown() || strings.Contains(name.ValueString(), ".") {
+		return
+	}
+	diags.AddWarning(
+		"Hostinger will choose the VPS hostname",
+		fmt.Sprintf("Coolify only sends %q to Hostinger as the VPS hostname when it contains a dot. The Coolify server keeps that name. Use a name such as app.example.com when the machine hostname should match.", name.ValueString()),
+	)
 }
 
 func (r *hostingerServerResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
