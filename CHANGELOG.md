@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.28](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.27...v0.1.28) (2026-10-26)
+
+
+### Features
+
+* add Hostinger servers and compose application settings ([#1006](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1006)) ([c3b3070](https://github.com/coolify-terraform/terraform-provider-coolify/commit/c3b30708d2f29e49fc434d1c6a60432ae27a6048))
+* send Coolify 4.5.0 writes without breaking older servers ([#1003](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1003)) ([cc714f6](https://github.com/coolify-terraform/terraform-provider-coolify/commit/cc714f6dba35d9e0fb0da9d2a35dfc0f8c10cf38))
+
+
+### Bug Fixes
+
+* accept integer basic-auth costs and skip service apps on 4.1.2 ([#1009](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1009)) ([4451b45](https://github.com/coolify-terraform/terraform-provider-coolify/commit/4451b45fc0d67435e375a753f675b6128c59f857)), closes [#1008](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1008)
+* reject Hostinger lists on Coolify older than 4.5.0 ([#1011](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1011)) ([60c29f8](https://github.com/coolify-terraform/terraform-provider-coolify/commit/60c29f8169916f060fe5896980bccffd35e13fac))
+* reject service applications on Coolify older than 4.2.0 ([#1010](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1010)) ([0e242a3](https://github.com/coolify-terraform/terraform-provider-coolify/commit/0e242a3447b03616f7c7e5de4fbc86d1f7eee73f))
+* send cloud server instant_validate changes on update ([#1002](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1002)) ([0092df9](https://github.com/coolify-terraform/terraform-provider-coolify/commit/0092df9a5cb112fbce2f9b81700516cab79d38cc))
+* skip cloud catalog calls on Coolify older than 4.2.0 ([#1012](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1012)) ([bf9b3e5](https://github.com/coolify-terraform/terraform-provider-coolify/commit/bf9b3e58376735a0200be9a75e8a593f8017120d))
+* skip POST /api/v1/enable on Coolify 4.5.0 ([#1000](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1000)) ([f9e2a30](https://github.com/coolify-terraform/terraform-provider-coolify/commit/f9e2a30e40620752b42b5a67f133726d77f9ea20))
+* warn when a Hostinger name is not a VPS hostname ([#1007](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1007)) ([b556ce2](https://github.com/coolify-terraform/terraform-provider-coolify/commit/b556ce22dd0a7c54f93500fd6a26da70638430e1))
+
 ## [0.1.27](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.26...v0.1.27) (2026-10-21)
 
 
