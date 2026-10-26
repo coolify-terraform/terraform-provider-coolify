@@ -37,7 +37,7 @@ func (d *listDataSource) Metadata(_ context.Context, req datasource.MetadataRequ
 
 func (d *listDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Lists applications inside one compose service. Use an application's `uuid` with `coolify_service_application`.",
+		MarkdownDescription: "Lists applications inside one compose service. Requires Coolify >= v4.2.0. Use an application's `uuid` with `coolify_service_application`.",
 		Attributes: map[string]schema.Attribute{
 			"service_uuid": schema.StringAttribute{
 				MarkdownDescription: "UUID of the parent service.",
@@ -68,6 +68,9 @@ func (d *listDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	var config listModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !requireServiceApplicationRoute(d.client, &resp.Diagnostics) {
 		return
 	}
 	items, err := d.client.ListServiceApplications(ctx, config.ServiceUUID.ValueString())

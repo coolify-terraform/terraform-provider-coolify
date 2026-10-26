@@ -3,12 +3,12 @@
 page_title: "coolify_service_applications Data Source - coolify"
 subcategory: ""
 description: |-
-  Lists applications inside one compose service. Use an application's uuid with coolify_service_application.
+  Lists applications inside one compose service. Requires Coolify >= v4.2.0. Use an application's uuid with coolify_service_application.
 ---
 
 # coolify_service_applications (Data Source)
 
-Lists applications inside one compose service. Use an application's `uuid` with `coolify_service_application`.
+Lists applications inside one compose service. Requires Coolify >= v4.2.0. Use an application's `uuid` with `coolify_service_application`.
 
 ## Example Usage
 

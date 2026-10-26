@@ -26,6 +26,17 @@ import (
 
 const needs45 = "Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it."
 
+func requireServiceApplicationRoute(c *client.Client, diags *diag.Diagnostics) bool {
+	if c == nil || c.SupportsServiceApplicationRoute() {
+		return true
+	}
+	diags.AddError(
+		"Service applications need Coolify >= v4.2.0",
+		fmt.Sprintf("This Coolify instance (%s) has no /api/v1/services/{uuid}/applications. Upgrade Coolify before reading or changing compose application settings.", c.CoolifyVersion),
+	)
+	return false
+}
+
 var (
 	_ resource.Resource                = &serviceApplicationResource{}
 	_ resource.ResourceWithConfigure   = &serviceApplicationResource{}
@@ -67,7 +78,7 @@ func (r *serviceApplicationResource) Metadata(_ context.Context, req resource.Me
 func (r *serviceApplicationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Configures one application that already exists inside a `coolify_service` compose stack. " +
-			"Coolify creates the container with the service. Destroy removes this object from Terraform state and does not delete the container or its URL.\n\n" +
+			"Requires Coolify >= v4.2.0. Coolify creates the container with the service. Destroy removes this object from Terraform state and does not delete the container or its URL.\n\n" +
 			"Import with `service_uuid/uuid`.",
 		Attributes: map[string]schema.Attribute{
 			"service_uuid": schema.StringAttribute{
@@ -194,6 +205,9 @@ func (r *serviceApplicationResource) Create(ctx context.Context, req resource.Cr
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if !requireServiceApplicationRoute(r.client, &resp.Diagnostics) {
+		return
+	}
 	warnVersionGated(r.client, plan, &resp.Diagnostics)
 	got, err := r.client.GetServiceApplication(ctx, plan.ServiceUUID.ValueString(), plan.UUID.ValueString())
 	if err != nil {
@@ -226,6 +240,9 @@ func (r *serviceApplicationResource) Read(ctx context.Context, req resource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if !requireServiceApplicationRoute(r.client, &resp.Diagnostics) {
+		return
+	}
 	got, err := r.client.GetServiceApplication(ctx, state.ServiceUUID.ValueString(), state.UUID.ValueString())
 	if err != nil {
 		if client.IsNotFound(err) {
@@ -244,6 +261,9 @@ func (r *serviceApplicationResource) Update(ctx context.Context, req resource.Up
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !requireServiceApplicationRoute(r.client, &resp.Diagnostics) {
 		return
 	}
 	warnVersionGated(r.client, plan, &resp.Diagnostics)

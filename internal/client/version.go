@@ -141,6 +141,11 @@ func (c *Client) SupportsApplicationSettingsV44() bool {
 // CloudWatch log drains, and the other allow-list additions in that tag).
 const minCoolify45Version = "4.5.0"
 
+// minServiceApplicationRouteVersion is the first Coolify tag that
+// registers GET and PATCH /services/{uuid}/applications. Absent on
+// v4.1.2. Present from v4.2.0.
+const minServiceApplicationRouteVersion = "4.2.0"
+
 // minServiceAppForceHTTPSVersion is the first Coolify tag whose
 // ServiceApplicationsController::update allow list includes
 // is_force_https_enabled. Absent through v4.3.7. Present from v4.3.8,
@@ -152,6 +157,21 @@ const minServiceAppForceHTTPSVersion = "4.3.8"
 // max_restart_count. Absent through v4.3.18 and on v4.4-rc.1.
 // Present from v4.3.19 and from v4.4.0.
 const minServiceAppMaxRestartVersion = "4.3.19"
+
+// SupportsServiceApplicationRoute reports whether the service application
+// list and single-application routes exist.
+//
+// Empty CoolifyVersion reports true. A 4.3.0 version string reports true
+// because that release has the route and because CI edge reuses the string.
+func (c *Client) SupportsServiceApplicationRoute() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minServiceApplicationRouteVersion)
+}
 
 // SupportsServiceApplicationForceHTTPS reports whether PATCH
 // /services/{uuid}/applications/{app_uuid} accepts is_force_https_enabled.

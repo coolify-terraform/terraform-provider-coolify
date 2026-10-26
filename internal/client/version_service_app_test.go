@@ -31,3 +31,25 @@ func TestSupportsServiceApplicationWriteGates(t *testing.T) {
 		}
 	}
 }
+
+func TestSupportsServiceApplicationRoute(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		version string
+		want    bool
+	}{
+		{version: "", want: true},
+		{version: "4.1.2", want: false},
+		{version: "v4.1.2", want: false},
+		{version: "4.2.0", want: true},
+		{version: "4.3.0", want: true},
+		{version: "4.4-rc.1", want: true},
+		{version: "4.5.0", want: true},
+	}
+	for _, tc := range cases {
+		c := &Client{CoolifyVersion: tc.version}
+		if got := c.SupportsServiceApplicationRoute(); got != tc.want {
+			t.Errorf("%s route = %v, want %v", tc.version, got, tc.want)
+		}
+	}
+}

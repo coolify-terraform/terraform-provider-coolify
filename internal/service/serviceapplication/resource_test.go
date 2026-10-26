@@ -133,6 +133,34 @@ resource "coolify_service_application" "test" {
 	}
 }
 
+func TestServiceApplicationResource_OldCoolify(t *testing.T) {
+	t.Parallel()
+	called := false
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/services/{uuid}/applications/{app}", func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusNotFound)
+	})
+	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.1.2"))
+	defer srv.Close()
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service_application" "test" {
+  service_uuid = "aaaa0001-0001-4000-8000-000000000001"
+  uuid         = "bbbb0002-0002-4000-8000-000000000002"
+  description  = "old"
+}
+`,
+			ExpectError: regexp.MustCompile(`Coolify >= v4\.2\.0`),
+		}},
+	})
+	if called {
+		t.Fatal("old Coolify called the service application route")
+	}
+}
+
 func TestServiceApplicationResource_Missing(t *testing.T) {
 	t.Parallel()
 	patched := false

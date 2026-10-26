@@ -3,13 +3,13 @@
 page_title: "coolify_service_application Resource - coolify"
 subcategory: ""
 description: |-
-  Configures one application that already exists inside a coolify_service compose stack. Coolify creates the container with the service. Destroy removes this object from Terraform state and does not delete the container or its URL.
+  Configures one application that already exists inside a coolify_service compose stack. Requires Coolify >= v4.2.0. Coolify creates the container with the service. Destroy removes this object from Terraform state and does not delete the container or its URL.
   Import with service_uuid/uuid.
 ---
 
 # coolify_service_application (Resource)
 
-Configures one application that already exists inside a `coolify_service` compose stack. Coolify creates the container with the service. Destroy removes this object from Terraform state and does not delete the container or its URL.
+Configures one application that already exists inside a `coolify_service` compose stack. Requires Coolify >= v4.2.0. Coolify creates the container with the service. Destroy removes this object from Terraform state and does not delete the container or its URL.
 
 Import with `service_uuid/uuid`.
 
