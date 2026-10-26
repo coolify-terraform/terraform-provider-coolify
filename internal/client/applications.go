@@ -81,10 +81,14 @@ type Application struct {
 	IsStatic    *bool  `json:"is_static,omitempty"`
 	IsSPA       *bool  `json:"is_spa,omitempty"`
 	// Security & Auth
-	IsForceHTTPSEnabled    *bool  `json:"is_force_https_enabled,omitempty"`
-	IsHTTPBasicAuthEnabled *bool  `json:"is_http_basic_auth_enabled,omitempty"`
-	HTTPBasicAuthUsername  string `json:"http_basic_auth_username,omitempty"`
-	HTTPBasicAuthPassword  string `json:"http_basic_auth_password,omitempty"`
+	IsForceHTTPSEnabled             *bool  `json:"is_force_https_enabled,omitempty"`
+	IsHTTPBasicAuthEnabled          *bool  `json:"is_http_basic_auth_enabled,omitempty"`
+	HTTPBasicAuthUsername           string `json:"http_basic_auth_username,omitempty"`
+	HTTPBasicAuthPassword           string `json:"http_basic_auth_password,omitempty"`
+	HTTPBasicAuthHashAlgorithm      string `json:"http_basic_auth_hash_algorithm,omitempty"`
+	HTTPBasicAuthArgon2idMemoryCost *int64 `json:"http_basic_auth_argon2id_memory_cost,omitempty"`
+	HTTPBasicAuthArgon2idTimeCost   string `json:"http_basic_auth_argon2id_time_cost,omitempty"`
+	HTTPBasicAuthBcryptCost         string `json:"http_basic_auth_bcrypt_cost,omitempty"`
 	// Extended health checks
 	HealthCheckCommand      string `json:"health_check_command,omitempty"`
 	HealthCheckHost         string `json:"health_check_host,omitempty"`
@@ -138,6 +142,8 @@ type Application struct {
 	// TraefikCertificateResolver is absent on Coolify tag v4.4.6. Main after
 	// that tag accepts it and still reports version 4.4.6.
 	TraefikCertificateResolver string `json:"traefik_certificate_resolver,omitempty"`
+	IsPermanentRedirectEnabled *bool  `json:"is_permanent_redirect_enabled,omitempty"`
+	RedactAllEnvValuesInLogs   *bool  `json:"redact_all_env_values_in_logs,omitempty"`
 	// NoindexDomains is the subset of domains served with X-Robots-Tag noindex
 	// (Coolify >= v4.3.0). JSON array on the wire; empty means none.
 	NoindexDomains  []string `json:"noindex_domains,omitempty"`
@@ -246,6 +252,8 @@ type ApplicationSettings struct {
 	CustomInternalName               string `json:"custom_internal_name,omitempty"`
 	CustomContainerNamePrefix        string `json:"custom_container_name_prefix,omitempty"`
 	TraefikCertificateResolver       string `json:"traefik_certificate_resolver,omitempty"`
+	IsPermanentRedirectEnabled       *bool  `json:"is_permanent_redirect_enabled,omitempty"`
+	RedactAllEnvValuesInLogs         *bool  `json:"redact_all_env_values_in_logs,omitempty"`
 }
 
 // PromoteSettings copies nested settings onto top-level Application fields when unset.
@@ -296,6 +304,8 @@ func (a *Application) PromoteSettings() {
 	if a.TraefikCertificateResolver == "" && s.TraefikCertificateResolver != "" {
 		a.TraefikCertificateResolver = s.TraefikCertificateResolver
 	}
+	promoteBool(&a.IsPermanentRedirectEnabled, s.IsPermanentRedirectEnabled)
+	promoteBool(&a.RedactAllEnvValuesInLogs, s.RedactAllEnvValuesInLogs)
 }
 
 func promoteBool(dst **bool, src *bool) {
@@ -402,10 +412,16 @@ type UpdateApplicationInput struct {
 	IsStatic    *bool   `json:"is_static,omitempty"`
 	IsSPA       *bool   `json:"is_spa,omitempty"`
 	// Security & Auth
-	IsForceHTTPSEnabled    *bool   `json:"is_force_https_enabled,omitempty"`
-	IsHTTPBasicAuthEnabled *bool   `json:"is_http_basic_auth_enabled,omitempty"`
-	HTTPBasicAuthUsername  *string `json:"http_basic_auth_username,omitempty"`
-	HTTPBasicAuthPassword  *string `json:"http_basic_auth_password,omitempty"`
+	IsForceHTTPSEnabled             *bool   `json:"is_force_https_enabled,omitempty"`
+	IsHTTPBasicAuthEnabled          *bool   `json:"is_http_basic_auth_enabled,omitempty"`
+	HTTPBasicAuthUsername           *string `json:"http_basic_auth_username,omitempty"`
+	HTTPBasicAuthPassword           *string `json:"http_basic_auth_password,omitempty"`
+	HTTPBasicAuthHashAlgorithm      *string `json:"http_basic_auth_hash_algorithm,omitempty"`
+	HTTPBasicAuthArgon2idMemoryCost *int64  `json:"http_basic_auth_argon2id_memory_cost,omitempty"`
+	HTTPBasicAuthArgon2idTimeCost   *string `json:"http_basic_auth_argon2id_time_cost,omitempty"`
+	HTTPBasicAuthBcryptCost         *string `json:"http_basic_auth_bcrypt_cost,omitempty"`
+	IsPermanentRedirectEnabled      *bool   `json:"is_permanent_redirect_enabled,omitempty"`
+	RedactAllEnvValuesInLogs        *bool   `json:"redact_all_env_values_in_logs,omitempty"`
 	// Extended health checks
 	HealthCheckCommand      *string `json:"health_check_command,omitempty"`
 	HealthCheckHost         *string `json:"health_check_host,omitempty"`
@@ -556,6 +572,12 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 		}
 		input.clearApplicationSettingsV44()
 	}
+	if !c.SupportsCoolify45() {
+		input.clearApplicationSettingsV45()
+	}
+	// github_app_uuid is create-only. Coolify 4.5.0 lists it on update,
+	// but changing the app still replaces the application.
+	input.GitHubAppUUID = nil
 	var a Application
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(uuid)), input, &a); err != nil {
 		return nil, fmt.Errorf("updating application %s: %w", uuid, err)
@@ -646,6 +668,21 @@ func (i *UpdateApplicationInput) clearApplicationSettingsV44() {
 	i.CustomContainerNamePrefix = nil
 }
 
+// clearApplicationSettingsV45 drops Coolify >= v4.5.0 write keys. It does not
+// clear traefik_certificate_resolver; that key is ahead of the version pin.
+func (i *UpdateApplicationInput) clearApplicationSettingsV45() {
+	i.HTTPBasicAuthHashAlgorithm = nil
+	i.HTTPBasicAuthArgon2idMemoryCost = nil
+	i.HTTPBasicAuthArgon2idTimeCost = nil
+	i.HTTPBasicAuthBcryptCost = nil
+	i.IsPermanentRedirectEnabled = nil
+	i.RedactAllEnvValuesInLogs = nil
+	// dockerfile content updates landed on the same release. Git-backed
+	// apps still replace when this changes; only the dockerfile resource
+	// sets the key, and only when SupportsCoolify45 is true.
+	i.Dockerfile = nil
+}
+
 // HasOnlyApplicationSettings reports whether the payload would be empty once
 // all version-gated settings fields (v4.2.0 and v4.3.0) are dropped. Callers
 // use it to skip a PATCH that the gate would reduce to `{}`.
@@ -674,6 +711,14 @@ func (i UpdateApplicationInput) HasOnlyApplicationSettingsV43() bool {
 func (i UpdateApplicationInput) HasOnlyApplicationSettingsV44() bool {
 	stripped := i
 	stripped.clearApplicationSettingsV44()
+	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
+}
+
+// HasOnlyApplicationSettingsV45 reports whether the payload would be empty
+// once the v4.5.0 gated fields are dropped.
+func (i UpdateApplicationInput) HasOnlyApplicationSettingsV45() bool {
+	stripped := i
+	stripped.clearApplicationSettingsV45()
 	return i.encodedFieldCount() > 0 && stripped.encodedFieldCount() == 0
 }
 

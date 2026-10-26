@@ -638,7 +638,55 @@ func applicationSettingAttrs() map[string]schema.Attribute {
 	for k, v := range applicationSettingAttrsAheadOfPin() {
 		attrs[k] = v
 	}
+	for k, v := range applicationSettingAttrsV45() {
+		attrs[k] = v
+	}
 	return attrs
+}
+
+// applicationSettingAttrsV45 is the Coolify >= v4.5.0 write set. No Default:
+// older servers reject the keys, and a default would send them after import.
+func applicationSettingAttrsV45() map[string]schema.Attribute {
+	const needs45 = "Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it."
+	return map[string]schema.Attribute{
+		"http_basic_auth_hash_algorithm": schema.StringAttribute{
+			MarkdownDescription: "HTTP basic auth password hash algorithm (`bcrypt` or `argon2id`). " + needs45,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			Validators:          []validator.String{stringvalidator.OneOf("bcrypt", "argon2id")},
+		},
+		"http_basic_auth_argon2id_memory_cost": schema.Int64Attribute{
+			MarkdownDescription: "Argon2id memory cost in KiB for HTTP basic auth. " + needs45,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+		},
+		"http_basic_auth_argon2id_time_cost": schema.StringAttribute{
+			MarkdownDescription: "Argon2id time cost for HTTP basic auth. Coolify stores this as a string. " + needs45,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"http_basic_auth_bcrypt_cost": schema.StringAttribute{
+			MarkdownDescription: "Bcrypt cost for HTTP basic auth. Coolify stores this as a string. " + needs45,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
+		"is_permanent_redirect_enabled": schema.BoolAttribute{
+			MarkdownDescription: "Whether HTTP redirects are permanent. " + needs45,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+		"redact_all_env_values_in_logs": schema.BoolAttribute{
+			MarkdownDescription: "Whether environment values are redacted in application logs. " + needs45,
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
+	}
 }
 
 // applicationSettingAttrsV42 is the Coolify >= v4.2.0 APPLICATION_SETTING_FIELDS set.

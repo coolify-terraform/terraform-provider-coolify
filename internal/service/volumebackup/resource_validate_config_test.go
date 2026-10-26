@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -84,7 +85,7 @@ func TestStorageBackupResource_ValidateConfig_UnknownAttrs(t *testing.T) {
 			saveS3:       types.BoolValue(true),
 			disableLocal: types.BoolValue(false),
 			s3UUID:       types.StringNull(),
-			wantErr:      regexp.MustCompile(`s3_storage_uuid is required when save_s3 is true`),
+			wantErr:      regexp.MustCompile(`s3_storage_uuid or s3_storage_uuids is required when save_s3 is true`),
 		},
 		{
 			name:         "known disable_local without save_s3 still errors",
@@ -124,5 +125,44 @@ func TestStorageBackupResource_ValidateConfig_UnknownAttrs(t *testing.T) {
 				t.Fatalf("error %q does not match %s", joined, tc.wantErr)
 			}
 		})
+	}
+}
+
+func TestStorageBackupResource_ValidateConfig_PrimaryMustBeInList(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	r := &storageBackupResource{}
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	state := tfsdk.State{
+		Schema: schemaResp.Schema,
+		Raw:    tftypes.NewValue(schemaResp.Schema.Type().TerraformType(ctx), nil),
+	}
+	list, diags := types.ListValue(types.StringType, []attr.Value{
+		types.StringValue("aaaa1111-2222-3333-4444-555566667777"),
+	})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	for _, set := range []struct {
+		p path.Path
+		v any
+	}{
+		{path.Root("application_uuid"), types.StringValue("aaaa0001-0001-4000-8000-000000000001")},
+		{path.Root("storage_uuid"), types.StringValue("bbbb0002-0002-4000-8000-000000000002")},
+		{path.Root("frequency"), types.StringValue("0 2 * * *")},
+		{path.Root("save_s3"), types.BoolUnknown()},
+		{path.Root("disable_local_backup"), types.BoolUnknown()},
+		{path.Root("s3_storage_uuid"), types.StringValue("bbbb1111-2222-3333-4444-555566667777")},
+		{path.Root("s3_storage_uuids"), list},
+	} {
+		if d := state.SetAttribute(ctx, set.p, set.v); d.HasError() {
+			t.Fatal(d)
+		}
+	}
+	resp := resource.ValidateConfigResponse{}
+	r.ValidateConfig(ctx, resource.ValidateConfigRequest{Config: tfsdk.Config(state)}, &resp)
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected primary UUID to be rejected")
 	}
 }

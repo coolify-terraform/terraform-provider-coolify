@@ -17,7 +17,7 @@ import (
 // still return missing_backup_notification_days as 0 on create.
 var volumeBackupImportVerifyIgnore = []string{
 	"uuid", "frequency", "enabled", "save_s3", "disable_local_backup",
-	"stop_during_backup", "s3_storage_uuid", "storage_type",
+	"stop_during_backup", "s3_storage_uuid", "s3_storage_uuids", "storage_type",
 	"retention_amount_locally", "retention_days_locally", "retention_max_storage_locally",
 	"retention_amount_s3", "retention_days_s3", "retention_max_storage_s3", "timeout",
 	"missing_backup_notification_days",

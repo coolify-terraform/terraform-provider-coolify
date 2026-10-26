@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -106,5 +107,42 @@ func TestDatabaseBackupResource_ValidateConfig_UnknownS3UUID(t *testing.T) {
 				t.Fatalf("error %q does not match %s", joined, tc.wantErr)
 			}
 		})
+	}
+}
+
+func TestDatabaseBackupResource_ValidateConfig_PrimaryMustBeInList(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	r := &databaseBackupResource{}
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	state := tfsdk.State{
+		Schema: schemaResp.Schema,
+		Raw:    tftypes.NewValue(schemaResp.Schema.Type().TerraformType(ctx), nil),
+	}
+	list, diags := types.ListValue(types.StringType, []attr.Value{
+		types.StringValue("aaaa1111-2222-3333-4444-555566667777"),
+	})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	for _, set := range []struct {
+		p path.Path
+		v any
+	}{
+		{path.Root("database_uuid"), types.StringValue("eeee0001-0001-4000-8000-000000000001")},
+		{path.Root("frequency"), types.StringValue("0 2 * * *")},
+		{path.Root("save_s3"), types.BoolValue(false)},
+		{path.Root("s3_storage_uuid"), types.StringValue("bbbb1111-2222-3333-4444-555566667777")},
+		{path.Root("s3_storage_uuids"), list},
+	} {
+		if d := state.SetAttribute(ctx, set.p, set.v); d.HasError() {
+			t.Fatal(d)
+		}
+	}
+	resp := resource.ValidateConfigResponse{}
+	r.ValidateConfig(ctx, resource.ValidateConfigRequest{Config: tfsdk.Config(state)}, &resp)
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("expected primary UUID to be rejected")
 	}
 }

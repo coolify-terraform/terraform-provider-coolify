@@ -570,6 +570,12 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.StringPtrNonDefault(f.CustomInternalName, "") ||
 		flex.StringPtrNonDefault(f.CustomContainerNamePrefix, "") ||
 		flex.StringPtrNonDefault(f.TraefikCertificateResolver, "") ||
+		flex.StringPtrNonDefault(f.HTTPBasicAuthHashAlgorithm, "") ||
+		flex.Int64PtrConfigured(f.HTTPBasicAuthArgon2idMemoryCost) ||
+		flex.StringPtrNonDefault(f.HTTPBasicAuthArgon2idTimeCost, "") ||
+		flex.StringPtrNonDefault(f.HTTPBasicAuthBcryptCost, "") ||
+		(f.IsPermanentRedirectEnabled != nil && !f.IsPermanentRedirectEnabled.IsNull() && !f.IsPermanentRedirectEnabled.IsUnknown()) ||
+		(f.RedactAllEnvValuesInLogs != nil && !f.RedactAllEnvValuesInLogs.IsNull() && !f.RedactAllEnvValuesInLogs.IsUnknown()) ||
 		listPtrConfigured(f.NoindexDomains) ||
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
@@ -710,6 +716,11 @@ func postCreatePatchExtendedFields(ctx context.Context, c *client.Client, uuid s
 			map[string]interface{}{"uuid": uuid})
 		return
 	}
+	if !c.SupportsCoolify45() && input.HasOnlyApplicationSettingsV45() {
+		tflog.Debug(ctx, "skipping post-create patch: only Coolify>=4.5.0 write fields, unsupported on this Coolify version",
+			map[string]interface{}{"uuid": uuid})
+		return
+	}
 	tflog.Debug(ctx, "patching extended fields after create", map[string]interface{}{"uuid": uuid})
 	if _, err := c.UpdateApplication(ctx, uuid, input); err != nil {
 		hint := annotateDockerComposeDomainsError(err)
@@ -822,7 +833,34 @@ func flattenApplicationSettingFields(app *client.Application, f commonAppFields)
 	flex.SetStringSeedOrClear(f.CustomInternalName, app.CustomInternalName)
 	flex.SetStringSeedOrClear(f.CustomContainerNamePrefix, app.CustomContainerNamePrefix)
 	flex.SetStringPreserveEmpty(f.TraefikCertificateResolver, app.TraefikCertificateResolver)
+	setStringIfPresent(f.HTTPBasicAuthHashAlgorithm, app.HTTPBasicAuthHashAlgorithm)
+	setInt64IfPresent(f.HTTPBasicAuthArgon2idMemoryCost, app.HTTPBasicAuthArgon2idMemoryCost)
+	setStringIfPresent(f.HTTPBasicAuthArgon2idTimeCost, app.HTTPBasicAuthArgon2idTimeCost)
+	setStringIfPresent(f.HTTPBasicAuthBcryptCost, app.HTTPBasicAuthBcryptCost)
+	setBoolIfPresent(f.IsPermanentRedirectEnabled, app.IsPermanentRedirectEnabled)
+	setBoolIfPresent(f.RedactAllEnvValuesInLogs, app.RedactAllEnvValuesInLogs)
 	flattenNoindexDomains(app.NoindexDomains, f.NoindexDomains)
+}
+
+func setStringIfPresent(dst *types.String, api string) {
+	if dst == nil || api == "" {
+		return
+	}
+	*dst = types.StringValue(api)
+}
+
+func setInt64IfPresent(dst *types.Int64, api *int64) {
+	if dst == nil || api == nil {
+		return
+	}
+	*dst = types.Int64Value(*api)
+}
+
+func setBoolIfPresent(dst *types.Bool, api *bool) {
+	if dst == nil || api == nil {
+		return
+	}
+	*dst = types.BoolValue(*api)
 }
 
 func flattenNoindexDomains(api []string, dst *types.List) {
@@ -932,6 +970,14 @@ func addApplicationSettingUpdateFields(plan, state commonAppFields, input *clien
 	setStrDiff(&input.CustomInternalName, plan.CustomInternalName, state.CustomInternalName)
 	setStrDiff(&input.CustomContainerNamePrefix, plan.CustomContainerNamePrefix, state.CustomContainerNamePrefix)
 	setStrDiff(&input.TraefikCertificateResolver, plan.TraefikCertificateResolver, state.TraefikCertificateResolver)
+	setStrDiff(&input.HTTPBasicAuthHashAlgorithm, plan.HTTPBasicAuthHashAlgorithm, state.HTTPBasicAuthHashAlgorithm)
+	setStrDiff(&input.HTTPBasicAuthArgon2idTimeCost, plan.HTTPBasicAuthArgon2idTimeCost, state.HTTPBasicAuthArgon2idTimeCost)
+	setStrDiff(&input.HTTPBasicAuthBcryptCost, plan.HTTPBasicAuthBcryptCost, state.HTTPBasicAuthBcryptCost)
+	if plan.HTTPBasicAuthArgon2idMemoryCost != nil && state.HTTPBasicAuthArgon2idMemoryCost != nil {
+		input.HTTPBasicAuthArgon2idMemoryCost = flex.Int64IfChanged(*plan.HTTPBasicAuthArgon2idMemoryCost, *state.HTTPBasicAuthArgon2idMemoryCost)
+	}
+	setBoolDiff(&input.IsPermanentRedirectEnabled, plan.IsPermanentRedirectEnabled, state.IsPermanentRedirectEnabled)
+	setBoolDiff(&input.RedactAllEnvValuesInLogs, plan.RedactAllEnvValuesInLogs, state.RedactAllEnvValuesInLogs)
 	if plan.NoindexDomains != nil && state.NoindexDomains != nil && !plan.NoindexDomains.Equal(*state.NoindexDomains) {
 		if plan.NoindexDomains.IsNull() {
 			empty := []string{}
@@ -981,6 +1027,20 @@ func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f com
 	if f.TraefikCertificateResolver != nil {
 		flex.SetStrPtr(&input.TraefikCertificateResolver, *f.TraefikCertificateResolver)
 	}
+	if f.HTTPBasicAuthHashAlgorithm != nil {
+		flex.SetStrPtr(&input.HTTPBasicAuthHashAlgorithm, *f.HTTPBasicAuthHashAlgorithm)
+	}
+	if f.HTTPBasicAuthArgon2idTimeCost != nil {
+		flex.SetStrPtr(&input.HTTPBasicAuthArgon2idTimeCost, *f.HTTPBasicAuthArgon2idTimeCost)
+	}
+	if f.HTTPBasicAuthBcryptCost != nil {
+		flex.SetStrPtr(&input.HTTPBasicAuthBcryptCost, *f.HTTPBasicAuthBcryptCost)
+	}
+	if f.HTTPBasicAuthArgon2idMemoryCost != nil {
+		flex.SetInt64Ptr(&input.HTTPBasicAuthArgon2idMemoryCost, *f.HTTPBasicAuthArgon2idMemoryCost)
+	}
+	flex.SetBoolPtr(&input.IsPermanentRedirectEnabled, safeBool(f.IsPermanentRedirectEnabled))
+	flex.SetBoolPtr(&input.RedactAllEnvValuesInLogs, safeBool(f.RedactAllEnvValuesInLogs))
 	if listPtrConfigured(f.NoindexDomains) {
 		list := stringListFromTypes(*f.NoindexDomains)
 		input.NoindexDomains = &list

@@ -13,6 +13,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -56,6 +57,7 @@ type serviceResourceModel struct {
 	IsContainerLabelEscapeEnabled types.Bool        `tfsdk:"is_container_label_escape_enabled"`
 	ConfigHash                    types.String      `tfsdk:"config_hash"`
 	InstantDeploy                 types.Bool        `tfsdk:"instant_deploy"`
+	RedactAllEnvValuesInLogs      types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
 	URLs                          []serviceURLModel `tfsdk:"urls"`
 	ForceDomainOverride           types.Bool        `tfsdk:"force_domain_override"`
 }
@@ -219,6 +221,14 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "Force domain assignment even if conflicts with other resources are detected. Only relevant when `urls` is set.",
 				Optional:            true,
 			},
+			"redact_all_env_values_in_logs": schema.BoolAttribute{
+				MarkdownDescription: "Whether Coolify redacts environment values in service logs. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -307,6 +317,7 @@ func (r *serviceResource) Create(ctx context.Context, req resource.CreateRequest
 	input.InstantDeploy = flex.BoolValueOrNull(plan.InstantDeploy)
 	input.ConnectToNetwork = flex.BoolValueOrNull(plan.ConnectToNetwork)
 	input.IsContainerLabelEscapeEnabled = flex.BoolValueOrNull(plan.IsContainerLabelEscapeEnabled)
+	input.RedactAllEnvValuesInLogs = serviceRedactAllEnv(r.client, plan.RedactAllEnvValuesInLogs, &resp.Diagnostics)
 	input.URLs = expandServiceURLs(plan.URLs)
 	if flex.ConfigBoolTrue(ctx, req.Config, path.Root("force_domain_override"), &resp.Diagnostics) && len(input.URLs) > 0 {
 		forced := true
@@ -383,6 +394,9 @@ func nullUnknownServiceCreate(plan *serviceResourceModel) {
 	if plan.IsContainerLabelEscapeEnabled.IsUnknown() {
 		plan.IsContainerLabelEscapeEnabled = types.BoolNull()
 	}
+	if plan.RedactAllEnvValuesInLogs.IsUnknown() {
+		plan.RedactAllEnvValuesInLogs = types.BoolNull()
+	}
 }
 
 func (r *serviceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -435,6 +449,7 @@ func (r *serviceResource) Update(ctx context.Context, req resource.UpdateRequest
 		DockerComposeRaw:              encodedComposeRaw,
 		ConnectToNetwork:              flex.BoolIfChanged(plan.ConnectToNetwork, state.ConnectToNetwork),
 		IsContainerLabelEscapeEnabled: flex.BoolIfChanged(plan.IsContainerLabelEscapeEnabled, state.IsContainerLabelEscapeEnabled),
+		RedactAllEnvValuesInLogs:      serviceRedactAllEnvChanged(r.client, plan.RedactAllEnvValuesInLogs, state.RedactAllEnvValuesInLogs, &resp.Diagnostics),
 		URLs:                          serviceURLsForUpdate(plan.URLs, state.URLs),
 	}
 	if flex.ConfigBoolTrue(ctx, req.Config, path.Root("force_domain_override"), &resp.Diagnostics) && len(input.URLs) > 0 {
@@ -534,6 +549,34 @@ func (r *serviceResource) ImportState(ctx context.Context, req resource.ImportSt
 	)
 }
 
+func serviceRedactAllEnv(c *client.Client, v types.Bool, diags *diag.Diagnostics) *bool {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	if c != nil && !c.SupportsCoolify45() {
+		diags.AddWarning(
+			"Coolify version does not accept redact_all_env_values_in_logs",
+			"Requires Coolify >= v4.5.0. The provider keeps the value in state and does not send it.",
+		)
+		return nil
+	}
+	b := v.ValueBool()
+	return &b
+}
+
+func serviceRedactAllEnvChanged(c *client.Client, plan, state types.Bool, diags *diag.Diagnostics) *bool {
+	if c != nil && !c.SupportsCoolify45() {
+		if !plan.IsNull() && !plan.IsUnknown() && !plan.Equal(state) {
+			diags.AddWarning(
+				"Coolify version does not accept redact_all_env_values_in_logs",
+				"Requires Coolify >= v4.5.0. The provider keeps the value in state and does not send it.",
+			)
+		}
+		return nil
+	}
+	return flex.BoolIfChanged(plan, state)
+}
+
 func flattenService(svc *client.Service, model *serviceResourceModel) {
 	model.UUID = types.StringValue(svc.UUID)
 	model.Name = flex.StringToFramework(svc.Name)
@@ -556,6 +599,9 @@ func flattenService(svc *client.Service, model *serviceResourceModel) {
 		model.IsContainerLabelEscapeEnabled = types.BoolValue(*svc.IsContainerLabelEscapeEnabled)
 	} else {
 		model.IsContainerLabelEscapeEnabled = types.BoolNull()
+	}
+	if svc.RedactAllEnvValuesInLogs != nil {
+		model.RedactAllEnvValuesInLogs = types.BoolValue(*svc.RedactAllEnvValuesInLogs)
 	}
 
 	// Immutable fields: only update if the API returns them because

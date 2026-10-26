@@ -15,14 +15,16 @@ import (
 )
 
 type mockEmail struct {
-	mu               sync.Mutex
-	SMTPEnabled      bool
-	SMTPHost         string
-	SMTPPort         int
-	SMTPEncryption   string
-	SMTPEhloDomain   string
-	ResendEnabled    bool
-	UseInstanceEmail bool
+	mu                      sync.Mutex
+	SMTPEnabled             bool
+	SMTPHost                string
+	SMTPPort                int
+	SMTPEncryption          string
+	SMTPEhloDomain          string
+	ResendEnabled           bool
+	UseInstanceEmail        bool
+	DeploymentCommitDetails *bool
+	sawCommitDetails        bool
 	notificationcommon.EventStore
 }
 
@@ -42,6 +44,9 @@ func (m *mockEmail) snapshot() map[string]interface{} {
 	if m.SMTPPort != 0 {
 		out["smtp_port"] = m.SMTPPort
 	}
+	if m.DeploymentCommitDetails != nil {
+		out["deployment_commit_details_email_notifications"] = *m.DeploymentCommitDetails
+	}
 	m.PutSnapshot(out, "email")
 	return out
 }
@@ -51,6 +56,10 @@ func newMockServer(store *mockEmail) *httptest.Server {
 }
 
 func newMockServerVersion(store *mockEmail, version string) *httptest.Server {
+	return newMockServerVersionMode(store, version, version == "")
+}
+
+func newMockServerVersionMode(store *mockEmail, version string, useDefault bool) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/notifications/email", func(w http.ResponseWriter, _ *http.Request) {
 		notificationcommon.WriteJSON(w, store.snapshot())
@@ -66,7 +75,7 @@ func newMockServerVersion(store *mockEmail, version string) *httptest.Server {
 			"smtp_recipients", "smtp_host", "smtp_port",
 			"smtp_encryption", "smtp_username", "smtp_password",
 			"smtp_timeout", "smtp_ehlo_domain", "resend_enabled", "resend_api_key",
-			"use_instance_email_settings",
+			"use_instance_email_settings", "deployment_commit_details_email_notifications",
 		)
 		if notificationcommon.RejectUnknownFields(w, body, allowed) {
 			return
@@ -81,11 +90,17 @@ func newMockServerVersion(store *mockEmail, version string) *httptest.Server {
 		}
 		notificationcommon.BoolFromBody(body, "resend_enabled", &store.ResendEnabled)
 		notificationcommon.BoolFromBody(body, "use_instance_email_settings", &store.UseInstanceEmail)
+		if _, ok := body["deployment_commit_details_email_notifications"]; ok {
+			store.sawCommitDetails = true
+			var on bool
+			notificationcommon.BoolFromBody(body, "deployment_commit_details_email_notifications", &on)
+			store.DeploymentCommitDetails = &on
+		}
 		store.ApplyBody("email", body)
 		store.mu.Unlock()
 		notificationcommon.WriteJSON(w, store.snapshot())
 	})
-	if version == "" {
+	if useDefault {
 		return httptest.NewServer(acctest.WithVersionEndpoint(mux))
 	}
 	return httptest.NewServer(acctest.WithVersionEndpointVersion(mux, version))

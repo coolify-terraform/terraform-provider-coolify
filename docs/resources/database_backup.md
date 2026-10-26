@@ -51,7 +51,8 @@ resource "coolify_database_backup" "daily" {
 - `retain_days_s3` (Number) Number of days to retain backups in S3.
 - `retain_max_storage_locally` (Number) Maximum storage in MB for local backups.
 - `retain_max_storage_s3` (Number) Maximum storage in MB for S3 backups.
-- `s3_storage_uuid` (String) The UUID of the S3 storage destination for off-site backups. Required when `save_s3` is `true`.
+- `s3_storage_uuid` (String) Primary S3 storage UUID. Required when `save_s3` is true unless `s3_storage_uuids` lists the destinations. When both are set, this UUID must be in that list.
+- `s3_storage_uuids` (List of String) UUIDs of every S3 storage this backup uploads to, primary first when `s3_storage_uuid` is omitted. Requires Coolify >= v4.5.0. On older instances the provider keeps the list in state and does not send it.
 - `save_s3` (Boolean) Whether to save backups to S3 storage.
 - `timeout` (Number) Backup job timeout in seconds (60-36000).
 

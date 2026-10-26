@@ -34,6 +34,8 @@ type mockBackupState struct {
 	enabled           bool
 	saveS3            bool
 	s3StorageID       string
+	s3UUIDs           []string
+	sawS3UUIDs        bool
 	databasesToBackup string
 	retainDays        *int64
 	missingDays       *int64
@@ -99,6 +101,7 @@ func newMockBackupServerVersion(version string) (*httptest.Server, *mockBackupSt
 			if v, ok := body["s3_storage_uuid"].(string); ok {
 				state.s3StorageID = v
 			}
+			captureBackupS3UUIDs(body, state)
 			if v, ok := body["database_backup_retention_amount_locally"].(float64); ok {
 				i := int64(v)
 				state.retainDays = &i
@@ -167,6 +170,7 @@ func newMockBackupServerVersion(version string) (*httptest.Server, *mockBackupSt
 			if s, ok := body["s3_storage_uuid"].(string); ok {
 				state.s3StorageID = s
 			}
+			captureBackupS3UUIDs(body, state)
 			if s, ok := body["databases_to_backup"].(string); ok {
 				state.databasesToBackup = s
 			}
@@ -217,6 +221,9 @@ func backupResponse(s *mockBackupState) map[string]interface{} {
 		// Real API returns s3_storage_id (numeric FK), not s3_storage_uuid.
 		resp["s3_storage_id"] = 1
 	}
+	if s.s3UUIDs != nil {
+		resp["s3_storage_uuids"] = s.s3UUIDs
+	}
 	if s.databasesToBackup != "" {
 		resp["databases_to_backup"] = s.databasesToBackup
 	}
@@ -233,6 +240,25 @@ func backupResponse(s *mockBackupState) map[string]interface{} {
 		resp["last_execution_at"] = s.lastExecutionAt
 	}
 	return resp
+}
+
+func captureBackupS3UUIDs(body map[string]interface{}, state *mockBackupState) {
+	raw, ok := body["s3_storage_uuids"]
+	if !ok {
+		return
+	}
+	state.sawS3UUIDs = true
+	arr, ok := raw.([]interface{})
+	if !ok {
+		return
+	}
+	out := make([]string, 0, len(arr))
+	for _, item := range arr {
+		if s, ok := item.(string); ok {
+			out = append(out, s)
+		}
+	}
+	state.s3UUIDs = out
 }
 
 func testBackupConfig(endpoint, attrs string) string {

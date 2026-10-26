@@ -50,6 +50,7 @@ resource "coolify_notification_email" "main" {
 
 - `backup_failure` (Boolean) Whether to send email notifications for backup failure events.
 - `backup_success` (Boolean) Whether to send email notifications for backup success events.
+- `deployment_commit_details_email_notifications` (Boolean) Include git commit details in deployment emails. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `deployment_failure` (Boolean) Whether to send email notifications for deployment failure events.
 - `deployment_success` (Boolean) Whether to send email notifications for deployment success events.
 - `docker_cleanup_failure` (Boolean) Whether to send email notifications for Docker cleanup failure events.

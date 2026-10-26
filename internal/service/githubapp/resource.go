@@ -422,6 +422,10 @@ func flattenGitHubApp(app *client.GitHubApp, model *gitHubAppResourceModel) {
 	model.AppID = types.Int64Value(app.AppID)
 	model.InstallationID = types.Int64Value(app.InstallationID)
 	model.ClientID = types.StringValue(app.ClientID)
+	// Empty secrets mean Coolify hid them. Keep the value already in state.
+	if app.ClientSecret != "" {
+		model.ClientSecret = types.StringValue(app.ClientSecret)
+	}
 	model.IsSystemWide = types.BoolValue(app.IsSystemWide)
 	applyGitHubRunnerPermissions(app, &model.Actions, &model.OrganizationSelfHostedRunners, &model.WebhookEvents, &model.RunnerGroupID)
 	if app.WebhookSecret != "" {

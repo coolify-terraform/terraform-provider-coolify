@@ -36,10 +36,14 @@ resource "coolify_server_log_drain" "example" {
 ### Optional
 
 - `is_logdrain_axiom_enabled` (Boolean)
+- `is_logdrain_cloudwatch_enabled` (Boolean) Send container logs to Amazon CloudWatch. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `is_logdrain_custom_enabled` (Boolean)
 - `is_logdrain_newrelic_enabled` (Boolean)
 - `logdrain_axiom_api_key` (String, Sensitive) Axiom API key. Omitting the attribute later does not clear the stored Coolify value.
 - `logdrain_axiom_dataset_name` (String) Axiom dataset name. Omitting the attribute later does not clear the stored Coolify value.
+- `logdrain_cloudwatch_group` (String) CloudWatch log group. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
+- `logdrain_cloudwatch_region` (String) CloudWatch region. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
+- `logdrain_cloudwatch_stream_prefix` (String) Prefix for CloudWatch log stream names. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `logdrain_custom_config` (String, Sensitive) Custom log drain configuration. Omitting the attribute later does not clear the stored Coolify value.
 - `logdrain_custom_config_parser` (String) Custom log drain config parser. Omitting the attribute later does not clear the stored Coolify value.
 - `logdrain_newrelic_base_uri` (String) New Relic log API base URI. Omitting the attribute later does not clear the stored Coolify value.

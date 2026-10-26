@@ -33,9 +33,15 @@ type volumeBackupMock struct {
 	puts                   int
 	createSentTimeout      bool
 	lastPutIncludedTimeout bool
+	lastS3UUIDs            []string
 }
 
 func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
+	t.Helper()
+	return newVolumeBackupMockVersion(t, acctest.DefaultTestCoolifyVersion, true)
+}
+
+func newVolumeBackupMockVersion(t *testing.T, version string, audit bool) *volumeBackupMock {
 	t.Helper()
 	m := &volumeBackupMock{}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -95,6 +101,11 @@ func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
 				timeout = &copied
 			}
 			m.lastPutIncludedTimeout = timeoutPtr != nil
+			if input.S3StorageUUIDs != nil {
+				m.lastS3UUIDs = append([]string{}, (*input.S3StorageUUIDs)...)
+			} else {
+				m.lastS3UUIDs = nil
+			}
 			retLocal := int64(7)
 			if input.RetentionAmountLocally != nil {
 				retLocal = *input.RetentionAmountLocally
@@ -128,6 +139,7 @@ func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
 				Frequency: input.Frequency, Enabled: enabled, SaveS3: saveS3,
 				DisableLocalBackup: disableLocal, StopDuringBackup: stopDuring,
 				S3StorageUUID:          input.S3StorageUUID,
+				S3StorageUUIDs:         copiedS3UUIDs(input.S3StorageUUIDs),
 				RetentionAmountLocally: retLocal, RetentionDaysLocally: retDaysLocal,
 				RetentionMaxStorageLocal: retMaxLocal,
 				RetentionAmountS3:        retAmtS3, RetentionDaysS3: retDaysS3,
@@ -156,9 +168,23 @@ func newVolumeBackupMock(t *testing.T) *volumeBackupMock {
 			http.Error(w, `{}`, http.StatusNotFound)
 		}
 	})
-	m.server = httptest.NewServer(spectest.WithSpecAudit(t, "coolify-v4",
-		acctest.WithVersionEndpoint(handler)))
+	next := http.Handler(handler)
+	if audit {
+		next = spectest.WithSpecAudit(t, "coolify-v4", handler)
+	}
+	m.server = httptest.NewServer(acctest.WithVersionEndpointVersion(next, version))
 	return m
+}
+
+func copiedS3UUIDs(in *[]string) []string {
+	if in == nil {
+		return nil
+	}
+	out := append([]string{}, (*in)...)
+	if out == nil {
+		return []string{}
+	}
+	return out
 }
 
 func (m *volumeBackupMock) Close() { m.server.Close() }
@@ -417,7 +443,7 @@ resource "coolify_storage_backup" "test" {
   frequency        = "0 2 * * *"
   save_s3          = true
 }`,
-			ExpectError: regexp.MustCompile(`s3_storage_uuid is required when save_s3 is true`),
+			ExpectError: regexp.MustCompile(`s3_storage_uuid or s3_storage_uuids is required when save_s3 is true`),
 		}},
 	})
 }
@@ -447,7 +473,7 @@ resource "coolify_storage_backup" "test" {
 				// Schedule fields are not re-read (no GET); uuid may be empty after import-only.
 				ImportStateVerifyIgnore: []string{
 					"uuid", "frequency", "enabled", "save_s3", "disable_local_backup",
-					"stop_during_backup", "s3_storage_uuid", "storage_type",
+					"stop_during_backup", "s3_storage_uuid", "s3_storage_uuids", "storage_type",
 					"retention_amount_locally", "retention_days_locally", "retention_max_storage_locally",
 					"retention_amount_s3", "retention_days_s3", "retention_max_storage_s3", "timeout",
 				},

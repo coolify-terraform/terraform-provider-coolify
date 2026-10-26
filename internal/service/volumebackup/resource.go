@@ -10,7 +10,9 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -18,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -50,6 +53,7 @@ type storageBackupResourceModel struct {
 	DisableLocalBackup            types.Bool    `tfsdk:"disable_local_backup"`
 	StopDuringBackup              types.Bool    `tfsdk:"stop_during_backup"`
 	S3StorageUUID                 types.String  `tfsdk:"s3_storage_uuid"`
+	S3StorageUUIDs                types.List    `tfsdk:"s3_storage_uuids"`
 	RetentionAmountLocally        types.Int64   `tfsdk:"retention_amount_locally"`
 	RetentionDaysLocally          types.Int64   `tfsdk:"retention_days_locally"`
 	RetentionMaxStorageLocal      types.Float64 `tfsdk:"retention_max_storage_locally"`
@@ -129,7 +133,7 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"save_s3": schema.BoolAttribute{
-				MarkdownDescription: "Upload backups to S3. When true, `s3_storage_uuid` is required. Create uses false when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
+				MarkdownDescription: "Upload backups to S3. When true, `s3_storage_uuid` or `s3_storage_uuids` is required. Create uses false when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
@@ -147,9 +151,21 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"s3_storage_uuid": schema.StringAttribute{
-				MarkdownDescription: "UUID of a usable team S3 storage when `save_s3` is true.",
+				MarkdownDescription: "Primary S3 storage UUID when `save_s3` is true. Optional when `s3_storage_uuids` lists the destinations. When both are set, this UUID must be in that list.",
 				Optional:            true,
 				Validators:          []validator.String{validate.UUID()},
+			},
+			"s3_storage_uuids": schema.ListAttribute{
+				MarkdownDescription: "UUIDs of every S3 storage this volume backup uploads to. The first entry is the primary destination unless `s3_storage_uuid` is also set. " +
+					"Requires Coolify >= v4.5.0. On older instances the provider keeps the list in state and does not send it.",
+				Optional:      true,
+				Computed:      true,
+				ElementType:   types.StringType,
+				PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+				Validators: []validator.List{
+					listvalidator.UniqueValues(),
+					listvalidator.ValueStringsAre(validate.UUID()),
+				},
 			},
 			"retention_amount_locally": schema.Int64Attribute{
 				MarkdownDescription: "Number of local backups to retain. Create uses 7 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
@@ -224,9 +240,18 @@ func (r *storageBackupResource) ValidateConfig(ctx context.Context, req resource
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// This check does not read the bools. Run it before the unknown-bool
+	// return so a known primary outside a known list is still rejected.
+	if s3PrimaryNotInList(cfg.S3StorageUUID, cfg.S3StorageUUIDs) {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("s3_storage_uuid"),
+			"S3 storage UUID is not in s3_storage_uuids",
+			"`s3_storage_uuid` must be one of `s3_storage_uuids` when both are set.",
+		)
+	}
 	// Unknown attributes (vars, references) must not be treated as false/empty.
 	// ValueBool() on unknown is false, which falsely triggers these checks.
-	if cfg.DisableLocalBackup.IsUnknown() || cfg.SaveS3.IsUnknown() || cfg.S3StorageUUID.IsUnknown() {
+	if cfg.DisableLocalBackup.IsUnknown() || cfg.SaveS3.IsUnknown() || cfg.S3StorageUUID.IsUnknown() || cfg.S3StorageUUIDs.IsUnknown() {
 		return
 	}
 	if !cfg.DisableLocalBackup.IsNull() && cfg.DisableLocalBackup.ValueBool() &&
@@ -237,12 +262,13 @@ func (r *storageBackupResource) ValidateConfig(ctx context.Context, req resource
 			"disable_local_backup requires save_s3 = true (Coolify rejects local-only disable).",
 		)
 	}
-	if !cfg.SaveS3.IsNull() && cfg.SaveS3.ValueBool() &&
-		(cfg.S3StorageUUID.IsNull() || cfg.S3StorageUUID.ValueString() == "") {
+	hasUUID := !cfg.S3StorageUUID.IsNull() && cfg.S3StorageUUID.ValueString() != ""
+	hasList := !cfg.S3StorageUUIDs.IsNull() && len(cfg.S3StorageUUIDs.Elements()) > 0
+	if !cfg.SaveS3.IsNull() && cfg.SaveS3.ValueBool() && !hasUUID && !hasList {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("s3_storage_uuid"),
 			"Missing S3 storage",
-			"s3_storage_uuid is required when save_s3 is true.",
+			"s3_storage_uuid or s3_storage_uuids is required when save_s3 is true.",
 		)
 	}
 }
@@ -282,6 +308,7 @@ func buildInput(c *client.Client, plan storageBackupResourceModel) client.Upsert
 	if !plan.S3StorageUUID.IsNull() && !plan.S3StorageUUID.IsUnknown() {
 		input.S3StorageUUID = plan.S3StorageUUID.ValueString()
 	}
+	input.S3StorageUUIDs = stringListPtr(plan.S3StorageUUIDs)
 	if !plan.RetentionAmountLocally.IsNull() && !plan.RetentionAmountLocally.IsUnknown() {
 		v := plan.RetentionAmountLocally.ValueInt64()
 		input.RetentionAmountLocally = &v
@@ -332,6 +359,11 @@ func flatten(got *client.VolumeBackupSchedule, m *storageBackupResourceModel) {
 	} else {
 		m.S3StorageUUID = types.StringNull()
 	}
+	if got.S3StorageUUIDs != nil {
+		m.S3StorageUUIDs = stringListValue(got.S3StorageUUIDs)
+	} else if m.S3StorageUUIDs.IsUnknown() {
+		m.S3StorageUUIDs = types.ListNull(types.StringType)
+	}
 	m.RetentionAmountLocally = types.Int64Value(got.RetentionAmountLocally)
 	m.RetentionDaysLocally = types.Int64Value(got.RetentionDaysLocally)
 	m.RetentionMaxStorageLocal = types.Float64Value(got.RetentionMaxStorageLocal)
@@ -348,6 +380,69 @@ func flatten(got *client.VolumeBackupSchedule, m *storageBackupResourceModel) {
 	} else if m.MissingBackupNotificationDays.IsUnknown() {
 		m.MissingBackupNotificationDays = types.Int64Null()
 	}
+}
+
+func stringListPtr(list types.List) *[]string {
+	if list.IsNull() || list.IsUnknown() {
+		return nil
+	}
+	if len(list.Elements()) == 0 {
+		empty := []string{}
+		return &empty
+	}
+	out := make([]string, 0, len(list.Elements()))
+	for _, el := range list.Elements() {
+		s, ok := el.(types.String)
+		if !ok || s.IsNull() || s.IsUnknown() {
+			continue
+		}
+		out = append(out, s.ValueString())
+	}
+	return &out
+}
+
+func s3PrimaryNotInList(uuid types.String, list types.List) bool {
+	if uuid.IsNull() || uuid.IsUnknown() || uuid.ValueString() == "" || list.IsNull() || list.IsUnknown() {
+		return false
+	}
+	want := uuid.ValueString()
+	for _, el := range list.Elements() {
+		s, ok := el.(types.String)
+		if ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == want {
+			return false
+		}
+	}
+	return true
+}
+
+func stringListValue(values []string) types.List {
+	elems := make([]attr.Value, len(values))
+	for i, v := range values {
+		elems[i] = types.StringValue(v)
+	}
+	return types.ListValueMust(types.StringType, elems)
+}
+
+func warnUnsupportedVolumeS3StorageUUIDs(c *client.Client, plan storageBackupResourceModel, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsCoolify45() {
+		return
+	}
+	if plan.S3StorageUUIDs.IsNull() || plan.S3StorageUUIDs.IsUnknown() {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write s3_storage_uuids",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept s3_storage_uuids on volume backup schedules (added in Coolify v4.5.0). "+
+				"The provider will keep the list in Terraform state but will not send it. "+
+				"Upgrade to Coolify v4.5.0 or later, or remove s3_storage_uuids from configuration.",
+			ver,
+		),
+	)
 }
 
 func warnUnsupportedVolumeBackupMissingDays(c *client.Client, plan storageBackupResourceModel, diags *diag.Diagnostics) {
@@ -387,6 +482,7 @@ func (r *storageBackupResource) Create(ctx context.Context, req resource.CreateR
 	}
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_storage_backup"})
 	warnUnsupportedVolumeBackupMissingDays(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedVolumeS3StorageUUIDs(r.client, plan, &resp.Diagnostics)
 	fillCreateDefaults(&plan)
 
 	got, err := r.client.UpsertVolumeBackup(ctx, parentType, parentUUID, plan.StorageUUID.ValueString(), buildInput(r.client, plan))
@@ -482,6 +578,7 @@ func (r *storageBackupResource) Update(ctx context.Context, req resource.UpdateR
 	})
 
 	warnUnsupportedVolumeBackupMissingDays(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedVolumeS3StorageUUIDs(r.client, plan, &resp.Diagnostics)
 	if missing := unsetDestructiveFields(plan); len(missing) > 0 {
 		resp.Diagnostics.AddError(
 			"Storage backup schedule is incomplete",

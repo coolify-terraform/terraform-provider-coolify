@@ -10,6 +10,8 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -17,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -46,6 +49,7 @@ type databaseBackupResourceModel struct {
 	DisableLocalBackup              types.Bool   `tfsdk:"disable_local_backup"`
 	SaveS3                          types.Bool   `tfsdk:"save_s3"`
 	S3StorageUUID                   types.String `tfsdk:"s3_storage_uuid"`
+	S3StorageUUIDs                  types.List   `tfsdk:"s3_storage_uuids"`
 	DatabasesToBackup               types.String `tfsdk:"databases_to_backup"`
 	DumpAll                         types.Bool   `tfsdk:"dump_all"`
 	BackupNow                       types.Bool   `tfsdk:"backup_now"`
@@ -122,9 +126,21 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Default:             booldefault.StaticBool(false),
 			},
 			"s3_storage_uuid": schema.StringAttribute{
-				MarkdownDescription: "The UUID of the S3 storage destination for off-site backups. Required when `save_s3` is `true`.",
+				MarkdownDescription: "Primary S3 storage UUID. Required when `save_s3` is true unless `s3_storage_uuids` lists the destinations. When both are set, this UUID must be in that list.",
 				Optional:            true,
 				Validators:          []validator.String{validate.UUID()},
+			},
+			"s3_storage_uuids": schema.ListAttribute{
+				MarkdownDescription: "UUIDs of every S3 storage this backup uploads to, primary first when `s3_storage_uuid` is omitted. " +
+					"Requires Coolify >= v4.5.0. On older instances the provider keeps the list in state and does not send it.",
+				Optional:      true,
+				Computed:      true,
+				ElementType:   types.StringType,
+				PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+				Validators: []validator.List{
+					listvalidator.UniqueValues(),
+					listvalidator.ValueStringsAre(validate.UUID()),
+				},
 			},
 			"databases_to_backup": schema.StringAttribute{
 				MarkdownDescription: "Comma-separated list of database names to back up selectively. Defaults to the primary database name if not specified.",
@@ -229,17 +245,26 @@ func (r *databaseBackupResource) ValidateConfig(ctx context.Context, req resourc
 	}
 	// Only enforce when save_s3 is known true. Unknown s3_storage_uuid
 	// (e.g. from a data source or resource reference) must not fail plan.
+	if s3PrimaryNotInList(config.S3StorageUUID, config.S3StorageUUIDs) {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("s3_storage_uuid"),
+			"S3 storage UUID is not in s3_storage_uuids",
+			"`s3_storage_uuid` must be one of `s3_storage_uuids` when both are set.",
+		)
+	}
 	if config.SaveS3.IsNull() || config.SaveS3.IsUnknown() || !config.SaveS3.ValueBool() {
 		return
 	}
-	if config.S3StorageUUID.IsUnknown() {
+	if config.S3StorageUUID.IsUnknown() || config.S3StorageUUIDs.IsUnknown() {
 		return
 	}
-	if config.S3StorageUUID.IsNull() || config.S3StorageUUID.ValueString() == "" {
+	hasUUID := !config.S3StorageUUID.IsNull() && config.S3StorageUUID.ValueString() != ""
+	hasList := !config.S3StorageUUIDs.IsNull() && len(config.S3StorageUUIDs.Elements()) > 0
+	if !hasUUID && !hasList {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("s3_storage_uuid"),
 			"Missing S3 Storage UUID",
-			"`s3_storage_uuid` must be set when `save_s3` is `true`.",
+			"`s3_storage_uuid` or `s3_storage_uuids` must be set when `save_s3` is `true`.",
 		)
 	}
 }
@@ -259,6 +284,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	}
 	flex.SetBoolPtr(&input.SaveS3, plan.SaveS3)
 	flex.SetIfKnown(&input.S3StorageID, plan.S3StorageUUID)
+	input.S3StorageUUIDs = stringListPtr(plan.S3StorageUUIDs)
 	flex.SetIfKnown(&input.DatabasesToBackup, plan.DatabasesToBackup)
 	flex.SetBoolPtr(&input.DumpAll, plan.DumpAll)
 	flex.SetBoolPtr(&input.BackupNow, plan.BackupNow)
@@ -283,6 +309,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	plan.UUID = types.StringValue(created.UUID)
 	nullUnknownBackupComputed(&plan)
 	warnUnsupportedMissingBackupNotificationDays(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedS3StorageUUIDs(r.client, plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -374,6 +401,7 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 		Enabled:                       flex.BoolIfChanged(plan.Enabled, state.Enabled),
 		SaveS3:                        flex.BoolIfChanged(plan.SaveS3, state.SaveS3),
 		S3StorageID:                   flex.StringPtrForUpdate(plan.S3StorageUUID, state.S3StorageUUID),
+		S3StorageUUIDs:                s3StorageUUIDsIfChanged(plan.S3StorageUUIDs, state.S3StorageUUIDs),
 		DatabasesToBackup:             flex.StringPtrForUpdate(plan.DatabasesToBackup, state.DatabasesToBackup),
 		DumpAll:                       flex.BoolIfChanged(plan.DumpAll, state.DumpAll),
 		RetainAmountLocally:           flex.Int64IfChanged(plan.RetainAmountLocally, state.RetainAmountLocally),
@@ -387,6 +415,7 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 	}
 
 	warnUnsupportedMissingBackupNotificationDays(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedS3StorageUUIDs(r.client, plan, &resp.Diagnostics)
 	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, state.UUID.ValueString(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating database backup", fmt.Sprintf("backup %s for database %s: %s", state.UUID.ValueString(), dbUUID, err))
 		return
@@ -512,8 +541,9 @@ func (r *databaseBackupResource) UpgradeState(_ context.Context) map[int64]resou
 				resp.Diagnostics.Append(resp.State.Set(ctx, &databaseBackupResourceModel{
 					ID: old.ID, UUID: old.UUID, DatabaseUUID: old.DatabaseUUID,
 					Frequency: old.Frequency, Enabled: old.Enabled, SaveS3: old.SaveS3,
-					S3StorageUUID: old.S3StorageID, DatabasesToBackup: old.DatabasesToBackup,
-					DumpAll: old.DumpAll, BackupNow: old.BackupNow,
+					S3StorageUUID: old.S3StorageID, S3StorageUUIDs: types.ListNull(types.StringType),
+					DatabasesToBackup: old.DatabasesToBackup,
+					DumpAll:           old.DumpAll, BackupNow: old.BackupNow,
 					RetainAmountLocally: old.RetainAmountLocally, RetainDaysLocally: old.RetainDaysLocally,
 					RetainMaxStorageLocal: old.RetainMaxStorageLocal, RetainAmountS3: old.RetainAmountS3,
 					RetainDaysS3: old.RetainDaysS3, RetainMaxStorageS3: old.RetainMaxStorageS3,
@@ -596,6 +626,9 @@ func nullUnknownBackupComputed(plan *databaseBackupResourceModel) {
 	if plan.DatabasesToBackup.IsUnknown() {
 		plan.DatabasesToBackup = types.StringNull()
 	}
+	if plan.S3StorageUUIDs.IsUnknown() {
+		plan.S3StorageUUIDs = types.ListNull(types.StringType)
+	}
 }
 
 func flattenDatabaseBackup(c *client.Client, b *client.DatabaseBackup, m *databaseBackupResourceModel) {
@@ -616,6 +649,11 @@ func flattenDatabaseBackup(c *client.Client, b *client.DatabaseBackup, m *databa
 	// otherwise preserve the user's configured value.
 	if b.S3StorageID != "" && (m.S3StorageUUID.IsNull() || m.S3StorageUUID.IsUnknown()) {
 		m.S3StorageUUID = flex.StringToFramework(b.S3StorageID)
+	}
+	if b.S3StorageUUIDs != nil {
+		m.S3StorageUUIDs = stringListValue(b.S3StorageUUIDs)
+	} else if m.S3StorageUUIDs.IsUnknown() {
+		m.S3StorageUUIDs = types.ListNull(types.StringType)
 	}
 	m.DatabasesToBackup = flex.StringToFramework(b.DatabasesToBackup)
 	m.DumpAll = types.BoolValue(b.DumpAll)
@@ -645,6 +683,76 @@ func flattenDatabaseBackup(c *client.Client, b *client.DatabaseBackup, m *databa
 	case m.MissingBackupNotificationSentAt.IsUnknown():
 		m.MissingBackupNotificationSentAt = types.StringNull()
 	}
+}
+
+func stringListPtr(list types.List) *[]string {
+	if list.IsNull() || list.IsUnknown() {
+		return nil
+	}
+	if len(list.Elements()) == 0 {
+		empty := []string{}
+		return &empty
+	}
+	out := make([]string, 0, len(list.Elements()))
+	for _, el := range list.Elements() {
+		s, ok := el.(types.String)
+		if !ok || s.IsNull() || s.IsUnknown() {
+			continue
+		}
+		out = append(out, s.ValueString())
+	}
+	return &out
+}
+
+func s3StorageUUIDsIfChanged(plan, state types.List) *[]string {
+	if plan.Equal(state) {
+		return nil
+	}
+	return stringListPtr(plan)
+}
+
+func s3PrimaryNotInList(uuid types.String, list types.List) bool {
+	if uuid.IsNull() || uuid.IsUnknown() || uuid.ValueString() == "" || list.IsNull() || list.IsUnknown() {
+		return false
+	}
+	want := uuid.ValueString()
+	for _, el := range list.Elements() {
+		s, ok := el.(types.String)
+		if ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == want {
+			return false
+		}
+	}
+	return true
+}
+
+func stringListValue(values []string) types.List {
+	elems := make([]attr.Value, len(values))
+	for i, v := range values {
+		elems[i] = types.StringValue(v)
+	}
+	return types.ListValueMust(types.StringType, elems)
+}
+
+func warnUnsupportedS3StorageUUIDs(c *client.Client, plan databaseBackupResourceModel, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsCoolify45() {
+		return
+	}
+	if plan.S3StorageUUIDs.IsNull() || plan.S3StorageUUIDs.IsUnknown() {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write s3_storage_uuids",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept s3_storage_uuids (added in Coolify v4.5.0). "+
+				"The provider will keep the list in Terraform state but will not send it. "+
+				"Upgrade to Coolify v4.5.0 or later, or remove s3_storage_uuids from configuration.",
+			ver,
+		),
+	)
 }
 
 func warnUnsupportedMissingBackupNotificationDays(c *client.Client, plan databaseBackupResourceModel, diags *diag.Diagnostics) {

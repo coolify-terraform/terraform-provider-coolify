@@ -164,8 +164,11 @@ func disallowedKeys(t *testing.T, input any, allowed map[string]bool) []string {
 	if len(body) == 0 {
 		t.Fatal("input marshalled to an empty body; the builder emitted nothing")
 	}
-	gated := make(map[string]bool, len(client.ApplicationSettingsV44WriteJSONKeys)+len(client.ApplicationSettingsAheadOfPinWriteJSONKeys))
+	gated := make(map[string]bool, len(client.ApplicationSettingsV44WriteJSONKeys)+len(client.ApplicationSettingsV45WriteJSONKeys)+len(client.ApplicationSettingsAheadOfPinWriteJSONKeys))
 	for _, key := range client.ApplicationSettingsV44WriteJSONKeys {
+		gated[key] = true
+	}
+	for _, key := range client.ApplicationSettingsV45WriteJSONKeys {
 		gated[key] = true
 	}
 	for _, key := range client.ApplicationSettingsAheadOfPinWriteJSONKeys {

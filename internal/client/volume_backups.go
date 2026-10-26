@@ -14,22 +14,24 @@ import (
 // which landed in coollabsio/coolify#10946 and ships in Coolify >= v4.3.0.
 // Not present in git tag v4.2.0 or older stable lines.
 type VolumeBackupSchedule struct {
-	UUID                     string  `json:"uuid"`
-	Message                  string  `json:"message,omitempty"`
-	StorageUUID              string  `json:"storage_uuid"`
-	StorageType              string  `json:"storage_type"` // persistent | directory
-	Frequency                string  `json:"frequency"`
-	Enabled                  bool    `json:"enabled"`
-	SaveS3                   bool    `json:"save_s3"`
-	DisableLocalBackup       bool    `json:"disable_local_backup"`
-	StopDuringBackup         bool    `json:"stop_during_backup"`
-	S3StorageUUID            string  `json:"s3_storage_uuid,omitempty"`
-	RetentionAmountLocally   int64   `json:"retention_amount_locally"`
-	RetentionDaysLocally     int64   `json:"retention_days_locally"`
-	RetentionMaxStorageLocal float64 `json:"retention_max_storage_locally"`
-	RetentionAmountS3        int64   `json:"retention_amount_s3"`
-	RetentionDaysS3          int64   `json:"retention_days_s3"`
-	RetentionMaxStorageS3    float64 `json:"retention_max_storage_s3"`
+	UUID               string `json:"uuid"`
+	Message            string `json:"message,omitempty"`
+	StorageUUID        string `json:"storage_uuid"`
+	StorageType        string `json:"storage_type"` // persistent | directory
+	Frequency          string `json:"frequency"`
+	Enabled            bool   `json:"enabled"`
+	SaveS3             bool   `json:"save_s3"`
+	DisableLocalBackup bool   `json:"disable_local_backup"`
+	StopDuringBackup   bool   `json:"stop_during_backup"`
+	S3StorageUUID      string `json:"s3_storage_uuid,omitempty"`
+	// S3StorageUUIDs is every S3 destination, primary first. Coolify >= v4.5.0.
+	S3StorageUUIDs           []string `json:"s3_storage_uuids,omitempty"`
+	RetentionAmountLocally   int64    `json:"retention_amount_locally"`
+	RetentionDaysLocally     int64    `json:"retention_days_locally"`
+	RetentionMaxStorageLocal float64  `json:"retention_max_storage_locally"`
+	RetentionAmountS3        int64    `json:"retention_amount_s3"`
+	RetentionDaysS3          int64    `json:"retention_days_s3"`
+	RetentionMaxStorageS3    float64  `json:"retention_max_storage_s3"`
 	// Timeout is nil when Coolify returns JSON null. Create does not
 	// refresh the row, and the model has no attribute default, so an
 	// omitted timeout comes back null rather than 36000. A non-pointer
@@ -42,20 +44,23 @@ type VolumeBackupSchedule struct {
 
 // UpsertVolumeBackupInput is the body for PUT .../storages/{storage_uuid}/backups.
 type UpsertVolumeBackupInput struct {
-	Frequency                     string   `json:"frequency"`
-	Enabled                       *bool    `json:"enabled,omitempty"`
-	SaveS3                        *bool    `json:"save_s3,omitempty"`
-	DisableLocalBackup            *bool    `json:"disable_local_backup,omitempty"`
-	StopDuringBackup              *bool    `json:"stop_during_backup,omitempty"`
-	S3StorageUUID                 string   `json:"s3_storage_uuid,omitempty"`
-	RetentionAmountLocally        *int64   `json:"retention_amount_locally,omitempty"`
-	RetentionDaysLocally          *int64   `json:"retention_days_locally,omitempty"`
-	RetentionMaxStorageLocal      *float64 `json:"retention_max_storage_locally,omitempty"`
-	RetentionAmountS3             *int64   `json:"retention_amount_s3,omitempty"`
-	RetentionDaysS3               *int64   `json:"retention_days_s3,omitempty"`
-	RetentionMaxStorageS3         *float64 `json:"retention_max_storage_s3,omitempty"`
-	Timeout                       *int64   `json:"timeout,omitempty"`
-	MissingBackupNotificationDays *int64   `json:"missing_backup_notification_days,omitempty"`
+	Frequency          string `json:"frequency"`
+	Enabled            *bool  `json:"enabled,omitempty"`
+	SaveS3             *bool  `json:"save_s3,omitempty"`
+	DisableLocalBackup *bool  `json:"disable_local_backup,omitempty"`
+	StopDuringBackup   *bool  `json:"stop_during_backup,omitempty"`
+	S3StorageUUID      string `json:"s3_storage_uuid,omitempty"`
+	// S3StorageUUIDs replaces the destination list. Coolify >= v4.5.0.
+	// A pointer so a known empty list encodes as [] and clears destinations.
+	S3StorageUUIDs                *[]string `json:"s3_storage_uuids,omitempty"`
+	RetentionAmountLocally        *int64    `json:"retention_amount_locally,omitempty"`
+	RetentionDaysLocally          *int64    `json:"retention_days_locally,omitempty"`
+	RetentionMaxStorageLocal      *float64  `json:"retention_max_storage_locally,omitempty"`
+	RetentionAmountS3             *int64    `json:"retention_amount_s3,omitempty"`
+	RetentionDaysS3               *int64    `json:"retention_days_s3,omitempty"`
+	RetentionMaxStorageS3         *float64  `json:"retention_max_storage_s3,omitempty"`
+	Timeout                       *int64    `json:"timeout,omitempty"`
+	MissingBackupNotificationDays *int64    `json:"missing_backup_notification_days,omitempty"`
 }
 
 // UpsertVolumeBackup creates or replaces the backup schedule for a storage volume.
@@ -64,6 +69,9 @@ type UpsertVolumeBackupInput struct {
 func (c *Client) UpsertVolumeBackup(ctx context.Context, parentType, parentUUID, storageUUID string, input UpsertVolumeBackupInput) (*VolumeBackupSchedule, error) {
 	if err := validateParentType(parentType); err != nil {
 		return nil, fmt.Errorf("setting volume backup for %s %s storage %s: %w", parentType, parentUUID, storageUUID, err)
+	}
+	if !c.SupportsCoolify45() {
+		input.S3StorageUUIDs = nil
 	}
 	var r VolumeBackupSchedule
 	path := fmt.Sprintf("/api/v1/%s/%s/storages/%s/backups",

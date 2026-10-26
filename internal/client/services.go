@@ -31,6 +31,7 @@ type Service struct {
 	DockerComposeRaw              string               `json:"docker_compose_raw,omitempty"`
 	ConnectToNetwork              *bool                `json:"connect_to_docker_network,omitempty"`
 	IsContainerLabelEscapeEnabled *bool                `json:"is_container_label_escape_enabled,omitempty"`
+	RedactAllEnvValuesInLogs      *bool                `json:"redact_all_env_values_in_logs,omitempty"`
 	ConfigHash                    string               `json:"config_hash,omitempty"`
 	Applications                  []ServiceApplication `json:"applications,omitempty"`
 }
@@ -58,6 +59,7 @@ type CreateServiceInput struct {
 	ForceDomainOverride           *bool        `json:"force_domain_override,omitempty"`
 	ConnectToNetwork              *bool        `json:"connect_to_docker_network,omitempty"`
 	IsContainerLabelEscapeEnabled *bool        `json:"is_container_label_escape_enabled,omitempty"`
+	RedactAllEnvValuesInLogs      *bool        `json:"redact_all_env_values_in_logs,omitempty"`
 }
 
 func (c *Client) ListServices(ctx context.Context) ([]Service, error) {
@@ -98,6 +100,9 @@ func (c *Client) createServiceWithDestRetry(ctx context.Context, input *CreateSe
 }
 
 func (c *Client) CreateService(ctx context.Context, input CreateServiceInput) (*Service, error) {
+	if !c.SupportsCoolify45() {
+		input.RedactAllEnvValuesInLogs = nil
+	}
 	return c.createServiceWithDestRetry(ctx, &input)
 }
 
@@ -107,6 +112,7 @@ type UpdateServiceInput struct {
 	DockerComposeRaw              *string      `json:"docker_compose_raw,omitempty"`
 	ConnectToNetwork              *bool        `json:"connect_to_docker_network,omitempty"`
 	IsContainerLabelEscapeEnabled *bool        `json:"is_container_label_escape_enabled,omitempty"`
+	RedactAllEnvValuesInLogs      *bool        `json:"redact_all_env_values_in_logs,omitempty"`
 	InstantDeploy                 *bool        `json:"instant_deploy,omitempty"`
 	URLs                          []ServiceURL `json:"urls,omitempty"`
 	ForceDomainOverride           *bool        `json:"force_domain_override,omitempty"`
@@ -125,6 +131,9 @@ func UpdateServiceJSONTags() map[string]struct{} {
 }
 
 func (c *Client) UpdateService(ctx context.Context, uuid string, input UpdateServiceInput) (*Service, error) {
+	if !c.SupportsCoolify45() {
+		input.RedactAllEnvValuesInLogs = nil
+	}
 	var s Service
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/services/%s", url.PathEscape(uuid)), input, &s); err != nil {
 		return nil, fmt.Errorf("updating service %s: %w", uuid, err)

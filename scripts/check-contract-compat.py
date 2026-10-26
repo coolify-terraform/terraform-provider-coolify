@@ -72,6 +72,14 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         # Allow-list expansions on v4.3.0 (provider already maps or documents)
         "max_restart_count",
         "preview_url_template",
+        # Coolify >= v4.5.0. traefik_certificate_resolver is ahead-of-pin and is not stripped below 4.5.0.
+        "http_basic_auth_argon2id_memory_cost",
+        "http_basic_auth_argon2id_time_cost",
+        "http_basic_auth_bcrypt_cost",
+        "http_basic_auth_hash_algorithm",
+        "is_permanent_redirect_enabled",
+        "redact_all_env_values_in_logs",
+        "traefik_certificate_resolver",
     },
     "ApplicationsController::update_by_uuid": {
         "is_preview_deployments_enabled",
@@ -100,6 +108,16 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "noindex_domains",
         "max_restart_count",
         "preview_url_template",
+        "http_basic_auth_argon2id_memory_cost",
+        "http_basic_auth_argon2id_time_cost",
+        "http_basic_auth_bcrypt_cost",
+        "http_basic_auth_hash_algorithm",
+        "is_permanent_redirect_enabled",
+        "redact_all_env_values_in_logs",
+        "traefik_certificate_resolver",
+        # Legal on update only in v4.5.0. github_app_uuid stays create-only in the provider.
+        "dockerfile",
+        "github_app_uuid",
     },
     "DatabasesController::create_database": {
         "tags",
@@ -109,16 +127,20 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
     # from v4.3.17 and from v4.4-rc.1 (that rc was cut first).
     "DatabasesController::create_backup": {
         "missing_backup_notification_days",
+        "s3_storage_uuids",
     },
     "DatabasesController::update_backup": {
         "missing_backup_notification_days",
+        "s3_storage_uuids",
     },
     # Volume-backup upsert gained the field in tag v4.4.1. Absent on v4.4.0.
     "VolumeBackupsController::upsert": {
         "missing_backup_notification_days",
+        "s3_storage_uuids",
     },
     "VolumeBackupsController::validateUpsertRequest": {
         "missing_backup_notification_days",
+        "s3_storage_uuids",
     },
     # Sentinel traffic_ip_mode landed in tag v4.4.2. Absent on v4.4.0 and v4.4.1.
     "ServerSentinelController::update": {
@@ -126,6 +148,28 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
     },
     "ServicesController::create_service": {
         "tags",
+        "redact_all_env_values_in_logs",
+    },
+    "ServicesController::update_by_uuid": {
+        "redact_all_env_values_in_logs",
+    },
+    "ServerLogDrainsController::update": {
+        "is_logdrain_cloudwatch_enabled",
+        "logdrain_cloudwatch_group",
+        "logdrain_cloudwatch_region",
+        "logdrain_cloudwatch_stream_prefix",
+    },
+    "ServerProxyController::update": {
+        # Ahead-of-pin on coolify_server_proxy. Not stripped below 4.5.0.
+        "traefik_certificate_resolver",
+    },
+    # Provider does not call these routes. The keys still differ by tag.
+    "ServerTransferController::import": {
+        "passphrase",
+    },
+    "ServerTransferController::migrate": {
+        "adopt_mode",
+        "preserve_uuids",
     },
     "HetznerController::createServer": {
         "enable_backups",
@@ -144,6 +188,9 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "noindex_domains",
         "is_force_https_enabled",
         "max_restart_count",
+        # Nested service-app route. coolify_application does not call it.
+        "is_permanent_redirect_enabled",
+        "traefik_certificate_resolver",
     },
     # Restart-limit notification events landed in tag v4.3.15. Absent from
     # v4.3.14 and from v4.4-rc.1 (cut before that stable line).
@@ -152,6 +199,8 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
     },
     "NotificationsController::update_email": {
         "restart_limit_reached_email_notifications",
+        # Coolify >= v4.5.0. Omitted unless the server reports that version.
+        "deployment_commit_details_email_notifications",
     },
     "NotificationsController::update_pushover": {
         "restart_limit_reached_pushover_notifications",

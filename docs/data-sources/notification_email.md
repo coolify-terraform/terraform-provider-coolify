@@ -27,6 +27,7 @@ output "notifications" {
 
 - `backup_failure` (Boolean) Whether email notifications are sent for backup failure events.
 - `backup_success` (Boolean) Whether email notifications are sent for backup success events.
+- `deployment_commit_details_email_notifications` (Boolean) Whether deployment emails include git commit details. Requires Coolify >= v4.5.0. Null when the API omits the key.
 - `deployment_failure` (Boolean) Whether email notifications are sent for deployment failure events.
 - `deployment_success` (Boolean) Whether email notifications are sent for deployment success events.
 - `docker_cleanup_failure` (Boolean) Whether email notifications are sent for Docker cleanup failure events.

@@ -81,6 +81,7 @@ resource "coolify_service" "custom" {
 - `instant_deploy` (Boolean) Whether to immediately deploy the service after creation. When `true`, Coolify starts the service containers right away. When `false` (default), the service is created but not started.
 - `is_container_label_escape_enabled` (Boolean) Whether container label escaping is enabled for this service.
 - `name` (String) The name of the service.
+- `redact_all_env_values_in_logs` (Boolean) Whether Coolify redacts environment values in service logs. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `type` (String) The service type from the Coolify service catalog (e.g., `plausible`, `uptime-kuma`, `minio`). Mutually exclusive with `docker_compose_raw`. See the full list in the Coolify UI under Services > New Service, or in the [Coolify source](https://github.com/coollabsio/coolify/tree/v4.x/templates/service). Changing this forces a new resource.
 - `urls` (Attributes List) Domain URL mappings for service containers. Each entry maps a compose service name to one or more comma-separated URLs (e.g., `https://app.example.com`). Read-back matches Coolify application FQDNs by container name and keeps this list's configured order. Coolify GET may return applications in a different order (typically compose or database insertion order). (see [below for nested schema](#nestedatt--urls))

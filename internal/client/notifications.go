@@ -318,6 +318,9 @@ type EmailNotificationSettings struct {
 	ServerUnreachable    bool `json:"server_unreachable_email_notifications"`
 	ServerPatch          bool `json:"server_patch_email_notifications"`
 	TraefikOutdated      bool `json:"traefik_outdated_email_notifications"`
+	// DeploymentCommitDetails includes git commit details in deployment
+	// emails. Coolify >= v4.5.0. Nil when the API omits the key.
+	DeploymentCommitDetails *bool `json:"deployment_commit_details_email_notifications,omitempty"`
 }
 
 // UpdateEmailNotificationInput is the PATCH body for email notifications.
@@ -337,21 +340,22 @@ type UpdateEmailNotificationInput struct {
 	ResendAPIKey     *string `json:"resend_api_key,omitempty"`
 	UseInstanceEmail *bool   `json:"use_instance_email_settings,omitempty"`
 
-	DeploymentSuccess    *bool `json:"deployment_success_email_notifications,omitempty"`
-	DeploymentFailure    *bool `json:"deployment_failure_email_notifications,omitempty"`
-	StatusChange         *bool `json:"status_change_email_notifications,omitempty"`
-	RestartLimitReached  *bool `json:"restart_limit_reached_email_notifications,omitempty"`
-	BackupSuccess        *bool `json:"backup_success_email_notifications,omitempty"`
-	BackupFailure        *bool `json:"backup_failure_email_notifications,omitempty"`
-	ScheduledTaskSuccess *bool `json:"scheduled_task_success_email_notifications,omitempty"`
-	ScheduledTaskFailure *bool `json:"scheduled_task_failure_email_notifications,omitempty"`
-	DockerCleanupSuccess *bool `json:"docker_cleanup_success_email_notifications,omitempty"`
-	DockerCleanupFailure *bool `json:"docker_cleanup_failure_email_notifications,omitempty"`
-	ServerDiskUsage      *bool `json:"server_disk_usage_email_notifications,omitempty"`
-	ServerReachable      *bool `json:"server_reachable_email_notifications,omitempty"`
-	ServerUnreachable    *bool `json:"server_unreachable_email_notifications,omitempty"`
-	ServerPatch          *bool `json:"server_patch_email_notifications,omitempty"`
-	TraefikOutdated      *bool `json:"traefik_outdated_email_notifications,omitempty"`
+	DeploymentSuccess       *bool `json:"deployment_success_email_notifications,omitempty"`
+	DeploymentFailure       *bool `json:"deployment_failure_email_notifications,omitempty"`
+	StatusChange            *bool `json:"status_change_email_notifications,omitempty"`
+	RestartLimitReached     *bool `json:"restart_limit_reached_email_notifications,omitempty"`
+	BackupSuccess           *bool `json:"backup_success_email_notifications,omitempty"`
+	BackupFailure           *bool `json:"backup_failure_email_notifications,omitempty"`
+	ScheduledTaskSuccess    *bool `json:"scheduled_task_success_email_notifications,omitempty"`
+	ScheduledTaskFailure    *bool `json:"scheduled_task_failure_email_notifications,omitempty"`
+	DockerCleanupSuccess    *bool `json:"docker_cleanup_success_email_notifications,omitempty"`
+	DockerCleanupFailure    *bool `json:"docker_cleanup_failure_email_notifications,omitempty"`
+	ServerDiskUsage         *bool `json:"server_disk_usage_email_notifications,omitempty"`
+	ServerReachable         *bool `json:"server_reachable_email_notifications,omitempty"`
+	ServerUnreachable       *bool `json:"server_unreachable_email_notifications,omitempty"`
+	ServerPatch             *bool `json:"server_patch_email_notifications,omitempty"`
+	TraefikOutdated         *bool `json:"traefik_outdated_email_notifications,omitempty"`
+	DeploymentCommitDetails *bool `json:"deployment_commit_details_email_notifications,omitempty"`
 }
 
 // TelegramNotificationSettings is the current team's Telegram notification config.
@@ -448,6 +452,9 @@ func (c *Client) GetEmailNotifications(ctx context.Context) (*EmailNotificationS
 func (c *Client) UpdateEmailNotifications(ctx context.Context, input UpdateEmailNotificationInput) (*EmailNotificationSettings, error) {
 	if !c.SupportsSMTPEhloDomain() {
 		input.SMTPEhloDomain = nil
+	}
+	if !c.SupportsCoolify45() {
+		input.DeploymentCommitDetails = nil
 	}
 	var r EmailNotificationSettings
 	if err := c.do(ctx, http.MethodPatch, "/api/v1/notifications/email", input, &r); err != nil {

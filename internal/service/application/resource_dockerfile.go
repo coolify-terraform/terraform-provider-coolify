@@ -9,6 +9,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -54,11 +55,8 @@ func (r *dockerfileApplicationResource) Schema(ctx context.Context, _ resource.S
 		MarkdownDescription: "Manages a Coolify application deployed from a Dockerfile.",
 		Attributes: CommonAppAttrs(ctx, map[string]schema.Attribute{
 			"dockerfile_location": schema.StringAttribute{
-				MarkdownDescription: "The Dockerfile content. The provider accepts plain text or pre-encoded base64; encoding is handled automatically. Despite the field name, this is not a file path. Changing this forces a new resource because the Coolify API only accepts Dockerfile content at creation time.",
+				MarkdownDescription: "The Dockerfile content. The provider accepts plain text or pre-encoded base64; encoding is handled automatically. Despite the field name, this is not a file path. Changing this forces a new resource on Coolify older than v4.5.0. On Coolify >= v4.5.0, and when the provider has no version string, the provider updates the Dockerfile in place.",
 				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"ports_exposes": schema.StringAttribute{
 				MarkdownDescription: "The ports to expose, as a comma-separated list (e.g., `80` or `80,443`).",
@@ -124,6 +122,23 @@ func (r *dockerfileApplicationResource) ModifyPlan(ctx context.Context, req reso
 		return
 	}
 	warnUnsupportedApplicationSettingsWrites(r.client, cfg.common(), &resp.Diagnostics)
+	if req.State.Raw.IsNull() {
+		return
+	}
+	var plan dockerfileApplicationResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	var state dockerfileApplicationResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if plan.DockerfileLocation.Equal(state.DockerfileLocation) {
+		return
+	}
+	if r.client == nil || r.client.SupportsCoolify45() {
+		return
+	}
+	resp.RequiresReplace = append(resp.RequiresReplace, path.Root("dockerfile_location"))
 }
 
 func (r *dockerfileApplicationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -227,6 +242,14 @@ func (r *dockerfileApplicationResource) Update(ctx context.Context, req resource
 	planFields := plan.common()
 	stateFields := state.common()
 	input := buildUpdateInput(planFields, stateFields)
+	// The schema attribute is dockerfile_location, but the update JSON key
+	// is dockerfile. Older Coolify rejects that key, so a content change
+	// still replaces the resource there.
+	input.DockerfileLocation = nil
+	if (r.client == nil || r.client.SupportsCoolify45()) && !plan.DockerfileLocation.Equal(state.DockerfileLocation) {
+		encoded := flex.EnsureBase64(plan.DockerfileLocation.ValueString())
+		input.Dockerfile = &encoded
+	}
 	updateAndReadBack(ctx, r.client, resp, updateAndReadBackArgs{
 		ForceDomainOverride: forceDomainOverrideConfigured(ctx, req.Config, &resp.Diagnostics),
 		UUID:                plan.UUID.ValueString(),

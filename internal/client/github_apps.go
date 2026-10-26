@@ -21,8 +21,11 @@ type GitHubApp struct {
 	AppID            int64  `json:"app_id,omitempty"`
 	InstallationID   int64  `json:"installation_id,omitempty"`
 	ClientID         string `json:"client_id,omitempty"`
-	WebhookSecret    string `json:"webhook_secret,omitempty"`
-	IsSystemWide     bool   `json:"is_system_wide,omitempty"`
+	// ClientSecret is omitted unless the token can read sensitive fields.
+	// An empty string must not clear a value already in state.
+	ClientSecret  string `json:"client_secret,omitempty"`
+	WebhookSecret string `json:"webhook_secret,omitempty"`
+	IsSystemWide  bool   `json:"is_system_wide,omitempty"`
 	// Runner permission columns Coolify stores on the GitHub App. The public
 	// create and update allow lists do not accept them. GET returns them on
 	// 4.4 tip and omits them on older versions.

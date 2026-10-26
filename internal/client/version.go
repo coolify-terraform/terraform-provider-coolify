@@ -77,6 +77,18 @@ var ApplicationSettingsV44WriteJSONKeys = []string{
 	"custom_container_name_prefix",
 }
 
+// ApplicationSettingsV45WriteJSONKeys lists Coolify application PATCH JSON
+// keys accepted only on Coolify >= v4.5.0. clearApplicationSettingsV45 drops
+// them. dockerfile content updates use the same gate in the dockerfile resource.
+var ApplicationSettingsV45WriteJSONKeys = []string{
+	"http_basic_auth_hash_algorithm",
+	"http_basic_auth_argon2id_memory_cost",
+	"http_basic_auth_argon2id_time_cost",
+	"http_basic_auth_bcrypt_cost",
+	"is_permanent_redirect_enabled",
+	"redact_all_env_values_in_logs",
+}
+
 // ApplicationSettingsAheadOfPinWriteJSONKeys are public application write
 // keys that exist on Coolify main after tag v4.4.6. That tag and main both
 // report version 4.4.6, so a version check cannot tell them apart. Callers
@@ -122,6 +134,30 @@ func (c *Client) SupportsApplicationSettingsV43() bool {
 // string reports true (CI edge version lie).
 func (c *Client) SupportsApplicationSettingsV44() bool {
 	return c.supports44Tip()
+}
+
+// minCoolify45Version is the first tagged Coolify release that accepts the
+// v4.5.0 write keys (HTTP basic-auth hash settings, backup s3_storage_uuids,
+// CloudWatch log drains, and the other allow-list additions in that tag).
+const minCoolify45Version = "4.5.0"
+
+// SupportsCoolify45 reports whether the connected instance accepts Coolify
+// >= v4.5.0 write fields.
+//
+// Empty CoolifyVersion reports true so unit tests that never call Configure
+// exercise the new payload. A 4.3.0 version string reports true because CI
+// edge has used that string while shipping later APIs. 4.4-rc.* reports false.
+func (c *Client) SupportsCoolify45() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionIs44Prerelease(c.CoolifyVersion) {
+		return false
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minCoolify45Version)
 }
 
 // supports44Tip is the shared Coolify 4.4-tip gate (not v4.4-rc.1).

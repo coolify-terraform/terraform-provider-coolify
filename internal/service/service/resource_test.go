@@ -40,6 +40,7 @@ var expectedWritableServiceUpdateKeys = []string{
 	"instant_deploy",
 	"is_container_label_escape_enabled",
 	"name",
+	"redact_all_env_values_in_logs",
 	"urls",
 }
 
@@ -453,6 +454,7 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 		DockerComposeRaw              types.String      `tfsdk:"docker_compose_raw"`
 		ConnectToNetwork              types.Bool        `tfsdk:"connect_to_docker_network"`
 		IsContainerLabelEscapeEnabled types.Bool        `tfsdk:"is_container_label_escape_enabled"`
+		RedactAllEnvValuesInLogs      types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
 		ConfigHash                    types.String      `tfsdk:"config_hash"`
 		InstantDeploy                 types.Bool        `tfsdk:"instant_deploy"`
 		URLs                          []serviceURLEntry `tfsdk:"urls"`
@@ -476,6 +478,7 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 		DockerComposeRaw:              types.StringNull(),
 		ConnectToNetwork:              types.BoolNull(),
 		IsContainerLabelEscapeEnabled: types.BoolNull(),
+		RedactAllEnvValuesInLogs:      types.BoolNull(),
 		ConfigHash:                    types.StringNull(),
 		InstantDeploy:                 types.BoolNull(),
 		URLs:                          nil,
@@ -565,6 +568,7 @@ func TestDeleteService_ErrorsWhenGetReturnsEmptyBody(t *testing.T) {
 		DockerComposeRaw              types.String      `tfsdk:"docker_compose_raw"`
 		ConnectToNetwork              types.Bool        `tfsdk:"connect_to_docker_network"`
 		IsContainerLabelEscapeEnabled types.Bool        `tfsdk:"is_container_label_escape_enabled"`
+		RedactAllEnvValuesInLogs      types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
 		ConfigHash                    types.String      `tfsdk:"config_hash"`
 		InstantDeploy                 types.Bool        `tfsdk:"instant_deploy"`
 		URLs                          []serviceURLEntry `tfsdk:"urls"`
@@ -588,6 +592,7 @@ func TestDeleteService_ErrorsWhenGetReturnsEmptyBody(t *testing.T) {
 		DockerComposeRaw:              types.StringNull(),
 		ConnectToNetwork:              types.BoolNull(),
 		IsContainerLabelEscapeEnabled: types.BoolNull(),
+		RedactAllEnvValuesInLogs:      types.BoolNull(),
 		ConfigHash:                    types.StringNull(),
 		InstantDeploy:                 types.BoolNull(),
 		URLs:                          nil,
@@ -1594,5 +1599,109 @@ func TestServiceResource_CreateOmitsDestinationUUIDWhenUnset(t *testing.T) {
 				),
 			},
 		},
+	})
+}
+
+func TestServiceResource_RedactAllEnvValuesInLogs(t *testing.T) {
+	var mu sync.Mutex
+	var postBody map[string]interface{}
+	deleted := false
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/services":
+			var body map[string]interface{}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				http.Error(w, `{"message":"bad json"}`, http.StatusBadRequest)
+				return
+			}
+			mu.Lock()
+			postBody = body
+			deleted = false
+			mu.Unlock()
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]string{"uuid": "svc-redact-1"})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/services/svc-redact-1":
+			mu.Lock()
+			gone := deleted
+			mu.Unlock()
+			if gone {
+				http.Error(w, `{"message":"not found"}`, http.StatusNotFound)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":         "svc-redact-1",
+				"name":         "redact-svc",
+				"type":         "plausible",
+				"project_uuid": "aaaa0001-0001-4000-8000-000000000001",
+				"server_uuid":  "bbbb0001-0001-4000-8000-000000000001",
+			})
+		case r.Method == http.MethodDelete:
+			mu.Lock()
+			deleted = true
+			mu.Unlock()
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]string{"message": "deleted"})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	t.Run("4.5.0 sends the field", func(t *testing.T) {
+		postBody = nil
+		srv := httptest.NewServer(acctest.WithVersionEndpointVersion(handler, "4.5.0"))
+		defer srv.Close()
+		resource.UnitTest(t, resource.TestCase{
+			ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+			Steps: []resource.TestStep{{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service" "test" {
+  name                         = "redact-svc"
+  type                         = "plausible"
+  project_uuid                 = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid                  = "bbbb0001-0001-4000-8000-000000000001"
+  redact_all_env_values_in_logs = false
+}
+`,
+				Check: func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					got, ok := postBody["redact_all_env_values_in_logs"].(bool)
+					if !ok || got {
+						return fmt.Errorf("POST redact_all_env_values_in_logs = %v, want false", postBody["redact_all_env_values_in_logs"])
+					}
+					return nil
+				},
+			}},
+		})
+	})
+
+	t.Run("4.4.2 omits the field", func(t *testing.T) {
+		postBody = nil
+		srv := httptest.NewServer(acctest.WithVersionEndpointVersion(handler, "4.4.2"))
+		defer srv.Close()
+		resource.UnitTest(t, resource.TestCase{
+			ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+			Steps: []resource.TestStep{{
+				Config: acctest.ProviderBlockForURL(srv.URL) + `
+resource "coolify_service" "test" {
+  name                         = "redact-svc"
+  type                         = "plausible"
+  project_uuid                 = "aaaa0001-0001-4000-8000-000000000001"
+  server_uuid                  = "bbbb0001-0001-4000-8000-000000000001"
+  redact_all_env_values_in_logs = true
+}
+`,
+				Check: func(_ *terraform.State) error {
+					mu.Lock()
+					defer mu.Unlock()
+					if _, ok := postBody["redact_all_env_values_in_logs"]; ok {
+						return fmt.Errorf("4.4.2 POST must omit redact_all_env_values_in_logs, got %v", postBody["redact_all_env_values_in_logs"])
+					}
+					return nil
+				},
+			}},
+		})
 	})
 }

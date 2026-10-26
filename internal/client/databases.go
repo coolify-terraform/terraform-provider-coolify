@@ -340,15 +340,18 @@ func (c *Client) RestartDatabase(ctx context.Context, uuid string) error {
 // --- Database Backup types ---
 
 type DatabaseBackup struct {
-	ID                    int      `json:"id"`
-	UUID                  string   `json:"uuid"`
-	DatabaseUUID          string   `json:"database_uuid"`
-	Frequency             string   `json:"frequency"`
-	Enabled               bool     `json:"enabled"`
-	Description           string   `json:"description,omitempty"`
-	DisableLocalBackup    bool     `json:"disable_local_backup"`
-	SaveS3                bool     `json:"save_s3,omitempty"`
-	S3StorageID           string   `json:"s3_storage_uuid,omitempty"`
+	ID                 int    `json:"id"`
+	UUID               string `json:"uuid"`
+	DatabaseUUID       string `json:"database_uuid"`
+	Frequency          string `json:"frequency"`
+	Enabled            bool   `json:"enabled"`
+	Description        string `json:"description,omitempty"`
+	DisableLocalBackup bool   `json:"disable_local_backup"`
+	SaveS3             bool   `json:"save_s3,omitempty"`
+	S3StorageID        string `json:"s3_storage_uuid,omitempty"`
+	// S3StorageUUIDs is every S3 destination, primary first. Coolify >= v4.5.0.
+	// Nil when the API omits the key.
+	S3StorageUUIDs        []string `json:"s3_storage_uuids,omitempty"`
 	DatabaseType          string   `json:"database_type,omitempty"`
 	DatabasesToBackup     string   `json:"databases_to_backup,omitempty"`
 	DumpAll               bool     `json:"dump_all,omitempty"`
@@ -370,38 +373,44 @@ type DatabaseBackup struct {
 }
 
 type CreateDatabaseBackupInput struct {
-	Frequency             string   `json:"frequency"`
-	Enabled               bool     `json:"enabled"`
-	SaveS3                *bool    `json:"save_s3,omitempty"`
-	S3StorageID           string   `json:"s3_storage_uuid,omitempty"`
-	DatabasesToBackup     string   `json:"databases_to_backup,omitempty"`
-	DumpAll               *bool    `json:"dump_all,omitempty"`
-	BackupNow             *bool    `json:"backup_now,omitempty"`
-	RetainAmountLocally   *int64   `json:"database_backup_retention_amount_locally,omitempty"`
-	RetainDaysLocally     *int64   `json:"database_backup_retention_days_locally,omitempty"`
-	RetainMaxStorageLocal *float64 `json:"database_backup_retention_max_storage_locally,omitempty"`
-	RetainAmountS3        *int64   `json:"database_backup_retention_amount_s3,omitempty"`
-	RetainDaysS3          *int64   `json:"database_backup_retention_days_s3,omitempty"`
-	RetainMaxStorageS3    *float64 `json:"database_backup_retention_max_storage_s3,omitempty"`
-	Timeout               *int64   `json:"timeout,omitempty"`
+	Frequency   string `json:"frequency"`
+	Enabled     bool   `json:"enabled"`
+	SaveS3      *bool  `json:"save_s3,omitempty"`
+	S3StorageID string `json:"s3_storage_uuid,omitempty"`
+	// S3StorageUUIDs replaces the destination list. Coolify >= v4.5.0.
+	// A pointer so a known empty list encodes as [] and clears destinations.
+	S3StorageUUIDs        *[]string `json:"s3_storage_uuids,omitempty"`
+	DatabasesToBackup     string    `json:"databases_to_backup,omitempty"`
+	DumpAll               *bool     `json:"dump_all,omitempty"`
+	BackupNow             *bool     `json:"backup_now,omitempty"`
+	RetainAmountLocally   *int64    `json:"database_backup_retention_amount_locally,omitempty"`
+	RetainDaysLocally     *int64    `json:"database_backup_retention_days_locally,omitempty"`
+	RetainMaxStorageLocal *float64  `json:"database_backup_retention_max_storage_locally,omitempty"`
+	RetainAmountS3        *int64    `json:"database_backup_retention_amount_s3,omitempty"`
+	RetainDaysS3          *int64    `json:"database_backup_retention_days_s3,omitempty"`
+	RetainMaxStorageS3    *float64  `json:"database_backup_retention_max_storage_s3,omitempty"`
+	Timeout               *int64    `json:"timeout,omitempty"`
 	// MissingBackupNotificationDays requires Coolify >= v4.3.18.
 	MissingBackupNotificationDays *int64 `json:"missing_backup_notification_days,omitempty"`
 }
 
 type UpdateDatabaseBackupInput struct {
-	Frequency             *string  `json:"frequency,omitempty"`
-	Enabled               *bool    `json:"enabled,omitempty"`
-	SaveS3                *bool    `json:"save_s3,omitempty"`
-	S3StorageID           *string  `json:"s3_storage_uuid,omitempty"`
-	DatabasesToBackup     *string  `json:"databases_to_backup,omitempty"`
-	DumpAll               *bool    `json:"dump_all,omitempty"`
-	RetainAmountLocally   *int64   `json:"database_backup_retention_amount_locally,omitempty"`
-	RetainDaysLocally     *int64   `json:"database_backup_retention_days_locally,omitempty"`
-	RetainMaxStorageLocal *float64 `json:"database_backup_retention_max_storage_locally,omitempty"`
-	RetainAmountS3        *int64   `json:"database_backup_retention_amount_s3,omitempty"`
-	RetainDaysS3          *int64   `json:"database_backup_retention_days_s3,omitempty"`
-	RetainMaxStorageS3    *float64 `json:"database_backup_retention_max_storage_s3,omitempty"`
-	Timeout               *int64   `json:"timeout,omitempty"`
+	Frequency   *string `json:"frequency,omitempty"`
+	Enabled     *bool   `json:"enabled,omitempty"`
+	SaveS3      *bool   `json:"save_s3,omitempty"`
+	S3StorageID *string `json:"s3_storage_uuid,omitempty"`
+	// S3StorageUUIDs replaces the destination list. Coolify >= v4.5.0.
+	// A pointer so a known empty list encodes as [] and clears destinations.
+	S3StorageUUIDs        *[]string `json:"s3_storage_uuids,omitempty"`
+	DatabasesToBackup     *string   `json:"databases_to_backup,omitempty"`
+	DumpAll               *bool     `json:"dump_all,omitempty"`
+	RetainAmountLocally   *int64    `json:"database_backup_retention_amount_locally,omitempty"`
+	RetainDaysLocally     *int64    `json:"database_backup_retention_days_locally,omitempty"`
+	RetainMaxStorageLocal *float64  `json:"database_backup_retention_max_storage_locally,omitempty"`
+	RetainAmountS3        *int64    `json:"database_backup_retention_amount_s3,omitempty"`
+	RetainDaysS3          *int64    `json:"database_backup_retention_days_s3,omitempty"`
+	RetainMaxStorageS3    *float64  `json:"database_backup_retention_max_storage_s3,omitempty"`
+	Timeout               *int64    `json:"timeout,omitempty"`
 	// MissingBackupNotificationDays requires Coolify >= v4.3.18.
 	MissingBackupNotificationDays *int64 `json:"missing_backup_notification_days,omitempty"`
 }
@@ -418,6 +427,9 @@ func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input 
 	if !c.SupportsMissingBackupNotificationDays() {
 		input.MissingBackupNotificationDays = nil
 	}
+	if !c.SupportsCoolify45() {
+		input.S3StorageUUIDs = nil
+	}
 	var b DatabaseBackup
 	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)), input, &b, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating backup for database %s: %w", dbUUID, err)
@@ -429,6 +441,9 @@ func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input 
 func (c *Client) UpdateDatabaseBackup(ctx context.Context, dbUUID string, backupUUID string, input UpdateDatabaseBackupInput) (*DatabaseBackup, error) {
 	if !c.SupportsMissingBackupNotificationDays() {
 		input.MissingBackupNotificationDays = nil
+	}
+	if !c.SupportsCoolify45() {
+		input.S3StorageUUIDs = nil
 	}
 	var b DatabaseBackup
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/backups/%s", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), input, &b); err != nil {

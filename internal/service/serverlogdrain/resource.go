@@ -7,6 +7,7 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -26,16 +27,20 @@ var (
 type res struct{ client *client.Client }
 
 type model struct {
-	ServerUUID         types.String `tfsdk:"server_uuid"`
-	NewRelicEnabled    types.Bool   `tfsdk:"is_logdrain_newrelic_enabled"`
-	NewRelicLicenseKey types.String `tfsdk:"logdrain_newrelic_license_key"`
-	NewRelicBaseURI    types.String `tfsdk:"logdrain_newrelic_base_uri"`
-	AxiomEnabled       types.Bool   `tfsdk:"is_logdrain_axiom_enabled"`
-	AxiomDatasetName   types.String `tfsdk:"logdrain_axiom_dataset_name"`
-	AxiomAPIKey        types.String `tfsdk:"logdrain_axiom_api_key"`
-	CustomEnabled      types.Bool   `tfsdk:"is_logdrain_custom_enabled"`
-	CustomConfig       types.String `tfsdk:"logdrain_custom_config"`
-	CustomConfigParser types.String `tfsdk:"logdrain_custom_config_parser"`
+	ServerUUID             types.String `tfsdk:"server_uuid"`
+	NewRelicEnabled        types.Bool   `tfsdk:"is_logdrain_newrelic_enabled"`
+	NewRelicLicenseKey     types.String `tfsdk:"logdrain_newrelic_license_key"`
+	NewRelicBaseURI        types.String `tfsdk:"logdrain_newrelic_base_uri"`
+	AxiomEnabled           types.Bool   `tfsdk:"is_logdrain_axiom_enabled"`
+	AxiomDatasetName       types.String `tfsdk:"logdrain_axiom_dataset_name"`
+	AxiomAPIKey            types.String `tfsdk:"logdrain_axiom_api_key"`
+	CustomEnabled          types.Bool   `tfsdk:"is_logdrain_custom_enabled"`
+	CustomConfig           types.String `tfsdk:"logdrain_custom_config"`
+	CustomConfigParser     types.String `tfsdk:"logdrain_custom_config_parser"`
+	CloudWatchEnabled      types.Bool   `tfsdk:"is_logdrain_cloudwatch_enabled"`
+	CloudWatchGroup        types.String `tfsdk:"logdrain_cloudwatch_group"`
+	CloudWatchRegion       types.String `tfsdk:"logdrain_cloudwatch_region"`
+	CloudWatchStreamPrefix types.String `tfsdk:"logdrain_cloudwatch_stream_prefix"`
 }
 
 func NewResource() resource.Resource { return &res{} }
@@ -103,6 +108,30 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				MarkdownDescription: "Custom log drain config parser. Omitting the attribute later does not clear the stored Coolify value.",
 			},
+			"is_logdrain_cloudwatch_enabled": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "Send container logs to Amazon CloudWatch. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
+			},
+			"logdrain_cloudwatch_region": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "CloudWatch region. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
+			},
+			"logdrain_cloudwatch_group": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "CloudWatch log group. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
+			},
+			"logdrain_cloudwatch_stream_prefix": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "Prefix for CloudWatch log stream names. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
+			},
 		},
 	}
 }
@@ -113,15 +142,19 @@ func (r *res) Configure(_ context.Context, req resource.ConfigureRequest, resp *
 
 func toInput(m model) client.ServerLogDrains {
 	return client.ServerLogDrains{
-		IsNewRelicEnabled:  flex.BoolValueOrNull(m.NewRelicEnabled),
-		NewRelicLicenseKey: m.NewRelicLicenseKey.ValueString(),
-		NewRelicBaseURI:    m.NewRelicBaseURI.ValueString(),
-		IsAxiomEnabled:     flex.BoolValueOrNull(m.AxiomEnabled),
-		AxiomDatasetName:   m.AxiomDatasetName.ValueString(),
-		AxiomAPIKey:        m.AxiomAPIKey.ValueString(),
-		IsCustomEnabled:    flex.BoolValueOrNull(m.CustomEnabled),
-		CustomConfig:       m.CustomConfig.ValueString(),
-		CustomConfigParser: m.CustomConfigParser.ValueString(),
+		IsNewRelicEnabled:      flex.BoolValueOrNull(m.NewRelicEnabled),
+		NewRelicLicenseKey:     m.NewRelicLicenseKey.ValueString(),
+		NewRelicBaseURI:        m.NewRelicBaseURI.ValueString(),
+		IsAxiomEnabled:         flex.BoolValueOrNull(m.AxiomEnabled),
+		AxiomDatasetName:       m.AxiomDatasetName.ValueString(),
+		AxiomAPIKey:            m.AxiomAPIKey.ValueString(),
+		IsCustomEnabled:        flex.BoolValueOrNull(m.CustomEnabled),
+		CustomConfig:           m.CustomConfig.ValueString(),
+		CustomConfigParser:     m.CustomConfigParser.ValueString(),
+		IsCloudWatchEnabled:    flex.BoolValueOrNull(m.CloudWatchEnabled),
+		CloudWatchGroup:        m.CloudWatchGroup.ValueString(),
+		CloudWatchRegion:       m.CloudWatchRegion.ValueString(),
+		CloudWatchStreamPrefix: m.CloudWatchStreamPrefix.ValueString(),
 	}
 }
 
@@ -145,8 +178,43 @@ func flatten(s *client.ServerLogDrains, m *model) {
 	} else if m.CustomEnabled.IsUnknown() {
 		m.CustomEnabled = types.BoolValue(false)
 	}
-	flex.SetStringSeedOrClear(&m.CustomConfig, s.CustomConfig)
+	// Encrypted on Coolify 4.5. An empty GET must not wipe a stored config.
+	flex.SetStringPreserveEmpty(&m.CustomConfig, s.CustomConfig)
 	flex.SetStringSeedOrClear(&m.CustomConfigParser, s.CustomConfigParser)
+	if s.IsCloudWatchEnabled != nil {
+		m.CloudWatchEnabled = types.BoolValue(*s.IsCloudWatchEnabled)
+	} else if m.CloudWatchEnabled.IsUnknown() {
+		m.CloudWatchEnabled = types.BoolNull()
+	}
+	flex.SetStringPreserveEmpty(&m.CloudWatchGroup, s.CloudWatchGroup)
+	flex.SetStringPreserveEmpty(&m.CloudWatchRegion, s.CloudWatchRegion)
+	flex.SetStringPreserveEmpty(&m.CloudWatchStreamPrefix, s.CloudWatchStreamPrefix)
+}
+
+func warnUnsupportedCloudWatch(c *client.Client, plan model, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsCoolify45() {
+		return
+	}
+	configured := (!plan.CloudWatchEnabled.IsNull() && !plan.CloudWatchEnabled.IsUnknown()) ||
+		flex.StringValueConfigured(plan.CloudWatchGroup) ||
+		flex.StringValueConfigured(plan.CloudWatchRegion) ||
+		flex.StringValueConfigured(plan.CloudWatchStreamPrefix)
+	if !configured {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write CloudWatch log drain settings",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept CloudWatch log drain fields (added in Coolify v4.5.0). "+
+				"The provider will keep the values in Terraform state but will not send them. "+
+				"Upgrade to Coolify v4.5.0 or later, or remove the CloudWatch attributes from configuration.",
+			ver,
+		),
+	)
 }
 
 func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -155,6 +223,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	warnUnsupportedCloudWatch(r.client, plan, &resp.Diagnostics)
 	got, err := r.client.UpdateServerLogDrains(ctx, plan.ServerUUID.ValueString(), toInput(plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error applying server log drains", err.Error())
@@ -189,6 +258,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	warnUnsupportedCloudWatch(r.client, plan, &resp.Diagnostics)
 	got, err := r.client.UpdateServerLogDrains(ctx, plan.ServerUUID.ValueString(), toInput(plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating server log drains", err.Error())

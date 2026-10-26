@@ -144,6 +144,14 @@ var notificationWriteChannels = []struct {
 	{"webhook", "NotificationsController::update_webhook"},
 }
 
+// serviceWriteKeysAddedInCoolify45 are on ServicesController in
+// testdata/contracts/coolify-v4.5.0.json. The pin is still v4.4.2, so the
+// allow-list comparison below does not know them. CreateService and
+// UpdateService nil RedactAllEnvValuesInLogs when the server is older than v4.5.0.
+var serviceWriteKeysAddedInCoolify45 = map[string]struct{}{
+	"redact_all_env_values_in_logs": {},
+}
+
 // TestWriteCoverage_ServiceUpdateNoExtraKeys fails if UpdateServiceInput
 // would send a JSON key Coolify PATCH rejects. Extra-key 422 is the #789
 // class (database UI bools). destination_uuid is create-only and must stay
@@ -169,6 +177,9 @@ func TestWriteCoverage_ServiceUpdateNoExtraKeys(t *testing.T) {
 	var extra []string
 	for field := range tags {
 		if _, ok := allow[field]; !ok {
+			if _, gated := serviceWriteKeysAddedInCoolify45[field]; gated {
+				continue
+			}
 			extra = append(extra, field)
 		}
 	}
@@ -203,6 +214,9 @@ func TestWriteCoverage_ServiceCreateAllowList(t *testing.T) {
 	var extra []string
 	for field := range tags {
 		if _, ok := allow[field]; !ok {
+			if _, gated := serviceWriteKeysAddedInCoolify45[field]; gated {
+				continue
+			}
 			extra = append(extra, field)
 		}
 	}

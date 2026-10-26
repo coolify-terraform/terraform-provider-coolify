@@ -124,6 +124,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 		// On < 4.2.0 the v4.3 and v4.4 fields are also withheld.
 		names = append(names, configuredVersionGatedV43WriteAttrs(f)...)
 		names = append(names, configuredVersionGatedV44WriteAttrs(f)...)
+		names = append(names, configuredVersionGatedV45WriteAttrs(f)...)
 		sort.Strings(names)
 		if len(names) > 0 {
 			diags.AddWarning(
@@ -131,7 +132,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 				fmt.Sprintf(
 					"This Coolify instance (%s) is older than v4.2.0, which is required to write: %s. "+
 						"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
-						"Upgrade Coolify to v4.2.0 or later (v4.3.0 for GPU/log drain/noindex fields, 4.4 for custom_container_name_prefix), or remove these attributes from configuration.",
+						"Upgrade Coolify to v4.2.0 or later (v4.3.0 for GPU, log drain, and noindex fields, 4.4 for custom_container_name_prefix, v4.5.0 for HTTP basic auth hash settings and log redaction), or remove these attributes from configuration.",
 					ver,
 					strings.Join(names, ", "),
 				),
@@ -142,6 +143,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 	if !c.SupportsApplicationSettingsV43() {
 		names := configuredVersionGatedV43WriteAttrs(f)
 		names = append(names, configuredVersionGatedV44WriteAttrs(f)...)
+		names = append(names, configuredVersionGatedV45WriteAttrs(f)...)
 		sort.Strings(names)
 		if len(names) == 0 {
 			return
@@ -151,7 +153,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 			fmt.Sprintf(
 				"This Coolify instance (%s) is older than v4.3.0, which is required to write: %s. "+
 					"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
-					"Upgrade Coolify to v4.3.0 or later (4.4 for custom_container_name_prefix), or remove these attributes from configuration.",
+					"Upgrade Coolify to v4.3.0 or later (4.4 for custom_container_name_prefix, v4.5.0 for HTTP basic auth hash settings and log redaction), or remove these attributes from configuration.",
 				ver,
 				strings.Join(names, ", "),
 			),
@@ -160,18 +162,60 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 	}
 	if !c.SupportsApplicationSettingsV44() {
 		names := configuredVersionGatedV44WriteAttrs(f)
+		if len(names) > 0 {
+			diags.AddWarning(
+				versionGatedWriteAttrSummary,
+				fmt.Sprintf(
+					"This Coolify instance (%s) is older than 4.4, which is required to write: %s. "+
+						"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
+						"Upgrade Coolify to 4.4 or later (not v4.4-rc.1), or remove these attributes from configuration.",
+					ver,
+					strings.Join(names, ", "),
+				),
+			)
+		}
+	}
+	if !c.SupportsCoolify45() {
+		names := configuredVersionGatedV45WriteAttrs(f)
 		if len(names) == 0 {
 			return
 		}
 		diags.AddWarning(
 			versionGatedWriteAttrSummary,
 			fmt.Sprintf(
-				"This Coolify instance (%s) is older than 4.4, which is required to write: %s. "+
+				"This Coolify instance (%s) is older than v4.5.0, which is required to write: %s. "+
 					"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
-					"Upgrade Coolify to 4.4 or later (not v4.4-rc.1), or remove these attributes from configuration.",
+					"Upgrade Coolify to v4.5.0 or later, or remove these attributes from configuration.",
 				ver,
 				strings.Join(names, ", "),
 			),
 		)
 	}
+}
+
+func configuredVersionGatedV45WriteAttrs(f commonAppFields) []string {
+	var names []string
+	appendStr := func(name string, v *types.String) {
+		if v != nil && !v.IsNull() && !v.IsUnknown() {
+			names = append(names, name)
+		}
+	}
+	appendBool := func(name string, v *types.Bool) {
+		if v != nil && !v.IsNull() && !v.IsUnknown() {
+			names = append(names, name)
+		}
+	}
+	appendInt := func(name string, v *types.Int64) {
+		if v != nil && !v.IsNull() && !v.IsUnknown() {
+			names = append(names, name)
+		}
+	}
+	appendStr("http_basic_auth_hash_algorithm", f.HTTPBasicAuthHashAlgorithm)
+	appendInt("http_basic_auth_argon2id_memory_cost", f.HTTPBasicAuthArgon2idMemoryCost)
+	appendStr("http_basic_auth_argon2id_time_cost", f.HTTPBasicAuthArgon2idTimeCost)
+	appendStr("http_basic_auth_bcrypt_cost", f.HTTPBasicAuthBcryptCost)
+	appendBool("is_permanent_redirect_enabled", f.IsPermanentRedirectEnabled)
+	appendBool("redact_all_env_values_in_logs", f.RedactAllEnvValuesInLogs)
+	sort.Strings(names)
+	return names
 }

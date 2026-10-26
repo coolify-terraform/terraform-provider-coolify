@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -35,20 +36,21 @@ type emailResource struct {
 type model struct {
 	ID types.String `tfsdk:"id"`
 
-	SMTPEnabled      types.Bool   `tfsdk:"smtp_enabled"`
-	SMTPFromAddress  types.String `tfsdk:"smtp_from_address"`
-	SMTPFromName     types.String `tfsdk:"smtp_from_name"`
-	SMTPRecipients   types.String `tfsdk:"smtp_recipients"`
-	SMTPHost         types.String `tfsdk:"smtp_host"`
-	SMTPPort         types.Int64  `tfsdk:"smtp_port"`
-	SMTPEncryption   types.String `tfsdk:"smtp_encryption"`
-	SMTPUsername     types.String `tfsdk:"smtp_username"`
-	SMTPPassword     types.String `tfsdk:"smtp_password"`
-	SMTPTimeout      types.Int64  `tfsdk:"smtp_timeout"`
-	SMTPEhloDomain   types.String `tfsdk:"smtp_ehlo_domain"`
-	ResendEnabled    types.Bool   `tfsdk:"resend_enabled"`
-	ResendAPIKey     types.String `tfsdk:"resend_api_key"`
-	UseInstanceEmail types.Bool   `tfsdk:"use_instance_email_settings"`
+	SMTPEnabled             types.Bool   `tfsdk:"smtp_enabled"`
+	SMTPFromAddress         types.String `tfsdk:"smtp_from_address"`
+	SMTPFromName            types.String `tfsdk:"smtp_from_name"`
+	SMTPRecipients          types.String `tfsdk:"smtp_recipients"`
+	SMTPHost                types.String `tfsdk:"smtp_host"`
+	SMTPPort                types.Int64  `tfsdk:"smtp_port"`
+	SMTPEncryption          types.String `tfsdk:"smtp_encryption"`
+	SMTPUsername            types.String `tfsdk:"smtp_username"`
+	SMTPPassword            types.String `tfsdk:"smtp_password"`
+	SMTPTimeout             types.Int64  `tfsdk:"smtp_timeout"`
+	SMTPEhloDomain          types.String `tfsdk:"smtp_ehlo_domain"`
+	DeploymentCommitDetails types.Bool   `tfsdk:"deployment_commit_details_email_notifications"`
+	ResendEnabled           types.Bool   `tfsdk:"resend_enabled"`
+	ResendAPIKey            types.String `tfsdk:"resend_api_key"`
+	UseInstanceEmail        types.Bool   `tfsdk:"use_instance_email_settings"`
 
 	notificationcommon.EventModel
 }
@@ -142,6 +144,13 @@ func (r *emailResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			Default:             booldefault.StaticBool(false),
 		},
 		"resend_api_key": notificationcommon.StringSensitiveOmit("Resend API key."),
+		"deployment_commit_details_email_notifications": schema.BoolAttribute{
+			MarkdownDescription: "Include git commit details in deployment emails. " +
+				"Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
+			Optional:      true,
+			Computed:      true,
+			PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+		},
 		"use_instance_email_settings": schema.BoolAttribute{
 			MarkdownDescription: "Whether to use the Coolify instance's shared email settings for this team.",
 			Optional:            true,
@@ -182,6 +191,7 @@ func (r *emailResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	warnUnsupportedSMTPEhloDomain(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedDeploymentCommitDetails(r.client, plan, &resp.Diagnostics)
 	if err := flatten(updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
@@ -235,6 +245,7 @@ func (r *emailResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 	warnUnsupportedSMTPEhloDomain(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedDeploymentCommitDetails(r.client, plan, &resp.Diagnostics)
 	if err := flatten(updated, &plan); err != nil {
 		resp.Diagnostics.AddError("Error mapping notification settings", err.Error())
 		return
@@ -285,6 +296,7 @@ func createInputFromPlan(plan model) (client.UpdateEmailNotificationInput, error
 	setStr(plan.SMTPUsername, &in.SMTPUsername)
 	setStr(plan.SMTPPassword, &in.SMTPPassword)
 	setStr(plan.SMTPEhloDomain, &in.SMTPEhloDomain)
+	in.DeploymentCommitDetails = flex.BoolValueOrNull(plan.DeploymentCommitDetails)
 	setStr(plan.ResendAPIKey, &in.ResendAPIKey)
 	if !plan.SMTPPort.IsNull() && !plan.SMTPPort.IsUnknown() {
 		v := int(plan.SMTPPort.ValueInt64())
@@ -330,6 +342,7 @@ func updateInputFromPlan(plan, state model) (client.UpdateEmailNotificationInput
 	if w := flex.StringIfChanged(plan.SMTPEhloDomain, state.SMTPEhloDomain); w != nil {
 		in.SMTPEhloDomain = w
 	}
+	in.DeploymentCommitDetails = flex.BoolIfChanged(plan.DeploymentCommitDetails, state.DeploymentCommitDetails)
 	if w := flex.StringIfChanged(plan.ResendAPIKey, state.ResendAPIKey); w != nil {
 		in.ResendAPIKey = w
 	}
@@ -366,6 +379,11 @@ func flatten(api *client.EmailNotificationSettings, m *model) error {
 		ehlo = *api.SMTPEhloDomain
 	}
 	flex.SetStringPreserveEmpty(&m.SMTPEhloDomain, ehlo)
+	if api.DeploymentCommitDetails != nil {
+		m.DeploymentCommitDetails = types.BoolValue(*api.DeploymentCommitDetails)
+	} else if m.DeploymentCommitDetails.IsUnknown() {
+		m.DeploymentCommitDetails = types.BoolNull()
+	}
 	flex.SetStringPreserveEmpty(&m.ResendAPIKey, api.ResendAPIKey)
 	if api.SMTPPort != nil {
 		m.SMTPPort = types.Int64Value(int64(*api.SMTPPort))
@@ -378,6 +396,28 @@ func flatten(api *client.EmailNotificationSettings, m *model) error {
 		m.SMTPTimeout = types.Int64Null()
 	}
 	return nil
+}
+
+func warnUnsupportedDeploymentCommitDetails(c *client.Client, plan model, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsCoolify45() {
+		return
+	}
+	if plan.DeploymentCommitDetails.IsNull() || plan.DeploymentCommitDetails.IsUnknown() {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write deployment_commit_details_email_notifications",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept deployment_commit_details_email_notifications (added in Coolify v4.5.0). "+
+				"The provider will keep the value in Terraform state but will not send it. "+
+				"Upgrade to Coolify v4.5.0 or later, or remove deployment_commit_details_email_notifications from configuration.",
+			ver,
+		),
+	)
 }
 
 func warnUnsupportedSMTPEhloDomain(c *client.Client, plan model, diags *diag.Diagnostics) {

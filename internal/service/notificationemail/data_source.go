@@ -53,6 +53,9 @@ func (d *emailDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 		"resend_enabled":              notificationcommon.BoolComputed("Whether Resend delivery is enabled."),
 		"resend_api_key":              sens("Resend API key."),
 		"use_instance_email_settings": notificationcommon.BoolComputed("Whether the team uses the Coolify instance email settings."),
+		"deployment_commit_details_email_notifications": notificationcommon.BoolComputed(
+			"Whether deployment emails include git commit details. Requires Coolify >= v4.5.0. Null when the API omits the key.",
+		),
 	}
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Reads the current team's email notification settings (SMTP, Resend, and/or instance settings). " +

@@ -373,6 +373,56 @@ func TestSupportsTrafficIPMode(t *testing.T) {
 	}
 }
 
+func TestSupportsCoolify45(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.4.2", false},
+		{"v4.4.7", false},
+		{"4.4-rc.1", false},
+		{"4.3.0", true},
+		{"4.5.0", true},
+		{"v4.5.0", true},
+		{"4.5.1", true},
+		{"4.6-rc.1", true},
+		{"", true},
+		{"not-a-version", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsCoolify45(); got != tt.want {
+			t.Errorf("SupportsCoolify45(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsCoolify45() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
+func TestClearApplicationSettingsV45LeavesEarlierKeys(t *testing.T) {
+	t.Parallel()
+	algo := "bcrypt"
+	prefix := "app"
+	on := true
+	in := UpdateApplicationInput{
+		HTTPBasicAuthHashAlgorithm: &algo,
+		IsPermanentRedirectEnabled: &on,
+		RedactAllEnvValuesInLogs:   &on,
+		CustomContainerNamePrefix:  &prefix,
+	}
+	in.clearApplicationSettingsV45()
+	if in.HTTPBasicAuthHashAlgorithm != nil || in.IsPermanentRedirectEnabled != nil || in.RedactAllEnvValuesInLogs != nil {
+		t.Fatal("v4.5.0 fields were not cleared")
+	}
+	if in.CustomContainerNamePrefix == nil || *in.CustomContainerNamePrefix != "app" {
+		t.Fatal("clearApplicationSettingsV45 dropped custom_container_name_prefix")
+	}
+}
+
 func TestSupportsPreviewDomainUpdate(t *testing.T) {
 	t.Parallel()
 

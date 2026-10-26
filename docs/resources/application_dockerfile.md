@@ -43,7 +43,7 @@ resource "coolify_application_dockerfile" "app" {
 
 ### Required
 
-- `dockerfile_location` (String) The Dockerfile content. The provider accepts plain text or pre-encoded base64; encoding is handled automatically. Despite the field name, this is not a file path. Changing this forces a new resource because the Coolify API only accepts Dockerfile content at creation time.
+- `dockerfile_location` (String) The Dockerfile content. The provider accepts plain text or pre-encoded base64; encoding is handled automatically. Despite the field name, this is not a file path. Changing this forces a new resource on Coolify older than v4.5.0. On Coolify >= v4.5.0, and when the provider has no version string, the provider updates the Dockerfile in place.
 - `ports_exposes` (String) The ports to expose, as a comma-separated list (e.g., `80` or `80,443`).
 - `project_uuid` (String) The UUID of the project this application belongs to. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.
 - `server_uuid` (String) The UUID of the server to deploy the application on. Changing a known value forces a new resource. After a simple UUID import this is null, because Coolify GET does not return it. The next apply stores the configuration value in place.
@@ -91,6 +91,10 @@ resource "coolify_application_dockerfile" "app" {
 - `health_check_start_period` (Number) Health check start period in seconds.
 - `health_check_timeout` (Number) Health check timeout in seconds.
 - `health_check_type` (String) The type of health check. Valid values: `http`, `cmd`.
+- `http_basic_auth_argon2id_memory_cost` (Number) Argon2id memory cost in KiB for HTTP basic auth. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
+- `http_basic_auth_argon2id_time_cost` (String) Argon2id time cost for HTTP basic auth. Coolify stores this as a string. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
+- `http_basic_auth_bcrypt_cost` (String) Bcrypt cost for HTTP basic auth. Coolify stores this as a string. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
+- `http_basic_auth_hash_algorithm` (String) HTTP basic auth password hash algorithm (`bcrypt` or `argon2id`). Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `http_basic_auth_password` (String, Sensitive) Password for HTTP Basic Authentication.
 - `http_basic_auth_username` (String) Username for HTTP Basic Authentication.
 - `include_source_commit_in_build` (Boolean) Whether to include the source commit SHA in the build. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
@@ -109,6 +113,7 @@ resource "coolify_application_dockerfile" "app" {
 - `is_gzip_enabled` (Boolean) Whether gzip compression is enabled for the application proxy. Coolify default is `true`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `is_http_basic_auth_enabled` (Boolean) Whether HTTP Basic Authentication is enabled.
 - `is_log_drain_enabled` (Boolean) Whether log drain is enabled for this application. Coolify default is `false`. Requires Coolify >= v4.3.0. Against older instances the provider omits it on write and emits a plan warning if the attribute is set.
+- `is_permanent_redirect_enabled` (Boolean) Whether HTTP redirects are permanent. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `is_pr_deployments_public_enabled` (Boolean) Whether preview deployments from public pull requests are enabled. Coolify default is `false`. Writing this requires Coolify >= v4.2.0, where it is on the application endpoints' allow list; against older instances the provider omits it on write and emits a plan warning if the attribute is set, rather than fail the whole request with 422.
 - `is_preserve_repository_enabled` (Boolean) Whether to preserve the full Git repository (instead of shallow clone).
 - `is_preview_deployments_enabled` (Boolean) Whether preview deployments (e.g. pull requests) are enabled for this application. Requires Coolify >= v4.2.0. When omitted, Coolify defaults to `false`. Against older instances the provider omits this field on write and emits a plan warning if it is set, rather than fail the whole request with 422.
@@ -136,6 +141,7 @@ resource "coolify_application_dockerfile" "app" {
 - `pre_deployment_command` (String) Command to run before deployment.
 - `pre_deployment_command_container` (String) Container to run the pre-deployment command in.
 - `publish_directory` (String) The directory to publish for static sites. Omitting the attribute later does not clear the stored path.
+- `redact_all_env_values_in_logs` (Boolean) Whether environment values are redacted in application logs. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `redeploy_on_update` (Boolean) When `true`, the application is automatically restarted after a Terraform update that changes any configuration field. This covers all non-immutable, non-computed attributes including `name`, `description`, network settings (`ports_exposes`, `ports_mappings`, `domains`), resource limits (`limits_*`), health checks, build settings (`build_pack`, `build_command`, `dockerfile_location`, `base_directory`), deployment commands, container settings (`custom_labels`, `custom_docker_run_options`, `custom_nginx_configuration`), security (`is_force_https_enabled`, HTTP basic auth), webhook secrets (`manual_webhook_secret_*`), auto-deploy and static site settings, and type-specific fields (e.g., `docker_image`). Only immutable fields (`project_uuid`, `server_uuid`, `environment_name`, `environment_uuid`, and `github_app_uuid` on `coolify_application_github_app`), computed-only fields (`status`, `preview_url_template`), and the `redeploy_on_update` flag itself are excluded. Defaults to `false`.
 - `redirect` (String) Domain redirect mode. Valid values: `www`, `non-www`, `both`.
 - `start_command` (String) The command to run to start the application. Omitting the attribute later does not clear the stored command.

@@ -62,6 +62,12 @@ type ServerLogDrains struct {
 	IsCustomEnabled    *bool  `json:"is_logdrain_custom_enabled,omitempty"`
 	CustomConfig       string `json:"logdrain_custom_config,omitempty"`
 	CustomConfigParser string `json:"logdrain_custom_config_parser,omitempty"`
+	// CloudWatch fields require Coolify >= v4.5.0. UpdateServerLogDrains
+	// drops them on older instances.
+	IsCloudWatchEnabled    *bool  `json:"is_logdrain_cloudwatch_enabled,omitempty"`
+	CloudWatchGroup        string `json:"logdrain_cloudwatch_group,omitempty"`
+	CloudWatchRegion       string `json:"logdrain_cloudwatch_region,omitempty"`
+	CloudWatchStreamPrefix string `json:"logdrain_cloudwatch_stream_prefix,omitempty"`
 }
 
 func (c *Client) GetServerLogDrains(ctx context.Context, serverUUID string) (*ServerLogDrains, error) {
@@ -73,6 +79,12 @@ func (c *Client) GetServerLogDrains(ctx context.Context, serverUUID string) (*Se
 }
 
 func (c *Client) UpdateServerLogDrains(ctx context.Context, serverUUID string, input ServerLogDrains) (*ServerLogDrains, error) {
+	if !c.SupportsCoolify45() {
+		input.IsCloudWatchEnabled = nil
+		input.CloudWatchGroup = ""
+		input.CloudWatchRegion = ""
+		input.CloudWatchStreamPrefix = ""
+	}
 	var r ServerLogDrains
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s/log-drains", url.PathEscape(serverUUID)), input, &r); err != nil {
 		return nil, fmt.Errorf("updating server log drains %s: %w", serverUUID, err)
