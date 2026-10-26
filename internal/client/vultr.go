@@ -49,6 +49,9 @@ func vultrPath(base, cloudProviderTokenUUID string) string {
 
 // ListVultrRegions returns regions for a Vultr cloud token (Coolify >= v4.2.0).
 func (c *Client) ListVultrRegions(ctx context.Context, cloudProviderTokenUUID string) ([]VultrRegion, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var regions []VultrRegion
 	if err := c.do(ctx, http.MethodGet, vultrPath("/api/v1/vultr/regions", cloudProviderTokenUUID), nil, &regions); err != nil {
 		return nil, fmt.Errorf("listing vultr regions: %w", err)
@@ -58,6 +61,9 @@ func (c *Client) ListVultrRegions(ctx context.Context, cloudProviderTokenUUID st
 
 // ListVultrPlans returns plans for a Vultr cloud token (Coolify >= v4.2.0).
 func (c *Client) ListVultrPlans(ctx context.Context, cloudProviderTokenUUID string) ([]VultrPlan, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var plans []VultrPlan
 	if err := c.do(ctx, http.MethodGet, vultrPath("/api/v1/vultr/plans", cloudProviderTokenUUID), nil, &plans); err != nil {
 		return nil, fmt.Errorf("listing vultr plans: %w", err)
@@ -67,6 +73,9 @@ func (c *Client) ListVultrPlans(ctx context.Context, cloudProviderTokenUUID stri
 
 // ListVultrOS returns operating systems for a Vultr cloud token (Coolify >= v4.2.0).
 func (c *Client) ListVultrOS(ctx context.Context, cloudProviderTokenUUID string) ([]VultrOS, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var oses []VultrOS
 	if err := c.do(ctx, http.MethodGet, vultrPath("/api/v1/vultr/os", cloudProviderTokenUUID), nil, &oses); err != nil {
 		return nil, fmt.Errorf("listing vultr os: %w", err)
@@ -76,6 +85,9 @@ func (c *Client) ListVultrOS(ctx context.Context, cloudProviderTokenUUID string)
 
 // ListVultrSSHKeys returns SSH keys for a Vultr cloud token (Coolify >= v4.2.0).
 func (c *Client) ListVultrSSHKeys(ctx context.Context, cloudProviderTokenUUID string) ([]VultrSSHKey, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var keys []VultrSSHKey
 	if err := c.do(ctx, http.MethodGet, vultrPath("/api/v1/vultr/ssh-keys", cloudProviderTokenUUID), nil, &keys); err != nil {
 		return nil, fmt.Errorf("listing vultr ssh keys: %w", err)

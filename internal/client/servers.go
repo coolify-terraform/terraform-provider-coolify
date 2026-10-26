@@ -298,6 +298,9 @@ type CreateHetznerServerInput struct {
 }
 
 func (c *Client) CreateHetznerServer(ctx context.Context, input CreateHetznerServerInput) (*Server, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var s Server
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/hetzner", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating hetzner server: %w", err)
@@ -326,6 +329,9 @@ type CreateDigitalOceanServerInput struct {
 
 // CreateDigitalOceanServer provisions a DigitalOcean droplet and registers it with Coolify.
 func (c *Client) CreateDigitalOceanServer(ctx context.Context, input CreateDigitalOceanServerInput) (*Server, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var s Server
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/digitalocean", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating digitalocean server: %w", err)
@@ -354,6 +360,9 @@ type CreateVultrServerInput struct {
 
 // CreateVultrServer provisions a Vultr instance and registers it with Coolify.
 func (c *Client) CreateVultrServer(ctx context.Context, input CreateVultrServerInput) (*Server, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var s Server
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/servers/vultr", input, &s, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating vultr server: %w", err)

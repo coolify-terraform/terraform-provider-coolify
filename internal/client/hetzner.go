@@ -61,6 +61,9 @@ func hetznerPath(base, cloudProviderTokenUUID string) string {
 
 // ListHetznerImages returns all Hetzner cloud images for the given cloud provider token.
 func (c *Client) ListHetznerImages(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerImage, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var images []HetznerImage
 	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/images", cloudProviderTokenUUID), nil, &images); err != nil {
 		return nil, fmt.Errorf("listing hetzner images: %w", err)
@@ -70,6 +73,9 @@ func (c *Client) ListHetznerImages(ctx context.Context, cloudProviderTokenUUID s
 
 // ListHetznerLocations returns all Hetzner datacenter locations for the given cloud provider token.
 func (c *Client) ListHetznerLocations(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerLocation, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var locations []HetznerLocation
 	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/locations", cloudProviderTokenUUID), nil, &locations); err != nil {
 		return nil, fmt.Errorf("listing hetzner locations: %w", err)
@@ -79,6 +85,9 @@ func (c *Client) ListHetznerLocations(ctx context.Context, cloudProviderTokenUUI
 
 // ListHetznerServerTypes returns all Hetzner server types for the given cloud provider token.
 func (c *Client) ListHetznerServerTypes(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerServerType, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var types []HetznerServerType
 	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/server-types", cloudProviderTokenUUID), nil, &types); err != nil {
 		return nil, fmt.Errorf("listing hetzner server types: %w", err)
@@ -88,6 +97,9 @@ func (c *Client) ListHetznerServerTypes(ctx context.Context, cloudProviderTokenU
 
 // ListHetznerSSHKeys returns all Hetzner SSH keys for the given cloud provider token.
 func (c *Client) ListHetznerSSHKeys(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerSSHKey, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var keys []HetznerSSHKey
 	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/ssh-keys", cloudProviderTokenUUID), nil, &keys); err != nil {
 		return nil, fmt.Errorf("listing hetzner ssh keys: %w", err)
@@ -98,6 +110,9 @@ func (c *Client) ListHetznerSSHKeys(ctx context.Context, cloudProviderTokenUUID 
 // ListHetznerFirewalls returns existing Hetzner firewalls for the given cloud provider token.
 // Requires Coolify >= v4.2.0.
 func (c *Client) ListHetznerFirewalls(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerFirewall, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var firewalls []HetznerFirewall
 	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/firewalls", cloudProviderTokenUUID), nil, &firewalls); err != nil {
 		return nil, fmt.Errorf("listing hetzner firewalls: %w", err)
@@ -108,6 +123,9 @@ func (c *Client) ListHetznerFirewalls(ctx context.Context, cloudProviderTokenUUI
 // ListHetznerNetworks returns existing Hetzner private networks for the given cloud provider token.
 // Requires Coolify >= v4.2.0.
 func (c *Client) ListHetznerNetworks(ctx context.Context, cloudProviderTokenUUID string) ([]HetznerNetwork, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var networks []HetznerNetwork
 	if err := c.do(ctx, http.MethodGet, hetznerPath("/api/v1/hetzner/networks", cloudProviderTokenUUID), nil, &networks); err != nil {
 		return nil, fmt.Errorf("listing hetzner networks: %w", err)

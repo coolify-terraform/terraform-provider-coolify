@@ -52,6 +52,9 @@ func digitalOceanPath(base, cloudProviderTokenUUID string) string {
 
 // ListDigitalOceanRegions returns regions for a DigitalOcean cloud token (Coolify >= v4.2.0).
 func (c *Client) ListDigitalOceanRegions(ctx context.Context, cloudProviderTokenUUID string) ([]DigitalOceanRegion, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var regions []DigitalOceanRegion
 	if err := c.do(ctx, http.MethodGet, digitalOceanPath("/api/v1/digitalocean/regions", cloudProviderTokenUUID), nil, &regions); err != nil {
 		return nil, fmt.Errorf("listing digitalocean regions: %w", err)
@@ -61,6 +64,9 @@ func (c *Client) ListDigitalOceanRegions(ctx context.Context, cloudProviderToken
 
 // ListDigitalOceanSizes returns droplet sizes for a DigitalOcean cloud token (Coolify >= v4.2.0).
 func (c *Client) ListDigitalOceanSizes(ctx context.Context, cloudProviderTokenUUID string) ([]DigitalOceanSize, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var sizes []DigitalOceanSize
 	if err := c.do(ctx, http.MethodGet, digitalOceanPath("/api/v1/digitalocean/sizes", cloudProviderTokenUUID), nil, &sizes); err != nil {
 		return nil, fmt.Errorf("listing digitalocean sizes: %w", err)
@@ -70,6 +76,9 @@ func (c *Client) ListDigitalOceanSizes(ctx context.Context, cloudProviderTokenUU
 
 // ListDigitalOceanImages returns images for a DigitalOcean cloud token (Coolify >= v4.2.0).
 func (c *Client) ListDigitalOceanImages(ctx context.Context, cloudProviderTokenUUID string) ([]DigitalOceanImage, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var images []DigitalOceanImage
 	if err := c.do(ctx, http.MethodGet, digitalOceanPath("/api/v1/digitalocean/images", cloudProviderTokenUUID), nil, &images); err != nil {
 		return nil, fmt.Errorf("listing digitalocean images: %w", err)
@@ -79,6 +88,9 @@ func (c *Client) ListDigitalOceanImages(ctx context.Context, cloudProviderTokenU
 
 // ListDigitalOceanSSHKeys returns SSH keys for a DigitalOcean cloud token (Coolify >= v4.2.0).
 func (c *Client) ListDigitalOceanSSHKeys(ctx context.Context, cloudProviderTokenUUID string) ([]DigitalOceanSSHKey, error) {
+	if err := c.errIfCloudCatalogUnsupported(); err != nil {
+		return nil, err
+	}
 	var keys []DigitalOceanSSHKey
 	if err := c.do(ctx, http.MethodGet, digitalOceanPath("/api/v1/digitalocean/ssh-keys", cloudProviderTokenUUID), nil, &keys); err != nil {
 		return nil, fmt.Errorf("listing digitalocean ssh keys: %w", err)

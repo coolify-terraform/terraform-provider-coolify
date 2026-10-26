@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -157,6 +158,31 @@ const minServiceAppForceHTTPSVersion = "4.3.8"
 // max_restart_count. Absent through v4.3.18 and on v4.4-rc.1.
 // Present from v4.3.19 and from v4.4.0.
 const minServiceAppMaxRestartVersion = "4.3.19"
+
+// SupportsCloudProviderCatalog reports whether Hetzner, DigitalOcean, and
+// Vultr list and purchase routes exist. They are absent on v4.1.2 and
+// present from v4.2.0.
+//
+// Empty CoolifyVersion reports true. A 4.3.0 version string reports true
+// because that release has the routes and because CI edge reuses the string.
+func (c *Client) SupportsCloudProviderCatalog() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minApplicationSettingsVersion)
+}
+
+// errIfCloudCatalogUnsupported is the error returned before a cloud catalog
+// or purchase request when the reported Coolify version is too old.
+func (c *Client) errIfCloudCatalogUnsupported() error {
+	if c.SupportsCloudProviderCatalog() {
+		return nil
+	}
+	return fmt.Errorf("coolify %s is older than v4.2.0, which added Hetzner, DigitalOcean, and Vultr catalog and purchase routes", c.CoolifyVersion)
+}
 
 // SupportsServiceApplicationRoute reports whether the service application
 // list and single-application routes exist.
