@@ -20,12 +20,14 @@ import (
 // Terraform map state does not depend on GET key order, so they are not
 // listed here.
 var resourceListPolicy = map[string]string{
-	"internal/service/service/resource.go:urls":                     "TestFlattenServiceURLs_PreservesConfigOrder",
-	"internal/service/application/common_schema.go:noindex_domains": "TestFlattenNoindexDomains_PreservesConfigOrder",
-	"internal/service/hetzner/resource.go:hetzner_firewall_ids":     "create-only; GET omitted; flatten does not overwrite",
-	"internal/service/hetzner/resource.go:hetzner_network_ids":      "create-only; GET omitted; flatten does not overwrite",
-	"internal/service/database/backup/resource.go:s3_storage_uuids": "API order is primary first; flatten replaces the list when GET returns it",
-	"internal/service/volumebackup/resource.go:s3_storage_uuids":    "upsert response order is primary first; there is no schedule GET",
+	"internal/service/service/resource.go:urls":                       "TestFlattenServiceURLs_PreservesConfigOrder",
+	"internal/service/application/common_schema.go:noindex_domains":   "TestFlattenNoindexDomains_PreservesConfigOrder",
+	"internal/service/hetzner/resource.go:hetzner_firewall_ids":       "create-only; GET omitted; flatten does not overwrite",
+	"internal/service/hetzner/resource.go:hetzner_network_ids":        "create-only; GET omitted; flatten does not overwrite",
+	"internal/service/hostinger/resource.go:public_key_ids":           "create-only; GET omitted; flatten does not overwrite",
+	"internal/service/serviceapplication/resource.go:noindex_domains": "TestFlattenNoindexDomains_PreservesConfigOrder",
+	"internal/service/database/backup/resource.go:s3_storage_uuids":   "API order is primary first; flatten replaces the list when GET returns it",
+	"internal/service/volumebackup/resource.go:s3_storage_uuids":      "upsert response order is primary first; there is no schedule GET",
 }
 
 var listAttrDecl = regexp.MustCompile(`(?m)^\s+"([^"]+)": schema\.(ListAttribute|ListNestedAttribute)\{`)

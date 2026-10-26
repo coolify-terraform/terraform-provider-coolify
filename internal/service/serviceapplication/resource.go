@@ -327,6 +327,18 @@ func flatten(api *client.ServiceApplication, m *model, c *client.Client) {
 	m.Name = types.StringValue(api.Name)
 	m.FQDN = types.StringValue(api.FQDN)
 	m.Status = types.StringValue(api.Status)
+	flattenURL(api, m)
+	keepOrAPIString(&m.HumanName, api.HumanName)
+	keepOrAPIString(&m.Description, api.Description)
+	keepOrAPIString(&m.Image, api.Image)
+	setBool(&m.ExcludeFromStatus, api.ExcludeFromStatus)
+	setBool(&m.IsLogDrainEnabled, api.IsLogDrainEnabled)
+	setBool(&m.IsGzipEnabled, api.IsGzipEnabled)
+	setBool(&m.IsStripPrefixEnabled, api.IsStripPrefixEnabled)
+	flattenVersionGated(api, m, c)
+}
+
+func flattenURL(api *client.ServiceApplication, m *model) {
 	apiURL := api.URL
 	if apiURL == "" {
 		apiURL = api.FQDN
@@ -342,19 +354,22 @@ func flatten(api *client.ServiceApplication, m *model, c *client.Client) {
 			m.URL = types.StringValue(api.FQDN)
 		}
 	}
-	keepOrAPIString(&m.HumanName, api.HumanName)
-	keepOrAPIString(&m.Description, api.Description)
-	keepOrAPIString(&m.Image, api.Image)
-	setBool(&m.ExcludeFromStatus, api.ExcludeFromStatus)
-	setBool(&m.IsLogDrainEnabled, api.IsLogDrainEnabled)
-	setBool(&m.IsGzipEnabled, api.IsGzipEnabled)
-	setBool(&m.IsStripPrefixEnabled, api.IsStripPrefixEnabled)
+}
+
+func flattenVersionGated(api *client.ServiceApplication, m *model, c *client.Client) {
 	if !keepConfigured(c != nil && !c.SupportsServiceApplicationForceHTTPS(), m.IsForceHTTPSEnabled) {
 		setBool(&m.IsForceHTTPSEnabled, api.IsForceHTTPSEnabled)
 	}
 	if !keepConfigured(c != nil && !c.SupportsCoolify45(), m.IsPermanentRedirectEnabled) {
 		setBool(&m.IsPermanentRedirectEnabled, api.IsPermanentRedirectEnabled)
 	}
+	flattenVersionGatedStrings(api, m, c)
+	if c == nil || c.SupportsApplicationSettingsV43() || m.NoindexDomains.IsNull() || m.NoindexDomains.IsUnknown() {
+		application.FlattenNoindexDomains(api.NoindexDomains, &m.NoindexDomains)
+	}
+}
+
+func flattenVersionGatedStrings(api *client.ServiceApplication, m *model, c *client.Client) {
 	if !keepConfiguredString(c != nil && !c.SupportsCoolify45(), m.TraefikCertificateResolver) {
 		if api.TraefikCertificateResolver != "" {
 			m.TraefikCertificateResolver = types.StringValue(api.TraefikCertificateResolver)
@@ -369,9 +384,6 @@ func flatten(api *client.ServiceApplication, m *model, c *client.Client) {
 			m.MaxRestartCount = types.Int64Null()
 		}
 	}
-	if !keepConfiguredList(c != nil && !c.SupportsApplicationSettingsV43(), m.NoindexDomains) {
-		application.FlattenNoindexDomains(api.NoindexDomains, &m.NoindexDomains)
-	}
 }
 
 func keepConfigured(withhold bool, v types.Bool) bool {
@@ -383,10 +395,6 @@ func keepConfiguredString(withhold bool, v types.String) bool {
 }
 
 func keepConfiguredInt(withhold bool, v types.Int64) bool {
-	return withhold && !v.IsNull() && !v.IsUnknown()
-}
-
-func keepConfiguredList(withhold bool, v types.List) bool {
 	return withhold && !v.IsNull() && !v.IsUnknown()
 }
 
