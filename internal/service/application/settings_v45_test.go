@@ -66,7 +66,22 @@ func TestApplicationResource_Coolify45Settings(t *testing.T) {
 					return
 				}
 				w.Header().Set("Content-Type", "application/json")
-				_ = json.NewEncoder(w).Encode(app)
+				// Coolify v4.5.0 returns unsignedTinyInteger costs as JSON numbers.
+				payload := map[string]any{}
+				encoded, err := json.Marshal(app)
+				if err != nil {
+					t.Errorf("encode application: %v", err)
+					http.Error(w, `{"message":"encode"}`, http.StatusInternalServerError)
+					return
+				}
+				if err := json.Unmarshal(encoded, &payload); err != nil {
+					t.Errorf("decode application map: %v", err)
+					http.Error(w, `{"message":"encode"}`, http.StatusInternalServerError)
+					return
+				}
+				payload["http_basic_auth_argon2id_time_cost"] = 2
+				payload["http_basic_auth_bcrypt_cost"] = 10
+				_ = json.NewEncoder(w).Encode(payload)
 			})
 			mux.HandleFunc("PATCH /api/v1/applications/{uuid}", func(w http.ResponseWriter, r *http.Request) {
 				body, ok := decodeRequestBodyMap(t, w, r)
@@ -108,6 +123,8 @@ func TestApplicationResource_Coolify45Settings(t *testing.T) {
 						Config: testApplicationResourceConfig(srv.URL, attrs),
 						Check: resource.ComposeAggregateTestCheckFunc(
 							resource.TestCheckResourceAttr("coolify_application.test", "http_basic_auth_hash_algorithm", "argon2id"),
+							resource.TestCheckResourceAttr("coolify_application.test", "http_basic_auth_argon2id_time_cost", "2"),
+							resource.TestCheckResourceAttr("coolify_application.test", "http_basic_auth_bcrypt_cost", "10"),
 							resource.TestCheckResourceAttr("coolify_application.test", "is_permanent_redirect_enabled", "true"),
 							resource.TestCheckResourceAttr("coolify_application.test", "redact_all_env_values_in_logs", "false"),
 							func(*terraform.State) error {

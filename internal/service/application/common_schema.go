@@ -663,13 +663,13 @@ func applicationSettingAttrsV45() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 		},
 		"http_basic_auth_argon2id_time_cost": schema.StringAttribute{
-			MarkdownDescription: "Argon2id time cost for HTTP basic auth. Coolify stores this as a string. " + needs45,
+			MarkdownDescription: "Argon2id time cost (iterations) for HTTP basic auth. Coolify returns an integer. The provider stores the decimal text. " + needs45,
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"http_basic_auth_bcrypt_cost": schema.StringAttribute{
-			MarkdownDescription: "Bcrypt cost for HTTP basic auth. Coolify stores this as a string. " + needs45,
+			MarkdownDescription: "Bcrypt cost for HTTP basic auth. Coolify returns an integer. The provider stores the decimal text. " + needs45,
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},

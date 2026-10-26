@@ -89,8 +89,8 @@ resource "coolify_application_github_app" "app" {
 - `health_check_timeout` (Number) Health check timeout in seconds.
 - `health_check_type` (String) The type of health check. Valid values: `http`, `cmd`.
 - `http_basic_auth_argon2id_memory_cost` (Number) Argon2id memory cost in KiB for HTTP basic auth. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
-- `http_basic_auth_argon2id_time_cost` (String) Argon2id time cost for HTTP basic auth. Coolify stores this as a string. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
-- `http_basic_auth_bcrypt_cost` (String) Bcrypt cost for HTTP basic auth. Coolify stores this as a string. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
+- `http_basic_auth_argon2id_time_cost` (String) Argon2id time cost (iterations) for HTTP basic auth. Coolify returns an integer. The provider stores the decimal text. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
+- `http_basic_auth_bcrypt_cost` (String) Bcrypt cost for HTTP basic auth. Coolify returns an integer. The provider stores the decimal text. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `http_basic_auth_hash_algorithm` (String) HTTP basic auth password hash algorithm (`bcrypt` or `argon2id`). Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `http_basic_auth_password` (String, Sensitive) Password for HTTP Basic Authentication.
 - `http_basic_auth_username` (String) Username for HTTP Basic Authentication.

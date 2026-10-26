@@ -12,6 +12,8 @@ import (
 func TestAccServiceApplicationResource(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)
+	// GET /services/{uuid}/applications exists from Coolify 4.2.0.
+	acctest.AccTestSkipIfCoolifyBelow(t, "4.2.0")
 	acctest.TestAccPreCheck(t)
 	serverUUID := acctest.AccTestServerUUID(t)
 	name := acctest.RandomWithPrefix("tf-acc-svcapp")

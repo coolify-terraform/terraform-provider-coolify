@@ -81,14 +81,14 @@ type Application struct {
 	IsStatic    *bool  `json:"is_static,omitempty"`
 	IsSPA       *bool  `json:"is_spa,omitempty"`
 	// Security & Auth
-	IsForceHTTPSEnabled             *bool  `json:"is_force_https_enabled,omitempty"`
-	IsHTTPBasicAuthEnabled          *bool  `json:"is_http_basic_auth_enabled,omitempty"`
-	HTTPBasicAuthUsername           string `json:"http_basic_auth_username,omitempty"`
-	HTTPBasicAuthPassword           string `json:"http_basic_auth_password,omitempty"`
-	HTTPBasicAuthHashAlgorithm      string `json:"http_basic_auth_hash_algorithm,omitempty"`
-	HTTPBasicAuthArgon2idMemoryCost *int64 `json:"http_basic_auth_argon2id_memory_cost,omitempty"`
-	HTTPBasicAuthArgon2idTimeCost   string `json:"http_basic_auth_argon2id_time_cost,omitempty"`
-	HTTPBasicAuthBcryptCost         string `json:"http_basic_auth_bcrypt_cost,omitempty"`
+	IsForceHTTPSEnabled             *bool            `json:"is_force_https_enabled,omitempty"`
+	IsHTTPBasicAuthEnabled          *bool            `json:"is_http_basic_auth_enabled,omitempty"`
+	HTTPBasicAuthUsername           string           `json:"http_basic_auth_username,omitempty"`
+	HTTPBasicAuthPassword           string           `json:"http_basic_auth_password,omitempty"`
+	HTTPBasicAuthHashAlgorithm      string           `json:"http_basic_auth_hash_algorithm,omitempty"`
+	HTTPBasicAuthArgon2idMemoryCost *int64           `json:"http_basic_auth_argon2id_memory_cost,omitempty"`
+	HTTPBasicAuthArgon2idTimeCost   JSONNumberString `json:"http_basic_auth_argon2id_time_cost,omitempty"`
+	HTTPBasicAuthBcryptCost         JSONNumberString `json:"http_basic_auth_bcrypt_cost,omitempty"`
 	// Extended health checks
 	HealthCheckCommand      string `json:"health_check_command,omitempty"`
 	HealthCheckHost         string `json:"health_check_host,omitempty"`
@@ -220,6 +220,46 @@ func (s *FlexibleJSONString) UnmarshalJSON(b []byte) error {
 
 // String returns the underlying value.
 func (s FlexibleJSONString) String() string { return string(s) }
+
+// JSONNumberString is text decoded from a JSON string or integer.
+// Coolify v4.5.0 stores http_basic_auth_argon2id_time_cost and
+// http_basic_auth_bcrypt_cost as unsignedTinyInteger, so GET returns
+// numbers. The Terraform attributes stay strings.
+type JSONNumberString string
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (s *JSONNumberString) UnmarshalJSON(b []byte) error {
+	if s == nil {
+		return fmt.Errorf("json number string: nil destination")
+	}
+	b = bytes.TrimSpace(b)
+	if string(b) == "null" {
+		*s = ""
+		return nil
+	}
+	if len(b) > 0 && b[0] == '"' {
+		var v string
+		if err := json.Unmarshal(b, &v); err != nil {
+			return fmt.Errorf("json number string: %w", err)
+		}
+		*s = JSONNumberString(v)
+		return nil
+	}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	var n json.Number
+	if err := dec.Decode(&n); err != nil {
+		return fmt.Errorf("json number string: %w", err)
+	}
+	if _, err := n.Int64(); err != nil {
+		return fmt.Errorf("json number string %s: %w", n.String(), err)
+	}
+	*s = JSONNumberString(n.String())
+	return nil
+}
+
+// String returns the underlying value.
+func (s JSONNumberString) String() string { return string(s) }
 
 // ApplicationSettings holds nested settings from GET application responses.
 type ApplicationSettings struct {
