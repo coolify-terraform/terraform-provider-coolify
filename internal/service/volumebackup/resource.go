@@ -70,6 +70,20 @@ func (r *storageBackupResource) Metadata(_ context.Context, req resource.Metadat
 	resp.TypeName = req.ProviderTypeName + "_storage_backup"
 }
 
+func s3StorageUUIDsAttribute(description string) schema.ListAttribute {
+	return schema.ListAttribute{
+		MarkdownDescription: description,
+		Optional:            true,
+		Computed:            true,
+		ElementType:         types.StringType,
+		PlanModifiers:       []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+		Validators: []validator.List{
+			listvalidator.UniqueValues(),
+			listvalidator.ValueStringsAre(validate.UUID()),
+		},
+	}
+}
+
 func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Coolify scheduled backup for a persistent volume or directory storage " +
@@ -155,18 +169,9 @@ func (r *storageBackupResource) Schema(_ context.Context, _ resource.SchemaReque
 				Optional:            true,
 				Validators:          []validator.String{validate.UUID()},
 			},
-			"s3_storage_uuids": schema.ListAttribute{
-				MarkdownDescription: "UUIDs of every S3 storage this volume backup uploads to. The first entry is the primary destination unless `s3_storage_uuid` is also set. " +
-					"Requires Coolify >= v4.5.0. On older instances the provider keeps the list in state and does not send it.",
-				Optional:      true,
-				Computed:      true,
-				ElementType:   types.StringType,
-				PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
-				Validators: []validator.List{
-					listvalidator.UniqueValues(),
-					listvalidator.ValueStringsAre(validate.UUID()),
-				},
-			},
+			"s3_storage_uuids": s3StorageUUIDsAttribute(
+				"UUIDs of every S3 storage this volume backup uploads to. The first entry is the primary destination unless `s3_storage_uuid` is also set. Requires Coolify >= v4.5.0. On older instances the provider keeps the list in state and does not send it.",
+			),
 			"retention_amount_locally": schema.Int64Attribute{
 				MarkdownDescription: "Number of local backups to retain. Create uses 7 when this is omitted. After import, terraform plan fails until it is set. Coolify replaces an omitted value.",
 				Optional:            true,

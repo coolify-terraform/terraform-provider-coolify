@@ -75,6 +75,15 @@ func (r *serviceResource) Metadata(_ context.Context, req resource.MetadataReque
 	resp.TypeName = req.ProviderTypeName + "_service"
 }
 
+func serviceRedactAllEnvAttr() schema.BoolAttribute {
+	return schema.BoolAttribute{
+		MarkdownDescription: "Whether Coolify redacts environment values in service logs. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
+		Optional:            true,
+		Computed:            true,
+		PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+	}
+}
+
 func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a service resource on Coolify. A service can be created from the Coolify catalog (using `type`) or from a custom Docker Compose file (using `docker_compose_raw`). These two fields are mutually exclusive.",
@@ -221,14 +230,7 @@ func (r *serviceResource) Schema(ctx context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "Force domain assignment even if conflicts with other resources are detected. Only relevant when `urls` is set.",
 				Optional:            true,
 			},
-			"redact_all_env_values_in_logs": schema.BoolAttribute{
-				MarkdownDescription: "Whether Coolify redacts environment values in service logs. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
+			"redact_all_env_values_in_logs": serviceRedactAllEnvAttr(),
 		},
 	}
 }

@@ -71,6 +71,20 @@ func (r *databaseBackupResource) Metadata(_ context.Context, req resource.Metada
 	resp.TypeName = req.ProviderTypeName + "_database_backup"
 }
 
+func s3StorageUUIDsAttribute(description string) schema.ListAttribute {
+	return schema.ListAttribute{
+		MarkdownDescription: description,
+		Optional:            true,
+		Computed:            true,
+		ElementType:         types.StringType,
+		PlanModifiers:       []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+		Validators: []validator.List{
+			listvalidator.UniqueValues(),
+			listvalidator.ValueStringsAre(validate.UUID()),
+		},
+	}
+}
+
 func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version:             1,
@@ -130,18 +144,7 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				Optional:            true,
 				Validators:          []validator.String{validate.UUID()},
 			},
-			"s3_storage_uuids": schema.ListAttribute{
-				MarkdownDescription: "UUIDs of every S3 storage this backup uploads to, primary first when `s3_storage_uuid` is omitted. " +
-					"Requires Coolify >= v4.5.0. On older instances the provider keeps the list in state and does not send it.",
-				Optional:      true,
-				Computed:      true,
-				ElementType:   types.StringType,
-				PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
-				Validators: []validator.List{
-					listvalidator.UniqueValues(),
-					listvalidator.ValueStringsAre(validate.UUID()),
-				},
-			},
+			"s3_storage_uuids": s3StorageUUIDsAttribute("UUIDs of every S3 storage this backup uploads to, primary first when `s3_storage_uuid` is omitted. Requires Coolify >= v4.5.0. On older instances the provider keeps the list in state and does not send it."),
 			"databases_to_backup": schema.StringAttribute{
 				MarkdownDescription: "Comma-separated list of database names to back up selectively. Defaults to the primary database name if not specified.",
 				Optional:            true,
