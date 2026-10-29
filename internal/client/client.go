@@ -36,8 +36,9 @@ type Client struct {
 	// APIEnableRouteAvailable is the exception: empty still reports that
 	// POST /api/v1/enable exists, so older unit mocks keep posting it.
 	CoolifyVersion    string
-	cfAccessClientID  string // Cloudflare Access CF-Access-Client-Id header
-	cfAccessClientSec string // Cloudflare Access CF-Access-Client-Secret header
+	cfAccessClientID  string      // Cloudflare Access CF-Access-Client-Id header
+	cfAccessClientSec string      // Cloudflare Access CF-Access-Client-Secret header
+	extraHeaders      http.Header // user headers from the provider "headers" attribute
 	listCache         listCache
 	apiEnableRoute    apiEnableRouteCache
 }
@@ -129,6 +130,9 @@ type RetryConfig struct {
 	Insecure          bool   // Skip TLS certificate verification
 	CFAccessClientID  string // Cloudflare Access client ID header
 	CFAccessClientSec string // Cloudflare Access client secret header
+	// Headers are added to every request, before the headers the provider
+	// sets itself. Check them with ValidateHeaders first.
+	Headers map[string]string
 }
 
 // New creates a new Coolify API client.
@@ -192,11 +196,30 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 		UserAgent:         "terraform-provider-coolify",
 		cfAccessClientID:  cfg.CFAccessClientID,
 		cfAccessClientSec: cfg.CFAccessClientSec,
+		extraHeaders:      extraHeaders(cfg.Headers),
 	}
 }
 
-// setCommonHeaders sets Authorization, User-Agent, and optional Cloudflare Access headers.
+// extraHeaders copies the user headers into an http.Header. It returns nil
+// when there are none, so a client without headers behaves as before.
+func extraHeaders(headers map[string]string) http.Header {
+	if len(headers) == 0 {
+		return nil
+	}
+	h := make(http.Header, len(headers))
+	for name, value := range headers {
+		h.Set(name, value)
+	}
+	return h
+}
+
+// setCommonHeaders sets the user headers, then Authorization, User-Agent,
+// and optional Cloudflare Access headers. The provider's own headers are
+// set last, so a user header can never replace them.
 func (c *Client) setCommonHeaders(req *http.Request) {
+	for name, values := range c.extraHeaders {
+		req.Header[name] = append([]string(nil), values...)
+	}
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	req.Header.Set("User-Agent", c.UserAgent)
 	if c.cfAccessClientID != "" {

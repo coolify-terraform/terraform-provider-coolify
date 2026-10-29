@@ -121,6 +121,44 @@ provider "coolify" {
 | `retry_min_wait` | 1 | Minimum wait between retries (seconds) |
 | `retry_max_wait` | 30 | Maximum wait between retries (seconds) |
 
+## Custom HTTP headers
+
+When Coolify sits behind a proxy that authenticates requests, such as
+Google Cloud Identity-Aware Proxy (IAP) or an OAuth2 proxy, the proxy needs
+its own credential. `Authorization` already carries the Coolify API token,
+so send the proxy's credential in another header with `headers`. The
+provider adds these headers to every request it sends to the Coolify API.
+
+For IAP, send an OpenID Connect ID token for the IAP client in
+`Proxy-Authorization`. IAP checks it and removes it before the request
+reaches Coolify:
+
+```hcl
+provider "coolify" {
+  endpoint = "https://coolify.example.com"
+  token    = var.coolify_token
+
+  headers = {
+    "Proxy-Authorization" = "Bearer ${var.iap_id_token}"
+  }
+}
+```
+
+Or set them as a JSON object in `COOLIFY_HEADERS`, used only when
+`headers` is not set in the provider block:
+
+```bash
+export COOLIFY_HEADERS='{"Proxy-Authorization":"Bearer <id-token>"}'
+```
+
+The provider rejects `Authorization`, `Accept`, `Content-Type`,
+`Content-Length`, `Host`, and `User-Agent`, which it sets itself, instead
+of replacing them. For Cloudflare Access, use `cf_access_client_id` and
+`cf_access_client_secret`.
+
+~> **ID tokens expire**, usually after one hour. Mint a fresh one before
+each run, and do not keep it in a `.tfvars` file.
+
 ## Verify the connection
 
 Create a file called `main.tf`:

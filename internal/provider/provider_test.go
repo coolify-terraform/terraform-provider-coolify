@@ -380,3 +380,114 @@ data "coolify_team" "test" {
 		},
 	})
 }
+
+// headersCheckingServer answers the version and team calls, and rejects
+// any request without the expected Proxy-Authorization header, as an
+// authenticating proxy in front of Coolify would.
+func headersCheckingServer(t *testing.T, wantProxyAuth string) *httptest.Server {
+	t.Helper()
+	requireProxyAuth := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Proxy-Authorization") != wantProxyAuth || r.Header.Get("Authorization") != "Bearer test-token" {
+				http.Error(w, "proxy authentication required", http.StatusProxyAuthRequired)
+				return
+			}
+			next(w, r)
+		}
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v1/version", requireProxyAuth(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("v4.1.0"))
+	}))
+	mux.HandleFunc("GET /api/v1/teams/0", requireProxyAuth(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"id":0,"name":"Proxied Team"}`)
+	}))
+	mux.HandleFunc("GET /api/v1/teams/0/members", requireProxyAuth(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `[]`)
+	}))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestProvider_Headers(t *testing.T) {
+	t.Setenv("COOLIFY_TOKEN", "")
+	t.Setenv("COOLIFY_ENDPOINT", "")
+	t.Setenv("COOLIFY_HEADERS", `{"Proxy-Authorization":"Bearer env-jwt"}`)
+	srv := headersCheckingServer(t, "Bearer config-jwt")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint = %q
+  token    = "test-token"
+  headers = {
+    "Proxy-Authorization" = "Bearer config-jwt"
+  }
+}
+
+data "coolify_team" "test" {
+  id = 0
+}
+`, srv.URL),
+				Check: resource.TestCheckResourceAttr("data.coolify_team.test", "name", "Proxied Team"),
+			},
+		},
+	})
+}
+
+func TestProvider_HeadersEnvVarFallback(t *testing.T) {
+	srv := headersCheckingServer(t, "Bearer env-jwt")
+	t.Setenv("COOLIFY_ENDPOINT", srv.URL)
+	t.Setenv("COOLIFY_TOKEN", "test-token")
+	t.Setenv("COOLIFY_HEADERS", `{"Proxy-Authorization":"Bearer env-jwt"}`)
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+provider "coolify" {}
+
+data "coolify_team" "test" {
+  id = 0
+}
+`,
+				Check: resource.TestCheckResourceAttr("data.coolify_team.test", "name", "Proxied Team"),
+			},
+		},
+	})
+}
+
+func TestProvider_HeadersRejectReserved(t *testing.T) {
+	t.Setenv("COOLIFY_TOKEN", "")
+	t.Setenv("COOLIFY_ENDPOINT", "")
+	t.Setenv("COOLIFY_HEADERS", "")
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{
+			{
+				Config: `
+provider "coolify" {
+  endpoint = "http://127.0.0.1:1"
+  token    = "test-token"
+  headers = {
+    "authorization" = "Bearer other"
+  }
+}
+
+data "coolify_team" "test" {
+  id = 0
+}
+`,
+				ExpectError: regexp.MustCompile(`(?s)Invalid Provider Headers.*"authorization" cannot be set`),
+			},
+		},
+	})
+}

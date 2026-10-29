@@ -4,6 +4,7 @@ package provider
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -74,6 +75,8 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/volumebackup"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/vultr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -96,6 +99,7 @@ type coolifyProviderModel struct {
 	Insecure          types.Bool   `tfsdk:"insecure"`
 	CFAccessClientID  types.String `tfsdk:"cf_access_client_id"`
 	CFAccessClientSec types.String `tfsdk:"cf_access_client_secret"`
+	Headers           types.Map    `tfsdk:"headers"`
 }
 
 func New(version string) func() provider.Provider {
@@ -116,6 +120,15 @@ func (p *coolifyProvider) Schema(_ context.Context, _ provider.SchemaRequest, re
 		"insecure":                schema.BoolAttribute{MarkdownDescription: "Skip TLS certificate verification. **Not recommended for production.** Use `ca_cert` instead when possible. Env: `COOLIFY_INSECURE`.", Optional: true},
 		"cf_access_client_id":     schema.StringAttribute{MarkdownDescription: "Cloudflare Access `CF-Access-Client-Id` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_ID`.", Optional: true},
 		"cf_access_client_secret": schema.StringAttribute{MarkdownDescription: "Cloudflare Access `CF-Access-Client-Secret` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_SECRET`.", Optional: true, Sensitive: true},
+		"headers": schema.MapAttribute{
+			MarkdownDescription: "Extra HTTP headers sent with every request to the Coolify API, for a proxy in front of Coolify that authenticates requests " +
+				"(for example `Proxy-Authorization` for Google Cloud IAP). `Authorization`, `Accept`, `Content-Type`, `Content-Length`, `Host`, and `User-Agent` " +
+				"cannot be set, since the provider sets them itself. `CF-Access-Client-Id` cannot be set together with `cf_access_client_id`, " +
+				"nor `CF-Access-Client-Secret` with `cf_access_client_secret`. Env: `COOLIFY_HEADERS`, a JSON object of strings, used only when this attribute is not set.",
+			ElementType: types.StringType,
+			Optional:    true,
+			Sensitive:   true,
+		},
 	}}
 }
 func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
@@ -153,6 +166,10 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	}
 	endpoint = strings.TrimRight(endpoint, "/")
 	cfg := buildClientConfig(config)
+	resp.Diagnostics.Append(configureHeaders(ctx, config, &cfg)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	if cfg.Insecure && cfg.CACert != "" {
 		resp.Diagnostics.AddWarning("CA certificate ignored",
 			"Both insecure and ca_cert are set. When insecure is true, "+
@@ -417,6 +434,33 @@ func buildClientConfig(config coolifyProviderModel) client.RetryConfig {
 		cfg.CFAccessClientSec = config.CFAccessClientSec.ValueString()
 	}
 	return cfg
+}
+
+// configureHeaders sets cfg.Headers from the headers attribute, or from
+// the COOLIFY_HEADERS environment variable (a JSON object of strings) when
+// the attribute is not set, then validates them.
+func configureHeaders(ctx context.Context, config coolifyProviderModel, cfg *client.RetryConfig) diag.Diagnostics {
+	var diags diag.Diagnostics
+	source := "The headers attribute"
+	if !config.Headers.IsNull() && !config.Headers.IsUnknown() {
+		diags.Append(config.Headers.ElementsAs(ctx, &cfg.Headers, false)...)
+		if diags.HasError() {
+			return diags
+		}
+	} else if raw := os.Getenv("COOLIFY_HEADERS"); strings.TrimSpace(raw) != "" {
+		source = "The COOLIFY_HEADERS environment variable"
+		if err := json.Unmarshal([]byte(raw), &cfg.Headers); err != nil {
+			// The error never quotes the value, which may hold a credential.
+			diags.AddAttributeError(path.Root("headers"), "Invalid COOLIFY_HEADERS",
+				"COOLIFY_HEADERS must be a JSON object of strings, such as "+
+					`{"Proxy-Authorization":"Bearer <token>"}.`)
+			return diags
+		}
+	}
+	if err := cfg.ValidateHeaders(); err != nil {
+		diags.AddAttributeError(path.Root("headers"), "Invalid Provider Headers", source+" is not valid:\n"+err.Error())
+	}
+	return diags
 }
 
 // isVersionAtLeast compares two semver-like version strings (e.g. "4.0.0").

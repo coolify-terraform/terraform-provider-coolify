@@ -39,6 +39,9 @@ export COOLIFY_TOKEN="your-api-token"
 # Optional: Cloudflare Access (when Coolify is behind CF Access)
 export COOLIFY_CF_ACCESS_CLIENT_ID="your-cf-client-id"
 export COOLIFY_CF_ACCESS_CLIENT_SECRET="your-cf-client-secret"
+
+# Optional: extra headers for an authenticating proxy (JSON object)
+export COOLIFY_HEADERS='{"Proxy-Authorization":"Bearer your-proxy-token"}'
 ```
 
 ### Provider block
@@ -51,6 +54,12 @@ provider "coolify" {
   # Optional: Cloudflare Access (when Coolify is behind CF Access)
   # cf_access_client_id     = var.cf_access_client_id     # Or set COOLIFY_CF_ACCESS_CLIENT_ID
   # cf_access_client_secret = var.cf_access_client_secret  # Or set COOLIFY_CF_ACCESS_CLIENT_SECRET
+
+  # Optional: extra headers for an authenticating proxy, such as Google Cloud IAP.
+  # Or set COOLIFY_HEADERS to a JSON object.
+  # headers = {
+  #   "Proxy-Authorization" = "Bearer ${var.iap_id_token}"
+  # }
 }
 ```
 
@@ -123,6 +132,7 @@ You should not see diffs on `terraform plan` after the initial apply.
 - `cf_access_client_id` (String) Cloudflare Access `CF-Access-Client-Id` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_ID`.
 - `cf_access_client_secret` (String, Sensitive) Cloudflare Access `CF-Access-Client-Secret` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_SECRET`.
 - `endpoint` (String) Coolify API endpoint. Env: COOLIFY_ENDPOINT.
+- `headers` (Map of String, Sensitive) Extra HTTP headers sent with every request to the Coolify API, for a proxy in front of Coolify that authenticates requests (for example `Proxy-Authorization` for Google Cloud IAP). `Authorization`, `Accept`, `Content-Type`, `Content-Length`, `Host`, and `User-Agent` cannot be set, since the provider sets them itself. `CF-Access-Client-Id` cannot be set together with `cf_access_client_id`, nor `CF-Access-Client-Secret` with `cf_access_client_secret`. Env: `COOLIFY_HEADERS`, a JSON object of strings, used only when this attribute is not set.
 - `insecure` (Boolean) Skip TLS certificate verification. **Not recommended for production.** Use `ca_cert` instead when possible. Env: `COOLIFY_INSECURE`.
 - `retry_max` (Number) Maximum number of API request retries (default: 3).
 - `retry_max_wait` (Number) Maximum wait between retries in seconds (default: 30).
