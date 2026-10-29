@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.29](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.28...v0.1.29) (2026-10-29)
+
+
+### Features
+
+* **provider:** send custom HTTP headers on every API request ([#1016](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1016)) ([55521b1](https://github.com/coolify-terraform/terraform-provider-coolify/commit/55521b184334d5a5de034c67c414dcfb9ff00ec2))
+* **provider:** support Coolify 4.5.1 fields on older servers ([#1019](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1019)) ([3c54040](https://github.com/coolify-terraform/terraform-provider-coolify/commit/3c540402221951279272006bd6ef18eb1dfa5ad1))
+
+
+### Bug Fixes
+
+* correct 4.5.1 attribute docs and the FOSSA license badge ([#1020](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1020)) ([9df23ef](https://github.com/coolify-terraform/terraform-provider-coolify/commit/9df23efdc27183b676c5f728eccb0d8261bbd66e))
+* **provider:** drop proxy headers on a cross-host redirect ([#1018](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1018)) ([40f6875](https://github.com/coolify-terraform/terraform-provider-coolify/commit/40f687520b741d5905835a84524191ec292e84b4))
+
 ## [0.1.28](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.27...v0.1.28) (2026-10-26)
 
 
