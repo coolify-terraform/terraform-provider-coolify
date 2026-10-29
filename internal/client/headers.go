@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 )
@@ -12,7 +13,7 @@ import (
 // request. A user header with one of these names would be replaced or
 // ignored, so ValidateHeaders rejects it instead.
 var reservedHeaders = map[string]string{
-	"Accept":         "the provider sets it on every request",
+	"Accept":         "the provider sets it on requests that expect JSON",
 	"Authorization":  "the provider sends the Coolify API token in it; use `token`",
 	"Content-Length": "the HTTP client computes it",
 	"Content-Type":   "the provider sets it on every request with a body",
@@ -87,6 +88,50 @@ func validHeaderName(name string) bool {
 		}
 	}
 	return true
+}
+
+// checkRedirect keeps the standard 10-redirect cap and drops proxy
+// credentials when the next hop is a different host. Go already drops
+// Authorization and Proxy-Authorization in that case. Other credential
+// headers, including cf-access-token and the Cloudflare Access pair,
+// would otherwise be forwarded.
+func (c *Client) checkRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if len(via) == 0 || via[0] == nil || via[0].URL == nil || req.URL == nil {
+		return nil
+	}
+	if sameRedirectTarget(via[0].URL, req.URL) {
+		return nil
+	}
+	for name := range c.extraHeaders {
+		req.Header.Del(name)
+	}
+	req.Header.Del("CF-Access-Client-Id")
+	req.Header.Del("CF-Access-Client-Secret")
+	return nil
+}
+
+// sameRedirectTarget reports whether two URLs are the same host and port.
+// An empty port uses the scheme default, so https://example.com and
+// https://example.com:443 are the same target.
+func sameRedirectTarget(a, b *url.URL) bool {
+	return redirectTargetKey(a) == redirectTargetKey(b)
+}
+
+func redirectTargetKey(u *url.URL) string {
+	host := strings.ToLower(u.Hostname())
+	port := u.Port()
+	if port == "" {
+		switch strings.ToLower(u.Scheme) {
+		case "https":
+			port = "443"
+		case "http":
+			port = "80"
+		}
+	}
+	return host + ":" + port
 }
 
 // validHeaderValue rejects control characters other than horizontal tab,

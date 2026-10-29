@@ -189,7 +189,7 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 	rc.HTTPClient.Timeout = 30 * time.Second
 	httpClient := rc.StandardClient()
 
-	return &Client{
+	c := &Client{
 		BaseURL:           baseURL,
 		apiToken:          apiToken,
 		HTTPClient:        httpClient,
@@ -198,6 +198,11 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 		cfAccessClientSec: cfg.CFAccessClientSec,
 		extraHeaders:      extraHeaders(cfg.Headers),
 	}
+	// retryablehttp follows redirects on its inner client. The outer
+	// client sees a redirect only when that inner client returns one.
+	rc.HTTPClient.CheckRedirect = c.checkRedirect
+	httpClient.CheckRedirect = c.checkRedirect
+	return c
 }
 
 // extraHeaders copies the user headers into an http.Header. It returns nil

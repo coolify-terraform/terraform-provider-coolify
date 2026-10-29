@@ -124,7 +124,8 @@ func (p *coolifyProvider) Schema(_ context.Context, _ provider.SchemaRequest, re
 			MarkdownDescription: "Extra HTTP headers sent with every request to the Coolify API, for a proxy in front of Coolify that authenticates requests " +
 				"(for example `Proxy-Authorization` for Google Cloud IAP). `Authorization`, `Accept`, `Content-Type`, `Content-Length`, `Host`, and `User-Agent` " +
 				"cannot be set, since the provider sets them itself. `CF-Access-Client-Id` cannot be set together with `cf_access_client_id`, " +
-				"nor `CF-Access-Client-Secret` with `cf_access_client_secret`. Env: `COOLIFY_HEADERS`, a JSON object of strings, used only when this attribute is not set.",
+				"nor `CF-Access-Client-Secret` with `cf_access_client_secret`. A redirect to a different host drops these headers and the Cloudflare Access headers. " +
+				"Env: `COOLIFY_HEADERS`, a JSON object of strings, used only when this attribute is not set.",
 			ElementType: types.StringType,
 			Optional:    true,
 			Sensitive:   true,

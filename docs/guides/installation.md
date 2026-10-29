@@ -153,11 +153,42 @@ export COOLIFY_HEADERS='{"Proxy-Authorization":"Bearer <id-token>"}'
 
 The provider rejects `Authorization`, `Accept`, `Content-Type`,
 `Content-Length`, `Host`, and `User-Agent`, which it sets itself, instead
-of replacing them. For Cloudflare Access, use `cf_access_client_id` and
-`cf_access_client_secret`.
+of replacing them. `Accept` is set on requests that expect JSON, not on
+the version check.
 
-~> **ID tokens expire**, usually after one hour. Mint a fresh one before
-each run, and do not keep it in a `.tfvars` file.
+Cloudflare Access has two kinds of credential:
+
+- A service token uses `cf_access_client_id` and `cf_access_client_secret`.
+  The same two headers can go in `headers` only when those attributes are
+  unset.
+- A user token from `cloudflared access token` goes in `cf-access-token`.
+  The `CF_Authorization` cookie can be sent as `Cookie` instead.
+
+Pomerium can take a programmatic token in `X-Pomerium-Authorization`.
+Authelia can be configured to read `Proxy-Authorization` (its
+HeaderProxyAuthorization strategy). Both leave `Authorization` for the
+Coolify API token.
+
+A redirect to the same host keeps these headers. A redirect to a different
+host drops them, and drops the Cloudflare Access headers, so a proxy
+credential is not sent to another site.
+
+These setups are not covered:
+
+- The proxy requires its credential in `Authorization`. That includes HTTP
+  basic auth on the proxy, oauth2-proxy's scripted JWT check
+  (`--skip-jwt-bearer-tokens`), Pomerium's `Authorization: Pomerium` and
+  `Authorization: Bearer Pomerium-...` forms, and Authelia's
+  HeaderAuthorization strategy. A `user:password` user in the endpoint URL
+  is not a second credential: the bearer token already occupies
+  `Authorization`, so the URL user is ignored.
+- Mutual TLS. `ca_cert` trusts the server certificate. The provider has no
+  client certificate.
+- Minting or refreshing a token. IAP ID tokens and Cloudflare user tokens
+  expire, usually after one hour. Mint a fresh value before each run, and
+  do not keep it in a `.tfvars` file.
+- An HTTP forward proxy on the machine running Terraform. Use
+  `HTTPS_PROXY`. `headers` are sent to the Coolify host, not to that proxy.
 
 ## Verify the connection
 

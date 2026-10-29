@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
 	"testing"
 
@@ -51,7 +52,8 @@ func TestClient_ExtraHeaders_SentOnEveryRequest(t *testing.T) {
 
 	_, err := c.GetVersion(ctx) // doText
 	require.NoError(t, err)
-	_, err = c.ListProjects(ctx) // doCachedList
+	var projects []Project
+	err = c.doCachedList(ctx, "/api/v1/projects", &projects) // doCachedList
 	require.NoError(t, err)
 	_, err = c.CreateProject(ctx, CreateProjectInput{Name: "p"}) // doWithStatus
 	require.NoError(t, err)
@@ -183,4 +185,65 @@ func TestRetryConfig_ValidateHeaders(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSameRedirectTarget(t *testing.T) {
+	t.Parallel()
+	parse := func(raw string) *url.URL {
+		t.Helper()
+		u, err := url.Parse(raw)
+		require.NoError(t, err)
+		return u
+	}
+	assert.True(t, sameRedirectTarget(parse("https://example.com/a"), parse("https://example.com:443/b")))
+	assert.True(t, sameRedirectTarget(parse("http://example.com"), parse("http://example.com:80/v")))
+	assert.False(t, sameRedirectTarget(parse("http://example.com"), parse("https://example.com")))
+	assert.False(t, sameRedirectTarget(parse("https://a.example.com"), parse("https://example.com")))
+	assert.False(t, sameRedirectTarget(parse("http://127.0.0.1:1"), parse("http://127.0.0.1:2")))
+}
+
+func TestClient_ExtraHeaders_CrossHostRedirectDropsThem(t *testing.T) {
+	t.Parallel()
+	var firstTenant, destTenant, destCF string
+	dest := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		destTenant = r.Header.Get("X-Tenant")
+		destCF = r.Header.Get("CF-Access-Client-Id")
+		_ = json.NewEncoder(w).Encode("4.4.0")
+	}))
+	t.Cleanup(dest.Close)
+	src := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		firstTenant = r.Header.Get("X-Tenant")
+		http.Redirect(w, r, dest.URL+"/api/v1/version", http.StatusFound)
+	}))
+	t.Cleanup(src.Close)
+
+	c := New(src.URL, "test-token", RetryConfig{
+		CFAccessClientID: "cf-id",
+		Headers:          map[string]string{"X-Tenant": "tenant-a"},
+	})
+	_, err := c.GetVersion(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "tenant-a", firstTenant)
+	assert.Empty(t, destTenant)
+	assert.Empty(t, destCF)
+}
+
+func TestClient_ExtraHeaders_SameHostRedirectKeepsThem(t *testing.T) {
+	t.Parallel()
+	var got string
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/version" {
+			http.Redirect(w, r, srv.URL+"/api/v1/health", http.StatusFound)
+			return
+		}
+		got = r.Header.Get("X-Tenant")
+		_, _ = w.Write([]byte("4.4.0"))
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New(srv.URL, "test-token", RetryConfig{Headers: map[string]string{"X-Tenant": "tenant-a"}})
+	_, err := c.GetVersion(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "tenant-a", got)
 }
