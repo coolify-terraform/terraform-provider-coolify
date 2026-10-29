@@ -36,15 +36,15 @@ resource "coolify_gitlab_app" "example" {
 
 ### Optional
 
-- `api_url` (String) GitLab API URL. Coolify derives it from html_url when omitted.
+- `api_url` (String) GitLab API URL. On create, leaving it unset lets Coolify derive it from `html_url`. Removing the attribute later does not clear a stored value.
 - `client_id` (String) OAuth application id.
 - `client_secret` (String, Sensitive) OAuth application secret. Preserved when GET omits it.
-- `custom_port` (Number) SSH port. Coolify defaults to 22.
-- `custom_user` (String) SSH user. Coolify defaults to git.
+- `custom_port` (Number) SSH port. On create, leaving it unset lets Coolify use `22`. Removing the attribute later does not clear a stored value.
+- `custom_user` (String) SSH user. On create, leaving it unset lets Coolify use `git`. Removing the attribute later does not clear a stored value.
 - `group_name` (String) Optional group filter.
 - `is_system_wide` (Boolean) System-wide on self-hosted Coolify only. Create-only: changing this value replaces the app.
 - `redirect_uri` (String) OAuth redirect URI. May be a private URL.
-- `webhook_token` (String, Sensitive) Webhook secret. Coolify generates one when omitted.
+- `webhook_token` (String, Sensitive) Webhook secret. On create, leaving it unset lets Coolify generate one. Removing the attribute later does not clear a stored value.
 
 ### Read-Only
 

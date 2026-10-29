@@ -36,8 +36,8 @@ resource "coolify_destination" "app_net" {
 
 ### Optional
 
-- `name` (String) Display name. Defaults to `{server-name}-{network}` when omitted. Coolify accepts in-place rename via PATCH.
-- `type` (String) Destination type: `standalone` or `swarm`. Omit to let Coolify match the server's Docker mode. Changing this forces a new resource.
+- `name` (String) Display name. On create, leaving it unset lets Coolify use `{server-name}-{network}`. Removing the attribute later does not clear a stored value. Coolify accepts an in-place rename via PATCH.
+- `type` (String) Destination type: `standalone` or `swarm`. On create, leaving it unset lets Coolify match the server's Docker mode. Removing the attribute later keeps the stored type. Changing the value forces a new resource.
 
 ### Read-Only
 

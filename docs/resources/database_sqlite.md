@@ -55,7 +55,7 @@ resource "coolify_database_sqlite" "example" {
 - `name` (String) The name of the database resource. Also used as the Docker container name and internal DNS hostname for inter-container communication.
 - `public_port` (Number) The host port to expose the database on when `is_public` is `true`. If omitted, Coolify auto-assigns an available port. Ignored when `is_public` is `false`.
 - `public_port_timeout` (Number) Timeout in seconds for public port allocation.
-- `sqlite_databases` (String) Comma-separated SQLite database file names (for example `app.sqlite,cache.sqlite`). Coolify defaults to `database.sqlite` when omitted. Requires Coolify 4.4 tip. Each name must match `[A-Za-z0-9][A-Za-z0-9._-]*`.
+- `sqlite_databases` (String) Comma-separated SQLite database file names (for example `app.sqlite,cache.sqlite`). On create, leaving it unset lets Coolify use `database.sqlite`. Removing the attribute later does not clear a stored value. Requires Coolify 4.4 tip. Each name must match `[A-Za-z0-9][A-Za-z0-9._-]*`.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only
