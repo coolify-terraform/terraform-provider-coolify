@@ -7,10 +7,12 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/validate"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -30,15 +32,16 @@ type s3StorageResource struct {
 
 // s3StorageResourceModel maps the resource schema data.
 type s3StorageResourceModel struct {
-	UUID        types.String `tfsdk:"uuid"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Endpoint    types.String `tfsdk:"endpoint"`
-	Bucket      types.String `tfsdk:"bucket"`
-	Region      types.String `tfsdk:"region"`
-	Key         types.String `tfsdk:"key"`
-	Secret      types.String `tfsdk:"secret"`
-	IsUsable    types.Bool   `tfsdk:"is_usable"`
+	UUID                 types.String `tfsdk:"uuid"`
+	Name                 types.String `tfsdk:"name"`
+	Description          types.String `tfsdk:"description"`
+	Endpoint             types.String `tfsdk:"endpoint"`
+	Bucket               types.String `tfsdk:"bucket"`
+	Region               types.String `tfsdk:"region"`
+	Key                  types.String `tfsdk:"key"`
+	Secret               types.String `tfsdk:"secret"`
+	UsePathStyleEndpoint types.Bool   `tfsdk:"use_path_style_endpoint"`
+	IsUsable             types.Bool   `tfsdk:"is_usable"`
 }
 
 // NewResource returns a new S3 storage resource instance.
@@ -98,6 +101,12 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Required:            true,
 				Sensitive:           true,
 			},
+			"use_path_style_endpoint": schema.BoolAttribute{
+				MarkdownDescription: "Use path-style URLs (`endpoint/bucket`) instead of virtual-hosted-style (`bucket.endpoint`). Requires Coolify >= v4.5.1. When this is omitted, Coolify chooses: false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS endpoints, and true for other endpoints. On older instances the provider keeps the value in state and does not send it.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
 			"is_usable": schema.BoolAttribute{
 				MarkdownDescription: "Whether Coolify marks this storage as usable. Defaults to `false`. Connection validation can update this on the server.",
 				Optional:            true,
@@ -120,16 +129,18 @@ func (r *s3StorageResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	tflog.Debug(ctx, "creating resource", map[string]interface{}{"resource_type": "coolify_s3_storage"})
+	warnUnsupportedPathStyle(r.client, plan.UsePathStyleEndpoint, &resp.Diagnostics)
 
 	input := client.CreateS3StorageInput{
-		Name:        plan.Name.ValueString(),
-		Description: plan.Description.ValueString(),
-		Endpoint:    plan.Endpoint.ValueString(),
-		Bucket:      plan.Bucket.ValueString(),
-		Region:      plan.Region.ValueString(),
-		Key:         plan.Key.ValueString(),
-		Secret:      plan.Secret.ValueString(),
-		IsUsable:    flex.BoolValueOrNull(plan.IsUsable),
+		Name:                 plan.Name.ValueString(),
+		Description:          plan.Description.ValueString(),
+		Endpoint:             plan.Endpoint.ValueString(),
+		Bucket:               plan.Bucket.ValueString(),
+		Region:               plan.Region.ValueString(),
+		Key:                  plan.Key.ValueString(),
+		Secret:               plan.Secret.ValueString(),
+		UsePathStyleEndpoint: flex.BoolValueOrNull(plan.UsePathStyleEndpoint),
+		IsUsable:             flex.BoolValueOrNull(plan.IsUsable),
 	}
 
 	created, err := r.client.CreateS3Storage(ctx, input)
@@ -200,16 +211,18 @@ func (r *s3StorageResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_s3_storage", "uuid": state.UUID.ValueString()})
+	warnUnsupportedPathStyle(r.client, plan.UsePathStyleEndpoint, &resp.Diagnostics)
 
 	input := client.UpdateS3StorageInput{
-		Name:        flex.StringIfChanged(plan.Name, state.Name),
-		Description: flex.StringIfChanged(plan.Description, state.Description),
-		Endpoint:    flex.StringIfChanged(plan.Endpoint, state.Endpoint),
-		Bucket:      flex.StringIfChanged(plan.Bucket, state.Bucket),
-		Region:      flex.StringIfChanged(plan.Region, state.Region),
-		Key:         flex.StringIfChanged(plan.Key, state.Key),
-		Secret:      flex.StringIfChanged(plan.Secret, state.Secret),
-		IsUsable:    flex.BoolIfChanged(plan.IsUsable, state.IsUsable),
+		Name:                 flex.StringIfChanged(plan.Name, state.Name),
+		Description:          flex.StringIfChanged(plan.Description, state.Description),
+		Endpoint:             flex.StringIfChanged(plan.Endpoint, state.Endpoint),
+		Bucket:               flex.StringIfChanged(plan.Bucket, state.Bucket),
+		Region:               flex.StringIfChanged(plan.Region, state.Region),
+		Key:                  flex.StringIfChanged(plan.Key, state.Key),
+		Secret:               flex.StringIfChanged(plan.Secret, state.Secret),
+		UsePathStyleEndpoint: flex.BoolIfChanged(plan.UsePathStyleEndpoint, state.UsePathStyleEndpoint),
+		IsUsable:             flex.BoolIfChanged(plan.IsUsable, state.IsUsable),
 	}
 
 	_, err := r.client.UpdateS3Storage(ctx, state.UUID.ValueString(), input)
@@ -259,6 +272,28 @@ func (r *s3StorageResource) ImportState(ctx context.Context, req resource.Import
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
 
+func warnUnsupportedPathStyle(c *client.Client, value types.Bool, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsCoolify451() {
+		return
+	}
+	if value.IsNull() || value.IsUnknown() {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write use_path_style_endpoint",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept use_path_style_endpoint (added in Coolify v4.5.1). "+
+				"The provider will keep the value in Terraform state but will not send it. "+
+				"Upgrade to Coolify v4.5.1 or later, or remove use_path_style_endpoint from configuration.",
+			ver,
+		),
+	)
+}
+
 // flattenS3Storage maps API fields into the Terraform model.
 // Key and secret are preserved from state when the API omits them (sensitive).
 func flattenS3Storage(s *client.S3Storage, m *s3StorageResourceModel) {
@@ -273,6 +308,11 @@ func flattenS3Storage(s *client.S3Storage, m *s3StorageResourceModel) {
 	}
 	if s.Secret != "" {
 		m.Secret = types.StringValue(s.Secret)
+	}
+	if s.UsePathStyleEndpoint != nil {
+		m.UsePathStyleEndpoint = types.BoolValue(*s.UsePathStyleEndpoint)
+	} else if m.UsePathStyleEndpoint.IsUnknown() {
+		m.UsePathStyleEndpoint = types.BoolNull()
 	}
 	if s.IsUsable != nil {
 		m.IsUsable = types.BoolValue(*s.IsUsable)

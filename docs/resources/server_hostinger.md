@@ -103,7 +103,7 @@ variable "hostinger_token" {
 - `is_jump_server` (Boolean) Whether this server is a jump host. Read-only (not on public server PATCH allow-list).
 - `is_logdrain_axiom_enabled` (Boolean) Whether Axiom log drain is enabled. Read-only (not on public server PATCH allow-list).
 - `is_logdrain_custom_enabled` (Boolean) Whether custom log drain is enabled. Read-only.
-- `is_logdrain_highlight_enabled` (Boolean) Whether Highlight log drain is enabled. Read-only.
+- `is_logdrain_highlight_enabled` (Boolean) Whether Highlight log drain is enabled. Read-only. Coolify 4.5.1 removed Highlight. Older instances still return this value. On 4.5.1 and later the API omits it and the provider stores null.
 - `is_logdrain_newrelic_enabled` (Boolean) Whether New Relic log drain is enabled. Read-only.
 - `is_metrics_enabled` (Boolean) Whether metrics collection is enabled on this server.
 - `is_reachable` (Boolean) Whether the server is currently reachable.
@@ -116,7 +116,7 @@ variable "hostinger_token" {
 - `logdrain_axiom_dataset_name` (String) Axiom dataset name for log drain. Read-only.
 - `logdrain_custom_config` (String, Sensitive) Custom log drain configuration. Sensitive; read-only.
 - `logdrain_custom_config_parser` (String) Custom log drain config parser. Read-only.
-- `logdrain_highlight_project_id` (String) Highlight project ID for log drain. Read-only.
+- `logdrain_highlight_project_id` (String) Highlight project ID for log drain. Read-only. Coolify 4.5.1 removed Highlight. Older instances still return this value. On 4.5.1 and later the API omits it and the provider stores null.
 - `logdrain_newrelic_base_uri` (String) New Relic base URI for log drain. Read-only.
 - `logdrain_newrelic_license_key` (String, Sensitive) New Relic license key for log drain. Sensitive; read-only.
 - `provisioning` (Boolean) True while the server IP is still a placeholder (`1.2.3.4`, `0.0.0.0`, or `::`).

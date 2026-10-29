@@ -576,6 +576,7 @@ func hasNonDefaultAppExtendedFields(f commonAppFields) bool {
 		flex.StringPtrNonDefault(f.HTTPBasicAuthBcryptCost, "") ||
 		(f.IsPermanentRedirectEnabled != nil && !f.IsPermanentRedirectEnabled.IsNull() && !f.IsPermanentRedirectEnabled.IsUnknown()) ||
 		(f.RedactAllEnvValuesInLogs != nil && !f.RedactAllEnvValuesInLogs.IsNull() && !f.RedactAllEnvValuesInLogs.IsUnknown()) ||
+		flex.Int64PtrConfigured(f.RollingUpdateDrainSeconds) ||
 		listPtrConfigured(f.NoindexDomains) ||
 		flex.BoolPtrNonDefault(f.ForceDomainOverride, false) ||
 		// String overrides
@@ -839,6 +840,7 @@ func flattenApplicationSettingFields(app *client.Application, f commonAppFields)
 	setStringIfPresent(f.HTTPBasicAuthBcryptCost, app.HTTPBasicAuthBcryptCost.String())
 	setBoolIfPresent(f.IsPermanentRedirectEnabled, app.IsPermanentRedirectEnabled)
 	setBoolIfPresent(f.RedactAllEnvValuesInLogs, app.RedactAllEnvValuesInLogs)
+	setInt64IfPresent(f.RollingUpdateDrainSeconds, app.RollingUpdateDrainSeconds)
 	flattenNoindexDomains(app.NoindexDomains, f.NoindexDomains)
 }
 
@@ -984,6 +986,9 @@ func addApplicationSettingUpdateFields(plan, state commonAppFields, input *clien
 	}
 	setBoolDiff(&input.IsPermanentRedirectEnabled, plan.IsPermanentRedirectEnabled, state.IsPermanentRedirectEnabled)
 	setBoolDiff(&input.RedactAllEnvValuesInLogs, plan.RedactAllEnvValuesInLogs, state.RedactAllEnvValuesInLogs)
+	if plan.RollingUpdateDrainSeconds != nil && state.RollingUpdateDrainSeconds != nil {
+		input.RollingUpdateDrainSeconds = flex.Int64IfChanged(*plan.RollingUpdateDrainSeconds, *state.RollingUpdateDrainSeconds)
+	}
 	if plan.NoindexDomains != nil && state.NoindexDomains != nil && !plan.NoindexDomains.Equal(*state.NoindexDomains) {
 		if plan.NoindexDomains.IsNull() {
 			empty := []string{}
@@ -1047,6 +1052,9 @@ func setApplicationSettingPostCreate(input *client.UpdateApplicationInput, f com
 	}
 	flex.SetBoolPtr(&input.IsPermanentRedirectEnabled, safeBool(f.IsPermanentRedirectEnabled))
 	flex.SetBoolPtr(&input.RedactAllEnvValuesInLogs, safeBool(f.RedactAllEnvValuesInLogs))
+	if f.RollingUpdateDrainSeconds != nil {
+		flex.SetInt64Ptr(&input.RollingUpdateDrainSeconds, *f.RollingUpdateDrainSeconds)
+	}
 	if listPtrConfigured(f.NoindexDomains) {
 		list := stringListFromTypes(*f.NoindexDomains)
 		input.NoindexDomains = &list

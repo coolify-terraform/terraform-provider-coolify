@@ -344,11 +344,11 @@ func addLogdrainSettingsAttrs(attrs map[string]schema.Attribute) {
 		Computed:            true,
 	}
 	attrs["is_logdrain_highlight_enabled"] = schema.BoolAttribute{
-		MarkdownDescription: "Whether Highlight log drain is enabled. Read-only.",
+		MarkdownDescription: "Whether Highlight log drain is enabled. Read-only. Coolify 4.5.1 removed Highlight. Older instances still return this value. On 4.5.1 and later the API omits it and the provider stores null.",
 		Computed:            true,
 	}
 	attrs["logdrain_highlight_project_id"] = schema.StringAttribute{
-		MarkdownDescription: "Highlight project ID for log drain. Read-only.",
+		MarkdownDescription: "Highlight project ID for log drain. Read-only. Coolify 4.5.1 removed Highlight. Older instances still return this value. On 4.5.1 and later the API omits it and the provider stores null.",
 		Computed:            true,
 	}
 	attrs["is_logdrain_newrelic_enabled"] = schema.BoolAttribute{
@@ -482,7 +482,7 @@ func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
 	setBoolPtr(f.IsLogdrainCustomEnabled, s.IsLogdrainCustomEnabled)
 	setStringPtr(f.LogdrainCustomConfig, s.LogdrainCustomConfig)
 	setStringPtr(f.LogdrainCustomConfigParser, s.LogdrainCustomConfigParser)
-	setBoolPtr(f.IsLogdrainHighlightEnabled, s.IsLogdrainHighlightEnabled)
+	setBoolPtrOptional(f.IsLogdrainHighlightEnabled, s.IsLogdrainHighlightEnabled)
 	setStringPtr(f.LogdrainHighlightProjectID, s.LogdrainHighlightProjectID)
 	setBoolPtr(f.IsLogdrainNewrelicEnabled, s.IsLogdrainNewrelicEnabled)
 	setStringPtr(f.LogdrainNewrelicBaseURI, s.LogdrainNewrelicBaseURI)
@@ -512,6 +512,17 @@ func setBoolPtr(dst *types.Bool, v bool) {
 		return
 	}
 	*dst = types.BoolValue(v)
+}
+
+func setBoolPtrOptional(dst *types.Bool, v *bool) {
+	if dst == nil {
+		return
+	}
+	if v == nil {
+		*dst = types.BoolNull()
+		return
+	}
+	*dst = types.BoolValue(*v)
 }
 
 func setStringPtr(dst *types.String, v string) {

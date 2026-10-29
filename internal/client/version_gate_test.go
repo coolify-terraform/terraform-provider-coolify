@@ -403,6 +403,49 @@ func TestSupportsCoolify45(t *testing.T) {
 	}
 }
 
+func TestSupportsCoolify451(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.5.0", false},
+		{"4.5.1", true},
+		{"4.5.3", true},
+		{"4.4.2", false},
+		{"4.4-rc.1", false},
+		{"4.3.0", true},
+		{"4.6-rc.1", true},
+		{"", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsCoolify451(); got != tt.want {
+			t.Errorf("SupportsCoolify451(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+		if got := c.SupportsHighlightLogDrain(); got != !tt.want {
+			t.Errorf("SupportsHighlightLogDrain(%q) = %v, want %v", tt.version, got, !tt.want)
+		}
+	}
+}
+
+func TestClearApplicationSettingsV451LeavesV45Keys(t *testing.T) {
+	t.Parallel()
+	algo := "bcrypt"
+	drain := int64(5)
+	in := UpdateApplicationInput{
+		HTTPBasicAuthHashAlgorithm: &algo,
+		RollingUpdateDrainSeconds:  &drain,
+	}
+	in.clearApplicationSettingsV451()
+	if in.RollingUpdateDrainSeconds != nil {
+		t.Fatal("v4.5.1 field was not cleared")
+	}
+	if in.HTTPBasicAuthHashAlgorithm == nil || *in.HTTPBasicAuthHashAlgorithm != "bcrypt" {
+		t.Fatal("clearApplicationSettingsV451 dropped a v4.5.0 field")
+	}
+}
+
 func TestClearApplicationSettingsV45LeavesEarlierKeys(t *testing.T) {
 	t.Parallel()
 	algo := "bcrypt"

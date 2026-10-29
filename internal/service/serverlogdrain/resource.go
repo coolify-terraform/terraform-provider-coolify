@@ -34,6 +34,7 @@ type model struct {
 	AxiomEnabled           types.Bool   `tfsdk:"is_logdrain_axiom_enabled"`
 	AxiomDatasetName       types.String `tfsdk:"logdrain_axiom_dataset_name"`
 	AxiomAPIKey            types.String `tfsdk:"logdrain_axiom_api_key"`
+	AxiomDomain            types.String `tfsdk:"logdrain_axiom_domain"`
 	CustomEnabled          types.Bool   `tfsdk:"is_logdrain_custom_enabled"`
 	CustomConfig           types.String `tfsdk:"logdrain_custom_config"`
 	CustomConfigParser     types.String `tfsdk:"logdrain_custom_config_parser"`
@@ -89,6 +90,12 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 				Sensitive:           true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				MarkdownDescription: "Axiom API key. Omitting the attribute later does not clear the stored Coolify value.",
+			},
+			"logdrain_axiom_domain": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				MarkdownDescription: "Base domain of the Axiom edge deployment, for example `us-east-1.aws.edge.axiom.co` or `eu-central-1.aws.edge.axiom.co`. Requires Coolify >= v4.5.1. When this is omitted, Coolify uses `us-east-1.aws.edge.axiom.co`. On older instances the provider keeps the value in state and does not send it.",
 			},
 			"is_logdrain_custom_enabled": schema.BoolAttribute{
 				Optional:      true,
@@ -148,6 +155,7 @@ func toInput(m model) client.ServerLogDrains {
 		IsAxiomEnabled:         flex.BoolValueOrNull(m.AxiomEnabled),
 		AxiomDatasetName:       m.AxiomDatasetName.ValueString(),
 		AxiomAPIKey:            m.AxiomAPIKey.ValueString(),
+		AxiomDomain:            m.AxiomDomain.ValueString(),
 		IsCustomEnabled:        flex.BoolValueOrNull(m.CustomEnabled),
 		CustomConfig:           m.CustomConfig.ValueString(),
 		CustomConfigParser:     m.CustomConfigParser.ValueString(),
@@ -173,6 +181,7 @@ func flatten(s *client.ServerLogDrains, m *model) {
 	}
 	flex.SetStringSeedOrClear(&m.AxiomDatasetName, s.AxiomDatasetName)
 	flex.SetStringSeedOrClear(&m.AxiomAPIKey, s.AxiomAPIKey)
+	flex.SetStringPreserveEmpty(&m.AxiomDomain, s.AxiomDomain)
 	if s.IsCustomEnabled != nil {
 		m.CustomEnabled = types.BoolValue(*s.IsCustomEnabled)
 	} else if m.CustomEnabled.IsUnknown() {
@@ -217,6 +226,28 @@ func warnUnsupportedCloudWatch(c *client.Client, plan model, diags *diag.Diagnos
 	)
 }
 
+func warnUnsupportedAxiomDomain(c *client.Client, plan model, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsCoolify451() {
+		return
+	}
+	if !flex.StringValueConfigured(plan.AxiomDomain) {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write logdrain_axiom_domain",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept logdrain_axiom_domain (added in Coolify v4.5.1). "+
+				"The provider will keep the value in Terraform state but will not send it. "+
+				"Upgrade to Coolify v4.5.1 or later, or remove logdrain_axiom_domain from configuration.",
+			ver,
+		),
+	)
+}
+
 func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -224,6 +255,7 @@ func (r *res) Create(ctx context.Context, req resource.CreateRequest, resp *reso
 		return
 	}
 	warnUnsupportedCloudWatch(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedAxiomDomain(r.client, plan, &resp.Diagnostics)
 	got, err := r.client.UpdateServerLogDrains(ctx, plan.ServerUUID.ValueString(), toInput(plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error applying server log drains", err.Error())
@@ -259,6 +291,7 @@ func (r *res) Update(ctx context.Context, req resource.UpdateRequest, resp *reso
 		return
 	}
 	warnUnsupportedCloudWatch(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedAxiomDomain(r.client, plan, &resp.Diagnostics)
 	got, err := r.client.UpdateServerLogDrains(ctx, plan.ServerUUID.ValueString(), toInput(plan))
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating server log drains", err.Error())

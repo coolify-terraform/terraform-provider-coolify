@@ -46,11 +46,13 @@ type ServerSettings struct {
 	IsLogdrainCustomEnabled              bool   `json:"is_logdrain_custom_enabled"`
 	LogdrainCustomConfig                 string `json:"logdrain_custom_config,omitempty"`
 	LogdrainCustomConfigParser           string `json:"logdrain_custom_config_parser,omitempty"`
-	IsLogdrainHighlightEnabled           bool   `json:"is_logdrain_highlight_enabled"`
-	LogdrainHighlightProjectID           string `json:"logdrain_highlight_project_id,omitempty"`
-	IsLogdrainNewrelicEnabled            bool   `json:"is_logdrain_newrelic_enabled"`
-	LogdrainNewrelicBaseURI              string `json:"logdrain_newrelic_base_uri,omitempty"`
-	LogdrainNewrelicLicenseKey           string `json:"logdrain_newrelic_license_key,omitempty"`
+	// Highlight log drain columns were dropped in Coolify 4.5.1.
+	// Pointers so a GET that omits them stays null instead of false.
+	IsLogdrainHighlightEnabled *bool  `json:"is_logdrain_highlight_enabled,omitempty"`
+	LogdrainHighlightProjectID string `json:"logdrain_highlight_project_id,omitempty"`
+	IsLogdrainNewrelicEnabled  bool   `json:"is_logdrain_newrelic_enabled"`
+	LogdrainNewrelicBaseURI    string `json:"logdrain_newrelic_base_uri,omitempty"`
+	LogdrainNewrelicLicenseKey string `json:"logdrain_newrelic_license_key,omitempty"`
 	// Docker/Compose version probes written by Coolify (tip/main; not on public PATCH).
 	// Empty on Coolify < tip that lacks the columns; safe omitempty JSON.
 	ComposeVersion          string `json:"compose_version,omitempty"`

@@ -144,6 +144,8 @@ type Application struct {
 	TraefikCertificateResolver string `json:"traefik_certificate_resolver,omitempty"`
 	IsPermanentRedirectEnabled *bool  `json:"is_permanent_redirect_enabled,omitempty"`
 	RedactAllEnvValuesInLogs   *bool  `json:"redact_all_env_values_in_logs,omitempty"`
+	// RollingUpdateDrainSeconds is Coolify >= v4.5.1. Omitted on older GET.
+	RollingUpdateDrainSeconds *int64 `json:"rolling_update_drain_seconds,omitempty"`
 	// NoindexDomains is the subset of domains served with X-Robots-Tag noindex
 	// (Coolify >= v4.3.0). JSON array on the wire; empty means none.
 	NoindexDomains  []string `json:"noindex_domains,omitempty"`
@@ -294,6 +296,7 @@ type ApplicationSettings struct {
 	TraefikCertificateResolver       string `json:"traefik_certificate_resolver,omitempty"`
 	IsPermanentRedirectEnabled       *bool  `json:"is_permanent_redirect_enabled,omitempty"`
 	RedactAllEnvValuesInLogs         *bool  `json:"redact_all_env_values_in_logs,omitempty"`
+	RollingUpdateDrainSeconds        *int64 `json:"rolling_update_drain_seconds,omitempty"`
 }
 
 // PromoteSettings copies nested settings onto top-level Application fields when unset.
@@ -346,6 +349,7 @@ func (a *Application) PromoteSettings() {
 	}
 	promoteBool(&a.IsPermanentRedirectEnabled, s.IsPermanentRedirectEnabled)
 	promoteBool(&a.RedactAllEnvValuesInLogs, s.RedactAllEnvValuesInLogs)
+	promoteInt64(&a.RollingUpdateDrainSeconds, s.RollingUpdateDrainSeconds)
 }
 
 func promoteBool(dst **bool, src *bool) {
@@ -462,6 +466,7 @@ type UpdateApplicationInput struct {
 	HTTPBasicAuthBcryptCost         *string `json:"http_basic_auth_bcrypt_cost,omitempty"`
 	IsPermanentRedirectEnabled      *bool   `json:"is_permanent_redirect_enabled,omitempty"`
 	RedactAllEnvValuesInLogs        *bool   `json:"redact_all_env_values_in_logs,omitempty"`
+	RollingUpdateDrainSeconds       *int64  `json:"rolling_update_drain_seconds,omitempty"`
 	// Extended health checks
 	HealthCheckCommand      *string `json:"health_check_command,omitempty"`
 	HealthCheckHost         *string `json:"health_check_host,omitempty"`
@@ -615,6 +620,9 @@ func (c *Client) UpdateApplication(ctx context.Context, uuid string, input Updat
 	if !c.SupportsCoolify45() {
 		input.clearApplicationSettingsV45()
 	}
+	if !c.SupportsCoolify451() {
+		input.clearApplicationSettingsV451()
+	}
 	// github_app_uuid is create-only. Coolify 4.5.0 lists it on update,
 	// but changing the app still replaces the application.
 	input.GitHubAppUUID = nil
@@ -721,6 +729,12 @@ func (i *UpdateApplicationInput) clearApplicationSettingsV45() {
 	// apps still replace when this changes; only the dockerfile resource
 	// sets the key, and only when SupportsCoolify45 is true.
 	i.Dockerfile = nil
+}
+
+// clearApplicationSettingsV451 drops Coolify >= v4.5.1 write keys.
+// v4.5.0 still accepts the v4.5.0 keys and rejects this one.
+func (i *UpdateApplicationInput) clearApplicationSettingsV451() {
+	i.RollingUpdateDrainSeconds = nil
 }
 
 // HasOnlyApplicationSettings reports whether the payload would be empty once

@@ -59,6 +59,9 @@ type ServerLogDrains struct {
 	IsAxiomEnabled     *bool  `json:"is_logdrain_axiom_enabled,omitempty"`
 	AxiomDatasetName   string `json:"logdrain_axiom_dataset_name,omitempty"`
 	AxiomAPIKey        string `json:"logdrain_axiom_api_key,omitempty"`
+	// AxiomDomain requires Coolify >= v4.5.1. UpdateServerLogDrains drops it
+	// on older instances. Coolify's default when omitted is the US edge.
+	AxiomDomain        string `json:"logdrain_axiom_domain,omitempty"`
 	IsCustomEnabled    *bool  `json:"is_logdrain_custom_enabled,omitempty"`
 	CustomConfig       string `json:"logdrain_custom_config,omitempty"`
 	CustomConfigParser string `json:"logdrain_custom_config_parser,omitempty"`
@@ -84,6 +87,9 @@ func (c *Client) UpdateServerLogDrains(ctx context.Context, serverUUID string, i
 		input.CloudWatchGroup = ""
 		input.CloudWatchRegion = ""
 		input.CloudWatchStreamPrefix = ""
+	}
+	if !c.SupportsCoolify451() {
+		input.AxiomDomain = ""
 	}
 	var r ServerLogDrains
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/servers/%s/log-drains", url.PathEscape(serverUUID)), input, &r); err != nil {

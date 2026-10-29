@@ -42,6 +42,7 @@ output "coolify_version" {
 | **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. Recommended for the full feature set. |
 | **≥ 4.5.0** | `POST /api/v1/enable` is gone. `coolify_api_settings` with `enabled = true` leaves the API unchanged. `enabled = false` still disables it. Turn the API back on in the Coolify UI. Destroy does not re-enable the API. `coolify_server_hostinger` and the Hostinger catalog data sources require this version. `coolify_service_application` can send `is_permanent_redirect_enabled` and `traefik_certificate_resolver`. |
+| **≥ 4.5.1** | `coolify_s3_storage.use_path_style_endpoint`, `coolify_server_log_drain.logdrain_axiom_domain`, and application `rolling_update_drain_seconds` are sent. Older instances keep those values in state and do not send them. Highlight log drain columns are gone, so the read-only server attributes are null. |
 
 Pinned API contract today: Coolify **v4.4.2** (`testdata/contracts/coolify-v4.json`).
 Tag extracts `coolify-v4.4.0.json`, `coolify-v4.4.1.json`, and `coolify-v4.4.2.json` match those git
@@ -266,6 +267,15 @@ application, null uses the server setting. `none` turns the resolver off.
 | `coolify_server_hostinger` | Purchase a Hostinger VPS and register it. On an older reported version, create fails before POST. An empty provider version still sends the request. Destroy deletes the Coolify server only. The VPS keeps billing in hPanel. |
 | `coolify_hostinger_data_centers`, `coolify_hostinger_catalog`, `coolify_hostinger_templates`, `coolify_hostinger_ssh_keys`, `coolify_hostinger_post_install_scripts` | Read Hostinger locations, plans, templates, SSH keys, and post-install scripts through Coolify. |
 | `is_permanent_redirect_enabled` and `traefik_certificate_resolver` on `coolify_service_application` | Sent on Coolify >= 4.5.0. Older instances keep the values in state and do not send them. |
+
+### Requires Coolify ≥ 4.5.1
+
+| Resource / attribute | Role |
+|----------------------|------|
+| `use_path_style_endpoint` on `coolify_s3_storage` | Path-style URLs (`endpoint/bucket`). When omitted, Coolify picks false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS, and true for other endpoints. Older instances keep a configured value in state and do not send it. |
+| `logdrain_axiom_domain` on `coolify_server_log_drain` | Axiom edge domain. Coolify's default when omitted is `us-east-1.aws.edge.axiom.co`. Older instances keep a configured value in state and do not send it. |
+| `rolling_update_drain_seconds` on applications | Seconds to wait after the new container is healthy before old containers stop. `0` turns the wait off. Coolify's default when omitted is `5`. Older instances, including v4.5.0, keep a configured value in state and do not send it. |
+| Highlight log drain fields on servers | Read-only. Coolify 4.5.1 drops the columns. Older instances still return them. On 4.5.1 and later the provider stores null. |
 
 `coolify_service_application` configures an application the compose service already created. Fields that older Coolify accepts, such as `url` and `description`, are still sent. There is no DELETE for this object. Destroy drops Terraform state and leaves the container and its URL in place.
 

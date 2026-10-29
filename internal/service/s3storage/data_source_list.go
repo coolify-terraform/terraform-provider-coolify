@@ -31,13 +31,14 @@ type s3StorageListDataSourceModel struct {
 
 // s3StorageItemModel maps a single S3 storage in the list.
 type s3StorageItemModel struct {
-	UUID        types.String `tfsdk:"uuid"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Endpoint    types.String `tfsdk:"endpoint"`
-	Bucket      types.String `tfsdk:"bucket"`
-	Region      types.String `tfsdk:"region"`
-	IsUsable    types.Bool   `tfsdk:"is_usable"`
+	UUID                 types.String `tfsdk:"uuid"`
+	Name                 types.String `tfsdk:"name"`
+	Description          types.String `tfsdk:"description"`
+	Endpoint             types.String `tfsdk:"endpoint"`
+	Bucket               types.String `tfsdk:"bucket"`
+	Region               types.String `tfsdk:"region"`
+	UsePathStyleEndpoint types.Bool   `tfsdk:"use_path_style_endpoint"`
+	IsUsable             types.Bool   `tfsdk:"is_usable"`
 }
 
 // NewListDataSource returns a new S3 storages list data source instance.
@@ -80,6 +81,10 @@ func (d *s3StorageListDataSource) Schema(_ context.Context, _ datasource.SchemaR
 						},
 						"region": schema.StringAttribute{
 							MarkdownDescription: "S3 region.",
+							Computed:            true,
+						},
+						"use_path_style_endpoint": schema.BoolAttribute{
+							MarkdownDescription: "Whether this storage uses path-style URLs. Null when the Coolify instance is older than v4.5.1 and does not return the field.",
 							Computed:            true,
 						},
 						"is_usable": schema.BoolAttribute{
@@ -127,6 +132,11 @@ func (d *s3StorageListDataSource) Read(ctx context.Context, req datasource.ReadR
 			return s.Bucket, true
 		case "region":
 			return s.Region, true
+		case "use_path_style_endpoint":
+			if s.UsePathStyleEndpoint == nil {
+				return "", false
+			}
+			return filter.BoolToString(*s.UsePathStyleEndpoint), true
 		case "is_usable":
 			usable := false
 			if s.IsUsable != nil {
@@ -148,6 +158,11 @@ func (d *s3StorageListDataSource) Read(ctx context.Context, req datasource.ReadR
 			Endpoint:    types.StringValue(s.Endpoint),
 			Bucket:      types.StringValue(s.Bucket),
 			Region:      types.StringValue(s.Region),
+		}
+		if s.UsePathStyleEndpoint != nil {
+			item.UsePathStyleEndpoint = types.BoolValue(*s.UsePathStyleEndpoint)
+		} else {
+			item.UsePathStyleEndpoint = types.BoolNull()
 		}
 		if s.IsUsable != nil {
 			item.IsUsable = types.BoolValue(*s.IsUsable)

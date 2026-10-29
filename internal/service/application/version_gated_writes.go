@@ -125,6 +125,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 		names = append(names, configuredVersionGatedV43WriteAttrs(f)...)
 		names = append(names, configuredVersionGatedV44WriteAttrs(f)...)
 		names = append(names, configuredVersionGatedV45WriteAttrs(f)...)
+		names = append(names, configuredVersionGatedV451WriteAttrs(f)...)
 		sort.Strings(names)
 		if len(names) > 0 {
 			diags.AddWarning(
@@ -144,6 +145,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 		names := configuredVersionGatedV43WriteAttrs(f)
 		names = append(names, configuredVersionGatedV44WriteAttrs(f)...)
 		names = append(names, configuredVersionGatedV45WriteAttrs(f)...)
+		names = append(names, configuredVersionGatedV451WriteAttrs(f)...)
 		sort.Strings(names)
 		if len(names) == 0 {
 			return
@@ -177,15 +179,30 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 	}
 	if !c.SupportsCoolify45() {
 		names := configuredVersionGatedV45WriteAttrs(f)
+		if len(names) > 0 {
+			diags.AddWarning(
+				versionGatedWriteAttrSummary,
+				fmt.Sprintf(
+					"This Coolify instance (%s) is older than v4.5.0, which is required to write: %s. "+
+						"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
+						"Upgrade Coolify to v4.5.0 or later, or remove these attributes from configuration.",
+					ver,
+					strings.Join(names, ", "),
+				),
+			)
+		}
+	}
+	if !c.SupportsCoolify451() {
+		names := configuredVersionGatedV451WriteAttrs(f)
 		if len(names) == 0 {
 			return
 		}
 		diags.AddWarning(
 			versionGatedWriteAttrSummary,
 			fmt.Sprintf(
-				"This Coolify instance (%s) is older than v4.5.0, which is required to write: %s. "+
+				"This Coolify instance (%s) is older than v4.5.1, which is required to write: %s. "+
 					"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
-					"Upgrade Coolify to v4.5.0 or later, or remove these attributes from configuration.",
+					"Upgrade Coolify to v4.5.1 or later, or remove these attributes from configuration.",
 				ver,
 				strings.Join(names, ", "),
 			),
@@ -218,4 +235,11 @@ func configuredVersionGatedV45WriteAttrs(f commonAppFields) []string {
 	appendBool("redact_all_env_values_in_logs", f.RedactAllEnvValuesInLogs)
 	sort.Strings(names)
 	return names
+}
+
+func configuredVersionGatedV451WriteAttrs(f commonAppFields) []string {
+	if f.RollingUpdateDrainSeconds != nil && !f.RollingUpdateDrainSeconds.IsNull() && !f.RollingUpdateDrainSeconds.IsUnknown() {
+		return []string{"rolling_update_drain_seconds"}
+	}
+	return nil
 }

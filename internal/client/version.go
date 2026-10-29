@@ -90,6 +90,12 @@ var ApplicationSettingsV45WriteJSONKeys = []string{
 	"redact_all_env_values_in_logs",
 }
 
+// ApplicationSettingsV451WriteJSONKeys lists Coolify application PATCH JSON
+// keys accepted only on Coolify >= v4.5.1. v4.5.0 rejects them.
+var ApplicationSettingsV451WriteJSONKeys = []string{
+	"rolling_update_drain_seconds",
+}
+
 // ApplicationSettingsAheadOfPinWriteJSONKeys are public application write
 // keys that exist on Coolify main after tag v4.4.6. That tag and main both
 // report version 4.4.6, so a version check cannot tell them apart. Callers
@@ -230,6 +236,42 @@ func (c *Client) SupportsServiceApplicationMaxRestart() bool {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minServiceAppMaxRestartVersion)
+}
+
+// minCoolify451Version is the first tagged Coolify release that accepts
+// use_path_style_endpoint, logdrain_axiom_domain, and
+// rolling_update_drain_seconds, and that drops Highlight log drain columns.
+const minCoolify451Version = "4.5.1"
+
+// SupportsCoolify451 reports whether the connected instance accepts Coolify
+// >= v4.5.1 write fields.
+//
+// Empty CoolifyVersion reports true so unit tests that never call Configure
+// exercise the new payload. A 4.3.0 version string reports true because CI
+// edge has used that string while shipping later APIs. 4.4-rc.* reports false.
+func (c *Client) SupportsCoolify451() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionIs44Prerelease(c.CoolifyVersion) {
+		return false
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minCoolify451Version)
+}
+
+// SupportsHighlightLogDrain reports whether GET server settings still include
+// the Highlight log drain columns. Coolify 4.5.1 dropped them.
+//
+// Empty CoolifyVersion reports false (newest instances no longer have the
+// columns). 4.4-rc.* and releases before 4.5.1 report true.
+func (c *Client) SupportsHighlightLogDrain() bool {
+	if c == nil {
+		return false
+	}
+	return !c.SupportsCoolify451()
 }
 
 // SupportsCoolify45 reports whether the connected instance accepts Coolify

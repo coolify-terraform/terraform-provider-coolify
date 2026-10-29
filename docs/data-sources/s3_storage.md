@@ -33,3 +33,4 @@ data "coolify_s3_storage" "example" {
 - `is_usable` (Boolean) Whether Coolify marks this storage as usable.
 - `name` (String) A friendly name for the S3 storage.
 - `region` (String) S3 region.
+- `use_path_style_endpoint` (Boolean) Whether this storage uses path-style URLs. Null when the Coolify instance is older than v4.5.1 and does not return the field.

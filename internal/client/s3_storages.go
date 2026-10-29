@@ -11,41 +11,44 @@ import (
 // Key and Secret are sensitive; Coolify omits them unless the API token
 // has can_read_sensitive permission.
 type S3Storage struct {
-	UUID        string `json:"uuid"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Endpoint    string `json:"endpoint"`
-	Bucket      string `json:"bucket"`
-	Region      string `json:"region"`
-	Key         string `json:"key,omitempty"`
-	Secret      string `json:"secret,omitempty"`
-	IsUsable    *bool  `json:"is_usable,omitempty"`
+	UUID                 string `json:"uuid"`
+	Name                 string `json:"name"`
+	Description          string `json:"description,omitempty"`
+	Endpoint             string `json:"endpoint"`
+	Bucket               string `json:"bucket"`
+	Region               string `json:"region"`
+	Key                  string `json:"key,omitempty"`
+	Secret               string `json:"secret,omitempty"`
+	UsePathStyleEndpoint *bool  `json:"use_path_style_endpoint,omitempty"`
+	IsUsable             *bool  `json:"is_usable,omitempty"`
 }
 
 // CreateS3StorageInput is the payload for creating S3 storage.
 // Required: name, endpoint, bucket, region, key, secret.
 type CreateS3StorageInput struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Endpoint    string `json:"endpoint"`
-	Bucket      string `json:"bucket"`
-	Region      string `json:"region"`
-	Key         string `json:"key"`
-	Secret      string `json:"secret"`
-	IsUsable    *bool  `json:"is_usable,omitempty"`
+	Name                 string `json:"name"`
+	Description          string `json:"description,omitempty"`
+	Endpoint             string `json:"endpoint"`
+	Bucket               string `json:"bucket"`
+	Region               string `json:"region"`
+	Key                  string `json:"key"`
+	Secret               string `json:"secret"`
+	UsePathStyleEndpoint *bool  `json:"use_path_style_endpoint,omitempty"`
+	IsUsable             *bool  `json:"is_usable,omitempty"`
 }
 
 // UpdateS3StorageInput is the payload for updating S3 storage.
 // All fields are optional; only non-nil fields are sent.
 type UpdateS3StorageInput struct {
-	Name        *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
-	Endpoint    *string `json:"endpoint,omitempty"`
-	Bucket      *string `json:"bucket,omitempty"`
-	Region      *string `json:"region,omitempty"`
-	Key         *string `json:"key,omitempty"`
-	Secret      *string `json:"secret,omitempty"`
-	IsUsable    *bool   `json:"is_usable,omitempty"`
+	Name                 *string `json:"name,omitempty"`
+	Description          *string `json:"description,omitempty"`
+	Endpoint             *string `json:"endpoint,omitempty"`
+	Bucket               *string `json:"bucket,omitempty"`
+	Region               *string `json:"region,omitempty"`
+	Key                  *string `json:"key,omitempty"`
+	Secret               *string `json:"secret,omitempty"`
+	UsePathStyleEndpoint *bool   `json:"use_path_style_endpoint,omitempty"`
+	IsUsable             *bool   `json:"is_usable,omitempty"`
 }
 
 // ListS3Storages returns all S3 storages for the authenticated team.
@@ -71,6 +74,9 @@ func (c *Client) GetS3Storage(ctx context.Context, uuid string) (*S3Storage, err
 // CreateS3Storage creates a new S3 storage configuration.
 // Coolify returns 201 with {uuid: "..."}. Requires Coolify >= v4.3.0.
 func (c *Client) CreateS3Storage(ctx context.Context, input CreateS3StorageInput) (*S3Storage, error) {
+	if c != nil && !c.SupportsCoolify451() {
+		input.UsePathStyleEndpoint = nil
+	}
 	var r S3Storage
 	if err := c.doWithStatus(ctx, http.MethodPost, "/api/v1/s3-storages", input, &r, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating s3 storage: %w", err)
@@ -81,6 +87,9 @@ func (c *Client) CreateS3Storage(ctx context.Context, input CreateS3StorageInput
 // UpdateS3Storage updates an existing S3 storage by UUID.
 // Requires Coolify >= v4.3.0.
 func (c *Client) UpdateS3Storage(ctx context.Context, uuid string, input UpdateS3StorageInput) (*S3Storage, error) {
+	if c != nil && !c.SupportsCoolify451() {
+		input.UsePathStyleEndpoint = nil
+	}
 	var r S3Storage
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/s3-storages/%s", url.PathEscape(uuid)), input, &r); err != nil {
 		return nil, fmt.Errorf("updating s3 storage %s: %w", uuid, err)

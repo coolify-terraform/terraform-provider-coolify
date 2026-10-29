@@ -27,13 +27,14 @@ type s3StorageDataSource struct {
 // s3StorageDataSourceModel maps the data source schema data.
 // Key and secret are omitted: Coolify hides them unless the token can read sensitive data.
 type s3StorageDataSourceModel struct {
-	UUID        types.String `tfsdk:"uuid"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Endpoint    types.String `tfsdk:"endpoint"`
-	Bucket      types.String `tfsdk:"bucket"`
-	Region      types.String `tfsdk:"region"`
-	IsUsable    types.Bool   `tfsdk:"is_usable"`
+	UUID                 types.String `tfsdk:"uuid"`
+	Name                 types.String `tfsdk:"name"`
+	Description          types.String `tfsdk:"description"`
+	Endpoint             types.String `tfsdk:"endpoint"`
+	Bucket               types.String `tfsdk:"bucket"`
+	Region               types.String `tfsdk:"region"`
+	UsePathStyleEndpoint types.Bool   `tfsdk:"use_path_style_endpoint"`
+	IsUsable             types.Bool   `tfsdk:"is_usable"`
 }
 
 // NewDataSource returns a new S3 storage data source instance.
@@ -74,6 +75,10 @@ func (d *s3StorageDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 				MarkdownDescription: "S3 region.",
 				Computed:            true,
 			},
+			"use_path_style_endpoint": schema.BoolAttribute{
+				MarkdownDescription: "Whether this storage uses path-style URLs. Null when the Coolify instance is older than v4.5.1 and does not return the field.",
+				Computed:            true,
+			},
 			"is_usable": schema.BoolAttribute{
 				MarkdownDescription: "Whether Coolify marks this storage as usable.",
 				Computed:            true,
@@ -108,6 +113,11 @@ func (d *s3StorageDataSource) Read(ctx context.Context, req datasource.ReadReque
 	config.Endpoint = types.StringValue(s.Endpoint)
 	config.Bucket = types.StringValue(s.Bucket)
 	config.Region = types.StringValue(s.Region)
+	if s.UsePathStyleEndpoint != nil {
+		config.UsePathStyleEndpoint = types.BoolValue(*s.UsePathStyleEndpoint)
+	} else {
+		config.UsePathStyleEndpoint = types.BoolNull()
+	}
 	if s.IsUsable != nil {
 		config.IsUsable = types.BoolValue(*s.IsUsable)
 	} else {
