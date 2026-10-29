@@ -50,7 +50,7 @@ resource "coolify_s3_storage" "example" {
 
 - `description` (String) Optional description of the S3 storage. Omitting the attribute later does not clear the stored Coolify value.
 - `is_usable` (Boolean) Whether Coolify marks this storage as usable. Defaults to `false`. Connection validation can update this on the server.
-- `use_path_style_endpoint` (Boolean) Use path-style URLs (`endpoint/bucket`) instead of virtual-hosted-style (`bucket.endpoint`). Requires Coolify >= v4.5.1. When this is omitted, Coolify chooses: false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS endpoints, and true for other endpoints. On older instances the provider keeps the value in state and does not send it.
+- `use_path_style_endpoint` (Boolean) Use path-style URLs (`endpoint/bucket`) instead of virtual-hosted-style (`bucket.endpoint`). Requires Coolify >= v4.5.1. On create, leaving it unset lets Coolify choose: false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS endpoints, and true for other endpoints. Removing the attribute later does not clear a stored value. On older instances the provider keeps the value in state and does not send it.
 
 ### Read-Only
 

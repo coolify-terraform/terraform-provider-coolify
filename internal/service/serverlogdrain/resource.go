@@ -95,7 +95,7 @@ func (r *res) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-				MarkdownDescription: "Base domain of the Axiom edge deployment, for example `us-east-1.aws.edge.axiom.co` or `eu-central-1.aws.edge.axiom.co`. Requires Coolify >= v4.5.1. When this is omitted, Coolify uses `us-east-1.aws.edge.axiom.co`. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "Base domain of the Axiom edge deployment, for example `us-east-1.aws.edge.axiom.co` or `eu-central-1.aws.edge.axiom.co`. Requires Coolify >= v4.5.1. On create, leaving it unset lets Coolify use `us-east-1.aws.edge.axiom.co`. Removing the attribute later does not clear a value Coolify already stored. On older instances the provider keeps the value in state and does not send it.",
 			},
 			"is_logdrain_custom_enabled": schema.BoolAttribute{
 				Optional:      true,

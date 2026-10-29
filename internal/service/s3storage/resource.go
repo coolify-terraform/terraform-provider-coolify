@@ -102,7 +102,7 @@ func (r *s3StorageResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Sensitive:           true,
 			},
 			"use_path_style_endpoint": schema.BoolAttribute{
-				MarkdownDescription: "Use path-style URLs (`endpoint/bucket`) instead of virtual-hosted-style (`bucket.endpoint`). Requires Coolify >= v4.5.1. When this is omitted, Coolify chooses: false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS endpoints, and true for other endpoints. On older instances the provider keeps the value in state and does not send it.",
+				MarkdownDescription: "Use path-style URLs (`endpoint/bucket`) instead of virtual-hosted-style (`bucket.endpoint`). Requires Coolify >= v4.5.1. On create, leaving it unset lets Coolify choose: false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS endpoints, and true for other endpoints. Removing the attribute later does not clear a stored value. On older instances the provider keeps the value in state and does not send it.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},

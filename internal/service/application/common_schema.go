@@ -650,10 +650,9 @@ func applicationSettingAttrs() map[string]schema.Attribute {
 // applicationSettingAttrsV451 is the Coolify >= v4.5.1 write set. No Default:
 // v4.5.0 rejects the key, and a default would send it after import.
 func applicationSettingAttrsV451() map[string]schema.Attribute {
-	const needs = "Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it."
 	return map[string]schema.Attribute{
 		"rolling_update_drain_seconds": schema.Int64Attribute{
-			MarkdownDescription: "Seconds to wait after the new container is healthy before old containers stop during a rolling update. `0` turns the wait off. Coolify's default when this is omitted is `5`. " + needs,
+			MarkdownDescription: "Seconds to wait after the new container is healthy before old containers stop during a rolling update. `0` turns the wait off. On create, leaving it unset lets Coolify use `5`. Removing the attribute later does not clear a stored value; set `5` to restore that default, or `0` to turn the wait off. Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it.",
 			Optional:            true,
 			Computed:            true,
 			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
