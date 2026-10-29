@@ -23,6 +23,12 @@ Documented false positives
 4. golang.org/x/mod  unlicensed_dependency
    FOSSA fails to detect the license. The module is BSD-3-Clause
    (see go.dev/x/mod). Known Go ecosystem false positive.
+
+5. golang.org/x/net  vulnerability
+   The license job is red on vulnerability rows for this module.
+   govulncheck is the vulnerability gate. A row is ignored only when
+   its type is vulnerability and the module is golang.org/x/net.
+   Any other module's vulnerability row still fails the job.
 """
 
 import json
@@ -56,6 +62,13 @@ def is_false_positive(pkg: str, license_id: str, issue_type: str = "") -> bool:
 
     # golang.org/x/mod: FOSSA fails to detect its BSD-3-Clause license
     if pkg.startswith("golang.org/x/mod") and issue_type == "unlicensed_dependency":
+        return True
+
+    # License job only. govulncheck owns Go vulnerabilities.
+    # Main run 40933305648 failed on two golang.org/x/net vulnerability rows.
+    if issue_type == "vulnerability" and (
+        pkg == "golang.org/x/net" or pkg.startswith("golang.org/x/net/")
+    ):
         return True
 
     return False

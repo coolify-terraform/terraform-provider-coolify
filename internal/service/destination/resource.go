@@ -68,13 +68,13 @@ func (r *destinationResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Display name. Defaults to `{server-name}-{network}` when omitted. Coolify accepts in-place rename via PATCH.",
+				MarkdownDescription: "Display name. On create, leaving it unset lets Coolify use `{server-name}-{network}`. Removing the attribute later does not clear a stored value. Coolify accepts an in-place rename via PATCH.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "Destination type: `standalone` or `swarm`. Omit to let Coolify match the server's Docker mode. Changing this forces a new resource.",
+				MarkdownDescription: "Destination type: `standalone` or `swarm`. On create, leaving it unset lets Coolify match the server's Docker mode. Removing the attribute later keeps the stored type. Changing the value forces a new resource.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},

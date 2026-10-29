@@ -51,7 +51,7 @@ func (r *res) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resour
 		Attributes: dbcommon.CommonDatabaseAttrs(ctx, map[string]schema.Attribute{
 			"sqlite_databases": schema.StringAttribute{
 				MarkdownDescription: "Comma-separated SQLite database file names (for example `app.sqlite,cache.sqlite`). " +
-					"Coolify defaults to `database.sqlite` when omitted. Requires Coolify 4.4 tip. Each name must match `[A-Za-z0-9][A-Za-z0-9._-]*`.",
+					"On create, leaving it unset lets Coolify use `database.sqlite`. Removing the attribute later does not clear a stored value. Requires Coolify 4.4 tip. Each name must match `[A-Za-z0-9][A-Za-z0-9._-]*`.",
 				Optional:      true,
 				Computed:      true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},

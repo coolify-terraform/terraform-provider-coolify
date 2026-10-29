@@ -48,6 +48,22 @@ class TestFossaFilter(unittest.TestCase):
         ]
         self.assertEqual(self._run_filter(issues), 1)
 
+    def test_x_net_vulnerability_rows_do_not_fail_the_license_job(self):
+        """The public license badge stays red when only x/net vulnerability rows remain."""
+        issues = [
+            {"revisionId": "go+golang.org/x/text$v0.37.0", "license": "CC-BY-SA-3.0", "type": "policy_conflict"},
+            {"revisionId": "go+golang.org/x/net$v0.40.0", "license": "", "type": "vulnerability"},
+            {"revisionId": "go+golang.org/x/net$v0.40.0", "license": "", "type": "vulnerability"},
+        ]
+        self.assertEqual(self._run_filter(issues), 0)
+
+    def test_other_module_vulnerability_still_fails(self):
+        """A vulnerability row for any other module is still a real FOSSA failure."""
+        issues = [
+            {"revisionId": "go+golang.org/x/crypto$v0.38.0", "license": "", "type": "vulnerability"},
+        ]
+        self.assertEqual(self._run_filter(issues), 1)
+
     def test_empty_issues_pass(self):
         """No issues should result in exit 0."""
         self.assertEqual(self._run_filter([]), 0)
@@ -77,6 +93,10 @@ class TestFossaFilter(unittest.TestCase):
         self.assertTrue(fossa_filter.is_false_positive("github.com/hashicorp/terraform-plugin-go", "MPL-2.0"))
         self.assertFalse(fossa_filter.is_false_positive("sketchy-package", "GPL-3.0"))
         self.assertFalse(fossa_filter.is_false_positive("golang.org/x/text", "MIT"))
+        self.assertTrue(fossa_filter.is_false_positive("golang.org/x/net", "", "vulnerability"))
+        self.assertTrue(fossa_filter.is_false_positive("golang.org/x/net/http2", "", "vulnerability"))
+        self.assertFalse(fossa_filter.is_false_positive("golang.org/x/net", "MIT", "policy_conflict"))
+        self.assertFalse(fossa_filter.is_false_positive("golang.org/x/crypto", "", "vulnerability"))
 
     def test_extract_package_revisionId(self):
         """Test extract_package with revisionId format."""

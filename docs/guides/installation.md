@@ -82,7 +82,7 @@ before using the provider.
 | | Coolify |
 |--|---------|
 | **Minimum (hard floor)** | **v4.1.0** |
-| **Recommended for full features** | **≥ v4.3.18** |
+| **Recommended for every write this provider sends** | **≥ v4.5.1** |
 
 The API surface changed significantly between v4.0.0 and v4.1.0, so v4.1.0
 is the minimum. Destinations and DO/Vultr provisioning need **≥ v4.2.0**.
@@ -91,10 +91,15 @@ Volume backup schedules, `noindex_domains`, notifications, and S3 need
 **≥ v4.3.10**. Preview domain PATCH, GET `domain_port_overrides`, and
 restart-limit fields need **≥ v4.3.15**. Missing-backup notifications on
 `coolify_database_backup` need **≥ v4.3.18**. Volume-backup missing-backup
-alerts need **≥ v4.4.1**. The pinned API contract is Coolify **v4.4.2**
+alerts need **≥ v4.4.1**. Hostinger purchase needs **≥ v4.5.0**.
+`use_path_style_endpoint`, `logdrain_axiom_domain`, and
+`rolling_update_drain_seconds` are sent on **≥ v4.5.1**. On an older
+instance those values stay in state and are not sent. Removing one of
+them from configuration later does not clear a value Coolify already
+stored. The pinned API contract is Coolify **v4.4.2**
 (extract provenance), not a new feature floor.
 
-For a full resource and attribute matrix (what works on 4.1 vs 4.2 vs 4.3 vs 4.4,
+For a full resource and attribute matrix (what works on 4.1, 4.2, 4.3, 4.4, and 4.5,
 and how version gates behave), see
 **[Coolify Version Support](coolify-version-support)**.
 

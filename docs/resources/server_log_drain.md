@@ -41,7 +41,7 @@ resource "coolify_server_log_drain" "example" {
 - `is_logdrain_newrelic_enabled` (Boolean)
 - `logdrain_axiom_api_key` (String, Sensitive) Axiom API key. Omitting the attribute later does not clear the stored Coolify value.
 - `logdrain_axiom_dataset_name` (String) Axiom dataset name. Omitting the attribute later does not clear the stored Coolify value.
-- `logdrain_axiom_domain` (String) Base domain of the Axiom edge deployment, for example `us-east-1.aws.edge.axiom.co` or `eu-central-1.aws.edge.axiom.co`. Requires Coolify >= v4.5.1. When this is omitted, Coolify uses `us-east-1.aws.edge.axiom.co`. On older instances the provider keeps the value in state and does not send it.
+- `logdrain_axiom_domain` (String) Base domain of the Axiom edge deployment, for example `us-east-1.aws.edge.axiom.co` or `eu-central-1.aws.edge.axiom.co`. Requires Coolify >= v4.5.1. On create, leaving it unset lets Coolify use `us-east-1.aws.edge.axiom.co`. Removing the attribute later does not clear a value Coolify already stored. On older instances the provider keeps the value in state and does not send it.
 - `logdrain_cloudwatch_group` (String) CloudWatch log group. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `logdrain_cloudwatch_region` (String) CloudWatch region. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
 - `logdrain_cloudwatch_stream_prefix` (String) Prefix for CloudWatch log stream names. Requires Coolify >= v4.5.0. On older instances the provider keeps the value in state and does not send it.
