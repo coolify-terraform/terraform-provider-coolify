@@ -1,12 +1,12 @@
 # Nightly multi-version Coolify acceptance matrix.
 #
-# PR/main CI still boots a single Coolify (edge) for fast feedback.
+# PR/main CI still boots a single Coolify (preview) for fast feedback.
 # This workflow is NOT a required merge check. Use it to:
 #   - catch breaks on stable/floor images overnight
 #   - re-run before merging a release-please PR (workflow_dispatch)
 #
 # Matrix cells (profile "all"):
-#   tip-edge     — coollabsio/coolify:edge   (v4.x tip; full surface)
+#   tip-edge      coollabsio/coolify:preview (moving tip; full surface)
 #   stable-latest — coollabsio/coolify:latest (CDN stable; most self-hosters)
 #   floor-4.1.2  — coollabsio/coolify:4.1.2  (provider minCoolifyVersion floor)
 #
@@ -27,7 +27,7 @@ on:
     inputs:
       profile:
         description: >
-          Which Coolify images to test. "all" = edge + latest + 4.1.2.
+          Which Coolify images to test. "all" = preview + latest + 4.1.2.
           Use tip-and-stable or tip-only for a faster pre-release check.
         type: choice
         options:
@@ -38,9 +38,9 @@ on:
           - custom
         default: all
       custom_image:
-        description: Docker tag for coollabsio/coolify when profile=custom (e.g. 4.2.0, 4.3.1, edge)
+        description: Docker tag for coollabsio/coolify when profile=custom (e.g. 4.2.0, 4.3.1, preview)
         type: string
-        default: edge
+        default: preview
       run_scenarios:
         description: Run terraform scenario tests on tip-edge (or on custom image if tip is not selected)
         type: boolean
@@ -80,24 +80,24 @@ jobs:
           set -euo pipefail
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             profile="${PROFILE:-all}"
-            custom="${CUSTOM_IMAGE:-edge}"
+            custom="${CUSTOM_IMAGE:-preview}"
             # workflow_dispatch boolean inputs are the strings "true"/"false"
             run_scenarios="${RUN_SCENARIOS:-true}"
           else
             profile="all"
-            custom="edge"
+            custom="preview"
             run_scenarios="true"
           fi
 
           case "$profile" in
             all)
-              matrix='{"include":[{"coolify_image":"edge","label":"tip-edge"},{"coolify_image":"latest","label":"stable-latest"},{"coolify_image":"4.1.2","label":"floor-4.1.2"}]}'
+              matrix='{"include":[{"coolify_image":"preview","label":"tip-edge"},{"coolify_image":"latest","label":"stable-latest"},{"coolify_image":"4.1.2","label":"floor-4.1.2"}]}'
               ;;
             tip-and-stable)
-              matrix='{"include":[{"coolify_image":"edge","label":"tip-edge"},{"coolify_image":"latest","label":"stable-latest"}]}'
+              matrix='{"include":[{"coolify_image":"preview","label":"tip-edge"},{"coolify_image":"latest","label":"stable-latest"}]}'
               ;;
             tip-only)
-              matrix='{"include":[{"coolify_image":"edge","label":"tip-edge"}]}'
+              matrix='{"include":[{"coolify_image":"preview","label":"tip-edge"}]}'
               ;;
             floor-only)
               matrix='{"include":[{"coolify_image":"4.1.2","label":"floor-4.1.2"}]}'
@@ -204,7 +204,7 @@ jobs:
           COOLIFY_GITHUB_APP_BRANCH: ${{ secrets.COOLIFY_GITHUB_APP_BRANCH }}
           # tip-edge must expose claimed tip APIs (S3, volume backup, S3 UUID).
           # stable/floor keep skip-if-missing so older images stay soft.
-          COOLIFY_REQUIRE_TIP_APIS: ${{ matrix.coolify_image == 'edge' && '1' || '0' }}
+          COOLIFY_REQUIRE_TIP_APIS: ${{ matrix.coolify_image == 'preview' && '1' || '0' }}
           COOLIFY_IMAGE_TAG: ${{ matrix.coolify_image }}
           COOLIFY_ACC_LABEL: ${{ matrix.label }}
         run: |
@@ -300,7 +300,7 @@ jobs:
         if: steps.need.outputs.run == 'true'
         env:
           COOLIFY_DATA_DIR: /home/runner/coolify-data
-          COOLIFY_IMAGE_TAG: edge
+          COOLIFY_IMAGE_TAG: preview
         run: bash scripts/ci-coolify-boot.sh prepare-pull-bg
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         if: steps.need.outputs.run == 'true'
@@ -329,11 +329,11 @@ jobs:
           }
           EOF
 
-      - name: Setup Coolify (edge)
+      - name: Setup Coolify (preview)
         if: steps.need.outputs.run == 'true'
         uses: ./.github/actions/setup-coolify
         with:
-          coolify-image-tag: edge
+          coolify-image-tag: preview
 
       - name: Generate deploy key for scenarios
         if: steps.need.outputs.run == 'true'

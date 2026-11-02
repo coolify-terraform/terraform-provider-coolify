@@ -171,9 +171,9 @@ fixtures are still missing.
 | `COOLIFY_S3_STORAGE_UUID` | No | Required for S3 backup coverage (`coolify_database_backup` and `coolify_storage_backup` S3 paths) if you are not using `make acc-bootstrap` |
 | `COOLIFY_GITHUB_APP_*` | No | Required for the GitHub App application acceptance test |
 
-`coolify_storage_backup` acceptance (`TestAccStorageBackupResource_CRUD` and `_S3`) needs a Coolify image with `VolumeBackupsController` (coollabsio/coolify#10946; not in tag `v4.2.0` or stable `latest`). CI sets `LATEST_IMAGE=edge` in [`.github/actions/setup-coolify`](.github/actions/setup-coolify/action.yml). Locally, add `LATEST_IMAGE=edge` to the Coolify compose `.env` before `docker compose up`. `make acc-preflight` warns when the volume-backup routes are missing; the tests also probe and skip with a clear reason. No extra secrets for the local schedule path; the S3 path needs `COOLIFY_S3_STORAGE_UUID` (same MinIO fixture as database backup S3 tests).
+`coolify_storage_backup` acceptance (`TestAccStorageBackupResource_CRUD` and `_S3`) needs a Coolify image with `VolumeBackupsController` (coollabsio/coolify#10946; not in tag `v4.2.0`). CI sets `LATEST_IMAGE=preview` in [`.github/actions/setup-coolify`](.github/actions/setup-coolify/action.yml). Docker Hub no longer publishes `edge`. Locally, add `LATEST_IMAGE=preview` to the Coolify compose `.env` before `docker compose up`. `make acc-preflight` warns when the volume-backup routes are missing; the tests also probe and skip with a clear reason. No extra secrets for the local schedule path; the S3 path needs `COOLIFY_S3_STORAGE_UUID` (same MinIO fixture as database backup S3 tests).
 
-**Pinning the Coolify image (when `:edge` is flaky):** compose uses `${LATEST_IMAGE:-latest}`. Prefer a known-good multi-arch SHA tag from Coolify's `coolify-sha-build` workflow (tags look like `sha-<full-git-sha>` on Docker Hub / GHCR):
+**Pinning the Coolify image (when `:preview` is flaky):** compose uses `${LATEST_IMAGE:-latest}`. Prefer a known-good multi-arch SHA tag from Coolify's `coolify-sha-build` workflow (tags look like `sha-<full-git-sha>` on Docker Hub / GHCR):
 
 ```bash
 # Local compose .env
@@ -185,7 +185,7 @@ LATEST_IMAGE=sha-2180a5e7effdf8a994eaeb871d0ac77fa0be8fea
 #   coolify-image-tag: sha-2180a5e7effdf8a994eaeb871d0ac77fa0be8fea
 ```
 
-Confirm the SHA includes #10946+ (or that `VolumeBackupsController.php` is in the image). `edge` tracks tip and can move day-to-day.
+Confirm the SHA includes #10946+ (or that `VolumeBackupsController.php` is in the image). `preview` tracks tip and can move day-to-day.
 
 #### Server validation for application tests
 
