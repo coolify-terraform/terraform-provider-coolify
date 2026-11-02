@@ -125,6 +125,9 @@ provider "coolify" {
 | `retry_max` | 3 | Maximum number of retry attempts |
 | `retry_min_wait` | 1 | Minimum wait between retries (seconds) |
 | `retry_max_wait` | 30 | Maximum wait between retries (seconds) |
+| `request_timeout` | 30 | Per-attempt HTTP timeout (seconds). Dial stays 30 seconds and the TLS handshake stays 10 seconds. A value below 30 also limits the dial. |
+
+POST, PUT, and DELETE are not retried after a transport error, so a slow create has only `request_timeout`. Resource `timeouts` blocks are still the ceiling for the whole operation.
 
 ## Custom HTTP headers
 
@@ -178,22 +181,130 @@ A redirect to the same host keeps these headers. A redirect to a different
 host drops them, and drops the Cloudflare Access headers, so a proxy
 credential is not sent to another site.
 
-These setups are not covered:
+### When the proxy requires Authorization
 
-- The proxy requires its credential in `Authorization`. That includes HTTP
-  basic auth on the proxy, oauth2-proxy's scripted JWT check
-  (`--skip-jwt-bearer-tokens`), Pomerium's `Authorization: Pomerium` and
-  `Authorization: Bearer Pomerium-...` forms, and Authelia's
-  HeaderAuthorization strategy. A `user:password` user in the endpoint URL
-  is not a second credential: the bearer token already occupies
-  `Authorization`, so the URL user is ignored.
-- Mutual TLS. `ca_cert` trusts the server certificate. The provider has no
-  client certificate.
-- Minting or refreshing a token. IAP ID tokens and Cloudflare user tokens
-  expire, usually after one hour. Mint a fresh value before each run, and
-  do not keep it in a `.tfvars` file.
-- An HTTP forward proxy on the machine running Terraform. Use
-  `HTTPS_PROXY`. `headers` are sent to the Coolify host, not to that proxy.
+`headers` cannot set `Authorization`. The provider writes the Coolify API
+token there, and a second secret in that header would replace the token.
+
+**oauth2-proxy** `--skip-jwt-bearer-tokens` reads a JWT only from
+`Authorization`. There is no alternate header for that JWT. A Coolify
+token that is not a JWT fails that check. With
+`--bearer-token-login-fallback` left at its default, the failure does not
+return 403, and a session cookie can still authenticate. Send that cookie
+with `headers` as `Cookie`. `--skip-auth-route` turns the proxy check off
+for a path. That is not a second credential. Leave
+`--pass-authorization-header` off, because it writes a bearer token on the
+upstream request and replaces the Coolify token. `--pass-basic-auth`
+defaults to true and can also pass basic auth upstream. Confirm the
+upstream `Authorization` value is still the Coolify bearer.
+
+**Pomerium.** Send the programmatic token in `X-Pomerium-Authorization`.
+Do not use `Authorization: Pomerium` or `Authorization: Bearer Pomerium-...`.
+A route that sets `Authorization` on the upstream request removes the
+Coolify token.
+
+**Authelia.** Keep Bearer out of a HeaderAuthorization scheme list. A
+Bearer value that is not in that list is skipped, not rejected. Send the
+Authelia credential in `Proxy-Authorization`. The proxy-authorization
+strategy answers 407, which suits forward-auth. The AuthRequest
+implementation also reads `Proxy-Authorization` and answers 401, which is
+what nginx `auth_request` expects.
+
+**HTTP basic auth on the reverse proxy** (nginx `auth_basic`, Caddy
+`basic_auth`, Traefik `basicAuth`) is not possible. Those checks read
+`Authorization`. A user in the endpoint URL is ignored for the same
+reason. Mutual TLS is a different requirement. It does not satisfy basic
+auth.
+
+### Mutual TLS
+
+`ca_cert` trusts the Coolify server. `client_cert` and `client_key` are
+the certificate the provider presents. Set both, or neither. The key must
+be an unencrypted PKCS#8 or PKCS#1 PEM. `file()` can read the files.
+
+```hcl
+provider "coolify" {
+  endpoint    = "https://coolify.example.com"
+  token       = var.coolify_token
+  ca_cert     = file("${path.module}/ca.pem")
+  client_cert = file("${path.module}/client.pem")
+  client_key  = file("${path.module}/client.key")
+}
+```
+
+### TLS server name
+
+`tls_server_name` is the name in the certificate and the TLS server name
+(SNI). The HTTP Host header stays the host from `endpoint`. If a router
+selects the site from that header, put the DNS name in `endpoint` and
+resolve it with split DNS or a hosts entry. `insecure` skips verification.
+It does not fix a 404 from the wrong host.
+
+```hcl
+provider "coolify" {
+  endpoint        = "https://203.0.113.10"
+  token           = var.coolify_token
+  tls_server_name = "coolify.internal.example"
+}
+```
+
+### Minting a header
+
+On Terraform 1.10 or later, an ephemeral value can be used in `headers`.
+It is left out of state and plan files. The provider still requires
+Terraform 1.6, so that path is not available on every supported release,
+and it does not run a CLI.
+
+`header_command` runs a program once per Terraform command (plan and apply
+each run it) and sends the stdout as one header. It is not refreshed in
+the middle of apply. A run longer than the token lifetime still fails.
+The command runs on the machine that executes Terraform, including an HCP
+Terraform agent. Do not put the secret in an argument. Stdout is not
+written to error messages.
+
+```hcl
+provider "coolify" {
+  endpoint = "https://coolify.example.com"
+  token    = var.coolify_token
+
+  header_command {
+    name    = "Proxy-Authorization"
+    command = ["gcloud", "auth", "print-identity-token", "--audiences=AUDIENCE"]
+    prefix  = "Bearer "
+  }
+}
+```
+
+### Outbound proxy
+
+`HTTPS_PROXY`, `HTTP_PROXY`, and `NO_PROXY` apply to every API request,
+including requests that set `ca_cert` or `insecure`. Localhost and
+loopback addresses are never sent through that proxy.
+
+`headers` are sent to the Coolify host. They are not the credential for
+the proxy hop in front of the runner. Set that hop with the `proxy` block.
+`http`, `socks5`, and `socks5h` are supported. `https` proxy URLs are
+rejected. NTLM and Kerberos are not supported. When `url` is set it
+replaces `HTTP_PROXY` and `HTTPS_PROXY`. An omitted `no_proxy` still
+honors `NO_PROXY`.
+
+```hcl
+provider "coolify" {
+  endpoint = "https://coolify.example.com"
+  token    = var.coolify_token
+
+  proxy {
+    url      = "http://proxy.example:8080"
+    username = "ci"
+    password = var.proxy_password
+    no_proxy = "localhost,127.0.0.1"
+  }
+}
+```
+
+An `http://` Coolify endpoint sends proxy basic auth on the same request
+as the API call, which replaces a `Proxy-Authorization` header. Use
+`https://` so that header stays on the tunneled request.
 
 ## Verify the connection
 

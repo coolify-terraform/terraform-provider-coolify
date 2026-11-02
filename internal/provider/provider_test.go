@@ -491,3 +491,109 @@ data "coolify_team" "test" {
 		},
 	})
 }
+
+func TestProvider_RequestTimeoutRejectsZero(t *testing.T) {
+	t.Setenv("COOLIFY_TOKEN", "")
+	t.Setenv("COOLIFY_ENDPOINT", "")
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: `
+provider "coolify" {
+  endpoint        = "https://coolify.example.com"
+  token           = "test-token"
+  request_timeout = 0
+}
+data "coolify_team" "test" { id = 0 }
+`,
+			ExpectError: regexp.MustCompile(`request_timeout`),
+		}},
+	})
+}
+
+func TestProvider_ClientCertRequiresKey(t *testing.T) {
+	t.Setenv("COOLIFY_TOKEN", "")
+	t.Setenv("COOLIFY_ENDPOINT", "")
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: `
+provider "coolify" {
+  endpoint    = "https://coolify.example.com"
+  token       = "test-token"
+  client_cert = "-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----"
+}
+data "coolify_team" "test" { id = 0 }
+`,
+			ExpectError: regexp.MustCompile(`client_key`),
+		}},
+	})
+}
+
+func TestProvider_HTTPSProxyRejectedWithoutPassword(t *testing.T) {
+	t.Setenv("COOLIFY_TOKEN", "")
+	t.Setenv("COOLIFY_ENDPOINT", "")
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: `
+provider "coolify" {
+  endpoint = "https://coolify.example.com"
+  token    = "test-token"
+  proxy {
+    url = "https://user:s3cr3t-value@proxy.example:8443"
+  }
+}
+data "coolify_team" "test" { id = 0 }
+`,
+			ExpectError: regexp.MustCompile(`scheme "https" is not supported`),
+		}},
+	})
+}
+
+func TestProvider_HeaderCommandRejectsAuthorization(t *testing.T) {
+	t.Setenv("COOLIFY_TOKEN", "")
+	t.Setenv("COOLIFY_ENDPOINT", "")
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: `
+provider "coolify" {
+  endpoint = "https://coolify.example.com"
+  token    = "test-token"
+  header_command {
+    name    = "Authorization"
+    command = ["do-not-run"]
+  }
+}
+data "coolify_team" "test" { id = 0 }
+`,
+			ExpectError: regexp.MustCompile(`(?s)Authorization.*cannot be set`),
+		}},
+	})
+}
+
+func TestProvider_HeaderCommandAndRequestTimeout(t *testing.T) {
+	t.Setenv("COOLIFY_TOKEN", "")
+	t.Setenv("COOLIFY_ENDPOINT", "")
+	t.Setenv("COOLIFY_HEADERS", "")
+	srv := headersCheckingServer(t, "from-command")
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.TestProtoV6ProviderFactories(),
+		Steps: []resource.TestStep{{
+			Config: fmt.Sprintf(`
+provider "coolify" {
+  endpoint        = %q
+  token           = "test-token"
+  request_timeout = 60
+  header_command {
+    name    = "Proxy-Authorization"
+    command = ["/usr/bin/printf", "from-command"]
+  }
+}
+data "coolify_team" "test" { id = 0 }
+`, srv.URL),
+			Check: resource.TestCheckResourceAttr("data.coolify_team.test", "name", "Proxied Team"),
+		}},
+	})
+}
