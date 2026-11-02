@@ -3,7 +3,6 @@ package provider
 
 import (
 	"context"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -74,12 +73,14 @@ import (
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/version"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/volumebackup"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/service/vultr"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -90,16 +91,36 @@ var _ provider.Provider = (*coolifyProvider)(nil)
 
 type coolifyProvider struct{ version string }
 type coolifyProviderModel struct {
-	Endpoint          types.String `tfsdk:"endpoint"`
-	Token             types.String `tfsdk:"token"`
-	RetryMax          types.Int64  `tfsdk:"retry_max"`
-	RetryMinWait      types.Int64  `tfsdk:"retry_min_wait"`
-	RetryMaxWait      types.Int64  `tfsdk:"retry_max_wait"`
-	CACert            types.String `tfsdk:"ca_cert"`
-	Insecure          types.Bool   `tfsdk:"insecure"`
-	CFAccessClientID  types.String `tfsdk:"cf_access_client_id"`
-	CFAccessClientSec types.String `tfsdk:"cf_access_client_secret"`
-	Headers           types.Map    `tfsdk:"headers"`
+	Endpoint          types.String         `tfsdk:"endpoint"`
+	Token             types.String         `tfsdk:"token"`
+	RetryMax          types.Int64          `tfsdk:"retry_max"`
+	RetryMinWait      types.Int64          `tfsdk:"retry_min_wait"`
+	RetryMaxWait      types.Int64          `tfsdk:"retry_max_wait"`
+	CACert            types.String         `tfsdk:"ca_cert"`
+	Insecure          types.Bool           `tfsdk:"insecure"`
+	RequestTimeout    types.Int64          `tfsdk:"request_timeout"`
+	ClientCert        types.String         `tfsdk:"client_cert"`
+	ClientKey         types.String         `tfsdk:"client_key"`
+	TLSServerName     types.String         `tfsdk:"tls_server_name"`
+	CFAccessClientID  types.String         `tfsdk:"cf_access_client_id"`
+	CFAccessClientSec types.String         `tfsdk:"cf_access_client_secret"`
+	Headers           types.Map            `tfsdk:"headers"`
+	Proxy             *proxyModel          `tfsdk:"proxy"`
+	HeaderCommand     []headerCommandModel `tfsdk:"header_command"`
+}
+
+type proxyModel struct {
+	URL      types.String `tfsdk:"url"`
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
+	NoProxy  types.String `tfsdk:"no_proxy"`
+}
+
+type headerCommandModel struct {
+	Name    types.String `tfsdk:"name"`
+	Command types.List   `tfsdk:"command"`
+	Prefix  types.String `tfsdk:"prefix"`
+	Timeout types.Int64  `tfsdk:"timeout"`
 }
 
 func New(version string) func() provider.Provider {
@@ -118,6 +139,10 @@ func (p *coolifyProvider) Schema(_ context.Context, _ provider.SchemaRequest, re
 		"retry_max_wait":          schema.Int64Attribute{MarkdownDescription: "Maximum wait between retries in seconds (default: 30).", Optional: true},
 		"ca_cert":                 schema.StringAttribute{MarkdownDescription: "PEM-encoded CA certificate to trust for TLS connections to the Coolify API. Use this when your Coolify instance uses a self-signed certificate or an internal CA. Env: `COOLIFY_CA_CERT`.", Optional: true},
 		"insecure":                schema.BoolAttribute{MarkdownDescription: "Skip TLS certificate verification. **Not recommended for production.** Use `ca_cert` instead when possible. Env: `COOLIFY_INSECURE`.", Optional: true},
+		"request_timeout":         schema.Int64Attribute{MarkdownDescription: "Per-attempt HTTP timeout in seconds (default: 30, maximum: 300). This does not change the 30 second dial timeout or the 10 second TLS handshake timeout. A value below 30 also limits the dial, because the client timeout covers the whole attempt. Retries start a new attempt with the same limit. Env: `COOLIFY_REQUEST_TIMEOUT`.", Optional: true, Validators: []validator.Int64{int64validator.Between(1, 300)}},
+		"client_cert":             schema.StringAttribute{MarkdownDescription: "PEM-encoded client certificate for mutual TLS. Set this together with `client_key`, or set neither. `ca_cert` is still the trust anchor for the Coolify server. Env: `COOLIFY_CLIENT_CERT`.", Optional: true},
+		"client_key":              schema.StringAttribute{MarkdownDescription: "PEM-encoded private key for `client_cert`. Unencrypted PKCS#8 or PKCS#1. Encrypted keys are rejected. Env: `COOLIFY_CLIENT_KEY`.", Optional: true, Sensitive: true},
+		"tls_server_name":         schema.StringAttribute{MarkdownDescription: "DNS name to use for TLS SNI and certificate verification when it differs from the host in `endpoint`. The HTTP Host header stays the endpoint host, so a name-based router still needs that name in `endpoint`. Env: `COOLIFY_TLS_SERVER_NAME`.", Optional: true},
 		"cf_access_client_id":     schema.StringAttribute{MarkdownDescription: "Cloudflare Access `CF-Access-Client-Id` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_ID`.", Optional: true},
 		"cf_access_client_secret": schema.StringAttribute{MarkdownDescription: "Cloudflare Access `CF-Access-Client-Secret` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_SECRET`.", Optional: true, Sensitive: true},
 		"headers": schema.MapAttribute{
@@ -130,6 +155,9 @@ func (p *coolifyProvider) Schema(_ context.Context, _ provider.SchemaRequest, re
 			Optional:    true,
 			Sensitive:   true,
 		},
+	}, Blocks: map[string]schema.Block{
+		"proxy":          proxyBlock(),
+		"header_command": headerCommandBlock(),
 	}}
 }
 func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
@@ -168,22 +196,12 @@ func (p *coolifyProvider) Configure(ctx context.Context, req provider.ConfigureR
 	endpoint = strings.TrimRight(endpoint, "/")
 	cfg := buildClientConfig(config)
 	resp.Diagnostics.Append(configureHeaders(ctx, config, &cfg)...)
+	resp.Diagnostics.Append(configureConnectivity(ctx, endpoint, config, &cfg)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if cfg.Insecure && cfg.CACert != "" {
-		resp.Diagnostics.AddWarning("CA certificate ignored",
-			"Both insecure and ca_cert are set. When insecure is true, "+
-				"TLS certificate verification is skipped entirely and ca_cert is not used.")
-	}
-	if cfg.CACert != "" {
-		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM([]byte(cfg.CACert)) {
-			resp.Diagnostics.AddError("Invalid CA Certificate",
-				"The ca_cert value could not be parsed as a PEM-encoded certificate. "+
-					"Check that the value is a valid PEM block starting with -----BEGIN CERTIFICATE-----.")
-			return
-		}
+	if !validateProviderTLS(cfg, resp) {
+		return
 	}
 	c := client.New(endpoint, token, cfg)
 	if p.version != "" {

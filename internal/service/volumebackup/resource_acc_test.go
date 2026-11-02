@@ -25,7 +25,7 @@ var volumeBackupImportVerifyIgnore = []string{
 
 // TestAccStorageBackupResource_CRUD exercises coolify_storage_backup against a
 // real Coolify instance with VolumeBackupsController (Coolify >= v4.3.0;
-// coollabsio/coolify#10946). CI boots coollabsio/coolify:edge.
+// coollabsio/coolify#10946). CI boots coollabsio/coolify:preview.
 func TestAccStorageBackupResource_CRUD(t *testing.T) {
 	t.Parallel()
 	acctest.AccTestSkipIfNoTFAcc(t)

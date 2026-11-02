@@ -92,7 +92,7 @@ mismatches, and zero validation rules when we compared it against the source.
 - Verify client structs cover contract: `make contract-check`
 - Cross-version endpoint field compatibility: `make contract-compat`
 - Schema rules versus the contract (create-only replace modifiers, Default plus RequiresReplace must be restored on read, no Default on volume backups, import ignore list, request mocks must not treat a missing JSON key as zero): `make schema-contract`
-- Release gate (CI plus edge, stable, and 4.1.2 acceptance on origin/main): `make release-check`
+- Release gate (CI plus tip `preview`, stable, and 4.1.2 acceptance on origin/main): `make release-check`
 - Regenerate OpenAPI spec from contract: `make spec-generate`
 - Scaffold a new resource: `make scaffold NAME=myresource`
 - Merge a PR (sole maintainer): `make merge PR=123`
@@ -256,8 +256,8 @@ one instead of stacking comments. Weekly `contract-freshness` (Monday
 `coolify-channel` issue is already open, and the channel job closes
 leftover freshness issues as duplicates of that watch.
 A **Coolify Nightly Acc** workflow (`.github/workflows/coolify-nightly.yml`)
-runs full acceptance on Coolify `edge`, `latest` (stable), and `4.1.2` (floor),
-plus tip scenarios on `edge`. The `latest` cell passes `-p 1` so packages
+runs full acceptance on Coolify `preview` (tip), `latest` (stable), and `4.1.2` (floor),
+plus tip scenarios on `preview`. The nightly job name stays Acc (tip-edge). The `latest` cell passes `-p 1` so packages
 do not share one Coolify (`-parallel=1` does not serialize packages).
 Schedule: daily 06:00 UTC. Also `workflow_dispatch` for pre-release checks
 (not a required PR status).
@@ -288,12 +288,12 @@ The correct sequence for curated releases:
 1. Write `RELEASE_NOTES.md` and push it on orphan `release-note-<semver>`
 2. Run `make release-check` on current main. It requires a product `ci.yml`
    run (Test, acceptance, and scenarios; a Monday schedule run does not count)
-   and green nightly acceptance for edge, stable (`latest`), and `4.1.2`.
+   and green nightly acceptance for tip (`preview`), stable (`latest`), and `4.1.2`.
    A failure that is an HTTP status 429 or `Too Many Attempts`, or a deadline
    on `/api/v1/version`, is a flake. Digits inside a log timestamp are not a 429.
    `python3 scripts/release-check.py --rerun-once` dispatches one nightly rerun
    of the flaked slot on the commit being checked and stops. A stable flake
-   uses image `latest`. An edge flake uses profile `tip-only`. A floor flake
+   uses image `latest`. A tip flake uses profile `tip-only`. A floor flake
    uses profile `floor-only` (Coolify 4.1.2). More than one flaked slot uses
    profile `all`. Do not treat that flake as a pass.
 3. Merge the release-please PR (explicit human yes)

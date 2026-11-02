@@ -3,15 +3,12 @@ package client
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
-	"runtime"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -126,8 +123,13 @@ type RetryConfig struct {
 	Attempts          int
 	MinWait           time.Duration
 	MaxWait           time.Duration
-	CACert            string // PEM-encoded CA certificate to trust
-	Insecure          bool   // Skip TLS certificate verification
+	RequestTimeout    time.Duration // per attempt; zero uses defaultAttemptTimeout
+	CACert            string        // PEM-encoded CA certificate to trust
+	Insecure          bool          // Skip TLS certificate verification
+	ClientCert        string        // PEM client certificate for mutual TLS
+	ClientKey         string        // PEM private key for ClientCert
+	TLSServerName     string        // certificate name and SNI, when it differs from the URL host
+	Proxy             func(*http.Request) (*url.URL, error)
 	CFAccessClientID  string // Cloudflare Access client ID header
 	CFAccessClientSec string // Cloudflare Access client secret header
 	// Headers are added to every request, before the headers the provider
@@ -156,37 +158,20 @@ func New(baseURL, apiToken string, opts ...RetryConfig) *Client {
 	rc.ErrorHandler = retriesExhaustedHandler
 	rc.Logger = retryablehttp.LeveledLogger(&retryLogger{})
 
-	// Configure custom TLS before StandardClient() so the retry transport
-	// wraps the correct underlying transport. Setting httpClient.Transport
-	// after StandardClient() would overwrite the retry layer.
-	if cfg.CACert != "" || cfg.Insecure {
-		tlsCfg := &tls.Config{InsecureSkipVerify: cfg.Insecure} //nolint:gosec // user-opted insecure
-		if cfg.CACert != "" {
-			pool, err := x509.SystemCertPool()
-			if err != nil {
-				pool = x509.NewCertPool()
-			}
-			pool.AppendCertsFromPEM([]byte(cfg.CACert))
-			tlsCfg.RootCAs = pool
-		}
-		rc.HTTPClient.Transport = &http.Transport{
-			TLSClientConfig: tlsCfg,
-			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			MaxIdleConns:          100,
-			MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1, // match go-cleanhttp default
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		}
+	// Configure the transport before StandardClient() so the retry transport
+	// wraps it. Setting httpClient.Transport after StandardClient() would
+	// overwrite the retry layer. newTransport keeps the environment proxy
+	// and HTTP/2 on every path, including ca_cert and insecure.
+	transport, err := newTransport(cfg)
+	if err != nil {
+		transport = failureTransport{err: err}
 	}
+	rc.HTTPClient.Transport = transport
 
 	// Set timeout on the inner HTTP client so it applies per-attempt, not
 	// across the entire retry chain. The outer operation-level context
 	// (e.g., resource Create timeouts) provides the overall ceiling.
-	rc.HTTPClient.Timeout = 30 * time.Second
+	rc.HTTPClient.Timeout = attemptTimeout(cfg)
 	httpClient := rc.StandardClient()
 
 	c := &Client{

@@ -17,7 +17,7 @@
 #
 # Env:
 #   COOLIFY_DATA_DIR     default /home/runner/coolify-data
-#   COOLIFY_IMAGE_TAG    default edge
+#   COOLIFY_IMAGE_TAG    default preview (Docker Hub dropped edge)
 #   COOLIFY_PULL_DIR     marker dir, default /tmp/coolify-pull
 #   COOLIFY_READY_TRIES  default 90 (sleep 2s). curl --max-time 10,
 #                        so a stuck accept can take about 18 minutes.
@@ -30,7 +30,7 @@ if [[ -z "$STEP" ]]; then
 fi
 
 COOLIFY_DATA_DIR="${COOLIFY_DATA_DIR:-/home/runner/coolify-data}"
-COOLIFY_IMAGE_TAG="${COOLIFY_IMAGE_TAG:-edge}"
+COOLIFY_IMAGE_TAG="${COOLIFY_IMAGE_TAG:-preview}"
 PULL_DIR="${COOLIFY_PULL_DIR:-/tmp/coolify-pull}"
 SOURCE_DIR="$COOLIFY_DATA_DIR/source"
 READY_TRIES="${COOLIFY_READY_TRIES:-90}"

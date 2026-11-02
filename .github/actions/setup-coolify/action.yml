@@ -13,13 +13,13 @@ inputs:
   coolify-image-tag:
     description: >
       Docker image tag for coollabsio/coolify (LATEST_IMAGE in compose).
-      Default edge is the multi-arch tip of Coolify v4.x and includes
-      VolumeBackupsController (coollabsio/coolify#10946). Stable latest / 4.2.0
-      do not. If edge is flaky, pin a multi-arch SHA from Coolify's
-      coolify-sha-build (e.g. sha-<full-git-sha> on docker.io/ghcr.io).
-      Use latest only when you intentionally want the older stable API surface.
+      Default preview is Coolify's moving tip tag. Docker Hub no longer
+      publishes edge (removed 2026-11-02). preview matches latest when no
+      newer pre-release exists, and moves ahead when one does. Floor 4.1.2
+      lacks tip-only APIs such as VolumeBackupsController. If preview is
+      flaky, pin a multi-arch SHA (sha-<full-git-sha> on docker.io/ghcr.io).
     required: false
-    default: edge
+    default: preview
 
 runs:
   using: composite

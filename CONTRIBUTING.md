@@ -64,16 +64,16 @@ procedure, API token creation, and server validation steps.
 
 ### Multi-version Coolify (nightly / pre-release)
 
-Pull request CI boots a single Coolify image (`edge`) for acceptance and
+Pull request CI boots a single Coolify image (`preview`) for acceptance and
 scenario tests. For broader coverage, the **Coolify Nightly Acc** workflow
 (`.github/workflows/coolify-nightly.yml`) runs on a schedule and can be
 started by hand:
 
 | Profile | Images | Scenarios |
 |---------|--------|-----------|
-| `all` (nightly default) | `edge`, `latest`, `4.1.2` | tip (`edge`) only |
-| `tip-and-stable` | `edge`, `latest` | tip only |
-| `tip-only` | `edge` | tip only |
+| `all` (nightly default) | `preview`, `latest`, `4.1.2` | tip (`preview`) only |
+| `tip-and-stable` | `preview`, `latest` | tip only |
+| `tip-only` | `preview` | tip only |
 | `floor-only` | `4.1.2` | no |
 | `custom` | free-form Docker tag | optional |
 
@@ -85,7 +85,7 @@ started by hand:
 
 This workflow is not a required status check on pull requests.
 
-**Tip vs older images:** on `edge` (PR Acceptance Tests and nightly tip-edge),
+**Tip vs older images:** on `preview` (PR Acceptance Tests and nightly tip-edge),
 `COOLIFY_REQUIRE_TIP_APIS=1` makes missing tip APIs **fail** (S3 storage
 controller, volume backup controller, bootstrap `COOLIFY_S3_STORAGE_UUID`,
 Coolify ≥ 4.3 for v4.3 application settings acc). On `latest` / `4.1.2`, those

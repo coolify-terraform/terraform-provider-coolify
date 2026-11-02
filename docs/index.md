@@ -60,6 +60,23 @@ provider "coolify" {
   # headers = {
   #   "Proxy-Authorization" = "Bearer ${var.iap_id_token}"
   # }
+
+  # Optional: per-attempt HTTP timeout in seconds (default 30).
+  # request_timeout = 60
+
+  # Optional: mutual TLS. Set both, or neither.
+  # client_cert = file("${path.module}/client.pem")
+  # client_key  = file("${path.module}/client.key")
+
+  # Optional: certificate name when it differs from the endpoint host.
+  # tls_server_name = "coolify.internal.example"
+
+  # Optional: outbound proxy for this machine. Not the proxy in front of Coolify.
+  # proxy {
+  #   url      = "http://proxy.example:8080"
+  #   username = "ci"
+  #   password = var.proxy_password
+  # }
 }
 ```
 
@@ -131,10 +148,40 @@ You should not see diffs on `terraform plan` after the initial apply.
 - `ca_cert` (String) PEM-encoded CA certificate to trust for TLS connections to the Coolify API. Use this when your Coolify instance uses a self-signed certificate or an internal CA. Env: `COOLIFY_CA_CERT`.
 - `cf_access_client_id` (String) Cloudflare Access `CF-Access-Client-Id` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_ID`.
 - `cf_access_client_secret` (String, Sensitive) Cloudflare Access `CF-Access-Client-Secret` header value. Required when the Coolify instance is behind Cloudflare Access. Env: `COOLIFY_CF_ACCESS_CLIENT_SECRET`.
+- `client_cert` (String) PEM-encoded client certificate for mutual TLS. Set this together with `client_key`, or set neither. `ca_cert` is still the trust anchor for the Coolify server. Env: `COOLIFY_CLIENT_CERT`.
+- `client_key` (String, Sensitive) PEM-encoded private key for `client_cert`. Unencrypted PKCS#8 or PKCS#1. Encrypted keys are rejected. Env: `COOLIFY_CLIENT_KEY`.
 - `endpoint` (String) Coolify API endpoint. Env: COOLIFY_ENDPOINT.
+- `header_command` (Block List) Runs a command once per Terraform command and sends its stdout as one header. Use this for a short-lived proxy credential such as `gcloud auth print-identity-token`. The command is not a shell. The value is not refreshed during apply. `Authorization` is rejected. On Terraform 1.10 or later, prefer an ephemeral value in `headers` when the token already exists as one. (see [below for nested schema](#nestedblock--header_command))
 - `headers` (Map of String, Sensitive) Extra HTTP headers sent with every request to the Coolify API, for a proxy in front of Coolify that authenticates requests (for example `Proxy-Authorization` for Google Cloud IAP). `Authorization`, `Accept`, `Content-Type`, `Content-Length`, `Host`, and `User-Agent` cannot be set, since the provider sets them itself. `CF-Access-Client-Id` cannot be set together with `cf_access_client_id`, nor `CF-Access-Client-Secret` with `cf_access_client_secret`. A redirect to a different host drops these headers and the Cloudflare Access headers. Env: `COOLIFY_HEADERS`, a JSON object of strings, used only when this attribute is not set.
 - `insecure` (Boolean) Skip TLS certificate verification. **Not recommended for production.** Use `ca_cert` instead when possible. Env: `COOLIFY_INSECURE`.
+- `proxy` (Block, Optional) Outbound proxy for the machine running Terraform (a CI runner or an HCP Terraform agent). This is not the authenticating proxy in front of Coolify; that credential belongs in `headers`. When `url` is set it replaces `HTTP_PROXY` and `HTTPS_PROXY`. Supported schemes are `http`, `socks5`, and `socks5h`. An `https` proxy URL is rejected because Go would apply the Coolify TLS settings to the proxy hop. Env: `COOLIFY_PROXY_URL`, `COOLIFY_PROXY_USERNAME`, `COOLIFY_PROXY_PASSWORD`, `COOLIFY_NO_PROXY`. A set attribute wins. `url` is required when the block is set. It is optional in the schema so an omitted block does not require it. (see [below for nested schema](#nestedblock--proxy))
+- `request_timeout` (Number) Per-attempt HTTP timeout in seconds (default: 30, maximum: 300). This does not change the 30 second dial timeout or the 10 second TLS handshake timeout. A value below 30 also limits the dial, because the client timeout covers the whole attempt. Retries start a new attempt with the same limit. Env: `COOLIFY_REQUEST_TIMEOUT`.
 - `retry_max` (Number) Maximum number of API request retries (default: 3).
 - `retry_max_wait` (Number) Maximum wait between retries in seconds (default: 30).
 - `retry_min_wait` (Number) Minimum wait between retries in seconds (default: 1).
+- `tls_server_name` (String) DNS name to use for TLS SNI and certificate verification when it differs from the host in `endpoint`. The HTTP Host header stays the endpoint host, so a name-based router still needs that name in `endpoint`. Env: `COOLIFY_TLS_SERVER_NAME`.
 - `token` (String, Sensitive) Coolify API token. Env: COOLIFY_TOKEN.
+
+<a id="nestedblock--header_command"></a>
+### Nested Schema for `header_command`
+
+Required:
+
+- `command` (List of String) Program and arguments. The first element is the program.
+- `name` (String) Header name. The names rejected by `headers` are rejected here.
+
+Optional:
+
+- `prefix` (String) Text prepended to stdout, such as `Bearer `.
+- `timeout` (Number) Seconds to wait for the command (default: 30, maximum: 300).
+
+
+<a id="nestedblock--proxy"></a>
+### Nested Schema for `proxy`
+
+Optional:
+
+- `no_proxy` (String) Comma-separated hosts that connect directly. An empty string bypasses nothing. When omitted, `NO_PROXY` from the environment still applies.
+- `password` (String, Sensitive) Password for proxy basic auth.
+- `url` (String) Proxy address, such as `http://proxy.example:8080` or `socks5://proxy.example:1080`. Required when the block is set.
+- `username` (String) Username for proxy basic auth. Prefer this over userinfo in `url`.

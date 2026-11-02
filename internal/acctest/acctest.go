@@ -595,7 +595,7 @@ func AccCheckResourceDisappears(resourceAddr, apiDeletePath string) resource.Tes
 }
 
 // requireTipAPIs reports whether tip-only Coolify surfaces must be present.
-// Set COOLIFY_REQUIRE_TIP_APIS=1 on jobs that boot coollabsio/coolify:edge
+// Set COOLIFY_REQUIRE_TIP_APIS=1 on jobs that boot coollabsio/coolify:preview
 // (PR Acceptance Tests + Coolify Nightly Acc tip-edge) so missing S3 storage,
 // volume backup, or bootstrap S3 UUID fails the run instead of silently
 // skipping features the version-support guide claims on tip.
@@ -619,8 +619,8 @@ func accTestMissingFeature(t *testing.T, format string, args ...interface{}) {
 // (PUT/DELETE .../storages/{uuid}/backups from coollabsio/coolify#10946).
 //
 // That API is on Coolify branch v4.x after the merge; it is not in git tag
-// v4.2.0 or stable CDN latest. CI boots coollabsio/coolify:edge (v4.x tip).
-// Locally set LATEST_IMAGE=edge (or a post-#10946 sha-... tag) before compose up.
+// v4.2.0. CI boots coollabsio/coolify:preview (moving tip; edge tag is gone).
+// Locally set LATEST_IMAGE=preview (or a post-#10946 sha-... tag) before compose up.
 //
 // When COOLIFY_REQUIRE_TIP_APIS=1, a missing controller fails instead of skips.
 //
@@ -667,13 +667,13 @@ func AccTestSkipIfNoVolumeBackupAPI(t *testing.T) {
 			return
 		}
 		accTestMissingFeature(t, "Coolify instance has no VolumeBackupsController (HTTP %d). "+
-			"Need image tip after coollabsio/coolify#10946 (CI uses coollabsio/coolify:edge; "+
-			"local: set LATEST_IMAGE=edge in Coolify compose .env). Body: %s",
+			"Need image tip after coollabsio/coolify#10946 (CI uses coollabsio/coolify:preview; "+
+			"local: set LATEST_IMAGE=preview in Coolify compose .env). Body: %s",
 			resp.StatusCode, truncateForSkip(string(body), 200))
 		return
 	case http.StatusMethodNotAllowed:
 		accTestMissingFeature(t, "Coolify instance has no volume backup PUT route (HTTP 405). "+
-			"Need tip after coollabsio/coolify#10946 (coollabsio/coolify:edge)")
+			"Need tip after coollabsio/coolify#10946 (coollabsio/coolify:preview)")
 	default:
 		// 200/201 should not happen for fake UUIDs; other codes still mean a handler ran.
 		if resp.StatusCode >= 500 {
