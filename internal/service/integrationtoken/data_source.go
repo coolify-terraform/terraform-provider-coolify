@@ -70,7 +70,7 @@ func (d *integrationTokenDataSource) Configure(_ context.Context, req datasource
 func (d *integrationTokenDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state integrationTokenDataModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() || !coolify46Ready(d.client, &resp.Diagnostics) {
 		return
 	}
 	got, err := d.client.GetIntegrationToken(ctx, state.UUID.ValueString())

@@ -33,6 +33,10 @@ func TestIntegrationTokenResource_Lifecycle(t *testing.T) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		if body["name"] != "cf" || body["provider"] != "cloudflare" || body["token"] != "cf-token" {
+			http.Error(w, "unexpected create body", http.StatusBadRequest)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(map[string]string{"uuid": uuid})

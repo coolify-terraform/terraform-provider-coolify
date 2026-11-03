@@ -58,6 +58,9 @@ func (d *integrationTokenListDataSource) Configure(_ context.Context, req dataso
 }
 
 func (d *integrationTokenListDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
+	if !coolify46Ready(d.client, &resp.Diagnostics) {
+		return
+	}
 	tokens, err := d.client.ListIntegrationTokens(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Error listing integration tokens", err.Error())

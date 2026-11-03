@@ -251,16 +251,20 @@ func (r *integrationTokenResource) ImportState(ctx context.Context, req resource
 }
 
 func (r *integrationTokenResource) requireCoolify46(diags *diag.Diagnostics) bool {
-	if r.client == nil || r.client.SupportsCoolify46() {
+	return coolify46Ready(r.client, diags)
+}
+
+func coolify46Ready(c *client.Client, diags *diag.Diagnostics) bool {
+	if c == nil || c.SupportsCoolify46() {
 		return true
 	}
-	ver := r.client.CoolifyVersion
+	ver := c.CoolifyVersion
 	if ver == "" {
 		ver = "unknown"
 	}
 	diags.AddError(
 		"Integration tokens need Coolify >= v4.6.0",
-		fmt.Sprintf("This Coolify instance (%s) does not have the integration token read and update API. Upgrade Coolify before managing coolify_integration_token.", ver),
+		fmt.Sprintf("This Coolify instance (%s) does not have the integration token API. Upgrade Coolify before using coolify_integration_token.", ver),
 	)
 	return false
 }
