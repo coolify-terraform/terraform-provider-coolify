@@ -272,7 +272,7 @@ func (r *vultrServerResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	flattenVultrServer(srv, &plan)
+	flattenVultrServer(r.client, srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_server_vultr", "uuid": created.UUID})
 }
@@ -297,7 +297,7 @@ func (r *vultrServerResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	flattenVultrServer(srv, &state)
+	flattenVultrServer(r.client, srv, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -340,6 +340,7 @@ func (r *vultrServerResource) Update(ctx context.Context, req resource.UpdateReq
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server_vultr", "uuid": state.UUID.ValueString()})
 
 	server.WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
+	server.WarnUnsupportedServerV451(r.client, plan.commonPtrs(), &resp.Diagnostics)
 	input := server.BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
 	if _, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input); err != nil {
@@ -353,7 +354,7 @@ func (r *vultrServerResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	flattenVultrServer(srv, &plan)
+	flattenVultrServer(r.client, srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "updated resource", map[string]interface{}{"resource_type": "coolify_server_vultr", "uuid": state.UUID.ValueString()})
 }
@@ -421,8 +422,10 @@ func (m *vultrServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 	}
 }
 
-func flattenVultrServer(srv *client.Server, model *vultrServerResourceModel) {
-	server.FlattenServerCommon(srv, model.commonPtrs())
+func flattenVultrServer(c *client.Client, srv *client.Server, model *vultrServerResourceModel) {
+	ptrs := model.commonPtrs()
+	server.NoteServerCoolifyVersion(c, &ptrs)
+	server.FlattenServerCommon(srv, ptrs)
 	// enable_ipv6 and disable_public_ipv4 are not on GET. Keep a known
 	// state value. Do not invent the Coolify default after import.
 }

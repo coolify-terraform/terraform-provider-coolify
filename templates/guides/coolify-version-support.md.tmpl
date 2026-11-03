@@ -42,7 +42,7 @@ output "coolify_version" {
 | **≥ 4.3.15** | Preview domain PATCH, GET `domain_port_overrides`, restart-limit fields. |
 | **≥ 4.3.18** | `missing_backup_notification_days` on `coolify_database_backup` (0 disables alerts). GET-only `last_execution_at` and `missing_backup_notification_sent_at`. |
 | **≥ 4.5.0** | `POST /api/v1/enable` is gone. `coolify_api_settings` with `enabled = true` leaves the API unchanged. `enabled = false` still disables it. Turn the API back on in the Coolify UI. Destroy does not re-enable the API. `coolify_server_hostinger` and the Hostinger catalog data sources require this version. `coolify_service_application` can send `is_permanent_redirect_enabled` and `traefik_certificate_resolver`. |
-| **≥ 4.5.1** | `coolify_s3_storage.use_path_style_endpoint`, `coolify_server_log_drain.logdrain_axiom_domain`, and application `rolling_update_drain_seconds` are sent. Older instances keep those values in state and do not send them. Highlight log drain columns are gone, so the read-only server attributes are null. Recommended Coolify for every write this provider sends. |
+| **≥ 4.5.1** | `coolify_s3_storage.use_path_style_endpoint`, `coolify_server_log_drain.logdrain_axiom_domain`, and application `rolling_update_drain_seconds` are sent. Older instances keep those values in state and do not send them. Highlight log drain columns are gone, so the read-only server attributes are null. Also sent from this version: application `include_coolify_default_variables` and `is_container_label_readonly_enabled`, service `include_coolify_default_variables`, service application `redirect`, server proxy `proxy_error_page`, database backup `disable_local_backup`, and server `wildcard_domain`, `server_timezone`, and `backup_compression_cpu_percentage`. |
 
 Pinned API contract today: Coolify **v4.4.2** (`testdata/contracts/coolify-v4.json`).
 Tag extracts `coolify-v4.4.0.json`, `coolify-v4.4.1.json`, and `coolify-v4.4.2.json` match those git
@@ -152,9 +152,10 @@ on `coolify_server` / cloud server resources and `coolify_server` / `coolify_ser
 data sources are populated on Coolify **≥ 4.3.2** after Coolify probes the host.
 Empty on older instances.
 
-Volume-backup CPU share (`backup_compression_cpu_percentage`) is a computed
-GET-only server setting on Coolify **≥ 4.3.3**. It is not on the
-public server PATCH allow list. Empty on older instances.
+Volume-backup CPU share (`backup_compression_cpu_percentage`) is present on
+GET from Coolify **≥ 4.3.3** and empty on older instances. Writing it, along
+with `wildcard_domain` and `server_timezone`, requires Coolify **≥ 4.5.1**.
+On older instances a configured value stays in state and is not sent.
 
 Project icon attributes (`icon_path`, `icon_storage_type`) are computed on
 `coolify_project` and `data.coolify_project` from GET `/projects/{uuid}` on
@@ -275,7 +276,20 @@ application, null uses the server setting. `none` turns the resolver off.
 | `use_path_style_endpoint` on `coolify_s3_storage` | Path-style URLs (`endpoint/bucket`). On create, leaving it unset lets Coolify pick false for Alibaba Cloud OSS, Tencent Cloud COS, and Volcengine TOS, and true for other endpoints. Removing the attribute later does not clear a stored value. Older instances keep a configured value in state and do not send it. |
 | `logdrain_axiom_domain` on `coolify_server_log_drain` | Axiom edge domain. On create, leaving it unset lets Coolify use `us-east-1.aws.edge.axiom.co`. Removing the attribute later does not clear a stored value. Older instances keep a configured value in state and do not send it. |
 | `rolling_update_drain_seconds` on applications | Seconds to wait after the new container is healthy before old containers stop. `0` turns the wait off. On create, leaving it unset lets Coolify use `5`. Removing the attribute later does not clear a stored value; set `5` to restore that default, or `0` to turn the wait off. Older instances, including v4.5.0, keep a configured value in state and do not send it. |
+| `include_coolify_default_variables` on applications and `coolify_service` | Include Coolify's default environment variables. Older instances keep a configured value in state and do not send it. |
+| `is_container_label_readonly_enabled` on applications | Mark generated container labels read-only. Coolify's stored default is true. Older instances keep a configured value in state and do not send it. |
+| `redirect` on `coolify_service_application` | Domain redirect mode: `www`, `non-www`, or `both`. Older instances keep a configured value in state and do not send it. |
+| `proxy_error_page` on `coolify_server_proxy` | Custom HTML for unknown hosts and maintenance. An empty string restores the default page. At most 1 MiB. Older instances keep a configured value in state and do not send it. |
+| `disable_local_backup` on `coolify_database_backup` | Delete the local file after the S3 upload. Only valid when `save_s3` is true. Older instances keep a configured value in state and do not send it. |
+| `wildcard_domain`, `server_timezone`, and `backup_compression_cpu_percentage` on servers | Writable server settings. CPU share accepts 25, 50, 75, or 100. Timezone is an IANA name. Wildcard domain is an http or https URL. Older instances keep configured values in state and do not send them. |
 | Highlight log drain fields on servers | Read-only. Coolify 4.5.1 drops the columns. Older instances still return them. On 4.5.1 and later the provider stores null. |
+
+### Requires Coolify ≥ 4.6.0
+
+| Resource / attribute | Role |
+|----------------------|------|
+| `git_https_username` and `git_https_password` on applications | HTTPS Git credentials for a private repository that is not a GitHub App. The password is not returned on read. 4.6 release candidates keep a configured value in state and do not send it. |
+| `coolify_integration_token` | Cloudflare, Doppler, Infisical, and Vault tokens. Create checks the secret with that provider. The secret and metadata are not returned. `POST .../sync-zones` stays an operator action. |
 
 `coolify_service_application` configures an application the compose service already created. Fields that older Coolify accepts, such as `url` and `description`, are still sent. There is no DELETE for this object. Destroy drops Terraform state and leaves the container and its URL in place.
 
@@ -297,7 +311,7 @@ PATCH if any disallowed field is present, so the provider strips them.
 | Topic | Guidance |
 |-------|----------|
 | Minimum Coolify for this provider | **4.1.0** |
-| Recommended Coolify for every write this provider sends | **≥ 4.5.1** |
+| Recommended Coolify for every write this provider sends | **≥ 4.6.0** |
 | Provider package versions | Current 0.1.x line targets Coolify 4.1+ and withholds newer fields on older instances |
 
 Historical "0.2.x / 0.3.x min Coolify" rows in older docs referred to planned

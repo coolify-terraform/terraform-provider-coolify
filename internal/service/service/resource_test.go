@@ -37,6 +37,7 @@ var expectedWritableServiceUpdateKeys = []string{
 	"description",
 	"docker_compose_raw",
 	"force_domain_override",
+	"include_coolify_default_variables",
 	"instant_deploy",
 	"is_container_label_escape_enabled",
 	"name",
@@ -439,26 +440,27 @@ func TestDeleteService_AddsWarningWhenPollingTimesOut(t *testing.T) {
 
 	state := tfsdk.State{Schema: schemaResp.Schema}
 	setDiags := state.Set(ctx, struct {
-		Timeouts                      timeouts.Value    `tfsdk:"timeouts"`
-		UUID                          types.String      `tfsdk:"uuid"`
-		Name                          types.String      `tfsdk:"name"`
-		Description                   types.String      `tfsdk:"description"`
-		ProjectUUID                   types.String      `tfsdk:"project_uuid"`
-		ServerUUID                    types.String      `tfsdk:"server_uuid"`
-		DestinationUUID               types.String      `tfsdk:"destination_uuid"`
-		EnvironmentName               types.String      `tfsdk:"environment_name"`
-		EnvironmentUUID               types.String      `tfsdk:"environment_uuid"`
-		Type                          types.String      `tfsdk:"type"`
-		Status                        types.String      `tfsdk:"status"`
-		DockerCompose                 types.String      `tfsdk:"docker_compose"`
-		DockerComposeRaw              types.String      `tfsdk:"docker_compose_raw"`
-		ConnectToNetwork              types.Bool        `tfsdk:"connect_to_docker_network"`
-		IsContainerLabelEscapeEnabled types.Bool        `tfsdk:"is_container_label_escape_enabled"`
-		RedactAllEnvValuesInLogs      types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
-		ConfigHash                    types.String      `tfsdk:"config_hash"`
-		InstantDeploy                 types.Bool        `tfsdk:"instant_deploy"`
-		URLs                          []serviceURLEntry `tfsdk:"urls"`
-		ForceDomainOverride           types.Bool        `tfsdk:"force_domain_override"`
+		Timeouts                       timeouts.Value    `tfsdk:"timeouts"`
+		UUID                           types.String      `tfsdk:"uuid"`
+		Name                           types.String      `tfsdk:"name"`
+		Description                    types.String      `tfsdk:"description"`
+		ProjectUUID                    types.String      `tfsdk:"project_uuid"`
+		ServerUUID                     types.String      `tfsdk:"server_uuid"`
+		DestinationUUID                types.String      `tfsdk:"destination_uuid"`
+		EnvironmentName                types.String      `tfsdk:"environment_name"`
+		EnvironmentUUID                types.String      `tfsdk:"environment_uuid"`
+		Type                           types.String      `tfsdk:"type"`
+		Status                         types.String      `tfsdk:"status"`
+		DockerCompose                  types.String      `tfsdk:"docker_compose"`
+		DockerComposeRaw               types.String      `tfsdk:"docker_compose_raw"`
+		ConnectToNetwork               types.Bool        `tfsdk:"connect_to_docker_network"`
+		IsContainerLabelEscapeEnabled  types.Bool        `tfsdk:"is_container_label_escape_enabled"`
+		RedactAllEnvValuesInLogs       types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
+		IncludeCoolifyDefaultVariables types.Bool        `tfsdk:"include_coolify_default_variables"`
+		ConfigHash                     types.String      `tfsdk:"config_hash"`
+		InstantDeploy                  types.Bool        `tfsdk:"instant_deploy"`
+		URLs                           []serviceURLEntry `tfsdk:"urls"`
+		ForceDomainOverride            types.Bool        `tfsdk:"force_domain_override"`
 	}{
 		Timeouts: timeouts.Value{Object: types.ObjectNull(map[string]attr.Type{
 			"create": types.StringType,
@@ -553,26 +555,27 @@ func TestDeleteService_ErrorsWhenGetReturnsEmptyBody(t *testing.T) {
 
 	state := tfsdk.State{Schema: schemaResp.Schema}
 	setDiags := state.Set(ctx, struct {
-		Timeouts                      timeouts.Value    `tfsdk:"timeouts"`
-		UUID                          types.String      `tfsdk:"uuid"`
-		Name                          types.String      `tfsdk:"name"`
-		Description                   types.String      `tfsdk:"description"`
-		ProjectUUID                   types.String      `tfsdk:"project_uuid"`
-		ServerUUID                    types.String      `tfsdk:"server_uuid"`
-		DestinationUUID               types.String      `tfsdk:"destination_uuid"`
-		EnvironmentName               types.String      `tfsdk:"environment_name"`
-		EnvironmentUUID               types.String      `tfsdk:"environment_uuid"`
-		Type                          types.String      `tfsdk:"type"`
-		Status                        types.String      `tfsdk:"status"`
-		DockerCompose                 types.String      `tfsdk:"docker_compose"`
-		DockerComposeRaw              types.String      `tfsdk:"docker_compose_raw"`
-		ConnectToNetwork              types.Bool        `tfsdk:"connect_to_docker_network"`
-		IsContainerLabelEscapeEnabled types.Bool        `tfsdk:"is_container_label_escape_enabled"`
-		RedactAllEnvValuesInLogs      types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
-		ConfigHash                    types.String      `tfsdk:"config_hash"`
-		InstantDeploy                 types.Bool        `tfsdk:"instant_deploy"`
-		URLs                          []serviceURLEntry `tfsdk:"urls"`
-		ForceDomainOverride           types.Bool        `tfsdk:"force_domain_override"`
+		Timeouts                       timeouts.Value    `tfsdk:"timeouts"`
+		UUID                           types.String      `tfsdk:"uuid"`
+		Name                           types.String      `tfsdk:"name"`
+		Description                    types.String      `tfsdk:"description"`
+		ProjectUUID                    types.String      `tfsdk:"project_uuid"`
+		ServerUUID                     types.String      `tfsdk:"server_uuid"`
+		DestinationUUID                types.String      `tfsdk:"destination_uuid"`
+		EnvironmentName                types.String      `tfsdk:"environment_name"`
+		EnvironmentUUID                types.String      `tfsdk:"environment_uuid"`
+		Type                           types.String      `tfsdk:"type"`
+		Status                         types.String      `tfsdk:"status"`
+		DockerCompose                  types.String      `tfsdk:"docker_compose"`
+		DockerComposeRaw               types.String      `tfsdk:"docker_compose_raw"`
+		ConnectToNetwork               types.Bool        `tfsdk:"connect_to_docker_network"`
+		IsContainerLabelEscapeEnabled  types.Bool        `tfsdk:"is_container_label_escape_enabled"`
+		RedactAllEnvValuesInLogs       types.Bool        `tfsdk:"redact_all_env_values_in_logs"`
+		IncludeCoolifyDefaultVariables types.Bool        `tfsdk:"include_coolify_default_variables"`
+		ConfigHash                     types.String      `tfsdk:"config_hash"`
+		InstantDeploy                  types.Bool        `tfsdk:"instant_deploy"`
+		URLs                           []serviceURLEntry `tfsdk:"urls"`
+		ForceDomainOverride            types.Bool        `tfsdk:"force_domain_override"`
 	}{
 		Timeouts: timeouts.Value{Object: types.ObjectNull(map[string]attr.Type{
 			"create": types.StringType,

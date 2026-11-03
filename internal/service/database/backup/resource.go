@@ -123,7 +123,8 @@ func (r *databaseBackupResource) Schema(_ context.Context, _ resource.SchemaRequ
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"disable_local_backup": schema.BoolAttribute{
-				MarkdownDescription: "Whether local backup retention is disabled. Read-only: Coolify does not accept this field on the public create/update backup API (UI-only write).",
+				MarkdownDescription: "Delete the local backup file after the upload to S3. Only valid when `save_s3` is true. Turning `save_s3` off also turns this off. Requires Coolify >= v4.5.1. On older instances the provider keeps the value in state and does not send it.",
+				Optional:            true,
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -248,6 +249,14 @@ func (r *databaseBackupResource) ValidateConfig(ctx context.Context, req resourc
 	}
 	// Only enforce when save_s3 is known true. Unknown s3_storage_uuid
 	// (e.g. from a data source or resource reference) must not fail plan.
+	if !config.DisableLocalBackup.IsNull() && !config.DisableLocalBackup.IsUnknown() && config.DisableLocalBackup.ValueBool() &&
+		!config.SaveS3.IsUnknown() && (config.SaveS3.IsNull() || !config.SaveS3.ValueBool()) {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("disable_local_backup"),
+			"disable_local_backup requires save_s3",
+			"Coolify only allows disable_local_backup when save_s3 is true.",
+		)
+	}
 	if s3PrimaryNotInList(config.S3StorageUUID, config.S3StorageUUIDs) {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("s3_storage_uuid"),
@@ -299,6 +308,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	input.RetainMaxStorageS3 = flex.Float64PtrFromInt64Framework(plan.RetainMaxStorageS3)
 	input.Timeout = flex.Int64PtrFromFramework(plan.Timeout)
 	input.MissingBackupNotificationDays = flex.Int64PtrFromFramework(plan.MissingBackupNotificationDays)
+	input.DisableLocalBackup = flex.BoolValueOrNull(plan.DisableLocalBackup)
 
 	created, err := r.client.CreateDatabaseBackup(ctx, plan.DatabaseUUID.ValueString(), input)
 	if err != nil {
@@ -313,6 +323,7 @@ func (r *databaseBackupResource) Create(ctx context.Context, req resource.Create
 	nullUnknownBackupComputed(&plan)
 	warnUnsupportedMissingBackupNotificationDays(r.client, plan, &resp.Diagnostics)
 	warnUnsupportedS3StorageUUIDs(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedDisableLocalBackup(r.client, plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -415,10 +426,12 @@ func (r *databaseBackupResource) Update(ctx context.Context, req resource.Update
 		RetainMaxStorageS3:            flex.Float64IfChangedFromInt64(plan.RetainMaxStorageS3, state.RetainMaxStorageS3),
 		Timeout:                       flex.Int64IfChanged(plan.Timeout, state.Timeout),
 		MissingBackupNotificationDays: flex.Int64IfChanged(plan.MissingBackupNotificationDays, state.MissingBackupNotificationDays),
+		DisableLocalBackup:            flex.BoolIfChanged(plan.DisableLocalBackup, state.DisableLocalBackup),
 	}
 
 	warnUnsupportedMissingBackupNotificationDays(r.client, plan, &resp.Diagnostics)
 	warnUnsupportedS3StorageUUIDs(r.client, plan, &resp.Diagnostics)
+	warnUnsupportedDisableLocalBackup(r.client, plan, &resp.Diagnostics)
 	if _, err := r.client.UpdateDatabaseBackup(ctx, dbUUID, state.UUID.ValueString(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating database backup", fmt.Sprintf("backup %s for database %s: %s", state.UUID.ValueString(), dbUUID, err))
 		return
@@ -645,7 +658,11 @@ func flattenDatabaseBackup(c *client.Client, b *client.DatabaseBackup, m *databa
 	}
 	m.Enabled = types.BoolValue(b.Enabled)
 	m.Description = flex.StringFromAPI(b.Description, m.Description)
-	m.DisableLocalBackup = types.BoolValue(b.DisableLocalBackup)
+	if c != nil && !c.SupportsCoolify451() && !m.DisableLocalBackup.IsNull() && !m.DisableLocalBackup.IsUnknown() {
+		// Keep the configured value. Older Coolify rejects the write.
+	} else {
+		m.DisableLocalBackup = types.BoolValue(b.DisableLocalBackup)
+	}
 	m.SaveS3 = types.BoolValue(b.SaveS3)
 	// The API may return s3_storage_id as a numeric FK, not the UUID the
 	// user configured. Only populate on import (when state is empty);
@@ -753,6 +770,28 @@ func warnUnsupportedS3StorageUUIDs(c *client.Client, plan databaseBackupResource
 			"This Coolify instance (%s) does not accept s3_storage_uuids (added in Coolify v4.5.0). "+
 				"The provider will keep the list in Terraform state but will not send it. "+
 				"Upgrade to Coolify v4.5.0 or later, or remove s3_storage_uuids from configuration.",
+			ver,
+		),
+	)
+}
+
+func warnUnsupportedDisableLocalBackup(c *client.Client, plan databaseBackupResourceModel, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsCoolify451() {
+		return
+	}
+	if plan.DisableLocalBackup.IsNull() || plan.DisableLocalBackup.IsUnknown() {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write disable_local_backup",
+		fmt.Sprintf(
+			"This Coolify instance (%s) does not accept disable_local_backup on database backups (added in Coolify v4.5.1). "+
+				"The provider will keep the value in Terraform state but will not send it. "+
+				"Upgrade to Coolify v4.5.1 or later, or remove disable_local_backup from configuration.",
 			ver,
 		),
 	)

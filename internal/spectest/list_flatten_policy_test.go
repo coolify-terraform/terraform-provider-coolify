@@ -28,6 +28,7 @@ var resourceListPolicy = map[string]string{
 	"internal/service/serviceapplication/resource.go:noindex_domains": "TestFlattenNoindexDomains_PreservesConfigOrder",
 	"internal/service/database/backup/resource.go:s3_storage_uuids":   "API order is primary first; flatten replaces the list when GET returns it",
 	"internal/service/volumebackup/resource.go:s3_storage_uuids":      "upsert response order is primary first; there is no schedule GET",
+	"internal/service/integrationtoken/resource.go:capabilities":      "TestFlattenIntegrationToken_PreservesCapabilityOrder",
 }
 
 var listAttrDecl = regexp.MustCompile(`(?m)^\s+"([^"]+)": schema\.(ListAttribute|ListNestedAttribute)\{`)

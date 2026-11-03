@@ -94,6 +94,21 @@ var ApplicationSettingsV45WriteJSONKeys = []string{
 // keys accepted only on Coolify >= v4.5.1. v4.5.0 rejects them.
 var ApplicationSettingsV451WriteJSONKeys = []string{
 	"rolling_update_drain_seconds",
+	"include_coolify_default_variables",
+	"is_container_label_readonly_enabled",
+}
+
+// minCoolify46Version is the first tagged Coolify release that accepts
+// git_https_username and git_https_password, and that exposes integration
+// token read, update, and delete.
+const minCoolify46Version = "4.6.0"
+
+// ApplicationSettingsV46WriteJSONKeys lists Coolify application PATCH JSON
+// keys accepted only on Coolify >= v4.6.0. v4.6-rc.1 does not parse as
+// 4.6.0 and is withheld.
+var ApplicationSettingsV46WriteJSONKeys = []string{
+	"git_https_username",
+	"git_https_password",
 }
 
 // ApplicationSettingsAheadOfPinWriteJSONKeys are public application write
@@ -260,6 +275,35 @@ func (c *Client) SupportsCoolify451() bool {
 		return true
 	}
 	return IsVersionAtLeast(c.CoolifyVersion, minCoolify451Version)
+}
+
+// versionIs46Prerelease reports Coolify 4.6 release candidates. Those
+// strings do not parse as 4.6.0, and IsVersionAtLeast treats an
+// unparseable version as newest. git_https credentials and integration
+// token update landed on the 4.6.0 tag, after 4.6-rc.1.
+func versionIs46Prerelease(ver string) bool {
+	v := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(ver)), "v")
+	return strings.HasPrefix(v, "4.6-rc") || strings.HasPrefix(v, "4.6.0-rc")
+}
+
+// SupportsCoolify46 reports whether the connected instance accepts Coolify
+// >= v4.6.0 write fields.
+//
+// Empty CoolifyVersion reports true so unit tests that never call Configure
+// exercise the new payload. A 4.3.0 version string reports true because CI
+// edge has used that string while shipping later APIs. 4.4-rc.* and
+// 4.6-rc.* report false.
+func (c *Client) SupportsCoolify46() bool {
+	if c == nil || c.CoolifyVersion == "" {
+		return true
+	}
+	if versionIs44Prerelease(c.CoolifyVersion) || versionIs46Prerelease(c.CoolifyVersion) {
+		return false
+	}
+	if versionStringLagsTip(c.CoolifyVersion) {
+		return true
+	}
+	return IsVersionAtLeast(c.CoolifyVersion, minCoolify46Version)
 }
 
 // SupportsHighlightLogDrain reports whether GET server settings still include

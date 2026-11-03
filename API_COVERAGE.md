@@ -11,9 +11,9 @@ It is a **route inventory** against Coolify source (`testdata/contracts/coolify-
 - **Resource and attribute docs:** [docs/](docs/) (also on the Terraform Registry)
 - **Field-level gaps** (numeric FKs, UI-only columns on an existing GET) live in `internal/spectest/contract_skips.go`, not in this route list.
 
-**Coverage**: 260 covered / 324 registry entries (80.2%)  
+**Coverage**: 265 covered / 329 registry entries (80.5%)  
 **Planned**: 0 | **Skipped**: 64  
-**Registry size**: 324 (contract routes + allowlisted extras)
+**Registry size**: 329 (contract routes + allowlisted extras)
 
 ## What Terraform does not wrap
 
@@ -176,9 +176,9 @@ Upload and import routes restore a dump into an existing database. They are a on
 
 ### Operator reads and one-shot actions
 
-Preview list, get, and create are owned by Coolify when a pull request opens. Audit events, secret-manager configuration, integration tokens, a live registry login check, and PATCH /team (current team profile) are operator actions, not resource settings.
+Preview list, get, and create are owned by Coolify when a pull request opens. Audit events, a live registry login check, Cloudflare zone sync, and PATCH /team (current team profile) are operator actions, not resource settings.
 
-**Use this instead:** `coolify_application_preview` to track a preview, patch its domains, and delete it. `coolify_server_docker_registry` for saved registry logins. `data.coolify_team` to read the current team. Use the Coolify UI for imports, audit, and team profile edits.
+**Use this instead:** `coolify_integration_token` for Cloudflare, Doppler, Infisical, and Vault tokens. `coolify_application_preview` to track a preview, patch its domains, and delete it. `coolify_server_docker_registry` for saved registry logins. `data.coolify_team` to read the current team. Use the Coolify UI for imports, audit, and team profile edits.
 
 | Route |
 |-------|
@@ -188,7 +188,7 @@ Preview list, get, and create are owned by Coolify when a pull request opens. Au
 | `PATCH /applications/{uuid}/secret-manager` |
 | `PATCH /team` |
 | `POST /applications/{uuid}/previews` |
-| `POST /security/integration-tokens` |
+| `POST /security/integration-tokens/{uuid}/sync-zones` |
 | `POST /servers/{uuid}/registries/{registry}/check` |
 
 ## Routes by Terraform resource
@@ -464,6 +464,14 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `GET /settings/email` | v0.1.18 |
 | `PATCH /settings/email` | v0.1.18 |
+
+### `coolify_integration_token`
+
+| Route | Since |
+|-------|-------|
+| `DELETE /security/integration-tokens/{uuid}` | v0.1.31 |
+| `PATCH /security/integration-tokens/{uuid}` | v0.1.31 |
+| `POST /security/integration-tokens` | v0.1.31 |
 
 ### `coolify_notification_discord`
 
@@ -933,6 +941,18 @@ A row here means the provider calls that Coolify route. `client.*` helpers are u
 |-------|-------|
 | `GET /hostinger/templates` | v0.1.28 |
 
+### `data.coolify_integration_token`
+
+| Route | Since |
+|-------|-------|
+| `GET /security/integration-tokens/{uuid}` | v0.1.31 |
+
+### `data.coolify_integration_tokens`
+
+| Route | Since |
+|-------|-------|
+| `GET /security/integration-tokens` | v0.1.31 |
+
 ### `data.coolify_private_key`
 
 | Route | Since |
@@ -1126,6 +1146,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `DELETE /projects/{uuid}/environments/{environment_name_or_uuid}/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
 | `DELETE /projects/{uuid}/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
 | `DELETE /s3-storages/{uuid}` | covered | `coolify_s3_storage` |
+| `DELETE /security/integration-tokens/{uuid}` | covered | `coolify_integration_token` |
 | `DELETE /security/keys/{uuid}` | covered | `coolify_private_key` |
 | `DELETE /servers/{uuid}` | covered | `coolify_server` |
 | `DELETE /servers/{uuid}/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
@@ -1214,6 +1235,8 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `GET /resources` | covered | `data.coolify_resources` |
 | `GET /s3-storages` | covered | `data.coolify_s3_storages` |
 | `GET /s3-storages/{uuid}` | covered | `data.coolify_s3_storage` |
+| `GET /security/integration-tokens` | covered | `data.coolify_integration_tokens` |
+| `GET /security/integration-tokens/{uuid}` | covered | `data.coolify_integration_token` |
 | `GET /security/keys` | covered | `data.coolify_private_keys` |
 | `GET /security/keys/{uuid}` | covered | `data.coolify_private_key` |
 | `GET /servers` | covered | `data.coolify_servers` |
@@ -1295,6 +1318,7 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `PATCH /projects/{uuid}/environments/{environment_name_or_uuid}/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
 | `PATCH /projects/{uuid}/envs/{env_id}` | covered | `coolify_shared_environment_variable` |
 | `PATCH /s3-storages/{uuid}` | covered | `coolify_s3_storage` |
+| `PATCH /security/integration-tokens/{uuid}` | covered | `coolify_integration_token` |
 | `PATCH /security/keys/{uuid}` | covered | `coolify_private_key` |
 | `PATCH /servers/{uuid}` | covered | `coolify_server` |
 | `PATCH /servers/{uuid}/cloudflare-tunnel` | covered | `coolify_server_cloudflare_tunnel` |
@@ -1375,7 +1399,8 @@ Completeness tests use this list. Sorted by `METHOD /path`.
 | `POST /projects/{uuid}/envs` | covered | `coolify_shared_environment_variable` |
 | `POST /s3-storages` | covered | `coolify_s3_storage` |
 | `POST /s3-storages/{uuid}/validate` | covered | `coolify_s3_storage_validate` |
-| `POST /security/integration-tokens` | skipped | `operator` |
+| `POST /security/integration-tokens` | covered | `coolify_integration_token` |
+| `POST /security/integration-tokens/{uuid}/sync-zones` | skipped | `operator` |
 | `POST /security/keys` | covered | `coolify_private_key` |
 | `POST /sentinel/push` | skipped | `control-plane` |
 | `POST /servers` | covered | `coolify_server` |

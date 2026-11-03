@@ -80,6 +80,9 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         "is_permanent_redirect_enabled",
         "redact_all_env_values_in_logs",
         "traefik_certificate_resolver",
+        # Coolify >= v4.6.0. Password is never returned on GET.
+        "git_https_username",
+        "git_https_password",
     },
     "ApplicationsController::update_by_uuid": {
         "is_preview_deployments_enabled",
@@ -118,6 +121,9 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
         # Legal on update only in v4.5.0. github_app_uuid stays create-only in the provider.
         "dockerfile",
         "github_app_uuid",
+        # Coolify >= v4.6.0. Password is never returned on GET.
+        "git_https_username",
+        "git_https_password",
     },
     "DatabasesController::create_database": {
         "tags",
@@ -128,10 +134,13 @@ KNOWN_VERSION_DEPENDENT: dict[str, set[str]] = {
     "DatabasesController::create_backup": {
         "missing_backup_notification_days",
         "s3_storage_uuids",
+        # Coolify >= v4.5.1. Requires save_s3. Withheld on older instances.
+        "disable_local_backup",
     },
     "DatabasesController::update_backup": {
         "missing_backup_notification_days",
         "s3_storage_uuids",
+        "disable_local_backup",
     },
     # Volume-backup upsert gained the field in tag v4.4.1. Absent on v4.4.0.
     "VolumeBackupsController::upsert": {

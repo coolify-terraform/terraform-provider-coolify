@@ -126,6 +126,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 		names = append(names, configuredVersionGatedV44WriteAttrs(f)...)
 		names = append(names, configuredVersionGatedV45WriteAttrs(f)...)
 		names = append(names, configuredVersionGatedV451WriteAttrs(f)...)
+		names = append(names, configuredVersionGatedV46WriteAttrs(f)...)
 		sort.Strings(names)
 		if len(names) > 0 {
 			diags.AddWarning(
@@ -146,6 +147,7 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 		names = append(names, configuredVersionGatedV44WriteAttrs(f)...)
 		names = append(names, configuredVersionGatedV45WriteAttrs(f)...)
 		names = append(names, configuredVersionGatedV451WriteAttrs(f)...)
+		names = append(names, configuredVersionGatedV46WriteAttrs(f)...)
 		sort.Strings(names)
 		if len(names) == 0 {
 			return
@@ -194,20 +196,40 @@ func warnUnsupportedApplicationSettingsWrites(c *client.Client, f commonAppField
 	}
 	if !c.SupportsCoolify451() {
 		names := configuredVersionGatedV451WriteAttrs(f)
-		if len(names) == 0 {
-			return
+		if len(names) > 0 {
+			diags.AddWarning(
+				versionGatedWriteAttrSummary,
+				fmt.Sprintf(
+					"This Coolify instance (%s) is older than v4.5.1, which is required to write: %s. "+
+						"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
+						"Upgrade Coolify to v4.5.1 or later, or remove these attributes from configuration.",
+					ver,
+					strings.Join(names, ", "),
+				),
+			)
 		}
-		diags.AddWarning(
-			versionGatedWriteAttrSummary,
-			fmt.Sprintf(
-				"This Coolify instance (%s) is older than v4.5.1, which is required to write: %s. "+
-					"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
-					"Upgrade Coolify to v4.5.1 or later, or remove these attributes from configuration.",
-				ver,
-				strings.Join(names, ", "),
-			),
-		)
 	}
+	warnUnsupportedCoolify46Writes(c, f, diags, ver)
+}
+
+func warnUnsupportedCoolify46Writes(c *client.Client, f commonAppFields, diags *diag.Diagnostics, ver string) {
+	if c.SupportsCoolify46() {
+		return
+	}
+	names := configuredVersionGatedV46WriteAttrs(f)
+	if len(names) == 0 {
+		return
+	}
+	diags.AddWarning(
+		versionGatedWriteAttrSummary,
+		fmt.Sprintf(
+			"This Coolify instance (%s) is older than v4.6.0, which is required to write: %s. "+
+				"The provider will keep these values in Terraform state but will not send them to the Coolify API. "+
+				"Upgrade Coolify to v4.6.0 or later, or remove these attributes from configuration.",
+			ver,
+			strings.Join(names, ", "),
+		),
+	)
 }
 
 func configuredVersionGatedV45WriteAttrs(f commonAppFields) []string {
@@ -238,8 +260,26 @@ func configuredVersionGatedV45WriteAttrs(f commonAppFields) []string {
 }
 
 func configuredVersionGatedV451WriteAttrs(f commonAppFields) []string {
+	var names []string
 	if f.RollingUpdateDrainSeconds != nil && !f.RollingUpdateDrainSeconds.IsNull() && !f.RollingUpdateDrainSeconds.IsUnknown() {
-		return []string{"rolling_update_drain_seconds"}
+		names = append(names, "rolling_update_drain_seconds")
 	}
-	return nil
+	if f.IncludeCoolifyDefaultVariables != nil && !f.IncludeCoolifyDefaultVariables.IsNull() && !f.IncludeCoolifyDefaultVariables.IsUnknown() {
+		names = append(names, "include_coolify_default_variables")
+	}
+	if f.IsContainerLabelReadonlyEnabled != nil && !f.IsContainerLabelReadonlyEnabled.IsNull() && !f.IsContainerLabelReadonlyEnabled.IsUnknown() {
+		names = append(names, "is_container_label_readonly_enabled")
+	}
+	return names
+}
+
+func configuredVersionGatedV46WriteAttrs(f commonAppFields) []string {
+	var names []string
+	if f.GitHTTPSUsername != nil && !f.GitHTTPSUsername.IsNull() && !f.GitHTTPSUsername.IsUnknown() {
+		names = append(names, "git_https_username")
+	}
+	if f.GitHTTPSPassword != nil && !f.GitHTTPSPassword.IsNull() && !f.GitHTTPSPassword.IsUnknown() {
+		names = append(names, "git_https_password")
+	}
+	return names
 }

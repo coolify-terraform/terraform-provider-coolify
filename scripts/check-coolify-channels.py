@@ -13,8 +13,9 @@ This script compares:
   - pin:     version from testdata/contracts/coolify-v4.json
   - prereleases: GitHub releases with prerelease=true (optional)
   - latest_release: newest non-draft GitHub release tag (stable or pre)
-  - tip_version: version string from Coolify source config/constants.php
-    on the default branch (earliest "next line" signal)
+  - tip_version: stable.coolify from Coolify source release.json on the
+    default branch (earliest "next line" signal). Older trees that still
+    embed the version in config/constants.php remain a fallback.
   - tip_contract: optional extracted contract from tip vs pin (API field
     and column-default drift, even when version strings still match)
 
@@ -59,6 +60,9 @@ from typing import Any, Optional
 
 CDN_VERSIONS_URL = "https://cdn.coollabs.io/coolify/versions.json"
 COOLIFY_REPO = "coollabsio/coolify"
+RELEASE_JSON_RAW_URL = (
+    "https://raw.githubusercontent.com/coollabsio/coolify/main/release.json"
+)
 CONSTANTS_RAW_URL = (
     "https://raw.githubusercontent.com/coollabsio/coolify/main/config/constants.php"
 )
@@ -344,7 +348,7 @@ stable ships.
 | **Nightly CDN** (`coolify.nightly`) | `{nightly_v}` |
 | **GitHub latest release** (any non-draft) | `{latest}` |
 | **GitHub prerelease (newest)** | {pre_line} |
-| **Source tip version** (`config/constants.php` on main) | `{tip_v}` |
+| **Source tip version** (`release.json` `stable.coolify` on main) | `{tip_v}` |
 | **Tip contract API drift vs pin** | `{tip_diff}` change(s) |
 
 ### Why this fired
@@ -381,7 +385,7 @@ while tip already carries the next-line API.
 
 - CDN: {CDN_VERSIONS_URL}
 - Nightly install CDN: `https://cdn.coollabs.io/coolify-nightly`
-- Source tip version: `{CONSTANTS_RAW_URL}`
+- Source tip version: `{RELEASE_JSON_RAW_URL}` (`stable.coolify`)
 - Coolify default branch for tip extract: `main`
 """
 
@@ -430,7 +434,7 @@ def decide(
     if pin_behind_tip_ver and tip_v:
         reasons.append(
             f"Pinned contract `{pin}` is behind **source tip version** `{tip_v}` "
-            "(config/constants.php on main; earliest next-line version signal)."
+            "(release.json stable.coolify on main; earliest next-line version signal)."
         )
     if pin_behind_tip_api:
         reasons.append(
@@ -560,28 +564,74 @@ def parse_tip_version_from_constants(php: str) -> str:
     return normalize_version(m.group(1))
 
 
-def fetch_tip_version() -> str:
-    """Read Coolify source tip version from config/constants.php on main."""
-    failures: list[str] = []
-    try:
-        out = subprocess.check_output(
-            [
-                "gh",
-                "api",
-                f"repos/{COOLIFY_REPO}/contents/config/constants.php?ref=main",
-                "--jq",
-                ".content",
-            ],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
-        import base64
+def parse_tip_version_from_release(payload: str) -> str:
+    """Read stable.coolify from Coolify release.json.
 
-        php = base64.b64decode(out.strip().replace("\n", "")).decode()
-        ver = parse_tip_version_from_constants(php)
+    constants.php now does env('COOLIFY_VERSION') ?: $release['stable']['coolify'].
+    preview.coolify is a different channel and is not the default-branch version.
+    """
+    try:
+        data = json.loads(payload or "")
+    except json.JSONDecodeError:
+        return ""
+    if not isinstance(data, dict):
+        return ""
+    stable = data.get("stable")
+    if not isinstance(stable, dict):
+        return ""
+    return normalize_version(str(stable.get("coolify") or ""))
+
+
+def _gh_repo_file(path: str) -> str:
+    """Return a file from coollabsio/coolify main via the GitHub contents API."""
+    import base64
+
+    out = subprocess.check_output(
+        [
+            "gh",
+            "api",
+            f"repos/{COOLIFY_REPO}/contents/{path}?ref=main",
+            "--jq",
+            ".content",
+        ],
+        text=True,
+        stderr=subprocess.DEVNULL,
+    )
+    return base64.b64decode(out.strip().replace("\n", "")).decode()
+
+
+def fetch_tip_version() -> str:
+    """Read the Coolify default-branch version from release.json.
+
+    Falls back to the old constants.php literal for trees that still embed it.
+    """
+    failures: list[str] = []
+
+    def from_release(label: str, text: str) -> str:
+        ver = parse_tip_version_from_release(text)
         if ver:
             return ver
-        failures.append("GitHub API had no version")
+        failures.append(f"{label} had no stable.coolify")
+        return ""
+
+    try:
+        ver = from_release("GitHub API release.json", _gh_repo_file("release.json"))
+        if ver:
+            return ver
+    except (subprocess.CalledProcessError, FileNotFoundError, ValueError, OSError) as exc:
+        failures.append(str(exc))
+    try:
+        ver = from_release("raw release.json", fetch_text(RELEASE_JSON_RAW_URL))
+        if ver:
+            return ver
+    except (urllib.error.URLError, TimeoutError, UnicodeDecodeError) as exc:
+        failures.append(str(exc))
+
+    try:
+        ver = parse_tip_version_from_constants(_gh_repo_file("config/constants.php"))
+        if ver:
+            return ver
+        failures.append("GitHub API constants.php had no version")
     except (subprocess.CalledProcessError, FileNotFoundError, ValueError, OSError) as exc:
         failures.append(str(exc))
     try:
@@ -592,7 +642,7 @@ def fetch_tip_version() -> str:
     except (urllib.error.URLError, TimeoutError, UnicodeDecodeError) as exc:
         failures.append(str(exc))
     raise RuntimeError(
-        "could not fetch tip version from GitHub API or raw constants.php: "
+        "could not fetch tip version from release.json or constants.php: "
         + "; ".join(failures)
     )
 
@@ -956,7 +1006,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument(
         "--tip-version",
         default=None,
-        help="Source tip version override (without fetching constants.php)",
+        help="Source tip version override (without fetching release.json)",
     )
     parser.add_argument(
         "--tip-contract",
@@ -981,7 +1031,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument(
         "--fetch-tip-version",
         action="store_true",
-        help="Fetch source tip version from config/constants.php on main",
+        help="Fetch source tip version from release.json on main",
     )
     parser.add_argument(
         "--previous-state-json",

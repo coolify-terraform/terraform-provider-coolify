@@ -74,9 +74,7 @@ type testModel struct {
 }
 
 var readOnlyExtendedSettingNames = []string{
-	"wildcard_domain",
 	"is_cloudflare_tunnel",
-	"server_timezone",
 	"is_metrics_enabled",
 	"is_sentinel_enabled",
 	"sentinel_metrics_history_days",
@@ -92,10 +90,10 @@ var readOnlyExtendedSettingNames = []string{
 	"compose_version_checked_at",
 	"docker_version",
 	"docker_version_checked_at",
-	"backup_compression_cpu_percentage",
 }
 
 var expectedWritableServerUpdateKeys = []string{
+	"backup_compression_cpu_percentage",
 	"concurrent_builds",
 	"connection_timeout",
 	"deployment_queue_limit",
@@ -112,7 +110,9 @@ var expectedWritableServerUpdateKeys = []string{
 	"server_disk_usage_notification_interval_hours",
 	"server_disk_usage_notification_threshold",
 	"server_role",
+	"server_timezone",
 	"user",
+	"wildcard_domain",
 }
 
 func TestFlattenServerCommon_FullServer(t *testing.T) {
@@ -484,14 +484,19 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 	*plan.IsTerminalEnabled = types.BoolValue(true)
 	*state.IsTerminalEnabled = types.BoolValue(false)
 
-	// Unsupported extended settings still appear on reads, but the update
-	// contract must never write them back.
-	*plan.WildcardDomain = types.StringValue("new.example.com")
-	*state.WildcardDomain = types.StringValue("old.example.com")
-	*plan.IsCloudFlareTunnel = types.BoolValue(true)
-	*state.IsCloudFlareTunnel = types.BoolValue(false)
+	// Coolify >= v4.5.1 accepts these three on PATCH. Older instances
+	// drop them in UpdateServer.
+	*plan.WildcardDomain = types.StringValue("https://new.example.com")
+	*state.WildcardDomain = types.StringValue("https://old.example.com")
 	*plan.ServerTimezone = types.StringValue("America/New_York")
 	*state.ServerTimezone = types.StringValue("UTC")
+	*plan.BackupCompressionCPUPercentage = types.Int64Value(50)
+	*state.BackupCompressionCPUPercentage = types.Int64Value(25)
+
+	// Unsupported extended settings still appear on reads, but the update
+	// contract must never write them back.
+	*plan.IsCloudFlareTunnel = types.BoolValue(true)
+	*state.IsCloudFlareTunnel = types.BoolValue(false)
 	*plan.IsMetricsEnabled = types.BoolValue(true)
 	*state.IsMetricsEnabled = types.BoolValue(false)
 	*plan.IsSentinelEnabled = types.BoolValue(true)
@@ -529,6 +534,8 @@ func TestBuildServerUpdateInput_AllFieldsChanged(t *testing.T) {
 		{"PrivateKeyUUID", "new-key", input.PrivateKeyUUID},
 		{"ServerDiskUsageCheckFrequency", "*/10 * * * *", input.ServerDiskUsageCheckFrequency},
 		{"ServerRole", "build", input.ServerRole},
+		{"WildcardDomain", "https://new.example.com", input.WildcardDomain},
+		{"ServerTimezone", "America/New_York", input.ServerTimezone},
 	}
 	for _, c := range stringChecks {
 		if c.got == nil {

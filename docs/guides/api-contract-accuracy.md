@@ -103,7 +103,7 @@ Fields: 140 | Type matches: 140/140 | Nullable matches: 120/140 | Client JSON ma
 | is_build_server_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_consistent_container_name_enabled | boolean | boolean | yes | yes | false | mapped |
 | is_container_label_escape_enabled | boolean | boolean | yes | yes | true | mapped |
-| is_container_label_readonly_enabled | boolean | boolean | yes | yes | true | n/a |
+| is_container_label_readonly_enabled | boolean | boolean | yes | yes | true | mapped |
 | is_custom_ssl | boolean | boolean | yes | yes | false | n/a |
 | is_debug_enabled | boolean | boolean | yes | yes | false | n/a |
 | is_dual_cert | boolean | boolean | yes | yes | false | n/a |
@@ -435,7 +435,7 @@ Fields: 19 | Type matches: 19/19 | Nullable matches: 12/19 | Client JSON mapping
 | created_at | - | string | - | - | - | mapped |
 | deleted_at | - | string | - | - | - | n/a |
 | id | - | integer | - | - | - | mapped |
-| is_container_label_readonly_enabled | - | boolean | - | - | - | n/a |
+| is_container_label_readonly_enabled | - | boolean | - | - | - | mapped |
 | updated_at | - | string | - | - | - | mapped |
 
 ## Contract-Only or Inline-Only Models

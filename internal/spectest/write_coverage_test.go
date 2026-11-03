@@ -152,6 +152,13 @@ var serviceWriteKeysAddedInCoolify45 = map[string]struct{}{
 	"redact_all_env_values_in_logs": {},
 }
 
+// serviceWriteKeysAddedInCoolify451 are on ServicesController::update_by_uuid
+// from tag v4.5.1. The pin is still v4.4.2. UpdateService nils
+// IncludeCoolifyDefaultVariables when the server is older than v4.5.1.
+var serviceWriteKeysAddedInCoolify451 = map[string]struct{}{
+	"include_coolify_default_variables": {},
+}
+
 // TestWriteCoverage_ServiceUpdateNoExtraKeys fails if UpdateServiceInput
 // would send a JSON key Coolify PATCH rejects. Extra-key 422 is the #789
 // class (database UI bools). destination_uuid is create-only and must stay
@@ -178,6 +185,9 @@ func TestWriteCoverage_ServiceUpdateNoExtraKeys(t *testing.T) {
 	for field := range tags {
 		if _, ok := allow[field]; !ok {
 			if _, gated := serviceWriteKeysAddedInCoolify45[field]; gated {
+				continue
+			}
+			if _, gated := serviceWriteKeysAddedInCoolify451[field]; gated {
 				continue
 			}
 			extra = append(extra, field)

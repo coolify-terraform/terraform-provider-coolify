@@ -52,6 +52,7 @@ resource "coolify_server" "example" {
 
 ### Optional
 
+- `backup_compression_cpu_percentage` (Number) Maximum CPU percentage backup compression can use. Coolify accepts 25, 50, 75, or 100. The stored default is 25. Present on GET from Coolify >= v4.3.3. Writable on Coolify >= v4.5.1. On older instances the provider keeps a configured value in state and does not send it. Removing the attribute later does not clear a stored value.
 - `concurrent_builds` (Number) How many deployments can run in parallel on this server.
 - `connection_timeout` (Number) SSH connection timeout in seconds.
 - `deployment_queue_limit` (Number) Maximum number of queued deployments (default 25).
@@ -65,12 +66,13 @@ resource "coolify_server" "example" {
 - `server_disk_usage_notification_interval_hours` (Number) Minimum hours between high disk usage notifications (1-720). Coolify's default is 24. Requires Coolify 4.4 tip (not v4.3.23 and not v4.4-rc.1). On older instances the value stays in state and is not sent.
 - `server_disk_usage_notification_threshold` (Number) Disk usage percentage at which a notification is sent.
 - `server_role` (String) Server role: `deployment`, `build`, or `both`. Requires Coolify >= 4.4 (not in tag v4.3.23 or v4.4-rc.1). Against older instances the provider omits it on write. When set, this value is sent instead of mapping `is_build_server`.
+- `server_timezone` (String) IANA timezone for scheduled tasks and backups on this server, for example `UTC` or `Europe/Berlin`. Coolify's stored default is `UTC`. Requires Coolify >= v4.5.1. On older instances the provider keeps a configured value in state and does not send it. Removing the attribute later does not clear a stored value.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 - `user` (String) The SSH user for connecting to the server.
+- `wildcard_domain` (String) Wildcard domain URL used to generate domains for new resources on this server (for example `https://example.com`). Null removes it. Requires Coolify >= v4.5.1. On older instances the provider keeps a configured value in state and does not send it. Removing the attribute later does not clear a stored value.
 
 ### Read-Only
 
-- `backup_compression_cpu_percentage` (Number) CPU percentage Coolify uses when compressing volume backups. Read-only (not on public server PATCH). Present on Coolify >= v4.3.3; empty on older instances.
 - `compose_version` (String) Docker Compose version reported by Coolify for this server (host probe). Read-only; Populated on Coolify >= v4.3.2 when the host has been probed. Empty on older instances.
 - `compose_version_checked_at` (String) When Coolify last checked the Compose version on this server. Read-only.
 - `delete_unused_networks` (Boolean) Whether to delete unused Docker networks during cleanup.
@@ -108,9 +110,7 @@ resource "coolify_server" "example" {
 - `sentinel_metrics_refresh_rate_seconds` (Number) Sentinel metrics refresh rate in seconds.
 - `sentinel_push_interval_seconds` (Number) Interval in seconds between Sentinel metric pushes.
 - `sentinel_token` (String, Sensitive) Sentinel agent token. Sensitive; only returned when the API token can read secrets. Read-only.
-- `server_timezone` (String) Server timezone (e.g., `UTC`, `America/New_York`).
 - `uuid` (String) The unique identifier of the server.
-- `wildcard_domain` (String) Wildcard domain for applications on this server (e.g., `example.com`).
 
 <a id="nestedatt--timeouts"></a>
 ### Nested Schema for `timeouts`

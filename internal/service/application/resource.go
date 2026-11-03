@@ -235,6 +235,6 @@ func (m *applicationResourceModel) common() commonAppFields {
 
 func flattenApplication(app *client.Application, state *applicationResourceModel, c *client.Client) {
 	f := state.common()
-	f.PreserveConfiguredMaxRestart = c != nil && !c.SupportsApplicationSettingsV43()
+	noteCoolifyVersion(&f, c)
 	flattenApplicationCommon(app, f)
 }

@@ -313,7 +313,7 @@ func (r *hetznerServerResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	flattenHetznerServer(srv, &plan)
+	flattenHetznerServer(r.client, srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": created.UUID})
 }
@@ -338,7 +338,7 @@ func (r *hetznerServerResource) Read(ctx context.Context, req resource.ReadReque
 		return
 	}
 
-	flattenHetznerServer(srv, &state)
+	flattenHetznerServer(r.client, srv, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -381,6 +381,7 @@ func (r *hetznerServerResource) Update(ctx context.Context, req resource.UpdateR
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": state.UUID.ValueString()})
 
 	server.WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
+	server.WarnUnsupportedServerV451(r.client, plan.commonPtrs(), &resp.Diagnostics)
 	input := server.BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
 	if _, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input); err != nil {
@@ -394,7 +395,7 @@ func (r *hetznerServerResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	flattenHetznerServer(srv, &plan)
+	flattenHetznerServer(r.client, srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "updated resource", map[string]interface{}{"resource_type": "coolify_server_hetzner", "uuid": state.UUID.ValueString()})
 }
@@ -462,8 +463,10 @@ func (m *hetznerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 	}
 }
 
-func flattenHetznerServer(srv *client.Server, model *hetznerServerResourceModel) {
-	server.FlattenServerCommon(srv, model.commonPtrs())
+func flattenHetznerServer(c *client.Client, srv *client.Server, model *hetznerServerResourceModel) {
+	ptrs := model.commonPtrs()
+	server.NoteServerCoolifyVersion(c, &ptrs)
+	server.FlattenServerCommon(srv, ptrs)
 	// enable_ipv4, enable_ipv6, and enable_backups are not on GET.
 	// Keep a known state value. Do not invent the Coolify default:
 	// a server created with the other value would then plan a replace.

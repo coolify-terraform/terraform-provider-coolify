@@ -429,16 +429,63 @@ func TestSupportsCoolify451(t *testing.T) {
 	}
 }
 
+func TestSupportsCoolify46(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"4.5.3", false},
+		{"4.6-rc.1", false},
+		{"4.6.0", true},
+		{"4.6.1", true},
+		{"4.4-rc.1", false},
+		{"4.3.0", true},
+		{"", true},
+	}
+	for _, tt := range tests {
+		c := &Client{CoolifyVersion: tt.version}
+		if got := c.SupportsCoolify46(); got != tt.want {
+			t.Errorf("SupportsCoolify46(%q) = %v, want %v", tt.version, got, tt.want)
+		}
+	}
+	var nilClient *Client
+	if !nilClient.SupportsCoolify46() {
+		t.Error("nil client should assume newest behaviour rather than panic")
+	}
+}
+
+func TestClearApplicationSettingsV46LeavesV451Keys(t *testing.T) {
+	t.Parallel()
+	user := "git"
+	secret := "secret"
+	on := true
+	in := UpdateApplicationInput{
+		IncludeCoolifyDefaultVariables: &on,
+		GitHTTPSUsername:               &user,
+		GitHTTPSPassword:               &secret,
+	}
+	in.clearApplicationSettingsV46()
+	if in.GitHTTPSUsername != nil || in.GitHTTPSPassword != nil {
+		t.Fatal("v4.6.0 fields were not cleared")
+	}
+	if in.IncludeCoolifyDefaultVariables == nil || !*in.IncludeCoolifyDefaultVariables {
+		t.Fatal("clearApplicationSettingsV46 dropped a v4.5.1 field")
+	}
+}
+
 func TestClearApplicationSettingsV451LeavesV45Keys(t *testing.T) {
 	t.Parallel()
 	algo := "bcrypt"
 	drain := int64(5)
+	on := true
 	in := UpdateApplicationInput{
-		HTTPBasicAuthHashAlgorithm: &algo,
-		RollingUpdateDrainSeconds:  &drain,
+		HTTPBasicAuthHashAlgorithm:     &algo,
+		RollingUpdateDrainSeconds:      &drain,
+		IncludeCoolifyDefaultVariables: &on,
 	}
 	in.clearApplicationSettingsV451()
-	if in.RollingUpdateDrainSeconds != nil {
+	if in.RollingUpdateDrainSeconds != nil || in.IncludeCoolifyDefaultVariables != nil {
 		t.Fatal("v4.5.1 field was not cleared")
 	}
 	if in.HTTPBasicAuthHashAlgorithm == nil || *in.HTTPBasicAuthHashAlgorithm != "bcrypt" {

@@ -690,7 +690,7 @@ resource "coolify_server" "test" {
   name             = "bad-extended-setting"
   ip               = "10.0.0.1"
   private_key_uuid = "dddd0002-0002-4000-8000-000000000002"
-  wildcard_domain  = "example.com"
+  is_cloudflare_tunnel = true
 }`,
 				ExpectError: regexp.MustCompile(`Invalid Configuration for Read-Only Attribute|Cannot set value for this attribute as the provider has marked it as read-only`),
 			},

@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/client"
 	"github.com/coolify-terraform/terraform-provider-coolify/internal/flex"
@@ -79,6 +81,9 @@ type ServerCommonPtrs struct {
 	DockerVersion                     *types.String
 	DockerVersionCheckedAt            *types.String
 	BackupCompressionCPUPercentage    *types.Int64
+	// WithholdCoolify451 keeps configured v4.5.1 server writes when Read
+	// runs against an older instance.
+	WithholdCoolify451 bool
 }
 
 // CommonServerAttrs returns the schema attributes shared by all server
@@ -219,16 +224,32 @@ func addExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 
 func addCoreExtendedSettingsAttrs(attrs map[string]schema.Attribute) {
 	attrs["wildcard_domain"] = schema.StringAttribute{
-		MarkdownDescription: "Wildcard domain for applications on this server (e.g., `example.com`).",
-		Computed:            true,
+		MarkdownDescription: "Wildcard domain URL used to generate domains for new resources on this server (for example `https://example.com`). " +
+			"Null removes it. Requires Coolify >= v4.5.1. On older instances the provider keeps a configured value in state and does not send it. " +
+			"Removing the attribute later does not clear a stored value.",
+		Optional:      true,
+		Computed:      true,
+		PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Validators: []validator.String{
+			stringvalidator.LengthAtMost(255),
+			stringvalidator.RegexMatches(httpURLPattern, "must be an http or https URL"),
+		},
 	}
 	attrs["is_cloudflare_tunnel"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether this server uses a Cloudflare Tunnel.",
 		Computed:            true,
 	}
 	attrs["server_timezone"] = schema.StringAttribute{
-		MarkdownDescription: "Server timezone (e.g., `UTC`, `America/New_York`).",
-		Computed:            true,
+		MarkdownDescription: "IANA timezone for scheduled tasks and backups on this server, for example `UTC` or `Europe/Berlin`. " +
+			"Coolify's stored default is `UTC`. Requires Coolify >= v4.5.1. On older instances the provider keeps a configured value in state and does not send it. " +
+			"Removing the attribute later does not clear a stored value.",
+		Optional:      true,
+		Computed:      true,
+		PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		Validators: []validator.String{
+			stringvalidator.LengthAtMost(255),
+			serverTimezoneValidator{},
+		},
 	}
 	attrs["is_metrics_enabled"] = schema.BoolAttribute{
 		MarkdownDescription: "Whether metrics collection is enabled on this server.",
@@ -389,17 +410,91 @@ func addHostProbeVersionAttrs(attrs map[string]schema.Attribute) {
 }
 
 // addBackupCompressionAttrs adds the Coolify >= v4.3.3 volume-backup
-// CPU share. GET settings include it; public server PATCH does not.
+// CPU share. Public server PATCH accepts it from Coolify >= v4.5.1.
 func addBackupCompressionAttrs(attrs map[string]schema.Attribute) {
 	attrs["backup_compression_cpu_percentage"] = schema.Int64Attribute{
-		MarkdownDescription: "CPU percentage Coolify uses when compressing volume backups. " +
-			"Read-only (not on public server PATCH). Present on Coolify >= v4.3.3; empty on older instances.",
-		Computed: true,
+		MarkdownDescription: "Maximum CPU percentage backup compression can use. Coolify accepts 25, 50, 75, or 100. The stored default is 25. " +
+			"Present on GET from Coolify >= v4.3.3. Writable on Coolify >= v4.5.1. On older instances the provider keeps a configured value in state and does not send it. " +
+			"Removing the attribute later does not clear a stored value.",
+		Optional:      true,
+		Computed:      true,
+		PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+		Validators:    []validator.Int64{int64validator.OneOf(25, 50, 75, 100)},
+	}
+}
+
+var httpURLPattern = regexp.MustCompile(`^https?://\S+$`)
+
+type serverTimezoneValidator struct{}
+
+func (serverTimezoneValidator) Description(context.Context) string {
+	return "must be a valid IANA timezone"
+}
+
+func (serverTimezoneValidator) MarkdownDescription(context.Context) string {
+	return "must be a valid IANA timezone, for example `UTC` or `Europe/Berlin`"
+}
+
+func (serverTimezoneValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	name := strings.TrimSpace(req.ConfigValue.ValueString())
+	if name == "" {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid server timezone", "server_timezone must not be empty.")
+		return
+	}
+	if _, err := time.LoadLocation(name); err != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid server timezone", "server_timezone must be a valid IANA timezone, for example UTC or Europe/Berlin.")
 	}
 }
 
 // FlattenServerCommon sets the fields shared by all server resource types
 // from the API response.
+// NoteServerCoolifyVersion marks v4.5.1 server writes to keep on Read
+// when the connected instance would reject them.
+func NoteServerCoolifyVersion(c *client.Client, f *ServerCommonPtrs) {
+	if f == nil {
+		return
+	}
+	f.WithholdCoolify451 = c != nil && !c.SupportsCoolify451()
+}
+
+// WarnUnsupportedServerV451 tells the user when wildcard_domain,
+// server_timezone, or backup_compression_cpu_percentage will stay in
+// state and not be sent.
+func WarnUnsupportedServerV451(c *client.Client, p ServerCommonPtrs, diags *diag.Diagnostics) {
+	if diags == nil || c == nil || c.SupportsCoolify451() {
+		return
+	}
+	var names []string
+	if stringConfigured(p.WildcardDomain) {
+		names = append(names, "wildcard_domain")
+	}
+	if stringConfigured(p.ServerTimezone) {
+		names = append(names, "server_timezone")
+	}
+	if intConfigured(p.BackupCompressionCPUPercentage) {
+		names = append(names, "backup_compression_cpu_percentage")
+	}
+	if len(names) == 0 {
+		return
+	}
+	ver := c.CoolifyVersion
+	if ver == "" {
+		ver = "unknown"
+	}
+	diags.AddWarning(
+		"Coolify version cannot write some server settings",
+		fmt.Sprintf(
+			"This Coolify instance (%s) is older than v4.5.1, which is required to write: %s. "+
+				"The provider will keep these values in Terraform state but will not send them. "+
+				"Upgrade Coolify to v4.5.1 or later, or remove these attributes from configuration.",
+			ver, strings.Join(names, ", "),
+		),
+	)
+}
+
 func FlattenServerCommon(srv *client.Server, f ServerCommonPtrs) {
 	*f.UUID = types.StringValue(srv.UUID)
 	*f.Name = types.StringValue(srv.Name)
@@ -453,9 +548,18 @@ func FlattenServerCommon(srv *client.Server, f ServerCommonPtrs) {
 
 // flattenExtendedSettings sets the extended settings fields from the API response.
 func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
+	priorWildcard, keepWildcard := configuredString(f.WithholdCoolify451, f.WildcardDomain)
+	priorTimezone, keepTimezone := configuredString(f.WithholdCoolify451, f.ServerTimezone)
+	priorCPU, keepCPU := configuredInt(f.WithholdCoolify451, f.BackupCompressionCPUPercentage)
 	*f.WildcardDomain = flex.StringToFramework(s.WildcardDomain)
 	*f.IsCloudFlareTunnel = types.BoolValue(s.IsCloudFlareTunnel)
 	*f.ServerTimezone = flex.StringToFramework(s.ServerTimezone)
+	if keepWildcard {
+		*f.WildcardDomain = priorWildcard
+	}
+	if keepTimezone {
+		*f.ServerTimezone = priorTimezone
+	}
 	*f.IsMetricsEnabled = types.BoolValue(s.IsMetricsEnabled)
 	*f.IsTerminalEnabled = types.BoolValue(s.IsTerminalEnabled)
 	*f.IsSentinelEnabled = types.BoolValue(s.IsSentinelEnabled)
@@ -492,6 +596,23 @@ func flattenExtendedSettings(s *client.ServerSettings, f ServerCommonPtrs) {
 	setStringPtr(f.DockerVersion, s.DockerVersion)
 	setStringPtr(f.DockerVersionCheckedAt, s.DockerVersionCheckedAt)
 	setIntPtr(f.BackupCompressionCPUPercentage, s.BackupCompressionCPUPercentage)
+	if keepCPU && f.BackupCompressionCPUPercentage != nil {
+		*f.BackupCompressionCPUPercentage = priorCPU
+	}
+}
+
+func configuredString(withhold bool, v *types.String) (types.String, bool) {
+	if !withhold || v == nil || v.IsNull() || v.IsUnknown() {
+		return types.StringNull(), false
+	}
+	return *v, true
+}
+
+func configuredInt(withhold bool, v *types.Int64) (types.Int64, bool) {
+	if !withhold || v == nil || v.IsNull() || v.IsUnknown() {
+		return types.Int64Null(), false
+	}
+	return *v, true
 }
 
 func flattenDiskInterval(api *int, dst *types.Int64) {
@@ -554,7 +675,18 @@ func HasNonDefaultSettings(p ServerCommonPtrs) bool {
 		flex.Int64ValueNonDefault(*p.ServerDiskUsageNotificationThreshold, 80) ||
 		flex.StringValueNonDefault(*p.ServerDiskUsageCheckFrequency, "") ||
 		flex.BoolPtrNonDefault(p.IsTerminalEnabled, true) ||
-		diskIntervalConfigured(p)
+		diskIntervalConfigured(p) ||
+		stringConfigured(p.WildcardDomain) ||
+		stringConfigured(p.ServerTimezone) ||
+		intConfigured(p.BackupCompressionCPUPercentage)
+}
+
+func stringConfigured(v *types.String) bool {
+	return v != nil && !v.IsNull() && !v.IsUnknown() && v.ValueString() != ""
+}
+
+func intConfigured(v *types.Int64) bool {
+	return v != nil && !v.IsNull() && !v.IsUnknown()
 }
 
 // BuildPostCreateSettingsInput returns an UpdateServerInput populated with
@@ -572,6 +704,18 @@ func BuildPostCreateSettingsInput(p ServerCommonPtrs) client.UpdateServerInput {
 	}
 	if p.IsTerminalEnabled != nil {
 		input.IsTerminalEnabled = flex.BoolIfNonDefault(*p.IsTerminalEnabled, true)
+	}
+	if stringConfigured(p.WildcardDomain) {
+		v := p.WildcardDomain.ValueString()
+		input.WildcardDomain = &v
+	}
+	if stringConfigured(p.ServerTimezone) {
+		v := p.ServerTimezone.ValueString()
+		input.ServerTimezone = &v
+	}
+	if intConfigured(p.BackupCompressionCPUPercentage) {
+		v := int(p.BackupCompressionCPUPercentage.ValueInt64())
+		input.BackupCompressionCPUPercentage = &v
 	}
 	return input
 }
@@ -636,6 +780,7 @@ func ApplyPostCreateCloudProviderSettings(ctx context.Context, c *client.Client,
 	if p.ServerDiskUsageNotificationIntervalHours != nil {
 		WarnDiskUsageInterval(c, *p.ServerDiskUsageNotificationIntervalHours, diags)
 	}
+	WarnUnsupportedServerV451(c, p, diags)
 	if !HasNonDefaultCloudProviderSettings(p) {
 		return nil
 	}
@@ -759,6 +904,15 @@ func BuildServerUpdateInput(plan, state ServerCommonPtrs) client.UpdateServerInp
 	}
 	if plan.InstantValidate != nil && state.InstantValidate != nil {
 		input.InstantValidate = flex.BoolIfChanged(*plan.InstantValidate, *state.InstantValidate)
+	}
+	if plan.WildcardDomain != nil && state.WildcardDomain != nil {
+		input.WildcardDomain = flex.StringIfChanged(*plan.WildcardDomain, *state.WildcardDomain)
+	}
+	if plan.ServerTimezone != nil && state.ServerTimezone != nil {
+		input.ServerTimezone = flex.StringIfChanged(*plan.ServerTimezone, *state.ServerTimezone)
+	}
+	if plan.BackupCompressionCPUPercentage != nil && state.BackupCompressionCPUPercentage != nil {
+		input.BackupCompressionCPUPercentage = flex.IntIfChanged(*plan.BackupCompressionCPUPercentage, *state.BackupCompressionCPUPercentage)
 	}
 	return input
 }

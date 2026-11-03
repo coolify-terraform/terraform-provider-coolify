@@ -215,6 +215,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		plan.ServerDiskUsageNotificationIntervalHours = types.Int64Null()
 	}
 	WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
+	WarnUnsupportedServerV451(r.client, plan.commonPtrs(), &resp.Diagnostics)
 	resolveInstantValidate(&plan.InstantValidate)
 
 	// Save partial state so the resource is tracked even if the read-back fails.
@@ -245,7 +246,7 @@ func (r *serverResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	flattenServer(srv, &plan)
+	flattenServer(r.client, srv, &plan)
 	resolveInstantValidate(&plan.InstantValidate)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": created.UUID})
@@ -271,7 +272,7 @@ func (r *serverResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	flattenServer(srv, &state)
+	flattenServer(r.client, srv, &state)
 	resolveInstantValidate(&state.InstantValidate)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -291,6 +292,7 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	tflog.Debug(ctx, "updating resource", map[string]interface{}{"resource_type": "coolify_server", "uuid": state.UUID.ValueString()})
 	WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
+	WarnUnsupportedServerV451(r.client, plan.commonPtrs(), &resp.Diagnostics)
 
 	input := BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 
@@ -307,7 +309,7 @@ func (r *serverResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	flattenServer(srv, &plan)
+	flattenServer(r.client, srv, &plan)
 	resolveInstantValidate(&plan.InstantValidate)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -380,8 +382,10 @@ func (m *serverResourceModel) commonPtrs() ServerCommonPtrs {
 	}
 }
 
-func flattenServer(srv *client.Server, model *serverResourceModel) {
-	FlattenServerCommon(srv, model.commonPtrs())
+func flattenServer(c *client.Client, srv *client.Server, model *serverResourceModel) {
+	ptrs := model.commonPtrs()
+	NoteServerCoolifyVersion(c, &ptrs)
+	FlattenServerCommon(srv, ptrs)
 }
 
 // resolveInstantValidate fills the create/update-only trigger after flatten.

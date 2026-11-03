@@ -36,8 +36,8 @@ var applicationSettingsSchemaRegistry = []SchemaCoverageEntry{
 	{ContractField: "include_source_commit_in_build", SchemaAttribute: "include_source_commit_in_build", Status: StatusCovered},
 	{ContractField: "inject_build_args_to_dockerfile", SchemaAttribute: "inject_build_args_to_dockerfile", Status: StatusCovered},
 	{ContractField: "is_consistent_container_name_enabled", SchemaAttribute: "is_consistent_container_name_enabled", Status: StatusCovered},
-	// Still UI-only (not on ApplicationsController APPLICATION_SETTING_FIELDS).
-	{ContractField: "is_container_label_readonly_enabled", Status: SkipNA, Notes: "not in ApplicationsController APPLICATION_SETTING_FIELDS public allow-list"},
+	// Writable on Coolify >= v4.5.1. The v4.4.2 pin allow list omits it.
+	{ContractField: "is_container_label_readonly_enabled", SchemaAttribute: "is_container_label_readonly_enabled", Status: StatusCovered, Notes: "public write on Coolify >= v4.5.1; withheld on older instances"},
 	{ContractField: "is_debug_enabled", Status: SkipNA, Notes: "not in ApplicationsController APPLICATION_SETTING_FIELDS public allow-list"},
 	{ContractField: "is_env_sorting_enabled", SchemaAttribute: "is_env_sorting_enabled", Status: StatusCovered},
 	{ContractField: "is_git_lfs_enabled", SchemaAttribute: "is_git_lfs_enabled", Status: StatusCovered},

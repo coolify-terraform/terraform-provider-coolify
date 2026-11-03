@@ -392,6 +392,8 @@ type CreateDatabaseBackupInput struct {
 	Timeout               *int64    `json:"timeout,omitempty"`
 	// MissingBackupNotificationDays requires Coolify >= v4.3.18.
 	MissingBackupNotificationDays *int64 `json:"missing_backup_notification_days,omitempty"`
+	// DisableLocalBackup requires Coolify >= v4.5.1 and save_s3 true.
+	DisableLocalBackup *bool `json:"disable_local_backup,omitempty"`
 }
 
 type UpdateDatabaseBackupInput struct {
@@ -413,6 +415,8 @@ type UpdateDatabaseBackupInput struct {
 	Timeout               *int64    `json:"timeout,omitempty"`
 	// MissingBackupNotificationDays requires Coolify >= v4.3.18.
 	MissingBackupNotificationDays *int64 `json:"missing_backup_notification_days,omitempty"`
+	// DisableLocalBackup requires Coolify >= v4.5.1 and save_s3 true.
+	DisableLocalBackup *bool `json:"disable_local_backup,omitempty"`
 }
 
 func (c *Client) ListDatabaseBackups(ctx context.Context, dbUUID string) ([]DatabaseBackup, error) {
@@ -430,6 +434,9 @@ func (c *Client) CreateDatabaseBackup(ctx context.Context, dbUUID string, input 
 	if !c.SupportsCoolify45() {
 		input.S3StorageUUIDs = nil
 	}
+	if !c.SupportsCoolify451() {
+		input.DisableLocalBackup = nil
+	}
 	var b DatabaseBackup
 	if err := c.doWithStatus(ctx, http.MethodPost, fmt.Sprintf("/api/v1/databases/%s/backups", url.PathEscape(dbUUID)), input, &b, http.StatusCreated); err != nil {
 		return nil, fmt.Errorf("creating backup for database %s: %w", dbUUID, err)
@@ -444,6 +451,9 @@ func (c *Client) UpdateDatabaseBackup(ctx context.Context, dbUUID string, backup
 	}
 	if !c.SupportsCoolify45() {
 		input.S3StorageUUIDs = nil
+	}
+	if !c.SupportsCoolify451() {
+		input.DisableLocalBackup = nil
 	}
 	var b DatabaseBackup
 	if err := c.do(ctx, http.MethodPatch, fmt.Sprintf("/api/v1/databases/%s/backups/%s", url.PathEscape(dbUUID), url.PathEscape(backupUUID)), input, &b); err != nil {

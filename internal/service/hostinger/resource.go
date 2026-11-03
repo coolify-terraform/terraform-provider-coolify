@@ -276,7 +276,7 @@ func (r *hostingerServerResource) Create(ctx context.Context, req resource.Creat
 		)
 		return
 	}
-	flattenHostingerServer(srv, &plan)
+	flattenHostingerServer(r.client, srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 	tflog.Debug(ctx, "created resource", map[string]interface{}{"resource_type": "coolify_server_hostinger", "uuid": created.UUID})
 }
@@ -296,7 +296,7 @@ func (r *hostingerServerResource) Read(ctx context.Context, req resource.ReadReq
 		resp.Diagnostics.AddError("Error reading Hostinger server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
 	}
-	flattenHostingerServer(srv, &state)
+	flattenHostingerServer(r.client, srv, &state)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -348,6 +348,7 @@ func (r *hostingerServerResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 	server.WarnDiskUsageInterval(r.client, plan.ServerDiskUsageNotificationIntervalHours, &resp.Diagnostics)
+	server.WarnUnsupportedServerV451(r.client, plan.commonPtrs(), &resp.Diagnostics)
 	input := server.BuildServerUpdateInput(plan.commonPtrs(), state.commonPtrs())
 	if _, err := r.client.UpdateServer(ctx, state.UUID.ValueString(), input); err != nil {
 		resp.Diagnostics.AddError("Error updating Hostinger server", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
@@ -358,7 +359,7 @@ func (r *hostingerServerResource) Update(ctx context.Context, req resource.Updat
 		resp.Diagnostics.AddError("Error reading Hostinger server after update", fmt.Sprintf("server %s: %s", state.UUID.ValueString(), err))
 		return
 	}
-	flattenHostingerServer(srv, &plan)
+	flattenHostingerServer(r.client, srv, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -417,9 +418,11 @@ func (m *hostingerServerResourceModel) commonPtrs() server.ServerCommonPtrs {
 	}
 }
 
-func flattenHostingerServer(srv *client.Server, model *hostingerServerResourceModel) {
+func flattenHostingerServer(c *client.Client, srv *client.Server, model *hostingerServerResourceModel) {
 	priorName := model.Name
-	server.FlattenServerCommon(srv, model.commonPtrs())
+	ptrs := model.commonPtrs()
+	server.NoteServerCoolifyVersion(c, &ptrs)
+	server.FlattenServerCommon(srv, ptrs)
 	if !priorName.IsNull() && !priorName.IsUnknown() && strings.EqualFold(priorName.ValueString(), model.Name.ValueString()) {
 		model.Name = priorName
 	}
