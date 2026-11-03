@@ -172,8 +172,8 @@ func flattenProxy(got *client.ServerProxy, plan *serverProxyModel) {
 	} else if plan.TraefikCertificateResolver.IsUnknown() {
 		plan.TraefikCertificateResolver = types.StringNull()
 	}
-	if got.ProxyErrorPage != "" {
-		plan.ProxyErrorPage = types.StringValue(got.ProxyErrorPage)
+	if got.ProxyErrorPage != nil && *got.ProxyErrorPage != "" {
+		plan.ProxyErrorPage = types.StringValue(*got.ProxyErrorPage)
 	} else if plan.ProxyErrorPage.IsUnknown() {
 		plan.ProxyErrorPage = types.StringNull()
 	}
