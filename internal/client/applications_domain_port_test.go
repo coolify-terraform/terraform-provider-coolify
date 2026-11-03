@@ -9,6 +9,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestApplication_NullGitHTTPSUsername(t *testing.T) {
+	t.Parallel()
+	var app client.Application
+	raw := []byte(`{"uuid":"app-1","name":"web","git_https_username":null,"git_https_password":null}`)
+	require.NoError(t, json.Unmarshal(raw, &app))
+	assert.Nil(t, app.GitHTTPSUsername)
+	assert.Nil(t, app.GitHTTPSPassword)
+}
+
 func TestApplication_DomainPortOverridesJSON(t *testing.T) {
 	t.Parallel()
 	raw := []byte(`{
