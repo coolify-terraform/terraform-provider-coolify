@@ -21,14 +21,29 @@ func TestAccCoverage_AllResourcesHaveAccTests(t *testing.T) {
 	p := &coolifyProvider{version: "test"}
 
 	accContent := loadAccTestContent(t)
+	// Create calls Cloudflare, Doppler, Infisical, or Vault. CI Coolify
+	// cannot satisfy that check, so acceptance is not run for this resource.
+	noAcc := map[string]bool{
+		"coolify_integration_token": true,
+	}
+	seen := map[string]bool{}
 
 	for _, factory := range p.Resources(ctx) {
 		r := factory()
 		resp := resource.MetadataResponse{}
 		r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "coolify"}, &resp)
 		typeName := resp.TypeName
+		if noAcc[typeName] {
+			seen[typeName] = true
+			continue
+		}
 		if !strings.Contains(accContent, `"`+typeName+`"`) {
 			t.Errorf("resource %s has no acceptance test (type name not found in any *_acc_test.go)", typeName)
+		}
+	}
+	for name := range noAcc {
+		if !seen[name] {
+			t.Errorf("acceptance exemption %s is not a registered resource", name)
 		}
 	}
 }
@@ -41,14 +56,30 @@ func TestAccCoverage_AllDataSourcesHaveAccTests(t *testing.T) {
 	p := &coolifyProvider{version: "test"}
 
 	accContent := loadAccTestContent(t)
+	// These read the same tokens. Listing them still needs Coolify >= v4.6.0
+	// and a token the acceptance instance does not create.
+	noAcc := map[string]bool{
+		"coolify_integration_token":  true,
+		"coolify_integration_tokens": true,
+	}
+	seen := map[string]bool{}
 
 	for _, factory := range p.DataSources(ctx) {
 		ds := factory()
 		resp := datasource.MetadataResponse{}
 		ds.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "coolify"}, &resp)
 		typeName := resp.TypeName
+		if noAcc[typeName] {
+			seen[typeName] = true
+			continue
+		}
 		if !strings.Contains(accContent, `"`+typeName+`"`) {
 			t.Errorf("data source %s has no acceptance test (type name not found in any *_acc_test.go)", typeName)
+		}
+	}
+	for name := range noAcc {
+		if !seen[name] {
+			t.Errorf("acceptance exemption %s is not a registered data source", name)
 		}
 	}
 }
