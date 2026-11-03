@@ -22,8 +22,10 @@ func TestIntegrationTokenDataSource_Read(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"uuid": uuid, "name": "vault-read", "provider": "vault",
-			"capabilities": []string{"secrets"}, "dns_zones_count": 0,
+			"uuid": uuid, "name": "vault-read", "provider": "cloudflare",
+			"capabilities": []string{"dns"}, "automatic_dns": true, "proxied_dns": false,
+			"dns_zones_count": 0, "zones_synced_at": nil,
+			"created_at": "2026-11-02T00:00:00Z", "updated_at": "2026-11-02T00:00:00Z",
 		})
 	})
 	srv := httptest.NewServer(acctest.WithVersionEndpointVersion(mux, "4.6.0"))
@@ -39,7 +41,7 @@ data "coolify_integration_token" "test" {
 `,
 			Check: resource.ComposeAggregateTestCheckFunc(
 				resource.TestCheckResourceAttr("data.coolify_integration_token.test", "name", "vault-read"),
-				resource.TestCheckResourceAttr("data.coolify_integration_token.test", "integration_provider", "vault"),
+				resource.TestCheckResourceAttr("data.coolify_integration_token.test", "integration_provider", "cloudflare"),
 			),
 		}},
 	})

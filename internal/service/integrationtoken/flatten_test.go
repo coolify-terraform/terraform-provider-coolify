@@ -28,6 +28,18 @@ func TestFlattenIntegrationToken_PreservesCapabilityOrder(t *testing.T) {
 	}
 }
 
+func TestIntegrationTokenJSON_NullZonesSyncedAt(t *testing.T) {
+	t.Parallel()
+	var got client.IntegrationToken
+	raw := []byte(`{"uuid":"33333333-3333-4333-8333-333333333333","name":"cf","provider":"cloudflare","capabilities":["dns"],"automatic_dns":true,"proxied_dns":false,"dns_zones_count":0,"zones_synced_at":null,"created_at":"2026-11-02T00:00:00Z","updated_at":"2026-11-02T00:00:00Z"}`)
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.ZonesSyncedAt != nil {
+		t.Fatalf("zones_synced_at = %#v, want nil", *got.ZonesSyncedAt)
+	}
+}
+
 func TestUpdateInput_ClearsOptionalMetadata(t *testing.T) {
 	t.Parallel()
 	plan := integrationTokenModel{

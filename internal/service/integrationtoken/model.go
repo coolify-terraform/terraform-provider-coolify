@@ -237,8 +237,8 @@ func flattenIntegrationToken(got *client.IntegrationToken, m *integrationTokenMo
 	} else if m.DNSZonesCount.IsUnknown() {
 		m.DNSZonesCount = types.Int64Null()
 	}
-	if got.ZonesSyncedAt != "" {
-		m.ZonesSyncedAt = types.StringValue(got.ZonesSyncedAt)
+	if got.ZonesSyncedAt != nil && *got.ZonesSyncedAt != "" {
+		m.ZonesSyncedAt = types.StringValue(*got.ZonesSyncedAt)
 	} else if m.ZonesSyncedAt.IsUnknown() {
 		m.ZonesSyncedAt = types.StringNull()
 	}
