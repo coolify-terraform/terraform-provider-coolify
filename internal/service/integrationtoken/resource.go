@@ -127,12 +127,12 @@ func integrationTokenAttributes() map[string]schema.Attribute {
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"metadata_namespace": schema.StringAttribute{
-			MarkdownDescription: "Vault namespace. Forbidden for Cloudflare. Not returned on read. Remove the attribute to clear the stored namespace.",
+			MarkdownDescription: "Vault namespace. Forbidden for Cloudflare. Not returned on read, so import does not load it. Remove the attribute to clear a namespace already stored in state.",
 			Optional:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
 		"metadata_timeout": schema.Int64Attribute{
-			MarkdownDescription: "Secret-manager request timeout in seconds (1-300). Forbidden for Cloudflare. Not returned on read. Remove the attribute to clear the stored timeout.",
+			MarkdownDescription: "Secret-manager request timeout in seconds (1-300). Forbidden for Cloudflare. Not returned on read, so import does not load it. Remove the attribute to clear a timeout already stored in state.",
 			Optional:            true,
 			PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			Validators:          []validator.Int64{int64validator.Between(1, 300)},
