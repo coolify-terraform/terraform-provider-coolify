@@ -152,9 +152,9 @@ type Application struct {
 	IncludeCoolifyDefaultVariables  *bool `json:"include_coolify_default_variables,omitempty"`
 	IsContainerLabelReadonlyEnabled *bool `json:"is_container_label_readonly_enabled,omitempty"`
 	// GitHTTPSUsername and GitHTTPSPassword are Coolify >= v4.6.0.
-	// The password is encrypted and GET omits it.
-	GitHTTPSUsername string `json:"git_https_username,omitempty"`
-	GitHTTPSPassword string `json:"git_https_password,omitempty"`
+	// Username is null when unset. The password stays hidden on GET.
+	GitHTTPSUsername *string `json:"git_https_username,omitempty"`
+	GitHTTPSPassword *string `json:"git_https_password,omitempty"`
 	// NoindexDomains is the subset of domains served with X-Robots-Tag noindex
 	// (Coolify >= v4.3.0). JSON array on the wire; empty means none.
 	NoindexDomains  []string `json:"noindex_domains,omitempty"`

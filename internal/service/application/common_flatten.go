@@ -852,11 +852,15 @@ func flattenApplicationSettingFields(app *client.Application, f commonAppFields)
 		setBoolIfPresent(f.IsContainerLabelReadonlyEnabled, app.IsContainerLabelReadonlyEnabled)
 	}
 	if !keepConfiguredString(f.WithholdCoolify46, f.GitHTTPSUsername) {
-		setStringIfPresent(f.GitHTTPSUsername, app.GitHTTPSUsername)
+		if app.GitHTTPSUsername != nil && *app.GitHTTPSUsername != "" {
+			setStringIfPresent(f.GitHTTPSUsername, *app.GitHTTPSUsername)
+		} else if f.GitHTTPSUsername != nil && f.GitHTTPSUsername.IsUnknown() {
+			*f.GitHTTPSUsername = types.StringNull()
+		}
 	}
 	// The password is encrypted and GET omits it. Keep a configured value.
-	if !keepConfiguredString(true, f.GitHTTPSPassword) {
-		setStringIfPresent(f.GitHTTPSPassword, app.GitHTTPSPassword)
+	if !keepConfiguredString(true, f.GitHTTPSPassword) && app.GitHTTPSPassword != nil {
+		setStringIfPresent(f.GitHTTPSPassword, *app.GitHTTPSPassword)
 	}
 	flattenNoindexDomains(app.NoindexDomains, f.NoindexDomains)
 }
