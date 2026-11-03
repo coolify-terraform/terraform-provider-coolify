@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.30](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.29...v0.1.30) (2026-11-03)
+
+
+### Features
+
+* **provider:** add proxy, mTLS, timeout, and header commands ([#1031](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1031)) ([381f6ec](https://github.com/coolify-terraform/terraform-provider-coolify/commit/381f6ec3513c8facde54fffd899bd87b817309f7))
+* **provider:** support Coolify 4.5.1 and 4.6.0 writes ([#1033](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1033)) ([78ac5e6](https://github.com/coolify-terraform/terraform-provider-coolify/commit/78ac5e679c61dbfc15bf1e1295e3355c212649e7))
+
+
+### Bug Fixes
+
+* **application:** accept a null git HTTPS username ([#1037](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1037)) ([7875fac](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7875fac2f764a9c2589ebca2b4fa9f25d2ee6abe))
+* **integrationtoken:** match Coolify 4.6 read behavior ([#1035](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1035)) ([cae0c1c](https://github.com/coolify-terraform/terraform-provider-coolify/commit/cae0c1cc1c42447271428feeeb90d313e889deac))
+* **serverproxy:** accept a null proxy error page ([#1036](https://github.com/coolify-terraform/terraform-provider-coolify/issues/1036)) ([7ba5a58](https://github.com/coolify-terraform/terraform-provider-coolify/commit/7ba5a5890aa257077b1aade0b28bd2f488edba84))
+
 ## [0.1.29](https://github.com/coolify-terraform/terraform-provider-coolify/compare/v0.1.28...v0.1.29) (2026-10-29)
 
 
