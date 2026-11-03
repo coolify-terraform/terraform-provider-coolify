@@ -13,6 +13,14 @@ import (
 
 const testServerUUID = "aaaa0001-0001-4000-8000-000000000001"
 
+func TestServerProxyJSON_NullErrorPage(t *testing.T) {
+	t.Parallel()
+	var got ServerProxy
+	raw := []byte(`{"proxy_type":"TRAEFIK","redirect_enabled":true,"redirect_url":"","proxy_error_page":null,"generate_exact_labels":false}`)
+	require.NoError(t, json.Unmarshal(raw, &got))
+	assert.Nil(t, got.ProxyErrorPage)
+}
+
 func TestServerProxyUpdate_JSONTags(t *testing.T) {
 	t.Parallel()
 	enabled := false

@@ -15,9 +15,9 @@ type ServerProxy struct {
 	Configuration              string  `json:"configuration,omitempty"`
 	TraefikCertificateResolver *string `json:"traefik_certificate_resolver,omitempty"`
 	// ProxyErrorPage is custom HTML for unknown hosts and maintenance.
-	// Empty means Coolify is using the default page. Requires >= v4.5.1.
+	// Coolify sends null when the default page is in use. Requires >= v4.5.1.
 	// At most 1 MiB (Server::PROXY_ERROR_PAGE_MAX_BYTES).
-	ProxyErrorPage string `json:"proxy_error_page,omitempty"`
+	ProxyErrorPage *string `json:"proxy_error_page,omitempty"`
 }
 
 type ServerProxyUpdateInput struct {
